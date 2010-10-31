@@ -53,6 +53,7 @@ AliHLTEveMuon::AliHLTEveMuon() :
   fClusters(NULL)
 {
   // Constructor.
+  SetMaxHistograms(6);
 }
 
 AliHLTEveMuon::~AliHLTEveMuon()
@@ -100,7 +101,10 @@ void AliHLTEveMuon::ProcessBlock(AliHLTHOMERBlockDesc * block) {
     }
     
     ProcessFullTracks( block,  fFullTrackList );
-  } 
+
+  } else if(block->GetDataType().CompareTo("ROOTHIST") == 0) {
+    ProcessHistogram(block);
+  }
  
 }
 

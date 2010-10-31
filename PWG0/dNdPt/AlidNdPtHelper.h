@@ -40,9 +40,11 @@ class AlidNdPtHelper : public TObject
 {
   public:
     enum AnalysisMode { kInvalid = -1, kSPD = 0, kTPC, kTPCITS, kTPCSPDvtx, kTPCSPDvtxUpdate, kTPCTrackSPDvtx, kTPCTrackSPDvtxUpdate, kTPCITSHybrid, kTPCITSHybridTrackSPDvtx, kTPCITSHybridTrackSPDvtxDCArPt, kITSStandAloneTrackSPDvtx,kITSStandAloneTPCTrackSPDvtx, kMCRec };
+
     enum ParticleMode { kAllPart = 0, kMCPion, kMCKaon, kMCProton, kPlus, kMinus, kCosmic, kBackgroundTrack, kMCRest, kVZEROCase1, kVZEROCase2};
 
-    enum OutputObject { kInvalidObject = -1, kCutAnalysis = 0, kAnalysis, kCorrection, kSystematics };
+    enum OutputObject { kInvalidObject = -1, kCutAnalysis = 0, kAnalysis, kAnalysisPbPb , kCorrection, kSystematics };
+
     enum TrackObject  { kInvalidTrackObject = -1, kAllTracks = 0, kAccTracks, kRecTracks, kMCTracks };
     enum EventObject  { kInvalidEventObject = -1, kAllEvents = 0, kTriggeredEvents, kAccEvents, kRecEvents, kMCEvents };
     enum CutSteps     { kCutSteps = 3 };
@@ -84,13 +86,21 @@ class AlidNdPtHelper : public TObject
     static TH1* CalcRelativeDifferenceFun(TH1 *const hist=0, TF1 *const fun=0);
     static TH1* NormalizeToEvent(TH2 *const hist1=0, TH1 *const hist2=0);
 
-    static THnSparse* GenerateCorrMatrix(THnSparse *const hist1, THnSparse *const hist2, char *const name);
-    static TH2* GenerateCorrMatrix(TH2 *const hist1, TH2 *const hist2, char *const name);
-    static TH1* GenerateCorrMatrix(TH1 *const hist1, TH1 *const hist2, char *const name);
+    //static THnSparse* GenerateCorrMatrix(THnSparse *const hist1, THnSparse *const hist2, char *const name);
+    //static TH2* GenerateCorrMatrix(TH2 *const hist1, TH2 *const hist2, char *const name);
+    //static TH1* GenerateCorrMatrix(TH1 *const hist1, TH1 *const hist2, char *const name);
 
-    static THnSparse* GenerateContCorrMatrix(THnSparse *const hist1, THnSparse *const hist2, char *const name);
-    static TH2* GenerateContCorrMatrix(TH2 *const hist1, TH2 *const hist2, char *const name);
-    static TH1* GenerateContCorrMatrix(TH1 *const hist1, TH1 *const hist2, char *const name);
+    //static THnSparse* GenerateContCorrMatrix(THnSparse *const hist1, THnSparse *const hist2, char *const name);
+    //static TH2* GenerateContCorrMatrix(TH2 *const hist1, TH2 *const hist2, char *const name);
+    //static TH1* GenerateContCorrMatrix(TH1 *const hist1, TH1 *const hist2, char *const name);
+
+    static THnSparse* GenerateCorrMatrix(THnSparse *const hist1, THnSparse *const hist2, const char * name);
+    static TH2* GenerateCorrMatrix(TH2 *const hist1, TH2 *const hist2, const char* name);
+    static TH1* GenerateCorrMatrix(TH1 *const hist1, TH1 *const hist2, const char* name);
+
+    static THnSparse* GenerateContCorrMatrix(THnSparse *const hist1, THnSparse *const hist2, const char* name);
+    static TH2* GenerateContCorrMatrix(TH2 *const hist1, TH2 *const hist2, const char* name);
+    static TH1* GenerateContCorrMatrix(TH1 *const hist1, TH1 *const hist2, const char* name);
 
     static Double_t GetStrangenessCorrFactor(const Double_t pt);
     static Double_t GetLinearInterpolationValue(const Double_t x1, const Double_t y1, const Double_t x2, const Double_t y2, const Double_t pt);

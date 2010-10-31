@@ -30,6 +30,7 @@
 #include "AliLog.h" 
 #include "AliPHOSGeometry.h" 
 #include "AliPHOSPIDv1.h" 
+#include "AliPHOSReconstructor.h" 
 #include "AliPHOSAodCluster.h" 
 #include "AliPHOSCalibData.h"
 #include "AliAODCaloCells.h"
@@ -109,9 +110,9 @@ void AliPHOSAodCluster::EvalEnergy(){
    
 }
 //____________________________________________________________________________
-void AliPHOSAodCluster::EnergyCorrection(AliPHOSPIDv1 * pid){
+void AliPHOSAodCluster::EnergyCorrection(){
   //apply nonlinearity correction same as in AliPHOSPIDv1.
-  SetE(pid->GetCalibratedEnergy(E())) ;
+  SetE(AliPHOSReconstructor::CorrectNonlinearity(E())) ;
 }
 //____________________________________________________________________________
 void AliPHOSAodCluster::EvalPID(AliPHOSPIDv1 * /*pid*/){           
@@ -230,7 +231,7 @@ void AliPHOSAodCluster::EvalCoord(Float_t logWeight, TVector3 &vtx)
   //Go to the global system
   TVector3 gps ;
   phosgeom->Local2Global(phosMod, xMean, zMean, gps) ;
-  SetPosition(0, gps[0]) ;
-  SetPosition(1, gps[1]) ;  
-  SetPosition(2, gps[2]) ;
+  SetPositionAt(gps[0],0) ;
+  SetPositionAt(gps[1],1) ;  
+  SetPositionAt(gps[2],2) ;
 }

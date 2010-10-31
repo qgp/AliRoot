@@ -16,12 +16,11 @@
 //* provided "as is" without express or implied warranty.                  *
 //**************************************************************************
 
-/**
- * @file   AliHLTModulePreprocessor.cxx
- * @author Matthias Richter
- * @date   2008-01-22
- * @brief  Base class for HLT module preprocessors
- */
+// @file   AliHLTModulePreprocessor.cxx
+// @author Matthias Richter
+// @date   2008-01-22
+// @brief  Base class for HLT module preprocessors
+// 
 
 #include <cstdlib>
 #include <cassert>
@@ -29,6 +28,9 @@
 #include "AliHLTShuttleInterface.h"
 #include "TObjString.h"
 #include "TString.h"
+#include "TMap.h"
+#include "TObject.h"
+#include "TObjArray.h"
 
 
 ClassImp(AliHLTModulePreprocessor)
@@ -50,6 +52,7 @@ AliHLTModulePreprocessor::~AliHLTModulePreprocessor()
   // see header file for function documentation
 }
 
+// TODO: map this constants to AliHLTDAQ class
 const Int_t AliHLTModulePreprocessor::kNDetectors = 21;
 
 const char* AliHLTModulePreprocessor::fgkDetectorName[kNDetectors] = 
@@ -83,7 +86,7 @@ void AliHLTModulePreprocessor::SetShuttleInterface(AliHLTShuttleInterface* pInte
   fpInterface=pInterface;
 }
 
-Int_t AliHLTModulePreprocessor::GetRun()
+Int_t AliHLTModulePreprocessor::GetRun() const
 {
   // see header file for function documentation
 
@@ -92,7 +95,7 @@ Int_t AliHLTModulePreprocessor::GetRun()
   return fpInterface->PreprocessorGetRun();
 }
 
-UInt_t AliHLTModulePreprocessor::GetStartTime()
+UInt_t AliHLTModulePreprocessor::GetStartTime() const
 {
   // see header file for function documentation
 
@@ -101,7 +104,7 @@ UInt_t AliHLTModulePreprocessor::GetStartTime()
   return fpInterface->PreprocessorGetStartTime();
 }
 
-UInt_t AliHLTModulePreprocessor::GetEndTime()
+UInt_t AliHLTModulePreprocessor::GetEndTime() const
 {
   // see header file for function documentation
 
@@ -273,4 +276,22 @@ const char *AliHLTModulePreprocessor::DetectorName(Int_t detectorID)
       return "";
     }
   return fgkDetectorName[detectorID];
+}
+
+TObject* AliHLTModulePreprocessor::GetFromMap(TMap* dcsAliasMap, const char* stringId) const
+{
+  /// extract object from the alias map
+  /// return the last object from the value set
+  TObject* object=dcsAliasMap->FindObject(stringId);
+  if (!object) return NULL;
+  TPair* pair = dynamic_cast<TPair*>(object);
+  if (pair && pair->Value()) {
+    TObjArray* valueSet = dynamic_cast<TObjArray*>(pair->Value());
+    if (!valueSet) return NULL;
+    Int_t nentriesDCS = valueSet->GetEntriesFast() - 1;
+    if(nentriesDCS>=0 && valueSet->At(nentriesDCS)){
+      return valueSet->At(nentriesDCS);
+    }
+  }
+  return NULL;
 }

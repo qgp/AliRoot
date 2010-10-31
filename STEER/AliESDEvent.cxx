@@ -66,6 +66,7 @@
 #include "AliLog.h"
 #include "AliESDACORDE.h"
 #include "AliESDHLTDecision.h"
+#include "AliESDCentrality.h"
 
 ClassImp(AliESDEvent)
 
@@ -74,31 +75,32 @@ ClassImp(AliESDEvent)
 // here we define the names, some classes are no TNamed, therefore the classnames 
 // are the Names
   const char* AliESDEvent::fgkESDListName[kESDListN] = {"AliESDRun",
-						       "AliESDHeader",
-						       "AliESDZDC",
-						       "AliESDFMD",
-						       "AliESDVZERO",
-						       "AliESDTZERO",
-						       "TPCVertex",
-						       "SPDVertex",
-						       "PrimaryVertex",
-						       "AliMultiplicity",
-						       "PHOSTrigger",
-						       "EMCALTrigger",
-						       "SPDPileupVertices",
-						       "TrkPileupVertices",
-						       "Tracks",
-						       "MuonTracks",
-						       "PmdTracks",
-						       "TrdTracks",
-						       "V0s",
-						       "Cascades",
-						       "Kinks",
-						       "CaloClusters",
-						      "EMCALCells",
-						      "PHOSCells",
-						       "AliRawDataErrorLogs",
-						       "AliESDACORDE"};
+							"AliESDHeader",
+							"AliESDZDC",
+							"AliESDFMD",
+							"AliESDVZERO",
+							"AliESDTZERO",
+							"TPCVertex",
+							"SPDVertex",
+							"PrimaryVertex",
+							"AliMultiplicity",
+							"PHOSTrigger",
+							"EMCALTrigger",
+							"SPDPileupVertices",
+							"TrkPileupVertices",
+							"Tracks",
+							"MuonTracks",
+							"PmdTracks",
+							"TrdTracks",
+							"V0s",
+							"Cascades",
+							"Kinks",
+							"CaloClusters",
+							"EMCALCells",
+							"PHOSCells",
+							"AliRawDataErrorLogs",
+							"AliESDACORDE",
+							"AliTOFHeader"};
 
 //______________________________________________________________________________
 AliESDEvent::AliESDEvent():
@@ -132,7 +134,9 @@ AliESDEvent::AliESDEvent():
   fESDOld(0),
   fESDFriendOld(0),
   fConnected(kFALSE),
-  fUseOwnList(kFALSE)
+  fUseOwnList(kFALSE),
+  fTOFHeader(0),
+  fCentrality(new AliESDCentrality())
 {
 }
 //______________________________________________________________________________
@@ -168,8 +172,9 @@ AliESDEvent::AliESDEvent(const AliESDEvent& esd):
   fESDOld(esd.fESDOld ? new AliESD(*esd.fESDOld) : 0),
   fESDFriendOld(esd.fESDFriendOld ? new AliESDfriend(*esd.fESDFriendOld) : 0),
   fConnected(esd.fConnected),
-  fUseOwnList(esd.fUseOwnList)
-
+  fUseOwnList(esd.fUseOwnList),
+  fTOFHeader(new AliTOFHeader(*esd.fTOFHeader)),
+  fCentrality(new AliESDCentrality(*esd.fCentrality))
 {
   // CKB init in the constructor list and only add here ...
   AddObject(fESDRun);
@@ -198,6 +203,7 @@ AliESDEvent::AliESDEvent(const AliESDEvent& esd):
   AddObject(fPHOSCells);
   AddObject(fErrorLogs);
   AddObject(fESDACORDE);
+  AddObject(fTOFHeader);
 
   GetStdContent();
 
@@ -249,8 +255,11 @@ AliESDEvent & AliESDEvent::operator=(const AliESDEvent& source) {
 	((TNamed*)mine)->SetName(name);
       }
       else if(mine->InheritsFrom("TCollection")){
-	if(mine->InheritsFrom("TClonesArray"))
-	  dynamic_cast<TClonesArray*>(mine)->SetClass(dynamic_cast<TClonesArray*>(its)->GetClass());
+	if(mine->InheritsFrom("TClonesArray")) {
+	  TClonesArray* tcits = dynamic_cast<TClonesArray*>(its);
+	  if (tcits)
+	    dynamic_cast<TClonesArray*>(mine)->SetClass(tcits->GetClass());
+	}
 	dynamic_cast<TCollection*>(mine)->SetName(name);
       }
       AliDebug(1, Form("adding object %s of type %s", mine->GetName(), mine->ClassName()));
@@ -287,11 +296,12 @@ AliESDEvent & AliESDEvent::operator=(const AliESDEvent& source) {
     }
   }
 
-  fConnected = source.fConnected;
+  fCentrality = source.fCentrality;
+
+  fConnected  = source.fConnected;
   fUseOwnList = source.fUseOwnList;
 
   return *this;
-
 }
 
 
@@ -310,7 +320,7 @@ AliESDEvent::~AliESDEvent()
       delete fESDObjects;
       fESDObjects = 0;
     }
-
+  delete fCentrality;
   
 }
 
@@ -355,7 +365,15 @@ void AliESDEvent::Reset()
 	((TClonesArray*)pObject)->Delete();
       }
       else if(!pObject->InheritsFrom(TCollection::Class())){
-	ResetWithPlacementNew(pObject);
+	TClass *pClass = TClass::GetClass(pObject->ClassName());
+	if (pClass && pClass->GetListOfMethods()->FindObject("Clear")) {
+	  AliDebug(1, Form("Clear for object %s class %s", pObject->GetName(), pObject->ClassName()));
+	  pObject->Clear();
+	}
+	else {
+	  AliDebug(1, Form("ResetWithPlacementNew for object %s class %s", pObject->GetName(), pObject->ClassName()));
+	  ResetWithPlacementNew(pObject);
+	}
       }
       else{
 	AliWarning(Form("No reset for %s \n",
@@ -417,8 +435,13 @@ void AliESDEvent::ResetStdContent()
     fSPDMult->~AliMultiplicity();
     new (fSPDMult) AliMultiplicity();
   }
-  if(fPHOSTrigger)fPHOSTrigger->Reset(); 
-  if(fEMCALTrigger)fEMCALTrigger->Reset(); 
+  if(fTOFHeader){
+    fTOFHeader->~AliTOFHeader();
+    new (fTOFHeader) AliTOFHeader();
+    //fTOFHeader->SetName(fgkESDListName[kTOFHeader]);
+  }
+  if(fPHOSTrigger)fPHOSTrigger->DeAllocate(); 
+  if(fEMCALTrigger)fEMCALTrigger->DeAllocate(); 
   if(fSPDPileupVertices)fSPDPileupVertices->Delete();
   if(fTrkPileupVertices)fTrkPileupVertices->Delete();
   if(fTracks)fTracks->Delete();
@@ -937,6 +960,13 @@ void  AliESDEvent::AddRawDataErrorLog(const AliRawDataErrorLog *log) const {
   new(errlogs[errlogs.GetEntriesFast()])  AliRawDataErrorLog(*log);
 }
 
+void AliESDEvent::SetZDCData(AliESDZDC * obj)
+{ 
+  // use already allocated space
+  if(fESDZDC)
+    *fESDZDC = *obj;
+}
+
 void  AliESDEvent::SetPrimaryVertexTPC(const AliESDVertex *vertex) 
 {
   // Set the TPC vertex
@@ -1103,7 +1133,7 @@ void AliESDEvent::GetStdContent()
   fPHOSCells = (AliESDCaloCells*)fESDObjects->FindObject(fgkESDListName[kPHOSCells]);
   fErrorLogs = (TClonesArray*)fESDObjects->FindObject(fgkESDListName[kErrorLogs]);
   fESDACORDE = (AliESDACORDE*)fESDObjects->FindObject(fgkESDListName[kESDACORDE]);
-
+  fTOFHeader = (AliTOFHeader*)fESDObjects->FindObject(fgkESDListName[kTOFHeader]);
 }
 
 void AliESDEvent::SetStdNames(){
@@ -1162,6 +1192,7 @@ void AliESDEvent::CreateStdContent()
   AddObject(new AliESDCaloCells());
   AddObject(new TClonesArray("AliRawDataErrorLog",0));
   AddObject(new AliESDACORDE()); 
+  AddObject(new AliTOFHeader());
 
   // check the order of the indices against enum...
 
@@ -1378,7 +1409,8 @@ void AliESDEvent::ReadFromTree(TTree *tree, Option_t* opt){
       if(bname.CompareTo("AliESDfriend")==0)
 	{
 	  // AliESDfriend does not have a name ...
-	  tree->SetBranchAddress("ESDfriend.",fESDObjects->GetObjectRef(el));
+	    TBranch *br = tree->GetBranch("ESDfriend.");
+	    if (br) tree->SetBranchAddress("ESDfriend.",fESDObjects->GetObjectRef(el));
 	}
       else{
 	// check if branch exists under this Name
@@ -1626,7 +1658,7 @@ Bool_t  AliESDEvent::IsPileupFromSPD(Int_t minContributors,
       Double_t z2=pv->GetZ();
       Double_t distZ=TMath::Abs(z2-z1);
       Double_t distZdiam=TMath::Abs(z2-GetDiamondZ());
-      Double_t cutZdiam=nSigmaDiamZ*GetSigma2DiamondZ();
+      Double_t cutZdiam=nSigmaDiamZ*TMath::Sqrt(GetSigma2DiamondZ());
       if(GetSigma2DiamondZ()<0.0001)cutZdiam=99999.; //protection for missing z diamond information
       if(distZ>minZdist && distZdiam<cutZdiam){
 	Double_t x2=pv->GetX();
@@ -1685,4 +1717,30 @@ void AliESDEvent::EstimateMultiplicity(Int_t &tracklets, Int_t &trITSTPC, Int_t 
     else                                  trITSTPC++;
   }
   //
+}
+
+Bool_t AliESDEvent::IsPileupFromSPDInMultBins() const {
+    Int_t nTracklets=GetMultiplicity()->GetNumberOfTracklets();
+    if(nTracklets<20) return IsPileupFromSPD(3,0.8);
+    else if(nTracklets<50) return IsPileupFromSPD(4,0.8);
+    else return IsPileupFromSPD(5,0.8);
+}
+
+void  AliESDEvent::SetTOFHeader(const AliTOFHeader *header)
+{
+  //
+  // Set the TOF event_time
+  //
+
+  if (fTOFHeader) {
+    *fTOFHeader=*header;
+    //fTOFHeader->SetName(fgkESDListName[kTOFHeader]);
+  }
+  else {
+    // for analysis of reconstructed events
+    // when this information is not avaliable
+    fTOFHeader = new AliTOFHeader(*header);
+    //AddObject(fTOFHeader);
+  }
+
 }

@@ -65,15 +65,16 @@ AliPHOSCalibData * AliPHOSReconstructor::fgCalibData  = 0 ;
 
 //____________________________________________________________________________
 AliPHOSReconstructor::AliPHOSReconstructor() :
-  fGeom(NULL),fClusterizer(NULL),fTSM(NULL),fPID(NULL)
+  fGeom(NULL),fClusterizer(NULL),fTSM(NULL),fPID(NULL),fTmpDigLG(NULL)
 {
   // ctor
-  fGeom        = AliPHOSGeometry::GetInstance("IHEP","");
-  fClusterizer = new AliPHOSClusterizerv1      (fGeom);
-  fTSM         = new AliPHOSTrackSegmentMakerv1(fGeom);
-  fPID         = new AliPHOSPIDv1              (fGeom);
-  fgDigitsArray = new TClonesArray("AliPHOSDigit",100);
-  fgEMCRecPoints= new TObjArray(100) ;
+  fGeom          = AliPHOSGeometry::GetInstance("IHEP","");
+  fClusterizer   = new AliPHOSClusterizerv1      (fGeom);
+  fTSM           = new AliPHOSTrackSegmentMakerv1(fGeom);
+  fPID           = new AliPHOSPIDv1              (fGeom);
+  fTmpDigLG      = new TClonesArray("AliPHOSDigit",100);
+  fgDigitsArray  = new TClonesArray("AliPHOSDigit",100);
+  fgEMCRecPoints = new TObjArray(100) ;
   if (!fgCalibData)
     fgCalibData = new AliPHOSCalibData(-1); //use AliCDBManager's run number
 
@@ -83,13 +84,14 @@ AliPHOSReconstructor::AliPHOSReconstructor() :
 }
 
 //____________________________________________________________________________
-  AliPHOSReconstructor::~AliPHOSReconstructor()
+AliPHOSReconstructor::~AliPHOSReconstructor()
 {
   // dtor
   delete fGeom;
   delete fClusterizer;
   delete fTSM;
   delete fPID;
+  delete fTmpDigLG;
   delete fgDigitsArray;
   delete fgEMCRecPoints;
 } 
@@ -128,8 +130,6 @@ void AliPHOSReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   else 
     fTSM->Clusters2TrackSegments("") ;
   
-  fPID->SetEnergyCorrectionOn(GetRecoParam()->GetEMCEnergyCorrectionOn());
-  
   fPID->SetInput(clustersTree, fTSM->GetTrackSegments()) ; 
   fPID->SetESD(esd) ; 
   if ( Debug() ) 
@@ -163,59 +163,59 @@ void AliPHOSReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   emcbranch->SetAddress(&fgEMCRecPoints);
   emcbranch->GetEntry(0);
 
-  //#########Calculate trigger and set trigger info###########
+//   //#########Calculate trigger and set trigger info###########
 
-  AliPHOSTrigger tr ;
-  //   tr.SetPatchSize(1);//create 4x4 patches
-  tr.SetSimulation(kFALSE);
-  tr.Trigger(fgDigitsArray);
+//   AliPHOSTrigger tr ;
+//   //   tr.SetPatchSize(1);//create 4x4 patches
+//   tr.SetSimulation(kFALSE);
+//   tr.Trigger(fgDigitsArray);
   
-  Float_t maxAmp2x2  = tr.Get2x2MaxAmplitude();
-  Float_t maxAmpnxn  = tr.GetnxnMaxAmplitude();
-  Float_t ampOutOfPatch2x2  = tr.Get2x2AmpOutOfPatch() ;
-  Float_t ampOutOfPatchnxn  = tr.GetnxnAmpOutOfPatch() ;
+//   Float_t maxAmp2x2  = tr.Get2x2MaxAmplitude();
+//   Float_t maxAmpnxn  = tr.GetnxnMaxAmplitude();
+//   Float_t ampOutOfPatch2x2  = tr.Get2x2AmpOutOfPatch() ;
+//   Float_t ampOutOfPatchnxn  = tr.GetnxnAmpOutOfPatch() ;
 
-  Int_t iSM2x2      = tr.Get2x2SuperModule();
-  Int_t iSMnxn      = tr.GetnxnSuperModule();
-  Int_t iCrystalPhi2x2 = tr.Get2x2CrystalPhi();
-  Int_t iCrystalPhinxn = tr.GetnxnCrystalPhi();
-  Int_t iCrystalEta2x2 = tr.Get2x2CrystalEta();
-  Int_t iCrystalEtanxn = tr.GetnxnCrystalEta();
+//   Int_t iSM2x2      = tr.Get2x2SuperModule();
+//   Int_t iSMnxn      = tr.GetnxnSuperModule();
+//   Int_t iCrystalPhi2x2 = tr.Get2x2CrystalPhi();
+//   Int_t iCrystalPhinxn = tr.GetnxnCrystalPhi();
+//   Int_t iCrystalEta2x2 = tr.Get2x2CrystalEta();
+//   Int_t iCrystalEtanxn = tr.GetnxnCrystalEta();
 
-  AliDebug(2, Form("Trigger 2x2 max amp %f, out amp %f, SM %d, iphi %d ieta %d",  
-		   maxAmp2x2, ampOutOfPatch2x2, iSM2x2,iCrystalPhi2x2, iCrystalEta2x2));
-  AliDebug(2, Form("Trigger 4x4 max amp %f , out amp %f, SM %d, iphi %d, ieta %d",
-		   maxAmpnxn, ampOutOfPatchnxn, iSMnxn,iCrystalPhinxn, iCrystalEtanxn));
+//   AliDebug(2, Form("Trigger 2x2 max amp %f, out amp %f, SM %d, iphi %d ieta %d",  
+// 		   maxAmp2x2, ampOutOfPatch2x2, iSM2x2,iCrystalPhi2x2, iCrystalEta2x2));
+//   AliDebug(2, Form("Trigger 4x4 max amp %f , out amp %f, SM %d, iphi %d, ieta %d",
+// 		   maxAmpnxn, ampOutOfPatchnxn, iSMnxn,iCrystalPhinxn, iCrystalEtanxn));
 
-  // Attention! PHOS modules in order to calculate AbsId need to be 1-5 not 0-4 as returns trigger.
-  Int_t iRelId2x2 []= {iSM2x2+1,0,iCrystalPhi2x2,iCrystalEta2x2};
-  Int_t iAbsId2x2 =-1;
-  Int_t iRelIdnxn []= {iSMnxn+1,0,iCrystalPhinxn,iCrystalEtanxn};
-  Int_t iAbsIdnxn =-1;
-  TVector3    pos2x2(-1,-1,-1);
-  TVector3    posnxn(-1,-1,-1);
-  fGeom->RelToAbsNumbering(iRelId2x2, iAbsId2x2);
-  fGeom->RelToAbsNumbering(iRelIdnxn, iAbsIdnxn);
-  fGeom->RelPosInAlice(iAbsId2x2, pos2x2);
-  fGeom->RelPosInAlice(iAbsIdnxn, posnxn);
+//   // Attention! PHOS modules in order to calculate AbsId need to be 1-5 not 0-4 as returns trigger.
+//   Int_t iRelId2x2 []= {iSM2x2+1,0,iCrystalPhi2x2,iCrystalEta2x2};
+//   Int_t iAbsId2x2 =-1;
+//   Int_t iRelIdnxn []= {iSMnxn+1,0,iCrystalPhinxn,iCrystalEtanxn};
+//   Int_t iAbsIdnxn =-1;
+//   TVector3    pos2x2(-1,-1,-1);
+//   TVector3    posnxn(-1,-1,-1);
+//   fGeom->RelToAbsNumbering(iRelId2x2, iAbsId2x2);
+//   fGeom->RelToAbsNumbering(iRelIdnxn, iAbsIdnxn);
+//   fGeom->RelPosInAlice(iAbsId2x2, pos2x2);
+//   fGeom->RelPosInAlice(iAbsIdnxn, posnxn);
 
-  TArrayF triggerPosition(6);
-  triggerPosition[0] = pos2x2(0) ;   
-  triggerPosition[1] = pos2x2(1) ;   
-  triggerPosition[2] = pos2x2(2) ;  
-  triggerPosition[3] = posnxn(0) ;   
-  triggerPosition[4] = posnxn(1) ;   
-  triggerPosition[5] = posnxn(2) ;  
+//   TArrayF triggerPosition(6);
+//   triggerPosition[0] = pos2x2(0) ;   
+//   triggerPosition[1] = pos2x2(1) ;   
+//   triggerPosition[2] = pos2x2(2) ;  
+//   triggerPosition[3] = posnxn(0) ;   
+//   triggerPosition[4] = posnxn(1) ;   
+//   triggerPosition[5] = posnxn(2) ;  
 
-  TArrayF triggerAmplitudes(4);
-  triggerAmplitudes[0] = maxAmp2x2 ;   
-  triggerAmplitudes[1] = ampOutOfPatch2x2 ;    
-  triggerAmplitudes[2] = maxAmpnxn ;   
-  triggerAmplitudes[3] = ampOutOfPatchnxn ;   
+//   TArrayF triggerAmplitudes(4);
+//   triggerAmplitudes[0] = maxAmp2x2 ;   
+//   triggerAmplitudes[1] = ampOutOfPatch2x2 ;    
+//   triggerAmplitudes[2] = maxAmpnxn ;   
+//   triggerAmplitudes[3] = ampOutOfPatchnxn ;   
 
-  //esd->SetPHOSTriggerCells(triggerPosition);
-  esd->AddPHOSTriggerPosition(triggerPosition);
-  esd->AddPHOSTriggerAmplitudes(triggerAmplitudes);
+//   //esd->SetPHOSTriggerCells(triggerPosition);
+//   esd->AddPHOSTriggerPosition(triggerPosition);
+//   esd->AddPHOSTriggerAmplitudes(triggerAmplitudes);
   
 
   //########################################
@@ -286,24 +286,27 @@ void AliPHOSReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
     Int_t  primMult  = 0;
     Int_t *primList =  emcRP->GetPrimaries(primMult);
 
-    Float_t energy;
+    Float_t energy=0.;
     if (GetRecoParam()->EMCEcore2ESD())
       energy = emcRP->GetCoreEnergy();
     else
       energy = rp->Energy();
+    //Apply nonlinearity correction
+    if(GetRecoParam()->GetEMCEnergyCorrectionOn())
+      energy=CorrectNonlinearity(energy) ;
 
     // fills the ESDCaloCluster
-    ec->SetClusterType(AliESDCaloCluster::kPHOSCluster);
+    ec->SetType(AliVCluster::kPHOSNeutral);
     ec->SetPosition(xyz);                       //rec.point position in MARS
     ec->SetE(energy);                           //total or core particle energy
-    ec->SetClusterDisp(emcRP->GetDispersion()); //cluster dispersion
-    ec->SetPid(rp->GetPID()) ;                  //array of particle identification
+    ec->SetDispersion(emcRP->GetDispersion());  //cluster dispersion
+    ec->SetPID(rp->GetPID()) ;            //array of particle identification
     ec->SetM02(emcRP->GetM2x()) ;               //second moment M2x
     ec->SetM20(emcRP->GetM2z()) ;               //second moment M2z
     ec->SetNExMax(emcRP->GetNExMax());          //number of local maxima
     ec->SetEmcCpvDistance(ts->GetCpvDistance("r")); //Only radius, what about separate x,z????
     ec->SetTrackDistance(ts->GetCpvDistance("x"),ts->GetCpvDistance("z")); 
-    ec->SetClusterChi2(-1);                     //not yet implemented
+    ec->SetChi2(-1);                     //not yet implemented
     ec->SetTOF(emcRP->GetTime());               //Time of flight - already calibrated in EMCRecPoint
 
     //Cells contributing to clusters
@@ -342,9 +345,9 @@ void AliPHOSReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
     delete [] fracList;
     delete [] absIdList;
   }
-  fgDigitsArray ->Delete();
-  fgEMCRecPoints->Delete();
-  recParticles  ->Delete();
+  fgDigitsArray ->Clear();
+  fgEMCRecPoints->Clear("C");
+  recParticles  ->Clear();
 
   //Store PHOS misalignment matrixes
   FillMisalMatrixes(esd) ;
@@ -399,7 +402,7 @@ void  AliPHOSReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
   rdp.SetEmcMinAmp(GetRecoParam()->GetEMCRawDigitThreshold()); // in ADC
   rdp.SetCpvMinAmp(GetRecoParam()->GetCPVMinE());
   rdp.SetSampleQualityCut(GetRecoParam()->GetEMCSampleQualityCut());
-  rdp.MakeDigits(digits,fitter);
+  rdp.MakeDigits(digits,fTmpDigLG,fitter);
 
   delete fitter ;
 
@@ -501,5 +504,24 @@ void AliPHOSReconstructor::FillMisalMatrixes(AliESDEvent* esd)const{
   }
 
 }
+//==================================================================================
+Float_t AliPHOSReconstructor::CorrectNonlinearity(Float_t en){
 
+  if(strcmp(GetRecoParam()->GetNonlinearityCorrectionVersion(),"NoCorrection")==0){
+    return en ;
+  }
+  if(strcmp(GetRecoParam()->GetNonlinearityCorrectionVersion(),"Gustavo2005")==0){
+    const Float_t *par=GetRecoParam()->GetNonlinearityParams() ;
+    return par[0]+par[1]*en + par[2]*en*en ;
+  }
+  if(strcmp(GetRecoParam()->GetNonlinearityCorrectionVersion(),"Henrik2010")==0){
+     const Float_t *par=GetRecoParam()->GetNonlinearityParams() ;
+     return en*(par[0]+par[1]*TMath::Exp(-en*par[2]))*(1.+par[3]*TMath::Exp(-en*par[4]))*(1.+par[6]/(en*en+par[5])) ;
+  }
+  //For backward compatibility
+  if(strcmp(GetRecoParam()->GetNonlinearityCorrectionVersion(),"")==0){
+    return 0.0241+1.0504*en+0.000249*en*en ;
+  }
+  return en ;
+}
 

@@ -24,7 +24,8 @@ class AliAODEvent;
 
 class AliAODpidUtil {
 public:
-  AliAODpidUtil(): fRange(5.), fTPCResponse(), fITSResponse(), fTOFResponse(), fTRDResponse() {;}
+
+  AliAODpidUtil(Bool_t isMC = kFALSE): fRange(5.), fTPCResponse(), fITSResponse(isMC), fTOFResponse(), fTRDResponse() {;}
   virtual ~AliAODpidUtil() {;}
 
 
@@ -49,7 +50,7 @@ private:
   AliITSPIDResponse fITSResponse;
   AliTOFPIDResponse fTOFResponse;
   AliTRDPIDResponse fTRDResponse;
-
+  
   ClassDef(AliAODpidUtil,1)  // PID calculation class
 };
 
@@ -57,9 +58,10 @@ inline Float_t AliAODpidUtil::NumberOfSigmasTPC(const AliAODTrack *track, AliPID
   
   Double_t mom = track->P();
   AliAODPid *pidObj = track->GetDetPid();
+  UShort_t nTPCClus=pidObj->GetTPCsignalN();
   if (pidObj)
     mom = pidObj->GetTPCmomentum();
-  return fTPCResponse.GetNumberOfSigmas(mom,pidObj->GetTPCsignal(),0,type); 
+  return fTPCResponse.GetNumberOfSigmas(mom,pidObj->GetTPCsignal(),nTPCClus,type); 
 }
 
 inline Float_t AliAODpidUtil::NumberOfSigmasTOF(const AliAODTrack *track, AliPID::EParticleType type) const {
@@ -77,13 +79,10 @@ inline Float_t AliAODpidUtil::NumberOfSigmasITS(const AliAODTrack *track, AliPID
   for(Int_t i=2; i<6; i++){
     if(clumap&(1<<i)) ++nPointsForPid;
   }
-  if(track->GetTPCNcls()>0){
-    Float_t mom=pidObj->GetTPCmomentum();
-    return fITSResponse.GetNumberOfSigmas(mom,dEdx,type,nPointsForPid,kFALSE);
-  }else{
-    Float_t mom=track->P();
-    return fITSResponse.GetNumberOfSigmas(mom,dEdx,type,nPointsForPid,kTRUE);
-  }
+  Float_t mom=track->P();
+  Bool_t isSA=kTRUE;  
+  if(track->GetTPCNcls()>0) isSA=kFALSE;
+  return fITSResponse.GetNumberOfSigmas(mom,dEdx,type,nPointsForPid,isSA);
 }
 #endif
 

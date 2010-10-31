@@ -34,7 +34,7 @@
 
 ClassImp(AliEMCALRecParam)
   
-  TObjArray* AliEMCALRecParam::fgkMaps =0; //ALTRO mappings 
+TObjArray* AliEMCALRecParam::fgkMaps =0; //ALTRO mappings 
 
 AliEMCALRecParam::AliEMCALRecParam() :
   AliDetectorRecoParam(),
@@ -46,6 +46,7 @@ AliEMCALRecParam::AliEMCALRecParam() :
   fTimeCut(1.),// high value, accept all
   fTimeMin(-1.),// small value, accept all
   fTimeMax(1.),// high value, accept all//clustering
+  fClusterizerFlag(AliEMCALRecParam::kClusterizerv1),
   fTrkCutX(6.0), 
   fTrkCutY(6.0), 
   fTrkCutZ(6.0),  
@@ -86,7 +87,7 @@ AliEMCALRecParam::AliEMCALRecParam() :
   // Pb Pb
   
   // as a first step, all array elements are initialized to 0.0
-  Int_t i, j;
+  Int_t i=0, j=0;
   for (i = 0; i < 6; i++) {
     for (j = 0; j < 6; j++) {      
       fGamma[i][j] =  fPiZero[i][j] = fHadron[i][j] = 0.; 
@@ -220,7 +221,22 @@ AliEMCALRecParam::AliEMCALRecParam() :
   fHadronEnergyProb[3]=  2.030230e+00;
   fHadronEnergyProb[4]= -6.402242e-02;
   
-  
+  //unfolding  
+  fSSPars[0] = 0.9262;
+  fSSPars[1] = 3.365;
+  fSSPars[2] = 1.548;
+  fSSPars[3] = 0.1625;
+  fSSPars[4] = -0.4195;
+  fSSPars[5] = 0.;
+  fSSPars[6] = 0.;
+  fSSPars[7] = 2.332;
+  fPar5[0] = 12.31;
+  fPar5[1] = -0.007381;
+  fPar5[2] = -0.06936;
+  fPar6[0] = 0.05452; 
+  fPar6[1] = 0.0001228; 
+  fPar6[2] = 0.001361; 
+
 }
 
 //-----------------------------------------------------------------------------
@@ -234,6 +250,7 @@ AliEMCALRecParam::AliEMCALRecParam(const AliEMCALRecParam& rp) :
   fTimeCut(rp.fTimeCut), 
   fTimeMin(rp.fTimeMin),
   fTimeMax(rp.fTimeMax),//clustering
+  fClusterizerFlag(rp.fClusterizerFlag),
   fTrkCutX(rp.fTrkCutX), 
   fTrkCutY(rp.fTrkCutY), 
   fTrkCutZ(rp.fTrkCutZ),  
@@ -256,7 +273,7 @@ AliEMCALRecParam::AliEMCALRecParam(const AliEMCALRecParam& rp) :
   //copy constructor
   
   //PID values
-  Int_t i, j;
+  Int_t i=0, j=0;
   for (i = 0; i < 6; i++) {
     for (j = 0; j < 6; j++) {
       fGamma[i][j]       = rp.fGamma[i][j];
@@ -271,6 +288,15 @@ AliEMCALRecParam::AliEMCALRecParam(const AliEMCALRecParam& rp) :
     
   }
   
+  //unfolding  
+  for (i = 0; i < 8; i++) {
+    fSSPars[i] = rp.fSSPars[i];
+  }
+  for (i = 0; i < 3; i++) {
+    fPar5[i] = rp.fPar5[i];
+    fPar6[i] = rp.fPar6[i];
+  }
+
 }
 
 //-----------------------------------------------------------------------------
@@ -287,6 +313,7 @@ AliEMCALRecParam& AliEMCALRecParam::operator = (const AliEMCALRecParam& rp)
     fTimeCut   = rp.fTimeCut;
     fTimeMax   = rp.fTimeMax;
     fTimeMin   = rp.fTimeMin;//clustering
+    fClusterizerFlag = rp.fClusterizerFlag;
     fTrkCutX   = rp.fTrkCutX;
     fTrkCutY   = rp.fTrkCutY;
     fTrkCutZ   = rp.fTrkCutZ;
@@ -307,7 +334,7 @@ AliEMCALRecParam& AliEMCALRecParam::operator = (const AliEMCALRecParam& rp)
     fFitLEDEvents      = rp.fFitLEDEvents;//raw signal
 	  
     //PID values
-    Int_t i, j;
+    Int_t i=0, j=0;
     for (i = 0; i < 6; i++) {
       for (j = 0; j < 6; j++) {
 	fGamma[i][j]       = rp.fGamma[i][j];
@@ -320,7 +347,15 @@ AliEMCALRecParam& AliEMCALRecParam::operator = (const AliEMCALRecParam& rp)
       fPiZeroEnergyProb[i] = rp.fPiZeroEnergyProb[i];
       fHadronEnergyProb[i] = rp.fHadronEnergyProb[i];
     }
-    
+    //unfolding  
+    for (i = 0; i < 8; i++) {
+      fSSPars[i] = rp.fSSPars[i];
+    }
+    for (i = 0; i < 3; i++) {
+      fPar5[i] = rp.fPar5[i];
+      fPar6[i] = rp.fPar6[i];
+    }
+
   }    
   
   return *this;
@@ -383,7 +418,7 @@ AliEMCALRecParam* AliEMCALRecParam::GetLowFluxParam()
   
   //PID parameters for pp  implemented 
   // as a first step, all array elements are initialized to 0.0
-  Int_t i, j;
+  Int_t i=0, j=0;
   for (i = 0; i < 6; i++) {
     for (j = 0; j < 6; j++) {
       params->SetGamma(i,j,0.);
@@ -554,11 +589,26 @@ void AliEMCALRecParam::Print(Option_t * opt) const
   // if nothing is specified print all, if "reco" just clusterization/track matching
   // if "pid", just PID parameters, if "raw", just raw utils parameters.
   if(!strcmp("",opt) || !strcmp("reco",opt)){
+    AliInfo(Form("Clusterizer selected: %d", fClusterizerFlag));
     AliInfo(Form("Clusterization parameters :\n fClusteringThreshold=%.3f,\n fW0=%.3f,\n fMinECut=%.3f,\n fUnfold=%d,\n fLocMaxCut=%.3f,\n fTimeCut=%2.1f ns\n fTimeMin=%2.1f ns\n fTimeMax=%2.1f ns\n",
 		 fClusteringThreshold,fW0,fMinECut,fUnfold,fLocMaxCut,fTimeCut*1.e9,fTimeMin*1e9,fTimeMax*1e9));
     
     AliInfo(Form("Track-matching cuts :\n x %f, y %f, z %f, R %f \n alphaMin %f, alphaMax %f, Angle %f, NITS %f, NTPC %f\n", 
 				 fTrkCutX, fTrkCutY, fTrkCutZ, fTrkCutR,fTrkCutAlphaMin,fTrkCutAlphaMax, fTrkCutAngle,fTrkCutNITS,fTrkCutNTPC));
+
+    AliInfo(Form("Unfolding parameters, Shower shape function :\n")); 
+    for(Int_t i = 0; i < 8; i++){
+	printf(" %f, ", fSSPars[i]);
+    }
+    printf("\n Parameter 5 : ");
+    for(Int_t i = 0; i < 3; i++){
+      printf(" %f, ", fPar5[i]);
+    }
+    printf("\n Parameter 6 : ");
+    for(Int_t i = 0; i < 3; i++){
+      printf(" %f, ", fPar6[i]);
+    }
+    printf("\n");
   }
   
   if(!strcmp("",opt) || !strcmp("pid",opt)){

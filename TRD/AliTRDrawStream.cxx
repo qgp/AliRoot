@@ -37,6 +37,7 @@
 #include "AliTRDarrayDictionary.h"
 #include "AliTRDSignalIndex.h"
 #include "AliTRDtrackletWord.h"
+#include "AliESDTrdTrack.h"
 #include "AliTreeLoader.h"
 
 #include "AliTRDrawStream.h"
@@ -122,6 +123,7 @@ AliTRDrawStream::ErrorBehav_t AliTRDrawStream::fgErrorBehav[] = {
 
 AliTRDrawStream::AliTRDrawStream(AliRawReader *rawReader) :
   fStats(), 
+  fStoreError(&AliTRDrawStream::StoreErrorTree),
   fRawReader(rawReader),
   fDigitsManager(0x0),
   fDigitsParam(0x0),
@@ -171,7 +173,10 @@ AliTRDrawStream::AliTRDrawStream(AliRawReader *rawReader) :
   fTrackletArray(0x0),
   fAdcArray(0x0),
   fSignalIndex(0x0),
-  fTrackletTree(0x0)
+  fTrackletTree(0x0),
+  fTracklets(0x0),
+  fTracks(0x0),
+  fMarkers(0x0)
 {
   // default constructor
 
@@ -185,6 +190,8 @@ AliTRDrawStream::AliTRDrawStream(AliRawReader *rawReader) :
   fCurrLinkMonitorFlags   = new UInt_t[fgkNstacks * fgkNlinks];
   fCurrLinkDataTypeFlags  = new UInt_t[fgkNstacks * fgkNlinks];
   fCurrLinkDebugFlags     = new UInt_t[fgkNstacks * fgkNlinks];
+  for (Int_t i = 0; i < 100; i++)
+    fDumpMCM[i] = 0;
 
   // preparing TClonesArray
   fTrackletArray = new TClonesArray("AliTRDtrackletWord", 256);
@@ -192,8 +199,12 @@ AliTRDrawStream::AliTRDrawStream(AliRawReader *rawReader) :
   // setting up the error tree
   fErrors = new TTree("errorStats", "Error statistics");
   fErrors->SetDirectory(0x0);
-  fErrors->Branch("error", &fLastError, "sector/I:stack:link:error:rob:mcm");
+  fErrors->Branch("error", &fLastError);
   fErrors->SetCircular(1000);
+  for (Int_t i = 0; i < 100; i++) {
+    fErrorBuffer[i] = 0;
+  }
+
 }
 
 AliTRDrawStream::~AliTRDrawStream()
@@ -409,7 +420,12 @@ Int_t AliTRDrawStream::NextChamber(AliTRDdigitsManager *digMgr, UInt_t ** /* tra
 	   (((fCurrStackMask & (1 << fCurrSlot)) == 0) || 
 	    ((fCurrLinkMask[fCurrSlot] & (1 << fCurrLink))) == 0));
 
-  return (fCurrSm * 30 + fCurrStack * 6 + fCurrLayer);
+  // return chamber information from HC if it is valid
+  // otherwise return information from link position
+  if (fCurrSm < 0 || fCurrSm > 17 || fCurrStack < 0 || fCurrStack > 4 || fCurrLayer < 0 || fCurrLayer > 5)
+    return ((fCurrEquipmentId-1024) + fCurrSlot * 6 + fCurrLink/2);
+  else
+    return (fCurrSm * 30 + fCurrStack * 6 + fCurrLayer);
 }
 
 
@@ -425,6 +441,8 @@ Int_t AliTRDrawStream::ReadSmHeader()
 
   fCurrSmuIndexHeaderSize     = ((*fPayloadCurr) >> 16) & 0xffff;
   fCurrSmuIndexHeaderVersion  = ((*fPayloadCurr) >> 12) &    0xf;
+  //  fCurrSmuIndexHeaderTrgAvail = ((*fPayloadCurr) >>  9) &    0x1;
+  //  fCurrSmuIndexHeaderEvType   = ((*fPayloadCurr) >>  7) &    0x3;
   fCurrTrackEnable            = ((*fPayloadCurr) >>  6) &    0x1;
   fCurrTrackletEnable         = ((*fPayloadCurr) >>  5) &    0x1;
   fCurrStackMask              = ((*fPayloadCurr)      ) &   0x1f;
@@ -435,7 +453,35 @@ Int_t AliTRDrawStream::ReadSmHeader()
 		   fCurrTrackEnable, 
 		   fCurrTrackletEnable,
 		   fCurrStackMask));
-  
+
+  // decode GTU track words
+  UInt_t trackWord[2] = { 0, 0 };
+  Int_t stack = 0;
+  Int_t idx = 0;
+  for (UInt_t iWord = 4; iWord < fCurrSmuIndexHeaderSize; iWord++) {
+    if (fPayloadCurr[iWord] == 0x10000000) {
+      stack++;
+      idx = 0;
+    }
+    else {
+      if ((idx == 0) &&
+	  ((fPayloadCurr[iWord] & 0xfffff0f0) == 0x13370000)) {
+	AliDebug(1,Form("stack %i: fast trigger word: 0x%08x", stack, fPayloadCurr[iWord]));
+	continue;
+      }
+      else if ((idx & 0x1)==0x1) {
+	trackWord[idx&0x1] = fPayloadCurr[iWord];
+	AliDebug(1,Form("track debug word: 0x%08x%08x", trackWord[1], trackWord[0]));
+//	if (fTracks)
+//	  new ((*fTracks)[fTracks->GetEntriesFast()]) AliESDTrdTrack(0, 0, trackWord[0], trackWord[1], fCurrEquipmentId-1024);
+      }
+      else {
+	trackWord[idx&0x1] = fPayloadCurr[iWord];
+      }
+      idx++;
+    }
+  }
+
   fPayloadCurr += fCurrSmuIndexHeaderSize + 1;
 
   return fCurrSmuIndexHeaderSize + 1;
@@ -501,6 +547,10 @@ Int_t AliTRDrawStream::ReadLinkData()
 //    printf("0x%08x 0x%08x 0x%08x 0x%08x\n", 
 //	   fPayloadCurr[i*4+0], fPayloadCurr[i*4+1], fPayloadCurr[i*4+2], fPayloadCurr[i*4+3]);
 //  }
+
+  if (fMarkers)
+    new ((*fMarkers)[fMarkers->GetEntriesFast()])
+      AliTRDrawStreamError(-kHCactive, fCurrSm, fCurrStack, fCurrLink);
 
   if (fErrorFlags & kDiscardHC)
     return count;
@@ -604,7 +654,7 @@ Int_t AliTRDrawStream::ReadTracklets()
   while (*(fPayloadCurr) != fgkTrackletEndmarker && 
 	 fPayloadCurr - fPayloadStart < fPayloadSize) {
 
-    new ((*fTrackletArray)[fTrackletArray->GetEntriesFast()]) AliTRDtrackletWord(*(fPayloadCurr));
+    new ((*fTrackletArray)[fTrackletArray->GetEntriesFast()]) AliTRDtrackletWord(*(fPayloadCurr), fCurrHC);
 
     fPayloadCurr++;
   }
@@ -612,10 +662,16 @@ Int_t AliTRDrawStream::ReadTracklets()
   if (fTrackletArray->GetEntriesFast() > 0) {
     AliDebug(1, Form("Found %i tracklets in %i %i %i (ev. %i)", fTrackletArray->GetEntriesFast(), 
 		     fCurrSm, fCurrSlot, fCurrLink, fRawReader->GetEventIndex()));
-    fStats.fStatsSector[fCurrSm].fStatsHC[fCurrHC%60].fNTracklets += fTrackletArray->GetEntriesFast();
-    fStats.fStatsSector[fCurrSm].fNTracklets                      += fTrackletArray->GetEntriesFast();
+    if (fCurrSm > -1 && fCurrSm < 18) {
+      fStats.fStatsSector[fCurrSm].fStatsHC[fCurrHC%60].fNTracklets += fTrackletArray->GetEntriesFast();
+      fStats.fStatsSector[fCurrSm].fNTracklets                      += fTrackletArray->GetEntriesFast();
+    }
     if (fTrackletTree)
       fTrackletTree->Fill();
+    if (fTracklets)
+      for (Int_t iTracklet = 0; iTracklet < fTrackletArray->GetEntriesFast(); iTracklet++) {
+	new ((*fTracklets)[fTracklets->GetEntriesFast()]) AliTRDtrackletWord(*((AliTRDtrackletWord*)(*fTrackletArray)[iTracklet]));
+      }
   }
 
   // loop over remaining tracklet endmarkers
@@ -668,7 +724,7 @@ Int_t AliTRDrawStream::ReadHcHeader()
   
   fPayloadCurr += 1 + fCurrAddHcWords;
   
-  return (fPayloadCurr - start) / sizeof(UInt_t);
+  return (fPayloadCurr - start);
 }
 
 Int_t AliTRDrawStream::ReadTPData(Int_t mode)
@@ -1160,7 +1216,7 @@ void AliTRDrawStream::EquipmentError(ErrorCode_t err, const char *const msg, ...
   fLastError.fRob    = -1;
   fLastError.fMcm    = -1;
   fLastError.fError  = err;
-  fErrors->Fill();
+  (this->*fStoreError)();
 
   va_list ap;
   if (fgErrorDebugLevel[err] > 10) 
@@ -1187,7 +1243,7 @@ void AliTRDrawStream::StackError(ErrorCode_t err, const char *const msg, ...)
   fLastError.fRob    = -1;
   fLastError.fMcm    = -1;
   fLastError.fError  = err;
-  fErrors->Fill();
+  (this->*fStoreError)();
 
   va_list ap;
   if (fgErrorDebugLevel[err] > 0) 
@@ -1214,7 +1270,7 @@ void AliTRDrawStream::LinkError(ErrorCode_t err, const char *const msg, ...)
   fLastError.fRob    = -1;
   fLastError.fMcm    = -1;
   fLastError.fError  = err;
-  fErrors->Fill();
+  (this->*fStoreError)();
 
   va_list ap;
   if (fgErrorDebugLevel[err] > 0)
@@ -1241,7 +1297,7 @@ void AliTRDrawStream::ROBError(ErrorCode_t err, const char *const msg, ...)
   fLastError.fRob    = fCurrRobPos;
   fLastError.fMcm    = -1;
   fLastError.fError  = err;
-  fErrors->Fill();
+  (this->*fStoreError)();
 
   va_list ap;
   if (fgErrorDebugLevel[err] > 0) 
@@ -1268,7 +1324,7 @@ void AliTRDrawStream::MCMError(ErrorCode_t err, const char *const msg, ...)
   fLastError.fRob    = fCurrRobPos;
   fLastError.fMcm    = fCurrMcmPos;
   fLastError.fError  = err;
-  fErrors->Fill();
+  (this->*fStoreError)();
 
   va_list ap;
   if (fgErrorDebugLevel[err] > 0) 
@@ -1377,4 +1433,16 @@ void AliTRDrawStream::DumpRaw(TString title, UInt_t *start, Int_t length)
     title += Form("0x%08x ", start[pos]);
   }
   AliInfo(title);
+}
+
+AliTRDrawStream::AliTRDrawStreamError::AliTRDrawStreamError(Int_t error, Int_t sector, Int_t stack, Int_t link, Int_t rob, Int_t mcm) : 
+  fError(error),
+  fSector(sector),
+  fStack(stack),
+  fLink(link), 
+  fRob(rob),
+  fMcm(mcm)
+{
+  // ctor
+
 }

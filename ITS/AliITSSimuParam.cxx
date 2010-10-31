@@ -33,12 +33,14 @@ const TString  AliITSSimuParam::fgkSPDCouplingOptDefault = "old";
 const Double_t AliITSSimuParam::fgkSPDCouplColDefault = 0.;
 const Double_t AliITSSimuParam::fgkSPDCouplRowDefault = 0.055;
 const Float_t  AliITSSimuParam::fgkSPDEccDiffDefault = 0.85;
+const Float_t  AliITSSimuParam::fgkSPDLorentzHoleWeightDefault = 1.0;
 const Float_t  AliITSSimuParam::fgkSDDDiffCoeffDefault = 3.23;
 const Float_t  AliITSSimuParam::fgkSDDDiffCoeff1Default = 30.;
 const Float_t  AliITSSimuParam::fgkSDDJitterErrorDefault = 20.; // 20 um from beam test 2001
 const Float_t  AliITSSimuParam::fgkSDDDynamicRangeDefault = 1400./2.5; // mV/MOhm = nA
 const Int_t    AliITSSimuParam::fgkSDDMaxAdcDefault = 1024;
 const Float_t  AliITSSimuParam::fgkSDDChargeLossDefault = 0.;
+const Float_t  AliITSSimuParam::fgkSDDTrigDelayDefault = 54.3;
 const Double_t AliITSSimuParam::fgkSSDCouplingPRDefault = 0.01;
 const Double_t AliITSSimuParam::fgkSSDCouplingPLDefault = 0.01;
 const Double_t AliITSSimuParam::fgkSSDCouplingNRDefault = 0.01;
@@ -62,6 +64,8 @@ fSPDCouplOpt(0),
 fSPDCouplCol(fgkSPDCouplColDefault),
 fSPDCouplRow(fgkSPDCouplRowDefault),
 fSPDEccDiff(0.),
+fSPDLorentzDrift(kTRUE),
+fSPDLorentzHoleWeight(fgkSPDLorentzHoleWeightDefault),
 fSPDAddNoisyFlag(kFALSE),
 fSPDRemoveDeadFlag(kFALSE),
 fSDDElectronics(0),
@@ -71,6 +75,7 @@ fSDDJitterError(fgkSDDJitterErrorDefault),
 fSDDDynamicRange(fgkSDDDynamicRangeDefault),
 fSDDMaxAdc(0.),
 fSDDChargeLoss(fgkSDDChargeLossDefault),
+fSDDTrigDelay(fgkSDDTrigDelayDefault),
 fSDDRawFormat(7),
 fSSDCouplingPR(0),
 fSSDCouplingPL(0),
@@ -108,6 +113,8 @@ fSPDCouplOpt(simpar.fSPDCouplOpt),
 fSPDCouplCol(simpar.fSPDCouplCol),
 fSPDCouplRow(simpar.fSPDCouplRow),
 fSPDEccDiff(simpar.fSPDEccDiff),
+fSPDLorentzDrift(simpar.fSPDLorentzDrift),
+fSPDLorentzHoleWeight(simpar.fSPDLorentzHoleWeight),
 fSPDAddNoisyFlag(simpar.fSPDAddNoisyFlag),
 fSPDRemoveDeadFlag(simpar.fSPDRemoveDeadFlag),
 fSDDElectronics(simpar.fSDDElectronics),
@@ -117,6 +124,7 @@ fSDDJitterError(simpar.fSDDJitterError),
 fSDDDynamicRange(simpar.fSDDDynamicRange),
 fSDDMaxAdc(simpar.fSDDMaxAdc),
 fSDDChargeLoss(simpar.fSDDChargeLoss),
+fSDDTrigDelay(simpar.fSDDTrigDelay),
 fSDDRawFormat(simpar.fSDDRawFormat),
 fSSDCouplingPR(simpar.fSSDCouplingPR),
 fSSDCouplingPL(simpar.fSSDCouplingPL),
@@ -176,6 +184,8 @@ void AliITSSimuParam::PrintParameters() const{
   printf("Coupling value (column)   = %f\n",fSPDCouplCol);
   printf("Coupling value (row)      = %f\n",fSPDCouplRow);
   printf("Eccentricity in diffusion = %f\n",fSPDEccDiff);
+  printf("Flag to add Lorentz Drift = %d\n",fSPDLorentzDrift);
+  printf("Weight of Holes in Lor.Drift = %f\n",fSPDLorentzHoleWeight);
   printf("Flag to add noisy         = %d\n",fSPDAddNoisyFlag);
   printf("Flag to remove dead       = %d\n",fSPDRemoveDeadFlag);
   printf("\n");
@@ -186,6 +196,7 @@ void AliITSSimuParam::PrintParameters() const{
   printf("Dynamic Range             = %f\n",fSDDDynamicRange);
   printf("Max. ADC                  = %f\n",fSDDMaxAdc);
   printf("Charge Loss               = %f\n",fSDDChargeLoss);  
+  printf("Trigger Delay (ns)        = %f\n",fSDDTrigDelay);  
   printf("Raw Data Format           = %d\n",fSDDRawFormat);  
   printf("\n");
   printf("=====  SSD parameters  =====\n");

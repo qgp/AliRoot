@@ -108,7 +108,8 @@ class AliV0Reader : public TObject {
   /*
    *Returns the number of contributors to the vertex
    */
-  Int_t GetNumberOfContributorsVtx() const{return fESDEvent->GetPrimaryVertex()->GetNContributors();}
+  //  Int_t GetNumberOfContributorsVtx() const{return fESDEvent->GetPrimaryVertex()->GetNContributors();}
+  Int_t GetNumberOfContributorsVtx();
   
   /*
    * Check if there are any more good v0s left in the v0 stack
@@ -421,6 +422,17 @@ class AliV0Reader : public TObject {
    */
   Int_t GetPositiveTracknTPCClusters() const{return fCurrentPositiveESDTrack->GetNcls(1);}
 	
+
+  /*
+   * Gets the Number of the TPC findable clusters of the negative track.
+   */
+  Int_t GetNegativeTracknTPCFClusters() const{return fCurrentNegativeESDTrack->GetTPCNclsF();}
+
+  /*
+   * Gets the Number of the TPC findable clusters of the positive track.
+   */
+  Int_t GetPositiveTracknTPCFClusters() const{return fCurrentPositiveESDTrack->GetTPCNclsF();}
+
   /*
    * Gets the Number of the ITS clusters of the negative track.
    */
@@ -430,6 +442,16 @@ class AliV0Reader : public TObject {
    * Gets the Number of the ITS clusters of the positive track.
    */
   Int_t GetPositiveTracknITSClusters() const{return fCurrentPositiveESDTrack->GetNcls(0);}
+
+  /*
+   * Gets the chi2 of the TPC  negative track.
+   */
+  Double_t GetNegativeTrackTPCchi2() const{return fCurrentNegativeESDTrack->GetTPCchi2();}
+
+  /*
+   * Gets the chi2 of the TPC  the positive track.
+   */
+  Double_t GetPositiveTrackTPCchi2() const{return fCurrentPositiveESDTrack->GetTPCchi2();}
 	
   /*
    * Update data which need to be updated every event.
@@ -445,11 +467,21 @@ class AliV0Reader : public TObject {
    * Gets the MaxRCut value.
    */
   Double_t GetMaxRCut() const{return fMaxR;}
+
+   /*
+    * Gets the MinRCut value.
+    */
+   Double_t GetMinRCut() const{return fMinR;}
 	
   /*
    * Gets the Eta cut value.
    */
   Double_t GetEtaCut() const{return fEtaCut;}
+
+  /*
+   * Gets the Rapidity Meson cut value.
+   */
+  Double_t GetRapidityMesonCut() const{return fRapidityMesonCut;}
 	
   /*
    * Gets the Pt cut value.
@@ -468,6 +500,12 @@ class AliV0Reader : public TObject {
    */
   Double_t GetMinClsTPCCut() const{return fMinClsTPC;}
 	
+  /*
+   * Gets the MinClsTPC value.
+   */
+  Double_t GetMinClsTPCCutToF() const{return fMinClsTPCToF;}
+	
+
 
   /*
    * Gets the line cut values.
@@ -490,6 +528,10 @@ class AliV0Reader : public TObject {
    */
   Double_t GetAlphaCutMeson() const{return fAlphaCutMeson;}
 
+  /*
+   * Gets the Minimum alpha cut value for the mesons.
+   */
+  Double_t GetAlphaMinCutMeson() const{return fAlphaMinCutMeson;}
 
   Double_t GetPositiveTrackLength() const{return fCurrentPositiveESDTrack->GetIntegratedLength();}
   Double_t GetNegativeTrackLength() const{return fCurrentNegativeESDTrack->GetIntegratedLength();}
@@ -506,11 +548,20 @@ class AliV0Reader : public TObject {
    * Sets the MaxRCut value.
    */
   void SetMaxRCut(Double_t maxR){fMaxR=maxR;}
-	
+  /*	
+   * Sets the MinRCut value.
+   */
+  void SetMinRCut(Double_t minR){fMinR=minR;}
+
   /*
    * Sets the EtaCut value.
    */
   void SetEtaCut(Double_t etaCut){fEtaCut=etaCut;}
+
+  /*
+   * Sets the Rapidity Meson Cut value.
+   */
+  void SetRapidityMesonCut(Double_t RapidityMesonCut){fRapidityMesonCut=RapidityMesonCut;}
 	
   /*
    * Sets the PtCut value.
@@ -528,11 +579,17 @@ class AliV0Reader : public TObject {
    */
   void SetMaxZCut(Double_t maxZ){fMaxZ=maxZ;}
 	
- /*
+  /*
    * Sets the MinClsTPC value.
    */
   void SetMinClsTPCCut(Double_t minClsTPC){fMinClsTPC=minClsTPC;}
+
+  /*
+   * Sets the MinClsTPC value.
+   */
+  void SetMinClsTPCCutToF(Double_t minClsTPCToF){fMinClsTPCToF=minClsTPCToF;}
 	
+
   /*
    * Sets the LineCut values.
    */
@@ -554,6 +611,12 @@ class AliV0Reader : public TObject {
    */
   void SetAlphaCutMeson(Double_t alpha){fAlphaCutMeson=alpha;}
 	
+
+  /*
+   * Sets the AlphaCut for the mesons.
+   */
+  void SetAlphaMinCutMeson(Double_t alpha){fAlphaMinCutMeson=alpha;}
+
 
   /*
    * Sets the XVertexCut value.
@@ -692,7 +755,13 @@ class AliV0Reader : public TObject {
    * Resets the V0 index.
    */
   void ResetV0IndexNumber(){fCurrentV0IndexNumber=0;}
-	
+  
+
+  /*
+   * Returns number of good v0s in the event
+   */
+  Int_t GetNGoodV0s() const {return fNumberOfGoodV0s;}
+
   /*
    * Sets the histograms.
    */
@@ -720,6 +789,8 @@ class AliV0Reader : public TObject {
   //  vector<AliKFParticle> GetPreviousEventGoodV0s() const{return fPreviousEventGoodV0s;}
 
   void SetUseOwnXYZCalculation(Bool_t flag){fUseOwnXYZCalculation=flag;}
+
+  void SetUseConstructGamma(Bool_t flag){fUseConstructGamma=flag;}
 
   Bool_t GetHelixCenter(AliESDtrack* track, Double_t b,Int_t charge, Double_t center[2]);
 	
@@ -759,7 +830,13 @@ class AliV0Reader : public TObject {
   static void InitESDpid(Int_t type=0);
   static void SetESDpid(AliESDpid * const pid) {fgESDpid=pid;}
   static AliESDpid* GetESDpid() {return fgESDpid;}
- 
+
+  void SetUseChargedTracksMultiplicityForBG(Bool_t flag){fUseChargedTrackMultiplicityForBG = flag;}
+  
+  Int_t GetPindex(Int_t i) {return fV0Pindex.at(i);}
+  Int_t GetNindex(Int_t i) {return fV0Nindex.at(i);}
+
+  void ResetNGoodV0s(){fNumberOfGoodV0s=0;}
 
 
  private:
@@ -816,16 +893,20 @@ class AliV0Reader : public TObject {
   Double_t fMaxVertexZ;
   //cuts
   Double_t fMaxR; //r cut
+  Double_t fMinR; //r cut
   Double_t fEtaCut; //eta cut
+  Double_t fRapidityMesonCut; //rapidity for meson cut
   Double_t fPtCut; // pt cut
   Double_t fSinglePtCut; // pt cut for electron/positron
   Double_t fMaxZ; //z cut
   Double_t fMinClsTPC;
+  Double_t fMinClsTPCToF;
   Double_t fLineCutZRSlope; //linecut
   Double_t fLineCutZValue; //linecut
   Double_t fChi2CutConversion; //chi2cut
   Double_t fChi2CutMeson;  //chi2cut
   Double_t fAlphaCutMeson;  //alphacut
+  Double_t fAlphaMinCutMeson;  //alphacut
   Double_t fPIDProbabilityCutNegativeParticle; //pid cut
   Double_t fPIDProbabilityCutPositiveParticle; //pid cut
   Bool_t   fDodEdxSigmaCut; // flag to use the dEdxCut based on sigmas
@@ -855,6 +936,8 @@ class AliV0Reader : public TObject {
 
   Bool_t fUseOwnXYZCalculation; //flag that determines if we use our own calculation of xyz (markus)
 
+  Bool_t fUseConstructGamma; //flag that determines if we use ConstructGamma method from AliKF
+
   Bool_t fDoCF; //flag
 
   Bool_t fUseOnFlyV0Finder; //flag
@@ -862,6 +945,9 @@ class AliV0Reader : public TObject {
   Bool_t fUpdateV0AlreadyCalled; //flag
 	
   TClonesArray* fCurrentEventGoodV0s; //vector of good v0s
+ 
+  vector<Int_t> fV0Pindex;
+  vector<Int_t> fV0Nindex;  
   //  vector<AliKFParticle> fPreviousEventGoodV0s; // vector of good v0s from prevous events
 
   Bool_t fCalculateBackground; //flag
@@ -874,8 +960,11 @@ class AliV0Reader : public TObject {
   static AliESDpid* fgESDpid;                 // ESD pid object
 
   Int_t nEventsForBGCalculation;
+  
+  Bool_t fUseChargedTrackMultiplicityForBG;
+  Int_t fNumberOfGoodV0s;
 
-  ClassDef(AliV0Reader,12)
+  ClassDef(AliV0Reader,16)
 };
 
 inline void AliV0Reader::InitESDpid(Int_t type)

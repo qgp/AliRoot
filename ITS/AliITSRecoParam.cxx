@@ -135,6 +135,7 @@ fRequireClusterInInnerLayerPlaneEff(kFALSE),
 fOnlyConstraintPlaneEff(kFALSE),
 fNSigXFromBoundaryPlaneEff(1.),
 fNSigZFromBoundaryPlaneEff(1.),
+fImproveWithVertex(kFALSE),
 fExtendedEtaAcceptance(kFALSE),
 fUseBadZonesFromOCDB(kTRUE),
 fUseSingleBadChannelsFromOCDB(kFALSE),
@@ -169,6 +170,7 @@ fTrackleterPhiShift(0.0045),
 fTrackleterRemoveClustersFromOverlaps(kFALSE),
 fTrackleterPhiOverlapCut(0.005),
 fTrackleterZetaOverlapCut(0.05),
+fTrackleterPhiRotationAngle(0.0),
 fUseCosmicRunShiftsSSD(kFALSE),
 fSPDRemoveNoisyFlag(kTRUE),
 fSPDRemoveDeadFlag(kTRUE),
@@ -208,6 +210,12 @@ fMultCutChi2cK0(2.),
 fMultCutGammaSFromDecay(-10.),
 fMultCutK0SFromDecay(-10.),
 fMultCutMaxDCA(1.),
+//
+fCorrectLorentzAngleSPD(kFALSE),
+fLorentzAngleHolesSPD(0.),
+fCorrectLorentzAngleSSD(kFALSE),
+fLorentzAngleHolesSSD(0.),
+fLorentzAngleElectronsSSD(0.),
 //
 fESDV0Params(NULL)
 {
@@ -306,11 +314,13 @@ AliITSRecoParam *AliITSRecoParam::GetHighFluxParam()
   // make default reconstruction  parameters for hig  flux env.
   //
   AliITSRecoParam *param = new AliITSRecoParam();
-  param->SetVertexerZ();
+  param->SetVertexer3DDefaults();
 
   // use of bads from OCDB
   param->SetUseBadZonesFromOCDB(kTRUE);
   param->SetUseSingleBadChannelsFromOCDB(kFALSE);
+  // use pointing to vertex during prolongation
+  param->SetImproveWithVertex(kTRUE);
   // extended eta acceptance
   param->SetExtendedEtaAcceptance(kFALSE);
   // allow to skip layer if no cluster and no bad

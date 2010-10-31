@@ -78,6 +78,7 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 // #include "AliHLTTPCCalibTimeComponent.h"
 // #include "AliHLTTPCCalibTimeGainComponent.h"
 // #include "AliHLTTPCCalibrationComponent.h"
+#include "AliHLTTPCDataCheckerComponent.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCAgent)
@@ -119,6 +120,7 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     int iMaxPart=5;
     TString mergerInput;
     TString sinkClusterInput;
+    TString dEdXInput;
     for (int slice=iMinSlice; slice<=iMaxSlice; slice++) {
       TString trackerInput;
       for (int part=iMinPart; part<=iMaxPart; part++) {
@@ -156,6 +158,8 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 	}
 	if (trackerInput.Length()>0) trackerInput+=" ";
 	trackerInput+=cf;
+	if (dEdXInput.Length()>0) dEdXInput+=" ";
+	dEdXInput+=cf;
 	if (sinkClusterInput.Length()>0) sinkClusterInput+=" ";
 	sinkClusterInput+=cf;
       }
@@ -171,6 +175,11 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 
     // GlobalMerger component
     handler->CreateConfiguration("TPC-globalmerger","TPCCAGlobalMerger",mergerInput.Data(),"");
+
+    if (dEdXInput.Length()>0) dEdXInput+=" ";
+    dEdXInput+="TPC-globalmerger";
+
+    handler->CreateConfiguration("TPC-dEdx","TPCdEdx",dEdXInput.Data(),"");
 
     // the esd converter configuration
     TString converterInput="TPC-globalmerger";
@@ -236,7 +245,10 @@ const char* AliHLTTPCAgent::GetReconstructionChains(AliRawReader* /*rawReader*/,
     // AliRoot simulation
     //if (runloader->GetLoader("TPCLoader") != NULL)
       //return "TPC-esd-converter TPC-clusters";
-      return "TPC-clusters";
+
+    // 2010-10-26 TPC clusters not written to HLTOUT in order to make the simulation
+    // closer to the real data 
+    //return "TPC-clusters";
   }
   return NULL;
 }
@@ -303,6 +315,7 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
 //   pHandler->AddComponent(new AliHLTTPCCalibTimeComponent);
 //   pHandler->AddComponent(new AliHLTTPCCalibTimeGainComponent);
 //   pHandler->AddComponent(new AliHLTTPCCalibrationComponent);
+  pHandler->AddComponent(new AliHLTTPCDataCheckerComponent);
 
   return 0;
 }

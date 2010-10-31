@@ -34,6 +34,7 @@
 #include "AliHLTExternalTrackParam.h"
 #include "AliHLTTrackMCLabel.h"
 #include "AliHLTCTPData.h"
+#include "AliHLTErrorGuard.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
 #include "AliESDMuonTrack.h"
@@ -47,6 +48,7 @@
 #include "AliHLTCaloClusterDataStruct.h"
 #include "AliHLTCaloClusterReader.h"
 #include "AliESDCaloCluster.h"
+#include "AliESDVZERO.h"
 #include "AliHLTGlobalVertexerComponent.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
@@ -150,6 +152,7 @@ void AliHLTGlobalEsdConverterComponent::GetInputDataTypes(AliHLTComponentDataTyp
   list.push_back(kAliHLTDataTypeESDObject);
   list.push_back(kAliHLTDataTypeTObject);
   list.push_back(kAliHLTDataTypeGlobalVertexer);
+  list.push_back(kAliHLTDataTypeESDContent);
 }
 
 AliHLTComponentDataType AliHLTGlobalEsdConverterComponent::GetOutputDataType()
@@ -176,7 +179,7 @@ int AliHLTGlobalEsdConverterComponent::DoInit(int argc, const char** argv)
   TString skipObjects=
     // "AliESDRun,"
     // "AliESDHeader,"
-    "AliESDZDC,"
+    // "AliESDZDC,"
     "AliESDFMD,"
     // "AliESDVZERO,"
     // "AliESDTZERO,"
@@ -373,6 +376,8 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
   //    TODO 2010-07-12 find out if the kITSrefit has to be set as well
   // 4) extract TRD tracks and add to ESD
   //    TODO 2010-07-12 at the moment there is no matching or merging of TPC and TRD tracks
+  // 5) Add Trigger Detectors 
+  //    VZERO, ZDC
 
   // 1) first read MC information (if present)
   std::map<int,int> mcLabelsTPC;
@@ -493,7 +498,7 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
 	iotrack.SetTPCPoints(points);
 	if( element->TrackID()<ndEdxTPC ){
 	  AliHLTFloat32_t *val = &(dEdxTPC[3*element->TrackID()]);
-	  iotrack.SetTPCsignal( val[0], val[1], val[2] ); 
+	  iotrack.SetTPCsignal( val[0], val[1], (UChar_t) val[2] ); 
 	  //AliTPCseed s;
 	  //s.Set( element->GetX(), element->GetAlpha(),
 	  //element->GetParameter(), element->GetCovariance() );
@@ -680,6 +685,49 @@ int AliHLTGlobalEsdConverterComponent::ProcessBlocks(TTree* pTree, AliESDEvent* 
       iAddedDataBlocks++;
     }
   
+  // 5) Add Trigger Detectors 
+  //    VZERO, ZDC
+
+  // FIXME: the size of all input blocks can be added in one loop
+  for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeESDContent|kAliHLTDataOriginVZERO);
+       pBlock!=NULL; pBlock=GetNextInputBlock()) {
+    fBenchmark.AddInput(pBlock->fSize);
+  }
+
+  for ( const TObject *pObject = GetFirstInputObject(kAliHLTDataTypeESDContent|kAliHLTDataOriginVZERO); 
+	pObject != NULL; pObject = GetNextInputObject() ) {
+    AliESDVZERO *esdVZERO = dynamic_cast<AliESDVZERO*>(const_cast<TObject*>( pObject ) );
+    if (esdVZERO) {
+      pESD->SetVZEROData( esdVZERO );
+      break;
+    } else {
+      ALIHLTERRORGUARD(1, "input object of data type %s is not of class AliESDVZERO",
+		       DataType2Text(kAliHLTDataTypeESDContent|kAliHLTDataOriginVZERO).c_str());
+    }
+  }
+
+  // FIXME: the size of all input blocks can be added in one loop
+  for (const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeESDContent|kAliHLTDataOriginZDC);
+       pBlock!=NULL; pBlock=GetNextInputBlock()) {
+    fBenchmark.AddInput(pBlock->fSize);
+  }
+  for ( const TObject *pObject = GetFirstInputObject(kAliHLTDataTypeESDContent|kAliHLTDataOriginZDC); 
+	pObject != NULL; pObject = GetNextInputObject() ) {
+    AliESDZDC *esdZDC = dynamic_cast<AliESDZDC*>(const_cast<TObject*>( pObject ) );
+    if (esdZDC) {
+#ifndef HAVE_NOT_ALIZDCRECONSTRUCTOR_r43770
+      pESD->SetZDCData( esdZDC );
+#else
+      ALIHLTERRORGUARD(1, "Processing of ZDC data requires AliRoot r43770m skipping data block of type %s",
+		       DataType2Text(kAliHLTDataTypeESDContent|kAliHLTDataOriginZDC).c_str());
+#endif
+      break;
+    } else {
+      ALIHLTERRORGUARD(1, "input object of data type %s is not of class AliESDZDC",
+		       DataType2Text(kAliHLTDataTypeESDContent|kAliHLTDataOriginZDC).c_str());
+    }
+  }
+
   // Add tracks from MUON.
   for( const AliHLTComponentBlockData *i= GetFirstInputBlock(kAliHLTAnyDataType | kAliHLTDataOriginMUON); i!=NULL; i=GetNextInputBlock() ){
     fBenchmark.AddInput(i->fSize);

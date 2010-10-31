@@ -12,6 +12,7 @@
 #include "AliAnalysisCuts.h"
 #include "AliESDtrackCuts.h"
 #include "AliAODPidHF.h"
+#include "AliAODEvent.h"
 #include "AliVEvent.h"
 
 class AliAODTrack;
@@ -48,8 +49,18 @@ class AliRDHFCuts : public AliAnalysisCuts
     if(fPidHF) delete fPidHF;
     fPidHF=new AliAODPidHF(*pidObj);
   }
-  AliAODPidHF* GetPidHF() const {return fPidHF;}
+  void SetRemoveDaughtersFromPrim(Bool_t removeDaughtersPrim) {fRemoveDaughtersFromPrimary=removeDaughtersPrim;}
+  void SetOptPileup(Int_t opt=0){
+    // see enum below
+    fOptPileup=opt;
+  }
+  void ConfigurePileupCuts(Int_t minContrib=3, Float_t minDz=0.6){
+    fMinContrPileup=minContrib;
+    fMinDzPileup=minDz;
+  }
 
+
+  AliAODPidHF* GetPidHF() const {return fPidHF;}
   Float_t *GetPtBinLimits() const {return fPtBinLimits;}
   Int_t   GetNPtBins() const {return fnPtBins;}
   Int_t   GetNVars() const {return fnVars;} 
@@ -64,16 +75,19 @@ class AliRDHFCuts : public AliAnalysisCuts
   virtual void GetCutVarsForOpt(AliAODRecoDecayHF *d,Float_t *vars,Int_t nvars,Int_t *pdgdaughters) = 0;
   Int_t   GetGlobalIndex(Int_t iVar,Int_t iPtBin) const;
   void    GetVarPtIndex(Int_t iGlob, Int_t& iVar, Int_t& iPtBin) const;
+  Bool_t  GetIsUsePID() const {return fUsePID;}
+  Bool_t  GetIsPrimaryWithoutDaughters() const {return fRemoveDaughtersFromPrimary;}
 
   Bool_t IsSelected(TObject *obj) {return IsSelected(obj,AliRDHFCuts::kAll);}
   Bool_t IsSelected(TList *list) {if(!list) return kTRUE; return kFALSE;}
-  Bool_t IsEventSelected(AliVEvent *event) const;
+  Bool_t IsEventSelected(AliVEvent *event);
   Bool_t AreDaughtersSelected(AliAODRecoDecayHF *rd) const;
   Bool_t IsDaughterSelected(AliAODTrack *track,const AliESDVertex *primary,AliESDtrackCuts *cuts) const;
   virtual Int_t IsSelectedPID(AliAODRecoDecayHF * /*rd*/) {return 1;}
 
   virtual Int_t IsSelected(TObject* obj,Int_t selectionLevel) = 0;
-
+  virtual Int_t IsSelected(TObject* obj,Int_t selectionLevel,AliAODEvent* /*aod*/)
+                {return IsSelected(obj,selectionLevel);}
   Int_t PtBin(Double_t pt) const;
   void PrintAll()const;
 
@@ -82,7 +96,10 @@ class AliRDHFCuts : public AliAnalysisCuts
   void SetWhyRejection(Int_t why) {fWhyRejection=why; return;}
   Int_t GetWhyRejection() const {return fWhyRejection;}
 
+  Bool_t CompareCuts(const AliRDHFCuts *obj) const;
+
   enum{kAll,kTracks,kPID,kCandidate};
+  enum{kNoPileupSelection,kRejectPileupEvent,kRejectTracksFromPileupVertex};
 
  protected:
 
@@ -111,8 +128,12 @@ class AliRDHFCuts : public AliAnalysisCuts
   Bool_t fUsePID; // enable PID usage (off by default)
   AliAODPidHF *fPidHF; // PID for heavy flavours manager
   Int_t fWhyRejection; // used to code the step at which candidate was rejected
+  Bool_t fRemoveDaughtersFromPrimary; // flag to switch on the removal of duaghters from the primary vertex computation
+  Int_t  fOptPileup;      // option for pielup selection
+  Int_t  fMinContrPileup; // min. n. of tracklets in pileup vertex
+  Float_t fMinDzPileup;   // min deltaz between main and pileup vertices
 
-  ClassDef(AliRDHFCuts,4);  // base class for cuts on AOD reconstructed heavy-flavour decays
+  ClassDef(AliRDHFCuts,6);  // base class for cuts on AOD reconstructed heavy-flavour decays
 };
 
 #endif

@@ -26,26 +26,36 @@ AliAnalysisTaskQASym * AddTaskQAsym(Int_t runNumber)
    //Task for global tracks
    AliAnalysisTaskQASym *task0 = new AliAnalysisTaskQASym("AliAnalysisTaskQASym_Global");
    task0->SetTrackType(0);
-   task0->SelectCollisionCandidates();
+   task0->SelectCollisionCandidates(); // default setting: kMB = min bias trigger
+   task0->SetNChargedRange(30,50); // comparison of different trigger settings
+   //Task for global tracks (high multiplicity)
+   AliAnalysisTaskQASym *task0HM = new AliAnalysisTaskQASym("AliAnalysisTaskQASym_Global_HighMult");
+   task0HM->SetTrackType(0);
+   task0HM->SelectCollisionCandidates(AliVEvent::kHighMult);
+   task0HM->SetNChargedRange(30,50); 
    //Task for ITS tracks 
    AliAnalysisTaskQASym *task1 = new AliAnalysisTaskQASym("AliAnalysisTaskQASym_ITS");
    task1->SetTrackType(1);
    task1->SetStandAloneTrack(kFALSE);
    task1->SelectCollisionCandidates();
+   task1->SetNChargedRange(30,50); 
    //Task for ITS tracks SA
    AliAnalysisTaskQASym *task1sa = new AliAnalysisTaskQASym("AliAnalysisTaskQASym_ITS_SA");
    task1sa->SetTrackType(1);
    task1sa->SetStandAloneTrack(kTRUE);
    task1sa->SelectCollisionCandidates();
+   task1sa->SetNChargedRange(30,50); 
    //Task for TPC tracks 
    AliAnalysisTaskQASym *task2 = new AliAnalysisTaskQASym("AliAnalysisTaskQASym_TPC");
    task2->SetTrackType(2);
    task2->SelectCollisionCandidates();
+   task2->SetNChargedRange(30,50); 
 
    //cuts for global tracks
    AliESDtrackCuts* esdTrackCutsL0 = new AliESDtrackCuts("AliESDtrackCuts0","Global");
    esdTrackCutsL0->SetMinNClustersTPC(70);
    esdTrackCutsL0->SetRequireTPCRefit(kTRUE);
+   esdTrackCutsL0->SetRequireITSRefit(kTRUE);
    esdTrackCutsL0->SetMaxDCAToVertexXY(3.);
    esdTrackCutsL0->SetMaxDCAToVertexZ(3.);
    esdTrackCutsL0->SetAcceptKinkDaughters(kFALSE);
@@ -56,7 +66,7 @@ AliAnalysisTaskQASym * AddTaskQAsym(Int_t runNumber)
    esdTrackCutsL1->SetMaxDCAToVertexZ(3.);
    esdTrackCutsL1->SetAcceptKinkDaughters(kFALSE);
    esdTrackCutsL1->SetRequireITSRefit(kTRUE);
-   esdTrackCutsL1->SetRequireITSStandAlone(kTRUE, kTRUE); //2nd option: reject pure SA tracks
+   esdTrackCutsL1->SetRequireITSStandAlone(kTRUE); 
 
    //cuts for ITS tracks SA
    AliESDtrackCuts* esdTrackCutsL1sa = new AliESDtrackCuts("AliESDtrackCuts1","ITS_SA");
@@ -64,7 +74,7 @@ AliAnalysisTaskQASym * AddTaskQAsym(Int_t runNumber)
    esdTrackCutsL1sa->SetMaxDCAToVertexZ(3.);
    esdTrackCutsL1sa->SetAcceptKinkDaughters(kFALSE);
    esdTrackCutsL1sa->SetRequireITSRefit(kTRUE);
-   // esdTrackCutsL1sa->SetRequireITSStandAlone(kTRUE, kTRUE); //cut on SA tracks in AliAnalysisTaskQASym
+   esdTrackCutsL1sa->SetRequireITSPureStandAlone(kTRUE);
    
    //cuts for TPC tracks
    AliESDtrackCuts* esdTrackCutsL2 = new AliESDtrackCuts("AliESDtrackCuts2","TPC");
@@ -82,23 +92,28 @@ AliAnalysisTaskQASym * AddTaskQAsym(Int_t runNumber)
   
 
    task0->SetCuts(esdTrackCutsL0);
+   task0HM->SetCuts(esdTrackCutsL0);
    task1->SetCuts(esdTrackCutsL1);
    task1sa->SetCuts(esdTrackCutsL1sa);
    task2->SetCuts(esdTrackCutsL2);
 
    mgr->AddTask(task0);
+   mgr->AddTask(task0HM);
    mgr->AddTask(task1);
    mgr->AddTask(task1sa);
    mgr->AddTask(task2);
   
-   AliAnalysisDataContainer *cout0  = 0;
-   AliAnalysisDataContainer *cout1  = 0;
+   AliAnalysisDataContainer *cout0    = 0;
+   AliAnalysisDataContainer *cout0HM  = 0;
+   AliAnalysisDataContainer *cout1    = 0;
    AliAnalysisDataContainer *cout1sa  = 0;
-   AliAnalysisDataContainer *cout2  = 0;
+   AliAnalysisDataContainer *cout2    = 0;
    
    if(runNumber>0){ 
     cout0 =  mgr->CreateContainer("QAsymHists_Global",TList::Class(),
 				  AliAnalysisManager::kOutputContainer, Form("run%d.root",runNumber));
+    cout0HM =  mgr->CreateContainer("QAsymHists_Global_HighMult",TList::Class(),
+				    AliAnalysisManager::kOutputContainer, Form("run%d.root",runNumber));
     cout1 =  mgr->CreateContainer("QAsymHists_ITS",TList::Class(),
 				  AliAnalysisManager::kOutputContainer, Form("run%d.root",runNumber));
     cout1sa =  mgr->CreateContainer("QAsymHists_ITS_SA",TList::Class(),
@@ -111,6 +126,9 @@ AliAnalysisTaskQASym * AddTaskQAsym(Int_t runNumber)
       cout0 = mgr->CreateContainer("QAsymHists_Global",TList::Class(),
 				 AliAnalysisManager::kOutputContainer, 
 				 Form("%s:PWG1_QAsymHists",AliAnalysisManager::GetCommonFileName()));
+      cout0HM = mgr->CreateContainer("QAsymHists_Global_HighMult",TList::Class(),
+				   AliAnalysisManager::kOutputContainer, 
+				   Form("%s:PWG1_QAsymHists",AliAnalysisManager::GetCommonFileName()));
       cout1 = mgr->CreateContainer("QAsymHists_ITS",TList::Class(),
 				   AliAnalysisManager::kOutputContainer, 
 				 Form("%s:PWG1_QAsymHists",AliAnalysisManager::GetCommonFileName()));
@@ -123,15 +141,17 @@ AliAnalysisTaskQASym * AddTaskQAsym(Int_t runNumber)
    }
 
 
-   mgr->ConnectInput  (task0, 0, mgr->GetCommonInputContainer());
-   mgr->ConnectInput  (task1, 0, mgr->GetCommonInputContainer());
+   mgr->ConnectInput  (task0,   0, mgr->GetCommonInputContainer());
+   mgr->ConnectInput  (task0HM, 0, mgr->GetCommonInputContainer());
+   mgr->ConnectInput  (task1,   0, mgr->GetCommonInputContainer());
    mgr->ConnectInput  (task1sa, 0, mgr->GetCommonInputContainer());
-   mgr->ConnectInput  (task2, 0, mgr->GetCommonInputContainer());
+   mgr->ConnectInput  (task2,   0, mgr->GetCommonInputContainer());
 
-   mgr->ConnectOutput (task0, 1, cout0);
-   mgr->ConnectOutput (task1, 1, cout1);
+   mgr->ConnectOutput (task0,   1, cout0);
+   mgr->ConnectOutput (task0HM, 1, cout0HM);
+   mgr->ConnectOutput (task1,   1, cout1);
    mgr->ConnectOutput (task1sa, 1, cout1sa);
-   mgr->ConnectOutput (task2, 1, cout2);
+   mgr->ConnectOutput (task2,   1, cout2);
   
    return task0;
 

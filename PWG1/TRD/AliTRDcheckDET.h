@@ -22,8 +22,6 @@ class AliExternalTrackParam;
 class AliTRDcluster;
 class AliTRDseedV1;
 class AliTRDgeometry;
-class AliTRDReconstructor;
-class AliTRDrecoParam;
 class AliTRDeventInfo;
 class AliTRDcheckDET : public AliTRDrecoTask{
 public:
@@ -99,7 +97,6 @@ public:
   
   Bool_t IsUsingClustersOutsideChamber() const {return TESTBIT(fFlags, kUseClustersOutsideChamber);}
   void UseClustersOutsideChamber(Bool_t b = kTRUE) {if(b) SETBIT(fFlags, kUseClustersOutsideChamber); else CLRBIT(fFlags, kUseClustersOutsideChamber);}
-  void SetRecoParam(AliTRDrecoParam *r);
 
 private:
   enum{
@@ -108,20 +105,18 @@ private:
   AliTRDcheckDET(const AliTRDcheckDET &);
   AliTRDcheckDET& operator=(const AliTRDcheckDET &);
   void GetDistanceToTracklet(Double_t *dist, AliTRDseedV1 * const tracklet, AliTRDcluster * const c);
-  TH1* MakePlotChi2();
+  TH1* MakePlotChi2() const;
   TH1* MakePlotNTracklets();
   Bool_t MakePlotPulseHeight();
   void MakePlotnTrackletsVsP();
   void MakePlotMeanClustersLayer();
   Bool_t MakeBarPlot(TH1 *histo, Int_t Color);
-  void GetEtaPhiAt(AliExternalTrackParam *track, Double_t x, Double_t &eta, Double_t &phi);
+  void GetEtaPhiAt(const AliExternalTrackParam *track, Double_t x, Double_t &eta, Double_t &phi);
 
   AliTRDeventInfo *fEventInfo;         //! ESD Header
   TMap *fTriggerNames;                 //! Containing trigger class names
-  AliTRDReconstructor *fReconstructor; // TRD Reconstructor
-  AliTRDgeometry *fGeo;                // TRD Geometry object
   UChar_t fFlags;                      // Flags for setting
     
-  ClassDef(AliTRDcheckDET, 1)
+  ClassDef(AliTRDcheckDET, 2)
 };
 #endif

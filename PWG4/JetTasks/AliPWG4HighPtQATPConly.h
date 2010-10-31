@@ -1,4 +1,4 @@
-/**************************************************************************
+ /**************************************************************************
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
  * Author: The ALICE Off-line Project.                                    *
@@ -27,13 +27,14 @@ class TH1F;
 class TH2F;
 class TH3F;
 class TList;
+
 class AliESDEvent;
 class AliESDfriend;
 class AliESDfriendTrack;
-class AliMCEvent;
 class AliVEvent;
 class AliESDtrackCuts;
 class AliESDtrack;
+
 
 class AliPWG4HighPtQATPConly: public AliAnalysisTask {
 
@@ -51,8 +52,10 @@ class AliPWG4HighPtQATPConly: public AliAnalysisTask {
   void SetCutType(Int_t ctype) {fCutType = ctype;}
   void SetCuts(AliESDtrackCuts* trackCuts) {fTrackCuts = trackCuts;}
   void SetCutsITS(AliESDtrackCuts* trackCutsITS) {fTrackCutsITS = trackCutsITS;}
+  void SetPtMax(Float_t ptmax) {fPtMax = ptmax;}
 
   Int_t GetCutType() {return fCutType;}
+  Float_t GetPtMax()           {return fPtMax;}
 
  protected:
 
@@ -64,10 +67,11 @@ class AliPWG4HighPtQATPConly: public AliAnalysisTask {
 
   AliESDEvent *fESD;              //! ESD object
   AliESDfriend *fESDfriend;       //! ESD friend object
-  AliMCEvent *fMC;                //! MC event object
   Int_t fCutType;                 // Cut Type set in AddTask*
   AliESDtrackCuts *fTrackCuts;    // TrackCuts for global vs TPConly comparison
   AliESDtrackCuts *fTrackCutsITS; // TrackCuts including ITSrefit
+
+  Float_t fPtMax;                 // Maximum pT for histograms
   
   TH1F *fNEventAll;                             //! Event counter
   TH1F *fNEventSel;                             //! Event counter: Selected events for analysis

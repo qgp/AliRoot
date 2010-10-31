@@ -58,7 +58,7 @@ AliTRDpidRefMakerLQ::AliTRDpidRefMakerLQ()
   //
   // AliTRDpidRefMakerLQ default constructor
   //
-  SetNameTitle("refMakerLQ", "PID(LQ) Reference Maker");
+  SetNameTitle("TRDrefMakerLQ", "PID(LQ) Reference Maker");
 }
 
 //__________________________________________________________________
@@ -193,6 +193,8 @@ Bool_t AliTRDpidRefMakerLQ::GetRefFigure(Int_t ifig)
 //________________________________________________________________________
 Bool_t AliTRDpidRefMakerLQ::Load(const Char_t *file, const Char_t *dir)
 {
+// Load tree with data in case of detached PostProcess processing. 
+
   if(gSystem->AccessPathName(file, kReadPermission)){
     AliError(Form("File %s not readable", file));
     return kFALSE;
@@ -242,8 +244,6 @@ void AliTRDpidRefMakerLQ::UserExec(Option_t */*opt*/)
 {
 // Load PID data into local data storage
 
-/*  if(!(fTracks = dynamic_cast<TObjArray*>(GetInputData(1)))) return;
-  if(!(fV0s    = dynamic_cast<TObjArray*>(GetInputData(2)))) return;*/
   if(!(fInfo   = dynamic_cast<TObjArray*>(GetInputData(3)))) return;
 
   AliDebug(2, Form("ENTRIES pid[%d]\n", fInfo->GetEntriesFast()));
@@ -318,7 +318,7 @@ Bool_t AliTRDpidRefMakerLQ::PostProcess()
       // estimate bucket statistics
       Int_t idx(AliTRDCalPIDLQ::GetModelID(ip,is)),
             nb(kMinBuckets), // number of buckets
-	ns((Int_t)(((Float_t)(ndata[idx]))/nb));    //statistics/bucket
+            ns((Int_t)(((Float_t)(ndata[idx]))/nb));    //statistics/bucket
             
       AliDebug(2, Form("pBin[%d] sBin[%d] n[%d] ns[%d] nb[%d]", ip, is, ndata[idx], ns, nb));
       if(ns<Int_t(kMinStat)){
@@ -418,7 +418,10 @@ Bool_t AliTRDpidRefMakerLQ::PostProcess()
         }
       }
 
-      pdf=dynamic_cast<TKDPDF*>(fPDF->At(idx));
+      if(!(pdf=dynamic_cast<TKDPDF*>(fPDF->At(idx)))){
+        AliWarning(Form("Missing pdf for model id[%d]", idx));
+        continue;
+      }
       TH1 *h1 = (TH1D*)((TObjArray*)fContainer->At(ip))->At(is);
       ax = h1->GetXaxis();
       h1->Clear();

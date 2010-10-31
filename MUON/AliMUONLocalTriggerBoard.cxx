@@ -514,6 +514,11 @@ void AliMUONLocalTriggerBoard::Module(char *mod)
 ///
    const Int_t kMaxfields = 2; char **fields = new char*[kMaxfields];
 
+   if ( TString(GetName()).Length() > 100 ) {
+     AliErrorStream() << "Name too long: " << GetName() << endl;
+     return;
+   }   
+   
    char s[100]; strcpy(s, GetName());
 
    Int_t numlines = 0;
@@ -527,6 +532,8 @@ void AliMUONLocalTriggerBoard::Module(char *mod)
    }
  
    strcpy(mod,fields[0]);
+   
+   delete [] fields;
 }
 
 //___________________________________________
@@ -974,6 +981,8 @@ void AliMUONLocalTriggerBoard::TrigY(Int_t y1[16], Int_t y2[16], Int_t y3[16], I
       tmpy4dto16[2*i+1] = (y4d[i]&GetSwitch(0)) | (y4d[2*i+1]&!GetSwitch(0));
    }
   
+   for (i=0; i<16; i++) ch3[i] = ch4[i] = 0;
+
    if (GetSwitch(3)==0&&GetSwitch(4)==0){
       for (i=0; i<16; i++){
          ch3[i] = tmpy3to16[i];
@@ -1194,8 +1203,14 @@ Int_t AliMUONLocalTriggerBoard::GetI() const
 {
 /// old numbering
 ///
+
    const Int_t kMaxfields = 2; char **fields = new char*[kMaxfields];
 
+   if ( TString(GetName()).Length() > 100 ) {
+     AliErrorStream() << "Name too long: " << GetName() << endl;
+     return 0;
+   }   
+   
    char s[100]; strcpy(s, GetName());
 
    Int_t numlines = 0;
@@ -1230,6 +1245,8 @@ Int_t AliMUONLocalTriggerBoard::GetI() const
    Int_t ic = 0;
 
    for (Int_t i=0; i<234; i++) if (fgkCircuitId[i] == code) {ic = i; break;}
+   
+   delete [] fields;
 
    return ic;
 }
@@ -1242,7 +1259,7 @@ void AliMUONLocalTriggerBoard::Mask(Int_t index, UShort_t mask)
   if ( index >= 0 && index < 2*4 )
   {
     Int_t i = index/4;
-    Int_t j = index - i*4;
+    Int_t j = index%4;
     fMask[i][j]=mask;
   }
   else

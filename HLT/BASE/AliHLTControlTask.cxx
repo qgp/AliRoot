@@ -54,7 +54,11 @@ int AliHLTControlTask::CreateComponent(AliHLTConfiguration* /*pConf*/, AliHLTCom
   int iResult=0;
   if ((pComponent=new AliHLTControlEventComponent(this))) {
     const AliHLTAnalysisEnvironment* pEnv=pCH->GetEnvironment();
-    if ((iResult=pComponent->Init(pEnv, NULL, 0, NULL))>=0) {
+    const char* argv[]={
+      "-disable-component-stat"
+    };
+    int argc=sizeof(argv)/sizeof(const char*);
+    if ((iResult=pComponent->Init(pEnv, NULL, argc, argv))>=0) {
       //HLTDebug("component %s (%p) created", pComponent->GetComponentID(), pComponent); 
     } else {
       HLTError("Initialization of component \"%s\" failed with error %d", pComponent->GetComponentID(), iResult);
@@ -137,17 +141,18 @@ int AliHLTControlTask::AliHLTControlEventComponent::GetEvent(const AliHLTCompone
   // see header file for class documentation
   if (!fpParent) return -ENODEV;
   const AliHLTControlTask* pParent=fpParent;
-  // return if no event has been set
-  if (pParent->fpData==NULL ||
-      pParent->fBlocks.size()==0) {
-    //HLTInfo("no control event to send");
-    return 0;
-  }
 
   AliHLTUInt32_t capacity=size;
   size=0;
   if (capacity<pParent->fSize) {
     return -ENOSPC;
+  }
+
+  // return if no event has been set
+  if (pParent->fpData==NULL ||
+      pParent->fBlocks.size()==0) {
+    //HLTInfo("no control event to send");
+    return 0;
   }
 
   for (unsigned int i=0; i<pParent->fBlocks.size(); i++) {

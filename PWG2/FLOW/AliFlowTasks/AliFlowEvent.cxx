@@ -26,6 +26,7 @@
 #include "AliMCParticle.h"
 #include "AliCFManager.h"
 #include "AliESDtrack.h"
+#include "AliESDPmdTrack.h"
 #include "AliESDEvent.h"
 #include "AliAODEvent.h"
 #include "AliGenCocktailEventHeader.h"
@@ -33,7 +34,7 @@
 #include "AliGenHijingEventHeader.h"
 #include "AliGenGeVSimEventHeader.h"
 #include "AliMultiplicity.h"
-#include "AliFlowTrackSimpleCuts.h"
+#include "AliFlowTrackCuts.h"
 #include "AliFlowEventSimple.h"
 #include "AliFlowTrack.h"
 #include "AliFlowEvent.h"
@@ -92,6 +93,12 @@ void AliFlowEvent::SetMCReactionPlaneAngle(const AliMCEvent* mcEvent)
         if (hdh) AliFlowEventSimple::SetMCReactionPlaneAngle( hdh->ReactionPlaneAngle() );
       }
     }
+  }
+  //THERMINATOR
+  else if (!strcmp(mcEvent-> GenEventHeader()->GetName(),"Therminator"))   //returns 0 if matches
+  {
+    AliGenHijingEventHeader* headerH = dynamic_cast<AliGenHijingEventHeader*>(mcEvent->GenEventHeader());
+    if (headerH) AliFlowEventSimple::SetMCReactionPlaneAngle( headerH->ReactionPlaneAngle() );
   }
   //GEVSIM
   else if (!strcmp(mcEvent-> GenEventHeader()->GetName(),"GeVSim header"))   //returns 0 if matches
@@ -235,12 +242,12 @@ AliFlowEvent::AliFlowEvent( const AliAODEvent* anInput,
     AliFlowTrack* pTrack = new AliFlowTrack(pParticle);
     pTrack->SetSource(AliFlowTrack::kFromAOD);
 
-    if (rpOK && rpCFManager)
+    if (rpOK /* && rpCFManager */ ) // to be fixed - with CF managers uncommented only empty events (NULL in header files)
     {
       pTrack->SetForRPSelection(kTRUE);
       fNumberOfRPs++;
     }
-    if (poiOK && poiCFManager)
+    if (poiOK /* && poiCFManager*/ )
     {
       pTrack->SetForPOISelection(kTRUE);
     }
@@ -337,18 +344,14 @@ AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
     if (!(rpOK || poiOK)) continue;
 
     //make new AliFlowTrack
-    AliFlowTrack* pTrack = new AliFlowTrack();
+    AliFlowTrack* pTrack = NULL;
     if(anOption == kESDkine)   //take the PID from the MC & the kinematics from the ESD
     {
-      pTrack->SetPt(pParticle->Pt() );
-      pTrack->SetEta(pParticle->Eta() );
-      pTrack->SetPhi(pParticle->Phi() );
+      pTrack = new AliFlowTrack(pParticle);
     }
     else if (anOption == kMCkine)   //take the PID and kinematics from the MC
     {
-      pTrack->SetPt(pMcParticle->Pt() );
-      pTrack->SetEta(pMcParticle->Eta() );
-      pTrack->SetPhi(pMcParticle->Phi() );
+      pTrack = new AliFlowTrack(pMcParticle);
     }
 
     if (rpOK && rpCFManager)
@@ -388,10 +391,7 @@ AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
       if (!poiOK) continue;
       
       //make new AliFLowTrack
-      AliFlowTrack* pTrack = new AliFlowTrack();
-      pTrack->SetPt(pParticle->Pt() );
-      pTrack->SetEta(pParticle->Eta() );
-      pTrack->SetPhi(pParticle->Phi() );
+      AliFlowTrack* pTrack = new AliFlowTrack(pParticle);
           
       //marking the particles used for the particle of interest (POI) selection:
       if(poiOK && poiCFManager)
@@ -430,6 +430,87 @@ AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
 
 }
 
+//-----------------------------------------------------------------------
+AliFlowEvent::AliFlowEvent( const AliESDEvent* esd,
+			    const AliCFManager* poiCFManager,
+                            Bool_t hybrid):
+  AliFlowEventSimple(20)
+{
+
+  //Select the particles of interest from the ESD
+  Int_t iNumberOfInputTracks = esd->GetNumberOfTracks() ;
+
+  //Double_t gPt = 0.0, gP = 0.0;
+  Double_t dca[2] = {0.0,0.0}, cov[3] = {0.0,0.0,0.0};  //The impact parameters and their covariance.
+  Double_t dca3D = 0.0;
+
+  AliESDtrack trackTPC;
+
+  //loop over tracks
+  for (Int_t itrkN=0; itrkN<iNumberOfInputTracks; itrkN++)
+    {
+
+      if (!esd->GetTrack(itrkN)) continue;
+
+      Bool_t useTPC = kFALSE;
+
+      AliESDtrack* pParticle = esd->GetTrack(itrkN);   //get input particle
+
+      //check if pParticle passes the cuts
+      Bool_t poiOK = kTRUE;
+
+      if (poiCFManager)
+      {
+        poiOK = ( poiCFManager->CheckParticleCuts(AliCFManager::kPartRecCuts,pParticle) &&
+                  poiCFManager->CheckParticleCuts(AliCFManager::kPartSelCuts,pParticle));
+      }
+
+      if (!(poiOK)) continue;
+
+      AliExternalTrackParam *tpcTrack = (AliExternalTrackParam *)pParticle->GetTPCInnerParam();
+
+      if (tpcTrack)
+      {
+
+//      gPt = tpcTrack->Pt();
+//      gP = tpcTrack->P();
+
+        useTPC = kTRUE;
+
+        const AliESDVertex *vertexSPD = esd->GetPrimaryVertexSPD();
+        const AliESDVertex *vertexTPC = esd->GetPrimaryVertexTPC();
+
+        if(hybrid)
+          tpcTrack->PropagateToDCA(vertexSPD,esd->GetMagneticField(),100.,dca,cov);
+        else
+          tpcTrack->PropagateToDCA(vertexTPC,esd->GetMagneticField(),100.,dca,cov);
+
+        dca3D = TMath::Sqrt(TMath::Power(dca[0],2)+TMath::Power(dca[1],2));
+
+      }
+
+      //make new AliFLowTrack
+      AliFlowTrack* pTrack = new AliFlowTrack(pParticle);
+
+      pTrack->SetSource(AliFlowTrack::kFromESD);
+
+      //marking the particles used for diff. flow:
+      if(poiOK && poiCFManager)
+      {
+        pTrack->SetForPOISelection(kTRUE);
+      }
+
+      if(useTPC)
+      {
+        pTrack->SetForRPSelection(kTRUE);
+        fNumberOfRPs++;
+      }
+
+      AddTrack(pTrack);
+
+    }//end of while (itrkN < iNumberOfInputTracks)
+
+}
 
 //-----------------------------------------------------------------------
 AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
@@ -456,10 +537,7 @@ AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
       if (!poiOK) continue;
  
       //make new AliFLowTrack
-      AliFlowTrack* pTrack = new AliFlowTrack();
-      pTrack->SetPt(pParticle->Pt() );
-      pTrack->SetEta(pParticle->Eta() );
-      pTrack->SetPhi(pParticle->Phi() );
+      AliFlowTrack* pTrack = new AliFlowTrack(pParticle);
           
       //marking the particles used for the particle of interest (POI) selection:
       if(poiOK && poiCFManager)
@@ -490,9 +568,9 @@ AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
 	pTrack->SetPhi(phiFMD);
 	pTrack->SetWeight(weightFMD);
 	//marking the particles used for the reference particle (RP) selection:
-	pTrack->SetForRPSelection(kTRUE);
-	pTrack->SetSource(AliFlowTrack::kFromFMD);
+	pTrack->TagRP();
 	fNumberOfRPs++;
+	pTrack->SetSource(AliFlowTrack::kFromFMD);
 
 	//Add the track to the flowevent
 	AddTrack(pTrack);
@@ -502,4 +580,194 @@ AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
   }
 
 }
+
+//-----------------------------------------------------------------------
+AliFlowEvent::AliFlowEvent( AliFlowTrackCuts* rpCuts,
+                            AliFlowTrackCuts* poiCuts ):
+  AliFlowEventSimple(20)
+{
+  //Fills the event from a vevent: AliESDEvent,AliAODEvent,AliMCEvent
+  //the input data needs to be attached to the cuts
+  //we have two cases, if we're cutting the same collection of tracks
+  //(same param type) then we can have tracks that are both rp and poi
+  //in the other case we want to have two exclusive sets of rps and pois
+  //e.g. one tracklets, the other PMD or global - USER IS RESPOSIBLE
+  //FOR MAKING SURE THEY DONT OVERLAP OR ELSE THE SAME PARTICLE WILL BE
+  //TAKEN TWICE
+
+  AliFlowTrackCuts::trackParameterType sourceRP = rpCuts->GetParamType();
+  AliFlowTrackCuts::trackParameterType sourcePOI = poiCuts->GetParamType();
+
+  if (!rpCuts || !poiCuts) return;
+  if (sourceRP==sourcePOI)
+  {
+    //loop over tracks
+    for (Int_t i=0; i<rpCuts->GetNumberOfInputObjects(); i++)
+    {
+      //get input object (particle)
+      TObject* particle = rpCuts->GetInputObject(i);
+
+      Bool_t rp = rpCuts->IsSelected(particle,i);
+      Bool_t poi = poiCuts->IsSelected(particle,i);
+      
+      if (!(rp||poi)) continue;
+
+      //make new AliFLowTrack
+      AliFlowTrack* pTrack = NULL;
+      if (rp)
+      {
+        pTrack = rpCuts->MakeFlowTrack();
+        if (!pTrack) continue;
+        pTrack->TagRP(); fNumberOfRPs++;
+        if (poi) pTrack->TagPOI();
+      }
+      else
+      if (poi)
+      {
+        pTrack = poiCuts->MakeFlowTrack();
+        if (!pTrack) continue;
+        pTrack->TagPOI();
+      }
+
+      AddTrack(pTrack);
+    }//end of while (i < numberOfTracks)
+  }
+  else if (sourceRP!=sourcePOI)
+  {
+    //here we have two different sources of particles, so we fill
+    //them independently
+    AliFlowTrack* pTrack = NULL;
+    //RP
+    for (Int_t i=0; i<rpCuts->GetNumberOfInputObjects(); i++)
+    {
+      TObject* particle = rpCuts->GetInputObject(i);
+      Bool_t rp = rpCuts->IsSelected(particle,i);
+      if (!rp) continue;
+      pTrack = rpCuts->MakeFlowTrack();
+      if (!pTrack) continue;
+      pTrack->TagRP(); fNumberOfRPs++;
+      AddTrack(pTrack);
+    }
+    //POI
+    for (Int_t i=0; i<poiCuts->GetNumberOfInputObjects(); i++)
+    {
+      TObject* particle = poiCuts->GetInputObject(i);
+      Bool_t poi = poiCuts->IsSelected(particle,i);
+      if (!poi) continue;
+      pTrack = poiCuts->MakeFlowTrack();
+      if (!pTrack) continue;
+      pTrack->TagPOI();
+      AddTrack(pTrack);
+    }
+  }
+}
+
+//-------------------------------------------------------------------//
+//---- Including PMD tracks as RP --------------------------//
+
+AliFlowEvent::AliFlowEvent( const AliESDEvent* anInput,
+			    const AliESDPmdTrack *pmdtracks,
+			    const AliCFManager* poiCFManager ):
+  AliFlowEventSimple(20)
+{
+  Float_t GetPmdEta(Float_t xPos, Float_t yPos, Float_t zPos);
+  Float_t GetPmdPhi(Float_t xPos, Float_t yPos);
+  //Select the particles of interest from the ESD
+  Int_t iNumberOfInputTracks = anInput->GetNumberOfTracks() ;
+  
+  //loop over tracks
+  for (Int_t itrkN=0; itrkN<iNumberOfInputTracks; itrkN++)
+    {
+      AliESDtrack* pParticle = anInput->GetTrack(itrkN);   //get input particle
+      //check if pParticle passes the cuts
+      Bool_t poiOK = kTRUE;
+      if (poiCFManager)
+	{
+	  poiOK = ( poiCFManager->CheckParticleCuts(AliCFManager::kPartRecCuts,pParticle) &&
+		    poiCFManager->CheckParticleCuts(AliCFManager::kPartSelCuts,pParticle));
+	}
+      if (!poiOK) continue;
+      
+      //make new AliFLowTrack
+      AliFlowTrack* pTrack = new AliFlowTrack(pParticle);
+      
+      //marking the particles used for the particle of interest (POI) selection:
+      if(poiOK && poiCFManager)
+	{
+	  pTrack->SetForPOISelection(kTRUE);
+	  pTrack->SetSource(AliFlowTrack::kFromESD);
+	}
+      
+      AddTrack(pTrack);
+    }//end of while (itrkN < iNumberOfInputTracks)
+  
+  //Select the reference particles from the PMD tracks
+  Int_t npmdcl = anInput->GetNumberOfPmdTracks();
+  printf("======There are %d PMD tracks in this event\n-------",npmdcl);
+  //loop over clusters 
+  for(Int_t iclust=0; iclust < npmdcl; iclust++){
+    //AliESDPmdTrack *pmdtr = anInput->GetPmdTrack(iclust);
+    pmdtracks = anInput->GetPmdTrack(iclust);
+    Int_t   det   = pmdtracks->GetDetector();
+    //Int_t   smn   = pmdtracks->GetSmn();
+    Float_t clsX  = pmdtracks->GetClusterX();
+    Float_t clsY  = pmdtracks->GetClusterY();
+    Float_t clsZ  = pmdtracks->GetClusterZ();
+    Float_t ncell = pmdtracks->GetClusterCells();
+    Float_t adc   = pmdtracks->GetClusterADC();
+    //Float_t pid   = pmdtracks->GetClusterPID();
+    Float_t etacls = GetPmdEta(clsX,clsY,clsZ);
+    Float_t phicls = GetPmdPhi(clsX,clsY);
+    //make new AliFLowTrackSimple
+    AliFlowTrack* pTrack = new AliFlowTrack();
+    //if(det == 0){ //selecting preshower plane only
+    if(det == 0 && adc > 270 && ncell > 1){ //selecting preshower plane only
+      //pTrack->SetPt(adc);//cluster adc
+      pTrack->SetPt(0.0);
+      pTrack->SetEta(etacls);
+      pTrack->SetPhi(phicls);
+      //marking the particles used for the reference particle (RP) selection:
+      fNumberOfRPs++;
+      pTrack->SetForRPSelection(kTRUE);
+      pTrack->SetSource(AliFlowTrack::kFromPMD);
+      //Add the track to the flowevent
+      AddTrack(pTrack);
+    }//if det
+  }
+}
+//----------------------------------------------------------------------------//
+Float_t GetPmdEta(Float_t xPos, Float_t yPos, Float_t zPos)
+{
+  Float_t rpxpy, theta, eta;
+  rpxpy  = TMath::Sqrt(xPos*xPos + yPos*yPos);
+  theta  = TMath::ATan2(rpxpy,zPos);
+  eta    = -TMath::Log(TMath::Tan(0.5*theta));
+  return eta;
+}
+//--------------------------------------------------------------------------//
+Float_t GetPmdPhi(Float_t xPos, Float_t yPos)
+{
+  Float_t pybypx, phi = 0., phi1;
+  if(xPos==0)
+    {
+      if(yPos>0) phi = 90.;
+      if(yPos<0) phi = 270.;
+    }
+  if(xPos != 0)
+    {
+      pybypx = yPos/xPos;
+      if(pybypx < 0) pybypx = - pybypx;
+      phi1 = TMath::ATan(pybypx)*180./3.14159;
+      
+      if(xPos > 0 && yPos > 0) phi = phi1;        // 1st Quadrant
+      if(xPos < 0 && yPos > 0) phi = 180 - phi1;  // 2nd Quadrant
+      if(xPos < 0 && yPos < 0) phi = 180 + phi1;  // 3rd Quadrant
+      if(xPos > 0 && yPos < 0) phi = 360 - phi1;  // 4th Quadrant
+      
+    }
+  phi = phi*3.14159/180.;
+  return   phi;
+}
+//---------------------------------------------------------------//
+
 

@@ -46,9 +46,9 @@ AliHLTCaloClusterizerComponent::AliHLTCaloClusterizerComponent(TString det):
         fDataOrigin('\0'),
         fAnalyserPtr(0),
         fRecoParamsPtr(0),
+        fClusterizerPtr(0),
         fDigitsPointerArray(0),
         fOutputDigitsArray(0),
-        fClusterizerPtr(0),
         fDigitCount(0),
         fCopyDigitsToOuput(kTRUE)
 {
@@ -61,11 +61,10 @@ AliHLTCaloClusterizerComponent::AliHLTCaloClusterizerComponent(TString det):
 AliHLTCaloClusterizerComponent::~AliHLTCaloClusterizerComponent()
 {
     //See headerfile for documentation
-    delete fAnalyserPtr;
-    if (fClusterizerPtr)
+    if(fAnalyserPtr)
     {
-        delete fClusterizerPtr;
-        fClusterizerPtr = 0;
+      delete fAnalyserPtr;
+      fAnalyserPtr = 0;
     }
 }
 
@@ -115,9 +114,14 @@ AliHLTCaloClusterizerComponent::DoEvent(const AliHLTComponentEventData& evtData,
             // Could be changed if this is a bottle neck.
             for (Int_t i = 0; i < nDigits; i++)
             {
+	       // If we have a digit based on a low gain channel, but there has been no high gain channel, 
+	       // we shouldn't use it since we are then very sensitive to noise (e.g. for PHOS 1 LG ADC count = 40 MeV)
+	       if(digitDataPtr->fHgPresent)
+	       {
                 fDigitsPointerArray[digCount] = digitDataPtr;
                 digCount++;
                 digitDataPtr++;
+	       }
             }
         }
     }
@@ -257,8 +261,6 @@ AliHLTCaloClusterizerComponent::DoInit(int argc, const char** argv )
 
     fDigitsPointerArray = new AliHLTCaloDigitDataStruct*[fCaloConstants->GetNXCOLUMNSMOD()*fCaloConstants->GetNZROWSMOD()];
 
-    fClusterizerPtr = new AliHLTCaloClusterizer(fCaloConstants->GetDETNAME());
-
     fClusterizerPtr->SetDigitArray(fDigitsPointerArray);
 
     fClusterizerPtr->SetSortDigitsByEnergy();
@@ -285,6 +287,7 @@ AliHLTCaloClusterizerComponent::DoInit(int argc, const char** argv )
             fAnalyserPtr->SetRecoParamHandler(fRecoParamsPtr);
             fClusterizerPtr->SetEmcClusteringThreshold(fRecoParamsPtr->GetRecPointThreshold());
             fClusterizerPtr->SetEmcMinEnergyThreshold(fRecoParamsPtr->GetRecPointMemberThreshold());
+	    HLTInfo("Setting thresholds for clusterizer: %f, %f", fRecoParamsPtr->GetRecPointThreshold(), fRecoParamsPtr->GetRecPointMemberThreshold());
         }
     }
     //

@@ -44,7 +44,7 @@ AliRsnCutPrimaryVertex::AliRsnCutPrimaryVertex
 //
 
   fMinD = 0.0;
-  fMaxD = maxVz;
+  fMaxD = maxVz + 1E-6;
 }
 
 //_________________________________________________________________________________________________
@@ -54,48 +54,70 @@ Bool_t AliRsnCutPrimaryVertex::IsSelected(TObject *obj1, TObject* /*obj2*/)
 // Cut checker
 //
 
+  static Int_t evNum = 0;
+  evNum++;
+  
   // retrieve ESD event
   AliRsnEvent *rsn = dynamic_cast<AliRsnEvent*>(obj1);
   if (!rsn) return kFALSE;
   AliESDEvent *esd = dynamic_cast<AliESDEvent*>(rsn->GetRef());
-  if (!esd) 
+  AliAODEvent *aod = dynamic_cast<AliAODEvent*>(rsn->GetRef());
+  
+  if (esd)
   {
-    AliDebug(AliLog::kDebug+2, "NO ESD");
-    return kFALSE;
+    // get the best primary vertex:
+    // first try the one with tracks
+    const AliESDVertex *vTrk  = esd->GetPrimaryVertexTracks();
+    const AliESDVertex *vSPD  = esd->GetPrimaryVertexSPD();
+    const AliESDVertex *vTPC  = esd->GetPrimaryVertexTPC();
+    Int_t               ncTrk = -1;
+    Int_t               ncSPD = -1;
+    Int_t               ncTPC = -1;
+    Double_t            vzTrk = 2.0 * fMaxD;
+    Double_t            vzSPD = 2.0 * fMaxD;
+    Double_t            vzTPC = 2.0 * fMaxD;
+    if (vTrk) vzTrk = TMath::Abs(vTrk->GetZv());
+    if (vSPD) vzSPD = TMath::Abs(vSPD->GetZv());
+    if (vTPC) vzTPC = TMath::Abs(vTPC->GetZv());
+    if (vTrk) ncTrk = (Int_t)vTrk->GetNContributors();
+    if (vSPD) ncSPD = (Int_t)vSPD->GetNContributors();
+    if (vTPC) ncTPC = (Int_t)vTPC->GetNContributors();
+    if(vTrk && ncTrk > 0)
+    {
+      fCutValueI = ncTrk;
+      fCutValueD = vzTrk;
+    }
+    else if (vSPD && ncSPD > 0)
+    {
+      fCutValueI = ncSPD;
+      fCutValueD = vzSPD;
+    }
+    else if (vTPC && fAcceptTPC && ncTPC > 0)
+    {
+      fCutValueI = ncTPC;
+      fCutValueD = vzTPC;
+    }
+    else
+    {
+      fCutValueI = -1;
+      fCutValueD = 2.0 * fMaxD;
+    }
   }
-
-  // get the best primary vertex:
-  // first try the one with tracks
-  const AliESDVertex *vTrk  = esd->GetPrimaryVertexTracks();
-  const AliESDVertex *vSPD  = esd->GetPrimaryVertexSPD();
-  const AliESDVertex *vTPC  = esd->GetPrimaryVertexTPC();
-  Double_t            vzTrk = 2.0 * fMaxD;
-  Double_t            vzSPD = 2.0 * fMaxD;
-  Double_t            vzTPC = 2.0 * fMaxD;
-  if (vTrk) vzTrk = TMath::Abs(vTrk->GetZv());
-  if (vSPD) vzSPD = TMath::Abs(vSPD->GetZv());
-  if (vTPC) vzTPC = TMath::Abs(vTPC->GetZv());
-  AliDebug(AliLog::kDebug + 1, Form("Vertex with tracks: contributors = %d, abs(vz) = %f", vTrk->GetNContributors(), vzTrk));
-  AliDebug(AliLog::kDebug + 1, Form("Vertex with SPD,    contributors = %d, abs(vz) = %f", vSPD->GetNContributors(), vzSPD));
-  AliDebug(AliLog::kDebug + 1, Form("Vertex with TPC,    contributors = %d, abs(vz) = %f", vTPC->GetNContributors(), vzTPC));
-  if(vTrk->GetStatus())
+  else if (aod)
   {
-    fCutValueI = vTrk->GetNContributors();
-    fCutValueD = vzTrk;
-  }
-  else if (vSPD->GetStatus())
-  {
-    fCutValueI = vSPD->GetNContributors();
-    fCutValueD = vzSPD;
-  }
-  else if (vTPC->GetStatus() && fAcceptTPC)
-  {
-    fCutValueI = vTPC->GetNContributors();
-    fCutValueD = vzTPC;
+    // lines suggested by Andrea to reject TPC-only events
+    if(!aod->GetPrimaryVertexSPD()) return kFALSE;
+    if(aod->GetPrimaryVertexSPD()->GetNContributors() < 1) return kFALSE;
+    
+    AliAODVertex *prim = (AliAODVertex*)aod->GetPrimaryVertex();
+    fCutValueI = prim->GetNContributors();
+    fCutValueD = prim->GetZ();
   }
   else
     return kFALSE;
-  
-  return OkRangeI() && OkRangeD();
+    
+  // output
+  Bool_t result = ((!OkRangeI()) && OkRangeD());
+  return result;
 }
 

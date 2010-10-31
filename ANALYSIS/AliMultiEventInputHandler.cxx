@@ -29,6 +29,8 @@
 #include "AliLog.h"
 #include <TObjArray.h>
 #include <TTree.h>
+#include <TList.h>
+#include <TEntryList.h>
 
 
 ClassImp(AliMultiEventInputHandler)
@@ -40,6 +42,8 @@ AliMultiEventInputHandler::AliMultiEventInputHandler() :
     fNBuffered(0),
     fIndex(0),
     fCurrentBin(0),
+    fCurrentEvt(0),
+    fInit(0),
     fEventPool(0),
     fEventBuffer(0)
 {
@@ -54,18 +58,12 @@ AliMultiEventInputHandler::AliMultiEventInputHandler(Int_t size, Int_t format) :
     fNBuffered(0),
     fIndex(0),
     fCurrentBin(0),
+    fCurrentEvt(0),
+    fInit(0),
     fEventPool(0),
-    fEventBuffer(new AliVEvent*[size])
+    fEventBuffer(0)
 {
-  // Default constructor
-    for (Int_t i = 0; i < size; i++) 
-	if (fFormat == 1) {
-	    fEventBuffer[i] = new AliAODEvent();
-	} else if (fFormat == 0) {
-	    fEventBuffer[i] = new AliESDEvent();
-	} else{
-	    AliWarning(Form("Unknown Format %5d", fFormat));
-	}
+  // constructor
 }
 
 //______________________________________________________________________________
@@ -76,18 +74,13 @@ AliMultiEventInputHandler::AliMultiEventInputHandler(const char* name, const cha
     fNBuffered(0),
     fIndex(0),
     fCurrentBin(0),
+    fCurrentEvt(0),
+    fInit(0),
     fEventPool(0),
-    fEventBuffer(new AliVEvent*[size])
+    fEventBuffer(0)
 {
     // Constructor
-    for (Int_t i = 0; i < size; i++) 
-	if (fFormat == 1) {
-	    fEventBuffer[i] = new AliAODEvent();
-	} else if (fFormat == 0) {
-	    fEventBuffer[i] = new AliESDEvent();
-	} else{
-	    AliWarning(Form("Unknown Format %5d", fFormat));
-	}
+
 }
 
 //______________________________________________________________________________
@@ -99,7 +92,23 @@ AliMultiEventInputHandler::~AliMultiEventInputHandler()
 Bool_t AliMultiEventInputHandler::Init(TTree* tree, Option_t* /*opt*/)
 {
     // Initialisation necessary for each new tree
+    if (!fEventBuffer) {
+	fEventBuffer = new AliVEvent*[fBufferSize];
+	
+	for (Int_t i = 0; i < fBufferSize; i++) 
+	    if (fFormat == 1) {
+		fEventBuffer[i] = new AliAODEvent();
+	    } else if (fFormat == 0) {
+		fEventBuffer[i] = new AliESDEvent();
+	    } else{
+		AliWarning(Form("Unknown Format %5d", fFormat));
+	    }
+    }
+    
+
     fTree = tree;
+    fInit = 1;
+    
     if (!fTree) return kFALSE;
     for (Int_t i = 0; i < fBufferSize; i++) 
 	fEventBuffer[i]->Clear();
@@ -112,7 +121,17 @@ Bool_t AliMultiEventInputHandler::Init(TTree* tree, Option_t* /*opt*/)
 Bool_t AliMultiEventInputHandler::Notify(const char */*path*/)
 {
     // Connect to new tree
-    fEventBuffer[0]->ReadFromTree(fTree, "");
+ 
+    TList* connectedList = (TList*) (fTree->GetUserInfo()->FindObject("AODObjectsConnectedToTree"));   
+    if (connectedList && !fInit) {
+	fEventBuffer[0]->ReadFromTree(fTree, "reconnect");
+    } else {
+	if (fInit) fEventBuffer[0]->ReadFromTree(fTree, "");
+    }
+    
+    fCurrentEvt = 0;
+    fInit = 0;
+    
     return (kTRUE);
 }
 
@@ -137,11 +156,29 @@ Bool_t AliMultiEventInputHandler::FinishEvent()
     fIndex %= fBufferSize;
     AliInfo(Form("Connecting buffer entry %5d", fIndex));
     fEventBuffer[fIndex]->Clear();
+    fCurrentEvt++;
+    if (fEventBuffer[fIndex]->GetList() && fCurrentEvt > (fBufferSize - 1))
+	fEventBuffer[fIndex]->GetList()->Delete();
+
     fEventBuffer[fIndex]->ReadFromTree(fTree, "reconnect");
 
     fNBuffered++;
     if (fNBuffered > fBufferSize) fNBuffered = fBufferSize;
 
+    Int_t nmax = fTree->GetEntries();
+    if (fTree->GetEntryList()) {
+	nmax = (fTree->GetEntryList()->GetN());
+    } else {
+	if (fTree->GetTree()) nmax = fTree->GetTree()->GetEntries();
+    }
+    
+    if (fCurrentEvt == nmax)
+    {
+	for (Int_t i = 0; i < fBufferSize; i++) {
+	    fEventBuffer[i]->Clear();
+	}
+    }
+    
     return (kTRUE);
 }
 

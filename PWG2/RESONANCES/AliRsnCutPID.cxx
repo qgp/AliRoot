@@ -113,23 +113,18 @@ Bool_t AliRsnCutPID::ComputeWeights(AliRsnDaughter *daughter)
   Int_t  i, j;
   Bool_t useDefault = fUseDefault;
   Bool_t perfectPID = fPerfect;
-  if (perfectPID && !daughter->GetRefMC()) perfectPID = kFALSE;
+  if (perfectPID && !daughter->GetRefMC()) return kFALSE;
   if (!daughter->GetRefESDtrack()) useDefault = kTRUE;
   if (!daughter->GetRefESDtrack() && !daughter->GetRefAODtrack()) return kFALSE;
   
-  // if perfect PID ise required, this overcomes all
-  // in this case the weight of the correct species is set to 1
-  // and the others to 0
-  // of course this happens only if there is a reference MC
+  // if perfect PID ise required, 
+  // compare the PDG code of the type stored in 'fMinI' of the cut
+  // and that of the particle which is checked, looking at its MC
   if (perfectPID)
   {
+    i = TMath::Abs(AliPID::ParticleCode(fMinI));
     j = TMath::Abs(daughter->GetRefMC()->Particle()->GetPdgCode());
-    for (i = 0; i < AliPID::kSPECIES; i++)
-    {
-      if (AliPID::ParticleCode((AliPID::EParticleType)i) == j) fWeight[i] = 1.0;
-      else fWeight[i] = 0.0;
-    }
-    return kTRUE;
+    return (i == j);
   }
   
   // if default weights are (or need to be) used,
@@ -179,26 +174,24 @@ Bool_t AliRsnCutPID::ComputeWeights(AliRsnDaughter *daughter)
 }
 
 //_________________________________________________________________________________________________
-Bool_t AliRsnCutPID::IsSelected(TObject *obj1, TObject* /*obj2*/)
+Int_t AliRsnCutPID::RealisticPID(AliRsnDaughter * const daughter, Double_t &prob)
 {
 //
-// Cut checker.
+// Combines the weights collected from chosen detectors with the priors
+// and gives the corresponding particle with the largest probability,
+// in terms of the AliPID particle type enumeration.
+// The argument, passed by reference, gives the corresponding probability,
+// since the cut could require that it is larger than a threshold.
 //
 
-  // coherence check
-  if (!AliRsnCut::TargetOK(obj1))
+  // try to compute the weights
+  if (!ComputeWeights(daughter)) 
   {
-    AliError(Form("Wrong target. Skipping cut", GetName()));
-    return kTRUE;
+    prob = -1.0;
+    return AliPID::kUnknown;
   }
   
-  // convert the object into the unique correct type
-  AliRsnDaughter *daughter = dynamic_cast<AliRsnDaughter*>(obj1);
-  
-  // try to compute the weights
-  if (!ComputeWeights(daughter)) return kFALSE;
-  
-  // combine with priors and get the majority
+  // combine with priors and normalize
   Int_t    i;
   Double_t sum = 0.0, w[AliPID::kSPECIES];
   for (i = 0; i < AliPID::kSPECIES; i++)
@@ -209,32 +202,88 @@ Bool_t AliRsnCutPID::IsSelected(TObject *obj1, TObject* /*obj2*/)
   if (sum <= 0.0)
   {
     AliError("Sum = 0");
-    return kFALSE;
+    prob = -1.0;
+    return AliPID::kUnknown;
   }
   for (i = 0; i < AliPID::kSPECIES; i++) w[i] /= sum;
   
   // find the largest probability and related PID
-  // and assign them to the mother class members which
-  // are checked for the cut
-  fCutValueI = 0;
-  fCutValueD = w[0];
+  Int_t ibest = 0;
+  prob = w[0];
   for (i = 1; i < AliPID::kSPECIES; i++)
   {
-    if (w[i] > fCutValueD) 
+    if (w[i] > prob) 
     {
-      fCutValueD = w[i];
-      fCutValueI = i;
+      prob = w[i];
+      ibest = i;
     }
   }
   
-  // if the best probability is too small, the cut is failed anyway
-  if (!OkRangeD()) return kFALSE;
+  // return the value, while the probability
+  // will be consequentially set
+  return ibest;
+}
   
-  // if the best probability is OK, the cut is passed
-  // if it correspond to the right particle
-  return OkValue();
+//_________________________________________________________________________________________________
+Int_t AliRsnCutPID::PerfectPID(AliRsnDaughter * const daughter)
+{
+//
+// If MC is present, retrieve the particle corresponding to the used track
+// (using the fRefMC data member) and then return the true particle type
+// taken from the PDG code of the reference particle itself, converted
+// into the enumeration from AliPID object.
+//
+
+  // works only if the MC is present
+  if (!daughter->GetRefMC()) return AliPID::kUnknown;
+  
+  // get the PDG code of the particle
+  TParticle *part = daughter->GetRefMC()->Particle();
+  Int_t      pdg  = TMath::Abs(part->GetPdgCode());
+  
+  // loop over all species listed in AliPID to find the match
+  Int_t i;
+  for (i = 0; i < AliPID::kSPECIES; i++)
+  {
+    if (AliPID::ParticleCode(i) == pdg) return i;
+  }
+  
+  return AliPID::kUnknown;
 }
 
+//_________________________________________________________________________________________________
+Bool_t AliRsnCutPID::IsSelected(TObject *obj1, TObject* /*obj2*/)
+{
+//
+// Cut checker.
+//
+  
+  // convert the object into the unique correct type
+  AliRsnDaughter *daughter = dynamic_cast<AliRsnDaughter*>(obj1);
+  if (!daughter)
+  {
+    AliError(Form("[%s]: this cut works only with AliRsnDaughter objects", GetName()));
+    return kTRUE;
+  }
+  
+  // depending on the PID type, recalls the appropriate method:
+  // in case of perfect PID, checks only if the PID type is 
+  // corresponding to the request in the cut (fMinI)
+  // while in case of realistic PID checks also the probability
+  // to be within the required interval
+  if (fPerfect)
+  {
+    fCutValueI = PerfectPID(daughter);
+    return OkValueI();
+  }
+  else
+  {
+    fCutValueI = RealisticPID(daughter, fCutValueD);
+    return OkValueI() && OkRangeD();
+  }
+}
+
+//__________________________________________________________________________________________________
 void AliRsnCutPID::IncludeDetector(EDetector det, Double_t threshold, Bool_t goAbove)
 {
 //

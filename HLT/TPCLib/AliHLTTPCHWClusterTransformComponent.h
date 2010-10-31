@@ -21,8 +21,8 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 #include "AliHLTProcessor.h"
-#include "AliTPCRecoParam.h"
-#include <vector>
+#include "AliHLTTPCClusterTransformation.h"
+#include "AliHLTComponentBenchmark.h"
 
 class AliTPCTransform;
 
@@ -136,9 +136,10 @@ protected:
   int Reconfigure(const char* cdbEntry, const char* chainId);
 
   using AliHLTProcessor::DoEvent;
-  AliTPCTransform *fOfflineTransform;
   Bool_t fDataId;
   UInt_t fChargeThreshold;  //!transient 
+  AliHLTTPCClusterTransformation fTransform;
+  AliHLTComponentBenchmark fBenchmark; // benchmarks
 
 private:
    
@@ -150,10 +151,9 @@ private:
   /** assignment operator prohibited */
   AliHLTTPCHWClusterTransformComponent& operator=(const AliHLTTPCHWClusterTransformComponent&);
 
-  AliTPCRecoParam fOfflineTPCRecoParam;       //! transient
   static const char* fgkOCDBEntryHWTransform; //!transient
   
-  ClassDef(AliHLTTPCHWClusterTransformComponent, 4)
+  ClassDef(AliHLTTPCHWClusterTransformComponent, 0)
 };
 
 #endif

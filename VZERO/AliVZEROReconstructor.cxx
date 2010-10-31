@@ -42,6 +42,7 @@
 #include "AliVZEROCalibData.h"
 #include "AliRunInfo.h"
 #include "AliCTPTimeParams.h"
+#include "AliLHCClockPhase.h"
 
 ClassImp(AliVZEROReconstructor)
 
@@ -79,12 +80,17 @@ AliVZEROReconstructor:: AliVZEROReconstructor(): AliReconstructor(),
   if (!entry3) AliFatal("VZERO time slewing function is not found in OCDB !");
   fTimeSlewing = (TF1*)entry3->GetObject();
 
+  AliCDBEntry *entry4 = AliCDBManager::Instance()->Get("GRP/Calib/LHCClockPhase");
+  if (!entry4) AliFatal("LHC clock-phase shift is not found in OCDB !");
+  AliLHCClockPhase *phase = (AliLHCClockPhase*)entry4->GetObject();
+
   for(Int_t i = 0 ; i < 64; ++i) {
     Int_t board = AliVZEROCalibData::GetBoardNumber(i);
     fTimeOffset[i] = (((Float_t)fCalibData->GetTriggerCountOffset(board)-
 			(Float_t)fCalibData->GetRollOver(board))*25.0+
 		       fCalibData->GetTimeOffset(i)-
-		       l1Delay+
+		       l1Delay-
+		       phase->GetMeanPhase()+
 		       delays->GetBinContent(i+1)+
 		       kV0Offset);
   }
@@ -106,8 +112,11 @@ AliVZEROReconstructor::~AliVZEROReconstructor()
 {
 // destructor
 
-   delete fESDVZERO;
+  if(fESDVZERO)
+    delete fESDVZERO;
+  if(fESDVZEROfriend)
    delete fESDVZEROfriend;
+  if(fDigitsArray)
    delete fDigitsArray;
 }
 
@@ -185,7 +194,10 @@ void AliVZEROReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digits
 	fESDVZEROfriend->SetBBMBFlag(offlineCh,iBunch,rawStream.GetBBMBFlag(iChannel,iBunch));
 	fESDVZEROfriend->SetBGMBFlag(offlineCh,iBunch,rawStream.GetBGMBFlag(iChannel,iBunch));
       }
-
+      for (Int_t iEv = 0; iEv < AliESDVZEROfriend::kNEvOfInt; iEv++) {
+	  fESDVZEROfriend->SetBBFlag(offlineCh,iEv,rawStream.GetBBFlag(iChannel,iEv));
+	  fESDVZEROfriend->SetBGFlag(offlineCh,iEv,rawStream.GetBGFlag(iChannel,iEv));
+      }
     }  
 
     // Filling the global part of esd friend object that is available only for raw data
@@ -327,14 +339,16 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
         time[pmNumber]  =  CorrectLeadingTime(pmNumber,digit->Time(),adc[pmNumber]);
 	width[pmNumber] =  digit->Width();
 
-	if (adc[pmNumber] > 0) AliDebug(1,Form("PM = %d ADC = %f TDC %f (%f)   Int %d (%d %d %d %d %d)    %f %f   %f %f    %d %d",pmNumber, adc[pmNumber],
-					       digit->Time(),time[pmNumber],
-					       integrator,
-					       digit->ChargeADC(8),digit->ChargeADC(9),digit->ChargeADC(10),
-					       digit->ChargeADC(11),digit->ChargeADC(12),
-					       fCalibData->GetPedestal(pmNumber),fCalibData->GetSigma(pmNumber),
-					       fCalibData->GetPedestal(pmNumber+64),fCalibData->GetSigma(pmNumber+64),
-					       aBBflag[pmNumber],aBGflag[pmNumber]));
+	if (adc[pmNumber] > 0) {
+	  AliDebug(1,Form("PM = %d ADC = %f TDC %f (%f)   Int %d (%d %d %d %d %d)    %f %f   %f %f    %d %d",pmNumber, adc[pmNumber],
+			  digit->Time(),time[pmNumber],
+			  integrator,
+			  digit->ChargeADC(8),digit->ChargeADC(9),digit->ChargeADC(10),
+			  digit->ChargeADC(11),digit->ChargeADC(12),
+			  fCalibData->GetPedestal(pmNumber),fCalibData->GetSigma(pmNumber),
+			  fCalibData->GetPedestal(pmNumber+64),fCalibData->GetSigma(pmNumber+64),
+			  aBBflag[pmNumber],aBGflag[pmNumber]));
+	    };
 
 	mult[pmNumber] = adc[pmNumber]*fCalibData->GetMIPperADC(pmNumber);
 
@@ -342,8 +356,6 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
 	for (Int_t iEv = 0; iEv < AliESDVZEROfriend::kNEvOfInt; iEv++) {
 	  fESDVZEROfriend->SetPedestal(pmNumber,iEv,(Float_t)digit->ChargeADC(iEv));
 	  fESDVZEROfriend->SetIntegratorFlag(pmNumber,iEv,(iEv%2 == 0) ? integrator : !integrator);
-	  fESDVZEROfriend->SetBBFlag(pmNumber,iEv,aBBflag[pmNumber]);
-	  fESDVZEROfriend->SetBGFlag(pmNumber,iEv,aBGflag[pmNumber]);
 	}
 	fESDVZEROfriend->SetTime(pmNumber,digit->Time());
 	fESDVZEROfriend->SetWidth(pmNumber,digit->Width());

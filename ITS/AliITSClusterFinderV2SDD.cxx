@@ -240,6 +240,7 @@ FindClustersSDD(AliBin* bins[2], TBits* anodeFired[2],
 		if (index<0) continue;
 		if (index>=kMaxBin) continue;
 		AliBin *b=&bins[s][index];
+		if(b->GetQ()<0.1) continue;
 		AliITSdigitSDD* d=(AliITSdigitSDD*)digits->UncheckedAt(b->GetIndex());
 		for (Int_t itrack=0;itrack<10;itrack++){
 		  Int_t track = (d->GetTracks())[itrack];
@@ -295,7 +296,7 @@ FindClustersSDD(AliBin* bins[2], TBits* anodeFired[2],
 	  if(cal-> IsAMAt20MHz()) q*=2.; // account for 1/2 sampling freq.
 	  if(q<repa->GetMinClusterChargeSDD()) continue; // remove noise clusters
 	  
-	  Float_t hit[5] = {y, z, 0.0030*0.0030, 0.0020*0.0020, q};
+	  Float_t hit[6] = {y, z, 0.0030*0.0030, 0.0020*0.0020, q, 0.};
 	  Int_t  info[3] = {clSizTb, clSizAnode, fNlayer[fModule]};
 	  if (digits) CheckLabels2(milab);
 	  milab[3]=fNdet[fModule];

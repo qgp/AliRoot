@@ -151,6 +151,8 @@ int AliHLTDataBuffer::FindMatchingDataSegments(const AliHLTComponent* pConsumer,
   iResult=tgtList.size();
   return iResult;
   
+  // NOTE: the remaining code is disabled
+  // to be deleted at cleanup
   if (pConsumer) {
     AliHLTComponentDataTypeList dtlist;
     ((AliHLTComponent*)pConsumer)->GetInputDataTypes(dtlist);
@@ -433,28 +435,28 @@ int AliHLTDataBuffer::IsEmpty()
   return iResult;
 }
 
-int AliHLTDataBuffer::GetNofSegments()
+int AliHLTDataBuffer::GetNofSegments() const
 {
   // see header file for function documentation
   int iResult=fSegments.size() + fForwardedSegments.size();
   return iResult;
 }
 
-int AliHLTDataBuffer::GetNofConsumers()
+int AliHLTDataBuffer::GetNofConsumers() const
 {
   // see header file for function documentation
   int iResult=fConsumers.size() + GetNofActiveConsumers() + fReleasedConsumers.size();
   return iResult;
 }
 
-int AliHLTDataBuffer::GetNofPendingConsumers()
+int AliHLTDataBuffer::GetNofPendingConsumers() const
 {
   // see header file for function documentation
   int iResult=fConsumers.size();
   return iResult;
 }
 
-int AliHLTDataBuffer::GetNofActiveConsumers()
+int AliHLTDataBuffer::GetNofActiveConsumers() const
 {
   // see header file for function documentation
   int iResult=fActiveConsumers.size();
@@ -638,6 +640,7 @@ int AliHLTDataBuffer::PrintStatistics()
        rawpage=AliHLTDataBuffer::AliHLTRawPage::NextPage(rawpage)) {
     nofPages++;
     totalSize+=rawpage->Size();
+    if (fgLogging.CheckFilter(kHLTLogDebug)) rawpage->Print("");
   }
   //if (rawpage) rawpage->Print("global");
   fgLogging.Logging(kHLTLogInfo, "AliHLTDataBuffer::PrintStatistics", "data buffer handling", "total number of memory pages: %d   total size %d", nofPages, totalSize);
@@ -1027,7 +1030,7 @@ int AliHLTDataBuffer::AliHLTRawBuffer::Merge(const AliHLTDataBuffer::AliHLTRawBu
   return -EINVAL;
 }
 
-void AliHLTDataBuffer::AliHLTRawBuffer::Print(const char* option)
+void AliHLTDataBuffer::AliHLTRawBuffer::Print(const char* option) const
 {
   /// print buffer information
   if (strcmp(option, "min")!=0) {
@@ -1274,7 +1277,7 @@ void AliHLTDataBuffer::AliHLTRawPage::Print(const char* option)
 
 vector<AliHLTDataBuffer::AliHLTRawPage*> AliHLTDataBuffer::AliHLTRawPage::fgGlobalPages;
 
-AliHLTUInt32_t AliHLTDataBuffer::AliHLTRawPage::fgGlobalPageSize=1024*1024*10;
+AliHLTUInt32_t AliHLTDataBuffer::AliHLTRawPage::fgGlobalPageSize=30*1024*1024;
 
 AliHLTDataBuffer::AliHLTRawBuffer* AliHLTDataBuffer::AliHLTRawPage::GlobalAlloc(AliHLTUInt32_t size, int verbosity)
 {
@@ -1294,9 +1297,8 @@ AliHLTDataBuffer::AliHLTRawBuffer* AliHLTDataBuffer::AliHLTRawPage::GlobalAlloc(
   if (!rawbuffer) {
     AliHLTUInt32_t rawPageSize=fgGlobalPageSize;
     if (rawPageSize<size) {
-      if (rawPageSize*10<size ||
-	  rawPageSize*10>1024*1024*1024) {
-	log.Logging(kHLTLogError, "AliHLTDataBuffer::AliHLTRawPage::GlobalAlloc", "data buffer handling", "refusing to allocate buffer of size", size);
+      if (rawPageSize*10<size) {
+	log.Logging(kHLTLogError, "AliHLTDataBuffer::AliHLTRawPage::GlobalAlloc", "data buffer handling", "refusing to allocate buffer of size %d", size);
 	return NULL;
       }
       rawPageSize=size;
@@ -1305,6 +1307,14 @@ AliHLTDataBuffer::AliHLTRawBuffer* AliHLTDataBuffer::AliHLTRawPage::GlobalAlloc(
     if (!rawpage) {
       log.Logging(kHLTLogError, "AliHLTDataBuffer::AliHLTRawPage::GlobalAlloc", "data buffer handling", "can not create raw page");
       return NULL;
+    }
+
+    // check is there is at least one unused page which can be replaced by the newly created one
+    for (page=fgGlobalPages.begin(); page!=fgGlobalPages.end(); page++) {
+      if ((*page)->IsUsed()) continue;
+      delete *page;
+      fgGlobalPages.erase(page);
+      break; // delete only one page to be replaced by the new page
     }
     fgGlobalPages.push_back(rawpage);
     if ((rawbuffer=rawpage->Alloc(size))!=NULL) {
@@ -1361,4 +1371,71 @@ AliHLTDataBuffer::AliHLTRawPage* AliHLTDataBuffer::AliHLTRawPage::NextPage(const
     break;
   }
   return NULL;
+}
+
+void AliHLTDataBuffer::AliHLTDataSegment::Print(const char* /*option*/) const
+{
+  // print info for data segment
+  cout << "AliHLTDataSegment " << this 
+       << " " << AliHLTComponent::DataType2Text(fDataType)
+       << " " << hex << fSpecification << dec
+       << " Ptr " << (void*)fPtr
+       << " offset " << fSegmentOffset
+       << " size " << fSegmentSize
+       << endl;
+}
+
+void AliHLTDataBuffer::AliHLTForwardedDataSegment::Print(const char* option) const
+{
+  // print info for data segment
+  cout << "AliHLTForwardeDataSegment " << this << endl;
+  cout << "    my    : "; AliHLTDataSegment::Print(option);
+  cout << "    parent: "; fParentSegment.Print(option);
+  cout << "    task  : "; 
+  if (fParentTask) fParentTask->Print("");
+  else cout << "nil" << endl;
+}
+
+void AliHLTDataBuffer::Print(const char* option) const
+{
+  // print info for data buffer
+  unsigned i=0;
+  cout << "AliHLTDataBuffer " << this << endl;
+  cout << " raw buffer " << fpBuffer << endl;
+  if (fpBuffer) {
+    cout << " ";
+    fpBuffer->Print(option);
+  }
+
+  cout << " total segments: " << GetNofSegments() << endl;
+  cout << "   data segments: " << fSegments.size() << endl;
+  for (i=0; i<fSegments.size(); i++) {
+    cout << "     ";
+    fSegments[i].Print(option);
+  }
+
+  cout << "   forwarded segments: " << fForwardedSegments.size() << endl;
+  for (i=0; i<fForwardedSegments.size(); i++) {
+    cout << "     ";
+    fForwardedSegments[i].Print(option);
+  }
+
+  cout << " consumers: " << GetNofConsumers() << endl;
+  for (i=0; i<fConsumers.size(); i++) {
+    cout << "   ";
+    fConsumers[i]->Print(option);
+  }
+
+  cout << " active consumers: " << GetNofActiveConsumers() << endl;
+  for (i=0; i<fActiveConsumers.size(); i++) {
+    cout << "   ";
+    fActiveConsumers[i]->Print(option);
+  }
+
+  cout << " released consumers: " << fReleasedConsumers.size() << endl;
+  for (i=0; i<fReleasedConsumers.size(); i++) {
+    cout << "   ";
+    fReleasedConsumers[i]->Print(option);
+  }
+
 }

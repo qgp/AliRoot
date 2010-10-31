@@ -1,4 +1,4 @@
-AliAnalysisTaskJetCluster *AddTaskJetCluster(char* bRec = "AOD",char* bGen = "",UInt_t filterMask = 16, Int_t iPhysicsSelection = 1,Char_t *jf = "KT", Float_t radius = 0.4);
+AliAnalysisTaskJetCluster *AddTaskJetCluster(char* bRec = "AOD",char* bGen = "",UInt_t filterMask = 16, Int_t iPhysicsSelection = 1,Char_t *jf = "KT", Float_t radius = 0.4,Int_t nSkip = 0,Int_t kWriteAOD);
 
 
 AliAnalysisTaskJetCluster *AddTaskJetClusterDelta(UInt_t filterMask = 16,Bool_t kUseAODMC = kFALSE,Int_t iPhysicsSelection = 1,Char_t *jf = "KT", UInt_t iFlag){
@@ -16,7 +16,7 @@ AliAnalysisTaskJetCluster *AddTaskJetClusterDelta(UInt_t filterMask = 16,Bool_t 
     if(iFlag&(1<<0))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,0.00001);
     if(iFlag&(1<<1))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,0.1);
     if(iFlag&(1<<2))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,0.2);
-    if(iFlag&(1<<4))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,0.4);
+    if(iFlag&(1<<4))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,0.4,0,1);
     if(iFlag&(1<<6))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,0.6);
     if(iFlag&(1<<8))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,0.8);
     if(iFlag&(1<<10))js = AddTaskJetCluster("AOD","",filterMask,iPhysicsSelection,jf,1.0);
@@ -26,7 +26,7 @@ AliAnalysisTaskJetCluster *AddTaskJetClusterDelta(UInt_t filterMask = 16,Bool_t 
 }
 
 
-AliAnalysisTaskJetCluster *AddTaskJetCluster(char* bRec,char* bGen ,UInt_t filterMask,Int_t iPhysicsSelection,Char_t *jf,Float_t radius)
+AliAnalysisTaskJetCluster *AddTaskJetCluster(char* bRec,char* bGen ,UInt_t filterMask,Int_t iPhysicsSelection,Char_t *jf,Float_t radius,Int_t nSkip,Int_t kWriteAOD)
 {
 // Creates a jet fider task, configures it and adds it to the analysis manager.
 
@@ -58,7 +58,7 @@ AliAnalysisTaskJetCluster *AddTaskJetCluster(char* bRec,char* bGen ,UInt_t filte
    if(radius>0)cRadius = Form("%02d",(int)((radius+0.01)*10.));
 
    
-   AliAnalysisTaskJetCluster* pwg4spec = new  AliAnalysisTaskJetCluster(Form("JetCluster_%s_%s",jf,cRadius));
+   AliAnalysisTaskJetCluster* pwg4spec = new  AliAnalysisTaskJetCluster(Form("JetCluster_%s_%s_skip%d",jf,cRadius,nSkip));
       
    // or a config file
    // pwg4spec->SetAnalysisType(AliAnalysisTaskJetCluster::kAnaMC);
@@ -84,7 +84,9 @@ AliAnalysisTaskJetCluster *AddTaskJetCluster(char* bRec,char* bGen ,UInt_t filte
    }
    else if (typeRec.Contains("AOD")) {
      pwg4spec->SetTrackTypeRec(AliAnalysisTaskJetCluster::kTrackAOD);
+     pwg4spec->SetTrackPtCut(0.15);
    }
+
 
    if(typeGen.Contains("AODMC2b")){// work down from the top AODMC2b -> AODMC2 -> AODMC -> AOD
      pwg4spec->SetTrackTypeGen(AliAnalysisTaskJetCluster::kTrackAODMCChargedAcceptance);
@@ -119,14 +121,21 @@ AliAnalysisTaskJetCluster *AddTaskJetCluster(char* bRec,char* bGen ,UInt_t filte
    }
 
    
+   if(kWriteAOD){
+     pwg4spec->SetJetOutputBranch(Form("clusters%s_%s%s",bRec,jf,cRadius));
+     pwg4spec->SetJetOutputMinPt(0); // store only jets / clusters above a certain threshold
+   }
+
+   pwg4spec->SetNSkipLeadingRan(nSkip);
+
    if(iPhysicsSelection)pwg4spec->SelectCollisionCandidates();
 
    mgr->AddTask(pwg4spec);
-     
+
    // Create ONLY the output containers for the data produced by the task.
    // Get and connect other common input/output containers via the manager as below
    //==============================================================================
-   AliAnalysisDataContainer *coutput1_Spec = mgr->CreateContainer(Form("pwg4cluster_%s_%s_%s_%s",bRec,bGen,jf,cRadius), TList::Class(),AliAnalysisManager::kOutputContainer,Form("%s:PWG4_cluster_%s_%s_%s_%s",AliAnalysisManager::GetCommonFileName(),bRec,bGen,jf,cRadius));
+   AliAnalysisDataContainer *coutput1_Spec = mgr->CreateContainer(Form("pwg4cluster_%s_%s_%s_%s_skip%d",bRec,bGen,jf,cRadius,nSkip), TList::Class(),AliAnalysisManager::kOutputContainer,Form("%s:PWG4_cluster_%s_%s_%s_%s_skip%d",AliAnalysisManager::GetCommonFileName(),bRec,bGen,jf,cRadius,nSkip));
 
    mgr->ConnectInput  (pwg4spec, 0, mgr->GetCommonInputContainer());
    mgr->ConnectOutput (pwg4spec, 0, mgr->GetCommonOutputContainer());

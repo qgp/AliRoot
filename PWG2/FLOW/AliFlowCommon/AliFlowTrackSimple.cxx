@@ -24,8 +24,10 @@
 
 #include "TObject.h"
 #include "TParticle.h"
+#include "TParticlePDG.h"
 #include "AliFlowTrackSimple.h"
 #include "TRandom.h"
+#include "TMath.h"
 
 ClassImp(AliFlowTrackSimple)
 
@@ -36,6 +38,7 @@ AliFlowTrackSimple::AliFlowTrackSimple():
   fPt(0),
   fPhi(0),
   fTrackWeight(1.),
+  fCharge(0),
   fFlowBits(0),
   fSubEventBits(0)
 {
@@ -43,12 +46,13 @@ AliFlowTrackSimple::AliFlowTrackSimple():
 }
 
 //-----------------------------------------------------------------------
-AliFlowTrackSimple::AliFlowTrackSimple(Double_t phi, Double_t eta, Double_t pt, Double_t weight):
+AliFlowTrackSimple::AliFlowTrackSimple(Double_t phi, Double_t eta, Double_t pt, Double_t weight, Int_t charge):
   TObject(),
   fEta(eta),
   fPt(pt),
   fPhi(phi),
   fTrackWeight(weight),
+  fCharge(charge),
   fFlowBits(0),
   fSubEventBits(0)
 {
@@ -56,16 +60,19 @@ AliFlowTrackSimple::AliFlowTrackSimple(Double_t phi, Double_t eta, Double_t pt, 
 }
 
 //-----------------------------------------------------------------------
-AliFlowTrackSimple::AliFlowTrackSimple(const TParticle* p):
+AliFlowTrackSimple::AliFlowTrackSimple( TParticle* p ):
   TObject(),
   fEta(p->Eta()),
   fPt(p->Pt()),
   fPhi(p->Phi()),
   fTrackWeight(1.),
+  fCharge(0),
   fFlowBits(0),
   fSubEventBits(0)
 {
   //ctor
+  TParticlePDG* ppdg = p->GetPDG();
+  fCharge = TMath::Nint(ppdg->Charge()/3.0);
 }
 
 //-----------------------------------------------------------------------
@@ -75,6 +82,7 @@ AliFlowTrackSimple::AliFlowTrackSimple(const AliFlowTrackSimple& aTrack):
   fPt(aTrack.fPt),
   fPhi(aTrack.fPhi),
   fTrackWeight(aTrack.fTrackWeight),
+  fCharge(aTrack.fCharge),
   fFlowBits(aTrack.fFlowBits),
   fSubEventBits(aTrack.fSubEventBits)
 {
@@ -95,6 +103,7 @@ AliFlowTrackSimple& AliFlowTrackSimple::operator=(const AliFlowTrackSimple& aTra
   fPt = aTrack.fPt;
   fPhi = aTrack.fPhi;
   fTrackWeight = aTrack.fTrackWeight;
+  fCharge = aTrack.fCharge;
   fFlowBits = aTrack.fFlowBits;
   fSubEventBits = aTrack.fSubEventBits;
 
@@ -123,7 +132,9 @@ void AliFlowTrackSimple::AddV1( Double_t v1,
 {
   //afterburner, adds v1, uses Newton-Raphson iteration
   Double_t phi0=fPhi;
-  Double_t f,fp,phiprev;
+  Double_t f=0.;
+  Double_t fp=0.;
+  Double_t phiprev=0.;
 
   for (Int_t i=0; i<maxNumberOfIterations; i++)
   {
@@ -143,13 +154,37 @@ void AliFlowTrackSimple::AddV2( Double_t v2,
 {
   //afterburner, adds v2, uses Newton-Raphson iteration
   Double_t phi0=fPhi;
-  Double_t f,fp,phiprev;
+  Double_t f=0.;
+  Double_t fp=0.;
+  Double_t phiprev=0.;
 
   for (Int_t i=0; i<maxNumberOfIterations; i++)
   {
     phiprev=fPhi; //store last value for comparison
     f =  fPhi-phi0+v2*TMath::Sin(2.*(fPhi-reactionPlaneAngle));
     fp = 1.0+2.0*v2*TMath::Cos(2.*(fPhi-reactionPlaneAngle)); //first derivative
+    fPhi -= f/fp;
+    if (TMath::AreEqualAbs(phiprev,fPhi,precisionPhi)) break;
+  }
+}
+
+//----------------------------------------------------------------------- 
+void AliFlowTrackSimple::AddV3( Double_t v3,
+                                Double_t reactionPlaneAngle,
+                                Double_t precisionPhi,
+                                Int_t maxNumberOfIterations )
+{
+  //afterburner, adds v3, uses Newton-Raphson iteration
+  Double_t phi0=fPhi;
+  Double_t f=0.;
+  Double_t fp=0.;
+  Double_t phiprev=0.;
+
+  for (Int_t i=0; i<maxNumberOfIterations; i++)
+  {
+    phiprev=fPhi; //store last value for comparison
+    f =  fPhi-phi0+2./3.*v3*TMath::Sin(3.*(fPhi-reactionPlaneAngle));
+    fp = 1.0+2.0*v3*TMath::Cos(3.*(fPhi-reactionPlaneAngle)); //first derivative
     fPhi -= f/fp;
     if (TMath::AreEqualAbs(phiprev,fPhi,precisionPhi)) break;
   }
@@ -163,7 +198,9 @@ void AliFlowTrackSimple::AddV4( Double_t v4,
 {
   //afterburner, adds v4, uses Newton-Raphson iteration
   Double_t phi0=fPhi;
-  Double_t f,fp,phiprev;
+  Double_t f=0.;
+  Double_t fp=0.;
+  Double_t phiprev=0.;
 
   for (Int_t i=0; i<maxNumberOfIterations; i++)
   {
@@ -178,6 +215,7 @@ void AliFlowTrackSimple::AddV4( Double_t v4,
 //______________________________________________________________________________
 void AliFlowTrackSimple::AddFlow( Double_t v1,
                                   Double_t v2,
+                                  Double_t v3,
                                   Double_t v4,
                                   Double_t reactionPlaneAngle,
                                   Double_t precisionPhi,
@@ -185,20 +223,24 @@ void AliFlowTrackSimple::AddFlow( Double_t v1,
 {
   //afterburner, adds v1,v2,v4 uses Newton-Raphson iteration
   Double_t phi0=fPhi;
-  Double_t f,fp,phiprev;
+  Double_t f=0.;
+  Double_t fp=0.;
+  Double_t phiprev=0.;
 
   for (Int_t i=0; i<maxNumberOfIterations; i++)
   {
     phiprev=fPhi; //store last value for comparison
     f =  fPhi-phi0
-        +2.0*v1*TMath::Sin(fPhi-reactionPlaneAngle)
-        +    v2*TMath::Sin(2.*(fPhi-reactionPlaneAngle))
-        +0.5*v4*TMath::Sin(4.*(fPhi-reactionPlaneAngle))
+        +2.0*  v1*TMath::Sin(    fPhi-reactionPlaneAngle)
+        +      v2*TMath::Sin(2.*(fPhi-reactionPlaneAngle))
+        +2./3.*v3*TMath::Sin(3.*(fPhi-reactionPlaneAngle))
+        +0.5*  v4*TMath::Sin(4.*(fPhi-reactionPlaneAngle))
         ;
     fp =  1.0
          +2.0*(
-           +v1*TMath::Cos(fPhi-reactionPlaneAngle)
+           +v1*TMath::Cos(    fPhi-reactionPlaneAngle)
            +v2*TMath::Cos(2.*(fPhi-reactionPlaneAngle))
+           +v3*TMath::Cos(3.*(fPhi-reactionPlaneAngle))
            +v4*TMath::Cos(4.*(fPhi-reactionPlaneAngle))
          ); //first derivative
     fPhi -= f/fp;

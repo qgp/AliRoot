@@ -293,7 +293,7 @@ Int_t AliTRDtrackerV1::PropagateBack(AliESDEvent *event)
   // (covariance in the yz plane)
   if(nSeeds){  
     quality = new Float_t[nSeeds];
-    index   = new Int_t[nSeeds];
+    index   = new Int_t[4*nSeeds];
     for (Int_t iSeed = nSeeds; iSeed--;) {
       AliESDtrack *seed = event->GetTrack(iSeed);
       Double_t covariance[15];
@@ -318,6 +318,7 @@ Int_t AliTRDtrackerV1::PropagateBack(AliESDEvent *event)
     if ((status & AliESDtrack::kTRDout) != 0) continue;
 
     // Propagate to the entrance in the TRD mother volume
+    track.~AliTRDtrackV1();
     new(&track) AliTRDtrackV1(*seed);
     if(AliTRDgeometry::GetXtrdBeg() > (fgkMaxStep + track.GetX()) && !PropagateToX(track, AliTRDgeometry::GetXtrdBeg(), fgkMaxStep)){ 
       seed->UpdateTrackParams(&track, AliESDtrack::kTRDStop);
@@ -331,9 +332,8 @@ Int_t AliTRDtrackerV1::PropagateBack(AliESDEvent *event)
       seed->UpdateTrackParams(&track, AliESDtrack::kTRDStop);
       continue;
     }
-
     nTPCseeds++;
-
+    AliDebug(2, Form("TRD propagate TPC seed[%d] = %d.", iSeed, index[iSeed]));
     // store track status at TRD entrance
     seed->UpdateTrackParams(&track, AliESDtrack::kTRDbackup);
 
@@ -693,8 +693,7 @@ Int_t AliTRDtrackerV1::FollowBackProlongation(AliTRDtrackV1 &t)
   Int_t debugLevel = fkReconstructor->IsDebugStreaming() ? fkRecoParam->GetStreamLevel(AliTRDrecoParam::kTracker) : 0;
   TTreeSRedirector *cstreamer = fkReconstructor->IsDebugStreaming() ? fkReconstructor->GetDebugStream(AliTRDrecoParam::kTracker) : 0x0;
 
-  Bool_t kStoreIn(kTRUE),     //
-         kPropagateIn(kTRUE), //
+  Bool_t kStoreIn(kTRUE),     // toggel store track params. at TRD entry
          kStandAlone(kFALSE), // toggle tracker awarness of stand alone seeding 
          kUseTRD(fkRecoParam->IsOverPtThreshold(t.Pt()));// use TRD measurment to update Kalman
 
@@ -868,19 +867,20 @@ Int_t AliTRDtrackerV1::FollowBackProlongation(AliTRDtrackV1 &t)
         continue;
       }      
       // build tracklet
+      tracklet.~AliTRDseedV1();
       ptrTracklet = new(&tracklet) AliTRDseedV1(det);
       ptrTracklet->SetReconstructor(fkReconstructor);
       ptrTracklet->SetKink(t.IsKink());
       ptrTracklet->SetPrimary(t.IsPrimary());
       ptrTracklet->SetPadPlane(fGeom->GetPadPlane(ily, stk));
       ptrTracklet->SetX0(glb[0]+driftLength);
-      if(!tracklet.Init(&t)){
+      if(!ptrTracklet->Init(&t)){
         n=-1; 
         t.SetStatus(AliTRDtrackV1::kTrackletInit);
         AliDebug(4, "Failed Tracklet Init");
         break;
       }
-      if(!tracklet.AttachClusters(chamber, kTRUE)){   
+      if(!ptrTracklet->AttachClusters(chamber, kTRUE)){
         t.SetStatus(AliTRDtrackV1::kNoAttach, ily);
         if(debugLevel>3){
           AliTRDseedV1 trackletCp(*ptrTracklet);
@@ -893,8 +893,8 @@ Int_t AliTRDtrackerV1::FollowBackProlongation(AliTRDtrackV1 &t)
         AliDebug(4, "Failed Attach Clusters");
         continue;
       }
-      AliDebug(3, Form("Number of Clusters in Tracklet: %d", tracklet.GetN()));
-      if(tracklet.GetN() < fgNTimeBins*fkRecoParam ->GetFindableClusters()){
+      AliDebug(3, Form("Number of Clusters in Tracklet: %d", ptrTracklet->GetN()));
+      if(ptrTracklet->GetN() < fgNTimeBins*fkRecoParam->GetFindableClusters()){
         t.SetStatus(AliTRDtrackV1::kNoClustersTracklet, ily);
         if(debugLevel>3){
           AliTRDseedV1 trackletCp(*ptrTracklet);
@@ -938,10 +938,6 @@ Int_t AliTRDtrackerV1::FollowBackProlongation(AliTRDtrackV1 &t)
       t.SetStatus(AliTRDtrackV1::kSnp);
       AliDebug(4, Form("Failed Max Snp[%f] MaxSnp[%f]", t.GetSnp(), fgkMaxSnp));
       break;
-    }
-    if(kPropagateIn){
-      t.SetTrackIn(); 
-      kPropagateIn = kFALSE;
     }
     Double_t cov[3]; ptrTracklet->GetCovAt(x, cov);
     Double_t p[2] = { ptrTracklet->GetY(), ptrTracklet->GetZ()};
@@ -987,7 +983,7 @@ Int_t AliTRDtrackerV1::FollowBackProlongation(AliTRDtrackV1 &t)
     AliTracker::FillResiduals(&t, p, cov, ptrTracklet->GetVolumeId());
   
 
-    // load tracklet to the tracker
+    // register tracklet with the tracker and track
     ptrTracklet->Update(&t);
     ptrTracklet = SetTracklet(ptrTracklet);
     Int_t index(fTracklets->GetEntriesFast()-1);
@@ -1138,7 +1134,7 @@ Float_t AliTRDtrackerV1::FitTiltedRiemanConstraint(AliTRDseedV1 *tracklets, Doub
     if(!tracklets[ilr].IsOK()) continue;
     for(Int_t itb = 0; itb < AliTRDseedV1::kNclusters; itb++){
       if(!tracklets[ilr].IsUsable(itb)) continue;
-      cl = tracklets[ilr].GetClusters(itb);
+      if(!(cl = tracklets[ilr].GetClusters(itb))) continue;
       if(!cl->IsInChamber()) continue;
       x = cl->GetX();
       y = cl->GetY();
@@ -1675,7 +1671,8 @@ Double_t AliTRDtrackerV1::FitKalman(AliTRDtrackV1 *track, AliTRDseedV1 * const t
   //if(points) printf("First marker point @ x[%d] = %f\n", ip, points[ip].GetX());
 
 
-  AliTRDseedV1 tracklet, *ptrTracklet = NULL;
+  AliTRDseedV1 tracklet;
+  AliTRDseedV1 *ptrTracklet = NULL;
 
   //Loop through the TRD planes
   for (Int_t jplane = 0; jplane < kNPlanes; jplane++) {
@@ -1775,7 +1772,7 @@ Double_t AliTRDtrackerV1::FitKalman(AliTRDtrackV1 *track, AliTRDseedV1 * const t
 }
 
 //_________________________________________________________________________
-Float_t AliTRDtrackerV1::CalculateChi2Z(AliTRDseedV1 *tracklets, Double_t offset, Double_t slope, Double_t xref)
+Float_t AliTRDtrackerV1::CalculateChi2Z(const AliTRDseedV1 *tracklets, Double_t offset, Double_t slope, Double_t xref)
 {
   //
   // Calculates the chi2-value of the track in z-Direction including tilting pad correction.
@@ -1849,7 +1846,7 @@ Int_t AliTRDtrackerV1::PropagateToX(AliTRDtrackV1 &t, Double_t xToGo, Double_t m
     if (!t.PropagateTo(x, param[1], param[0]*param[4])) return 0;
 
     // Rotate the track if necessary
-    AdjustSector(&t);
+    if(!AdjustSector(&t)) return 0;
 
     // New track X-position
     xpos = t.GetX();
@@ -1862,7 +1859,7 @@ Int_t AliTRDtrackerV1::PropagateToX(AliTRDtrackV1 &t, Double_t xToGo, Double_t m
 
 
 //_____________________________________________________________________________
-Int_t AliTRDtrackerV1::ReadClusters(TClonesArray* &array, TTree *clusterTree) const
+Bool_t AliTRDtrackerV1::ReadClusters(TTree *clusterTree)
 {
   //
   // Reads AliTRDclusters from the file. 
@@ -1876,15 +1873,15 @@ Int_t AliTRDtrackerV1::ReadClusters(TClonesArray* &array, TTree *clusterTree) co
   TBranch *branch = clusterTree->GetBranch("TRDcluster");
   if (!branch) {
     AliError("Can't get the branch !");
-    return 1;
+    return kFALSE;
   }
   branch->SetAddress(&clusterArray); 
   
   if(!fClusters){ 
     Float_t nclusters =  fkRecoParam->GetNClusters();
     if(fkReconstructor->IsHLT()) nclusters /= AliTRDgeometry::kNsector;
-    array = new TClonesArray("AliTRDcluster", Int_t(nclusters));
-    array->SetOwner(kTRUE);
+    fClusters = new TClonesArray("AliTRDcluster", Int_t(nclusters));
+    fClusters->SetOwner(kTRUE);
   }
   
   // Loop through all entries in the tree
@@ -1903,11 +1900,10 @@ Int_t AliTRDtrackerV1::ReadClusters(TClonesArray* &array, TTree *clusterTree) co
       new((*fClusters)[ncl++]) AliTRDcluster(*c);
       delete (clusterArray->RemoveAt(iCluster)); 
     }
-
   }
   delete clusterArray;
 
-  return 0;
+  return kTRUE;
 }
 
 //_____________________________________________________________________________
@@ -1922,7 +1918,7 @@ Int_t AliTRDtrackerV1::LoadClusters(TTree *cTree)
   if(!fkReconstructor->IsWritingClusters()){ 
     fClusters = AliTRDReconstructor::GetClusters();
   } else {
-    if (ReadClusters(fClusters, cTree)) {
+    if(!ReadClusters(cTree)) {
       AliError("Problem with reading the clusters !");
       return 1;
     }
@@ -2287,7 +2283,7 @@ Int_t AliTRDtrackerV1::Clusters2TracksStack(AliTRDtrackingChamber **stack, TClon
     if(!ntracks) break;
     
     // Sort the seeds according to their quality
-    Int_t sort[kMaxTracksStack];
+    Int_t sort[kMaxTracksStack+1];
     TMath::Sort(ntracks, fTrackQuality, sort, kTRUE);
     if(AliLog::GetDebugLevel("TRD", "AliTRDtrackerV1") > 2){
       AliDebug(3, "Track candidates classification:");
@@ -2355,7 +2351,7 @@ Int_t AliTRDtrackerV1::Clusters2TracksStack(AliTRDtrackingChamber **stack, TClon
             break;
 
           case 1: // select shorter primary tracks, good quality
-            if(findable<4){skip = kTRUE; break;}
+            //if(findable<4){skip = kTRUE; break;}
             if(nlayers < findable){skip = kTRUE; break;}
             if(TMath::Log(1.E-9+fTrackQuality[trackIndex]) < -4.){skip = kTRUE; break;}
             break;
@@ -2627,8 +2623,8 @@ Int_t AliTRDtrackerV1::MakeSeeds(AliTRDtrackingChamber **stack, AliTRDseedV1 * c
   for(int iLayer=0; iLayer<kNPlanes; iLayer++,cIter++){
     if(!(*cIter)) continue;
     if(!(matrix = fGeom->GetClusterMatrix((*cIter)->GetDetector()))){ 
-      continue;
       x0[iLayer] = fgkX0[iLayer];
+      continue;
     }
     matrix->LocalToMaster(loc, glb);
     x0[iLayer] = glb[0];
@@ -3078,9 +3074,10 @@ AliTRDtrackV1* AliTRDtrackerV1::MakeTrack(AliTRDseedV1 * const tracklet)
   ptrTrack->CookPID();
   // update calibration references using this track
   AliTRDCalibraFillHisto *calibra = AliTRDCalibraFillHisto::Instance();
-  if (!calibra){ 
-    AliInfo("Could not get Calibra instance\n");
-    if(calibra->GetHisto2d()) calibra->UpdateHistogramsV1(ptrTrack);
+  if(!calibra){
+    AliInfo("Could not get Calibra instance.");
+  } else if(calibra->GetHisto2d()){
+    calibra->UpdateHistogramsV1(ptrTrack);
   }
   return ptrTrack;
 }
@@ -3113,7 +3110,7 @@ Bool_t AliTRDtrackerV1::ImproveSeedQuality(AliTRDtrackingChamber **stack, AliTRD
   AliTRDseedV1 bseed[AliTRDgeometry::kNlayer];
 
   Float_t quality(1.e3), 
-          lQuality[] = {1.e3, 1.e3, 1.e3, 1.e3, 1.e3, 1.e3};
+          lQuality[AliTRDgeometry::kNlayer] = {1.e3, 1.e3, 1.e3, 1.e3, 1.e3, 1.e3};
   Int_t rLayers(0);
   for(Int_t jLayer=AliTRDgeometry::kNlayer; jLayer--;){ 
     bseed[jLayer] = cseed[jLayer];
@@ -3128,7 +3125,7 @@ Bool_t AliTRDtrackerV1::ImproveSeedQuality(AliTRDtrackingChamber **stack, AliTRD
   for (Int_t iter = 0; iter < 4; iter++) {
     // Try better cluster set
     Int_t nLayers(0); Float_t qualitynew(0.);
-    Int_t  indexes[6];
+    Int_t  indexes[4*AliTRDgeometry::kNlayer];
     TMath::Sort(Int_t(AliTRDgeometry::kNlayer), lQuality, indexes, kFALSE);
     for(Int_t jLayer=AliTRDgeometry::kNlayer; jLayer--;) {
       Int_t bLayer = indexes[jLayer];
@@ -3791,6 +3788,7 @@ Double_t AliTRDtrackerV1::FitTiltedRiemanV1(AliTRDseedV1 *const tracklets){
 //____________________________________________________________________
 void AliTRDtrackerV1::UnsetTrackletsTrack(const AliTRDtrackV1 * const track)
 {
+//  Remove tracklets from tracker list attached to "track"
   Int_t idx(-1);
   for(Int_t il(0); il<kNPlanes; il++){
     if((idx = track->GetTrackletIndex(il)) < 0) continue;
@@ -3877,7 +3875,7 @@ Bool_t AliTRDtrackerV1::AliTRDLeastSquare::Eval(){
   //
   
   Double_t det = fSums[0] * fSums[4] - fSums[1] *fSums[1];
-  if(det==0) return kFALSE;
+  if(TMath::Abs(det)<1.e-30) return kFALSE;
 
   //	for(Int_t isum = 0; isum < 5; isum++)
   //		printf("fSums[%d] = %f\n", isum, fSums[isum]);

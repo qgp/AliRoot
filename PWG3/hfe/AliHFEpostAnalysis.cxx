@@ -337,16 +337,19 @@ TH1 *AliHFEpostAnalysis::CreateHistoPIDperformance(Int_t mode, Int_t charge){
   //
   // Make Histograms for PID performance plots
   //
+  fPIDperformance->GetAxis(4)->SetRange(0, fPIDperformance->GetAxis(4)->GetNbins()+1);
+  fPIDperformance->GetAxis(3)->SetRange(0, fPIDperformance->GetAxis(3)->GetNbins() + 1);
+
   TH1 *hNom = NULL, *hDenom = NULL;
   char hname[256], htitle[256], cname[256];
   Color_t mycolor = kBlack;
-  if(charge) fSignalToBackgroundMC->GetAxis(3)->SetRange(charge, charge);
+  if(charge) fPIDperformance->GetAxis(3)->SetRange(charge, charge);
   // Normalisation by all candidates - no restriction in axis 4 - only for mode == 1 
-  if(mode == 1) fPIDperformance->GetAxis(4)->SetRange(2,2);
+  if(mode == 1) fPIDperformance->GetAxis(4)->SetRange(2,3);
   hDenom = fPIDperformance->Projection(0);
   hDenom->Sumw2();
   hDenom->SetName("hDenom");
-  if(mode == 1) fPIDperformance->GetAxis(4)->SetRange(0, fPIDperformance->GetAxis(4)->GetLast() + 1);
+  if(mode == 1) fPIDperformance->GetAxis(4)->SetRange(0, fPIDperformance->GetAxis(4)->GetNbins() + 1);
   // Nominator need a restriction in the 4th axis
   switch(mode){
     case 0: // Electron purity
@@ -385,8 +388,8 @@ TH1 *AliHFEpostAnalysis::CreateHistoPIDperformance(Int_t mode, Int_t charge){
   hNom->Sumw2();
   hNom->SetName("hNom");
   // Reset axis
-  fPIDperformance->GetAxis(4)->SetRange(0, fPIDperformance->GetAxis(4)->GetLast() + 1);
-  if(charge) fSignalToBackgroundMC->GetAxis(3)->SetRange(0, fSignalToBackgroundMC->GetAxis(3)->GetLast() + 1);
+  fPIDperformance->GetAxis(4)->SetRange(0, fPIDperformance->GetAxis(4)->GetNbins()+1);
+  if(charge) fPIDperformance->GetAxis(3)->SetRange(0, fPIDperformance->GetAxis(3)->GetNbins() + 1);
 
   // Create Efficiency histogram
   TH1 *hEff = dynamic_cast<TH1D *>(hNom->Clone());
@@ -407,7 +410,7 @@ TH1 *AliHFEpostAnalysis::CreateHistoPIDperformance(Int_t mode, Int_t charge){
 }
 
 //____________________________________________________________
-void AliHFEpostAnalysis::DrawCutEfficiency(){
+void AliHFEpostAnalysis::DrawCutEfficiency(Bool_t MC, Int_t source){
   //
   // Calculate efficiency for each cut step
   // Starting from MC steps 
@@ -423,42 +426,64 @@ void AliHFEpostAnalysis::DrawCutEfficiency(){
   Color_t color[AliHFEcuts::kNcutStepsTrack - 1] = {kRed, kGreen, kMagenta, kBlack, kOrange, kTeal, kViolet, kBlue};
   Marker_t marker[AliHFEcuts::kNcutStepsTrack - 1] = {24, 25, 26, 27, 28, 29, 30}; 
   TH1 *hTemp = NULL;
+
+  if(MC){
+    if(source > -1 && source < 4){
+      AliInfo(Form("Setting source to %d", source))
+      for(Int_t istep = 0; istep < fEfficiencyContainer->GetNStep(); istep++) fEfficiencyContainer->GetAxis(4, istep)->SetRange(source + 1, source + 1);
+    }
+  }
   AliCFEffGrid effcalc("cutEfficiency", "Cut step efficiency calculation", *fEfficiencyContainer);
+  Bool_t first = kTRUE;
   // Calculate efficiency for MC Steps
-  effcalc.CalculateEfficiency(AliHFEcuts::kStepMCInAcceptance, AliHFEcuts::kStepMCGenerated);
-  hTemp = effcalc.Project(0);
-  hTemp->SetName("hEff1");
-  hTemp->SetMarkerColor(color[0]);
-  hTemp->SetMarkerStyle(marker[0]);
-  hTemp->GetXaxis()->SetTitle("P / GeV/c");
-  hTemp->GetYaxis()->SetTitle("Efficiency");
-  hTemp->GetYaxis()->SetRangeUser(0., 2.);
-  hTemp->SetStats(kFALSE);
-  hTemp->Draw("ep");
-  leg->AddEntry(hTemp, names[0], "p");
-  effcalc.CalculateEfficiency(AliHFEcuts::kStepRecNoCut + 2*AliHFEcuts::kNcutStepsESDtrack, AliHFEcuts::kStepMCGenerated);
-  hTemp = effcalc.Project(0);
-  hTemp->SetName("hEff2");
-  hTemp->SetMarkerColor(color[1]);
-  hTemp->SetMarkerStyle(marker[1]);
-  hTemp->GetXaxis()->SetTitle("P / GeV/c");
-  hTemp->GetYaxis()->SetTitle("Efficiency");
-  hTemp->GetYaxis()->SetRangeUser(0., 2.);
-  hTemp->SetStats(kFALSE);
-  hTemp->Draw("epsame");
-  leg->AddEntry(hTemp, names[1], "p");
+  if(MC){
+    //
+    // Draw plots related to MC values
+    //
+    effcalc.CalculateEfficiency(AliHFEcuts::kStepMCInAcceptance, AliHFEcuts::kStepMCGenerated);
+    hTemp = effcalc.Project(0);
+    hTemp->SetName("hEff1");
+    hTemp->SetTitle("Cut Step Efficiency");
+    hTemp->SetMarkerColor(color[0]);
+    hTemp->SetMarkerStyle(marker[0]);
+    hTemp->GetXaxis()->SetTitle("P / GeV/c");
+    hTemp->GetYaxis()->SetTitle("Efficiency");
+    hTemp->GetYaxis()->SetRangeUser(0., 2.);
+    hTemp->SetStats(kFALSE);
+    hTemp->Draw("ep");
+    leg->AddEntry(hTemp, names[0], "p");
+    effcalc.CalculateEfficiency(AliHFEcuts::kStepRecNoCut + 2*AliHFEcuts::kNcutStepsESDtrack, AliHFEcuts::kStepMCGenerated);
+    hTemp = effcalc.Project(0);
+    hTemp->SetName("hEff2");
+    hTemp->SetTitle("Cut Step Efficiency");
+    hTemp->SetMarkerColor(color[1]);
+    hTemp->SetMarkerStyle(marker[1]);
+    hTemp->GetXaxis()->SetTitle("P / GeV/c");
+    hTemp->GetYaxis()->SetTitle("Efficiency");
+    hTemp->GetYaxis()->SetRangeUser(0., 2.);
+    hTemp->SetStats(kFALSE);
+    hTemp->Draw("epsame");
+    leg->AddEntry(hTemp, names[1], "p");
+    first = kFALSE;
+  }
   for(Int_t istep = AliHFEcuts::kStepRecKineITSTPC; istep <= AliHFEcuts::kStepPID; istep++){
     effcalc.CalculateEfficiency(istep + 2*AliHFEcuts::kNcutStepsESDtrack, istep-1 + 2*AliHFEcuts::kNcutStepsESDtrack); 
     hTemp = effcalc.Project(0);
     hTemp->SetName(Form("hEff%d", istep));
+    hTemp->SetTitle("Cut Step Efficiency");
     hTemp->SetMarkerColor(color[istep-2]);
     hTemp->SetMarkerStyle(marker[istep-2]);
     hTemp->SetStats(kFALSE);
-    hTemp->Draw("epsame");
+    hTemp->Draw(first ? "ep" : "epsame");
     hTemp->GetXaxis()->SetTitle("P / GeV/c");
     hTemp->GetYaxis()->SetTitle("Efficiency");
     hTemp->GetYaxis()->SetRangeUser(0., 2.);
     leg->AddEntry(hTemp, names[istep-2], "p");
+    first = kFALSE;
   }
   leg->Draw();
+  // undo axis restriction
+  if(MC && source > -1 && source < 4){
+    for(Int_t istep = 0; istep < fEfficiencyContainer->GetNStep(); istep++) fEfficiencyContainer->GetAxis(4, istep)->SetRange(0, 4);
+  }
 }

@@ -24,18 +24,41 @@ Or it runs on delta-AODs filled with filtered tracks and jets before.
 
 
 
-AliAnalysisTaskFragmentationFunction *AddTaskFragmentationFunction(UInt_t iFlag=1, UInt_t filterMask=16){
+AliAnalysisTaskFragmentationFunction *AddTaskFragmentationFunction(UInt_t iFlag=1, UInt_t filterMask=32){
         
         AliAnalysisTaskFragmentationFunction *ff=0;
 
+        // UA1 Jets
         // only reconstructed (default)
 	if(iFlag&(1<<0)) ff = AddTaskFragmentationFunction("jets", "", "", "", filterMask);
-        // MC tracks in acceptance, MC jets in acceptance
-	if(iFlag&(1<<1)) ff = AddTaskFragmentationFunction("jets", "AODMC2b", "AODMCb", "AODMCb", filterMask);
+        // charged MC tracks and jets
+	if(iFlag&(1<<1)) ff = AddTaskFragmentationFunction("jets", "jetsAODMC2_UA104", "AODMC", "AODMC2", filterMask);
+        // charged MC tracks and jets with acceptance cuts
+	if(iFlag&(1<<2)) ff = AddTaskFragmentationFunction("jets", "jetsAODMC2_UA104", "AODMCb", "AODMC2b", filterMask);
         // kine tracks in acceptance, pythia jets in acceptance
-	if(iFlag&(1<<2)) ff = AddTaskFragmentationFunction("jets", "", "KINEb", "KINEb", filterMask);
+	if(iFlag&(1<<3)) ff = AddTaskFragmentationFunction("jets", "", "KINEb", "KINEb", filterMask);
         // reconstructed charged tracks after cuts, MC jets in acceptance 
-	if(iFlag&(1<<3)) ff = AddTaskFragmentationFunction("jets", "AODMC2b", "AODMCb", "AOD2b", filterMask);
+	if(iFlag&(1<<4)) ff = AddTaskFragmentationFunction("jets", "jetsMC2b", "AODMCb", "AOD2b", filterMask);
+	// reconstruction efficiency: pointing with rec jet axis into gen tracks 
+	if(iFlag&(1<<5)) ff = AddTaskFragmentationFunction("jets", "jetsAODMC2_UA104", "AODb", "AODMC2b", filterMask);
+
+        // kt jets
+        // only reconstructed 
+	if(iFlag&(1<<10)) ff = AddTaskFragmentationFunction("jetsAOD_FASTKT04", "", "", "", filterMask);
+        // charged MC tracks and jets
+	if(iFlag&(1<<11)) ff = AddTaskFragmentationFunction("jetsAOD_FASTKT04", "jetsAODMC2_FASTKT04", "AODMC", "AODMC2", filterMask);
+        // charged MC tracks and jets with acceptance cuts
+	if(iFlag&(1<<12)) ff = AddTaskFragmentationFunction("jetsAOD_FASTKT04", "jetsAODMC2_FASTKT04", "AODMCb", "AODMC2b", filterMask);
+
+        // anti-kt jets
+        // only reconstructed 
+	if(iFlag&(1<<20)) ff = AddTaskFragmentationFunction("jetsAOD_FASTJET04", "", "", "", filterMask);
+        // charged MC tracks and jets
+	if(iFlag&(1<<21)) ff = AddTaskFragmentationFunction("jetsAOD_FASTJET04", "jetsAODMC2_FASTJET04", "AODMC", "AODMC2", filterMask);
+        // charged MC tracks and jets with acceptance cuts
+	if(iFlag&(1<<22)) ff = AddTaskFragmentationFunction("jetsAOD_FASTJET04", "jetsAODMC2_FASTJET04", "AODMCb", "AODMC2b", filterMask);
+
+
 	
 	return ff;
 }
@@ -130,18 +153,27 @@ AliAnalysisTaskFragmentationFunction *AddTaskFragmentationFunction(
    else if(typeJets.Contains("jetTypeUndef")) task->SetJetTypeGen(0); // undefined
    else Printf("jetType %s not found", typeJets.Data());
    
+   if(typeJets.Contains("AODMCb")) task->SetJetTypeRecEff(AliAnalysisTaskFragmentationFunction::kJetsGenAcceptance); // kJetsRecAcceptance
+   else if(typeJets.Contains("AODb")) task->SetJetTypeRecEff(AliAnalysisTaskFragmentationFunction::kJetsRecAcceptance); 
+   else task->SetJetTypeRecEff(0);
+
    task->SetFilterMask(filterMask);
   
-   // set default parameter 
+   // Set default parameters 
+   // Cut selection 
    task->SetTrackCuts();       // default : pt > 0.150 GeV, |eta|<0.9, full phi acc
    task->SetJetCuts();         // default: jet pt > 5 GeV, |eta|<0.5, full phi acc
-   task->SetDijetCuts();       // default: to be defined
+   task->SetDiJetCuts();       // default: type of cut = 1 (cut in deltaPhi), deltaPhi = 0., cdf = 0.5, fraction of pt = 0.6
+   task->SetKindSlices();      // default: kindSlice = 1 (inv mass)
    task->SetFFRadius();        // default: R = 0.4
-   
    task->SetHighPtThreshold(); // default: pt > 5 Gev
+   // Define histo bins
    task->SetFFHistoBins();
    task->SetQAJetHistoBins();
    task->SetQATrackHistoBins();
+   task->SetIJHistoBins();
+   task->SetDiJetHistoBins();
+   task->SetQADiJetHistoBins();
 
    mgr->AddTask(task);
 

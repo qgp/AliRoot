@@ -63,6 +63,7 @@
 #include "AliITSsimulationSPD.h"
 #include "AliITSsimulationSDD.h"
 #include "AliITSsimulationSSD.h"
+#include "AliITSresponseSDD.h"
 #include "AliITSDDLModuleMapSDD.h"
 #include "AliITSTriggerConditions.h"
 #include "AliBaseLoader.h"
@@ -89,6 +90,7 @@ fRunNumber(0),   //! Run number (to access DB)
 fDigits(),       //! [NMod][NDigits]
 fSimuPar(0),
 fDDLMapSDD(0),
+fRespSDD(0),
 fAveGainSDD(0),
 fkDigClassName(), // String with digit class name.
 fLoader(0),      // local pointer to loader
@@ -157,6 +159,12 @@ AliITSDetTypeSim::~AliITSDetTypeSim(){
       }
     }
     if(fSimuPar) delete fSimuPar;
+    if(fRespSDD){
+      if(!(AliCDBManager::Instance()->GetCacheFlag())){
+	delete fRespSDD;
+	fRespSDD=0;
+      }
+    }
     if(fDDLMapSDD) delete fDDLMapSDD;
     if(fNDigits) delete [] fNDigits;
     fNDigits = 0;
@@ -183,6 +191,7 @@ fRunNumber(source.fRunNumber),   //! Run number (to access DB)
 fDigits(source.fDigits),       //! [NMod][NDigits]
 fSimuPar(source.fSimuPar),
 fDDLMapSDD(source.fDDLMapSDD),
+fRespSDD(source.fRespSDD),
 fAveGainSDD(source.fAveGainSDD),
 fkDigClassName(), // String with digit class name.
 fLoader(source.fLoader),      // local pointer to loader
@@ -466,6 +475,7 @@ Bool_t AliITSDetTypeSim::GetCalibration() {
   AliCDBEntry *foEffSPD = AliCDBManager::Instance()->Get("ITS/Calib/SPDFOEfficiency", run);
   AliCDBEntry *foNoiSPD = AliCDBManager::Instance()->Get("ITS/Calib/SPDFONoise", run);
   AliCDBEntry *entrySDD = AliCDBManager::Instance()->Get("ITS/Calib/CalibSDD", run);
+  AliCDBEntry *entry2SDD = AliCDBManager::Instance()->Get("ITS/Calib/RespSDD");
   AliCDBEntry *drSpSDD = AliCDBManager::Instance()->Get("ITS/Calib/DriftSpeedSDD",run);
   AliCDBEntry *ddlMapSDD = AliCDBManager::Instance()->Get("ITS/Calib/DDLMapSDD",run);
   //AliCDBEntry *mapASDD = AliCDBManager::Instance()->Get("ITS/Calib/MapsAnodeSDD",run);
@@ -476,7 +486,7 @@ Bool_t AliITSDetTypeSim::GetCalibration() {
   AliCDBEntry *entryBadChannelsSSD = AliCDBManager::Instance()->Get("ITS/Calib/BadChannelsSSD");
 
 if(!deadSPD || !noisySPD || !foEffSPD || !foNoiSPD 
-     || !entrySDD || !entryNoiseSSD || !entryGainSSD || !entryBadChannelsSSD 
+     || !entrySDD  || !entry2SDD || !entryNoiseSSD || !entryGainSSD || !entryBadChannelsSSD 
      || !drSpSDD || !ddlMapSDD || !mapTSDD){
     AliFatal("Calibration object retrieval failed! ");
     return kFALSE;
@@ -502,6 +512,10 @@ if(!deadSPD || !noisySPD || !foEffSPD || !foNoiSPD
   TObjArray *calSDD = (TObjArray *)entrySDD->GetObject();
   if(!isCacheActive)entrySDD->SetObject(NULL);
   entrySDD->SetOwner(kTRUE);
+
+  AliITSresponseSDD *pSDD = (AliITSresponseSDD*)entry2SDD->GetObject();
+  if(!isCacheActive)entry2SDD->SetObject(NULL);
+  entry2SDD->SetOwner(kTRUE);
 
   TObjArray *drSp = (TObjArray *)drSpSDD->GetObject();
   if(!isCacheActive)drSpSDD->SetObject(NULL);
@@ -585,6 +599,7 @@ if(!deadSPD || !noisySPD || !foEffSPD || !foNoiSPD
     delete foEffSPD;
     delete foNoiSPD;
     delete entrySDD;
+    delete entry2SDD;
     delete entryNoiseSSD;
     delete entryGainSSD;
     delete entryBadChannelsSSD;
@@ -597,7 +612,7 @@ if(!deadSPD || !noisySPD || !foEffSPD || !foNoiSPD
   AliCDBManager::Instance()->SetCacheFlag(origCacheStatus);
 
  if ((!calDeadSPD) || (!calNoisySPD) || (!calFoEffSPD) || (!calFoNoiSPD) 
-      || (!calSDD) || (!drSp) || (!ddlsdd)  
+      || (!calSDD) || (!pSDD)|| (!drSp) || (!ddlsdd)  
       || (!mapT) || (!noiseSSD)|| (!gainSSD)|| (!badChannelsSSD)) {
     AliWarning("Can not get calibration from calibration database !");
     return kFALSE;
@@ -621,6 +636,7 @@ if(!deadSPD || !noisySPD || !foEffSPD || !foNoiSPD
   fFOGenerator.SetNoise(calFoNoiSPD); // this cal object is used only by the generator
   
   fDDLMapSDD->SetDDLMap(ddlsdd);
+  fRespSDD=pSDD;
   Float_t avegain=0.;
   Float_t nGdAnodes=0;
   Bool_t oldMapFormat=kFALSE;

@@ -84,6 +84,15 @@
  * just one trigger menu item in a priority group then the groups expressions are
  * explicit. On the other hand, for multiple items in a group they form implicit
  * expression fragments.
+ *
+ * \note CTP trigger class names can be used in the trigger menu since the global
+ *   trigger will generate and add corresponding trigger decision objects to the
+ *   logic on the fly.
+ *   In addition, for software triggers, a special SOFTWARE trigger decision is
+ *   generated and the SOFTWARE name can be used in the trigger menu for this.
+ *   If the software trigger is a calibration event then a trigger decision with
+ *   the name CALIBRATION is generated instead. START_OF_DATA and END_OF_DATA
+ *   symbols are similarly defined for the start and end of data events respectively.
  */
 class AliHLTTriggerMenu : public TObject
 {
@@ -266,6 +275,16 @@ class AliHLTTriggerMenu : public TObject
    */
   const char* DefaultDomainOperator() const { return fDefaultDomainOperator.Data(); }
   
+  /**
+   * Returns the default result for the global trigger if no item is matched.
+   */
+  bool DefaultResult() const { return TestBit(BIT(15)) == 1; }
+  
+  /**
+   * Set the default result for the global trigger if no item is matched.
+   */
+  void DefaultResult(bool value) { SetBit(BIT(15), value); }
+  
  private:
   
   TString fName;  /// Name of the trigger menu.
@@ -276,7 +295,7 @@ class AliHLTTriggerMenu : public TObject
   TString fDefaultConditionOperator;  /// The default operator to use to merge trigger conditions from the same priority group.
   TString fDefaultDomainOperator;  /// The default operator to use to merge trigger domains from the same priority group.
   
-  ClassDef(AliHLTTriggerMenu, 3) // Trigger menu for the global HLT trigger.
+  ClassDef(AliHLTTriggerMenu, 4) // Trigger menu for the global HLT trigger.
 };
 
 #endif // ALIHLTTRIGGERMENU_H

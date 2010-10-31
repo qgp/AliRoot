@@ -420,22 +420,22 @@ void AliTRDseedV1::CookdEdx(Int_t nslices)
   for(int ic=0; ic<AliTRDtrackerV1::GetNTimeBins(); ic++){
     if(!(c = fClusters[ic]) && !(c = fClusters[ic+kNtb])) continue;
     Float_t dx = TMath::Abs(fX0 - c->GetX());
-    
+
     // Filter clusters for dE/dx calculation
-    
+
     // 1.consider calibration effects for slice determination
     Int_t slice;
-    if(dx<kDriftLength){ // TODO should be replaced by c->IsInChamber() 
+    if(dx<kDriftLength){ // TODO should be replaced by c->IsInChamber()
       slice = Int_t(dx * nslices / kDriftLength);
     } else slice = c->GetX() < fX0 ? nslices-1 : 0;
 
 
     // 2. take sharing into account
     Float_t w = /*c->IsShared() ? .5 :*/ 1.;
-    
+
     // 3. take into account large clusters TODO
     //w *= c->GetNPads() > 3 ? .8 : 1.;
-    
+
     //CHECK !!!
     fdEdx[slice]   += w * GetdQdl(ic); //fdQdl[ic];
   } // End of loop over clusters
@@ -483,6 +483,62 @@ Float_t AliTRDseedV1::GetAnodeWireOffset(Float_t zt)
 
 
 //____________________________________________________________________
+Float_t AliTRDseedV1::GetCharge(Bool_t useOutliers)
+{
+// Computes total charge attached to tracklet. If "useOutliers" is set clusters 
+// which are not in chamber are also used (default false)
+
+  AliTRDcluster *c(NULL); Float_t qt(0.);
+  for(int ic=0; ic<kNclusters; ic++){
+    if(!(c=fClusters[ic])) continue;
+    if(c->IsInChamber() && !useOutliers) continue;
+    qt += TMath::Abs(c->GetQ());
+  }
+  return qt;
+}
+
+//____________________________________________________________________
+Bool_t AliTRDseedV1::GetEstimatedCrossPoint(Float_t &x, Float_t &z) const
+{
+// Algorithm to estimate cross point in the x-z plane for pad row cross tracklets.
+// Returns true in case of success.
+  if(!IsRowCross()) return kFALSE;
+
+  x=0.; z=0.;
+  AliTRDcluster *c(NULL);
+  // Find radial range for first row
+  Float_t x1[] = {0., 1.e3};
+  for(int ic=0; ic<kNtb; ic++){
+    if(!(c=fClusters[ic])) continue;
+    if(!c->IsInChamber()) continue;
+    if(c->GetX() <= x1[1]) x1[1] = c->GetX();
+    if(c->GetX() >= x1[0]) x1[0] = c->GetX();
+    z=c->GetZ();
+  }
+  if((x1[0] - x1[1])<1.e-5) return kFALSE;
+
+  // Find radial range for second row
+  Bool_t kZ(kFALSE);
+  Float_t x2[] = {0., 1.e3};
+  for(int ic=kNtb; ic<kNclusters; ic++){
+    if(!(c=fClusters[ic])) continue;
+    if(!c->IsInChamber()) continue;
+    if(c->GetX() <= x2[1]) x2[1] = c->GetX();
+    if(c->GetX() >= x2[0]) x2[0] = c->GetX();
+    if(!kZ){
+      z+=c->GetZ();
+      z*=0.5;
+      kZ=kTRUE;
+    }
+  }
+  if((x2[0] - x2[1])<1.e-5) return kFALSE;
+
+  // Find intersection of the 2 radial regions
+  x = 0.5*((x1[0]+x1[1] > x2[0]+x2[1]) ? (x1[1]+x2[0]) : (x1[0]+x2[1]));
+  return kTRUE;
+}
+
+//____________________________________________________________________
 Float_t AliTRDseedV1::GetdQdl(Int_t ic, Float_t *dl) const
 {
 // Using the linear approximation of the track inside one TRD chamber (TRD tracklet) 
@@ -511,7 +567,8 @@ Float_t AliTRDseedV1::GetdQdl(Int_t ic, Float_t *dl) const
   if(fClusters[ic] && fClusters[ic]->IsInChamber()){
     hasClusterInChamber = kTRUE;
     dq += TMath::Abs(fClusters[ic]->GetQ());
-  }else if(fClusters[ic+kNtb] && fClusters[ic+kNtb]->IsInChamber()){
+  }
+  if(fClusters[ic+kNtb] && fClusters[ic+kNtb]->IsInChamber()){
     hasClusterInChamber = kTRUE;
     dq += TMath::Abs(fClusters[ic+kNtb]->GetQ());
   }

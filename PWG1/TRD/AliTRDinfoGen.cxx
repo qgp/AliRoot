@@ -45,6 +45,10 @@
 
 #include "AliLog.h"
 #include "AliAnalysisManager.h"
+#include "AliGeomManager.h"
+#include "AliCDBManager.h"
+#include "AliCDBEntry.h"
+#include "AliCDBPath.h"
 #include "AliESDEvent.h"
 #include "AliMCEvent.h"
 #include "AliESDInputHandler.h"
@@ -59,24 +63,29 @@
 #include "AliMCParticle.h"
 #include "AliPID.h"
 #include "AliStack.h"
-#include "AliTRDtrackV1.h"
 #include "AliTrackReference.h"
-#include "AliTRDgeometry.h"
-#include "AliTRDcluster.h"
-#include "AliTRDseedV1.h"
 #include "TTreeStream.h"
 
 #include <cstdio>
 #include <climits>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
+#include "AliTRDReconstructor.h"
+#include "AliTRDrecoParam.h"
+#include "AliTRDcalibDB.h"
+#include "AliTRDtrackerV1.h"
+#include "AliTRDgeometry.h"
+#include "AliTRDtrackV1.h"
+#include "AliTRDseedV1.h"
+#include "AliTRDcluster.h"
 #include "AliTRDinfoGen.h"
+#include "AliTRDpwg1Helper.h"
 #include "info/AliTRDtrackInfo.h"
 #include "info/AliTRDeventInfo.h"
 #include "info/AliTRDv0Info.h"
 #include "info/AliTRDeventCuts.h"
-#include "macros/AliTRDperformanceTrain.h"
 
 ClassImp(AliTRDinfoGen)
 
@@ -92,7 +101,8 @@ const Float_t AliTRDinfoGen::fgkTrkDCAz   = 10.;
 const Int_t   AliTRDinfoGen::fgkNclTPC    = 70;
 const Float_t AliTRDinfoGen::fgkPt        = 0.2;
 const Float_t AliTRDinfoGen::fgkEta       = 0.9;
-
+AliTRDReconstructor* AliTRDinfoGen::fgReconstructor(NULL);
+AliTRDgeometry* AliTRDinfoGen::fgGeo(NULL);
 //____________________________________________________________________
 AliTRDinfoGen::AliTRDinfoGen()
   :AliAnalysisTaskSE()
@@ -102,6 +112,7 @@ AliTRDinfoGen::AliTRDinfoGen()
   ,fEventCut(NULL)
   ,fTrackCut(NULL)
   ,fV0Cut(NULL)
+  ,fOCDB("local://$ALICE_ROOT/OCDB")
   ,fTrackInfo(NULL)
   ,fEventInfo(NULL)
   ,fV0Info(NULL)
@@ -115,7 +126,7 @@ AliTRDinfoGen::AliTRDinfoGen()
   //
   // Default constructor
   //
-  SetNameTitle("infoGen", "MC-REC TRD-track list generator");
+  SetNameTitle("TRDinfoGen", "MC-REC TRD-track list generator");
 }
 
 //____________________________________________________________________
@@ -127,6 +138,7 @@ AliTRDinfoGen::AliTRDinfoGen(char* name)
   ,fEventCut(NULL)
   ,fTrackCut(NULL)
   ,fV0Cut(NULL)
+  ,fOCDB("local://$ALICE_ROOT/OCDB")
   ,fTrackInfo(NULL)
   ,fEventInfo(NULL)
   ,fV0Info(NULL)
@@ -141,19 +153,20 @@ AliTRDinfoGen::AliTRDinfoGen(char* name)
   // Default constructor
   //
   SetTitle("MC-REC TRD-track list generator");
-  DefineOutput(kTracksBarrel, TObjArray::Class());
-  DefineOutput(kTracksSA, TObjArray::Class());
-  DefineOutput(kTracksKink, TObjArray::Class());
-  DefineOutput(kEventInfo, AliTRDeventInfo::Class());
-  DefineOutput(kV0List, TObjArray::Class());
-  DefineOutput(kMonitor, TObjArray::Class()); // histogram list
+  DefineOutput(AliTRDpwg1Helper::kTracksBarrel, TObjArray::Class());
+  DefineOutput(AliTRDpwg1Helper::kTracksSA, TObjArray::Class());
+  DefineOutput(AliTRDpwg1Helper::kTracksKink, TObjArray::Class());
+  DefineOutput(AliTRDpwg1Helper::kEventInfo, AliTRDeventInfo::Class());
+  DefineOutput(AliTRDpwg1Helper::kV0List, TObjArray::Class());
+  DefineOutput(AliTRDpwg1Helper::kMonitor, TObjArray::Class()); // histogram list
 }
 
 //____________________________________________________________________
 AliTRDinfoGen::~AliTRDinfoGen()
 {
 // Destructor
-  
+  if(fgGeo) delete fgGeo;
+  if(fgReconstructor) delete fgReconstructor;
   if(fDebugStream) delete fDebugStream;
   if(fEvTrigger) delete fEvTrigger;
   if(fV0Cut) delete fV0Cut;
@@ -189,6 +202,7 @@ AliTRDinfoGen::~AliTRDinfoGen()
 //____________________________________________________________________
 Bool_t AliTRDinfoGen::GetRefFigure(Int_t)
 {
+// General graphs for PWG1/TRD train
   if(!gPad){
     AliWarning("Please provide a canvas to draw results.");
     return kFALSE;
@@ -214,7 +228,7 @@ void AliTRDinfoGen::UserCreateOutputObjects()
 
   // define general monitor
   fContainer = new TObjArray(1); fContainer->SetOwner(kTRUE);
-  TH1 *h=new TH1S("hStat", "Run statistics;Observable;Entries", 12, -0.5, 11.5);
+  TH1 *h=new TH1I("hStat", "Run statistics;Observable;Entries", 14, -0.5, 11.5);
   TAxis *ax(h->GetXaxis());
   ax->SetBinLabel( 1, "ESD");
   ax->SetBinLabel( 2, "MC");
@@ -228,8 +242,10 @@ void AliTRDinfoGen::UserCreateOutputObjects()
   ax->SetBinLabel(10, "SAMC");
   ax->SetBinLabel(11, "Kink");
   ax->SetBinLabel(12, "KinkMC");
+  ax->SetBinLabel(13, "BFriend");
+  ax->SetBinLabel(14, "SFriend");
   fContainer->AddAt(h, 0);
-  PostData(kMonitor, fContainer);
+  PostData(AliTRDpwg1Helper::kMonitor, fContainer);
 }
 
 //____________________________________________________________________
@@ -264,18 +280,81 @@ void AliTRDinfoGen::UserExec(Option_t *){
   // Run the Analysis
   //
 
-  fESDev = dynamic_cast<AliESDEvent*>(InputEvent());
-  fMCev = MCEvent();
+  fTracksBarrel->Delete();
+  fTracksSA->Delete();
+  fTracksKink->Delete();
+  fV0List->Delete();
+  fEventInfo->Delete("");
 
+  fESDev = dynamic_cast<AliESDEvent*>(InputEvent());
   if(!fESDev){
     AliError("Failed retrieving ESD event");
     return;
   }
+  // WARNING
+  // This part may conflict with other detectors !!
+  if(!IsInitOCDB()){ 
+    AliInfo("Initializing OCDB ...");
+    // prepare OCDB access
+    AliCDBManager* ocdb = AliCDBManager::Instance();
+    ocdb->SetDefaultStorage(fOCDB.Data());
+    ocdb->SetRun(fESDev->GetRunNumber());
+    // create geo manager
+    AliCDBEntry* obj(NULL);
+    if(!(obj = ocdb->Get(AliCDBPath("GRP", "Geometry", "Data")))){
+      AliError("GEOMETRY failed initialization.");
+    } else {
+      AliGeomManager::SetGeometry((TGeoManager*)obj->GetObject());
+      AliGeomManager::GetNalignable("TRD");
+      AliGeomManager::ApplyAlignObjsFromCDB("TRD");
+    }
+    fgGeo = new AliTRDgeometry;
+    fgGeo->CreateClusterMatrixArray();
+    //init magnetic field
+    if(!TGeoGlobalMagField::Instance()->IsLocked() &&
+       !fESDev->InitMagneticField()){
+      AliError("MAGNETIC FIELD failed initialization.");
+    }
+
+    // set no of time bins
+    AliTRDtrackerV1::SetNTimeBins(AliTRDcalibDB::Instance()->GetNumberOfTimeBinsDCS());
+    AliInfo(Form("OCDB :  Loc[%s] Run[%d] TB[%d]", fOCDB.Data(), ocdb->GetRun(), AliTRDtrackerV1::GetNTimeBins()));
+
+    // set reco param valid for this run/event
+    AliInfo(Form("Initializing TRD reco params for EventSpecie[%d]...",
+      fESDev->GetEventSpecie()));
+    fgReconstructor = new AliTRDReconstructor();
+    if(!(obj = ocdb->Get(AliCDBPath("TRD", "Calib", "RecoParam")))){
+      AliError("RECO PARAM failed initialization.");
+      fgReconstructor->SetRecoParam(AliTRDrecoParam::GetLowFluxParam());
+    } else {
+      obj->PrintMetaData();
+      TObjArray *recos((TObjArray*)obj->GetObject());
+      for(Int_t ireco(0); ireco<recos->GetEntriesFast(); ireco++){
+        AliTRDrecoParam *reco((AliTRDrecoParam*)recos->At(ireco));
+        Int_t es(reco->GetEventSpecie());
+        if(!(es&fESDev->GetEventSpecie())) continue;
+        fgReconstructor->SetRecoParam(reco);
+        TString s;
+        if(es&AliRecoParam::kLowMult) s="LowMult";
+        else if(es&AliRecoParam::kHighMult) s="HighMult";
+        else if(es&AliRecoParam::kCosmic) s="Cosmic";
+        else if(es&AliRecoParam::kCalib) s="Calib";
+        else s="Unknown";
+        AliInfo(Form("Using reco params for %s", s.Data()));
+        break;
+      }
+    }
+    SetInitOCDB();
+  }
+
+  // link MC if available
+  fMCev = MCEvent();
 
   // event selection : trigger cut
   if(UseLocalEvSelection() && fEvTrigger){ 
     Bool_t kTRIGGERED(kFALSE);
-    const TObjArray *trig = fEvTrigger->Tokenize(" ");
+    std::auto_ptr<TObjArray> trig(fEvTrigger->Tokenize(" "));
     for(Int_t itrig=trig->GetEntriesFast(); itrig--;){
       const Char_t *trigClass(((TObjString*)(*trig)[itrig])->GetName());
       if(fESDev->IsTriggerClassFired(trigClass)) {
@@ -317,11 +396,6 @@ void AliTRDinfoGen::UserExec(Option_t *){
     return;
   }
 
-  fTracksBarrel->Delete();
-  fTracksSA->Delete();
-  fTracksKink->Delete();
-  fV0List->Delete();
-  fEventInfo->Delete("");
   new(fEventInfo)AliTRDeventInfo(fESDev->GetHeader(), const_cast<AliESDRun *>(fESDev->GetESDRun()));
   
   Bool_t *trackMap(NULL);
@@ -341,6 +415,7 @@ void AliTRDinfoGen::UserExec(Option_t *){
   Int_t nTRDout(0), nTRDin(0), nTPC(0)
        ,nclsTrklt
        ,nBarrel(0), nSA(0), nKink(0)
+       ,nBarrelFriend(0), nSAFriend(0)
        ,nBarrelMC(0), nSAMC(0), nKinkMC(0);
   AliESDtrack *esdTrack = NULL;
   AliESDfriendTrack *esdFriendTrack = NULL;
@@ -348,7 +423,26 @@ void AliTRDinfoGen::UserExec(Option_t *){
   AliTRDtrackV1 *track = NULL;
   AliTRDseedV1 *tracklet = NULL;
   AliTRDcluster *cl = NULL;
-  // LOOP 0 - over ESD tracks
+
+
+  // LOOP 0 - over ESD v0s
+  Float_t bField(fESDev->GetMagneticField());
+  AliESDv0 *v0(NULL);
+  Int_t v0pid[AliPID::kSPECIES];
+  for(Int_t iv0(0); iv0<fESDev->GetNumberOfV0s(); iv0++){
+    if(!(v0 = fESDev->GetV0(iv0))) continue;
+    // register v0
+    if(fV0Cut) new(fV0Info) AliTRDv0Info(*fV0Cut);
+    else new(fV0Info) AliTRDv0Info();
+    fV0Info->SetMagField(bField);
+    fV0Info->SetV0tracks(fESDev->GetTrack(v0->GetPindex()), fESDev->GetTrack(v0->GetNindex()));
+    fV0Info->SetV0Info(v0);
+    fV0List->Add(new AliTRDv0Info(*fV0Info));//  kFOUND=kFALSE;
+  }
+
+
+  // LOOP 1 - over ESD tracks
+  AliTRDv0Info *v0info=NULL;
   for(Int_t itrk = 0; itrk < nTracksESD; itrk++){
     new(fTrackInfo) AliTRDtrackInfo();
     esdTrack = fESDev->GetTrack(itrk);
@@ -429,6 +523,19 @@ void AliTRDinfoGen::UserExec(Option_t *){
     fTrackInfo->SetTPCncls(static_cast<UShort_t>(esdTrack->GetNcls(1)));
     nclsTrklt = 0;
   
+    // set V0pid info
+    for(Int_t iv(0); iv<fV0List->GetEntriesFast(); iv++){
+      if(!(v0info = (AliTRDv0Info*)fV0List->At(iv))) continue;
+      if(!v0info->GetV0Daughter(1) && !v0info->GetV0Daughter(-1)) continue;
+      if(!v0info->HasTrack(fTrackInfo)) continue;
+      memset(v0pid, 0, AliPID::kSPECIES*sizeof(Int_t));
+      fTrackInfo->SetV0();
+      for(Int_t is=AliPID::kSPECIES; is--;){v0pid[is] = v0info->GetPID(is, fTrackInfo);}
+      fTrackInfo->SetV0pid(v0pid);
+      fTrackInfo->SetV0();
+      //const AliTRDtrackInfo::AliESDinfo *ei = fTrackInfo->GetESDinfo();
+      break;
+    }
 
     // read REC info
     esdFriendTrack = fESDfriend->GetTrack(itrk);
@@ -496,6 +603,8 @@ void AliTRDinfoGen::UserExec(Option_t *){
         if(selected){ 
           fTracksBarrel->Add(new AliTRDtrackInfo(*fTrackInfo));
           nBarrel++;
+          if(fTrackInfo->GetTrack()) 
+            nBarrelFriend++;
         }
       } else {
         fTracksKink->Add(new AliTRDtrackInfo(*fTrackInfo));
@@ -504,43 +613,10 @@ void AliTRDinfoGen::UserExec(Option_t *){
     } else if((status&AliESDtrack::kTRDout) && !(status&AliESDtrack::kTRDin)){ 
       fTracksSA->Add(new AliTRDtrackInfo(*fTrackInfo));
       nSA++;
+      if(fTrackInfo->GetTrack()) 
+        nSAFriend++;
     }
     fTrackInfo->Delete("");
-  }
-
-  // LOOP 1 - over ESD v0s
-  Bool_t kFOUND(kFALSE);
-  Float_t bField(fESDev->GetMagneticField());
-  AliESDv0 *v0(NULL);
-  for(Int_t iv0(0); iv0<fESDev->GetNumberOfV0s(); iv0++){
-    if(!(v0 = fESDev->GetV0(iv0))) continue;
-
-    // purge V0 irelevant for TRD
-    Int_t jb(0); AliTRDtrackInfo *ti(NULL);
-    for(Int_t ib(0); ib<nBarrel; ib++){ 
-      ti =   (AliTRDtrackInfo*)fTracksBarrel->At(ib);
-      Int_t id(ti->GetTrackId());
-      if(id!=v0->GetPindex() && id!=v0->GetNindex()) continue; 
-      kFOUND=kTRUE; ti->SetV0(); jb=ib+1;
-      break;
-    }
-    if(!kFOUND) continue;
-
-    // register v0
-    if(fV0Cut) new(fV0Info) AliTRDv0Info(*fV0Cut);
-    else new(fV0Info) AliTRDv0Info();
-    fV0Info->SetMagField(bField);
-    fV0Info->SetV0tracks(fESDev->GetTrack(v0->GetPindex()), fESDev->GetTrack(v0->GetNindex()));
-    fV0Info->SetV0Info(v0);
-    // mark the other leg too 
-    for(Int_t ib(jb); ib<nBarrel; ib++){ 
-      ti =   (AliTRDtrackInfo*)fTracksBarrel->At(ib);
-      if(!fV0Info->HasTrack(ti)) continue;
-      ti->SetV0();
-      break;
-    }
-    //fV0Info->Print("a");
-    fV0List->Add(new AliTRDv0Info(*fV0Info)); kFOUND=kFALSE;
   }
 
   // LOOP 2 - over MC tracks which are passing TRD where the track is not reconstructed
@@ -624,16 +700,18 @@ void AliTRDinfoGen::UserExec(Option_t *){
   h->Fill( 9., nSAMC);
   h->Fill(10., nKink);
   h->Fill(11., nKinkMC);
+  h->Fill(12., nBarrelFriend);
+  h->Fill(13., nSAFriend);
 
-  PostData(kTracksBarrel, fTracksBarrel);
-  PostData(kTracksSA, fTracksSA);
-  PostData(kTracksKink, fTracksKink);
-  PostData(kEventInfo, fEventInfo);
-  PostData(kV0List, fV0List);
+  PostData(AliTRDpwg1Helper::kTracksBarrel, fTracksBarrel);
+  PostData(AliTRDpwg1Helper::kTracksSA, fTracksSA);
+  PostData(AliTRDpwg1Helper::kTracksKink, fTracksKink);
+  PostData(AliTRDpwg1Helper::kEventInfo, fEventInfo);
+  PostData(AliTRDpwg1Helper::kV0List, fV0List);
 }
 
 //____________________________________________________________________
-void AliTRDinfoGen::SetLocalV0Selection(AliTRDv0Info *v0)
+void AliTRDinfoGen::SetLocalV0Selection(const AliTRDv0Info *v0)
 {
 // Set V0 cuts from outside
 
@@ -651,6 +729,7 @@ void AliTRDinfoGen::SetTrigger(const Char_t *trigger)
 //____________________________________________________________________
 TTreeSRedirector* AliTRDinfoGen::DebugStream()
 {
+// Manage debug stream for task
   if(!fDebugStream){
     TDirectory *savedir = gDirectory;
     fDebugStream = new TTreeSRedirector("TRD.DebugInfoGen.root");

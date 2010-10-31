@@ -55,6 +55,7 @@ AliTRDqaGuiClustersStack::AliTRDqaGuiClustersStack()
   : fIdxSM (0),
     fIdxStack (0),
     fView (0),
+    fFileName (0x0),
     fGPanel (0),
     fGCanvas (0),
     fGSelectSM (0),
@@ -66,15 +67,26 @@ AliTRDqaGuiClustersStack::AliTRDqaGuiClustersStack()
     fGNextStack (0),
     fGPlay (0)
 {
+  //
+  // Default constructor
+  //
+
+  for (Int_t i = 0; i < 6; i++) {
+    fCanvasList[i] = 0x0;
+    fHistList[i]   = 0x0;
+  }
+
+  //strncpy(fFileName,"",256);
 
 }
-//////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////
 AliTRDqaGuiClustersStack::AliTRDqaGuiClustersStack(TGWindow *parent) 
   : TGCompositeFrame(parent, 720, 500),
     fIdxSM (0),
     fIdxStack (0),
     fView (0),
+    fFileName (0x0),
     fGPanel (0),
     fGCanvas (0),
     fGSelectSM (0),
@@ -183,7 +195,8 @@ void AliTRDqaGuiClustersStack::SetQAFile(const char *filename) {
   // Sets a file with histograms
   //
   
-  strcpy(fFileName, filename);
+  //strncpy(fFileName,filename,256);
+  fFileName = filename;
 
   for(Int_t i=0; i<fgknCh; i++) {
     if (fHistList[i]) delete fHistList[i];

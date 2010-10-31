@@ -40,8 +40,8 @@ class AliMCAnalysisUtils : public TObject {
 	//followed by other and unknown on line 4                                                                              
 	enum mcTypes {kMCPhoton, kMCPrompt, kMCFragmentation, kMCISR, kMCPi0Decay, kMCEtaDecay, kMCOtherDecay, kMCConversion,
 			kMCElectron, kMCEFromCFromB, kMCEFromC, kMCEFromB, kMCZDecay, kMCWDecay,
-			kMCMuon, kMCPion, kMCPi0, kMCKaon, kMCEta, kMCProton,
-			kMCOther, kMCUnknown};
+			kMCMuon, kMCPion, kMCPi0, kMCKaon, kMCEta, kMCProton, kMCAntiProton, kMCNeutron,
+			kMCOther, kMCUnknown, kMCBadLabel};
 	
 	//Check only the label of the most significant particle
 	Int_t   CheckOrigin(const Int_t label, AliCaloTrackReader * reader, const Int_t input) ;
@@ -65,8 +65,7 @@ class AliMCAnalysisUtils : public TObject {
 		// Check if in tag the bit test (mcTypes) is set.
 		if (tag & (1<<test) ) return  kTRUE ;    
 		else return kFALSE ;
-   }
-  
+  }
 	
 	void Print(const Option_t * opt)const;
   	
@@ -78,7 +77,7 @@ class AliMCAnalysisUtils : public TObject {
 
 private:
 	Int_t   fCurrentEvent;        // Current Event
-	Int_t	fDebug;               // Debug level
+	Int_t	  fDebug;               // Debug level
 	TList * fJetsList;            // List of jets
 	TString fMCGenerator;         // MC geneator used to generate data in simulation
 	

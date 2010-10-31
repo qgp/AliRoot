@@ -42,6 +42,7 @@
 #include <TParticle.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
+#include <TGeoBBox.h>
 #include <TList.h>
 #include <TBrowser.h>
 
@@ -75,6 +76,8 @@ AliEMCALGeoUtils::AliEMCALGeoUtils():
   fEnvelop[2] = 0.;
   for(Int_t i=0;i<12;i++)fkSModuleMatrix[i]=0 ;
 
+  for (Int_t i = 0; i < 48; i++)
+	for (Int_t j = 0; j < 64; j++) fFastOR2DMap[i][j] = -1;
 }  
 
 //____________________________________________________________________________
@@ -96,6 +99,9 @@ AliEMCALGeoUtils::AliEMCALGeoUtils(const AliEMCALGeoUtils & geo)
   fEnvelop[1] = geo.fEnvelop[1];
   fEnvelop[2] = geo.fEnvelop[2];
   for(Int_t i=0;i<12;i++)fkSModuleMatrix[i]=0 ;
+  
+  for (Int_t i = 0; i < 48; i++)
+	for (Int_t j = 0; j < 64; j++) fFastOR2DMap[i][j] = geo.fFastOR2DMap[i][j];
 }
 
 //____________________________________________________________________________
@@ -124,7 +130,7 @@ AliEMCALGeoUtils::AliEMCALGeoUtils(const Text_t* name, const Text_t* title)
   fNETAdiv = fEMCGeometry->GetNETAdiv();
   fNPHIdiv = fEMCGeometry->GetNPHIdiv();
   fNCellsInModule = fNPHIdiv*fNETAdiv;
-  static int i;
+  static int i=0;
   Int_t nSMod = fEMCGeometry->GetNumberOfSuperModules();
   fPhiBoundariesOfSM.Set(nSMod);
   fPhiCentersOfSM.Set(nSMod/2);
@@ -137,7 +143,7 @@ AliEMCALGeoUtils::AliEMCALGeoUtils(const Text_t* name, const Text_t* title)
   Double_t phiMax =  0.;
   for(Int_t sm=0; sm<nSMod; sm++) {
     fEMCGeometry->GetPhiBoundariesOfSM(sm,phiMin,phiMax);
-	i=sm/2;
+    i=sm/2;
     fPhiCentersOfSM[i] = fEMCGeometry->GetPhiCenterOfSM(sm);
   }
   fNCells = fEMCGeometry->GetNCells();
@@ -171,6 +177,10 @@ AliEMCALGeoUtils::AliEMCALGeoUtils(const Text_t* name, const Text_t* title)
     PrintGeometry();
   }
 
+  for (Int_t ix = 0; ix < 48; ix++)
+	for (Int_t jx = 0; jx < 64; jx++) fFastOR2DMap[ix][jx] = -1;
+
+  BuildFastOR2DMap();
 }
 
 //____________________________________________________________________________
@@ -184,12 +194,12 @@ AliEMCALGeoUtils & AliEMCALGeoUtils::operator = (const AliEMCALGeoUtils  & /*rva
 AliEMCALGeoUtils::~AliEMCALGeoUtils(void)
 {
   // dtor
-  for(Int_t smod = 0 ; smod < fEMCGeometry->GetNumberOfSuperModules(); smod++){
-    if(fkSModuleMatrix[smod])
-       delete fkSModuleMatrix[smod] ;
-      fkSModuleMatrix[smod]=0 ;
-  }
-  if(fEMCGeometry){
+  if (fEMCGeometry){ 
+    for(Int_t smod = 0 ; smod < fEMCGeometry->GetNumberOfSuperModules(); smod++){
+      if(fkSModuleMatrix[smod])
+        delete fkSModuleMatrix[smod] ;
+        fkSModuleMatrix[smod]=0 ;
+    }
     delete fEMCGeometry; fEMCGeometry = 0 ;
   }
 }
@@ -244,7 +254,7 @@ void AliEMCALGeoUtils::GetGlobal(const TVector3 &vloc, TVector3 &vglob, int ind)
 void AliEMCALGeoUtils::GetGlobal(Int_t absId , double glob[3]) const
 {
   // Alice numbering scheme - Jun 03, 2006
-  static Int_t nSupMod, nModule, nIphi, nIeta;
+  static Int_t nSupMod=-1, nModule=-1, nIphi=-1, nIeta=-1;
   static double loc[3];
 
   glob[0]=glob[1]=glob[2]=0.0; // bad case
@@ -288,6 +298,16 @@ void AliEMCALGeoUtils::PrintCellIndexes(Int_t absId, int pri, const char *tit) c
     GetGlobal(absId, vg);
     printf(" vglob : mag %7.2f : perp %7.2f : z %7.2f : eta %6.4f : phi %6.4f(%6.2f) \n", 
 	   vg.Mag(), vg.Perp(), vg.Z(), vg.Eta(), vg.Phi(), vg.Phi()*TMath::RadToDeg());
+  }
+}
+
+void AliEMCALGeoUtils::PrintLocalTrd1(Int_t pri) const
+{
+  // For comparing with numbers from drawing
+  for(Int_t i=0; i<GetShishKebabTrd1Modules()->GetSize(); i++){
+    printf(" %s | ", GetShishKebabModule(i)->GetName());
+    if(i==0 && pri<1) GetShishKebabModule(i)->PrintShish(1);
+    else     GetShishKebabModule(i)->PrintShish(pri);
   }
 }
 
@@ -354,7 +374,7 @@ void  AliEMCALGeoUtils::GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, 
 			Int_t &iphim, Int_t &ietam, Int_t &nModule) const
 {
   // Transition from cell indexes (ieta,iphi) to module indexes (ietam,iphim, nModule)
-  static Int_t nphi;
+  static Int_t nphi=-1;
   nphi  = GetNumberOfModuleInPhiDirection(nSupMod);  
 
   ietam  = ieta/fNETAdiv;
@@ -366,8 +386,8 @@ void  AliEMCALGeoUtils::GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, 
 Int_t  AliEMCALGeoUtils::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t ieta) const
 {
   // Transition from super module number(nSupMod) and cell indexes (ieta,iphi) to absId
-  static Int_t ietam, iphim, nModule;
-  static Int_t nIeta, nIphi; // cell indexes in module
+  static Int_t ietam=-1, iphim=-1, nModule=-1;
+  static Int_t nIeta=-1, nIphi=-1; // cell indexes in module
 
   GetModuleIndexesFromCellIndexesInSModule(nSupMod, iphi, ieta, ietam, iphim, nModule);
 
@@ -383,7 +403,7 @@ Bool_t AliEMCALGeoUtils::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi,
 { 
   // Return false if phi belongs a phi cracks between SM
  
-  static Int_t i;
+  static Int_t i=0;
 
   if(TMath::Abs(eta) > fEtaMaxOfTRD1) return kFALSE;
 
@@ -409,8 +429,8 @@ Bool_t AliEMCALGeoUtils::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi, Int_
 {
   // Nov 17,2006
   // stay here - phi problem as usual 
-  static Int_t nSupMod, i, ieta, iphi, etaShift, nphi;
-  static Double_t absEta=0.0, d=0.0, dmin=0.0, phiLoc;
+  static Int_t nSupMod=-1, i=0, ieta=-1, iphi=-1, etaShift=0, nphi=-1;
+  static Double_t absEta=0.0, d=0.0, dmin=0.0, phiLoc=0;
   absId = nSupMod = - 1;
   if(SuperModuleNumberFromEtaPhi(eta, phi, nSupMod)) {
     // phi index first
@@ -515,7 +535,7 @@ Int_t  AliEMCALGeoUtils::GetSuperModuleNumber(Int_t absId)  const
   // Return the number of the  supermodule given the absolute
   // ALICE numbering id
 
-  static Int_t nSupMod, nModule, nIphi, nIeta;
+  static Int_t nSupMod=-1, nModule=-1, nIphi=-1, nIeta=-1;
   GetCellIndex(absId, nSupMod, nModule, nIphi, nIeta);
   return nSupMod;
 } 
@@ -528,7 +548,7 @@ void AliEMCALGeoUtils::GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModul
   // ietam, iphi - indexes of module in two dimensional grid of SM
   // ietam - have to change from 0 to fNZ-1
   // iphim - have to change from 0 to nphi-1 (fNPhi-1 or fNPhi/2-1)
-  static Int_t nphi;
+  static Int_t nphi=-1;
 
   if(fKey110DEG == 1 && nSupMod>=10) nphi = fNPhi/2;
   else                               nphi = fNPhi;
@@ -555,7 +575,7 @@ int &iphi, int &ieta) const
   // ieta - have to change from 0 to (fNZ*fNETAdiv-1)
   // iphi - have to change from 0 to (fNPhi*fNPHIdiv-1 or fNPhi*fNPHIdiv/2-1)
   //
-  static Int_t iphim, ietam;
+  static Int_t iphim=-1, ietam=-1;
 
   GetModulePhiEtaIndexInSModule(nSupMod,nModule, iphim, ietam); 
   //  ieta  = ietam*fNETAdiv + (1-nIeta); // x(module) = -z(SM) 
@@ -584,7 +604,7 @@ Bool_t AliEMCALGeoUtils::RelPosCellInSModule(Int_t absId, Double_t &xr, Double_t
   // Shift index taking into account the difference between standard SM 
   // and SM of half size in phi direction
   const Int_t kphiIndexShift = fCentersOfCellsPhiDir.GetSize()/4; // Nov 22, 2006; was 6 for cas 2X2
-  static Int_t nSupMod, nModule, nIphi, nIeta, iphi, ieta;
+  static Int_t nSupMod=-1, nModule=-1, nIphi=-1, nIeta=-1, iphi=-1, ieta=-1;
   if(!CheckAbsCellId(absId)) return kFALSE;
 
   GetCellIndex(absId, nSupMod, nModule, nIphi, nIeta);
@@ -650,6 +670,7 @@ void AliEMCALGeoUtils::CreateListOfTrd1Modules()
   // Generate the list of Trd1 modules
   // which will make up the EMCAL
   // geometry
+  // key: look to the AliEMCALShishKebabTrd1Module::
 
   AliDebug(2,Form(" AliEMCALGeometry::CreateListOfTrd1Modules() started "));
 
@@ -842,7 +863,7 @@ void AliEMCALGeoUtils::ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi,
   GetAbsCellIdFromEtaPhi(direction.Eta(),direction.Phi(),absId);
   
   //tower absID hitted -> tower/module plane (evaluated at the center of the tower)
-  Int_t nSupMod, nModule, nIphi, nIeta;
+  Int_t nSupMod=-1, nModule=-1, nIphi=-1, nIeta=-1;
   Double_t loc[3],loc2[3],loc3[3];
   Double_t glob[3]={},glob2[3]={},glob3[3]={};
   
@@ -852,7 +873,7 @@ void AliEMCALGeoUtils::ImpactOnEmcal(TVector3 vtx, Double_t theta, Double_t phi,
   GetCellIndex(absId, nSupMod, nModule, nIphi, nIeta);
 
   //look at 2 neighbours-s cell using nIphi={0,1} and nIeta={0,1}
-  Int_t nIphi2,nIeta2,absId2,absId3;
+  Int_t nIphi2=-1,nIeta2=-1,absId2=-1,absId3=-1;
   if(nIeta==0) nIeta2=1;
   else nIeta2=0;
   absId2=GetAbsCellId(nSupMod,nModule,nIphi,nIeta2);  
@@ -964,8 +985,10 @@ Bool_t AliEMCALGeoUtils::GetAbsFastORIndexFromTRU(const Int_t iTRU, const Int_t 
 		AliError("TRU out of range!");
 		return kFALSE;
 	}
-				 
-	id = iADC + iTRU * 96;
+	
+	id  = ( iTRU % 2 ) ? iADC%4 + 4 * (23 - int(iADC/4)) : (3 - iADC%4) + 4 * int(iADC/4);
+
+	id += iTRU * 96;
 	
 	return kTRUE;
 }
@@ -983,7 +1006,10 @@ Bool_t AliEMCALGeoUtils::GetTRUFromAbsFastORIndex(const Int_t id, Int_t& iTRU, I
 	}
 	
 	iTRU = id / 96;
+	
 	iADC = id % 96;
+	
+	iADC = ( iTRU % 2 ) ? iADC%4 + 4 * (23 - int(iADC/4)) : (3 - iADC%4) + 4 * int(iADC/4);
 	
 	return kTRUE;
 }
@@ -993,21 +1019,18 @@ Bool_t AliEMCALGeoUtils::GetPositionInTRUFromAbsFastORIndex(const Int_t id, Int_
 {
 	//Trigger mapping method, get position in TRU from FasOr Index
 	
-	Int_t iADC;
-	
-	Bool_t isOK = GetTRUFromAbsFastORIndex(id, iTRU, iADC);
-	
-	if (!isOK) return kFALSE;
+	Int_t iADC=-1;	
+	if (!GetTRUFromAbsFastORIndex(id, iTRU, iADC)) return kFALSE;
 	
 	Int_t x = iADC / 4;
 	Int_t y = iADC % 4;
 	
-	if ( int( iTRU / 3 ) % 2 ) // C side 
+	if ( iTRU % 2 ) // C side 
 	{
 		iEta = 23 - x;
 		iPhi =      y;
 	}
-	else                       // A side
+	else            // A side
 	{
 		iEta =      x;
 		iPhi =  3 - y;
@@ -1021,23 +1044,39 @@ Bool_t AliEMCALGeoUtils::GetPositionInSMFromAbsFastORIndex(const Int_t id, Int_t
 {
 	//Trigger mapping method, get position in Super Module from FasOr Index
 
-	Int_t iTRU;
-	Bool_t isOK = GetPositionInTRUFromAbsFastORIndex(id, iTRU, iEta, iPhi);
+	Int_t iTRU=-1;
+		
+	if (!GetPositionInTRUFromAbsFastORIndex(id, iTRU, iEta, iPhi)) return kFALSE;
 	
-	if (!isOK) return kFALSE;
-	
-	iSM  = iTRU / 3;
-	
-	if ( int( iTRU / 3 ) % 2 ) // C side
+	if (iTRU % 2) // C side
 	{
-		iPhi = iPhi + 4 * ( 2 - ( iTRU % 3 ) );
+		iSM  = 2 * ( int( int(iTRU / 2) / 3 ) ) + 1;
 	}
-	else                       // A side
+	else            // A side
 	{
-		iPhi = iPhi + 4 * (       iTRU % 3   );
+		iSM  = 2 * ( int( int(iTRU / 2) / 3 ) );
 	}
+
+	iPhi += 4 * int((iTRU % 6) / 2);
 	
 	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetPositionInEMCALFromAbsFastORIndex(const Int_t id, Int_t& iEta, Int_t& iPhi) const
+{
+	Int_t iSM=-1;
+	
+	if (GetPositionInSMFromAbsFastORIndex(id, iSM, iEta, iPhi))
+	{
+		if (iSM % 2) iEta += 24; 
+		
+		iPhi += 12 * int(iSM / 2);
+		
+		return kTRUE;
+	}
+	
+	return kFALSE;
 }
 
 //________________________________________________________________________________________________
@@ -1045,15 +1084,179 @@ Bool_t AliEMCALGeoUtils::GetAbsFastORIndexFromPositionInTRU(const Int_t iTRU, co
 {
 	//Trigger mapping method, get Index if FastOr from Position in TRU
 
-	if (iTRU < 0 || iTRU > 31 || iEta < 0 || iEta > 23 || iPhi < 0 || iPhi > 3) return kFALSE;
-	
-	if ( int( iTRU / 3 ) % 2 ) // C side
+	if (iTRU < 0 || iTRU > 31 || iEta < 0 || iEta > 23 || iPhi < 0 || iPhi > 3) 
 	{
-		id =      iPhi  + 4 * ( 23 - iEta ) + iTRU * 96;
+		AliError("Out of range!");	
+		return kFALSE;
 	}
-	else 
+	
+	id =  iPhi  + 4 * iEta + iTRU * 96;
+	
+	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetAbsFastORIndexFromPositionInSM(const Int_t  iSM, const Int_t iEta, const Int_t iPhi, Int_t& id) const
+{
+	//
+	if (iSM < 0 || iSM > 11 || iEta < 0 || iEta > 23 || iPhi < 0 || iPhi > 11) 
 	{
-		id = (3 - iPhi) + 4 *        iEta + iTRU * 96;
+		AliError("Out of range!");
+		return kFALSE;
+	}
+	
+	Int_t x = iEta;
+	Int_t y = iPhi % 4;	
+	
+	Int_t iOff = (iSM % 2) ? 1 : 0;
+	Int_t iTRU = 2 * int(iPhi / 4) + 6 * int(iSM / 2) + iOff;
+
+	if (GetAbsFastORIndexFromPositionInTRU(iTRU, x, y, id))
+	{
+		return kTRUE;
+	}
+	
+	return kFALSE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetAbsFastORIndexFromPositionInEMCAL(const Int_t iEta, const Int_t iPhi, Int_t& id) const
+{
+	//
+	if (iEta < 0 || iEta > 47 || iPhi < 0 || iPhi > 63 ) 
+	{
+		AliError("Out of range!");
+		return kFALSE;
+	}
+	
+	if (fFastOR2DMap[iEta][iPhi] == -1) 
+	{
+		AliError("Invalid index!");
+		return kFALSE;
+	}
+	
+	id = fFastOR2DMap[iEta][iPhi];
+	
+	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetFastORIndexFromCellIndex(const Int_t id, Int_t& idx) const
+{
+	Int_t iSupMod, nModule, nIphi, nIeta, iphim, ietam;
+	
+	Bool_t isOK = GetCellIndex( id, iSupMod, nModule, nIphi, nIeta );
+	
+	GetModulePhiEtaIndexInSModule( iSupMod, nModule, iphim, ietam );
+	
+	if (isOK && GetAbsFastORIndexFromPositionInSM(iSupMod, ietam, iphim, idx))
+	{
+		return kTRUE;
+	}
+	
+	return kFALSE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetCellIndexFromFastORIndex(const Int_t id, Int_t idx[4]) const
+{
+	Int_t iSM=-1, iEta=-1, iPhi=-1;
+	if (GetPositionInSMFromAbsFastORIndex(id, iSM, iEta, iPhi))
+	{
+		Int_t ix = 2 * iEta;
+		Int_t iy = 2 * iPhi;
+		
+		for (Int_t i=0; i<2; i++)
+		{
+			for (Int_t j=0; j<2; j++)
+			{
+				idx[2*i+j] = GetAbsCellIdFromCellIndexes(iSM, iy + i, ix + j);
+			}
+		}
+		
+		return kTRUE;
+	}
+	
+	return kFALSE;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetTRUIndexFromSTUIndex(const Int_t id, Int_t& idx) const
+{
+	if (id > 31 || id < 0) 
+	{
+		AliError(Form("TRU index out of range: %d",id));
+		return kFALSE;
+	}
+	
+	idx = (id > 15) ? 2 * (31 - id) : 2 * (15 - id) + 1;
+	
+	return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Int_t AliEMCALGeoUtils::GetTRUIndexFromSTUIndex(const Int_t id) const
+{
+	if (id > 31 || id < 0) 
+	{
+		AliError(Form("TRU index out of range: %d",id));
+	}
+	
+	Int_t idx = (id > 15) ? 2 * (31 - id) : 2 * (15 - id) + 1;
+	
+	return idx;
+}
+
+//________________________________________________________________________________________________
+void AliEMCALGeoUtils::BuildFastOR2DMap()
+{
+	// Needed by STU
+	for (Int_t i = 0; i < 32; i++)
+	{
+		for (Int_t j = 0; j < 24; j++)
+		{
+			for (Int_t k = 0; k < 4; k++)
+			{
+				Int_t id;
+				if (GetAbsFastORIndexFromPositionInTRU(i, j, k, id))
+				{
+					Int_t x = j, y = k + 4 * int(i / 2);
+				
+					if (i % 2) x += 24;
+				
+					fFastOR2DMap[x][y] = id;
+				}
+			}			
+		}
+	}
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeoUtils::GetFastORIndexFromL0Index(const Int_t iTRU, const Int_t id, Int_t idx[], const Int_t size) const
+{
+	if (size <= 0 ||size > 4)
+	{
+		AliError("Size not supported!");
+		return kFALSE;
+	}
+		
+	Int_t motif[4] = {0, 1, 4, 5};
+	
+	switch (size)
+	{
+		case 1: // Cosmic trigger
+			if (!GetAbsFastORIndexFromTRU(iTRU, id, idx[0])) return kFALSE;
+			break;
+		case 4: // 4 x 4
+			for (Int_t k = 0; k < 4; k++)
+			{
+				Int_t iADC = motif[k] + 4 * int(id / 3) + (id % 3);
+				
+				if (!GetAbsFastORIndexFromTRU(iTRU, iADC, idx[k])) return kFALSE;
+			}
+			break;
+		default:
+			break;
 	}
 	
 	return kTRUE;
@@ -1079,13 +1282,14 @@ const TGeoHMatrix * AliEMCALGeoUtils::GetMatrixForSuperModule(Int_t smod) const 
 	//    TGeoHMatrix* m = gGeoManager->GetCurrentMatrix();
 	
 	if(gGeoManager){
-		char path[255] ;
-		sprintf(path,"/ALIC_1/XEN1_1/SMOD_%d",smod+1) ;
+    const Int_t buffersize = 255;
+		char path[buffersize] ;
+		snprintf(path,buffersize,"/ALIC_1/XEN1_1/SMOD_%d",smod+1) ;
 		//TString volpath = "ALIC_1/XEN1_1/SMOD_";
 	    //volpath += smod+1;
 
 		if(fKey110DEG && smod >= 10){
-			  sprintf(path,"/ALIC_1/XEN1_1/SM10_%d",smod-10+1) ;
+			  snprintf(path,buffersize,"/ALIC_1/XEN1_1/SM10_%d",smod-10+1) ;
 			//volpath = "ALIC_1/XEN1_1/SM10_";
 			//volpath += smod-10+1;
 		}
@@ -1126,4 +1330,133 @@ void AliEMCALGeoUtils::GetModulePhiEtaIndexInSModuleFromTRUIndex(Int_t itru, Int
   ietaSM = fEMCGeometry->GetNModulesInTRUEta()*col + ietatru  ; 
   //printf(" GetModulePhiEtaIndexInSModuleFromTRUIndex : itru %2i iphitru %2i ietatru %2i iphiSM %2i ietaSM %2i \n", 
   // itru, iphitru, ietatru, iphiSM, ietaSM);
+}
+
+//__________________________________________________________________________________________________________________
+void AliEMCALGeoUtils::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t sm, const Float_t depth,
+                                                const Float_t misaligTransShifts[15], const Float_t misaligRotShifts[15], Float_t global[3]) const
+{ //Transform clusters cell position into global with alternative method, taking into account the depth calculation.
+  //Input are: the tower indeces, 
+  //           supermodule, 
+  //           particle type (photon 0, electron 1, hadron 2 )
+  //           misalignment shifts to global position in case of need.
+  // Federico.Ronchetti@cern.ch
+
+  if(gGeoManager){
+    //Recover some stuff
+    
+    gGeoManager->cd("ALIC_1/XEN1_1");
+    TGeoNode        *geoXEn1 = gGeoManager->GetCurrentNode();
+    TGeoNodeMatrix  *geoSM[4];        
+    TGeoVolume      *geoSMVol[4];     
+    TGeoShape       *geoSMShape[4];    
+    TGeoBBox        *geoBox[4];        
+    TGeoMatrix      *geoSMMatrix[4];       
+    
+    for(int iSM = 0; iSM < 4; iSM++) {  
+      geoSM[iSM]       = dynamic_cast<TGeoNodeMatrix *>(geoXEn1->GetDaughter(iSM));
+      geoSMVol[iSM]    = geoSM[iSM]->GetVolume(); 
+      geoSMShape[iSM]  = geoSMVol[iSM]->GetShape();
+      geoBox[iSM]      = dynamic_cast<TGeoBBox *>(geoSMShape[iSM]);
+      geoSMMatrix[iSM] = geoSM[iSM]->GetMatrix();
+    }
+    
+    if(sm % 2 == 0) {
+      dcol = 47. - dcol;
+      drow = 23. - drow;
+    }
+    
+    Int_t i = 0; // one always needs "i"
+    Int_t istrip = 0;
+    Float_t z0 = 0;
+    Float_t zb = 0;
+    Float_t z_is = 0;
+    
+    Float_t x,y,z; // return variables in terry's RF
+    
+    //***********************************************************
+    //Do not like this: too many hardcoded values, is it no stored somewhere else?
+    //                : need more comments in the code 
+    //***********************************************************
+    
+    Float_t dz = 6.0;   // base cell width in eta
+    Float_t dx = 6.004; // base cell width in phi
+    
+    
+    //Float_t L = 26.04; // active tower length for hadron (lead+scint+paper)
+    // we use the geant numbers 13.87*2=27.74
+    Float_t teta1 = 0.;
+    
+    i = sm;
+    
+    if (dcol >= 47.5 || dcol<-0.5) {
+      exit(0);
+    }
+    
+    if (drow >= 23.5 || drow<-0.5) {
+      exit(0);
+    }
+    if (sm > 13 || sm <0) {
+      exit(0);
+    }
+        
+    istrip = int ((dcol+0.5)/2);
+    
+    // tapering angle
+    teta1 = TMath::DegToRad() * istrip * 1.5;
+    
+    // calculation of module corner along z 
+    // as a function of strip
+    
+    for (int is=0; is<= istrip; is++) {
+      
+      teta1 = TMath::DegToRad() * (is+1) * 1.5;
+      z_is = z_is + 2*dz*(TMath::Sin(teta1)*TMath::Tan(teta1) + TMath::Cos(teta1));
+      
+    }
+    
+    z0 = dz*(dcol-2*istrip+0.5);
+    zb = (2*dz-z0-depth*TMath::Tan(teta1));
+    
+    z = z_is - zb*TMath::Cos(teta1);
+    y = depth/TMath::Cos(teta1) + zb*TMath::Sin(teta1);
+    
+    x = (drow + 0.5)*dx;
+    
+    // moving the origin from terry's RF
+    // to the GEANT one
+    
+    double xx =  y - geoBox[i]->GetDX();
+    double yy = -x + geoBox[i]->GetDY() - 0.512; //to center the towers in the box
+    double zz =  z - geoBox[i]->GetDZ() + 1; //gap at z = 0
+    
+    const double localIn[3] = {xx, yy, zz};
+    double dglobal[3];
+    geoSMMatrix[i]->LocalToMaster(localIn, dglobal);
+    
+    
+    //hardcoded global shifts
+    if(sm == 2 || sm == 3) {//sector 1
+      global[0] = dglobal[0] + misaligTransShifts[3] + misaligRotShifts[3]*TMath::Sin(TMath::DegToRad()*20) ; 
+      global[1] = dglobal[1] + misaligTransShifts[4] + misaligRotShifts[4]*TMath::Cos(TMath::DegToRad()*20) ; 
+      global[2] = dglobal[2] + misaligTransShifts[5];
+    }
+    else if(sm == 0 || sm == 1){//sector 0
+      global[0] = dglobal[0] + misaligTransShifts[0]; 
+      global[1] = dglobal[1] + misaligTransShifts[1]; 
+      global[2] = dglobal[2] + misaligTransShifts[2];
+    }
+    else {
+      AliInfo("Careful, correction not implemented yet!");
+      global[0] = dglobal[0] ;
+      global[1] = dglobal[1] ;
+      global[2] = dglobal[2] ;
+    }
+    
+    
+  }
+  else{
+    AliFatal("Geometry boxes information, check that geometry.root is loaded\n");
+  }
+  
 }

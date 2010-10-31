@@ -46,7 +46,7 @@ AliITStrackV2::AliITStrackV2() : AliKalmanTrack(),
 
 
 //____________________________________________________________________________
-AliITStrackV2::AliITStrackV2(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
+AliITStrackV2::AliITStrackV2(AliESDtrack& t,Bool_t c):
   AliKalmanTrack(),
   fCheckInvariant(kTRUE),
   fdEdx(t.GetITSsignal()),
@@ -59,11 +59,9 @@ AliITStrackV2::AliITStrackV2(AliESDtrack& t,Bool_t c) throw (const Char_t *) :
   const AliExternalTrackParam *par=&t;
   if (c) {
     par=t.GetConstrainedParam();
-    if (!par) throw "AliITStrackV2: conversion failed !\n";
+    if (!par) AliError("AliITStrackV2: conversion failed !\n");
   }
   Set(par->GetX(),par->GetAlpha(),par->GetParameter(),par->GetCovariance());
-
-  //if (!Invariant()) throw "AliITStrackV2: conversion failed !\n";
 
   SetLabel(t.GetLabel());
   SetMass(t.GetMass());
@@ -394,8 +392,6 @@ Bool_t AliITStrackV2::Improve(Double_t x0,Double_t xyz[3],Double_t ers[3]) {
   //This function improves angular track parameters
   //------------------------------------------------------------------
   //Store the initail track parameters
-
-  return kTRUE; //PH temporary switched off
 
   Double_t x = GetX();
   Double_t alpha = GetAlpha();

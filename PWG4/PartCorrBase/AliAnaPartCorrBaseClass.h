@@ -4,23 +4,21 @@
  * See cxx source for full Copyright notice     */
 /* $Id: $ */
 
-//_________________________________________________________________________
-// Base class for analysis algorithms
-//-- Author: Gustavo Conesa (INFN-LNF)
-
+  //_________________________________________________________________________
+  // Base class for analysis algorithms
+  //-- Author: Gustavo Conesa (INFN-LNF)
+//-Add the possibality for event selection analysis based on vertex and multiplicity bins (Yaxian Mao, 10/10/2010)
 #include <cstdlib>
 
-//ROOT
+  //ROOT
 class TClonesArray ;
 class TObjArray ;
 #include <TList.h> 
 #include <TObject.h>
 class TObjString;
 
-//Analysis
-class AliESDCaloCluster;
-class AliAODCaloCluster;
-class AliAODCaloCells;
+  //Analysis
+class AliVCaloCells;
 #include "AliCaloTrackReader.h"   
 #include "AliCaloPID.h"
 #include "AliFiducialCut.h"
@@ -34,28 +32,25 @@ class AliGenEventHeader ;
 #include "AliAODPWG4ParticleCorrelation.h"
 class AliEMCALGeoUtils;
 class AliPHOSGeoUtils;
+#include "AliMixedEvent.h" 
 
 class AliAnaPartCorrBaseClass : public TObject {
 	
- public:   
+public:   
   AliAnaPartCorrBaseClass() ; // default ctor
   virtual ~AliAnaPartCorrBaseClass() ; //virtual dtor
   
- private:
+private:
   AliAnaPartCorrBaseClass(const AliAnaPartCorrBaseClass & g) ; // cpy ctor
   AliAnaPartCorrBaseClass & operator = (const AliAnaPartCorrBaseClass & g) ;//cpy assignment
   
- public:
-  //	virtual void AddAODCaloCluster(AliAODCaloCluster calo) ;
+public:
+
   virtual void AddAODParticle(AliAODPWG4Particle part) ;
   
-//	virtual void ConnectAODCaloClusters();
-  virtual void ConnectAODPHOSCells();
-  virtual void ConnectAODEMCALCells();
   virtual void ConnectInputOutputAODBranches();
   
   virtual TList * GetCreateOutputObjects()      { return (new TList) ;}
-  //virtual TList * GetAnalysisOutputContainer()  { return fAnaOutContainer ;} 
 	
   virtual void AddToHistogramsName(TString add) { fAddToHistogramsName = add; }  
   virtual TString GetAddedHistogramsStringToName() {return fAddToHistogramsName ;}
@@ -68,32 +63,30 @@ class AliAnaPartCorrBaseClass : public TObject {
   virtual void MakeAnalysisFillAOD()  {;}
   
   virtual void MakeAnalysisFillHistograms() {;}
-  
-  virtual void MakeMixingAnalysisFillHistograms() {;}
-	
+  	
   virtual TObjString * GetAnalysisCuts() {return 0x0;}
 	
   virtual Int_t GetDebug() const  { return fDebug ; }
   virtual void SetDebug(Int_t d)   { fDebug = d ; }
   
   virtual Int_t GetEventNumber() const ;
-		
+  
   virtual AliCaloTrackReader * GetReader() const {return fReader ; }
   virtual void SetReader(AliCaloTrackReader * const reader) { fReader = reader ; }
+  
+  Int_t GetTrackMultiplicity() const {return fReader->GetTrackMultiplicity();}
   
   //Calorimeter helper class access methods
   AliEMCALGeoUtils *  GetEMCALGeometry() const { return fCaloUtils->GetEMCALGeometry(); }
   AliPHOSGeoUtils  *  GetPHOSGeometry()  const { return fCaloUtils->GetPHOSGeometry() ; }
-
+  
   Int_t GetModuleNumberCellIndexes(const Int_t absId, const TString calo, Int_t & icol, Int_t & irow, Int_t &iRCU) const {
 	  return fCaloUtils->GetModuleNumberCellIndexes(absId, calo, icol, irow,iRCU);}
   Int_t GetModuleNumber(AliAODPWG4Particle * part) const {
 	  return fCaloUtils->GetModuleNumber(part, fReader->GetInputEvent());}
-  Int_t GetModuleNumber(AliESDCaloCluster * cluster) const {
+  Int_t GetModuleNumber(AliVCluster * cluster) const {
 	  return fCaloUtils->GetModuleNumber(cluster);}
-  Int_t GetModuleNumber(AliAODCaloCluster * cluster) const {
-	  return fCaloUtils->GetModuleNumber(cluster);}
-	
+ 	
   virtual void Terminate(TList * /*outputList*/) {;}
 	
   //analysis AOD branch
@@ -110,25 +103,22 @@ class AliAnaPartCorrBaseClass : public TObject {
 	
   virtual TString GetAODObjArrayName() const {return fAODObjArrayName;}
   virtual void SetAODObjArrayName(TString name) {fAODObjArrayName = name; }
-
+  
   virtual TClonesArray* GetInputAODBranch() const {return fInputAODBranch ;}
   virtual TClonesArray* GetOutputAODBranch() const {if(fNewAOD) return fOutputAODBranch; else return fInputAODBranch ;}
   virtual TClonesArray* GetAODBranch(TString aodBranchName) const ;
 	
-//	virtual TClonesArray* GetAODCaloClusters() const {return fAODCaloClusters ;}
   virtual TClonesArray* GetAODCaloClusters() const ;
   virtual TClonesArray* GetAODTracks() const ;	
-  virtual AliAODCaloCells* GetAODCaloCells() const {return fAODCaloCells ;}
-  
+  virtual AliVCaloCells* GetPHOSCells()  const {return fReader->GetPHOSCells()  ;}
+  virtual AliVCaloCells* GetEMCALCells() const {return fReader->GetEMCALCells() ;}
+
   virtual TObjArray* GetAODCTS() const ;
   virtual TObjArray* GetAODEMCAL() const ;
   virtual TObjArray* GetAODPHOS() const ;
   
   virtual TString	GetBaseParametersList();
-  
-  virtual TNamed * GetEMCALCells() const ;
-  virtual TNamed * GetPHOSCells() const ;
-  
+    
   virtual AliStack * GetMCStack() const ;
   virtual AliHeader* GetMCHeader() const ;
   virtual AliGenEventHeader* GetMCGenEventHeader() const ;
@@ -152,7 +142,7 @@ class AliAnaPartCorrBaseClass : public TObject {
   virtual Bool_t     IsDataMC()       {return fDataMC ; }
   virtual void SwitchOnDataMC()       {fDataMC = kTRUE ; if(!fMCUtils)fMCUtils = new AliMCAnalysisUtils();}
   virtual void SwitchOffDataMC()      {fDataMC = kFALSE ; }
-
+  
   virtual Bool_t IsFiducialCutOn()       { return fCheckFidCut ; }
   virtual void SwitchOnFiducialCut()     { fCheckFidCut = kTRUE;  if(!fFidCut)fFidCut = new AliFiducialCut();}
   virtual void SwitchOffFiducialCut()    { fCheckFidCut = kFALSE;}
@@ -171,6 +161,25 @@ class AliAnaPartCorrBaseClass : public TObject {
   virtual void SetMinPt(Float_t pt)           {fMinPt = pt ; }
   virtual void SetPtCutRange(Double_t ptmin, Double_t ptmax)
   {  fMaxPt=ptmax;   fMinPt=ptmin;}
+  //Setters for parameters of event buffers
+  virtual void SetMultiBin(Int_t n=1) {fMultiBin=n ;} //number of bins in Multiplicity  
+  virtual void SetNZvertBin(Int_t n=1) {fNZvertBin=n ;} //number of bins for vertex position
+  virtual void SetNRPBin(Int_t n=1)    {fNrpBin=n ;}    //number of bins in reaction plain  
+  virtual void SetZvertexCut(Float_t zcut=40.){fZvtxCut=zcut ;} //cut on vertex position
+  virtual void SetMultiplicity(Int_t multimin, Int_t multimax) {fMinMulti = multimin ; fMaxMulti = multimax ; }
+  virtual void SwitchOnEventSelection()    {fUseSelectEvent = kTRUE ; }
+  virtual void SwitchOffEventSelection()   {fUseSelectEvent = kFALSE ; } 
+  //Getters for event selection
+  virtual Int_t GetMultiBin()  const       {return fMultiBin ;} //number of bins in Multiplicity 
+  virtual Int_t GetNZvertBin() const       {return fNZvertBin ;} //number of bins in vertex   
+  virtual Int_t GetNRPBin()    const       {return fNrpBin ;}    //number of bins in reaction plain 
+  //Getters for event selection
+  virtual Float_t GetZvertexCut() const {return fZvtxCut ;} //cut on vertex position  
+  virtual Int_t GetMaxMulti()     const {return fMaxMulti  ; }  
+  virtual Int_t GetMinMulti()     const {return fMinMulti  ; }  
+  
+  // Do correlation analysis with different event buffers
+  virtual Bool_t DoEventSelect() const {return fUseSelectEvent ; }
   
   //Histogrammes setters and getters
   //Pt, Energy 
@@ -184,7 +193,7 @@ class AliAnaPartCorrBaseClass : public TObject {
   virtual Float_t GetHistoPtMin()   const { return fHistoPtMin ; }
   virtual Float_t GetHistoPtMax()   const { return fHistoPtMax ; }
   
-  //Azimuthal angle
+    //Azimuthal angle
   virtual void SetHistoPhiRangeAndNBins(Float_t min, Float_t max, Int_t n) {
     fHistoPhiBins  = n ;
     fHistoPhiMax   = max ;
@@ -208,9 +217,9 @@ class AliAnaPartCorrBaseClass : public TObject {
   
   //Mass
   virtual void SetHistoMassRangeAndNBins(Float_t min, Float_t max, Int_t n) {
-	fHistoMassBins = n ;
-	fHistoMassMax  = max ;
-	fHistoMassMin  = min ;
+    fHistoMassBins = n ;
+    fHistoMassMax  = max ;
+    fHistoMassMin  = min ;
   }
 	
   virtual Int_t   GetHistoMassBins()  const { return fHistoMassBins ; }
@@ -219,16 +228,29 @@ class AliAnaPartCorrBaseClass : public TObject {
 	
   //Asymetry
   virtual void SetHistoAsymmetryRangeAndNBins(Float_t min, Float_t max, Int_t n) {
-	fHistoAsymBins = n ;
-	fHistoAsymMax  = max ;
-	fHistoAsymMin  = min ;
+    fHistoAsymBins = n ;
+    fHistoAsymMax  = max ;
+    fHistoAsymMin  = min ;
   }
 	
   virtual Int_t   GetHistoAsymmetryBins()  const { return fHistoAsymBins ; }
   virtual Float_t GetHistoAsymmetryMin()   const { return fHistoAsymMin ; }
   virtual Float_t GetHistoAsymmetryMax()   const { return fHistoAsymMax ; }	
-	
- private:    
+  
+  virtual AliMixedEvent * GetMixedEvent()          { return GetReader()->GetMixedEvent() ; } 
+  virtual Int_t           GetNMixedEvent()   const { return GetReader()->GetNMixedEvent() ; } 
+  
+  virtual void      GetVertex(Double_t vertex[3])   const { GetReader()->GetVertex(vertex) ; } 
+  virtual void      GetVertex(Double_t vertex[3],const Int_t evtIndex) const { GetReader()->GetVertex(vertex,evtIndex) ; } 
+  virtual Double_t* GetVertex(const Int_t evtIndex) const { return GetReader()->GetVertex(evtIndex) ; } 
+
+	virtual Bool_t IsTrackMatched(const AliVCluster * cluster) const { return fCaloPID->IsTrackMatched(cluster); } 
+  
+  void SwitchOnPlotsMaking()  {fMakePlots = kTRUE  ;}
+  void SwitchOffPlotsMaking() {fMakePlots = kFALSE ;}
+  Bool_t MakePlotsOn() const  {return fMakePlots;}
+  
+private:    
   
   Bool_t  fDataMC ;             // Flag to access MC data when using ESD or AOD     
   Int_t   fDebug ;              // Debug level
@@ -237,6 +259,15 @@ class AliAnaPartCorrBaseClass : public TObject {
   Bool_t  fRecalculateCaloPID ; // Recalculate PID or use PID weights in calorimeters
   Float_t fMinPt ;              // Maximum pt of (trigger) particles in the analysis
   Float_t fMaxPt ;              // Minimum pt of (trigger) particles in the analysis
+  Int_t    fMultiBin ;	  // Number of bins in event container for multiplicity
+  Int_t    fNZvertBin ;	  // Number of bins in event container for vertex position
+  Int_t    fNrpBin ;	    // Number of bins in event container for reaction plain
+  Float_t  fZvtxCut ;	    // Cut on vertex position  
+  Int_t    fMaxMulti ;              // Maximum multiplicity of particles in the analysis
+  Int_t    fMinMulti ;              // Maximum multiplicity of particles in the analysis
+  Bool_t   fUseSelectEvent ; // Select events based on multiplicity and vertex cuts
+  Bool_t   fMakePlots   ;    // Print plots
+
 	
   AliCaloTrackReader * fReader; // Acces to ESD/AOD/MC data
   
@@ -249,9 +280,6 @@ class AliAnaPartCorrBaseClass : public TObject {
   TString       fAODObjArrayName ;   // Name of ref array kept in a TList in AliAODParticleCorrelation with clusters or track references.
   TString       fAddToHistogramsName;// Add this string to histograms name
   
-  //TClonesArray* fAODCaloClusters ;  //! selected PHOS/EMCAL CaloClusters
-  AliAODCaloCells * fAODCaloCells ; //! selected PHOS/EMCAL CaloCells
-  
   //Analysis helper classes access pointers
   AliCaloPID               * fCaloPID; //! PID calculation
   AliFiducialCut           * fFidCut;  //! Acceptance cuts
@@ -259,8 +287,6 @@ class AliAnaPartCorrBaseClass : public TObject {
   AliMCAnalysisUtils       * fMCUtils; //! MonteCarlo Analysis utils 
   AliNeutralMesonSelection * fNMS;     //! Neutral Meson Selection
   AliCalorimeterUtils      * fCaloUtils ; //  Pointer to CalorimeterUtils
-
-  //TList * fAnaOutContainer;	// Temporal histogram output container, contents to be added to the main container passed to the main analysis frame
 
   //Histograms binning and range    
   Int_t   fHistoPtBins   ;  // Number of bins in pt axis
@@ -278,9 +304,9 @@ class AliAnaPartCorrBaseClass : public TObject {
   Int_t   fHistoAsymBins ;  // Number of bins in asymmetry axis
   Float_t fHistoAsymMax  ;  // Maximum value of asymmetry histogram range
   Float_t fHistoAsymMin  ;  // Minimum value of asymmetry histogram range
-	
-  ClassDef(AliAnaPartCorrBaseClass,7)
-    } ;
+  
+  ClassDef(AliAnaPartCorrBaseClass,11)
+} ;
 
 
 #endif //ALIANAPARTCORRBASECLASS_H

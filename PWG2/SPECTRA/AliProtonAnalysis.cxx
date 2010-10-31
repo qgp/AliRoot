@@ -1683,14 +1683,14 @@ void AliProtonAnalysis::Correct(Int_t step) {
   //Applies the correction maps to the initial containers
   fCorrectProtons = new AliCFDataGrid("correctProtons",
 				      "corrected data",
-				      *fProtonContainer);
-  fCorrectProtons->SetMeasured(0);
+				      *fProtonContainer,0);
+  //fCorrectProtons->SetMeasured(0);
   fCorrectProtons->ApplyEffCorrection(*(AliCFEffGrid *)fEffGridListProtons->At(step));
 
   fCorrectAntiProtons = new AliCFDataGrid("correctAntiProtons",
 					  "corrected data",
-					  *fAntiProtonContainer);
-  fCorrectAntiProtons->SetMeasured(0);
+					  *fAntiProtonContainer,0);
+  //fCorrectAntiProtons->SetMeasured(0);
   fCorrectAntiProtons->ApplyEffCorrection(*(AliCFEffGrid *)fEffGridListAntiProtons->At(step));
 }
 
@@ -1715,7 +1715,7 @@ Bool_t AliProtonAnalysis::ReadCorrectionContainer(const char* filename) {
 							"effProtonsStep0Step2",
 							*gProtonContainer);
   effProtonsStep0Step2->CalculateEfficiency(2,0); 
-  fHistEfficiencyYPtProtons = effProtonsStep0Step2->Project(iRap,iPt);
+  fHistEfficiencyYPtProtons = (TH2D*)effProtonsStep0Step2->Project(iRap,iPt);
   fHistEfficiencyYPtProtons->Sumw2();
 
   //Calculation of efficiency/correction: Protons
@@ -1724,7 +1724,7 @@ Bool_t AliProtonAnalysis::ReadCorrectionContainer(const char* filename) {
 							    "effAntiProtonsStep0Step2",
 							    *gAntiProtonContainer);
   effAntiProtonsStep0Step2->CalculateEfficiency(2,0); 
-  fHistEfficiencyYPtAntiProtons = effAntiProtonsStep0Step2->Project(iRap,iPt);
+  fHistEfficiencyYPtAntiProtons = (TH2D*)effAntiProtonsStep0Step2->Project(iRap,iPt);
   fHistEfficiencyYPtAntiProtons->Sumw2();
 
   Correct();

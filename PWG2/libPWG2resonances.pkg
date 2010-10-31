@@ -3,6 +3,8 @@
 SRCS= RESONANCES/AliRsnDaughter.cxx \
       RESONANCES/AliRsnMother.cxx \
       RESONANCES/AliRsnEvent.cxx \
+      RESONANCES/AliRsnValue.cxx \
+      RESONANCES/AliRsnFunction.cxx \
       RESONANCES/AliRsnExpression.cxx \
       RESONANCES/AliRsnVariableExpression.cxx \
       RESONANCES/AliRsnCut.cxx \
@@ -13,10 +15,10 @@ SRCS= RESONANCES/AliRsnDaughter.cxx \
       RESONANCES/AliRsnCutESDPrimary.cxx \
       RESONANCES/AliRsnCutDaughterType.cxx \
       RESONANCES/AliRsnCutESD2010.cxx \
+      RESONANCES/AliRsnCutAOD2010.cxx \
       RESONANCES/AliRsnCutSet.cxx \
+      RESONANCES/AliRsnCutValue.cxx \
       RESONANCES/AliRsnCutManager.cxx \
-      RESONANCES/AliRsnValue.cxx \
-      RESONANCES/AliRsnFunction.cxx \
       RESONANCES/AliRsnPairDef.cxx \
       RESONANCES/AliRsnPair.cxx \
       RESONANCES/AliRsnPairFunctions.cxx \
@@ -27,13 +29,15 @@ SRCS= RESONANCES/AliRsnDaughter.cxx \
       RESONANCES/AliRsnVAnalysisTaskME.cxx \
       RESONANCES/AliRsnAnalysisSE.cxx \
       RESONANCES/AliRsnAnalysisME.cxx \
+      RESONANCES/AliRsnAnalysisEffSE.cxx \
       RESONANCES/AliRsnTOFT0maker.cxx \
       RESONANCES/AliRsnAnalysisPhi900GeV.cxx \
       RESONANCES/AliRsnAnalysisPhi7TeV.cxx \
       RESONANCES/AliRsnAnalysisPhi7TeVNoPID.cxx \
       RESONANCES/AliRsnMonitorTrack.cxx \
       RESONANCES/AliRsnAnalysisMonitorTask.cxx \
-#     RESONANCES/AliRsnAnalysisEffSE.cxx \
+      RESONANCES/AliRsnAnalysisMonitorPairTask.cxx \
+#      RESONANCES/AliRsnFitResult.cxx \
 
 HDRS= $(SRCS:.cxx=.h)
 

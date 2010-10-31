@@ -62,6 +62,8 @@
 
 // Interface to make the Flow Event Simple used in the flow analysis methods
 #include "AliFlowEvent.h"
+#include "AliFlowTrackCuts.h"
+#include "AliFlowEventCuts.h"
 #include "AliFlowCommonConstants.h"
 #include "AliAnalysisTaskFlowEvent.h"
 
@@ -73,10 +75,13 @@ ClassImp(AliAnalysisTaskFlowEvent)
 AliAnalysisTaskFlowEvent::AliAnalysisTaskFlowEvent() :
   AliAnalysisTaskSE(),
   //  fOutputFile(NULL),
-  fAnalysisType("ESD"),
+  fAnalysisType("AUTOMATIC"),
   fRPType("Global"),
   fCFManager1(NULL),
   fCFManager2(NULL),
+  fCutsEvent(NULL),
+  fCutsRP(NULL),
+  fCutsPOI(NULL),
   fQAInt(NULL),
   fQADiff(NULL),
   fMinMult(0),
@@ -101,15 +106,17 @@ AliAnalysisTaskFlowEvent::AliAnalysisTaskFlowEvent() :
   fEtaMax(5.),	     
   fQMin(0.),	     
   fQMax(3.),
-  fMCReactionPlaneAngle(0.),
-  fCount(0),
-  fNoOfLoops(1),
-  fEllipticFlowValue(0.),
-  fSigmaEllipticFlowValue(0.),
-  fMultiplicityOfEvent(1000000000),
-  fSigmaMultiplicityOfEvent(0),
-  fMyTRandom3(NULL),
-  fbAfterburnerOn(kFALSE)
+  fExcludedEtaMin(0.), 
+  fExcludedEtaMax(0.), 
+  fExcludedPhiMin(0.),
+  fExcludedPhiMax(0.),
+  fAfterburnerOn(kFALSE),
+  fNonFlowNumberOfTrackClones(0),
+  fV1(0.),
+  fV2(0.),
+  fV3(0.),
+  fV4(0.),
+  fMyTRandom3(NULL)
 {
   // Constructor
   cout<<"AliAnalysisTaskFlowEvent::AliAnalysisTaskFlowEvent()"<<endl;
@@ -119,10 +126,13 @@ AliAnalysisTaskFlowEvent::AliAnalysisTaskFlowEvent() :
 AliAnalysisTaskFlowEvent::AliAnalysisTaskFlowEvent(const char *name, TString RPtype, Bool_t on, UInt_t iseed) :
   AliAnalysisTaskSE(name),
   //  fOutputFile(NULL),
-  fAnalysisType("ESD"),
+  fAnalysisType("AUTOMATIC"),
   fRPType(RPtype),
   fCFManager1(NULL),
   fCFManager2(NULL),
+  fCutsEvent(NULL),
+  fCutsRP(NULL),
+  fCutsPOI(NULL),
   fQAInt(NULL),
   fQADiff(NULL),
   fMinMult(0),
@@ -147,15 +157,17 @@ AliAnalysisTaskFlowEvent::AliAnalysisTaskFlowEvent(const char *name, TString RPt
   fEtaMax(5.),	     
   fQMin(0.),	     
   fQMax(3.),
-  fMCReactionPlaneAngle(0.),
-  fCount(0),
-  fNoOfLoops(1),
-  fEllipticFlowValue(0.),
-  fSigmaEllipticFlowValue(0.),
-  fMultiplicityOfEvent(1000000000),
-  fSigmaMultiplicityOfEvent(0),
-  fMyTRandom3(NULL),
-  fbAfterburnerOn(kFALSE)
+  fExcludedEtaMin(0.), 
+  fExcludedEtaMax(0.), 
+  fExcludedPhiMin(0.),
+  fExcludedPhiMax(0.),
+  fAfterburnerOn(kFALSE),
+  fNonFlowNumberOfTrackClones(0),
+  fV1(0.),
+  fV2(0.),
+  fV3(0.),
+  fV4(0.),
+  fMyTRandom3(NULL)
 {
   // Constructor
   cout<<"AliAnalysisTaskFlowEvent::AliAnalysisTaskFlowEvent(const char *name, Bool_t on, UInt_t iseed)"<<endl;
@@ -198,9 +210,9 @@ void AliAnalysisTaskFlowEvent::UserCreateOutputObjects()
   // Called at every worker node to initialize
   cout<<"AliAnalysisTaskFlowEvent::CreateOutputObjects()"<<endl;
 
-  if (!(fAnalysisType == "AOD" || fAnalysisType == "ESD" || fAnalysisType == "ESDMCkineESD"  || fAnalysisType == "ESDMCkineMC" || fAnalysisType == "MC"))
+  if (!(fAnalysisType == "AOD" || fAnalysisType == "ESD" || fAnalysisType == "ESDMCkineESD"  || fAnalysisType == "ESDMCkineMC" || fAnalysisType == "MC" || fAnalysisType == "AUTOMATIC"))
   {
-    AliError("WRONG ANALYSIS TYPE! only ESD, ESDMCkineESD, ESDMCkineMC, AOD and MC are allowed.");
+    AliError("WRONG ANALYSIS TYPE! only ESD, ESDMCkineESD, ESDMCkineMC, AOD, MC and AUTOMATIC are allowed.");
     exit(1);
   }
 
@@ -234,6 +246,7 @@ void AliAnalysisTaskFlowEvent::UserExec(Option_t *)
   AliESDEvent* myESD = dynamic_cast<AliESDEvent*>(InputEvent()); // from TaskSE
   AliAODEvent* myAOD = dynamic_cast<AliAODEvent*>(InputEvent()); // from TaskSE
   AliMultiplicity* myTracklets = NULL;
+  AliESDPmdTrack* pmdtracks = NULL;//pmd      
   TH2F* histFMD = NULL;
 
   if(GetNinputs()==2) {                   
@@ -249,6 +262,30 @@ void AliAnalysisTaskFlowEvent::UserExec(Option_t *)
     }
   }
   
+  //use the new and temporarily inclomplete way of doing things
+  if (fAnalysisType == "AUTOMATIC")
+  {
+    if (!(fCutsRP&&fCutsPOI))
+    {
+      AliError("cuts not set");
+      return;
+    }
+    if (fCutsEvent) 
+    {
+      if (!fCutsEvent->IsSelected(InputEvent())) return;
+    }
+
+    //first attach all possible information to the cuts
+    fCutsRP->SetEvent( InputEvent() );  //attach event
+    fCutsRP->SetMCevent( MCEvent() );   //attach mc truth
+    fCutsPOI->SetEvent( InputEvent() );
+    fCutsPOI->SetMCevent( MCEvent() );
+    //then make the event
+    flowEvent = new AliFlowEvent( fCutsRP, fCutsPOI );
+    if (myESD)
+      flowEvent->SetReferenceMultiplicity(fCutsEvent->GetReferenceMultiplicity(InputEvent()));
+    if (mcEvent && mcEvent->GenEventHeader()) flowEvent->SetMCReactionPlaneAngle(mcEvent);
+  }
 
   // Make the FlowEvent for MC input
   if (fAnalysisType == "MC")
@@ -307,12 +344,23 @@ void AliAnalysisTaskFlowEvent::UserExec(Option_t *)
     if (fRPType == "Global") {
       flowEvent = new AliFlowEvent(myESD,fCFManager1,fCFManager2);
     }
+    if (fRPType == "TPCOnly") {
+      flowEvent = new AliFlowEvent(myESD,fCFManager2,kFALSE);
+    }
+    if (fRPType == "TPCHybrid") {
+      flowEvent = new AliFlowEvent(myESD,fCFManager2,kTRUE);
+    }
     else if (fRPType == "Tracklet"){
       flowEvent = new AliFlowEvent(myESD,myTracklets,fCFManager2);
     }
     else if (fRPType == "FMD"){
       flowEvent = new AliFlowEvent(myESD,histFMD,fCFManager2);
     }
+    //pmd
+    else if (fRPType == "PMD"){
+      flowEvent = new AliFlowEvent(myESD,pmdtracks,fCFManager2);
+    }
+    //pmd
     
     // if monte carlo event get reaction plane from monte carlo (depends on generator)
     if (mcEvent && mcEvent->GenEventHeader()) flowEvent->SetMCReactionPlaneAngle(mcEvent);
@@ -383,6 +431,23 @@ void AliAnalysisTaskFlowEvent::UserExec(Option_t *)
   {
     AliWarning("FlowEvent cut on multiplicity"); return;
   }
+
+  //define dead zone
+  flowEvent->DefineDeadZone(fExcludedEtaMin, fExcludedEtaMax, fExcludedPhiMin, fExcludedPhiMax );
+
+
+  //////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////AFTERBURNER
+  if (fAfterburnerOn)
+  {
+    //if reaction plane not set from elsewhere randomize it before adding flow
+    if (!flowEvent->IsSetMCReactionPlaneAngle())
+      flowEvent->SetMCReactionPlaneAngle(gRandom->Uniform(0.0,TMath::TwoPi()));
+
+    flowEvent->AddFlow(fV1,fV2,fV3,fV4);     //add flow
+    flowEvent->CloneTracks(fNonFlowNumberOfTrackClones); //add nonflow by cloning tracks
+  }
+  //////////////////////////////////////////////////////////////////////////////
 
   //tag subEvents
   flowEvent->TagSubeventsInEta(fMinA,fMaxA,fMinB,fMaxB);

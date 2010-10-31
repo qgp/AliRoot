@@ -24,6 +24,10 @@ SRCS:=   vertexingHF/AliAODRecoDecayHF.cxx \
        vertexingHF/AliAnalysisTaskSELambdac.cxx \
        vertexingHF/AliAnalysisTaskSED0Mass.cxx \
        vertexingHF/AliAnalysisTaskSECharmFraction.cxx \
+       vertexingHF/AliCFVertexingHF.cxx \
+       vertexingHF/AliCFVertexingHF2Prong.cxx \
+       vertexingHF/AliCFVertexingHF3Prong.cxx \
+       vertexingHF/AliCFTaskVertexingHF.cxx \
        vertexingHF/AliCFHeavyFlavourTaskMultiVarMultiStep.cxx \
        vertexingHF/AliCFTaskForDStarAnalysis.cxx \
        vertexingHF/AliAnalysisTaskSEDStarJets.cxx \
@@ -31,6 +35,8 @@ SRCS:=   vertexingHF/AliAODRecoDecayHF.cxx \
        vertexingHF/AliAnalysisTaskSESignificance.cxx \
        vertexingHF/AliMultiDimVector.cxx vertexingHF/AliSignificanceCalculator.cxx \
        vertexingHF/AliHFMassFitter.cxx \
+       vertexingHF/AliHFPtSpectrum.cxx \
+       vertexingHF/AliNormalizationCounter.cxx \
        vertexingHF/AliAnalysisTaskSEBkgLikeSignJPSI.cxx \
        vertexingHF/AliAnalysisTaskSEBkgLikeSignD0.cxx \
        vertexingHF/AliAnalysisTaskSEJPSItoEle.cxx \

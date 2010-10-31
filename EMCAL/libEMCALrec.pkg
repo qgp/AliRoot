@@ -5,6 +5,8 @@ SRCS =\
 AliEMCALReconstructor.cxx \
 AliEMCALClusterizer.cxx \
 AliEMCALClusterizerv1.cxx \
+AliEMCALClusterizerNxN.cxx \
+AliEMCALUnfolding.cxx \
 AliEMCALTrack.cxx \
 AliEMCALTracker.cxx \
 AliEMCALPID.cxx \

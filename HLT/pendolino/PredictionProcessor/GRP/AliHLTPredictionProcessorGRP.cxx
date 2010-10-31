@@ -4,7 +4,7 @@
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //*                                                                        *
-//* Primary Authors: Gaute Ovrebekk                                        *
+//* Primary Authors: Matthias Richter <Matthias.Richter@ift.uib.no         *
 //*                  for The ALICE HLT Project.                            *
 //*                                                                        *
 //* Permission to use, copy, modify and distribute this software and its   *
@@ -36,6 +36,8 @@
 
 
 ClassImp(AliHLTPredictionProcessorGRP)
+
+const float kNormAtmosPressure = 1013.0; // norm pressure in mbar
 
 AliHLTPredictionProcessorGRP::AliHLTPredictionProcessorGRP(AliHLTPendolino* pendolino)
   : AliHLTPredictionProcessorInterface("GRP", pendolino)
@@ -89,56 +91,56 @@ UInt_t AliHLTPredictionProcessorGRP::Process(TMap* dcsAliasMap)
   if (dcsAliasMap->GetEntries() == 0 ) return 9;
 
   Float_t l3Current=0.0;
-  Float_t l3Polarity=0.0;
+  Bool_t l3Polarity=0; // positive field according to LHC convention
   Float_t dipoleCurrent=0.0;
-  Float_t dipolePolarity=0.0;
-  Float_t cavernAtmosPressure=0.0;
-  Float_t cavernAtmosPressure2=0.0;
-  Float_t surfaceAtmosPressure=0.0;
+  Bool_t dipolePolarity=0; // positive field according to LHC convention
+  Float_t cavernAtmosPressure=kNormAtmosPressure;
+  Float_t cavernAtmosPressure2=kNormAtmosPressure;
+  Float_t surfaceAtmosPressure=kNormAtmosPressure;
   
-  Bool_t bRet = kTRUE;
+  //Bool_t bRet = kTRUE;
   const char* key="";
 
   key="L3Current";
   if (!GetSensorValue(dcsAliasMap, key, &l3Current)) {
     Log(Form("failed to extract %s from alias map", key));
-    bRet=kFALSE;
+    //bRet=kFALSE;
   }
 
   key="L3Polarity";
   if (!GetSensorValue(dcsAliasMap, key, &l3Polarity)) {
     Log(Form("failed to extract %s from alias map", key));
-    bRet=kFALSE;
+    //bRet=kFALSE;
   }
 
   key="DipoleCurrent";
   if (!GetSensorValue(dcsAliasMap, key, &dipoleCurrent)) {
     Log(Form("failed to extract %s from alias map", key));
-    bRet=kFALSE;
+    //bRet=kFALSE;
   }
 
   key="DipolePolarity";
   if (!GetSensorValue(dcsAliasMap, key, &dipolePolarity)) {
     Log(Form("failed to extract %s from alias map", key));
-    bRet=kFALSE;
+    //bRet=kFALSE;
   }
 
   key="CavernAtmosPressure";
   if (!GetSensorValue(dcsAliasMap, key, &cavernAtmosPressure)) {
     Log(Form("failed to extract %s from alias map", key));
-    bRet=kFALSE;
+    //bRet=kFALSE;
   }
 
   key="CavernAtmosPressure2";
   if (!GetSensorValue(dcsAliasMap, key, &cavernAtmosPressure2)) {
     Log(Form("failed to extract %s from alias map", key));
-    bRet=kFALSE;
+    //bRet=kFALSE;
   }
 
-  key="SurfaceAtmosPressure2";
+  key="SurfaceAtmosPressure";
   if (!GetSensorValue(dcsAliasMap, key, &surfaceAtmosPressure)) {
     Log(Form("failed to extract %s from alias map", key));
-    bRet=kFALSE;
+    //bRet=kFALSE;
   }
 
   AliGRPObject* grpObj=NULL;
@@ -157,10 +159,35 @@ UInt_t AliHLTPredictionProcessorGRP::Process(TMap* dcsAliasMap)
       bUpdate=bUpdate || (TMath::Abs(grpExist->GetL3Current(AliGRPObject::kMean) - l3Current)>10.0);
       bUpdate=bUpdate || (TMath::Abs(grpExist->GetDipolePolarity()- dipolePolarity)>0.5);
       bUpdate=bUpdate || (TMath::Abs(grpExist->GetDipoleCurrent(AliGRPObject::kMean) - dipoleCurrent)>10.0);
+      bUpdate=bUpdate 
+	|| (grpExist->GetCavernAtmosPressure()==NULL)
+	|| (TMath::Abs(grpExist->GetCavernAtmosPressure()->GetValue(0) - cavernAtmosPressure)> 1.0);
+      bUpdate=bUpdate 
+	|| (grpExist->GetCavernAtmosPressure2()==NULL)
+	|| (TMath::Abs(grpExist->GetCavernAtmosPressure2()->GetValue(0) - cavernAtmosPressure2) > 1.0);
+      bUpdate=bUpdate 
+	|| (grpExist->GetSurfaceAtmosPressure()==NULL)
+	|| (TMath::Abs(grpExist->GetSurfaceAtmosPressure()->GetValue(0) - surfaceAtmosPressure) > 1.0);
+
 
       cdbMetaData=pEntry->GetMetaData();
+    } else {
+      bUpdate=true;
     }
+  } else {
+    bUpdate=true;
   }
+  // TString msg="AliHLTPredictionProcessorGRP::Process: update ";
+  // msg+=bUpdate;
+  // msg+="   \nL3 current = "; msg+=l3Current;
+  // msg+="   \nL3 polarity = "; msg+=l3Polarity;
+  // msg+="   \nDipole current = "; msg+=dipoleCurrent;
+  // msg+="   \nDipole polarity = "; msg+=l3Polarity;
+  // msg+="   \nCavern pressure = "; msg+=cavernAtmosPressure;
+  // msg+="   \nCavern pressure2 = "; msg+=cavernAtmosPressure2;
+  // msg+="   \nSurface pressure = "; msg+=surfaceAtmosPressure;
+  // Log(msg.Data());
+
   // don't write if object is there and up-to-date
   if (grpExist && !bUpdate) return 0;
 
@@ -169,6 +196,7 @@ UInt_t AliHLTPredictionProcessorGRP::Process(TMap* dcsAliasMap)
     grpObj=grpExist;
   } else {
     // generate GRP object
+    // TODO: correct energy has to be extracted somewhere
     grpObj=new AliGRPObject;
     float cmsEnergy=14000;
     grpObj->SetBeamEnergy(cmsEnergy/0.120); // LHC convention
@@ -179,6 +207,21 @@ UInt_t AliHLTPredictionProcessorGRP::Process(TMap* dcsAliasMap)
   grpObj->SetL3Polarity(l3Polarity);  
   grpObj->SetDipolePolarity(dipolePolarity);
   grpObj->SetPolarityConventionLHC();                    // LHC convention +/+ current -> -/- field main components
+  grpObj->SetCavernAtmosPressure(CreateSensor("CavernAtmosPressure",
+					      cavernAtmosPressure,
+					      GetStartTime(),
+					      GetEndTime())
+				 );
+  grpObj->SetCavernAtmosPressure2(CreateSensor("CavernAtmosPressure2",
+					       cavernAtmosPressure2,
+					       GetStartTime(),
+					       GetEndTime())
+				  );
+  grpObj->SetSurfaceAtmosPressure(CreateSensor("SurfaceAtmosPressure",
+					       surfaceAtmosPressure,
+					       GetStartTime(),
+					       GetEndTime())
+				  );
 
   if (!cdbMetaData) {
     cdbMetaData=new AliCDBMetaData;

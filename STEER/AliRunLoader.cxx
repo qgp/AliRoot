@@ -146,7 +146,6 @@ AliRunLoader::~AliRunLoader()
   
   //fEventFolder is deleted by the way of removing - TopAliceFolder owns it
   if( fCTrigger ) delete  fCTrigger;
-  delete fHeader;
   delete fStack;
   delete fGAFile;
 }
@@ -1964,7 +1963,6 @@ void AliRunLoader::UnloadHeader()
  //removes TreeE from folder and deletes it
  // as well as fHeader object
  CleanHeader();
- delete fHeader;
  fHeader = 0x0;
 }
 /**************************************************************************/

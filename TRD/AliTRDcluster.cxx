@@ -170,15 +170,40 @@ AliTRDcluster &AliTRDcluster::operator=(const AliTRDcluster &c)
 {
   //
   // Assignment operator
-  // 
+  //
 
-  if (this != &c) {
-    ((AliTRDcluster &) c).Copy(*this);
+  if (&c == this) {
+     return *this;
+  }
+
+  // Call the assignment operator of the base class
+  AliCluster::operator=(c);
+
+  fPadCol         = c.fPadCol;
+  fPadRow         = c.fPadRow;
+  fPadTime        = c.fPadTime;
+  fLocalTimeBin   = c.fLocalTimeBin;
+  fNPads          = c.fNPads;
+  fClusterMasking = c.fClusterMasking;
+  fDetector       = c.fDetector;
+  fQ              = c.fQ;
+  fCenter         = c.fCenter;
+
+  SetLabel(c.GetLabel(0),0);
+  SetLabel(c.GetLabel(1),1);
+  SetLabel(c.GetLabel(2),2);
+
+  SetY(c.GetY());
+  SetZ(c.GetZ());
+  SetSigmaZ2(c.GetSigmaZ2());
+
+  for (Int_t i = 0; i < 7; i++) {
+    fSignals[i] = c.fSignals[i];
   }
 
   return *this;
 
-}
+} 
 
 //_____________________________________________________________________________
 void AliTRDcluster::AddTrackIndex(const Int_t * const track)
@@ -328,7 +353,7 @@ Double_t AliTRDcluster::GetSX(Int_t tb, Double_t z)
   //
 
   if(tb<1 || tb>=24) return 10.; // return huge [10cm]
-  const Double_t sx[24][10]={
+  static const Double_t sx[24][10]={
     {0.000e+00, 9.352e-01, 0.000e+00, 0.000e+00, 0.000e+00, 0.000e+00, 0.000e+00, 0.000e+00, 0.000e+00, 2.309e+00},
     {8.387e-02, 8.718e-02, 8.816e-02, 9.444e-02, 9.993e-02, 1.083e-01, 1.161e-01, 1.280e-01, 1.417e-01, 1.406e-01},
     {1.097e-01, 1.105e-01, 1.127e-01, 1.151e-01, 1.186e-01, 1.223e-01, 1.272e-01, 1.323e-01, 1.389e-01, 1.490e-01},
@@ -390,7 +415,7 @@ Double_t AliTRDcluster::GetSYdrift(Int_t tb, Int_t ly, Double_t/* z*/)
   //
 
   if(tb<1 || tb>=24) return 10.; // return huge [10cm]
-  const Float_t lSy[6][24] = {
+  static const Float_t lSy[6][24] = {
     {75.7561, 0.0325, 0.0175, 0.0174, 0.0206, 0.0232,
      0.0253, 0.0262, 0.0265, 0.0264, 0.0266, 0.0257,
      0.0258, 0.0261, 0.0259, 0.0253, 0.0257, 0.0261,
@@ -539,7 +564,7 @@ Double_t AliTRDcluster::GetXcorr(Int_t tb, Double_t z)
 
   if(tb<0 || tb>=24) return 0.;
   const Int_t nd = 5;
-  const Double_t dx[24][nd]={
+  static const Double_t dx[24][nd]={
     {+1.747e-01,+3.195e-01,+1.641e-01,+1.607e-01,+6.002e-01},
     {+5.468e-02,+5.760e-02,+6.365e-02,+8.003e-02,+1.067e-01},
     {-6.327e-02,-6.339e-02,-6.423e-02,-6.900e-02,-7.949e-02},
@@ -607,7 +632,7 @@ Double_t AliTRDcluster::GetYcorr(Int_t ly, Float_t y)
   //End_Html
   //
 
-  const Float_t cy[AliTRDgeometry::kNlayer][3] = {
+  static const Float_t cy[AliTRDgeometry::kNlayer][3] = {
     { 4.014e-04, 8.605e-03, -6.880e+00},
     {-3.061e-04, 9.663e-03, -6.789e+00},
     { 1.124e-03, 1.105e-02, -6.825e+00},

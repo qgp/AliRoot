@@ -191,12 +191,19 @@ AliMUONPreClusterFinderV3::AddPreCluster(AliMUONCluster& cluster, AliMUONCluster
   AliMUONCluster a(*preCluster);
 
   Int_t cathode = preCluster->Cathode();
+  if ( cathode < 0 ) {
+    AliError(Form("Cathod undefined: %d",cathode));
+    AliFatal("");
+    return;
+  }
+  
   if ( cathode <=1 && !fPreClusters[cathode]->Remove(preCluster) ) 
   {
     AliError(Form("Could not remove %s from preclusters[%d]",
                   preCluster->AsString().Data(),cathode));
     StdoutToAliDebug(1,DumpPreClusters());
     AliFatal("");
+    return;
   }
              
   cluster.AddCluster(a);

@@ -16,6 +16,9 @@
 #ifndef ROOT_TNamed
 #include <TNamed.h>
 #endif
+#ifndef ROOT_THashTable
+#include <THashTable.h>
+#endif
 
 class TClass;
 class TTree;
@@ -53,7 +56,8 @@ enum EAliAnalysisFlags {
    kUseDataSet       = BIT(16),
    kSaveCanvases     = BIT(17),
    kExternalLoop     = BIT(18),
-   kSkipTerminate    = BIT(19)
+   kSkipTerminate    = BIT(19),
+   kUseProgressBar   = BIT(20)
 };   
 
    AliAnalysisManager(const char *name = "mgr", const char *title="");
@@ -72,8 +76,9 @@ enum EAliAnalysisFlags {
    static TFile       *OpenFile(AliAnalysisDataContainer *cont, const char *option, Bool_t ignoreProof=kFALSE);
    void                PackOutput(TList *target);
    void                RegisterExtraFile(const char *fname);
-   Long64_t            StartAnalysis(const char *type="local", TTree * const tree=0, Long64_t nentries=1234567890, Long64_t firstentry=0);
+   Long64_t            StartAnalysis(const char *type, TTree * const tree, Long64_t nentries=1234567890, Long64_t firstentry=0);
    Long64_t            StartAnalysis(const char *type, const char *dataset, Long64_t nentries=1234567890, Long64_t firstentry=0);
+   Long64_t            StartAnalysis(const char *type, Long64_t nentries=1234567890, Long64_t firstentry=0);
    virtual void        SlaveBegin(TTree *tree);
    virtual void        Terminate();
    void                UnpackOutput(TList *source);
@@ -83,6 +88,7 @@ enum EAliAnalysisFlags {
    EAliAnalysisExecMode 
                        GetAnalysisType() const    {return fMode;}
    void                GetAnalysisTypeString(TString &type) const;                    
+   Bool_t              GetAutoBranchLoading() const {return fAutoBranchHandling;} 
    static const char  *GetCommonFileName()        {return fgCommonFileName.Data();}
    AliAnalysisDataContainer *
                        GetCommonInputContainer() const  {return fCommonInput;}
@@ -94,6 +100,7 @@ enum EAliAnalysisFlags {
    TString             GetExtraFiles() const      {return fExtraFiles;}
    AliVEventPool*      GetEventPool()  const      {return fEventPool;}
    Bool_t              GetFileFromWrapper(const char *filename, const TList *source);
+   static Int_t        GetRunFromAlienPath(const char *path);
    AliAnalysisGrid*    GetGridHandler()           {return fGridHandler;}
    TObjArray          *GetInputs() const          {return fInputs;}
    AliVEventHandler*   GetInputEventHandler() const   {return fInputEventHandler;}
@@ -101,13 +108,17 @@ enum EAliAnalysisFlags {
    AliVEventHandler*   GetOutputEventHandler() const  {return fOutputEventHandler;}
    TObjArray          *GetOutputs() const         {return fOutputs;}
    TObjArray          *GetParamOutputs() const    {return fParamCont;}
+   Int_t               GetRunFromPath() const     {return fRunFromPath;}
    TObjArray          *GetTasks() const           {return fTasks;}
    TObjArray          *GetTopTasks() const        {return fTopTasks;}
    TTree              *GetTree() const            {return fTree;}
    TObjArray          *GetZombieTasks() const     {return fZombies;}
+   Bool_t              IsProofMode() const        {return (fMode==kProofAnalysis)?kTRUE:kFALSE;}
    Bool_t              IsRemote() const           {return fIsRemote;}
    Bool_t              IsUsingDataSet() const     {return TObject::TestBit(kUseDataSet);}
+   void                LoadBranch(const char *n)  { if(fAutoBranchHandling) return; DoLoadBranch(n); }
    void                SetAnalysisType(EAliAnalysisExecMode mode) {fMode = mode;}
+   void                SetAutoBranchLoading(Bool_t b) { fAutoBranchHandling = b; }
    void                SetCurrentEntry(Long64_t entry)            {fCurrentEntry = entry;}
    void                SetCollectSysInfoEach(Int_t nevents=0)     {fNSysInfo = nevents;}
    static void         SetCommonFileName(const char *name)        {fgCommonFileName = name;}
@@ -120,9 +131,11 @@ enum EAliAnalysisFlags {
    void                SetMCtruthEventHandler(AliVEventHandler* const handler) {fMCtruthEventHandler = handler;}
    void                SetNSysInfo(Long64_t nevents)              {fNSysInfo = nevents;}
    void                SetOutputEventHandler(AliVEventHandler* const handler);
+   void                SetRunFromPath(Int_t run)                  {fRunFromPath = run;}
    void                SetSelector(AliAnalysisSelector * const sel)      {fSelector = sel;}
    void                SetSaveCanvases(Bool_t flag=kTRUE)         {TObject::SetBit(kSaveCanvases,flag);}
    void                SetSkipTerminate(Bool_t flag)              {TObject::SetBit(kSkipTerminate,flag);}
+   void                SetUseProgressBar(Bool_t flag)             {TObject::SetBit(kUseProgressBar,flag);}
    void                SetSpecialOutputLocation(const char *loc)  {fSpecialOutputLocation = loc;}
 
    // Container handling
@@ -159,6 +172,7 @@ enum EAliAnalysisFlags {
 protected:
    void                 ImportWrappers(TList *source);
    void                 SetEventLoop(Bool_t flag=kTRUE) {TObject::SetBit(kEventLoop,flag);}
+   void                 DoLoadBranch(const char *name);
 
 private:
    TTree                  *fTree;                //! Input tree in case of TSelector model
@@ -185,9 +199,12 @@ private:
    AliAnalysisSelector    *fSelector;            //! Current selector
    AliAnalysisGrid        *fGridHandler;         //! Grid handler plugin
    TString                 fExtraFiles;          // List of extra files to be merged
+   Bool_t                  fAutoBranchHandling;  // def=kTRUE, turn off if you use LoadBranch
+   THashTable              fTable;               // keep branch ptrs in case of manual branch loading
+   Int_t                   fRunFromPath;         // Run number retrieved from path to input data
 
    static TString          fgCommonFileName;     //! Common output file name (not streamed)
    static AliAnalysisManager *fgAnalysisManager; //! static pointer to object instance
-   ClassDef(AliAnalysisManager,8)  // Analysis manager class
+   ClassDef(AliAnalysisManager,9)  // Analysis manager class
 };   
 #endif

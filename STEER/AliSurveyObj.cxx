@@ -198,11 +198,11 @@ Bool_t AliSurveyObj::OpenFile(TString openString) {
   }
   AliInfo(Form("%lld bytes read!\n", file->GetBytesRead()));
   
-  ParseBuffer(buf);
+  Bool_t goodParsing = ParseBuffer(buf);
 
   file->Close();
   delete[] buf;
-  return kTRUE;
+  return goodParsing;
 }
 
 
@@ -510,14 +510,14 @@ Int_t AliSurveyObj::ListReports(TString detector, Int_t year,
   Int_t numberEntries = res->GetEntries();
 
   if (numberEntries > 0) {
-    Printf(Form("%d reports found:", numberEntries));
+    Printf("%d reports found:", numberEntries);
     for (int i = 0; i < res->GetEntries(); ++i) {
       fn = res->GetFileNamePath(i);
-      Printf(Form("Detector:%s\tYear:%d\tEDMS Report Number:%d\tVersion:%d",
+      Printf("Detector:%s\tYear:%d\tEDMS Report Number:%d\tVersion:%d",
 		  FileNamePathToDetector(fn).Data(),
 		  FileNamePathToReportYear(fn),
 		  FileNamePathToReportNumber(fn),
-		  FileNamePathToReportVersion(fn)));
+		  FileNamePathToReportVersion(fn));
     }
     delete res;
     return numberEntries;
@@ -642,9 +642,9 @@ Bool_t AliSurveyObj::ParseBuffer(const Char_t* buf) {
 	  nextLine.Remove(TString::kTrailing, '/');
 	  nextLine = nextLine(nextLine.Last('/') + 1, nextLine.Length() - nextLine.Last('/') + 1);
 	  
-	  Int_t sscanftmp = 0;
-	  if (1 != sscanf(nextLine.Data(), "%d", &sscanftmp)) {
+	  if (!nextLine.IsDigit()) {
 	    AliError("Survey text file sintax error! (incorrectly formatted Report URL)");
+	    AliError(Form("Wrong report number string: \"%s\"",nextLine.Data()));
 	    lines->Delete();
 	    delete lines; lines = NULL;
 	    return kFALSE;

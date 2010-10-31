@@ -26,6 +26,7 @@
 #include "AliV0Reader.h"
 #include "AliAnalysisManager.h"
 #include "AliESDInputHandler.h"
+#include "AliPID.h"
 #include "AliESDtrack.h"
 #include "AliMCEvent.h"
 #include "AliKFVertex.h"
@@ -84,16 +85,20 @@ AliV0Reader::AliV0Reader() :
   fDoMC(kFALSE),
   fMaxVertexZ(100.),// 100 cm(from the 0)
   fMaxR(10000),// 100 meter(outside of ALICE)
+  fMinR(0),// 100 meter(outside of ALICE)
   fEtaCut(0.),
+  fRapidityMesonCut(0.),
   fPtCut(0.),
   fSinglePtCut(0.),
   fMaxZ(0.),
   fMinClsTPC(0.),
+  fMinClsTPCToF(0.),
   fLineCutZRSlope(0.),
   fLineCutZValue(0.),
   fChi2CutConversion(0.),
   fChi2CutMeson(0.),
   fAlphaCutMeson(1.),
+  fAlphaMinCutMeson(0.),
   fPIDProbabilityCutNegativeParticle(0),
   fPIDProbabilityCutPositiveParticle(0),
   fDodEdxSigmaCut(kFALSE),
@@ -119,17 +124,22 @@ AliV0Reader::AliV0Reader() :
   fNSigmaMass(0.),
   fUseImprovedVertex(kFALSE),
   fUseOwnXYZCalculation(kFALSE),
+  fUseConstructGamma(kFALSE),
   fDoCF(kFALSE),
   fUseOnFlyV0Finder(kTRUE),
   fUpdateV0AlreadyCalled(kFALSE),
   fCurrentEventGoodV0s(NULL),
+  fV0Pindex(),
+  fV0Nindex(),
 //  fPreviousEventGoodV0s(),
   fCalculateBackground(kFALSE),
   fBGEventHandler(NULL),
   fBGEventInitialized(kFALSE),
   fEsdTrackCuts(NULL),
   fNumberOfESDTracks(0),
-  nEventsForBGCalculation(10)
+  nEventsForBGCalculation(20),
+  fUseChargedTrackMultiplicityForBG(kTRUE),
+  fNumberOfGoodV0s(0)
 {
   //fESDpid = new AliESDpid;	
 }
@@ -171,16 +181,20 @@ AliV0Reader::AliV0Reader(const AliV0Reader & original) :
   fDoMC(kFALSE),
   fMaxVertexZ(original.fMaxVertexZ),
   fMaxR(original.fMaxR),
+  fMinR(original.fMinR),
   fEtaCut(original.fEtaCut),
+  fRapidityMesonCut(original.fRapidityMesonCut),
   fPtCut(original.fPtCut),
   fSinglePtCut(original.fSinglePtCut),
   fMaxZ(original.fMaxZ),
   fMinClsTPC(original.fMinClsTPC),
+  fMinClsTPCToF(original.fMinClsTPCToF),
   fLineCutZRSlope(original.fLineCutZRSlope),
   fLineCutZValue(original.fLineCutZValue),
   fChi2CutConversion(original.fChi2CutConversion),
   fChi2CutMeson(original.fChi2CutMeson),
   fAlphaCutMeson(original.fAlphaCutMeson),
+  fAlphaMinCutMeson(original.fAlphaMinCutMeson),
   fPIDProbabilityCutNegativeParticle(original.fPIDProbabilityCutNegativeParticle),
   fPIDProbabilityCutPositiveParticle(original.fPIDProbabilityCutPositiveParticle),
   fDodEdxSigmaCut(original.fDodEdxSigmaCut),
@@ -206,17 +220,22 @@ AliV0Reader::AliV0Reader(const AliV0Reader & original) :
   fNSigmaMass(original.fNSigmaMass),
   fUseImprovedVertex(original.fUseImprovedVertex),
   fUseOwnXYZCalculation(original.fUseOwnXYZCalculation),
+  fUseConstructGamma(original.fUseConstructGamma),
   fDoCF(original.fDoCF),
   fUseOnFlyV0Finder(original.fUseOnFlyV0Finder),
   fUpdateV0AlreadyCalled(original.fUpdateV0AlreadyCalled),
   fCurrentEventGoodV0s(original.fCurrentEventGoodV0s),
+  fV0Pindex(original.fV0Pindex),
+  fV0Nindex(original.fV0Nindex),
   //  fPreviousEventGoodV0s(original.fPreviousEventGoodV0s),
   fCalculateBackground(original.fCalculateBackground),
   fBGEventHandler(original.fBGEventHandler),
   fBGEventInitialized(original.fBGEventInitialized),
   fEsdTrackCuts(original.fEsdTrackCuts),
   fNumberOfESDTracks(original.fNumberOfESDTracks),
-  nEventsForBGCalculation(original.nEventsForBGCalculation)
+  nEventsForBGCalculation(original.nEventsForBGCalculation),
+  fUseChargedTrackMultiplicityForBG(original.fUseChargedTrackMultiplicityForBG),
+  fNumberOfGoodV0s(original.fNumberOfGoodV0s)
 {
 	
 }
@@ -322,31 +341,46 @@ void AliV0Reader::Initialize(){
     fCurrentEventGoodV0s = new TClonesArray("AliKFParticle", 0);
   }
 
+  fV0Pindex.clear();
+  fV0Nindex.clear();
+
   if(fCalculateBackground == kTRUE){
     if(fBGEventInitialized == kFALSE){
 
       
       Double_t *zBinLimitsArray = new Double_t[9];
       zBinLimitsArray[0] = -50.00;
-      zBinLimitsArray[1] = -4.07;
-      zBinLimitsArray[2] = -2.17;
-      zBinLimitsArray[3] = -0.69;
-      zBinLimitsArray[4] = 0.69;
-      zBinLimitsArray[5] = 2.17;
-      zBinLimitsArray[6] = 4.11;
+      zBinLimitsArray[1] = -3.375;
+      zBinLimitsArray[2] = -1.605;
+      zBinLimitsArray[3] = -0.225;
+      zBinLimitsArray[4] = 1.065;
+      zBinLimitsArray[5] = 2.445;
+      zBinLimitsArray[6] = 4.245;
       zBinLimitsArray[7] = 50.00;
       zBinLimitsArray[8] = 1000.00;
       
-      
       Double_t *multiplicityBinLimitsArray= new Double_t[6];
-      multiplicityBinLimitsArray[0] = 0;
-      multiplicityBinLimitsArray[1] = 8.5;
-      multiplicityBinLimitsArray[2] = 16.5;
-      multiplicityBinLimitsArray[3] = 27.5;
-      multiplicityBinLimitsArray[4] = 41.5;
-      multiplicityBinLimitsArray[5] = 100.;
-          
-      fBGEventHandler = new AliGammaConversionBGHandler(9,6,nEventsForBGCalculation);
+      if(fUseChargedTrackMultiplicityForBG == kTRUE){
+	multiplicityBinLimitsArray[0] = 0;
+	multiplicityBinLimitsArray[1] = 8.5;
+	multiplicityBinLimitsArray[2] = 16.5;
+	multiplicityBinLimitsArray[3] = 27.5;
+	multiplicityBinLimitsArray[4] = 41.5;
+	multiplicityBinLimitsArray[5] = 100.;
+
+	fBGEventHandler = new AliGammaConversionBGHandler(9,6,nEventsForBGCalculation);
+      }
+      else{
+	multiplicityBinLimitsArray[0] = 2;
+	multiplicityBinLimitsArray[1] = 3;
+	multiplicityBinLimitsArray[2] = 4;
+	multiplicityBinLimitsArray[3] = 5;
+	multiplicityBinLimitsArray[4] = 9999;
+
+	fBGEventHandler = new AliGammaConversionBGHandler(9,5,nEventsForBGCalculation);
+      }
+
+
       
       /*
       // ---------------------------------
@@ -371,9 +405,44 @@ AliESDv0* AliV0Reader::GetV0(Int_t index){
   return fCurrentV0;
 }
 
+Int_t AliV0Reader::GetNumberOfContributorsVtx(){
+  if(fESDEvent->GetPrimaryVertexTracks()->GetNContributors()>0) {
+    return fESDEvent->GetPrimaryVertexTracks()->GetNContributors();
+  }
+
+  if(fESDEvent->GetPrimaryVertexTracks()->GetNContributors()<1) {
+    if(fESDEvent->GetPrimaryVertexSPD()->GetNContributors()>0) {
+      return fESDEvent->GetPrimaryVertexSPD()->GetNContributors();
+
+    }
+    if(fESDEvent->GetPrimaryVertexSPD()->GetNContributors()<1) {
+      cout<<"number of contributors from bad vertex type::"<< fESDEvent->GetPrimaryVertex()->GetName() << endl;
+      return 0;
+    }
+  }
+  return 0;
+}
 Bool_t AliV0Reader::CheckForPrimaryVertex(){
   //see headerfile for documentation
-  return fESDEvent->GetPrimaryVertex()->GetNContributors()>0;
+
+  if(fESDEvent->GetPrimaryVertexTracks()->GetNContributors()>0) {
+    return 1;
+  }
+
+  if(fESDEvent->GetPrimaryVertexTracks()->GetNContributors()<1) {
+  // SPD vertex
+    if(fESDEvent->GetPrimaryVertexSPD()->GetNContributors()>0) {
+      //cout<<"spd vertex type::"<< fESDEvent->GetPrimaryVertex()->GetName() << endl;
+      return 1;
+
+    }
+    if(fESDEvent->GetPrimaryVertexSPD()->GetNContributors()<1) {
+      //      cout<<"bad vertex type::"<< fESDEvent->GetPrimaryVertex()->GetName() << endl;
+      return 0;
+    }
+  }
+  return 0;
+  //  return fESDEvent->GetPrimaryVertex()->GetNContributors()>0;
 }
 
 Bool_t AliV0Reader::CheckForPrimaryVertexZ(){
@@ -519,7 +588,8 @@ Bool_t AliV0Reader::NextV0(){
       fCFManager->GetParticleContainer()->Fill(containerInput,kStepKinks);		// for CF	
     }
  	
-
+    fHistograms->FillHistogram("ESD_AllV0sCurrentFinder_goodtracks_alfa_qt",armenterosQtAlfa[1],armenterosQtAlfa[0]);
+ 
     if(fDodEdxSigmaCut == kTRUE){
       if( fgESDpid->NumberOfSigmasTPC(fCurrentPositiveESDTrack,AliPID::kElectron)<fPIDnSigmaBelowElectronLine ||
 	  fgESDpid->NumberOfSigmasTPC(fCurrentPositiveESDTrack,AliPID::kElectron)>fPIDnSigmaAboveElectronLine ||
@@ -671,7 +741,8 @@ Bool_t AliV0Reader::NextV0(){
     }
 
     //checks if we have a prim vertex
-    if(fESDEvent->GetPrimaryVertex()->GetNContributors()<=0) { 
+    //if(fESDEvent->GetPrimaryVertex()->GetNContributors()<=0) { 
+    if(GetNumberOfContributorsVtx()<=0) { 
       if(fHistograms != NULL){
 	fHistograms->FillHistogram("ESD_CutNContributors_InvMass",GetMotherCandidateMass());
       }
@@ -704,7 +775,15 @@ Bool_t AliV0Reader::NextV0(){
     if(fDoCF){
       fCFManager->GetParticleContainer()->Fill(containerInput,kStepR);			// for CF
     }
+    if(GetXYRadius()<fMinR){ // cuts on distance from collision point
+      if(fHistograms != NULL){
+	fHistograms->FillHistogram("ESD_CutMinR_InvMass",GetMotherCandidateMass());
+      }
+      fCurrentV0IndexNumber++;
+      continue;
+    }
 		
+
 		
     if((TMath::Abs(fCurrentZValue)*fLineCutZRSlope)-fLineCutZValue > GetXYRadius() ){ // cuts out regions where we do not reconstruct
       if(fHistograms != NULL){
@@ -744,6 +823,25 @@ Bool_t AliV0Reader::NextV0(){
     if(fDoCF){
       fCFManager->GetParticleContainer()->Fill(containerInput,kStepMinClsTPC);		// for CF	
     }
+    Double_t NegclsToF = 0.;
+    if(fCurrentNegativeESDTrack->GetTPCNclsF()!=0  ){
+      NegclsToF = (Double_t)fCurrentNegativeESDTrack->GetNcls(1)/(Double_t)fCurrentNegativeESDTrack->GetTPCNclsF();
+    }
+
+    Double_t PosclsToF = 0.;
+    if(fCurrentPositiveESDTrack->GetTPCNclsF()!=0  ){
+      PosclsToF = (Double_t)fCurrentPositiveESDTrack->GetNcls(1)/(Double_t)fCurrentPositiveESDTrack->GetTPCNclsF();
+    }
+
+    if( NegclsToF < fMinClsTPCToF ||  PosclsToF < fMinClsTPCToF ){
+      if(fHistograms != NULL){
+	fHistograms->FillHistogram("ESD_CutMinNClsTPCToF_InvMass",GetMotherCandidateMass());
+      }
+      fCurrentV0IndexNumber++;
+      continue;
+    }
+
+
 
 		
     if(fUseKFParticle){
@@ -835,9 +933,13 @@ Bool_t AliV0Reader::NextV0(){
     //    fCurrentEventGoodV0s.push_back(*fCurrentMotherKFCandidate);
 
     new((*fCurrentEventGoodV0s)[fCurrentEventGoodV0s->GetEntriesFast()])  AliKFParticle(*fCurrentMotherKFCandidate);
+    fV0Pindex.push_back(fCurrentV0->GetPindex());
+    fV0Nindex.push_back(fCurrentV0->GetNindex());
 
     iResult=kTRUE;//means we have a v0 who survived all the cuts applied
 		
+    fNumberOfGoodV0s++;
+
     fCurrentV0IndexNumber++;
 		
     break;
@@ -884,13 +986,16 @@ Bool_t AliV0Reader::UpdateV0Information(){
   if(fCurrentMotherKFCandidate != NULL){
     delete fCurrentMotherKFCandidate;
   }
-  fCurrentMotherKFCandidate = new AliKFParticle(*fCurrentNegativeKFParticle,*fCurrentPositiveKFParticle);
-	
-	
-  if(fPositiveTrackPID==-11 && fNegativeTrackPID==11){
-    fCurrentMotherKFCandidate->SetMassConstraint(0,fNSigmaMass);
+
+  if(fUseConstructGamma==kTRUE){
+    fCurrentMotherKFCandidate = new AliKFParticle;//(*fCurrentNegativeKFParticle,*fCurrentPositiveKFParticle);
+    fCurrentMotherKFCandidate->ConstructGamma(*fCurrentNegativeKFParticle,*fCurrentPositiveKFParticle);
+  }else{
+    fCurrentMotherKFCandidate = new AliKFParticle(*fCurrentNegativeKFParticle,*fCurrentPositiveKFParticle);
+    if(fPositiveTrackPID==-11 && fNegativeTrackPID==11){
+      fCurrentMotherKFCandidate->SetMassConstraint(0,fNSigmaMass);
+    }
   }
-	
   if(fUseImprovedVertex == kTRUE){
     AliKFVertex primaryVertexImproved(*GetPrimaryVertex());
     primaryVertexImproved+=*fCurrentMotherKFCandidate;
@@ -958,7 +1063,13 @@ Bool_t AliV0Reader::UpdateV0Information(){
   
 
   if(fUseOwnXYZCalculation == kFALSE){
-    fCurrentV0->GetXYZ(fCurrentXValue,fCurrentYValue,fCurrentZValue);
+    if(fUseConstructGamma == kFALSE){
+      fCurrentV0->GetXYZ(fCurrentXValue,fCurrentYValue,fCurrentZValue);
+    }else{
+      fCurrentXValue=GetMotherCandidateKFCombination()->GetX();
+      fCurrentYValue=GetMotherCandidateKFCombination()->GetY();
+      fCurrentZValue=GetMotherCandidateKFCombination()->GetZ();
+    }
   }
   else{
     Double_t convpos[2];
@@ -1160,16 +1271,31 @@ void AliV0Reader::UpdateEventByEventData(){
   //see header file for documentation
   if(fCurrentEventGoodV0s->GetEntriesFast() >0 ){
     if(fCalculateBackground){
-      fBGEventHandler->AddEvent(fCurrentEventGoodV0s,fESDEvent->GetPrimaryVertex()->GetZ(),CountESDTracks());
-      //filling z and multiplicity histograms
-      fHistograms->FillHistogram("ESD_Z_distribution",fESDEvent->GetPrimaryVertex()->GetZ());
-      fHistograms->FillHistogram("ESD_multiplicity_distribution",CountESDTracks());
-      fHistograms->FillHistogram("ESD_ZvsMultiplicity",fESDEvent->GetPrimaryVertex()->GetZ(),CountESDTracks());
+      if(fUseChargedTrackMultiplicityForBG == kTRUE){
+	fBGEventHandler->AddEvent(fCurrentEventGoodV0s,fESDEvent->GetPrimaryVertex()->GetX(),fESDEvent->GetPrimaryVertex()->GetY(),fESDEvent->GetPrimaryVertex()->GetZ(),CountESDTracks());
+	//filling z and multiplicity histograms
+	fHistograms->FillHistogram("ESD_Z_distribution",fESDEvent->GetPrimaryVertex()->GetZ());
+	fHistograms->FillHistogram("ESD_multiplicity_distribution",CountESDTracks());
+	fHistograms->FillHistogram("ESD_ZvsMultiplicity",fESDEvent->GetPrimaryVertex()->GetZ(),CountESDTracks());
+      }
+      else{ // means we use #V0s for multiplicity
+	fBGEventHandler->AddEvent(fCurrentEventGoodV0s,fESDEvent->GetPrimaryVertex()->GetX(),fESDEvent->GetPrimaryVertex()->GetY(),fESDEvent->GetPrimaryVertex()->GetZ(),fNumberOfGoodV0s);
+	//filling z and multiplicity histograms
+	fHistograms->FillHistogram("ESD_Z_distribution",fESDEvent->GetPrimaryVertex()->GetZ());
+	fHistograms->FillHistogram("ESD_multiplicity_distribution",fNumberOfGoodV0s);
+	fHistograms->FillHistogram("ESD_ZvsMultiplicity",fESDEvent->GetPrimaryVertex()->GetZ(),fNumberOfGoodV0s);
+      }
     }
   }
   fCurrentEventGoodV0s->Delete();
   fCurrentV0IndexNumber=0;
   fNumberOfESDTracks=0;
+
+  fV0Pindex.clear();
+  fV0Nindex.clear();
+  
+
+
   //  fBGEventHandler->PrintBGArray(); // for debugging
 }
 
@@ -1457,9 +1583,16 @@ Double_t AliV0Reader::GetConvPosZ(AliESDtrack* ptrack,AliESDtrack* ntrack, Doubl
    return convposz;
 }
 
-AliGammaConversionKFVector* AliV0Reader::GetBGGoodV0s(Int_t event){
-
-  return fBGEventHandler->GetBGGoodV0s(event,fESDEvent->GetPrimaryVertex()->GetZ(),CountESDTracks());
+AliGammaConversionKFVector* AliV0Reader::GetBGGoodV0s(Int_t /*event*/){
+  /*
+  if(fUseChargedTrackMultiplicityForBG == kTRUE){
+    return fBGEventHandler->GetBGGoodV0s(event,fESDEvent->GetPrimaryVertex()->GetZ(),CountESDTracks());
+  }
+  else{ // means we use #v0s as multiplicity
+    return fBGEventHandler->GetBGGoodV0s(event,fESDEvent->GetPrimaryVertex()->GetZ(),fNumberOfGoodV0s);
+  }
+  */
+  return NULL;
 }
 
 Int_t AliV0Reader::CountESDTracks(){

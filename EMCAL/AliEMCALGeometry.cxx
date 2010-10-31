@@ -34,6 +34,13 @@
 //   EMCAL_COMPLETE (geometry for expected complete detector)
 //      = equivalent to SHISH_77_TRD1_2X2_FINAL_110DEG scTh=0.176 pbTh=0.144
 //          in old notation
+//   EMCAL_4SMs - geometry for December 2009 to December 2010 run period; 
+//                fixed bug for positions of modules inside SM
+//                (first module has tilt 0.75 degree);
+//                the sizes updated with last information from production
+//                drawing (end of October 2010). 
+//                
+//
 //   EMCAL_WSUC (Wayne State test stand)
 //      = no definite equivalent in old notation, was only used by
 //          Aleksei, but kept for testing purposes
@@ -45,7 +52,7 @@
 //*-- Author: Sahal Yacoob (LBL / UCT)
 //     and  : Yves Schutz (SUBATECH)
 //     and  : Jennifer Klay (LBL)
-//     and  : Aleksei Pavlinov (WSU) 
+//     and  : Alexei Pavlinov (WSU) 
 //
 
 //--- Root header files ---
@@ -57,7 +64,7 @@
 // // --- EMCAL headers
 #include "AliEMCALGeometry.h"
 #include "AliEMCALShishKebabTrd1Module.h"
-#include "AliEMCALRecPoint.h"
+//#include "AliEMCALRecPoint.h"
 //#include "AliEMCALHistoUtilities.h"
 
 ClassImp(AliEMCALGeometry)
@@ -164,8 +171,8 @@ Bool_t AliEMCALGeometry::RelPosCellInSModule(Int_t absId, Double_t distEff, Doub
   // Shift index taking into account the difference between standard SM 
   // and SM of half size in phi direction
   const  Int_t kphiIndexShift = fCentersOfCellsPhiDir.GetSize()/4; // Nov 22, 2006; was 6 for cas 2X2
-  static Int_t nSupMod, nModule, nIphi, nIeta, iphi, ieta;
-  static Int_t iphim, ietam;
+  static Int_t nSupMod=0, nModule=-1, nIphi=-1, nIeta=-1, iphi=-1, ieta=-1;
+  static Int_t iphim=-1, ietam=-1;
   static AliEMCALShishKebabTrd1Module *mod = 0;
   static TVector2 v;
   if(!CheckAbsCellId(absId)) return kFALSE;

@@ -252,6 +252,8 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void SetNSigZFromBoundaryPlaneEff(Double_t nsigz=1.) {fNSigZFromBoundaryPlaneEff=nsigz;}
   Double_t GetNSigZFromBoundaryPlaneEff() const {return fNSigZFromBoundaryPlaneEff;}
   //
+  void   SetImproveWithVertex(Bool_t impr=kFALSE) { fImproveWithVertex=impr; return; }
+  Bool_t GetImproveWithVertex() const { return fImproveWithVertex; }
   void   SetExtendedEtaAcceptance(Bool_t ext=kTRUE) { fExtendedEtaAcceptance=ext; return; }
   Bool_t GetExtendedEtaAcceptance() const { return fExtendedEtaAcceptance; }
   void   SetAllowProlongationWithEmptyRoad(Bool_t allow=kTRUE) { fAllowProlongationWithEmptyRoad=allow; return; }  
@@ -347,6 +349,8 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void    SetTrackleterZetaOverlapCut(Float_t w=0.05) {fTrackleterZetaOverlapCut=w;}
   Float_t GetTrackleterPhiOverlapCut() const {return fTrackleterPhiOverlapCut;}
   Float_t GetTrackleterZetaOverlapCut() const {return fTrackleterZetaOverlapCut;}
+  void    SetTrackleterPhiRotationAngle(Float_t w=0.0) {fTrackleterPhiRotationAngle=w;}
+  Float_t GetTrackleterPhiRotationAngle() const {return fTrackleterPhiRotationAngle;}
 
   //
   void   SetSPDRemoveNoisyFlag(Bool_t value) {fSPDRemoveNoisyFlag = value;}
@@ -426,6 +430,20 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void    SetMultCutMaxDCA(Float_t v=1.)                 { fMultCutMaxDCA = v;}
   //
   AliESDV0Params *GetESDV0Params() const {return fESDV0Params;}
+  //
+  // Lorentz angle
+  Bool_t  GetCorrectLorentzAngleSPD() const {return fCorrectLorentzAngleSPD;}
+  Float_t GetLorentzAngleHolesSPD() const {return fLorentzAngleHolesSPD;}
+  Bool_t  GetCorrectLorentzAngleSSD() const {return fCorrectLorentzAngleSSD;}
+  Float_t GetLorentzAngleHolesSSD() const {return fLorentzAngleHolesSSD;}
+  Float_t GetLorentzAngleElectronsSSD() const {return fLorentzAngleElectronsSSD;}
+
+  void SetCorrectLorentzAngleSPD(Bool_t flag) {fCorrectLorentzAngleSPD=flag;}
+  void SetLorentzAngleHolesSPD(Float_t la) {fLorentzAngleHolesSPD=la;}
+  void SetCorrectLorentzAngleSSD(Bool_t flag) {fCorrectLorentzAngleSSD=flag;}
+  void SetLorentzAngleHolesSSD(Float_t la) {fLorentzAngleHolesSSD=la;}
+  void SetLorentzAngleElectronsSSD(Float_t la) {fLorentzAngleElectronsSSD=la;}
+
   //
   enum {fgkMaxClusterPerLayer=70000}; //7000*10;   // max clusters per layer
   enum {fgkMaxClusterPerLayer5=28000};//7000*10*2/5;  // max clusters per layer
@@ -582,6 +600,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Double_t fNSigXFromBoundaryPlaneEff;  // accept one track for PlaneEff if distance from border (in loc x or z)
   Double_t fNSigZFromBoundaryPlaneEff;  // is greater than fNSigXFromBoundaryPlaneEff * Track_precision
 
+  Bool_t fImproveWithVertex;    // use the method AliITStrackV2::Improve() to point to the vertex during prolongation
   Bool_t fExtendedEtaAcceptance;  // enable jumping from TPC to SPD at large eta (MI)
   Bool_t fUseBadZonesFromOCDB; // enable using OCDB info on dead modules and chips (MI)
   Bool_t fUseSingleBadChannelsFromOCDB; // enable using OCDB info on bad single SPD pixels and SDD anodes (MI)
@@ -624,6 +643,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Bool_t  fTrackleterRemoveClustersFromOverlaps;   // Option to skip clusters in the overlaps
   Float_t fTrackleterPhiOverlapCut;                // Fiducial window in phi for overlap cut
   Float_t fTrackleterZetaOverlapCut;               // Fiducial window in eta for overlap cut
+  Float_t fTrackleterPhiRotationAngle;             // Angle to rotate cluster in the SPD inner layer for combinatorial reco only
   Bool_t fUseCosmicRunShiftsSSD; // SSD time shifts for cosmic run 2007/2008 (use for data taken up to 18 sept 2008)
 
 
@@ -678,14 +698,20 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Float_t fMultCutK0SFromDecay;           // min path*P for K0s
   Float_t fMultCutMaxDCA;                 // max DCA for V0 at ESD vertex
   //
+  // Lorentz angle
+  Bool_t fCorrectLorentzAngleSPD;         // flag to enable correction
+  Float_t fLorentzAngleHolesSPD;          // angle for holes in SPD
+  Bool_t fCorrectLorentzAngleSSD;         // flag to enable correction
+  Float_t fLorentzAngleHolesSSD;          // angle for holes in SSD
+  Float_t fLorentzAngleElectronsSSD;          // angle for electrons in SSD
+
  private:
   AliESDV0Params * fESDV0Params;  // declare the AliESDV0Params to be able to used in AliITSV0Finder
 
   AliITSRecoParam(const AliITSRecoParam & param);
   AliITSRecoParam & operator=(const AliITSRecoParam &param);
 
-  ClassDef(AliITSRecoParam,29) // ITS reco parameters
+  ClassDef(AliITSRecoParam,32) // ITS reco parameters
 };
 
 #endif
-

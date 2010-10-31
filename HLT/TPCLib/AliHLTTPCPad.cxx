@@ -89,7 +89,7 @@ AliHLTTPCPad::AliHLTTPCPad()
 
 }
 
-AliHLTTPCPad::AliHLTTPCPad(Int_t dummy)
+AliHLTTPCPad::AliHLTTPCPad(Int_t /*dummy*/)
   :
   fClusterCandidates(),
   fUsedClusterCandidates(),
@@ -122,7 +122,6 @@ AliHLTTPCPad::AliHLTTPCPad(Int_t dummy)
   // refer to README to build package
   // or
   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
-  dummy=0;//to get rid of warning until things are cleaned up better
 }
 
 AliHLTTPCPad::AliHLTTPCPad(Int_t offset, Int_t nofBins)
@@ -670,6 +669,6 @@ void AliHLTTPCPad::AddCandidateDigits(vector<AliHLTTPCDigitData> candidateDigits
   fCandidateDigitsVector.push_back(candidateDigits); 
 }
 
-vector<AliHLTTPCDigitData> AliHLTTPCPad::GetCandidateDigits(Int_t candidateIndex){
-  return fCandidateDigitsVector.at(candidateIndex);
+vector<AliHLTTPCDigitData> *AliHLTTPCPad::GetCandidateDigits(Int_t candidateIndex){
+  return (size_t(candidateIndex) < fCandidateDigitsVector.size()) ? &fCandidateDigitsVector.at(candidateIndex) :0;
 }

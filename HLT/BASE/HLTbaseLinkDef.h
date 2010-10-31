@@ -12,6 +12,7 @@
 #pragma link C++ class AliHLTCalibrationProcessor+;
 #pragma link C++ class AliHLTConfiguration+;
 #pragma link C++ class AliHLTConfigurationHandler+;
+#pragma link C++ class AliHLTOnlineConfiguration+;
 #pragma link C++ class AliHLTTTreeProcessor+;
 #pragma link C++ class AliHLTTask+;
 #pragma link C++ class AliHLTDumpTask+;
@@ -51,14 +52,21 @@
 #pragma link C++ class AliHLTEventStatistics+;
 #pragma link C++ class AliHLTBlockDataCollection+;
 #pragma link C++ class AliHLTTriggerDecision+;
-#pragma link C++ class AliHLTGlobalTriggerDecision-;  // '-' option since the class uses a custom streamer.
 
 #include "RVersion.h"
 #if ROOT_VERSION_CODE < 334336 //ROOT_VERSION(5,26,0)
 
+#pragma link C++ class AliHLTGlobalTriggerDecision-;  // '-' option since the class uses a custom streamer.
 #pragma link C++ class AliHLTReadoutList-;  // '-' option since the class uses a custom streamer.
 
 #else // ROOT version check
+
+#pragma link C++ class AliHLTGlobalTriggerDecision+;
+
+// Scheme rule to mark all objects in the trigger decision loaded from file as
+// deletable. Meaning the new object owns all the input objects.
+#pragma read sourceClass="AliHLTGlobalTriggerDecision" version="[1-]" targetClass="AliHLTGlobalTriggerDecision"\
+  source="" target="" code="{ newObj->MarkInputObjectsAsOwned(); }"
 
 #pragma link C++ class AliHLTReadoutList+;
 
@@ -81,10 +89,25 @@
 #pragma link C++ class AliHLTDomainEntry+;
 #pragma link C++ class AliHLTTriggerMenu+;
 #pragma link C++ class AliHLTTriggerMenuItem+;
+
+// For old versions of the trigger menu item we need to set the missing values to appropriate defaults.
+#pragma read sourceClass="AliHLTTriggerMenuItem" version="[1-3]" targetClass="AliHLTTriggerMenuItem"\
+  source="" target=""\
+  code="{\
+    newObj->DefaultResult(true);\
+    newObj->ScaleDown(1);\
+  }"
+
 #pragma link C++ class AliHLTTriggerMenuSymbol+;
 #pragma link C++ class AliHLTRunStatistics+;
 #pragma link C++ class AliHLTMisc+;
 #pragma link C++ class AliHLTCTPData+;
+#pragma link C++ class AliHLTScalars+;
+#pragma link C++ class AliHLTScalars::AliScalar+;
+
+// Need to initialise the hash table which is transient after reading the class.
+#pragma read sourceClass="AliHLTScalars" version="[1-]" targetClass="AliHLTScalars"\
+  source="" target="fMap,fScalars" code="{fMap.AddAll(&fScalars);}"
 
 #pragma link C++ struct AliHLTComponentEventData+;
 #pragma link C++ struct AliHLTComponentBlockData+;

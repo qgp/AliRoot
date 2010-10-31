@@ -1,6 +1,6 @@
 //DEFINITION OF A FEW CONSTANTS
 
-AliPWG4HighPtQATPConly* AddTaskPWG4HighPtQATPConly(int cuts=1)//1: Standard Cuts 2009 2: GetStandardITSTPCTrackCuts2009
+AliPWG4HighPtQATPConly* AddTaskPWG4HighPtQATPConly(char *prodType = "LHC10e14",int cuts=2)//1: Standard Cuts 2009 2: GetStandardITSTPCTrackCuts2009
 {
   // Creates HighPtQATPConly analysis task and adds it to the analysis manager.
   
@@ -29,21 +29,13 @@ AliPWG4HighPtQATPConly* AddTaskPWG4HighPtQATPConly(int cuts=1)//1: Standard Cuts
   //Use AliESDtrackCuts
   AliESDtrackCuts *trackCuts = new AliESDtrackCuts("AliESDtrackCuts","Standard Cuts");
   if(cuts==1) {
-    //Standard Cuts
-    trackCuts->SetAcceptKinkDaughters(kFALSE);
-    trackCuts->SetRequireTPCStandAlone(kTRUE); 
-    trackCuts->SetRequireTPCRefit(kTRUE);
-    trackCuts->SetMinNClustersTPC(70);
+    trackCuts=trackCuts->GetStandardITSTPCTrackCuts2009(kTRUE);//Primary Track Selection
     trackCuts->SetEtaRange(-0.9,0.9);
-    trackCuts->SetMaxCovDiagonalElements(2,2,0.5,0.5,2);
     trackCuts->SetPtRange(0.15, 1e10);
-    trackCuts->SetMaxChi2PerClusterTPC(3.5);
-    trackCuts->SetMaxDCAToVertexXY(2.4);
-    trackCuts->SetMaxDCAToVertexZ(3.2);
-    trackCuts->SetDCAToVertex2D(kTRUE);
+    trackCuts->SetRequireITSRefit(kFALSE);
   }
   else if(cuts==2) {
-    trackCuts=trackCuts->GetStandardITSTPCTrackCuts2009(kTRUE);//Primary Track Selection
+    trackCuts=trackCuts->GetStandardITSTPCTrackCuts2010(kTRUE);//Primary Track Selection
     trackCuts->SetEtaRange(-0.9,0.9);
     trackCuts->SetPtRange(0.15, 1e10);
     trackCuts->SetRequireITSRefit(kFALSE);
@@ -51,20 +43,12 @@ AliPWG4HighPtQATPConly* AddTaskPWG4HighPtQATPConly(int cuts=1)//1: Standard Cuts
 
   AliESDtrackCuts *trackCutsITS = new AliESDtrackCuts("AliESDtrackCuts","Standard Cuts with ITSrefit");
   if(cuts==1) {
-    trackCutsITS->SetAcceptKinkDaughters(kFALSE);
-    trackCutsITS->SetRequireTPCRefit(kTRUE);
-    trackCutsITS->SetEtaRange(-0.9,0.9);
-    trackCutsITS->SetMaxCovDiagonalElements(2,2,0.5,0.5,2);
-    trackCutsITS->SetPtRange(0.15, 1e10);
-    trackCutsITS->SetMinNClustersTPC(70);
-    trackCutsITS->SetMaxChi2PerClusterTPC(3.5);
-    trackCutsITS->SetRequireITSRefit(kTRUE);
-    trackCutsITS->SetMaxDCAToVertexXY(2.4);
-    trackCutsITS->SetMaxDCAToVertexZ(3.2);
-    trackCutsITS->SetDCAToVertex2D(kTRUE); 
+   trackCutsITS=trackCutsITS->GetStandardITSTPCTrackCuts2009(kTRUE);//Primary Track Selection
+   trackCutsITS->SetEtaRange(-0.9,0.9);
+   trackCutsITS->SetPtRange(0.15, 1e10); 
   }
  else if(cuts==2) {
-   trackCutsITS=trackCutsITS->GetStandardITSTPCTrackCuts2009(kTRUE);//Primary Track Selection
+   trackCutsITS=trackCutsITS->GetStandardITSTPCTrackCuts2010(kTRUE);//Primary Track Selection
    trackCutsITS->SetEtaRange(-0.9,0.9);
    trackCutsITS->SetPtRange(0.15, 1e10);
  }
@@ -74,7 +58,9 @@ AliPWG4HighPtQATPConly* AddTaskPWG4HighPtQATPConly(int cuts=1)//1: Standard Cuts
   taskPWG4QA->SetCuts(trackCuts);
   taskPWG4QA->SetCutsITS(trackCutsITS);
   taskPWG4QA->SetCutType(cuts);
- 
+  if(!strcmp(prodType, "LHC10e14") || !strcmp(prodType, "PbPb")) taskPWG4QA->SetPtMax(500.);
+  else taskPWG4QA->SetPtMax(100.);
+
   // E. Create ONLY the output containers for the data produced by the task.
   // Get and connect other common input/output containers via the manager as below
   //==============================================================================

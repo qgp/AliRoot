@@ -8,7 +8,7 @@
  *
  * Usage:
  * <pre>
- *   aliroot -q compare-HLT-offline-grid.C'("000115322","/alice/data/2010/LHC10b","ESDcomparison","output","full","global")' 2>&1 | tee log
+ *   aliroot -q compare-HLT-offline-grid.C'("000115322","/alice/data/2010/LHC10b","ESDcomparison","output","full","global")'
  * </pre>
  * - run number
  * - GRID input directory, where you define in which LHC period the run number belongs to
@@ -41,9 +41,10 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
   gSystem->Load("libANALYSISalice");
   gSystem->Load("libHLTbase");
   gROOT->ProcessLine(".include $ALICE_ROOT/include");
+  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPhysicsSelection.C");
 
   
-  Bool_t bAll=kFALSE, bTPC=kFALSE, bPHOS=kFALSE, bITS=kFALSE, bGLOBAL=kFALSE;
+  Bool_t bAll=kFALSE, bTPC=kFALSE, bPHOS=kFALSE, bEMCAL=kFALSE, bITS=kFALSE, bGLOBAL=kFALSE, bD0=kFALSE;
  
   TString allArgs = detectorTask;
   TString argument;
@@ -57,9 +58,13 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
          if(argument.CompareTo("tpc", TString::kIgnoreCase)==0){
 	    bTPC = kTRUE;
 	    continue;
-         }        
+         }
          if(argument.CompareTo("phos", TString::kIgnoreCase)==0){
   	    bPHOS = kTRUE;
+	    continue;
+         }
+         if(argument.CompareTo("emcal", TString::kIgnoreCase)==0){
+  	    bEMCAL = kTRUE;
 	    continue;
          }         
 	 if(argument.CompareTo("its", TString::kIgnoreCase)==0){
@@ -69,10 +74,15 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
 	 if(argument.CompareTo("global", TString::kIgnoreCase)==0){
   	    bGLOBAL = kTRUE;
 	    continue;
-         }        
+         }  
+	 if(argument.CompareTo("D0", TString::kIgnoreCase)==0){
+	   bD0 = kTRUE;
+	   continue;
+	 }  
 	 if(argument.CompareTo("all",TString::kIgnoreCase)==0){
 	    bTPC    = kTRUE;
 	    bPHOS   = kTRUE;
+	    bEMCAL   = kTRUE;
 	    bITS    = kTRUE;
 	    bGLOBAL = kTRUE;
 	    bAll    = kTRUE;
@@ -90,6 +100,9 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
   esdH->SetReadFriends(kFALSE);
   mgr->SetInputEventHandler(esdH);  
   mgr->SetNSysInfo(1000);
+
+  //To use Physics Selection
+  AliPhysicsSelectionTask* physSelTask =AddTaskPhysicsSelection(kFALSE,kTRUE);
   
   // Create and configure the alien handler plugin
   gROOT->LoadMacro("CreateAlienHandler.C");
@@ -101,7 +114,17 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
  
   //-------------- Compile the analysis tasks ---------- //
   if(bTPC)    gROOT->LoadMacro("AliAnalysisTaskHLTTPC.cxx+"); 
-  if(bPHOS) {
+  if(bPHOS && bEMCAL) {
+    AliHLTSystem * pHLT = AliHLTPluginBase::GetInstance();
+    pHLT->LoadComponentLibraries("libHLTbase");
+    pHLT->LoadComponentLibraries("libAliHLTUtil");
+    pHLT->LoadComponentLibraries("libAliHLTGlobal");
+    gROOT->LoadMacro("AliAnalysisTaskHLTCalo.cxx+"); 
+    gROOT->LoadMacro("AliAnalysisTaskHLTPHOS.cxx+");  
+    gROOT->LoadMacro("AliAnalysisTaskHLTEMCAL.cxx+");  
+    
+  }
+  else if(bPHOS) {
     AliHLTSystem * pHLT = AliHLTPluginBase::GetInstance();
     pHLT->LoadComponentLibraries("libHLTbase");
     pHLT->LoadComponentLibraries("libAliHLTUtil");
@@ -109,10 +132,18 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
     gROOT->LoadMacro("AliAnalysisTaskHLTCalo.cxx+"); 
     gROOT->LoadMacro("AliAnalysisTaskHLTPHOS.cxx+");  
   }
+  else if(bEMCAL) {
+     AliHLTSystem * pHLT = AliHLTPluginBase::GetInstance();
+    pHLT->LoadComponentLibraries("libHLTbase");
+    pHLT->LoadComponentLibraries("libAliHLTUtil");
+    pHLT->LoadComponentLibraries("libAliHLTGlobal");
+    gROOT->LoadMacro("AliAnalysisTaskHLTCalo.cxx+"); 
+    gROOT->LoadMacro("AliAnalysisTaskHLTEMCAL.cxx+");  
+  }
   if(bITS)    gROOT->LoadMacro("AliAnalysisTaskHLTITS.cxx+");
   if(bGLOBAL) gROOT->LoadMacro("AliAnalysisTaskHLT.cxx+");
-
- 
+  if(bD0)     gROOT->LoadMacro("AliAnalysisTaskD0Trigger.cxx+"); 
+   
   //-------------- define the tasks ------------//
   
   if(bTPC){ 
@@ -130,6 +161,13 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
      mgr->ConnectInput(taskPHOS,0,mgr->GetCommonInputContainer());
      mgr->ConnectOutput(taskPHOS,1,coutput2);
   }
+  if(bEMCAL){
+     AliAnalysisTaskHLTEMCAL *taskEMCAL = new AliAnalysisTaskHLTEMCAL("offhlt_comparison_EMCAL");
+     mgr->AddTask(taskEMCAL);
+     AliAnalysisDataContainer *coutput5 =  mgr->CreateContainer("emcal_histograms",TList::Class(), AliAnalysisManager::kOutputContainer, "HLT-OFFLINE-EMCAL-comparison.root");  
+     mgr->ConnectInput(taskEMCAL,0,mgr->GetCommonInputContainer());
+     mgr->ConnectOutput(taskEMCAL,1,coutput5);
+  }
   
   if(bITS){
      AliAnalysisTaskHLTITS *taskITS = new AliAnalysisTaskHLTITS("offhlt_comparison_ITS");
@@ -141,12 +179,20 @@ void compare_HLT_offline_grid(TString runNumber, TString dataDir, TString gridWo
  
   if(bGLOBAL){
      AliAnalysisTaskHLT *taskGLOBAL = new AliAnalysisTaskHLT("offhlt_comparison_GLOBAL");
+     taskGLOBAL->SelectCollisionCandidates();
      mgr->AddTask(taskGLOBAL);
      AliAnalysisDataContainer *coutput4 =  mgr->CreateContainer("global_histograms",TList::Class(), AliAnalysisManager::kOutputContainer, "HLT-OFFLINE-GLOBAL-comparison.root");  
      mgr->ConnectInput(taskGLOBAL,0,mgr->GetCommonInputContainer());
      mgr->ConnectOutput(taskGLOBAL,1,coutput4);
   }
-  
+  if(bD0){
+    float cuts[7]={0.5,0.04,0.7,0.8,0.05,-0.00025,0.7};
+    AliAnalysisTaskD0Trigger *taskD0 = new AliAnalysisTaskD0Trigger("offhlt_comparison_D0_Trigger",cuts);
+    mgr->AddTask(taskD0);
+    AliAnalysisDataContainer *coutput6 =  mgr->CreateContainer("D0_histograms",TList::Class(), AliAnalysisManager::kOutputContainer, "HLT-OFFLINE-D0-comparison.root");  
+    mgr->ConnectInput(taskD0,0,mgr->GetCommonInputContainer());
+    mgr->ConnectOutput(taskD0,1,coutput6);
+  }
   // Enable debug printouts
   mgr->SetDebugLevel(2);
 

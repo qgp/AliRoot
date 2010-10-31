@@ -63,7 +63,8 @@ AliZDCReconstructor:: AliZDCReconstructor() :
   fNRun(0),
   fIsCalibrationMB(kFALSE),
   fPedSubMode(0),
-  fSignalThreshold(7)
+  fSignalThreshold(7),
+  fESDZDC(NULL)
 {
   // **** Default constructor
 }
@@ -77,7 +78,8 @@ AliZDCReconstructor::~AliZDCReconstructor()
    if(fPedData)      delete fPedData;    
    if(fEnCalibData)  delete fEnCalibData;
    if(fTowCalibData) delete fTowCalibData;
-   if(fgMBCalibData)  delete fgMBCalibData;
+   if(fgMBCalibData) delete fgMBCalibData;
+   if(fESDZDC)       delete fESDZDC;
 }
 
 //____________________________________________________________________________
@@ -115,6 +117,41 @@ void AliZDCReconstructor::Init()
     
   if(fIsCalibrationMB==kFALSE)  
     printf("\n\n ***** ZDC reconstruction initialized for %s @ %1.0f + %1.0f GeV *****\n\n",
+    	beamType.Data(), fBeamEnergy, fBeamEnergy);
+  
+  // if EMD calibration run NO ENERGY CALIBRATION should be performed
+  // pp-like reconstruction must be performed (E cailb. coeff. = 1)
+  if((runType.CompareTo("CALIBRATION_EMD")) == 0){
+    fRecoMode=1; 
+  }
+  
+  fESDZDC = new AliESDZDC();
+
+}
+
+
+//____________________________________________________________________________
+void AliZDCReconstructor::Init(TString beamType, Float_t beamEnergy)
+{
+  // Setting reconstruction mode
+  // Needed to work in the HLT framework
+  
+  fIsCalibrationMB = kFALSE;
+     
+  fBeamEnergy = beamEnergy;
+  
+  if(((beamType.CompareTo("pp"))==0) || ((beamType.CompareTo("p-p"))==0)
+     ||((beamType.CompareTo("PP"))==0) || ((beamType.CompareTo("P-P"))==0)){
+    fRecoMode=1;
+  }
+  else if((beamType.CompareTo("A-A")) == 0 || (beamType.CompareTo("AA")) == 0){
+    fRecoMode=2;
+  }
+    
+  
+  fESDZDC = new AliESDZDC();
+  
+  printf("\n\n ***** ZDC reconstruction initialized for %s @ %1.0f + %1.0f GeV *****\n\n",
     	beamType.Data(), fBeamEnergy, fBeamEnergy);
   
 }
@@ -257,7 +294,11 @@ void AliZDCReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) co
   }//digits loop
  
   UInt_t counts[32];
-  for(Int_t jj=0; jj<32; jj++) counts[jj]=0;
+  Int_t  tdc[32][4];
+  for(Int_t jj=0; jj<32; jj++){
+    counts[jj]=0;
+    for(Int_t ii=0; ii<4; ii++) tdc[jj][ii]=0;
+  }
   
   Int_t  evQualityBlock[4] = {1,0,0,0};
   Int_t  triggerBlock[4] = {0,0,0,0};
@@ -268,12 +309,12 @@ void AliZDCReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) co
   if(fRecoMode==1)
     ReconstructEventpp(clustersTree, tZN1Corr, tZP1Corr, tZN2Corr, tZP2Corr, 
       dZEM1Corr, dZEM2Corr, sPMRef1, sPMRef2, 
-      kFALSE, counts, 
+      kFALSE, counts, tdc,
       evQualityBlock,  triggerBlock,  chBlock, puBits);
   else if(fRecoMode==2)
     ReconstructEventPbPb(clustersTree, tZN1Corr, tZP1Corr, tZN2Corr, tZP2Corr, 
       dZEM1Corr, dZEM2Corr, sPMRef1, sPMRef2, 
-      kFALSE, counts, 
+      kFALSE, counts, tdc,
       evQualityBlock,  triggerBlock,  chBlock, puBits);    
 }
 
@@ -320,9 +361,13 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
   }  
 
   Bool_t isScalerOn=kFALSE;
-  Int_t jsc=0;
-  UInt_t scalerData[32];	
-  for(Int_t k=0; k<32; k++) scalerData[k]=0;
+  Int_t jsc=0, itdc=0, iprevtdc=-1, ihittdc=0;
+  UInt_t scalerData[32];
+  Int_t tdcData[32][4];	
+  for(Int_t k=0; k<32; k++){
+    scalerData[k]=0;
+    for(Int_t i=0; i<4; i++) tdcData[k][i]=0;
+  }
   
   Int_t  evQualityBlock[4] = {1,0,0,0};
   Int_t  triggerBlock[4] = {0,0,0,0};
@@ -330,11 +375,11 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
   UInt_t puBits=0;
 
   //fNRun = (Int_t) rawReader->GetRunNumber();
-  Int_t kFirstADCGeo=0, kLastADCGeo=3, kScalerGeo=8, kPUGeo=29;
+  Int_t kFirstADCGeo=0, kLastADCGeo=3, kScalerGeo=8, kZDCTDCGeo=4, kPUGeo=29;
   //Int_t kTrigScales=30, kTrigHistory=31;
 
   // loop over raw data
-  rawReader->Reset();
+  //rawReader->Reset();
   AliZDCRawStream rawData(rawReader);
   while(rawData.Next()){
    
@@ -490,6 +535,16 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
        jsc++;
      }
    }// VME SCALER DATA
+   // ***************************** Reading ZDC TDC
+   else if(rawData.GetADCModule()==kZDCTDCGeo && rawData.IsZDCTDCDatum()==kTRUE){
+       itdc = rawData.GetChannel(); 
+       if(itdc==iprevtdc) ihittdc++;
+       else ihittdc=0;
+       iprevtdc=itdc;
+       tdcData[itdc][ihittdc] = rawData.GetZDCTDCDatum();
+       // Ch. debug
+       printf("   Reconstructed TDC[%d, %d] %d  ",itdc, ihittdc, tdcData[itdc][ihittdc]);
+   }// ZDC TDC DATA
    // ***************************** Reading PU
    else if(rawData.GetADCModule()==kPUGeo){
      puBits = rawData.GetDetectorPattern();
@@ -564,12 +619,12 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
   if(fRecoMode==1) // p-p data
     ReconstructEventpp(clustersTree, tZN1Corr, tZP1Corr, tZN2Corr, tZP2Corr, 
       dZEM1Corr, dZEM2Corr, sPMRef1, sPMRef2, 
-      isScalerOn, scalerData, 
+      isScalerOn, scalerData, tdcData,
       evQualityBlock, triggerBlock, chBlock, puBits);
   else if(fRecoMode==2) // Pb-Pb data
       ReconstructEventPbPb(clustersTree, tZN1Corr, tZP1Corr, tZN2Corr, tZP2Corr, 
       dZEM1Corr, dZEM2Corr, sPMRef1, sPMRef2, 
-      isScalerOn, scalerData, 
+      isScalerOn, scalerData,  tdcData,
       evQualityBlock, triggerBlock, chBlock, puBits);
 }
 
@@ -579,8 +634,8 @@ void AliZDCReconstructor::ReconstructEventpp(TTree *clustersTree,
 	const Float_t* const corrADCZN2, const Float_t* const corrADCZP2,
 	const Float_t* const corrADCZEM1, const Float_t* const corrADCZEM2,
 	Float_t* sPMRef1, Float_t* sPMRef2, Bool_t isScalerOn, UInt_t* scaler, 
-	const Int_t* const evQualityBlock, const Int_t* const triggerBlock, 
-	const Int_t* const chBlock, UInt_t puBits) const
+	Int_t tdcData[32][4], const Int_t* const evQualityBlock, 
+	const Int_t* const triggerBlock, const Int_t* const chBlock, UInt_t puBits) const
 {
   // ****************** Reconstruct one event ******************
   
@@ -760,7 +815,7 @@ void AliZDCReconstructor::ReconstructEventpp(TTree *clustersTree,
 		   nGenSpec, nGenSpecLeft, nGenSpecRight, 
 		   nPart, nPartTotLeft, nPartTotRight, 
 		   impPar, impPar1, impPar2,
-		   recoFlag, isScalerOn, scaler);
+		   recoFlag, isScalerOn, scaler, tdcData);
 		  
   const Int_t kBufferSize = 4000;
   clustersTree->Branch("ZDC", "AliZDCReco", &reco, kBufferSize);
@@ -774,8 +829,8 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
 	const Float_t* const corrADCZN2, const Float_t* const corrADCZP2,
 	const Float_t* const corrADCZEM1, const Float_t* const corrADCZEM2,
 	Float_t* sPMRef1, Float_t* sPMRef2, Bool_t isScalerOn, UInt_t* scaler, 
-	const Int_t* const evQualityBlock, const Int_t* const triggerBlock, 
-	const Int_t* const chBlock, UInt_t puBits) const
+	Int_t tdcData[32][4], const Int_t* const evQualityBlock, 
+	const Int_t* const triggerBlock, const Int_t* const chBlock, UInt_t puBits) const
 {
   // ****************** Reconstruct one event ******************
   // ---------------------- Setting reco flags for ESD
@@ -953,9 +1008,9 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
     nDetSpecPRight = (Int_t) (calibSumZP2[0]/fBeamEnergy);
   }
   else AliWarning(" ATTENTION!!! fBeamEnergy=0 -> N_spec will be ZERO!!! \n");
-  printf("\n\t AliZDCReconstructor -> fBeamEnergy %1.0f: nDetSpecNsideA %d, nDetSpecPsideA %d,"
+  /*printf("\n\t AliZDCReconstructor -> fBeamEnergy %1.0f: nDetSpecNsideA %d, nDetSpecPsideA %d,"
     " nDetSpecNsideC %d, nDetSpecPsideC %d\n",fBeamEnergy,nDetSpecNLeft, nDetSpecPLeft, 
-    nDetSpecNRight, nDetSpecPRight);
+    nDetSpecNRight, nDetSpecPRight);*/
   
   Int_t nGenSpec=0, nGenSpecA=0, nGenSpecC=0;
   Int_t nPart=0, nPartA=0, nPartC=0;
@@ -1145,7 +1200,7 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
     Double_t bFrac=0., bFracC=0., bFracA=0.;
     for(Int_t ibbin=1; ibbin<hbDist->GetNbinsX(); ibbin++){
       bFrac += (hbDist->GetBinContent(ibbin))/(hbDist->GetEntries());
-      if((1.-bFrac) < xSecPerc){
+      if(bFrac > xSecPerc){
    	b = hbDist->GetBinLowEdge(ibbin);
    	break;
       }
@@ -1153,15 +1208,15 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
     //
     for(Int_t ibbin=1; ibbin<hbDist->GetNbinsX(); ibbin++){
       bFracC += (hbDist->GetBinContent(ibbin))/(hbDist->GetEntries());
-      if((1.-bFracC) < xSecPercC){
+      if(bFracC > xSecPercC){
    	bC = hbDist->GetBinLowEdge(ibbin);
    	break;
       }
     }
     //
     for(Int_t ibbin=1; ibbin<hbDist->GetNbinsX(); ibbin++){
-      bFracA += (hbDist->GetBinContent(ibbin))/(hNpartDist->GetEntries());
-      if((1.-bFracA) < xSecPercA){
+      bFracA += (hbDist->GetBinContent(ibbin))/(hbDist->GetEntries());
+      if(bFracA > xSecPercA){
    	bA = hbDist->GetBinLowEdge(ibbin);
    	break;
       }
@@ -1185,7 +1240,7 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
 		  nDetSpecNLeft, nDetSpecPLeft, nDetSpecNRight, nDetSpecPRight, 
 		  nGenSpec, nGenSpecA, nGenSpecC, 
 		  nPart, nPartA, nPartC, b, bA, bC,
-		  recoFlag, isScalerOn, scaler);
+		  recoFlag, isScalerOn, scaler, tdcData);
 		    
   const Int_t kBufferSize = 4000;
   clustersTree->Branch("ZDC", "AliZDCReco", &reco, kBufferSize);
@@ -1203,10 +1258,8 @@ void AliZDCReconstructor::FillZDCintoESD(TTree *clustersTree, AliESDEvent* esd) 
   AliZDCReco reco;
   AliZDCReco* preco = &reco;
   clustersTree->SetBranchAddress("ZDC", &preco);
-
   clustersTree->GetEntry(0);
   //
-  AliESDZDC * esdzdc = esd->GetESDZDC();
   Float_t tZN1Ene[5], tZN2Ene[5], tZP1Ene[5], tZP2Ene[5];
   Float_t tZN1EneLR[5], tZN2EneLR[5], tZP1EneLR[5], tZP2EneLR[5];
   for(Int_t i=0; i<5; i++){
@@ -1221,15 +1274,15 @@ void AliZDCReconstructor::FillZDCintoESD(TTree *clustersTree, AliESDEvent* esd) 
      tZP2EneLR[i] = reco.GetZP2LREnTow(i);
   }
   //
-  esdzdc->SetZN1TowerEnergy(tZN1Ene);
-  esdzdc->SetZN2TowerEnergy(tZN2Ene);
-  esdzdc->SetZP1TowerEnergy(tZP1Ene);
-  esdzdc->SetZP2TowerEnergy(tZP2Ene);
+  fESDZDC->SetZN1TowerEnergy(tZN1Ene);
+  fESDZDC->SetZN2TowerEnergy(tZN2Ene);
+  fESDZDC->SetZP1TowerEnergy(tZP1Ene);
+  fESDZDC->SetZP2TowerEnergy(tZP2Ene);
   //
-  esdzdc->SetZN1TowerEnergyLR(tZN1EneLR);
-  esdzdc->SetZN2TowerEnergyLR(tZN2EneLR);
-  esdzdc->SetZP1TowerEnergyLR(tZP1EneLR);
-  esdzdc->SetZP2TowerEnergyLR(tZP2EneLR);
+  fESDZDC->SetZN1TowerEnergyLR(tZN1EneLR);
+  fESDZDC->SetZN2TowerEnergyLR(tZN2EneLR);
+  fESDZDC->SetZP1TowerEnergyLR(tZP1EneLR);
+  fESDZDC->SetZP2TowerEnergyLR(tZP2EneLR);
   // 
   Int_t nPart  = reco.GetNParticipants();
   Int_t nPartA = reco.GetNPartSideA();
@@ -1238,18 +1291,28 @@ void AliZDCReconstructor::FillZDCintoESD(TTree *clustersTree, AliESDEvent* esd) 
   Double_t bA = reco.GetImpParSideA();
   Double_t bC = reco.GetImpParSideC();
   UInt_t recoFlag = reco.GetRecoFlag();
-  //
-  esd->SetZDC(reco.GetZN1HREnergy(), reco.GetZP1HREnergy(), reco.GetZEM1HRsignal(), 
-  	      reco.GetZEM2HRsignal(), reco.GetZN2HREnergy(), reco.GetZP2HREnergy(), 
-	      nPart, nPartA, nPartC, b, bA, bC, recoFlag);
+  
+  fESDZDC->SetZDC(reco.GetZN1HREnergy(), reco.GetZP1HREnergy(), 
+  	reco.GetZEM1HRsignal(), reco.GetZEM2HRsignal(), 
+	reco.GetZN2HREnergy(), reco.GetZP2HREnergy(), 
+	nPart, nPartA, nPartC, b, bA, bC, recoFlag);
   
   // Writing ZDC scaler for cross section calculation
   // ONLY IF the scaler has been read during the event
   if(reco.IsScalerOn()==kTRUE){
     UInt_t counts[32];
     for(Int_t jk=0; jk<32; jk++) counts[jk] = reco.GetZDCScaler(jk);
-    esd->SetZDCScaler(counts);
+    fESDZDC->SetZDCScaler(counts);
   }
+  
+  // Writing TDC data into ZDC ESDs
+  Int_t tdcValues[32][4];
+  for(Int_t jk=0; jk<32; jk++){
+    for(Int_t lk=0; lk<4; lk++) tdcValues[jk][lk] = reco.GetZDCTDCData(jk, lk);
+  }
+  fESDZDC->SetZDCTDC(tdcValues);
+  
+  if(esd) esd->SetZDCData(fESDZDC);
 }
 
 //_____________________________________________________________________________

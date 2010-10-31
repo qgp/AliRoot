@@ -38,16 +38,26 @@ class AliAnalysisTaskMixedHarmonics : public AliAnalysisTaskSE{
   virtual void   Terminate(Option_t *);
   
   // common:
-  void SetCorrelatorInteger(Int_t const ci) {this->fCorrelatorInteger = ci;};
-  Int_t GetCorrelatorInteger() const {return this->fCorrelatorInteger;}; 
+  void SetHarmonic(Int_t const h) {this->fHarmonic = h;};
+  Int_t GetHarmonic() const {return this->fHarmonic;}; 
   void SetNoOfMultipicityBins(Int_t const nomb) {this->fNoOfMultipicityBins = nomb;};
   Int_t GetNoOfMultipicityBins() const {return this->fNoOfMultipicityBins;};   
   void SetMultipicityBinWidth(Double_t const mbw) {this->fMultipicityBinWidth = mbw;};
   Double_t GetMultipicityBinWidth() const {return this->fMultipicityBinWidth;};   
   void SetMinMultiplicity(Double_t const mm) {this->fMinMultiplicity = mm;};
   Double_t GetMinMultiplicity() const {return this->fMinMultiplicity;}; 
+  void SetOppositeChargesPOI(Bool_t const ocp) {this->fOppositeChargesPOI = ocp;};
+  Bool_t GetOppositeChargesPOI() const {return this->fOppositeChargesPOI;}; 
+  void SetEvaluateDifferential3pCorrelator(Bool_t const ed3pc) {this->fEvaluateDifferential3pCorrelator = ed3pc;};
+  Bool_t GetEvaluateDifferential3pCorrelator() const {return this->fEvaluateDifferential3pCorrelator;};       
   void SetCorrectForDetectorEffects(Bool_t const cfde) {this->fCorrectForDetectorEffects = cfde;};
   Bool_t GetCorrectForDetectorEffects() const {return this->fCorrectForDetectorEffects;}; 
+  void SetPrintOnTheScreen(Bool_t const pots) {this->fPrintOnTheScreen = pots;};
+  Bool_t GetPrintOnTheScreen() const {return this->fPrintOnTheScreen;};  
+  void SetCalculateVsM(Bool_t const cvm) {this->fCalculateVsM = cvm;};
+  Bool_t GetCalculateVsM() const {return this->fCalculateVsM;};  
+  void SetShowBinLabelsVsM(Bool_t const sblvm) {this->fShowBinLabelsVsM = sblvm;};
+  Bool_t GetShowBinLabelsVsM() const {return this->fShowBinLabelsVsM;};     
   // particle weights:
   void SetUsePhiWeights(Bool_t const uPhiW) {this->fUsePhiWeights = uPhiW;};
   Bool_t GetUsePhiWeights() const {return this->fUsePhiWeights;};
@@ -64,11 +74,16 @@ class AliAnalysisTaskMixedHarmonics : public AliAnalysisTaskSE{
   AliFlowAnalysisWithMixedHarmonics *fMH; // mixed harmonics object
   TList *fListHistos; // collection of output 
   // common:  
-  Int_t fCorrelatorInteger; // integer n in cos[n(2phi1-phi2-phi3)]
+  Int_t fHarmonic; // integer n in cos[n(phi1+phi2-2phi3)]
   Int_t fNoOfMultipicityBins; // number of multiplicity bins
   Double_t fMultipicityBinWidth; // width of multiplicity bin
   Double_t fMinMultiplicity; // minimal multiplicity
-  Bool_t fCorrectForDetectorEffects; // correct 3-p correlator for detector effects
+  Bool_t fOppositeChargesPOI; // two POIs, psi1 and psi2, in correlator <<cos[psi1+psi2-2phi3)]>> will be taken with opposite charges 
+  Bool_t fEvaluateDifferential3pCorrelator; // evaluate <<cos[psi1+psi2-2phi3)]>>, where psi1 and psi2 are two POIs      
+  Bool_t fCorrectForDetectorEffects; // correct 3-p correlator for detector effects  
+  Bool_t fPrintOnTheScreen; // print or not the final results on the screen
+  Bool_t fCalculateVsM; // calculate correlators vs multiplicity
+  Bool_t fShowBinLabelsVsM; // in histograms holding results vs multiplicity show bin labels in the format M_lowEdge \leq M < M_upperEdge  
   // particle weights:
   Bool_t fUseParticleWeights; // use any particle weights
   Bool_t fUsePhiWeights; // use phi weights

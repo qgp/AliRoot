@@ -76,6 +76,7 @@ public:
   AliHLTUInt32_t GetAltroBlockHWaddr() const;
   int GetBunchSize();
   const UInt_t* GetSignals();
+  AliHLTTPCDigitData GetSortedDigit();
   Int_t GetSortedTime();    
   Int_t GetSortedSignal();
   Int_t GetSortedPad() const;
@@ -158,7 +159,7 @@ private:
 
   Int_t fPatch;
 
-  ClassDef(AliHLTTPCDigitReaderUnpacked, 1)
+  ClassDef(AliHLTTPCDigitReaderUnpacked, 0)
 };
 #endif
 

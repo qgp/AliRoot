@@ -17,109 +17,84 @@ class TH1F;
 // AliRoot includes
 #include "AliAnalysisTaskSE.h"
 class AliEMCALGeometry;
-class AliAODCaloCluster;
-class AliAODCaloCells;
 //class AliEMCALCalibData ;
 #include "AliEMCALGeoParams.h"
+class AliEMCALRecoUtils;
 
 class AliAnalysisTaskEMCALPi0CalibSelection : public AliAnalysisTaskSE
 {
 public:
 
   AliAnalysisTaskEMCALPi0CalibSelection(const char* name);
-  AliAnalysisTaskEMCALPi0CalibSelection(const AliAnalysisTaskEMCALPi0CalibSelection&); 
-  AliAnalysisTaskEMCALPi0CalibSelection& operator=(const AliAnalysisTaskEMCALPi0CalibSelection&); 
   virtual ~AliAnalysisTaskEMCALPi0CalibSelection();
 
+private:
+  
+  AliAnalysisTaskEMCALPi0CalibSelection(const AliAnalysisTaskEMCALPi0CalibSelection&); 
+  AliAnalysisTaskEMCALPi0CalibSelection& operator=(const AliAnalysisTaskEMCALPi0CalibSelection&); 
+  
+public:
+  
   // Implementation of interface methods
   virtual void UserCreateOutputObjects();
   virtual void UserExec(Option_t * opt);
   virtual void LocalInit() ;
-
-  void SetClusterMinEnergy(Float_t emin) {fEmin=emin;}
-  void SetClusterMaxEnergy(Float_t emax) {fEmax=emax;}
-  void SetClusterMinNCells(Int_t n)      {fMinNCells=n;}
-  void SetNCellsGroup(Int_t n)           {fGroupNCells=n;}
-
-  void SetLogWeight(Float_t weight) {fLogWeight=weight;}
+  
+  void SetAsymmetryCut(Float_t asy)      {fAsyCut      = asy ;}
+  void SetClusterMinEnergy(Float_t emin) {fEmin        = emin;}
+  void SetClusterMaxEnergy(Float_t emax) {fEmax        = emax;}
+  void SetClusterMinNCells(Int_t n)      {fMinNCells   = n   ;}
+  void SetNCellsGroup(Int_t n)           {fGroupNCells = n   ;}
+  void SetLogWeight(Float_t w)           {fLogWeight   = w   ;}
+  
   //void SetCalibCorrections(AliEMCALCalibData* const cdata);
-  void CreateAODFromESD();
-  void CreateAODFromAOD();	
-
-  void CopyAOD(Bool_t copy)   { fCopyAOD = copy ; }
-  Bool_t IsAODCopied() const { return fCopyAOD ; }
 	
-  void SetGeometryName(TString name)   { fEMCALGeoName = name ; }
-  TString GeometryName() const { return fEMCALGeoName ; }
- 
-  // Bad channels, copy from PWG4/PartCorrBase/AliCalorimeterUtils
-  Bool_t IsBadChannelsRemovalSwitchedOn()  const { return fRemoveBadChannels ; }
-  void SwitchOnBadChannelsRemoval ()  {fRemoveBadChannels = kTRUE  ; InitEMCALBadChannelStatusMap();}
-  void SwitchOffBadChannelsRemoval()  {fRemoveBadChannels = kFALSE ; }
-	
-  void InitEMCALBadChannelStatusMap() ;
-	
-  Int_t GetEMCALChannelStatus(Int_t iSM , Int_t iCol, Int_t iRow) const { 
-	if(fEMCALBadChannelMap) return (Int_t) ((TH2I*)fEMCALBadChannelMap->At(iSM))->GetBinContent(iCol,iRow); 
-	else return 0;}//Channel is ok by default
-	
-  void SetEMCALChannelStatus(Int_t iSM , Int_t iCol, Int_t iRow, Double_t c = 1) { 
-	if(!fEMCALBadChannelMap)InitEMCALBadChannelStatusMap() ;
-	((TH2I*)fEMCALBadChannelMap->At(iSM))->SetBinContent(iCol,iRow,c);}
-	
-  TH2I * GetEMCALChannelStatusMap(Int_t iSM) const {return (TH2I*)fEMCALBadChannelMap->At(iSM);}
-	
-  void SetEMCALChannelStatusMap(TObjArray *map) {fEMCALBadChannelMap = map;}
-	
-  Bool_t ClusterContainsBadChannel(UShort_t* cellList, Int_t nCells);
-	
-  // Recalibration
-  Bool_t IsRecalibrationOn()  const { return fRecalibration ; }
-  void SwitchOnRecalibration()    {fRecalibration = kTRUE ; InitEMCALRecalibrationFactors();}
-  void SwitchOffRecalibration()   {fRecalibration = kFALSE ; }
-	
-  void InitEMCALRecalibrationFactors() ;
-	
-  Float_t GetEMCALChannelRecalibrationFactor(Int_t iSM , Int_t iCol, Int_t iRow) const { 
-	if(fEMCALRecalibrationFactors) return (Float_t) ((TH2F*)fEMCALRecalibrationFactors->At(iSM))->GetBinContent(iCol,iRow); 
-	else return 1;}
-	
-  void SetEMCALChannelRecalibrationFactor(Int_t iSM , Int_t iCol, Int_t iRow, Double_t c = 1) { 
-	if(!fEMCALRecalibrationFactors) InitEMCALRecalibrationFactors();
-	((TH2F*)fEMCALRecalibrationFactors->At(iSM))->SetBinContent(iCol,iRow,c);}
-	
-  void SetEMCALChannelRecalibrationFactors(Int_t iSM , TH2F* h) {fEMCALRecalibrationFactors->AddAt(h,iSM);}
-	
-  TH2F * GetEMCALChannelRecalibrationFactors(Int_t iSM) const {return (TH2F*)fEMCALRecalibrationFactors->At(iSM);}
-	
-  void SetEMCALChannelRecalibrationFactors(TObjArray *map) {fEMCALRecalibrationFactors = map;}
-  Float_t RecalibrateClusterEnergy(AliAODCaloCluster* cluster, AliAODCaloCells * cells);
-	
+  void SwitchOnClusterCorrection()    {fCorrectClusters = kTRUE  ; }
+  void SwitchOffClusterCorrection()   {fCorrectClusters = kFALSE ; }
+  
+  void SwitchOnSameSM()    {fSameSM = kTRUE  ; }
+  void SwitchOffSameSM()   {fSameSM = kFALSE ; }
+  
+  Int_t  GetEMCALClusters(AliVEvent* event, TRefArray *clusters) const;
+  Bool_t IsEMCALCluster(AliVCluster *clus) const;
+  void SwitchOnOldAODs()   {fOldAOD = kTRUE  ; }
+  void SwitchOffOldAODs()  {fOldAOD = kFALSE ; }  
+  
+  void SetGeometryName(TString name) { fEMCALGeoName = name ; }
+  TString GeometryName() const       { return fEMCALGeoName ; }
+ 		  
+  void SetEMCALRecoUtils(AliEMCALRecoUtils * ru) {fRecoUtils = ru;}
+  AliEMCALRecoUtils* GetEMCALRecoUtils() const   {return fRecoUtils;}
+  
   void SetInvariantMassHistoBinRange(Int_t nBins, Float_t minbin, Float_t maxbin){
 	fNbins = nBins; fMinBin = minbin; fMaxBin = maxbin; }
-	
-private:
+	  
+  void GetMaxEnergyCellPosAndClusterPos(AliVCaloCells* cells, AliVCluster* clu, Int_t& iSM, Int_t& ieta, Int_t& iphi);
 
-  void MaxEnergyCellPos(AliAODCaloCells* const cells, AliAODCaloCluster* const clu, Int_t& iSM, Int_t& ieta, Int_t& iphi);
+  void UseFilteredEventAsInput() {fFilteredInput = kTRUE;}
+  void UseNormalEventAsInput()   {fFilteredInput = kFALSE;}
 
+  void PrintInfo();
+  
 private:
 
   AliEMCALGeometry * fEMCALGeo;  //! EMCAL geometry
   //AliEMCALCalibData* fCalibData; // corrections to CC from the previous iteration
 	
-  Float_t fEmin;          // min. cluster energy
-  Float_t fEmax;          // max. cluster energy
-  Int_t   fMinNCells;     // min. ncells in cluster
-  Int_t fGroupNCells;     // group n cells
-  Float_t fLogWeight;     // log weight used in cluster recalibration
-  Bool_t  fCopyAOD;       // Copy calo information only to AOD?
-  TString fEMCALGeoName;  // Name of geometry to use.
-	
-  Bool_t     fRemoveBadChannels;         // Check the channel status provided and remove clusters with bad channels
-  TObjArray *fEMCALBadChannelMap;        // Array of histograms with map of bad channels, EMCAL
-  Bool_t     fRecalibration;             // Switch on or off the recalibration
-  TObjArray *fEMCALRecalibrationFactors; // Array of histograms with map of recalibration factors, EMCAL                 
- 
+  Float_t fEmin;           // min. cluster energy
+  Float_t fEmax;           // max. cluster energy
+  Float_t fAsyCut;         // Asymmetry cut
+  Int_t   fMinNCells;      // min. ncells in cluster
+  Int_t   fGroupNCells;    // group n cells
+  Float_t fLogWeight;      // log weight used in cluster recalibration
+  Bool_t  fSameSM;         // Combine clusters in channels on same SM
+  Bool_t  fOldAOD;         // Reading Old AODs, created before release 4.20
+  Bool_t  fFilteredInput;  // Read input produced with filter.
+  Bool_t  fCorrectClusters;// Correct clusters energy, position etc.
+  TString fEMCALGeoName;   // Name of geometry to use.
+
+  AliEMCALRecoUtils * fRecoUtils;  // Access to reconstruction utilities
+  
   //Output histograms	
   Int_t   fNbins;  // N       mass bins of invariant mass histograms
   Float_t fMinBin; // Minimum mass bins of invariant mass histograms
@@ -127,11 +102,35 @@ private:
 
   TList*  fOutputContainer; //!histogram container
   TH1F*   fHmpi0[AliEMCALGeoParams::fgkEMCALModules][AliEMCALGeoParams::fgkEMCALCols][AliEMCALGeoParams::fgkEMCALRows];//! two-cluster inv. mass assigned to each cell.
-  TH1F*   fHmgg;            //! two-cluster inv.mass
+
+  TH2F*   fHmgg;            //! two-cluster inv.mass vs pt of pair
+  TH2F*   fHmggDifferentSM; //! two-cluster inv.mass vs pt of pair, each cluster in different SM
+  TH2F*   fHmggSM[4];       //! two-cluster inv.mass per SM
+  TH2F*   fHmggPairSM[4];   //! two-cluster inv.mass per Pair
+  
+  TH2F*   fHOpeningAngle;            //! two-cluster opening angle vs pt of pair, with mass close to pi0
+  TH2F*   fHOpeningAngleDifferentSM; //! two-cluster opening angle vs pt of pair, each cluster in different SM, with mass close to pi0
+  TH2F*   fHOpeningAngleSM[4];       //! two-cluster opening angle vs pt per SM,with mass close to pi0
+  TH2F*   fHOpeningAnglePairSM[4];   //! two-cluster opening angle vs pt per Pair,with mass close to pi0
+
+  TH2F*   fHIncidentAngle;            //! cluster incident angle vs pt of pair, with mass close to pi0
+  TH2F*   fHIncidentAngleDifferentSM; //! cluster incident angle vs pt of pair, each cluster in different SM, with mass close to pi0
+  TH2F*   fHIncidentAngleSM[4];       //! cluster incident angle vs pt per SM,with mass close to pi0
+  TH2F*   fHIncidentAnglePairSM[4];   //! cluster incident angle vs pt per Pair,with mass close to pi0
+  
+  TH2F*   fHAsymmetry;            //! two-cluster asymmetry vs pt of pair, with mass close to pi0
+  TH2F*   fHAsymmetryDifferentSM; //! two-cluster asymmetry vs pt of pair, each cluster in different SM, with mass close to pi0
+  TH2F*   fHAsymmetrySM[4];       //! two-cluster asymmetry vs pt per SM,with mass close to pi0
+  TH2F*   fHAsymmetryPairSM[4];   //! two-cluster asymmetry vs pt per Pair,with mass close to pi0
+  
+  TH2F*   fhTowerDecayPhotonHit[4] ;       //! Cells ordered in column/row for different module, number of times a decay photon hits
+  TH2F*   fhTowerDecayPhotonEnergy[4] ;    //! Cells ordered in column/row for different module, accumulated energy in the tower by decay photons.
+  TH2F*   fhTowerDecayPhotonAsymmetry[4] ; //! Cells ordered in column/row for different module, accumulated asymmetry in the tower by decay photons.
+
   TH1I*   fhNEvents;        //! Number of events counter histogram
   TList * fCuts ;           //! List with analysis cuts
 
-  ClassDef(AliAnalysisTaskEMCALPi0CalibSelection,3);
+  ClassDef(AliAnalysisTaskEMCALPi0CalibSelection,10);
 
 };
 

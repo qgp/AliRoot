@@ -28,6 +28,7 @@
 #include <TCollection.h>
 #include <THashList.h>
 #include <TString.h>
+#include <TObjString.h>
 #include <TObjArray.h>
 #include <TFile.h>
 #include <TError.h>
@@ -50,6 +51,7 @@ AliDielectronHistos::AliDielectronHistos() :
 //   TCollection(),
   TNamed("AliDielectronHistos","Dielectron Histogram Container"),
   fHistoList(),
+  fList(0x0),
   fReservedWords(new TString)
 {
   //
@@ -64,6 +66,7 @@ AliDielectronHistos::AliDielectronHistos(const char* name, const char* title) :
 //   TCollection(),
   TNamed(name, title),
   fHistoList(),
+  fList(0x0),
   fReservedWords(new TString)
 {
   //
@@ -79,7 +82,8 @@ AliDielectronHistos::~AliDielectronHistos()
   //
   // Destructor
   //
-  fHistoList.Delete();
+  fHistoList.Clear();
+  if (fList) fList->Clear();
   delete fReservedWords;
 }
 
@@ -388,6 +392,22 @@ TH1* AliDielectronHistos::GetHistogram(const char* histClass, const char* name) 
 }
 
 //_____________________________________________________________________________
+TH1* AliDielectronHistos::GetHistogram(const char* cutClass, const char* histClass, const char* name) const
+{
+  //
+  // return histogram from list of list of histograms
+  // this function is thought for retrieving histograms if a list of AliDielectronHistos is set
+  //
+  
+  if (!fList) return 0x0;
+  THashList *h=dynamic_cast<THashList*>(fList->FindObject(cutClass));
+  if (!h)return 0x0;
+  THashList *classTable=dynamic_cast<THashList*>(h->FindObject(histClass));
+  if (!classTable) return 0x0;
+  return (TH1*)classTable->FindObject(name);
+}
+
+//_____________________________________________________________________________
 void AliDielectronHistos::Draw(const Option_t* option)
 {
   //
@@ -395,8 +415,29 @@ void AliDielectronHistos::Draw(const Option_t* option)
   //
 
   TString drawStr(option);
+  TObjArray *arr=drawStr.Tokenize(";");
+  arr->SetOwner();
+  TIter nextOpt(arr);
+
+  TString drawClasses;
+  TObjString *ostr=0x0;
+
+  TString currentOpt;
+  TString testOpt;
+  while ( (ostr=(TObjString*)nextOpt()) ){
+    currentOpt=ostr->GetString();
+    currentOpt.Remove(TString::kBoth,'\t');
+    currentOpt.Remove(TString::kBoth,' ');
+
+    testOpt="classes=";
+    if ( currentOpt.Contains(testOpt.Data()) ){
+      drawClasses=currentOpt(testOpt.Length(),currentOpt.Length());
+    }
+  }
+
+  delete arr;
   drawStr.ToLower();
-  //options
+  //optionsfList
 //   Bool_t same=drawOpt.Contains("same"); //FIXME not yet implemented
 
   TCanvas *c=0x0;
@@ -406,13 +447,16 @@ void AliDielectronHistos::Draw(const Option_t* option)
       return;
     }
     c=gPad->GetCanvas();
+    c->cd();
 //     c=new TCanvas;
   }
   
   TIter nextClass(&fHistoList);
   THashList *classTable=0;
-  Bool_t first=kTRUE;
+//   Bool_t first=kTRUE;
   while ( (classTable=(THashList*)nextClass()) ){
+    //test classes option
+    if (!drawClasses.IsNull() && !drawClasses.Contains(classTable->GetName())) continue;
     //optimised division
     Int_t nPads = classTable->GetEntries();
     Int_t nCols = (Int_t)TMath::Ceil( TMath::Sqrt(nPads) );
@@ -426,11 +470,12 @@ void AliDielectronHistos::Draw(const Option_t* option)
       if (!c) c=new TCanvas(canvasName.Data(),Form("%s: %s",GetName(),classTable->GetName()));
       c->Clear();
     } else {
-      if (first){
-        first=kFALSE;
-      } else {
-        c->Clear();
-      }
+//       if (first){
+//         first=kFALSE;
+//         if (nPads>1) gVirtualPS->NewPage();
+//       } else {
+        if (nPads>1) c->Clear();
+//       }
     }
     if (nCols>1||nRows>1) c->Divide(nCols,nRows);
     
@@ -455,7 +500,10 @@ void AliDielectronHistos::Draw(const Option_t* option)
       histOpt.ReplaceAll("logz","");
       h->Draw(drawOpt.Data());
     }
-    if (gVirtualPS) c->Update();
+    if (gVirtualPS) {
+      c->Update();
+    }
+    
   }
 //   if (gVirtualPS) delete c;
 }
@@ -480,33 +528,71 @@ void AliDielectronHistos::PrintStructure() const
   //
   // Print classes and histograms in the class to stdout
   //
-  TIter nextClass(&fHistoList);
-  THashList *classTable=0;
-  while ( (classTable=(THashList*)nextClass()) ){
-    TIter nextHist(classTable);
-    TObject *o=0;
-    printf("+ %s\n",classTable->GetName());
-    while ( (o=nextHist()) )
-      printf("| ->%s\n",o->GetName());
+  if (!fList){
+    TIter nextClass(&fHistoList);
+    THashList *classTable=0;
+    while ( (classTable=(THashList*)nextClass()) ){
+      TIter nextHist(classTable);
+      TObject *o=0;
+      printf("+ %s\n",classTable->GetName());
+      while ( (o=nextHist()) )
+        printf("| ->%s\n",o->GetName());
+    }
+  } else {
+    TIter nextCutClass(fList);
+    THashList *cutClass=0x0;
+    while ( (cutClass=(THashList*)nextCutClass()) ) {
+      printf("+ %s\n",cutClass->GetName());
+      TIter nextClass(cutClass);
+      THashList *classTable=0;
+      while ( (classTable=(THashList*)nextClass()) ){
+        TIter nextHist(classTable);
+        TObject *o=0;
+        printf("|  + %s\n",classTable->GetName());
+        while ( (o=nextHist()) )
+          printf("|  | ->%s\n",o->GetName());
+      }
+      
+    }
   }
-  
 }
 
 //_____________________________________________________________________________
-void AliDielectronHistos::SetHistogramList(THashList &list)
+void AliDielectronHistos::SetHistogramList(THashList &list, Bool_t setOwner/*=kTRUE*/)
 {
   //
   // set histogram classes and histograms to this instance. It will take onwnership!
   //
   ResetHistogramList();
-  SetName(list.GetName());
+  TString name(GetName());
+  if (name == "AliDielectronHistos") SetName(list.GetName());
   TIter next(&list);
   TObject *o;
   while ( (o=next()) ){
     fHistoList.Add(o);
   }
-  list.SetOwner(kFALSE);
-  fHistoList.SetOwner(kTRUE);
+  if (setOwner){
+    list.SetOwner(kFALSE);
+    fHistoList.SetOwner(kTRUE);
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t AliDielectronHistos::SetCutClass(const char* cutClass)
+{
+  //
+  // Assign histogram list according to cutClass
+  //
+
+  if (!fList) return kFALSE;
+  ResetHistogramList();
+  THashList *h=dynamic_cast<THashList*>(fList->FindObject(cutClass));
+  if (!h) {
+    Warning("SetCutClass","cutClass '%s' not found", cutClass);
+    return kFALSE;
+  }
+  SetHistogramList(*h,kFALSE);
+  return kTRUE;
 }
 
 //_____________________________________________________________________________

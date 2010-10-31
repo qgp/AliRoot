@@ -97,7 +97,7 @@ AliMUONTrackerIO::DecodeOccupancy(const char* data, AliMUONVStore& occupancyMap)
   if ( ! AliMpDDLStore::Instance(kFALSE) )
   {
     AliErrorClass("Mapping not loaded. Cannot work");
-    return 0;
+    return kNoMapping;
   }
   
   char line[1024];
@@ -116,6 +116,13 @@ AliMUONTrackerIO::DecodeOccupancy(const char* data, AliMUONVStore& occupancyMap)
     Double_t sumn;
 
     sin >> busPatchId >> manuId >> sumn >> numberOfEvents;
+    
+    if ( busPatchId == -1 && manuId == -1 && sumn == 0 && numberOfEvents == 0 )
+    {
+      /// DA could not produce information (because run failed somehow). 
+      /// That's OK, but let the world know about it
+      return kNoInfoFile;
+    }
     
     Int_t detElemId = AliMpDDLStore::Instance()->GetDEfromBus(busPatchId);
 
@@ -296,6 +303,8 @@ AliMUONTrackerIO::DecodeGains(const char* data, AliMUONVStore& gainStore,
       if ( sline.Contains("DUMMY") )
       {
         AliDebugClass(1,"Got a dummy file here");
+        delete [] runs;
+        delete [] dac;
         return kDummyFile;
       }
       if ( sline.Contains("* Run") )
@@ -351,6 +360,8 @@ AliMUONTrackerIO::DecodeGains(const char* data, AliMUONVStore& gainStore,
           {
             AliErrorClass(Form("Something went wrong, as I get too big nDAC = %d",nDAC));
             nDAC = 0;
+            delete [] runs;
+            delete [] dac;
             return kFormatError;
           }
         }

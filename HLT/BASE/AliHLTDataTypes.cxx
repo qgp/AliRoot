@@ -106,6 +106,10 @@ const AliHLTComponentDataType kAliHLTDataTypeGlobalVertexer = AliHLTComponentDat
 const char kAliHLTESDObjectDataTypeIDstring[8] = kAliHLTESDObjectDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeESDObject = AliHLTComponentDataTypeInitializer(kAliHLTESDObjectDataTypeIDstring, kAliHLTDataOriginAny);
 
+/** ESD content specification */
+const char kAliHLTESDContentDataTypeIDstring[8] = kAliHLTESDContentDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeESDContent = AliHLTComponentDataTypeInitializer(kAliHLTESDContentDataTypeIDstring, kAliHLTDataOriginAny);
+
 /** ESD tree data specification */
 const char kAliHLTESDTreeDataTypeIDstring[8] = kAliHLTESDTreeDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeESDTree = AliHLTComponentDataTypeInitializer(kAliHLTESDTreeDataTypeIDstring, kAliHLTDataOriginAny);
@@ -158,6 +162,10 @@ const AliHLTComponentDataType kAliHLTDataTypeComponentStatistics = AliHLTCompone
 const char kAliHLTComponentTableDataTypeIDstring[8] = kAliHLTComponentTableDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeComponentTable = AliHLTComponentDataTypeInitializer(kAliHLTComponentTableDataTypeIDstring, kAliHLTDataOriginPrivate);
 
+/** Forwarded component table */
+const char kAliHLTComponentFwdTableDataTypeIDstring[8] = kAliHLTComponentFwdTableDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeComponentFwdTable = AliHLTComponentDataTypeInitializer(kAliHLTComponentFwdTableDataTypeIDstring, kAliHLTDataOriginPrivate);
+
 /** general ROOT TObject */
 const char kAliHLTTObjectDataTypeIDstring[8] = kAliHLTTObjectDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeTObject = AliHLTComponentDataTypeInitializer(kAliHLTTObjectDataTypeIDstring, kAliHLTDataOriginAny);
@@ -181,6 +189,10 @@ const AliHLTComponentDataType kAliHLTDataTypeHistogram = AliHLTComponentDataType
 /** ROOT TNtuple */
 const char kAliHLTTNtupleDataTypeIDstring[8] = kAliHLTTNtupleDataTypeID;
 const AliHLTComponentDataType kAliHLTDataTypeTNtuple = AliHLTComponentDataTypeInitializer(kAliHLTTNtupleDataTypeIDstring, kAliHLTDataOriginAny);
+
+/** AliHLTTriggerCounters object */
+const char kAliHLTTriggerCountersDataTypeIDstring[8] = kAliHLTTriggerCountersDataTypeID;
+const AliHLTComponentDataType kAliHLTDataTypeTriggerCounters = AliHLTComponentDataTypeInitializer(kAliHLTTriggerCountersDataTypeIDstring, kAliHLTDataOriginHLT);
 
 /** Array of HLT Tracks (AliHLTTracksData) */
 const char kAliHLTTrackDataTypeIDstring[8] = kAliHLTTrackDataTypeID;
@@ -264,3 +276,29 @@ const char kAliHLTDataOriginSample[kAliHLTComponentDataTypefOriginSize]  = {'S',
 /** EMCAL */
 const char kAliHLTDataOriginEMCAL[kAliHLTComponentDataTypefOriginSize]   = {'E','M','C','A'};
 
+/** TOF */
+const char kAliHLTDataOriginTOF[kAliHLTComponentDataTypefOriginSize]   = {'T','O','F',' '};
+
+/** HMPID */
+const char kAliHLTDataOriginHMPID[kAliHLTComponentDataTypefOriginSize]   = {'H','M','P','I'};
+
+/** CPV */
+const char kAliHLTDataOriginCPV[kAliHLTComponentDataTypefOriginSize]   = {'C','P','V',' '};
+
+/** PMD */
+const char kAliHLTDataOriginPMD[kAliHLTComponentDataTypefOriginSize]   = {'P','M','D',' '};
+
+/** T0 */
+const char kAliHLTDataOriginT0[kAliHLTComponentDataTypefOriginSize]   = {'T','Z','R','O'};
+
+/** VZERO */
+const char kAliHLTDataOriginVZERO[kAliHLTComponentDataTypefOriginSize]   = {'V','Z','R','O'};
+
+/** ZDC */
+const char kAliHLTDataOriginZDC[kAliHLTComponentDataTypefOriginSize]   = {'Z','D','C',' '};
+
+/** ACORDE */
+const char kAliHLTDataOriginACORDE[kAliHLTComponentDataTypefOriginSize]   = {'A','C','O','R'};
+
+/** TRG */
+const char kAliHLTDataOriginTRG[kAliHLTComponentDataTypefOriginSize]   = {'T','R','G',' '};

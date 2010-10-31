@@ -54,6 +54,8 @@
 #include "TChain.h"
 #include "THnSparse.h"
 #include "TH2D.h"
+#include "AliAnalysisDataSlot.h"
+#include "AliAnalysisDataContainer.h"
 
 //__________________________________________________________________________
 AliCFHeavyFlavourTaskMultiVarMultiStep::AliCFHeavyFlavourTaskMultiVarMultiStep() :
@@ -77,7 +79,10 @@ AliCFHeavyFlavourTaskMultiVarMultiStep::AliCFHeavyFlavourTaskMultiVarMultiStep()
         fAcceptanceUnf(kTRUE),
 	fKeepD0fromB(kFALSE),
 	fKeepD0fromBOnly(kFALSE),
-	fCuts(0)
+	fCuts(0),
+	fUseWeight(kFALSE),
+	fWeight(1.),
+	fSign(2)
 {
 	//
 	//Default ctor
@@ -105,7 +110,10 @@ AliCFHeavyFlavourTaskMultiVarMultiStep::AliCFHeavyFlavourTaskMultiVarMultiStep(c
         fAcceptanceUnf(kTRUE),
 	fKeepD0fromB(kFALSE),
         fKeepD0fromBOnly(kFALSE),
-	fCuts(cuts)
+	fCuts(cuts),
+	fUseWeight(kFALSE),
+	fWeight(1.),
+	fSign(2)
 {
 	//
 	// Constructor. Initialization of Inputs and Outputs
@@ -118,6 +126,7 @@ AliCFHeavyFlavourTaskMultiVarMultiStep::AliCFHeavyFlavourTaskMultiVarMultiStep(c
 	DefineOutput(1,TH1I::Class());
 	DefineOutput(2,AliCFContainer::Class());
         DefineOutput(3,THnSparseD::Class());
+        DefineOutput(4,AliRDHFCutsD0toKpi::Class());
 
 	fCuts->PrintAll();
 }
@@ -160,7 +169,10 @@ AliCFHeavyFlavourTaskMultiVarMultiStep::AliCFHeavyFlavourTaskMultiVarMultiStep(c
         fAcceptanceUnf(c.fAcceptanceUnf),
 	fKeepD0fromB(c.fKeepD0fromB),
         fKeepD0fromBOnly(c.fKeepD0fromBOnly),
-	fCuts(c.fCuts)
+	fCuts(c.fCuts),
+	fUseWeight(c.fUseWeight),
+	fWeight(c.fWeight),
+	fSign(c.fSign)
 {
 	//
 	// Copy Constructor
@@ -176,6 +188,25 @@ AliCFHeavyFlavourTaskMultiVarMultiStep::~AliCFHeavyFlavourTaskMultiVarMultiStep(
 	if (fHistEventsProcessed) delete fHistEventsProcessed ;
         if (fCorrelation) delete fCorrelation ;
 	//        if (fCuts) delete fCuts ;
+}
+
+//________________________________________________________________________
+void AliCFHeavyFlavourTaskMultiVarMultiStep::Init(){
+
+	//
+	// Initialization
+	//
+
+	if(fDebug > 1) printf("AliCFHeavyFlavourTaskMultiVarMultiStep::Init() \n");
+	
+	fMinITSClusters = fCuts->GetTrackCuts()->GetMinNClustersITS();
+	AliRDHFCutsD0toKpi* copyfCuts=new AliRDHFCutsD0toKpi(*fCuts);
+	const char* nameoutput=GetOutputSlot(4)->GetContainer()->GetName();
+	copyfCuts->SetName(nameoutput);
+	// Post the data
+	PostData(4,copyfCuts);
+	
+	return;
 }
 
 //_________________________________________________
@@ -206,8 +237,6 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 	  if(fEvents<2) AliInfo(Form("Both fKeepD0fromB and fKeepD0fromBOnly flags are true, looking _ONLY_ at D0 FROM B"));
 	}
 
-	fEvents++;
-	if (fEvents%10000 ==0) AliDebug(2,Form("Event %d",fEvents));
 	AliAODEvent* aodEvent = dynamic_cast<AliAODEvent*>(fInputEvent);
 
 	TClonesArray *arrayD0toKpi=0;
@@ -235,6 +264,11 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 	  return;
 	}
 
+	// fix for temporary bug in ESDfilter 
+	// the AODs with null vertex pointer didn't pass the PhysSel
+	if(!aodEvent->GetPrimaryVertex() || TMath::Abs(aodEvent->GetMagneticField())<0.001) return;
+
+	fEvents++;
 
 	fCFManager->SetRecEventInfo(aodEvent);
 	fCFManager->SetMCEventInfo(aodEvent);
@@ -304,6 +338,7 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 
 		// fill the container for Gen-level selection
 		Double_t vectorMC[7] = {9999.,9999.,9999.,9999.,9999.,9999.,9999.};
+
 		if (GetGeneratedValuesFromMCParticle(mcPart, mcArray, vectorMC)){
 			containerInputMC[0] = vectorMC[0];
 			containerInputMC[1] = vectorMC[1] ;
@@ -318,11 +353,13 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 			containerInputMC[10] = 1.01;    // dummy value, meaningless in MC
 			containerInputMC[11] = vectorMC[6];    // dummy value, meaningless in MC
 			containerInputMC[12] = zMCVertex;    // z of reconstructed of primary vertex
+			if (fUseWeight) fWeight = GetWeight(vectorMC[0]); // setting the weight according to the function defined in AliCFHeavyFlavourTaskMultiVarMultiStep::GetWeight(Float_t pt)
+			AliDebug(3,Form("weight = %f",fWeight));
 			if (!fCuts->IsInFiducialAcceptance(vectorMC[0],vectorMC[1])) continue;
 			if (TMath::Abs(vectorMC[1]) < 0.5) {
-				fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepGeneratedLimAcc);
+				fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepGeneratedLimAcc,fWeight);
 			}
-			fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepGenerated);
+			fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepGenerated,fWeight);
 			icountMC++;
 
 			// check the MC-Acceptance level cuts
@@ -362,14 +399,14 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 				if (!fCFManager->CheckParticleCuts(1, mcPartDaughter1)) {
 					AliDebug(2,"Inconsistency with CF cut for daughter 1!");
 				} 
-				fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepAcceptance);
+				fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepAcceptance,fWeight);
 				icountAcc++;
 
 				// check on the vertex
 				if (fCuts->IsEventSelected(aodEvent)){
 					AliDebug(2,"Vertex cut passed\n");
 					// filling the container if the vertex is ok
-					fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepVertex) ;
+					fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepVertex,fWeight) ;
 					icountVertex++;
 					// check on the kTPCrefit and kITSrefit conditions of the daughters
 					Bool_t refitFlag = kTRUE;
@@ -377,7 +414,8 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 						Int_t foundDaughters = 0;
 						for (Int_t iaod =0; iaod<aodEvent->GetNumberOfTracks(); iaod++){
 							AliAODTrack *track = (AliAODTrack*)aodEvent->GetTrack(iaod);
-							if ((track->GetLabel() == daughter0) || (track->GetLabel() == daughter1)) {
+							if(track->GetStatus()&AliESDtrack::kITSpureSA) continue;
+								if ((track->GetLabel() == daughter0) || (track->GetLabel() == daughter1)) {
 								foundDaughters++;
 								if (trackCuts->GetRequireTPCRefit()) {
 									    if(!(track->GetStatus()&AliESDtrack::kTPCrefit)){
@@ -396,10 +434,11 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 								break;
 							}
 						}
+						if (foundDaughters != 2) refitFlag = kFALSE;
 					}
 					if (refitFlag){
-						printf("Refit cut passed\n");
-						fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepRefit);
+						AliDebug(3,"Refit cut passed\n");
+						fCFManager->GetParticleContainer()->Fill(containerInputMC,kStepRefit,fWeight);
 						icountRefit++;
 					}
 					else{
@@ -434,6 +473,7 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 	AliDebug(2, Form("Found %d vertices",arrayD0toKpi->GetEntriesFast()));
 
 	Int_t pdgDgD0toKpi[2]={321,211};
+	Int_t isD0D0bar=1;// 1 for D0, 2 for D0bar, to be used for the PPR and PID selection steps
 
 	for (Int_t iD0toKpi = 0; iD0toKpi<arrayD0toKpi->GetEntriesFast(); iD0toKpi++) {
 		
@@ -458,6 +498,27 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 				AliWarning("Could not find associated MC in AOD MC tree");
 				continue;
 			}
+
+			if (mcVtxHF->GetPdgCode() == 421){  // particle is D0
+				if (fSign == 1){ // I ask for D0bar only
+					AliDebug(2,"particle is D0, I ask for D0bar only");
+					continue;
+				}
+				else{
+					isD0D0bar=1;
+				}
+			}
+			else if (mcVtxHF->GetPdgCode()== -421){ // particle is D0bar
+				if (fSign == 0){ // I ask for D0 only
+					AliDebug(2,"particle is D0bar, I ask for D0 only");
+					continue;
+				}
+				else{
+					isD0D0bar=2;
+				}
+			} 
+			else continue;
+
 			// check whether the daughters have kTPCrefit and kITSrefit set
 			AliAODTrack *track0 = (AliAODTrack*)d0tokpi->GetDaughter(0);
 			AliAODTrack *track1 = (AliAODTrack*)d0tokpi->GetDaughter(1);
@@ -574,8 +635,8 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 
 			AliDebug(2, Form("Filling the container with pt = %f, rapidity = %f, cosThetaStar = %f, pTpi = %f, pTK = %f, cT = %f", containerInput[0], containerInput[1], containerInput[2], containerInput[3], containerInput[4], containerInput[5]));
 			icountReco++;
-			printf("%d: filling RECO step\n",iD0toKpi);
-			fCFManager->GetParticleContainer()->Fill(containerInput,kStepReconstructed) ;   
+			AliDebug(2,Form("%d: filling RECO step\n",iD0toKpi));
+			fCFManager->GetParticleContainer()->Fill(containerInput,kStepReconstructed,fWeight) ;   
 
 			// cut in acceptance
 			Float_t etaCutMin, etaCutMax, ptCutMin, ptCutMax;
@@ -585,7 +646,7 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 			Bool_t acceptanceProng1 = (d0tokpi->EtaProng(1)>etaCutMin && d0tokpi->EtaProng(1)<etaCutMax && d0tokpi->PtProng(1) > ptCutMin && d0tokpi->PtProng(1) < ptCutMax);
 			if (acceptanceProng0 && acceptanceProng1) {
 				AliDebug(2,"D0 reco daughters in acceptance");
-				fCFManager->GetParticleContainer()->Fill(containerInput,kStepRecoAcceptance) ;
+				fCFManager->GetParticleContainer()->Fill(containerInput,kStepRecoAcceptance,fWeight) ;
 				icountRecoAcc++; 
 				
 				if(fAcceptanceUnf){
@@ -611,13 +672,19 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 					fCFManager->GetParticleContainer()->Fill(containerInput,kStepRecoITSClusters) ;
 					icountRecoITSClusters++;   
 					AliDebug(2,Form("pT = %f, dca = %f, cosThetaStar = %f, pTpi = %f, pTK = %f, d0pi = %f, d0K = %f, d0xd0 = %f, cosPointingAngle = %f", pt, dca, cosThetaStar,pTpi, pTK, d0pi*1E4, d0K*1E4, d0xd0*1E8, cosPointingAngle));
-					AliInfo(Form("pT = %f, dca = %f, cosThetaStar = %f, pTpi = %f, pTK = %f, d0pi = %f, d0K = %f, d0xd0 = %f, cosPointingAngle = %f", pt, dca, cosThetaStar,pTpi, pTK, d0pi, d0K, d0xd0, cosPointingAngle));
-
-				       					
-					if (fCuts->IsSelected(d0tokpi,AliRDHFCuts::kCandidate)>0){
-						AliInfo(Form("Particle passed PPR cuts (actually cuts for D0 analysis!) with pt = %f",containerInput[0]));
+		
+					// setting the use of the PID cut when applying the selection to FALSE - whatever it was. Keeping track of the original value
+					Bool_t iscutusingpid=fCuts->GetIsUsePID();
+					Int_t isselcuts=-1,isselpid=-1;
+					fCuts->SetUsePID(kFALSE);	
+					//Bool_t origFlag = fCuts->GetIsPrimaryWithoutDaughters();
+					//fCuts->SetRemoveDaughtersFromPrim(kFALSE);
+					isselcuts = fCuts->IsSelected(d0tokpi,AliRDHFCuts::kCandidate,aodEvent);
+					//fCuts->SetRemoveDaughtersFromPrim(origFlag);
+					fCuts->SetUsePID(iscutusingpid); // restoring usage of the PID from the cuts object
+					if (isselcuts == 3 || isselcuts == isD0D0bar){
 						AliDebug(2,"Particle passed PPR cuts (actually cuts for D0 analysis!)");
-						fCFManager->GetParticleContainer()->Fill(containerInput,kStepRecoPPR) ;   
+						fCFManager->GetParticleContainer()->Fill(containerInput,kStepRecoPPR,fWeight) ;   
 						icountRecoPPR++;
 						
 						if(!fAcceptanceUnf){ // unfolding
@@ -637,10 +704,11 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::UserExec(Option_t *)
 							fCorrelation->Fill(fill);
 							
 						}
-						if (fCuts->IsSelected(d0tokpi,AliRDHFCuts::kPID)>0){
-							AliInfo(Form("Particle passed PID cuts with pt = %f",containerInput[0]));
+
+						isselpid = fCuts->IsSelected(d0tokpi,AliRDHFCuts::kPID);
+						if((fCuts->CombineSelectionLevels(3,isselcuts,isselpid)==isD0D0bar)||(fCuts->CombineSelectionLevels(3,isselcuts,isselpid)==3)){
 							AliDebug(2,"Particle passed PID cuts");
-							fCFManager->GetParticleContainer()->Fill(containerInput,kStepRecoPID) ;   
+							fCFManager->GetParticleContainer()->Fill(containerInput,kStepRecoPID,fWeight) ;   
 							icountRecoPID++;
 						}
 					}
@@ -685,6 +753,7 @@ void AliCFHeavyFlavourTaskMultiVarMultiStep::Terminate(Option_t*)
 	AliInfo(Form("Among the above, found %i reco D0 that are decaying in K+pi and are in the requested acceptance, in %d events",fCountRecoAcc,fEvents));
 	AliInfo(Form("Among the above, found %i reco D0 that are decaying in K+pi and have at least %d clusters in ITS, in %d events",fCountRecoITSClusters,fMinITSClusters,fEvents));
 	AliInfo(Form("Among the above, found %i reco D0 that are decaying in K+pi and satisfy PPR cuts, in %d events",fCountRecoPPR,fEvents));
+	AliInfo(Form("Among the above, found %i reco D0 that are decaying in K+pi and satisfy PID cuts, in %d events",fCountRecoPID,fEvents));
 	
 	// draw some example plots....
 	
@@ -1430,4 +1499,44 @@ Int_t AliCFHeavyFlavourTaskMultiVarMultiStep::CheckOrigin(AliAODMCParticle* mcPa
 		mother = mcGranma->GetMother();
 	}
 	return pdgGranma;
+}
+//__________________________________________________________________________________________________
+Double_t AliCFHeavyFlavourTaskMultiVarMultiStep::GetWeight(Float_t pt){
+
+	//
+	// calculating the weight to fill the container
+	//
+
+	// FNOLL central:
+	// p0 = 1.63297e-01 --> 0.322643
+	// p1 = 2.96275e+00
+	// p2 = 2.30301e+00
+	// p3 = 2.50000e+00
+
+	// PYTHIA
+	// p0 = 1.85906e-01 --> 0.36609
+	// p1 = 1.94635e+00
+	// p2 = 1.40463e+00
+	// p3 = 2.50000e+00
+
+	Double_t func1[4] = {0.322643,2.96275,2.30301,2.5};
+	Double_t func2[4] = {0.36609,1.94635,1.40463,2.5};
+
+	Double_t dndpt_func1 = dNdptFit(pt,func1);
+	Double_t dndpt_func2 = dNdptFit(pt,func2);
+	AliDebug(2,Form("pt = %f, FONLL = %f, Pythia = %f, ratio = %f",pt,dndpt_func1,dndpt_func2,dndpt_func1/dndpt_func2));
+	return dndpt_func1/dndpt_func2;
+}
+
+//__________________________________________________________________________________________________
+Double_t AliCFHeavyFlavourTaskMultiVarMultiStep::dNdptFit(Float_t pt, Double_t* par){
+
+	// 
+	// calculating dNdpt
+	//
+
+	Double_t denom =  TMath::Power((pt/par[1]), par[3] );
+	Double_t dNdpt = par[0]*pt/TMath::Power(1.+denom, par[2]);
+	
+	return dNdpt;
 }

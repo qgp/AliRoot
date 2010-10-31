@@ -268,12 +268,12 @@ Bool_t AliRsnCut::OkValueI()
   fCutResult = (fCutValueI == fMinI);
   
   // print debug message
-  AliDebug(AliLog::kDebug + 3, "=== CUT DEBUG ====================================");
-  AliDebug(AliLog::kDebug + 3, Form("Cut name     : %s", GetName()));
-  AliDebug(AliLog::kDebug + 3, Form("Checked value: %d", fCutValueI));
-  AliDebug(AliLog::kDebug + 3, Form("Cut value    : %d", fMinI));
-  AliDebug(AliLog::kDebug + 3, Form("Cut result   : %s", (fCutResult ? "PASSED" : "NOT PASSED")));
-  AliDebug(AliLog::kDebug + 3, "=== END CUT DEBUG ================================");
+  AliDebug(AliLog::kDebug + 2, "=== CUT DEBUG ====================================");
+  AliDebug(AliLog::kDebug + 2, Form("Cut name     : %s", GetName()));
+  AliDebug(AliLog::kDebug + 2, Form("Checked value: %d", fCutValueI));
+  AliDebug(AliLog::kDebug + 2, Form("Cut value    : %d", fMinI));
+  AliDebug(AliLog::kDebug + 2, Form("Cut result   : %s", (fCutResult ? "PASSED" : "NOT PASSED")));
+  AliDebug(AliLog::kDebug + 2, "=== END CUT DEBUG ================================");
   
   return fCutResult;
 }
@@ -290,12 +290,12 @@ Bool_t AliRsnCut::OkValueD()
   fCutResult = (TMath::Abs(fCutValueD - fMinD) < 1E-6);
   
   // print debug message
-  AliDebug(AliLog::kDebug + 3, "=== CUT DEBUG ====================================");
-  AliDebug(AliLog::kDebug + 3, Form("Cut name     : %s", GetName()));
-  AliDebug(AliLog::kDebug + 3, Form("Checked value: %f", fCutValueD));
-  AliDebug(AliLog::kDebug + 3, Form("Cut value    : %f", fMinD));
-  AliDebug(AliLog::kDebug + 3, Form("Cut result   : %s", (fCutResult ? "PASSED" : "NOT PASSED")));
-  AliDebug(AliLog::kDebug + 3, "=== END CUT DEBUG ================================");
+  AliDebug(AliLog::kDebug + 2, "=== CUT DEBUG ====================================");
+  AliDebug(AliLog::kDebug + 2, Form("Cut name     : %s", GetName()));
+  AliDebug(AliLog::kDebug + 2, Form("Checked value: %f", fCutValueD));
+  AliDebug(AliLog::kDebug + 2, Form("Cut value    : %f", fMinD));
+  AliDebug(AliLog::kDebug + 2, Form("Cut result   : %s", (fCutResult ? "PASSED" : "NOT PASSED")));
+  AliDebug(AliLog::kDebug + 2, "=== END CUT DEBUG ================================");
   
   return fCutResult;
 }
@@ -313,12 +313,12 @@ Bool_t AliRsnCut::OkRangeI()
   fCutResult = ((fCutValueI >= fMinI) && (fCutValueI <= fMaxI));
   
   // print debug message
-  AliDebug(AliLog::kDebug + 3, "=== CUT DEBUG ====================================");
+  AliDebug(AliLog::kDebug + 2, "=== CUT DEBUG ====================================");
   AliDebug(AliLog::kDebug + 2, Form("Cut name     : %s", GetName()));
   AliDebug(AliLog::kDebug + 2, Form("Checked value: %d", fCutValueI));
   AliDebug(AliLog::kDebug + 2, Form("Cut range    : %d , %d", fMinI, fMaxI));
   AliDebug(AliLog::kDebug + 2, Form("Cut result   : %s", (fCutResult ? "PASSED" : "NOT PASSED")));
-  AliDebug(AliLog::kDebug + 3, "=== END CUT DEBUG ================================");
+  AliDebug(AliLog::kDebug + 2, "=== END CUT DEBUG ================================");
   
   return fCutResult;
 }
@@ -336,12 +336,12 @@ Bool_t AliRsnCut::OkRangeD()
   fCutResult = ((fCutValueD >= fMinD) && (fCutValueD <= fMaxD));
    
   // print debug message
-  AliDebug(AliLog::kDebug + 3, "=== CUT DEBUG ====================================");
+  AliDebug(AliLog::kDebug + 2, "=== CUT DEBUG ====================================");
   AliDebug(AliLog::kDebug + 2, Form("Cut name     : %s", GetName()));
   AliDebug(AliLog::kDebug + 2, Form("Checked value: %f", fCutValueD));
   AliDebug(AliLog::kDebug + 2, Form("Cut range    : %f , %f", fMinD, fMaxD));
   AliDebug(AliLog::kDebug + 2, Form("Cut result   : %s", (fCutResult ? "PASSED" : "NOT PASSED")));
-  AliDebug(AliLog::kDebug + 3, "=== END CUT DEBUG ================================");
+  AliDebug(AliLog::kDebug + 2, "=== END CUT DEBUG ================================");
 
   return fCutResult;
 }
@@ -356,11 +356,11 @@ void AliRsnCut::Print(Option_t*) const
   Char_t target[100];
   switch (fTarget)
   {
-    case kDaughter: sprintf(target, "DAUGHTER"); break;
-    case kMother  : sprintf(target, "MOTHER"); break;
-    case kEvent   : sprintf(target, "EVENT"); break;
-    case kMixEvent: sprintf(target, "MIX EVENT"); break;
-    default       : sprintf(target, "UNDEFINED"); break;
+    case kDaughter: snprintf(target, strlen("DAUGHTER") , "DAUGHTER") ; break;
+    case kMother  : snprintf(target, strlen("MOTHER")   , "MOTHER")   ; break;
+    case kEvent   : snprintf(target, strlen("EVENT")    , "EVENT")    ; break;
+    case kMixEvent: snprintf(target, strlen("MIX EVENT"), "MIX EVENT"); break;
+    default       : snprintf(target, strlen("UNDEFINED"), "UNDEFINED"); break;
   }
 
   AliInfo("=== CUT DETAILS ====================================");

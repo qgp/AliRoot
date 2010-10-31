@@ -14,6 +14,8 @@
 // 
 // -- Author: Gustavo Conesa (INFN-LNF)
 
+//-Yaxian Mao (add the possibility for different IC method with different pt range, 01/10/2010)
+
 // --- ROOT system --- 
 #include <TObject.h>
 class TObjArray ;
@@ -38,6 +40,7 @@ class AliIsolationCut : public TObject {
 	
   Float_t    GetConeSize()           const {return fConeSize   ;}
   Float_t    GetPtThreshold()        const {return fPtThreshold;}
+  Float_t    GetSumPtThreshold()     const {return fSumPtThreshold;}
   Float_t    GetPtFraction()         const {return fPtFraction ;}
   Int_t      GetICMethod()           const {return fICMethod   ;}
   Int_t      GetParticleTypeInCone() const {return fPartInCone ;}
@@ -45,13 +48,14 @@ class AliIsolationCut : public TObject {
   TString    GetICParametersList() ; 
 
   void MakeIsolationCut(TObjArray * const plCTS, TObjArray * const plNe, AliCaloTrackReader * const reader, 
-			const Bool_t fillAOD, AliAODPWG4ParticleCorrelation  * pCandidate, const TString aodObjArrayName,
+			const Bool_t bFillAOD, AliAODPWG4ParticleCorrelation  * pCandidate, const TString &aodObjArrayName,
 			Int_t &n, Int_t & nfrac, Float_t &ptsum, Bool_t & isolated) const ;  
   
   void Print(const Option_t * opt)const;
   
   void SetConeSize(Float_t r)        {fConeSize = r ; }
   void SetPtThreshold(Float_t pt)    {fPtThreshold = pt; }
+  void SetSumPtThreshold(Float_t sumpt)    {fSumPtThreshold = sumpt; }
   void SetPtFraction(Float_t pt)     {fPtFraction = pt; }
   void SetICMethod(Int_t i )         {fICMethod = i ; }
   void SetParticleTypeInCone(Int_t i){fPartInCone = i;}
@@ -62,7 +66,8 @@ class AliIsolationCut : public TObject {
  private:
   
   Float_t      fConeSize ;    //Size of the isolation cone 
-  Float_t      fPtThreshold ; //Mimium pt of the particles in the cone or sum in cone 
+  Float_t      fPtThreshold ; //Mimium pt of the particles in the cone or sum in cone (UE pt mean in the forward region cone)
+  Float_t      fSumPtThreshold ; //Minium of sum pt of the particles in the cone (UE sum in the forward region cone)
   Float_t      fPtFraction ;  //Fraction of the momentum of particles in cone or sum in cone
   Int_t        fICMethod ;    //Isolation cut method to be used
                               // kPtIC: Pt threshold method
@@ -74,7 +79,7 @@ class AliIsolationCut : public TObject {
 	                         
 	
 	
-  ClassDef(AliIsolationCut,2)
+  ClassDef(AliIsolationCut,3)
 } ;
 
 

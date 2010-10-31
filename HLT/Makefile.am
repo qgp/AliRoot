@@ -41,6 +41,10 @@ if EN_HLT_FMD
 FMD_DIR=FMD
 endif
 
+if EN_HLT_ZDC
+ZDC_DIR=ZDC
+endif
+
 if EN_HLT_MUON
 MUON_DIR=MUON
 endif
@@ -65,6 +69,10 @@ if EN_HLT_JET
 JET_DIR=JET
 endif
 
+if EN_HLT_VZERO
+VZERO_DIR=VZERO
+endif
+
 if EN_HLT_QA
 QA_DIR=QA
 endif
@@ -79,12 +87,14 @@ SUBDIRS 		= BASE \
                           $(EMCAL_DIR) \
 			  $(TRD_DIR) \
 			  $(FMD_DIR) \
+			  $(ZDC_DIR) \
 			  $(MUON_DIR) \
 			  $(COMP_DIR) \
                           $(TRIGGER_DIR) \
                           $(ITS_DIR) \
                           $(GLOBAL_DIR) \
 			  $(JET_DIR) \
+			  $(VZERO_DIR) \
 			  $(QA_DIR) \
 			  doc
 
@@ -102,6 +112,7 @@ EXTRA_DIST		= libHLTbase.pkg \
 			  libAliHLTTPC.pkg \
 			  libAliHLTTRD.pkg \
 			  libAliHLTFMD.pkg \
+			  libAliHLTZDC.pkg \
 			  libAliHLTMUON.pkg \
 			  libAliHLTComp.pkg \
 			  libAliHLTTrigger.pkg \
@@ -110,6 +121,7 @@ EXTRA_DIST		= libHLTbase.pkg \
 			  libAliHLTEMCAL.pkg \
 			  libAliHLTGlobal.pkg \
 			  libAliHLTJet.pkg \
+			  libAliHLTVZERO.pkg \
 			  exa/sample-component1.C \
 			  exa/monitoring.C \
 			  hlt.conf \

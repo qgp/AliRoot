@@ -13,7 +13,7 @@ DA for ZDC standalone CALIBRATION_EMD runs
 
 Contact: Chiara.Oppedisano@to.infn.it
 Link: 
-Run Type: STANDALONE_EMD_RUN
+Run Type: CALIBRATION_EMD_RUN
 DA Type: LDC
 Number of events needed: at least ~5*10^3
 Input Files: ZDCPedestal.dat
@@ -75,7 +75,8 @@ int main(int argc, char **argv) {
   int const kNModules = 10;
   int const kNChannels = 24;
   int const kNScChannels = 32;
-  Int_t kFirstADCGeo=0, kLastADCGeo=3;
+  Int_t kFirstADCGeo=0, kLastADCGeo=1; // NO out-of-time signals!!!
+
             
   Int_t iMod=-1;
   Int_t modGeo[kNModules], modType[kNModules],modNCh[kNModules];
@@ -96,6 +97,13 @@ int main(int argc, char **argv) {
   for(Int_t y=0; y<kNScChannels; y++){
     scMod[y]=scCh[y]=scSigCode[y]=scDet[y]=scSec[y]=0;
   }
+      
+  Int_t itdcCh=0;
+  Int_t tdcMod[kNScChannels], tdcCh[kNScChannels], tdcSigCode[kNScChannels];
+  Int_t tdcDet[kNScChannels], tdcSec[kNScChannels];
+  for(Int_t y=0; y<kNScChannels; y++){
+    tdcMod[y]=tdcCh[y]=tdcSigCode[y]=tdcDet[y]=tdcSec[y]=-1;
+  }
 
   /* log start of process */
   printf("ZDC EMD program started\n");  
@@ -108,34 +116,35 @@ int main(int argc, char **argv) {
   
   // --- Preparing histos for EM dissociation spectra
   //
-  TH1F* histoEMDRaw[4];
+  //TH1F* histoEMDRaw[4];
   TH1F* histoEMDCorr[4];
   //
-  char namhistr[50], namhistc[50];
+  //char namhistr[50];
+  char namhistc[50];
   for(Int_t i=0; i<4; i++) {
      if(i==0){
-       sprintf(namhistr,"ZN%d-EMDRaw",i+1);
+       //sprintf(namhistr,"ZN%d-EMDRaw",i+1);
        sprintf(namhistc,"ZN%d-EMDCorr",i+1);
      }
      else if(i==1){
-       sprintf(namhistr,"ZP%d-EMDRaw",i);
+       //sprintf(namhistr,"ZP%d-EMDRaw",i);
        sprintf(namhistc,"ZP%d-EMDCorr",i);
      }
      else if(i==2){
-       sprintf(namhistr,"ZN%d-EMDRaw",i);
+       //sprintf(namhistr,"ZN%d-EMDRaw",i);
        sprintf(namhistc,"ZN%d-EMDCorr",i);
      }
      else if(i==3){
-       sprintf(namhistr,"ZP%d-EMDRaw",i-1);
+       //sprintf(namhistr,"ZP%d-EMDRaw",i-1);
        sprintf(namhistc,"ZP%d-EMDCorr",i-1);
      }
-     histoEMDRaw[i] = new TH1F(namhistr,namhistr,100,0.,4000.);
+     //histoEMDRaw[i] = new TH1F(namhistr,namhistr,100,0.,4000.);
      histoEMDCorr[i] = new TH1F(namhistc,namhistc,100,0.,4000.);
   }
 
    // --- Preparing histos for tower inter-calibration
   //
-  TH1F* histZNCtow[4]; TH1F* histZPCtow[4];
+/*  TH1F* histZNCtow[4]; TH1F* histZPCtow[4];
   TH1F* histZNAtow[4]; TH1F* histZPAtow[4];
   //
   char namhistznc[50], namhistzpc[50];
@@ -151,7 +160,7 @@ int main(int argc, char **argv) {
      histZNAtow[i] = new TH1F(namhistzna,namhistzna,100,0.,4000.);
      histZPAtow[i] = new TH1F(namhistzpa,namhistzpa,100,0.,4000.);
   }
-  
+*/  
   /* open result file */
   FILE *fp=NULL;
   fp=fopen("./result.txt","a");
@@ -194,7 +203,7 @@ int main(int argc, char **argv) {
     }
     if(jj<2*kNChannels){
       MeanPed[jj] = readValues[0][jj];
-      printf("\t MeanPed[%d] = %1.1f\n",jj, MeanPed[jj]);
+      //printf("\t MeanPed[%d] = %1.1f\n",jj, MeanPed[jj]);
     }
     else if(jj>2*kNChannels){
       CorrCoeff0[jj-4*kNChannels] = readValues[0][jj]; 
@@ -290,6 +299,12 @@ int main(int argc, char **argv) {
 	        scSec[iScCh]     = rawStreamZDC->GetScTowerFromMap(iScCh);
 	        iScCh++;
 	      }
+	      else if(modType[iMod]==6 && modGeo[iMod]==4){ // ZDC TDC mapping --------------------
+	        tdcMod[itdcCh]     = rawStreamZDC->GetTDCModFromMap(itdcCh);
+	        tdcCh[itdcCh]      = rawStreamZDC->GetTDCChFromMap(itdcCh);
+	        tdcSigCode[itdcCh] = rawStreamZDC->GetTDCSignFromMap(itdcCh);
+	        itdcCh++;
+	      }
 	    }
  	  }
 	  // Writing data on output FXS file
@@ -304,6 +319,12 @@ int main(int argc, char **argv) {
 	       is,scMod[is],scCh[is],scSigCode[is],scDet[is],scSec[is]);
  	     //printf("  EMD DA -> %d Scaler: mod %d ch %d, code %d det %d, sec %d\n",
 	     //  is,scMod[is],scCh[is],scSigCode[is],scDet[is],scSec[is]);
+	  }
+	  for(Int_t is=0; is<kNScChannels; is++){
+	     fprintf(mapFile4Shuttle,"\t%d\t%d\t%d\t%d\n",
+	       is,tdcMod[is],tdcCh[is],tdcSigCode[is]);
+ 	     //if(tdcMod[is]!=-1) printf("  Mapping DA -> %d TDC: mod %d ch %d, code %d\n",
+	     //  is,tdcMod[is],tdcCh[is],tdcSigCode[is]);
 	  }
 	  for(Int_t is=0; is<kNModules; is++){
 	     fprintf(mapFile4Shuttle,"\t%d\t%d\t%d\n",
@@ -349,18 +370,19 @@ int main(int argc, char **argv) {
         rawStreamZDC->SetMapTow(jk, sec[jk]);
       }
       //
-      Float_t ZDCRawADC[4], ZDCCorrADC[4], ZDCCorrADCSum[4];
+/*      Float_t ZDCRawADC[4], ZDCCorrADC[4], ZDCCorrADCSum[4];
       for(Int_t g=0; g<4; g++){
            ZDCCorrADCSum[g] = 0.;
 	   ZDCRawADC[g] = 0.;
       }
+*/
       //
       while(rawStreamZDC->Next()){
-	Int_t det = rawStreamZDC->GetSector(0);
+	Int_t detID = rawStreamZDC->GetSector(0);
 	Int_t quad = rawStreamZDC->GetSector(1);
         
 	if(rawStreamZDC->IsADCDataWord() && !(rawStreamZDC->IsUnderflow())
-	     && !(rawStreamZDC->IsOverflow()) && det!=-1 && det!=3 
+	     && !(rawStreamZDC->IsOverflow()) && detID!=-1 && detID!=3 
 	     && (rawStreamZDC->GetADCGain() == 1 && // Selecting LOW RES ch.s
              rawStreamZDC->GetADCModule()>=kFirstADCGeo && rawStreamZDC->GetADCModule()<=kLastADCGeo)){
 	  
@@ -368,28 +390,37 @@ int main(int argc, char **argv) {
 	  Int_t DetIndex=999, PedIndex=999;
 	  // Not PMRef
 	  if(quad!=5){ 
-	    if(det == 1){
-	      DetIndex = det-1;
+	    if(detID == 1){
+	      DetIndex = detID-1;
 	      PedIndex = quad+kNChannels; 
 	    }
-	    else if(det==2){
-	      DetIndex = det-1;
+	    else if(detID==2){
+	      DetIndex = detID-1;
 	      PedIndex = quad+5+kNChannels;
 	    }
-	    else if(det == 4){
-	      DetIndex = det-2;
+	    else if(detID == 4){
+	      DetIndex = detID-2;
 	      PedIndex = quad+12+kNChannels;
 	    }
-	    else if(det == 5){
-	      DetIndex = det-2;
+	    else if(detID == 5){
+	      DetIndex = detID-2;
 	      PedIndex = quad+17+kNChannels;
 	    }
 	    // Mean pedestal subtraction 
 	    Float_t Pedestal = MeanPed[PedIndex];
 	    // Pedestal subtraction from correlation with out-of-time signals
 	    //Float_t Pedestal = CorrCoeff0[PedIndex]+CorrCoeff1[PedIndex]*MeanPedOOT[PedIndex];
-            //
+            
+	    // Run 2010 -> we decide to fit only PMCs
 	    if(DetIndex!=999 || PedIndex!=999){ 
+	      if(quad==0){ 
+	        Float_t corrADCval = (rawStreamZDC->GetADCValue()) - Pedestal;
+		if(detID==1 || detID==2) histoEMDCorr[detID-1]->Fill(corrADCval);
+		else if(detID==4 || detID==5) histoEMDCorr[detID-2]->Fill(corrADCval);
+	      }
+	    }
+
+/*	    if(DetIndex!=999 || PedIndex!=999){ 
 	      //
 	      ZDCRawADC[DetIndex] += (Float_t) rawStreamZDC->GetADCValue();
 	      //
@@ -397,24 +428,24 @@ int main(int argc, char **argv) {
 	      ZDCCorrADC[DetIndex] = (rawStreamZDC->GetADCValue()) - Pedestal;
 	      ZDCCorrADCSum[DetIndex] += ZDCCorrADC[DetIndex];
 	      //
-	      /*printf("\t det %d quad %d res %d pedInd %d "
-	         "Pedestal %1.0f -> ADCCorr = %d ZDCCorrADCSum = %d\n", 
-	         det,quad,rawStreamZDC->GetADCGain(),PedIndex,Pedestal, 
-	         (Int_t) ZDCCorrADC[DetIndex],(Int_t) ZDCCorrADCSum[DetIndex]);*/
+	      //printf("\t det %d quad %d res %d pedInd %d "
+	      //   "Pedestal %1.0f -> ADCCorr = %d ZDCCorrADCSum = %d\n", 
+	      //   detID,quad,rawStreamZDC->GetADCGain(),PedIndex,Pedestal, 
+	      //   (Int_t) ZDCCorrADC[DetIndex],(Int_t) ZDCCorrADCSum[DetIndex]);
 	      	      
 	    }
 	    // Not common PM 
 	    if(quad!=0){
 	      Float_t corrADCval = (rawStreamZDC->GetADCValue()) - Pedestal;
-	      if(det==1)      histZNCtow[quad-1]->Fill(corrADCval);
-	      else if(det==2) histZPCtow[quad-1]->Fill(corrADCval);
-	      else if(det==4) histZNAtow[quad-1]->Fill(corrADCval);
-	      else if(det==5) histZPAtow[quad-1]->Fill(corrADCval);
+	      if(detID==1)      histZNCtow[quad-1]->Fill(corrADCval);
+	      else if(detID==2) histZPCtow[quad-1]->Fill(corrADCval);
+	      else if(detID==4) histZNAtow[quad-1]->Fill(corrADCval);
+	      else if(detID==5) histZPAtow[quad-1]->Fill(corrADCval);
 	      //
 	      //printf("\t det %d tow %d fill histo w. value %1.0f\n", 
-	      //  det,quad,corrADCval);
+	      //  detID,quad,corrADCval);
 	    }
-
+*/
 	    if(DetIndex==999 || PedIndex==999) 
 	       printf(" WARNING! Detector a/o pedestal index are WRONG!!!\n");
  
@@ -428,10 +459,11 @@ int main(int argc, char **argv) {
        delete reader;
        delete rawStreamZDC;
        //
-       for(Int_t j=0; j<4; j++){
-          histoEMDRaw[j]->Fill(ZDCRawADC[j]);
+/*       for(Int_t j=0; j<4; j++){
+          //histoEMDRaw[j]->Fill(ZDCRawADC[j]);
           histoEMDCorr[j]->Fill(ZDCCorrADCSum[j]);
        }
+*/
     }//(if PHYSICS_EVENT)
       
     /* exit when last event received, no need to wait for TERM signal */
@@ -533,7 +565,7 @@ int main(int argc, char **argv) {
   fclose(fileShuttle2);
   
   for(Int_t ij=0; ij<4; ij++){
-    delete histoEMDRaw[ij];
+    //delete histoEMDRaw[ij];
     delete histoEMDCorr[ij];
   }
   

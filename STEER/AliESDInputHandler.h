@@ -26,12 +26,13 @@ class AliESDInputHandler : public AliInputEventHandler {
     AliESDInputHandler();
     AliESDInputHandler(const char* name, const char* title);
     virtual ~AliESDInputHandler();
-    virtual Bool_t       Init(Option_t* /*opt*/) {return kTRUE;}
+    virtual Bool_t       Init(Option_t* opt) {return AliInputEventHandler::Notify(opt);}
     virtual Bool_t       Init(TTree* tree, Option_t* opt);
     virtual Bool_t       BeginEvent(Long64_t entry);
-    virtual Bool_t       Notify() { return AliVEventHandler::Notify(); };
+    virtual Bool_t       Notify() { return AliInputEventHandler::Notify(); };
     virtual Bool_t       Notify(const char* path);
     virtual Bool_t       FinishEvent();
+    void                 CheckSelectionMask();
     AliESDEvent         *GetEvent()        const {return fEvent;}
     Option_t            *GetAnalysisType() const {return fAnalysisType;}
     Option_t            *GetDataType() const;
@@ -53,7 +54,6 @@ class AliESDInputHandler : public AliInputEventHandler {
     // Tag analysis
     void SetReadTags() {fUseTags = kTRUE;}
     AliRunTag           *GetRunTag() const {return fRunTag;}
-    
  private:
     AliESDInputHandler(const AliESDInputHandler& handler);             
     AliESDInputHandler& operator=(const AliESDInputHandler& handler);  
@@ -78,8 +78,6 @@ class AliESDInputHandler : public AliInputEventHandler {
     // Friends
     Bool_t          fReadFriends;   //  Flag for friends reading 
     TString         fFriendFileName;//  Name of the file containing the frien tree (branch)
-    
-
     ClassDef(AliESDInputHandler, 6);
 };
 

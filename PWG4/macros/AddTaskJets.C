@@ -134,7 +134,15 @@ AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf, Float_t radius,UInt_t f
 
    jetana = new AliAnalysisTaskJets(Form("JetAnalysis%s_%s%s",jr,jf,cRadius));
 
-
+   TString cAdd = "";
+   if(filterMask==32){
+     // this is the standard mask do not add anything
+     // should be changed after current train over all data is finished 
+     // now needed for merging
+   }
+   else{
+     cAdd += Form("_Filter%05d",filterMask);
+   }
 
    TString c_jr(jr);
    c_jr.ToLower();
@@ -145,17 +153,27 @@ AliAnalysisTaskJets *AddTaskJets(Char_t *jr, Char_t *jf, Float_t radius,UInt_t f
      // do nothing, this is the standard jet finder R = 0.4, UA1 on AOD
    }
    else{
-     jetana->SetNonStdBranch(Form("jets%s_%s%s",jr,jf,cRadius));
-   }
+     TString bName =  Form("jets%s_%s%s%s",jr,jf,cRadius,cAdd.Data());
+     jetana->SetNonStdBranch(bName.Data());
+     Printf("Set jet branchname \"%s\"",bName.Data());
+     
+ }
 
 
-   AliAnalysisDataContainer *cout_jet = mgr->CreateContainer(Form("jethist_%s_%s%s",c_jr.Data(),c_jf.Data(),cRadius), TList::Class(),
-							     AliAnalysisManager::kOutputContainer, Form("%s:PWG4_jethist_%s_%s%s",AliAnalysisManager::GetCommonFileName(),
-							     c_jr.Data(),c_jf.Data(),cRadius));
-   /*
-   AliAnalysisDataContainer *cout_jet = mgr->CreateContainer(Form("jethist_%s_%s%s",c_jr.Data(),c_jf.Data(),cRadius), TList::Class(),
-							     AliAnalysisManager::kOutputContainer,"ckb_test.root");
-   */
+   AliAnalysisDataContainer *cout_jet = mgr->CreateContainer(
+							     Form("jethist_%s_%s%s%s",
+								  c_jr.Data(),
+								  c_jf.Data(),
+								  cRadius,
+								  cAdd.Data()), 
+							     TList::Class(),
+							     AliAnalysisManager::kOutputContainer, 
+							     Form("%s:PWG4_jethist_%s_%s%s",AliAnalysisManager::GetCommonFileName(),
+								  c_jr.Data(),
+								  c_jf.Data(),
+								  cRadius,
+								  cAdd.Data()));
+
    // Connect jet finder to task.
    jetana->SetJetFinder(jetFinder);
    jetana->SetConfigFile("");
@@ -270,7 +288,7 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
     jh->BackgMode(0);
     jh->SetRadius(0.4);
     if(radius>0)jh->SetRadius(radius);
-    jh->SetEtSeed(4.);
+    jh->SetEtSeed(2.);
     jh->SetNAcceptJets(6);
     jh->SetLegoNbinPhi(432);
     jh->SetLegoNbinEta(274);
@@ -334,14 +352,14 @@ AliJetFinder *CreateJetFinder(Char_t *jf,Float_t radius){
 
 AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
   AliJetReader *er = 0;
-
+  const Float_t ptCut  = 0.15 ; // cut on track p_T
   switch (jr) {
   case "MC":
     AliJetKineReaderHeader *jrh = new AliJetKineReaderHeader();
     jrh->SetComment("MC full Kinematics");
     jrh->SetFastSimTPC(kFALSE);
     jrh->SetFastSimEMCAL(kFALSE);
-    jrh->SetPtCut(0.);
+    jrh->SetPtCut(ptCut);
     jrh->SetFiducialEta(-2.1,2.1); // to take all MC particles default is 0 .9                                                                             
     // Define reader and set its header                                     
     er = new AliJetKineReader();
@@ -353,7 +371,7 @@ AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
     jrh->SetFastSimTPC(kFALSE);
     jrh->SetFastSimEMCAL(kFALSE);
     jrh->SetChargedOnly(kTRUE);
-    jrh->SetPtCut(0.);
+    jrh->SetPtCut(ptCut);
     jrh->SetFiducialEta(-2.1,2.1); // to take all MC particles default is 0 .9                                                                             
     // Define reader and set its header                                     
     er = new AliJetKineReader();
@@ -362,9 +380,9 @@ AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
   case "ESD":
     AliJetESDReaderHeader *jrh = new AliJetESDReaderHeader();
     jrh->SetComment("Testing");
-    jrh->SetFirstEvent(0);
+    jrh->SetFirstEvent(0.);
     jrh->SetLastEvent(1000);
-    jrh->SetPtCut(0.);
+    jrh->SetPtCut(ptCut);
     jrh->SetReadSignalOnly(kFALSE);
     // Define reader and set its header                                     
     er = new AliJetESDReader();
@@ -374,8 +392,8 @@ AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
   case "AOD":
     AliJetAODReaderHeader *jrh = new AliJetAODReaderHeader();
     jrh->SetComment("AOD Reader");
-    jrh->SetPtCut(0.);
-    jrh->SetTestFilterMask(16); // Change this one for a different set of cuts
+    jrh->SetPtCut(0.15); // set low p_T cut of to 150 MeV
+    jrh->SetTestFilterMask(32); // Change this one for a different set of cuts
     if(filterMask>0)jrh->SetTestFilterMask(filterMask); 
     // Define reader and set its header
     er = new AliJetAODReader();
@@ -384,7 +402,7 @@ AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
   case "AODMC":
     AliJetAODReaderHeader *jrh = new AliJetAODReaderHeader();
     jrh->SetComment("AOD MC Reader");
-    jrh->SetPtCut(0.);
+    jrh->SetPtCut(ptCut);
     jrh->SetFiducialEta(-2.1,2.1); // to take all MC particles default is 0.9
     jrh->SetReadAODMC(1);// 1 all primary MC , 2 all primary charged
     // Define reader and set its header
@@ -394,7 +412,7 @@ AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
   case "AODMC2":
     AliJetAODReaderHeader *jrh = new AliJetAODReaderHeader();
     jrh->SetComment("AOD MC Reader");
-    jrh->SetPtCut(0.);
+    jrh->SetPtCut(ptCut);
     jrh->SetFiducialEta(-2.1,2.1); // to take all MC particles default is 0.9
     jrh->SetReadAODMC(2);// 1 all primary MC , 2 all primary charged
     // Define reader and set its header
@@ -404,7 +422,7 @@ AliJetReader *CreateJetReader(Char_t *jr,UInt_t filterMask){
   case "AODMC2b":
     AliJetAODReaderHeader *jrh = new AliJetAODReaderHeader();
     jrh->SetComment("AOD MC Reader");
-    jrh->SetPtCut(0.);
+    jrh->SetPtCut(ptCut);
     jrh->SetFiducialEta(-0.9,0.9); // to take all MC particles default is 0.9
     jrh->SetReadAODMC(2);// 1 all primary MC , 2 all primary charged
     // Define reader and set its header

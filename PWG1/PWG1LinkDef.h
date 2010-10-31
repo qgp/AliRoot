@@ -82,6 +82,7 @@
 
 // TRD performance classes
 #pragma link C++ class  AliTenderSupplyTRD+;
+#pragma link C++ class  AliTRDpwg1Helper+;
 #pragma link C++ class  AliTRDtrendValue+;
 #pragma link C++ class  AliTRDtrendingManager+;
 #pragma link C++ class  AliTRDclusterInfo+;
@@ -110,9 +111,16 @@
 #pragma link C++ class  AliTRDpidRefMaker+;
 #pragma link C++ class  AliTRDpidRefMakerLQ+;
 #pragma link C++ class  AliTRDpidRefMakerNN+;
+// TOF QA
+#pragma link C++ class  AliAnalysisTaskTOFqa+;
+// HMPID QA
+#pragma link C++ class  AliHMPIDTaskQA+;
 // Cosmics QA
 #pragma link C++ class  AliAnalysisTaskCosmic+;
 // Background and luminosity studies
 #pragma link C++ class  AliAnalysisTaskBGvsTime+;
 #pragma link C++ class  AliHistoListWrapper+;
+// CDB connect
+#pragma link C++ class  AliTaskCDBconnect+;
+
 #endif

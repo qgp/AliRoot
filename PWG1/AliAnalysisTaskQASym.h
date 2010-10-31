@@ -1,3 +1,6 @@
+// Analysis task for basic QA exploiting symmetries
+//of global, TPC, and ITS tracks
+
 #ifndef ALIANALYSISTASKQASYM_H
 #define ALIANALYSISTASKQASYM_H
  
@@ -23,9 +26,15 @@ class AliAnalysisTaskQASym : public AliAnalysisTaskSE {
   virtual void   UserCreateOutputObjects();
   virtual void   UserExec(Option_t *option);
   virtual void   Terminate(Option_t *);
-  virtual void   SetTrackType(Int_t type) {fTrackType = type;}  
+  virtual void   SetTrackType(Int_t type) {fTrackType = type;}  // set the track type: global, its and tpc
   virtual void   SetStandAloneTrack(Bool_t standAlone = kFALSE) {fStandAlone = standAlone;}  //needed for ITS tracks
-  
+
+  virtual void   SetNChargedRange(Int_t low = 0, Int_t high=1.0*1e7)//set multiplicity region of analysis
+                                                                    // in order to compare different trigger settings
+  {
+    fLow  = low;
+    fHigh = high;
+  } 
   
   virtual void   SetCuts(AliESDtrackCuts* cuts)
      {fCuts = cuts;}
@@ -36,7 +45,9 @@ class AliAnalysisTaskQASym : public AliAnalysisTaskSE {
  private:
 
   Int_t       fTrackType;       // track type
-  Int_t       fStandAlone;      // needed for ITS tracks
+  Bool_t      fStandAlone;      // needed for ITS tracks
+  Int_t       fLow;             // low Ncharges cut
+  Int_t       fHigh;            // high Ncharges cut
   Bool_t      fFieldOn;         // field status
 
   TList       *fHists;          // List of histos
@@ -44,12 +55,18 @@ class AliAnalysisTaskQASym : public AliAnalysisTaskSE {
   //old
   TH1F        *fHistRECpt;      // pt 
   TH1F        *fEta;            // eta
+
+  TH1F        *fEtaWidth;       // eta of tracks in Nch range (fLow <= Ncharged <= fHigh)
+  TH1F        *fPhiWidth;       // phi of tracks in Nch range (fLow <= Ncharged <= fHigh)
+  TH1F        *fDcaWidth;       // dca of tracks in Nch range (fLow <= Ncharged <= fHigh)
+  TH1F        *fPtWidth;        // pt of tracks in Nch range (fLow <= Ncharged <= fHigh)
+
   TH2F        *fEtaPhi;         // eta-phi
   TH1F        *fEtaPt;          // eta over pt 
   TH1F        *fQPt;            // charge over pt 
   TH1F        *fDca;            // distance of closest approach
   TH1F        *fqRec;           // reconstrcuted charge
-  TH1F        *fsigmaPt;        // sigma_pT
+  TH1F        *fSigmaPtHist;    // sigma_pT
 
    //positive und negative tracks
   TH1F        *fRecPtPos;      // pt of pos tracks
@@ -102,12 +119,15 @@ class AliAnalysisTaskQASym : public AliAnalysisTaskSE {
   TH1F * fPhiRec;              //phi
   TH1F * fThetaRec;            //theta
   TH1F * fNumber;              //Number of tracks per event
+  TH1F * fNumberAfterCut;      //Number of tracks per event after cuts
   TH1F * fVx;                  // x of first track point
   TH1F * fVy;                  // y of first track point
   TH1F * fVz;                  // z of first track point
   TH1F * fVertexX;             // x of vertex
   TH1F * fVertexY;             // y of vertex
   TH1F * fVertexZ;             // z of vertex
+  TH1F * fNVertexSPD;          //number of vertices SPD
+  TH1F * fNVertexTracks;       //number of vertices of Tracks
 
   //new
   TH2F        *fRecDcaPosPhi;     //dca-phi for pos.
@@ -156,8 +176,13 @@ class AliAnalysisTaskQASym : public AliAnalysisTaskSE {
   //  TH3F        *fRecDcaPhiPtNegEtaNeg; //dca-pt-phi for neg tracks and neg eta
 
   TH2F        *fEtavPt;                 // eta vs pt 
+  TH2F        *fPhivPt;                 // phi vs pt 
+
   TH2F        *fCompareTPCparam;        // TPC param
+
   TH1F        *fITSlayer;               // ITS layer
+  TH2F        *fITSlayerEta;            // ITS layer vs eta
+  TH2F        *fITSlayerPhi;            // ITS layer vs phi
 
   AliESDtrackCuts* fCuts;               // List of cuts
 
@@ -184,6 +209,11 @@ class AliAnalysisTaskQASym : public AliAnalysisTaskSE {
   TH1F        *fqPtRec[7];          // charge/pt 
   TH2F        *fDcaSigmaPos[7];     // dca - sigma_pT for pos tracks
   TH2F        *fDcaSigmaNeg[7];     // dca - sigma_pT for neg tracks
+
+  TH1F        *fEtaBinPt[3][2];      // eta histogram for different pt bins and different charges
+  TH1F        *fPhiBinPt[3][2];      // phi histogram for different pt bins and different charges
+  TH1F        *fDcaBinPt[3][2];      // dca histogram for different pt bins and different charges
+  TH2F        *fEtaPhiBinPt[3][2];   // eta-phi histogram for different pt bins and different charges
 
   
   

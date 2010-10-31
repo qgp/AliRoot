@@ -14,7 +14,8 @@ AliFMDAnaCalibBackgroundCorrection::AliFMDAnaCalibBackgroundCorrection() : TObje
 									   fArray(),
 									   fAxis(),
 									   fIsInit(kFALSE),
-									   fListOfDoubleHitCorrection()
+									   fListOfDoubleHitCorrection(),
+									   fListOfNSDBgMaps()
 {
   
   
@@ -24,7 +25,7 @@ AliFMDAnaCalibBackgroundCorrection::AliFMDAnaCalibBackgroundCorrection() : TObje
 
 //____________________________________________________________________
 AliFMDAnaCalibBackgroundCorrection::AliFMDAnaCalibBackgroundCorrection(const AliFMDAnaCalibBackgroundCorrection& o)
-  : TObject(o), fArray(o.fArray), fAxis(o.fAxis), fIsInit(o.fIsInit), fListOfDoubleHitCorrection()
+  : TObject(o), fArray(o.fArray), fAxis(o.fAxis), fIsInit(o.fIsInit), fListOfDoubleHitCorrection(), fListOfNSDBgMaps()
 {
   // Copy ctor 
 }
@@ -47,7 +48,24 @@ TH2F* AliFMDAnaCalibBackgroundCorrection::GetBgCorrection(Int_t det,
   TH2F* hCorrection    = (TH2F*)ringArray->At(vtxbin);
   return hCorrection;
 }
-
+//____________________________________________________________________
+void AliFMDAnaCalibBackgroundCorrection::SetNSDBgCorrection(Int_t det, 
+							    Char_t ring, 
+							    Int_t vtxbin, 
+							    TH2F* hCorrection) {
+  if(!fIsInit)
+    Init();
+  hCorrection->SetName(Form("FMDNSD%d%c_vtxbin_%d_correction",det,ring,vtxbin));
+  fListOfNSDBgMaps.Add(hCorrection);
+    
+}
+//____________________________________________________________________
+TH2F* AliFMDAnaCalibBackgroundCorrection::GetNSDBgCorrection(Int_t det, 
+							     Char_t ring, 
+							     Int_t vtxbin) {
+  TH2F* hCorrection    = (TH2F*)fListOfNSDBgMaps.FindObject(Form("FMDNSD%d%c_vtxbin_%d_correction",det,ring,vtxbin));
+  return hCorrection;
+}
 //____________________________________________________________________
 void AliFMDAnaCalibBackgroundCorrection::SetBgCorrection(Int_t det, 
 							 Char_t ring, 
@@ -89,6 +107,21 @@ void AliFMDAnaCalibBackgroundCorrection::SetSPDDeadCorrection(Int_t vtxbin,
   hCorrection->SetName(Form("hSPDDeadCorrection_vtx%d",vtxbin));
   fListOfDoubleHitCorrection.Add(hCorrection);    
 }
+
+//____________________________________________________________________
+TH1F* AliFMDAnaCalibBackgroundCorrection::GetFMDDeadCorrection(Int_t  vtxbin) {
+  
+  TH1F* hCorrection    = (TH1F*)fListOfDoubleHitCorrection.FindObject(Form("hFMDDeadCorrection_vtx%d",vtxbin));
+  return hCorrection;
+}
+
+//____________________________________________________________________
+void AliFMDAnaCalibBackgroundCorrection::SetFMDDeadCorrection(Int_t vtxbin, 
+							      TH1F* hCorrection) {
+  hCorrection->SetName(Form("hFMDDeadCorrection_vtx%d",vtxbin));
+  fListOfDoubleHitCorrection.Add(hCorrection);    
+}
+
 //____________________________________________________________________
 void AliFMDAnaCalibBackgroundCorrection::SetRefAxis(TAxis* axis) {
   

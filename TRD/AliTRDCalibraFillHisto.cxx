@@ -68,6 +68,7 @@
 #include "AliRawReaderDate.h"
 #include "AliTRDgeometry.h"
 #include "./Cal/AliTRDCalROC.h"
+#include "./Cal/AliTRDCalPad.h"
 #include "./Cal/AliTRDCalDet.h"
 
 #include "AliTRDrawFastStream.h"
@@ -78,6 +79,8 @@
 
 #include "AliTRDrawStream.h"
 
+#include "AliCDBEntry.h"
+#include "AliCDBManager.h"
 
 #ifdef ALI_DATE
 #include "event.h"
@@ -147,6 +150,8 @@ AliTRDCalibraFillHisto::AliTRDCalibraFillHisto()
   ,fNbMaxCluster(0)
   ,fVersionGainUsed(0)
   ,fSubVersionGainUsed(0)
+  ,fVersionGainLocalUsed(0)
+  ,fSubVersionGainLocalUsed(0)
   ,fVersionVdriftUsed(0) 
   ,fSubVersionVdriftUsed(0)
   ,fCalibraMode(new AliTRDCalibraMode())
@@ -224,6 +229,8 @@ AliTRDCalibraFillHisto::AliTRDCalibraFillHisto(const AliTRDCalibraFillHisto &c)
   ,fNbMaxCluster(c.fNbMaxCluster)
   ,fVersionGainUsed(c.fVersionGainUsed)
   ,fSubVersionGainUsed(c.fSubVersionGainUsed)
+  ,fVersionGainLocalUsed(c.fVersionGainLocalUsed)
+  ,fSubVersionGainLocalUsed(c.fSubVersionGainLocalUsed)
   ,fVersionVdriftUsed(c.fVersionVdriftUsed) 
   ,fSubVersionVdriftUsed(c.fSubVersionVdriftUsed)
   ,fCalibraMode(0x0)
@@ -291,6 +298,12 @@ AliTRDCalibraFillHisto::AliTRDCalibraFillHisto(const AliTRDCalibraFillHisto &c)
   }
   fGeo = new AliTRDgeometry();
   fCalibDB = AliTRDcalibDB::Instance();
+
+  fNumberUsedCh[0]       = 0;
+  fNumberUsedCh[1]       = 0;
+  fNumberUsedPh[0]       = 0;
+  fNumberUsedPh[1]       = 0;
+
 }
 
 //____________________________________________________________________________________
@@ -410,12 +423,6 @@ Bool_t AliTRDCalibraFillHisto::Init2Dhistos(Int_t nboftimebin)
     fLinearFitterTracklet->StoreData(kTRUE);
   }
 
-  //calib object from database used for reconstruction
-  if( fCalDetGain ){ 
-    fCalDetGain->~AliTRDCalDet();
-    new(fCalDetGain) AliTRDCalDet(*(cal->GetGainFactorDet()));
-  }else fCalDetGain = new AliTRDCalDet(*(cal->GetGainFactorDet()));
-  
   // Calcul Xbins Chambd0, Chamb2
   Int_t ntotal0 = CalculateTotalNumberOfBins(0);
   Int_t ntotal1 = CalculateTotalNumberOfBins(1);
@@ -512,6 +519,98 @@ Bool_t AliTRDCalibraFillHisto::Init2Dhistos(Int_t nboftimebin)
   return kTRUE;
 
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Bool_t AliTRDCalibraFillHisto::InitCalDet()
+{
+  //
+  // Init the Gain Cal Det 
+  //
+
+  // DB Setting
+  // Get cal
+  AliCDBEntry *entry = AliCDBManager::Instance()->Get("TRD/Calib/ChamberGainFactor",AliCDBManager::Instance()->GetRun(),fVersionGainUsed,fSubVersionGainUsed);
+  if(!entry) {
+    AliError("No gain det calibration entry found");
+    return kFALSE;
+  }
+  AliTRDCalDet *calDet = (AliTRDCalDet *)entry->GetObject();
+  if(!calDet) {
+    AliError("No calDet gain found");
+    return kFALSE;
+  }
+   
+
+  if( fCalDetGain ){ 
+    fCalDetGain->~AliTRDCalDet();
+    new(fCalDetGain) AliTRDCalDet(*(calDet));
+  }else fCalDetGain = new AliTRDCalDet(*(calDet));
+  
+  
+  // title CH2d
+  TString name("Ver");
+  name += fVersionGainUsed;
+  name += "Subver";
+  name += fSubVersionGainUsed;
+  name += "Nz";
+  name += fCalibraMode->GetNz(0);
+  name += "Nrphi";
+  name += fCalibraMode->GetNrphi(0);
+
+  fCH2d->SetTitle(name);  
+  
+  // title PH2d
+  TString namee("Ver");
+  namee += fVersionVdriftUsed;
+  namee += "Subver";
+  namee += fSubVersionVdriftUsed;
+  namee += "Nz";
+  namee += fCalibraMode->GetNz(1);
+  namee += "Nrphi";
+  namee += fCalibraMode->GetNrphi(1);
+  
+  fPH2d->SetTitle(namee);  
+
+
+  return kTRUE;
+
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Bool_t AliTRDCalibraFillHisto::InitCalPad(Int_t detector)
+{
+  //
+  // Init the Gain Cal Pad 
+  //
+
+  // DB Setting
+  // Get cal
+  AliCDBEntry *entry = AliCDBManager::Instance()->Get("TRD/Calib/LocalGainFactor",AliCDBManager::Instance()->GetRun(),fVersionGainLocalUsed,fSubVersionGainLocalUsed);
+  if(!entry) {
+    AliError("No gain pad calibration entry found");
+    return kFALSE;
+  }
+  AliTRDCalPad *calPad = (AliTRDCalPad *)entry->GetObject();
+  if(!calPad) {
+    AliError("No calPad gain found");
+    return kFALSE;
+  }
+  AliTRDCalROC *calRoc = (AliTRDCalROC *)calPad->GetCalROC(detector);
+  if(!calRoc) {
+    AliError("No calRoc gain found");
+    return kFALSE;
+  }
+  
+  if( fCalROCGain ){ 
+    fCalROCGain->~AliTRDCalROC();
+    new(fCalROCGain) AliTRDCalROC(*(calRoc));
+  }else fCalROCGain = new AliTRDCalROC(*(calRoc));
+  
+
+  
+ 
+  
+  return kTRUE;
+
+}
 //____________Offline tracking in the AliTRDtracker____________________________
 Bool_t AliTRDCalibraFillHisto::UpdateHistograms(const AliTRDtrack *t)
 {
@@ -588,12 +687,7 @@ Bool_t AliTRDCalibraFillHisto::UpdateHistograms(const AliTRDtrack *t)
       }
       
       // Get calib objects
-      if( fCalROCGain ){ 
-	if(!fIsHLT){
-	  fCalROCGain->~AliTRDCalROC();
-	  new(fCalROCGain) AliTRDCalROC(*(cal->GetGainFactorROC(detector)));
-	}
-      }else fCalROCGain = new AliTRDCalROC(*(cal->GetGainFactorROC(detector)));
+      if(!fIsHLT) InitCalPad(detector);
       
     }
     
@@ -705,13 +799,8 @@ Bool_t AliTRDCalibraFillHisto::UpdateHistogramsV1(const AliTRDtrackV1 *t)
       //Localise the detector bin
       LocalisationDetectorXbins(detector);
       // Get calib objects
-      if( fCalROCGain ){ 
-	if(!fIsHLT){	
-	  fCalROCGain->~AliTRDCalROC();
-	  new(fCalROCGain) AliTRDCalROC(*(fCalibDB->GetGainFactorROC(detector)));
-	}
-      }else fCalROCGain = new AliTRDCalROC(*(fCalibDB->GetGainFactorROC(detector)));
-      
+      if(!fIsHLT) InitCalPad(detector);	
+            
       // reset
       fDetectorPreviousTrack = detector;
     }
@@ -966,7 +1055,8 @@ Bool_t AliTRDCalibraFillHisto::FindP1TrackPHtrackletV1(const AliTRDseedV1 *track
   // Check no shared clusters
   //////////////////////////////
   for(int icc=AliTRDseedV1::kNtb; icc<AliTRDseedV1::kNclusters; icc++){
-    if((cl = tracklet->GetClusters(icc)))  crossrow = 1;
+    cl = tracklet->GetClusters(icc);
+    if(cl)  crossrow = 1;
   }
   //////////////////////////////////
   // Loop clusters
@@ -1447,9 +1537,11 @@ Bool_t AliTRDCalibraFillHisto::HandlePRFtrackletV1(const AliTRDseedV1 *tracklet,
   for(int ic=0; ic<AliTRDseedV1::kNtb; ic++){
     // reject shared clusters on pad row
     if((ic+AliTRDseedV1::kNtb) < AliTRDseedV1::kNclusters) {
-      if((cl = tracklet->GetClusters(ic+AliTRDseedV1::kNtb))) continue;
+      cl = tracklet->GetClusters(ic+AliTRDseedV1::kNtb);
+      if(cl) continue;
     }
-    if(!(cl = tracklet->GetClusters(ic))) continue;
+    cl = tracklet->GetClusters(ic);
+    if(!cl) continue;
     Double_t     time  = cl->GetPadTime();
     if((time<=7) || (time>=21)) continue;
     Short_t  *signals  = cl->GetSignals(); 
@@ -1513,9 +1605,11 @@ Bool_t AliTRDCalibraFillHisto::HandlePRFtrackletV1(const AliTRDseedV1 *tracklet,
   //////////////////////////////////////////////
   for(int ic=0; ic<AliTRDseedV1::kNtb; ic++){
     // reject shared clusters on pad row
-    if(((ic+AliTRDseedV1::kNtb) < AliTRDseedV1::kNclusters) && (cl = tracklet->GetClusters(ic+AliTRDseedV1::kNtb))) continue;
+    cl = tracklet->GetClusters(ic+AliTRDseedV1::kNtb);
+    if(((ic+AliTRDseedV1::kNtb) < AliTRDseedV1::kNclusters) && (cl)) continue;
     //
-    if(!(cl = tracklet->GetClusters(ic))) continue;
+    cl = tracklet->GetClusters(ic);
+    if(!cl) continue;
 
     Short_t  *signals      = cl->GetSignals();              // signal
     Double_t     time      = cl->GetPadTime();         // time bin
@@ -3163,20 +3257,15 @@ Double_t *AliTRDCalibraFillHisto::StatH(TH2 *h, Int_t i)
 
     //Debug
     if(i > 1){
-      if((!((Bool_t)nbEntries)) && (nentries > 0)){
-	nbEntries = new TH1F("Number of entries","Number of entries"
-                               ,100,(Int_t)nentries/2,nentries*2);
+      if(nentries > 0){
+	if(!((Bool_t)nbEntries)) nbEntries = new TH1F("Number of entries","Number of entries",100,(Int_t)nentries/2,nentries*2);
 	nbEntries->SetDirectory(0);
-	nbEntriesPerGroup = new TH1F("Number of entries per group","Number of entries per group"
-                               ,nbins,0,nbins);
+	nbEntries->Fill(nentries);
+	if(!((Bool_t)nbEntriesPerGroup)) nbEntriesPerGroup = new TH1F("Number of entries per group","Number of entries per group",nbins,0,nbins);
 	nbEntriesPerGroup->SetDirectory(0);
-	nbEntriesPerSp = new TProfile("Number of entries per supermodule","Number of entries per supermodule"
-                               ,(Int_t)(nbins/18),0,(Int_t)(nbins/18));
-	nbEntriesPerSp->SetDirectory(0);
-      }
-      if(nbEntries){
-	if(nentries > 0) nbEntries->Fill(nentries);
 	nbEntriesPerGroup->Fill(idect+0.5,nentries);
+	if(!((Bool_t)nbEntriesPerSp)) nbEntriesPerSp = new TProfile("Number of entries per supermodule","Number of entries per supermodule",(Int_t)(nbins/18),0,(Int_t)(nbins/18));
+	nbEntriesPerSp->SetDirectory(0);
 	nbEntriesPerSp->Fill((idect%((Int_t)(nbins/18)))+0.5,nentries);
       }
     }
@@ -3217,7 +3306,7 @@ Double_t *AliTRDCalibraFillHisto::StatH(TH2 *h, Int_t i)
   info[5] = meanstats;
   info[6] = meanrelativerror;
 
-  if(i > 1){
+  if(nbEntries && nbEntriesPerSp && nbEntriesPerGroup){
     gStyle->SetPalette(1);
     gStyle->SetOptStat(1111);
     gStyle->SetPadBorderMode(0);
@@ -3251,12 +3340,13 @@ Double_t *AliTRDCalibraFillHisto::GetMeanMedianRMSNumberCH()
   // 3 number of group with entries
   //
 
-  Double_t *stat      = new Double_t[4]; 
+  Double_t *stat = new Double_t[4];
   stat[3]             = 0.0;
 
   Int_t    nbofgroups = CalculateTotalNumberOfBins(0);
-  Double_t *weight    = new Double_t[nbofgroups];
-  Int_t    *nonul     = new Int_t[nbofgroups];
+  
+  Double_t *weight = new Double_t[nbofgroups];
+  Double_t *nonul = new Double_t[nbofgroups];
  
   for(Int_t k = 0; k < nbofgroups; k++){
     if(fEntriesCH[k] > 0) {
@@ -3269,6 +3359,9 @@ Double_t *AliTRDCalibraFillHisto::GetMeanMedianRMSNumberCH()
   stat[0]          = TMath::Mean(nbofgroups,fEntriesCH,weight); 
   stat[1]          = TMath::Median(nbofgroups,fEntriesCH,weight); 
   stat[2]          = TMath::RMS((Int_t)stat[3],nonul); 
+
+  delete [] weight;
+  delete [] nonul;
 
   return stat;
 
@@ -3302,6 +3395,9 @@ Double_t *AliTRDCalibraFillHisto::GetMeanMedianRMSNumberLinearFitter() const
   stat[0]          = TMath::Mean(nbofgroups,fEntriesLinearFitter,weight); 
   stat[1]          = TMath::Median(nbofgroups,fEntriesLinearFitter,weight); 
   stat[2]          = TMath::RMS((Int_t)stat[3],nonul); 
+
+  delete [] weight;
+  delete [] nonul;
 
   return stat;
 
@@ -3556,4 +3652,6 @@ void AliTRDCalibraFillHisto::AnalyseLinearFitter()
     }
   }
 }
+
+
 

@@ -3,6 +3,7 @@
 
 
 CLASS_HDRS:=  	AliHLTTPCTransform.h \
+		AliHLTTPCClusterTransformation.h \
 		AliHLTTPCAgent.h \
 		AliHLTTPCMemHandler.h \
 		AliHLTTPCDataCompressorHelper.h \
@@ -16,6 +17,7 @@ CLASS_HDRS:=  	AliHLTTPCTransform.h \
 		AliHLTTPCDigitReaderDecoder.h \
 		AliHLTTPCDigitReader32Bit.h \
 		AliHLTTPCDigitDumpComponent.h \
+		AliHLTTPCDataCheckerComponent.h \
 		AliHLTTPCZeroSuppressionComponent.h \
 		AliHLTTPCNoiseMap.h \
 		AliHLTTPCNoiseMapComponent.h \

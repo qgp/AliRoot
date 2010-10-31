@@ -44,6 +44,7 @@
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
+ClassImp(AliHLTPHOSDigitMakerComponent);
 
 AliHLTPHOSDigitMakerComponent gAliHLTPHOSDigitMakerComponent;
 
@@ -121,8 +122,6 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
   Int_t digitCount        = 0;
   Int_t ret               = 0;
 
-  AliHLTUInt8_t* outBPtr;
-  outBPtr = outputPtr;
   const AliHLTComponentBlockData* iter = 0; 
   unsigned long ndx; 
 
@@ -165,7 +164,7 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
 	 {
 	    for(Int_t z = 0; z < fCaloConstants->GetNZROWSMOD(); z++)
 	    {
-		fDigitMakerPtr->SetGain(x, z, fCalibData->GetHighLowRatioEmc(module, z+1, x+1), fCalibData->GetADCchannelEmc(module, z+1, x+1));
+		fDigitMakerPtr->SetGain(x, z, fCalibData->GetHighLowRatioEmc(5-module, z+1, x+1), fCalibData->GetADCchannelEmc(5-module, z+1, x+1));
 	    }
 	 }
 	 fGainsInitialised = true;
@@ -177,7 +176,7 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
       ret = fDigitMakerPtr->MakeDigits(tmpChannelData, size-(digitCount*sizeof(AliHLTCaloDigitDataStruct)));
       if(ret == -1) 
 	{
-//	  HLTError("Trying to write over buffer size");
+	  HLTError("Trying to write over buffer size");
 	  return -ENOBUFS;
 	}
       digitCount += ret; 
@@ -185,7 +184,7 @@ AliHLTPHOSDigitMakerComponent::DoEvent(const AliHLTComponentEventData& evtData, 
   
   mysize += digitCount*sizeof(AliHLTCaloDigitDataStruct);
 
-  //HLTDebug("# of digits: %d, used memory size: %d, available size: %d", digitCount, mysize, size);
+  HLTDebug("# of digits: %d, used memory size: %d, available size: %d", digitCount, mysize, size);
 
   if(mysize > 0) 
     {
@@ -266,7 +265,7 @@ int AliHLTPHOSDigitMakerComponent::GetBCMFromCDB()
 	}
       else
 	{
-//	    HLTError("can not fetch object \"%s\" from CDB", path);
+	    HLTError("can not fetch object \"%s\" from CDB", path.GetPath().Data());
 	    return -1;
 	}
     }
@@ -291,7 +290,7 @@ int AliHLTPHOSDigitMakerComponent::GetGainsFromCDB()
 	}
       else	
 	{
-//	    HLTError("can not fetch object \"%s\" from CDB", path);
+	    HLTError("can not fetch object \"%s\" from CDB", path.GetPath().Data());
 	    return -1;
 	}
     }

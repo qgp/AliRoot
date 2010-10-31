@@ -194,91 +194,96 @@ void AliTRDarraySignal::Compress(Float_t minval)
   Int_t newDim=0;
   Int_t j;                 
   Int_t r=0;
-  Int_t *longArr;
-  longArr = new Int_t[fNdim];  
   Int_t k=0;
 
-  //Initialize the array
-  memset(longArr,0,sizeof(Int_t)*fNdim);
+  Int_t *longArr = new Int_t[fNdim];  
 
-  for(Int_t i=0;i<fNdim; i++)
-    {
-      j=0;
-      if(fSignal[i]<=minval) 
-	{
-	  for(k=i;k<fNdim;k++)
-	    {
-	      if(fSignal[k]<=minval)
-		{
-		  j=j+1;
-		  longArr[r]=j;
-		}
-	      else
-		{
-		  break;
-		}
-	    } 
-	  r=r+1;          
-	}
-      i=i+j;
-    }
-
-  //Calculate the size of the compressed array
-  for(Int_t i=0; i<fNdim;i++)
-    {
-      if(longArr[i]!=0)   
-	{
-	  counter=counter+longArr[i]-1;
-	}
-    }
-  newDim=fNdim-counter;   //New dimension
-
-  //Fill the buffer of the compressed array
-  Float_t* buffer;
-  buffer = new Float_t[newDim];
-  Int_t counterTwo=0;
-
-  //Write the new array
-  Int_t g=0;
-  for(Int_t i=0; i<newDim; i++)
-    {
-      if(counterTwo<fNdim)
-	{
-	  if(fSignal[counterTwo]>minval)   
-	    {
-	      buffer[i]=fSignal[counterTwo];
-	    }
-	  if(fSignal[counterTwo]<=minval)   
-	    {
-	      buffer[i]=-(longArr[g]);
-	      counterTwo=counterTwo+longArr[g]-1;
-	      g++;
-	    }  
-	  counterTwo++;
-	}
-    }
-
-  //Copy the buffer
-  if(fSignal)
-    {
-      delete [] fSignal;
-      fSignal=0;
-    }
-  fSignal = new Float_t[newDim];
-  fNdim = newDim;
-  for(Int_t i=0; i<newDim; i++)
-    {
-      fSignal[i] = buffer[i]; 
-    }
-  if(buffer)
-    {
-      delete [] buffer;
-      buffer=0;
-    } 
   if(longArr) 
     {
+
+      //Initialize the array
+      memset(longArr,0,sizeof(Int_t)*fNdim);
+
+      for(Int_t i=0;i<fNdim; i++)
+        {
+          j=0;
+          if(fSignal[i]<=minval) 
+	    {
+	      for(k=i;k<fNdim;k++)
+	        {
+	          if(fSignal[k]<=minval)
+		    {
+		      j=j+1;
+		      longArr[r]=j;
+	  	    }
+	          else
+		    {
+		      break;
+		    }
+	        } 
+	      r=r+1;          
+	    }
+          i=i+j;
+        }
+
+      //Calculate the size of the compressed array
+      for(Int_t i=0; i<fNdim;i++)
+        {
+          if(longArr[i]!=0)   
+	    {
+	      counter=counter+longArr[i]-1;
+	    }
+        }
+      newDim=fNdim-counter;   //New dimension
+
+      //Fill the buffer of the compressed array
+      Float_t* buffer = new Float_t[newDim];
+      Int_t counterTwo=0;
+
+      if(buffer)
+        {
+
+          //Write the new array
+          Int_t g=0;
+          for(Int_t i=0; i<newDim; i++)
+            {
+              if(counterTwo<fNdim)
+	        {
+	          if(fSignal[counterTwo]>minval)   
+	            {
+	              buffer[i]=fSignal[counterTwo];
+	            }
+	          if(fSignal[counterTwo]<=minval)   
+	            {
+	              buffer[i]=-(longArr[g]);
+	              counterTwo=counterTwo+longArr[g]-1;
+	              g++;
+	            }  
+	          counterTwo++;
+	        }
+            }
+
+          //Copy the buffer
+          if(fSignal)
+            {
+              delete [] fSignal;
+              fSignal=0;
+            }
+          fSignal = new Float_t[newDim];
+          fNdim = newDim;
+          for(Int_t i=0; i<newDim; i++)
+            {
+              fSignal[i] = buffer[i]; 
+            }
+
+          delete [] buffer;
+          buffer=0;
+
+        } 
+
       delete [] longArr;
       longArr=0;
+
     }
 
 }
@@ -290,85 +295,97 @@ void AliTRDarraySignal::Expand()
   // Expand the array
   //
 
-  //Check if the array has not been already expanded
-  Int_t verif=0;
-  for(Int_t i=0; i<fNdim; i++)
-    {
-      if(fSignal[i]<0)
-	{
-	  verif++;
-	}
-    }
-
-  if(verif==0)
-    {
-      return;
-    }
-
-  Int_t *longArr; 
-  longArr = new Int_t[fNdim];
-  Int_t dimexp=0;
-  memset(longArr,0,sizeof(Int_t)*fNdim);
-
-  Int_t r2=0;
-  for(Int_t i=0; i<fNdim;i++)
-    {
-      if(fSignal[i]<0)  
-	{
-	  longArr[r2]=(Int_t)(-fSignal[i]); 
-	  r2++;
-	}
-    }
-
-  //Calculate new dimensions
-  for(Int_t i=0; i<fNdim;i++)
-    {
-      if(longArr[i]!=0)      
-	{
-	  dimexp=dimexp+longArr[i]-1;
-	}
-    }
-  dimexp=dimexp+fNdim;   //Dimension of the expanded array
-
-  //Write in the buffer the new array
-  Float_t* bufferE;
-  bufferE = new Float_t[dimexp];
-  Int_t contaexp =0;    
-  Int_t h=0;
-  for(Int_t i=0; i<dimexp; i++)
-    {
-      if(fSignal[contaexp]>0)  
-	{
-	  bufferE[i]=fSignal[contaexp];
-	}
-      if(fSignal[contaexp]<0)  
- 	{
-	  for(Int_t j=0; j<longArr[h];j++)
-	    {
-	      bufferE[i+j]=0;
-	    }
-	  i=i+longArr[h]-1;
-	  h++;
-	}
-      contaexp++;
-    }
-
-  //Copy the buffer
   if(fSignal)
     {
-      delete [] fSignal;
-      fSignal=0;
-    }
 
-  fSignal = new Float_t[dimexp];
-  fNdim = dimexp;
-  for(Int_t i=0; i<dimexp; i++)
-    {
-      fSignal[i] = bufferE[i]; 
-    }
+      //Check if the array has not been already expanded
+      Int_t verif=0;
+      for(Int_t i=0; i<fNdim; i++)
+        {
+          if(fSignal[i]<0)
+	    {
+	      verif++;
+	    }
+        }
 
-  if(bufferE) delete [] bufferE;
-  if(longArr) delete [] longArr;
+      if(verif==0)
+        {
+          return;
+        }
+
+      Int_t dimexp=0;
+      Int_t *longArr = new Int_t[fNdim];
+
+      if(longArr)
+	{
+
+          memset(longArr,0,sizeof(Int_t)*fNdim);
+
+          Int_t r2=0;
+          for(Int_t i=0; i<fNdim;i++)
+            {
+              if(fSignal[i]<0)  
+	        {
+	          longArr[r2]=(Int_t)(-fSignal[i]); 
+	          r2++;
+	        }
+            }
+
+          //Calculate new dimensions
+          for(Int_t i=0; i<fNdim;i++)
+            {
+              if(longArr[i]!=0)      
+	        {
+	          dimexp=dimexp+longArr[i]-1;
+	        }
+            }
+          dimexp=dimexp+fNdim;   //Dimension of the expanded array
+
+          //Write in the buffer the new array
+          Int_t contaexp =0;    
+          Int_t h=0;
+          Float_t* bufferE = new Float_t[dimexp];
+
+          if(bufferE)
+	    {
+
+              for(Int_t i=0; i<dimexp; i++)
+                {
+                  if(fSignal[contaexp]>0)  
+	            {
+	              bufferE[i]=fSignal[contaexp];
+	            }
+                  if(fSignal[contaexp]<0)  
+ 	            {
+	              for(Int_t j=0; j<longArr[h];j++)
+	                {
+	                  bufferE[i+j]=0;
+	                }
+	              i=i+longArr[h]-1;
+	              h++;
+	            }
+                  contaexp++;
+                }
+
+              //Copy the buffer
+              delete [] fSignal;
+              fSignal=0;
+              fSignal = new Float_t[dimexp];
+              fNdim = dimexp;
+              for(Int_t i=0; i<dimexp; i++)
+                {
+                  fSignal[i] = bufferE[i]; 
+                }
+
+              delete [] bufferE;
+
+	    }
+
+          delete [] longArr;
+
+        }
+
+    }
 
 }
 //________________________________________________________________________________

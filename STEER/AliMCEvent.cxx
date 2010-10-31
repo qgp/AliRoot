@@ -183,16 +183,22 @@ void AliMCEvent::Clean()
     }
 }
 
+#include <iostream>
+
 void AliMCEvent::FinishEvent()
 {
   // Clean-up after event
   //    
     if (fStack) fStack->Reset(0);
     fMCParticles->Delete();
-    fMCParticleMap->Clear();
-    if (fTRBuffer)
+    
+    if (fMCParticleMap) 
+      fMCParticleMap->Clear();
+    if (fTRBuffer) {
       fTRBuffer->Delete();
-    fTrackReferences->Delete();
+    }
+    //    fTrackReferences->Delete();
+    fTrackReferences->Clear();
     fNparticles = -1;
     fNprimaries = -1;    
     fStack      =  0;
@@ -264,7 +270,7 @@ void AliMCEvent::ReorderAndExpandTreeTR()
     fTmpFileTR = new TFile("TrackRefsTmp.root", "recreate");
     fTmpTreeTR = new TTree("TreeTR", "TrackReferences");
     if (!fTRBuffer)  fTRBuffer = new TClonesArray("AliTrackReference", 100);
-    fTmpTreeTR->Branch("TrackReferences", "TClonesArray", &fTRBuffer, 32000, 0);
+    fTmpTreeTR->Branch("TrackReferences", "TClonesArray", &fTRBuffer, 64000, 0);
     
 
 //

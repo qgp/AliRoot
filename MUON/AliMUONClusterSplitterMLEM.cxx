@@ -369,6 +369,9 @@ AliMUONClusterSplitterMLEM::Fit(const AliMUONCluster& cluster,
   AliMUONPad *pixPtr;
   Int_t npxclu;
   Double_t cont, cmax = 0, xseed = 0, yseed = 0, errOk[8], qq = 0;
+  
+  for ( int i = 0; i < 8; ++i ) errOk[i]=0.0;
+  
   Double_t xyseed[3][2], qseed[3], xyCand[3][2] = {{0},{0}}, sigCand[3][2] = {{0},{0}};
   
   for (Int_t ifit = 1; ifit <= nfit0; ++ifit) 
@@ -408,7 +411,11 @@ AliMUONClusterSplitterMLEM::Fit(const AliMUONCluster& cluster,
   if (fDebug) cout << xyCand[0][0] << " " << xyCand[0][1] << " " << sigCand[0][0] << " " << sigCand[0][1] << endl;
   
   Int_t nDof, maxSeed[3];//, nMax = 0;
-    
+
+  if ( nfit0 < 0 || nfit0 > 3 ) {
+     AliErrorStream() << "Wrong nfit0 value: " << nfit0 << endl;
+     return nfit;
+  }   
   TMath::Sort(nfit0, qseed, maxSeed, kTRUE); // in decreasing order
     
   Double_t step[3]={0.01,0.002,0.02}, fmin, chi2o = 9999, chi2n;
@@ -752,7 +759,13 @@ AliMUONClusterSplitterMLEM::Fit(const AliMUONCluster& cluster,
       
       cluster1->SetCharge(coef*fQtot,coef*fQtot);
       cluster1->SetPosition(TVector2(parOk[indx],parOk[indx+1]),TVector2(sigCand[0][0],sigCand[0][1]));
-      cluster1->SetChi2(dist[TMath::LocMin(nfit,dist)]);
+      //cluster1->SetChi2(dist[TMath::LocMin(nfit,dist)]);
+      Int_t idx = TMath::LocMin(nfit,dist);
+      if ( idx < 0 || idx > 2 ) {
+        AliErrorStream() << "Wrong index value: " << idx << endl;
+        return nfit;
+      }  
+      cluster1->SetChi2(dist[idx]);
       
       // FIXME: we miss some information in this cluster, as compared to 
       // the original AddRawCluster code.

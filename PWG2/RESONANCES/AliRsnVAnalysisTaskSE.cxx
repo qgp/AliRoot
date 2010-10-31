@@ -83,7 +83,7 @@ void AliRsnVAnalysisTaskSE::LocalInit()
 }
 
 //_____________________________________________________________________________
-Bool_t AliRsnVAnalysisTaskSE::Notify()
+Bool_t AliRsnVAnalysisTaskSE::UserNotify()
 {
 //
 // Calls the mother class Notify()
@@ -92,7 +92,7 @@ Bool_t AliRsnVAnalysisTaskSE::Notify()
   AliDebug(AliLog::kDebug+2,"<-");
   AliDebug(AliLog::kDebug+2,"->");
 
-  return AliAnalysisTaskSE::Notify();
+  return AliAnalysisTaskSE::UserNotify();
 }
 
 //_____________________________________________________________________________
@@ -259,9 +259,9 @@ void AliRsnVAnalysisTaskSE::Terminate(Option_t* opt)
   }
 
   AliInfo(Form("=== %s ==================",GetName()));
-  AliInfo(Form("Number Of Events Processed : %10d",(Long64_t)hEventInfo->Integral()));
-  AliInfo(Form("Number Of Events Accepted  : %10d",(Long64_t)hEventInfo->GetBinContent(2)));
-  AliInfo(Form("Number Of Events Skipped   : %10d",(Long64_t)hEventInfo->GetBinContent(1)));
+  AliInfo(Form("Number Of Events Processed : %10lld",(Long64_t)hEventInfo->Integral()));
+  AliInfo(Form("Number Of Events Accepted  : %10lld",(Long64_t)hEventInfo->GetBinContent(2)));
+  AliInfo(Form("Number Of Events Skipped   : %10lld",(Long64_t)hEventInfo->GetBinContent(1)));
   AliInfo(Form("=== end %s ==============",GetName()));
 
   AliDebug(AliLog::kDebug+2, "->");

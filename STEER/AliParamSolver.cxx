@@ -43,14 +43,14 @@ AliParamSolver& AliParamSolver::operator=(const AliParamSolver& src)
   if (src.fMatrix && (fNGlobal!=src.fNGlobal || fMaxPoints<src.fNPoints)) {
     fNGlobal   = src.fNGlobal;
     fMaxGlobal = src.fMaxGlobal;
-    if (fMatrix)   delete   fMatrix;
-    if (fSolGlo)   delete[] fSolGlo;
-    if (fSolLoc)   delete[] fSolLoc;
-    if (fRHSGlo)   delete[] fRHSGlo;
-    if (fRHSLoc)   delete[] fRHSLoc;
-    if (fMatGamma) delete[] fMatGamma;
-    if (fMatG)     delete[] fMatG;
-    if (fCovDGl)   delete[] fCovDGl;
+    if (fMatrix)   delete   fMatrix; fMatrix = 0;
+    if (fSolGlo)   delete[] fSolGlo; fSolGlo = 0;
+    if (fSolLoc)   delete[] fSolLoc; fSolLoc = 0;
+    if (fRHSGlo)   delete[] fRHSGlo; fRHSGlo = 0;
+    if (fRHSLoc)   delete[] fRHSLoc; fRHSLoc = 0;
+    if (fMatGamma) delete[] fMatGamma; fMatGamma = 0;
+    if (fMatG)     delete[] fMatG; fMatG = 0;
+    if (fCovDGl)   delete[] fCovDGl; fCovDGl = 0;
     Init(src.fMaxPoints);
   }
   if (src.fMatrix) {
@@ -142,7 +142,7 @@ Bool_t AliParamSolver::Solve(Bool_t obtainCov)
 }
 
 //______________________________________________________________________________________
-void AliParamSolver::AddEquation(const Double_t* dGl,const Double_t *dLc,const Double_t *res, const Double_t *covI)
+void AliParamSolver::AddEquation(const Double_t* dGl,const Double_t *dLc,const Double_t *res, const Double_t *covI,Double_t sclErrI)
 {
   // add the measured point to chi2 normal equations
   // Input: 
@@ -150,7 +150,7 @@ void AliParamSolver::AddEquation(const Double_t* dGl,const Double_t *dLc,const D
   // dLc : 3-vector of derivative for each coordinate vs local param
   // res : residual of the point (extrapolated - measured)
   // covI: 3 x (3+1)/2 matrix of the (inverted) errors (symmetric)
-  //
+  // sclErrI: scaling coefficient to apply to inverted errors (used if >0)
   // The contribution of the point to chi2 is  V * covI * V 
   // with component of the vector V(i) = dGl[i]*glob + dLc[i]*loc - res[i] 
   //
@@ -175,6 +175,7 @@ void AliParamSolver::AddEquation(const Double_t* dGl,const Double_t *dLc,const D
   cDl[kX] = covI[kXX]*dLc[kX] + covI[kXY]*dLc[kY] + covI[kXZ]*dLc[kZ];
   cDl[kY] = covI[kXY]*dLc[kX] + covI[kYY]*dLc[kY] + covI[kYZ]*dLc[kZ];
   cDl[kZ] = covI[kXZ]*dLc[kX] + covI[kYZ]*dLc[kY] + covI[kZZ]*dLc[kZ];
+  if (sclErrI>0) { cDl[kX] *= sclErrI; cDl[kY] *= sclErrI; cDl[kZ] *= sclErrI;}
   //
   for (int i=fNGlobal;i--;) {
     const double *dGli = dGl+i*3;  // derivatives of XYZ vs i-th global param
@@ -182,6 +183,7 @@ void AliParamSolver::AddEquation(const Double_t* dGl,const Double_t *dLc,const D
     cDgi[kX] = covI[kXX]*dGli[kX] + covI[kXY]*dGli[kY] + covI[kXZ]*dGli[kZ];
     cDgi[kY] = covI[kXY]*dGli[kX] + covI[kYY]*dGli[kY] + covI[kYZ]*dGli[kZ];
     cDgi[kZ] = covI[kXZ]*dGli[kX] + covI[kYZ]*dGli[kY] + covI[kZZ]*dGli[kZ];
+    if (sclErrI>0) { cDgi[kX] *= sclErrI; cDgi[kY] *= sclErrI; cDgi[kZ] *= sclErrI;}
     //
     mtG[i]   = cDl[kX]*dGli[kX] + cDl[kY]*dGli[kY] + cDl[kZ]*dGli[kZ];  // dR/dGl_i * cov * dR/dLoc
   }
@@ -304,14 +306,14 @@ void AliParamSolver::SetMaxGlobal(Int_t n)
   if (n>0 && n==fMaxGlobal) return;
   fMaxGlobal = n;
   fNGlobal = n;
-  if (fMatrix)   delete   fMatrix;
-  if (fSolGlo)   delete[] fSolGlo;
-  if (fSolLoc)   delete[] fSolLoc;
-  if (fRHSGlo)   delete[] fRHSGlo;
-  if (fRHSLoc)   delete[] fRHSLoc;
-  if (fMatGamma) delete[] fMatGamma;
-  if (fMatG)     delete[] fMatG;
-  if (fCovDGl)   delete[] fCovDGl;
+  if (fMatrix)   delete   fMatrix;   fMatrix = 0;
+  if (fSolGlo)   delete[] fSolGlo;   fSolGlo = 0;
+  if (fSolLoc)   delete[] fSolLoc;   fSolLoc = 0;
+  if (fRHSGlo)   delete[] fRHSGlo;   fRHSGlo = 0;
+  if (fRHSLoc)   delete[] fRHSLoc;   fRHSLoc = 0;
+  if (fMatGamma) delete[] fMatGamma; fMatGamma = 0;
+  if (fMatG)     delete[] fMatG;     fMatG = 0;
+  if (fCovDGl)   delete[] fCovDGl;   fCovDGl = 0;
   n = TMath::Max(16,fMaxPoints);
   Init(n);
   //

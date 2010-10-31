@@ -78,6 +78,20 @@ AliTRDtestBeam::AliTRDtestBeam() :
   // Standard construction
   //
 
+  for (Int_t i = 0; i < 1270; i++) {
+    fSi1Address[i] = 0;
+    fSi2Address[i] = 0;
+    fSi1Charge[i]  = 0;
+    fSi2Charge[i]  = 0;
+  }
+
+  for (Int_t j = 0; j < 2; j++) {
+    fX[j]  = 0.0;
+    fY[j]  = 0.0;
+    fQx[j] = 0.0;
+    fQy[j] = 0.0;
+  }
+
 }
 //____________________________________________________________________________ 
 AliTRDtestBeam::AliTRDtestBeam(const char *filename) :
@@ -111,6 +125,20 @@ AliTRDtestBeam::AliTRDtestBeam(const char *filename) :
   fEventHeader = new Char_t[fgkEventHeadSize];
   fEventData = new Char_t[fLimit];
 
+  for (Int_t i = 0; i < 1270; i++) {
+    fSi1Address[i] = 0;
+    fSi2Address[i] = 0;
+    fSi1Charge[i]  = 0;
+    fSi2Charge[i]  = 0;
+  }
+
+  for (Int_t j = 0; j < 2; j++) {
+    fX[j]  = 0.0;
+    fY[j]  = 0.0;
+    fQx[j] = 0.0;
+    fQy[j] = 0.0;
+  }
+
 }
 
 //____________________________________________________________________________
@@ -136,6 +164,20 @@ AliTRDtestBeam::AliTRDtestBeam(const AliTRDtestBeam &tb)
   //
   // Copy constructor
   //
+
+  for (Int_t i = 0; i < 1270; i++) {
+    fSi1Address[i] = 0;
+    fSi2Address[i] = 0;
+    fSi1Charge[i]  = 0;
+    fSi2Charge[i]  = 0;
+  }
+
+  for (Int_t j = 0; j < 2; j++) {
+    fX[j]  = 0.0;
+    fY[j]  = 0.0;
+    fQx[j] = 0.0;
+    fQy[j] = 0.0;
+  }
 
 }
 
@@ -528,13 +570,15 @@ Int_t AliTRDtestBeam::Int(Int_t i, const Char_t * const start) const
   // ?????
   //
   
-  bool swap = kFALSE;
+  // bool swap = kFALSE;
 
-  if(swap) {
-    char *q=(char*)(start+i); 
-    char p[] = {q[3], q[2], q[1], q[0]};
-    return *((int*) p);
-  } else return *((int*)(start+i));
+  // if(swap) {
+  //   char *q=(char*)(start+i); 
+  //   char p[] = {q[3], q[2], q[1], q[0]};
+  //   return *((int*) p);
+  // } else return *((int*)(start+i));
+  
+  return *((int*)(start+i));
 
 }
 

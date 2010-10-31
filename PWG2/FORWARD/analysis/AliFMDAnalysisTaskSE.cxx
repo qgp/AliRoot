@@ -27,7 +27,10 @@ AliAnalysisTaskSE(),
   fBackground("BackgroundCorrected",kFALSE),
   fDndeta("dNdeta",kFALSE), 
   fBFCorrelation("BFCorrelation",kFALSE), 
-  fParams(0)
+  fParams(0),
+  fFirstEvent(kTRUE),
+  fCentralityLow(0),
+  fCentralityHigh(100)
 {
   // Default constructor
 }
@@ -40,7 +43,10 @@ AliFMDAnalysisTaskSE::AliFMDAnalysisTaskSE(const char* name):
   fBackground("BackgroundCorrected",kFALSE),
   fDndeta("dNdeta",kFALSE), 
   fBFCorrelation("BFCorrelation",kFALSE), 
-  fParams(0)
+  fParams(0),
+  fFirstEvent(kTRUE),
+  fCentralityLow(0),
+  fCentralityHigh(100)
 {
   SetParams(AliFMDAnaParameters::Instance());
   DefineOutput(1, TList::Class());
@@ -51,6 +57,8 @@ void AliFMDAnalysisTaskSE::UserCreateOutputObjects()
 {
 // Create the output containers
 //
+  
+  
   fListOfHistos = new TList();
   
   AliESDFMD* fmd = new AliESDFMD();
@@ -59,7 +67,7 @@ void AliFMDAnalysisTaskSE::UserCreateOutputObjects()
   TList* densitylist = new TList();
   
   TList* bgcorlist = new TList();
-  
+    
   fSharing.SetFMDData(fmd);
   fSharing.SetVertex(vertex);
   fSharing.SetOutputList(fListOfHistos);
@@ -100,7 +108,24 @@ void AliFMDAnalysisTaskSE::UserExec(Option_t */*option*/)
   //
   
   AliESDEvent* fESD = (AliESDEvent*)InputEvent();
-  //std::cout<<fESD->GetBeamEnergy()<<"   "<<fESD->GetBeamType()<<"    "<<fESD->GetCurrentL3()<<std::endl;
+  
+  AliFMDAnaParameters* pars = AliFMDAnaParameters::Instance();
+  
+  // Centrality selection - work in progress
+  Float_t centrality = 1;
+  
+  if( centrality < fCentralityLow || centrality > fCentralityHigh )
+    return;
+  
+  //End of centrality selection
+  
+  if(fFirstEvent) {
+    pars->SetParametersFromESD(fESD);
+    pars->PrintStatus();
+    fFirstEvent = kFALSE;
+  }
+  
+  pars->SetTriggerStatus(fESD);
   fSharing.SetInputESD(fESD);
   
   fSharing.Exec("");
@@ -108,8 +133,10 @@ void AliFMDAnalysisTaskSE::UserExec(Option_t */*option*/)
     fDensity.Exec("");
     if(fDensity.GetEventStatus()) {
       fBackground.Exec("");  
-      fDndeta.Exec("");
-      fBFCorrelation.Exec("");
+      if(pars->GetRunDndeta())
+	fDndeta.Exec("");
+      if(pars->GetRunBFCorrelation())
+	fBFCorrelation.Exec("");
     }
     else return;
   }
@@ -137,6 +164,12 @@ void AliFMDAnalysisTaskSE::Terminate(Option_t */*option*/)
       fDndeta.SetVtxEfficiency(fSharing.GetVtxEfficiencyFromData());
     else
       fDndeta.SetVtxEfficiency(pars->GetVtxSelectionEffFromMC());
+    std::cout<<fSharing.GetNSDVtxEfficiencyFromData()<<"   "<<fSharing.GetVtxEfficiencyFromData()<<"   "<<pars->GetVtxSelectionEffFromMC()<<std::endl;
+    
+    if(fSharing.GetNSDVtxEfficiencyFromData() > 0)
+      fDndeta.SetVtxEfficiencyNSD(fSharing.GetNSDVtxEfficiencyFromData());
+    else
+      fDndeta.SetVtxEfficiencyNSD(pars->GetVtxSelectionEffFromMC());
     
     fDndeta.Terminate("");
     //fBFCorrelation.Terminate("");
@@ -162,11 +195,19 @@ void AliFMDAnalysisTaskSE::Terminate(Option_t */*option*/)
     TList* cloneList3 = (TList*)dNdetalist3->Clone("Hits");
     cloneList3->SetName("Hits");
     outputList->Add(cloneList3);
+    
     t.GenerateMult(AliFMDDndeta::kHitsTrVtx);
     TList* dNdetalist4 = t.GetMultList(AliFMDDndeta::kHits);
     TList* cloneList4 = (TList*)dNdetalist4->Clone("HitsTrVtx");
     cloneList4->SetName("HitsTrVtx");
     outputList->Add(cloneList4);
+    
+    t.GenerateMult(AliFMDDndeta::kMultNSD);
+    TList* dNdetalist5 = t.GetMultList(AliFMDDndeta::kMultNSD);
+    TList* cloneList5 = (TList*)dNdetalist5->Clone("MultNSD");
+    cloneList5->SetName("MultNSD");
+    outputList->Add(cloneList5);
+    
     // TFile file("fmd_ana_histos_tmp.root","RECREATE");
     //  fListOfHistos->Write();
     // file.Close();

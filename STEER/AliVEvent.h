@@ -15,16 +15,20 @@
 
 #include <TObject.h>
 #include <TTree.h>
+#include <TGeoMatrix.h>
 #include "AliVHeader.h"
 #include "AliVParticle.h"
 #include "AliVVertex.h"
+#include "AliVCluster.h"
+#include "AliVCaloCells.h"
+#include "TRefArray.h"
 
 class AliVEvent : public TObject {
 
 public:
   enum EOfflineTriggerTypes { 
-      kMB           = BIT(0), // Minimum bias trigger (interaction trigger, offline SPD or V0 selection, all detectors read out)
-      kMBNoTRD      = BIT(1), // Same as kMB, but TRD not read out (i.e. no TRD pretrigger)
+      kMB           = BIT(0), // Minimum bias trigger, i.e. interaction trigger, offline SPD or V0 selection
+                              // empty slot
       kMUON         = BIT(2), // Muon trigger, offline SPD or V0 selection
       kHighMult     = BIT(3), // High-multiplicity trigger (threshold defined online), offline SPD or V0 selection
       kUserDefined  = BIT(31), // Set when custom trigger classes are set in AliPhysicsSelection, offline SPD or V0 selection
@@ -97,6 +101,17 @@ public:
   virtual Int_t        GetNumberOfV0s() const = 0;
   virtual Int_t        GetNumberOfCascades() const = 0;
 
+  // Calorimeter Clusters/Cells
+  virtual AliVCluster *GetCaloCluster(Int_t)   const {return 0;}
+  virtual Int_t GetNumberOfCaloClusters()      const {return 0;}
+  virtual Int_t GetEMCALClusters(TRefArray *)  const {return 0;}
+  virtual Int_t GetPHOSClusters (TRefArray *)  const {return 0;}
+  virtual AliVCaloCells *GetEMCALCells()       const {return 0;}
+  virtual AliVCaloCells *GetPHOSCells()        const {return 0;}
+  const TGeoHMatrix* GetPHOSMatrix(Int_t /*i*/)    const {return NULL;}
+  const TGeoHMatrix* GetEMCALMatrix(Int_t /*i*/)   const {return NULL;}
+
+	
   // Primary vertex
   virtual const AliVVertex   *GetPrimaryVertex() const {return 0x0;}
   virtual Bool_t IsPileupFromSPD(Int_t /*minContributors*/, 
@@ -107,6 +122,16 @@ public:
 				 const{
     return kFALSE;
   }
+
+  virtual Bool_t IsPileupFromSPDInMultBins() const {
+    return kFALSE;    
+  }
+
+  virtual Int_t        EventIndex(Int_t itrack) const = 0;
+  virtual Int_t        EventIndexForCaloCluster(Int_t iclu) const= 0;
+  virtual Int_t        EventIndexForPHOSCell(Int_t icell) const= 0;
+  virtual Int_t        EventIndexForEMCALCell(Int_t icell) const= 0;  
+
   //---------- end of new stuff
 
 

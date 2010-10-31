@@ -38,8 +38,8 @@
 #include "TBrowser.h"
 #include "AliFlowVector.h"
 #include "AliFlowTrackSimple.h"
-#include "AliFlowEventSimple.h"
 #include "AliFlowTrackSimpleCuts.h"
+#include "AliFlowEventSimple.h"
 #include "TRandom.h"
 
 ClassImp(AliFlowEventSimple)
@@ -53,6 +53,7 @@ AliFlowEventSimple::AliFlowEventSimple():
   fMCReactionPlaneAngle(0.),
   fMCReactionPlaneAngleIsSet(kFALSE),
   fAfterBurnerPrecision(0.001),
+  fUserModified(kFALSE),
   fNumberOfTracksWrap(NULL),
   fNumberOfRPsWrap(NULL),
   fMCReactionPlaneAngleWrap(NULL)
@@ -61,42 +62,32 @@ AliFlowEventSimple::AliFlowEventSimple():
 }
 
 //-----------------------------------------------------------------------
-AliFlowEventSimple::AliFlowEventSimple(Int_t aLength):
-  fTrackCollection(new TObjArray(aLength)),
-  fReferenceMultiplicity(0),
-  fNumberOfTracks(0),
-  fNumberOfRPs(0),
-  fMCReactionPlaneAngle(0.),
-  fMCReactionPlaneAngleIsSet(kFALSE),
-  fAfterBurnerPrecision(0.001),
-  fNumberOfTracksWrap(NULL),
-  fNumberOfRPsWrap(NULL),
-  fMCReactionPlaneAngleWrap(NULL)
-{
-  //constructor
-}
-
-//-----------------------------------------------------------------------
-AliFlowEventSimple::AliFlowEventSimple( Int_t nParticles,
+AliFlowEventSimple::AliFlowEventSimple( Int_t n,
+                                        ConstructionMethod method,
                                         TF1* ptDist,
                                         Double_t phiMin,
                                         Double_t phiMax,
                                         Double_t etaMin,
                                         Double_t etaMax):
-  fTrackCollection(new TObjArray(nParticles)),
-  fReferenceMultiplicity(nParticles),
+  fTrackCollection(new TObjArray(n)),
+  fReferenceMultiplicity(n),
   fNumberOfTracks(0),
   fNumberOfRPs(0),
   fMCReactionPlaneAngle(0.),
   fMCReactionPlaneAngleIsSet(kFALSE),
   fAfterBurnerPrecision(0.001),
+  fUserModified(kFALSE),
   fNumberOfTracksWrap(NULL),
   fNumberOfRPsWrap(NULL),
   fMCReactionPlaneAngleWrap(NULL)
 {
-  //ctor. generates nParticles random tracks with given Pt distribution
-  //phi and eta are uniform
-  Generate(nParticles,ptDist,phiMin,phiMax,etaMin,etaMax);
+  //ctor
+  // if second argument is set to AliFlowEventSimple::kGenerate
+  // it generates n random tracks with given Pt distribution
+  // (a sane default is provided), phi and eta are uniform
+
+  if (method==kGenerate)
+    Generate(n,ptDist,phiMin,phiMax,etaMin,etaMax);
 }
 
 //-----------------------------------------------------------------------
@@ -109,6 +100,7 @@ AliFlowEventSimple::AliFlowEventSimple(const AliFlowEventSimple& anEvent):
   fMCReactionPlaneAngle(anEvent.fMCReactionPlaneAngle),
   fMCReactionPlaneAngleIsSet(anEvent.fMCReactionPlaneAngleIsSet),
   fAfterBurnerPrecision(anEvent.fAfterBurnerPrecision),
+  fUserModified(anEvent.fUserModified),
   fNumberOfTracksWrap(anEvent.fNumberOfTracksWrap),
   fNumberOfRPsWrap(anEvent.fNumberOfRPsWrap),
   fMCReactionPlaneAngleWrap(anEvent.fMCReactionPlaneAngleWrap)
@@ -120,6 +112,7 @@ AliFlowEventSimple::AliFlowEventSimple(const AliFlowEventSimple& anEvent):
 AliFlowEventSimple& AliFlowEventSimple::operator=(const AliFlowEventSimple& anEvent)
 {
   //assignment operator
+  if (fTrackCollection) fTrackCollection->Delete();
   delete fTrackCollection;
   fTrackCollection = (TObjArray*)(anEvent.fTrackCollection)->Clone(); //deep copy
   fReferenceMultiplicity = anEvent.fReferenceMultiplicity;
@@ -128,6 +121,7 @@ AliFlowEventSimple& AliFlowEventSimple::operator=(const AliFlowEventSimple& anEv
   fMCReactionPlaneAngle = anEvent.fMCReactionPlaneAngle;
   fMCReactionPlaneAngleIsSet = anEvent.fMCReactionPlaneAngleIsSet;
   fAfterBurnerPrecision = anEvent.fAfterBurnerPrecision;
+  fUserModified=anEvent.fUserModified;
   fNumberOfTracksWrap = anEvent.fNumberOfTracksWrap;
   fNumberOfRPsWrap = anEvent.fNumberOfRPsWrap;
   fMCReactionPlaneAngleWrap=anEvent.fMCReactionPlaneAngleWrap;
@@ -147,20 +141,32 @@ AliFlowEventSimple::~AliFlowEventSimple()
 
 //-----------------------------------------------------------------------
 void AliFlowEventSimple::Generate(Int_t nParticles,
-                                        TF1* ptDist,
-                                        Double_t phiMin,
-                                        Double_t phiMax,
-                                        Double_t etaMin,
-                                        Double_t etaMax)
+                                  TF1* ptDist,
+                                  Double_t phiMin,
+                                  Double_t phiMax,
+                                  Double_t etaMin,
+                                  Double_t etaMax)
 {
   //generate nParticles random tracks uniform in phi and eta
   //according to the specified pt distribution
+  if (!ptDist)
+  {
+    static TF1 ptdistribution("ptSpectra","x*TMath::Exp(-pow(0.13957*0.13957+x*x,0.5)/0.4)",0.1,10.);
+    ptDist=&ptdistribution;
+  }
+
   for (Int_t i=0; i<nParticles; i++)
   {
-    AddTrack(new AliFlowTrackSimple( gRandom->Uniform(phiMin,phiMax),
-                                     gRandom->Uniform(etaMin,etaMax),
-                                     ptDist->GetRandom(),1.));
+    AliFlowTrackSimple* track = new AliFlowTrackSimple();
+    track->SetPhi( gRandom->Uniform(phiMin,phiMax) );
+    track->SetEta( gRandom->Uniform(etaMin,etaMax) );
+    track->SetPt( ptDist->GetRandom() );
+    track->SetCharge( (gRandom->Uniform()-0.5<0)?-1:1 );
+    AddTrack(track);
   }
+  fMCReactionPlaneAngle=gRandom->Uniform(0.0,TMath::TwoPi());
+  fMCReactionPlaneAngleIsSet=kTRUE;
+  SetUserModified();
 }
 
 //-----------------------------------------------------------------------
@@ -250,7 +256,7 @@ AliFlowVector AliFlowEventSimple::GetQ(Int_t n, TList *weightsList, Bool_t usePh
         dPhi = pTrack->Phi();
         dPt  = pTrack->Pt();
         dEta = pTrack->Eta();
-	dWeight = pTrack->Weight();
+	      dWeight = pTrack->Weight();
 
         // determine Phi weight: (to be improved, I should here only access it + the treatment of gaps in the if statement)
         if(phiWeights && nBinsPhi)
@@ -328,12 +334,12 @@ void AliFlowEventSimple::Get2Qsub(AliFlowVector* Qarray, Int_t n, TList *weights
     if(usePhiWeights)
     {
       phiWeightsSub0 = dynamic_cast<TH1F *>(weightsList->FindObject("phi_weights_sub0"));
-      phiWeightsSub1 = dynamic_cast<TH1F *>(weightsList->FindObject("phi_weights_sub1"));
       if(phiWeightsSub0) {
-        iNbinsPhiSub0 = phiWeightsSub0->GetNbinsX();
+	iNbinsPhiSub0 = phiWeightsSub0->GetNbinsX();
       }
+      phiWeightsSub1 = dynamic_cast<TH1F *>(weightsList->FindObject("phi_weights_sub1"));
       if(phiWeightsSub1) {
-        iNbinsPhiSub1 = phiWeightsSub1->GetNbinsX();
+	iNbinsPhiSub1 = phiWeightsSub1->GetNbinsX();
       }
     }
     if(usePtWeights)
@@ -375,16 +381,25 @@ void AliFlowEventSimple::Get2Qsub(AliFlowVector* Qarray, Int_t n, TList *weights
 	    dWeight = pTrack->Weight();
 
             // determine Phi weight: (to be improved, I should here only access it + the treatment of gaps in the if statement)
-            if(s == 0) { //subevent 0
-	      if(phiWeightsSub0 && iNbinsPhiSub0){
-		dWphi = phiWeightsSub0->GetBinContent(1+(Int_t)(TMath::Floor(dPhi*iNbinsPhiSub0/TMath::TwoPi())));
-	      } 
-	    } else if (s == 1) {
-	      if(phiWeightsSub1 && iNbinsPhiSub1){
-		dWphi = phiWeightsSub1->GetBinContent(1+(Int_t)(TMath::Floor(dPhi*iNbinsPhiSub1/TMath::TwoPi())));
+	    //subevent 0
+	    if(s == 0)  { 
+	      if(phiWeightsSub0 && iNbinsPhiSub0)  {
+		Int_t phiBin = 1+(Int_t)(TMath::Floor(dPhi*iNbinsPhiSub0/TMath::TwoPi()));
+		//use the phi value at the center of the bin
+		dPhi  = phiWeightsSub0->GetBinCenter(phiBin);
+		dWphi = phiWeightsSub0->GetBinContent(phiBin);
+	      }
+	    } 
+	    //subevent 1
+	    else if (s == 1) { 
+	      if(phiWeightsSub1 && iNbinsPhiSub1) {
+		Int_t phiBin = 1+(Int_t)(TMath::Floor(dPhi*iNbinsPhiSub1/TMath::TwoPi()));
+		//use the phi value at the center of the bin
+		dPhi  = phiWeightsSub1->GetBinCenter(phiBin);
+		dWphi = phiWeightsSub1->GetBinContent(phiBin);
 	      } 
 	    }
-
+	    
             // determine v'(pt) weight:
             if(ptWeights && dBinWidthPt)
             {
@@ -432,6 +447,8 @@ void AliFlowEventSimple::Print(Option_t *option) const
   printf( "Class.Print Name = %s, #tracks= %d, Number of RPs= %d, MC EventPlaneAngle= %f\n",
           GetName(),fNumberOfTracks, fNumberOfRPs, fMCReactionPlaneAngle );
 
+  TString optionstr(option);
+  if (!optionstr.Contains("all")) return;
   if (fTrackCollection)
   {
     fTrackCollection->Print(option);
@@ -475,6 +492,7 @@ AliFlowEventSimple::AliFlowEventSimple( TTree* inputTree,
   fMCReactionPlaneAngle(0.),
   fMCReactionPlaneAngleIsSet(kFALSE),
   fAfterBurnerPrecision(0.001),
+  fUserModified(kFALSE),
   fNumberOfTracksWrap(NULL),
   fNumberOfRPsWrap(NULL),
   fMCReactionPlaneAngleWrap(NULL)
@@ -539,6 +557,7 @@ void AliFlowEventSimple::CloneTracks(Int_t n)
       AddTrack(static_cast<AliFlowTrackSimple*>(track->Clone()));
     }
   }
+  SetUserModified();
 }
 
 //_____________________________________________________________________________
@@ -550,6 +569,7 @@ void AliFlowEventSimple::ResolutionPt(Double_t res)
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
     if (track) track->ResolutionPt(res);
   }
+  SetUserModified();
 }
 
 //_____________________________________________________________________________
@@ -577,6 +597,7 @@ void AliFlowEventSimple::AddV1( Double_t v1 )
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
     if (track) track->AddV1(v1, fMCReactionPlaneAngle, fAfterBurnerPrecision);
   }
+  SetUserModified();
 }
 
 //_____________________________________________________________________________
@@ -588,6 +609,19 @@ void AliFlowEventSimple::AddV2( Double_t v2 )
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
     if (track) track->AddV2(v2, fMCReactionPlaneAngle, fAfterBurnerPrecision);
   }
+  SetUserModified();
+}
+
+//_____________________________________________________________________________
+void AliFlowEventSimple::AddV3( Double_t v3 )
+{
+  //add v3 to all tracks wrt the reaction plane angle
+  for (Int_t i=0; i<fNumberOfTracks; i++)
+  {
+    AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
+    if (track) track->AddV3(v3, fMCReactionPlaneAngle, fAfterBurnerPrecision);
+  }
+  SetUserModified();
 }
 
 //_____________________________________________________________________________
@@ -599,17 +633,32 @@ void AliFlowEventSimple::AddV4( Double_t v4 )
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
     if (track) track->AddV4(v4, fMCReactionPlaneAngle, fAfterBurnerPrecision);
   }
+  SetUserModified();
 }
 
 //_____________________________________________________________________________
-void AliFlowEventSimple::AddFlow( Double_t v1, Double_t v2, Double_t v4 )
+void AliFlowEventSimple::AddFlow( Double_t v1, Double_t v2, Double_t v3, Double_t v4 )
 {
   //add flow to all tracks wrt the reaction plane angle
   for (Int_t i=0; i<fNumberOfTracks; i++)
   {
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
-    if (track) track->AddFlow(v1,v2,v4,fMCReactionPlaneAngle, fAfterBurnerPrecision);
+    if (track) track->AddFlow(v1,v2,v3,v4,fMCReactionPlaneAngle, fAfterBurnerPrecision);
   }
+  SetUserModified();
+}
+
+//_____________________________________________________________________________
+void AliFlowEventSimple::AddV2( TF1* ptDepV2 )
+{
+  //add v2 to all tracks wrt the reaction plane angle
+  for (Int_t i=0; i<fNumberOfTracks; i++)
+  {
+    AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
+    Double_t v2 = ptDepV2->Eval(track->Pt());
+    if (track) track->AddV2(v2, fMCReactionPlaneAngle, fAfterBurnerPrecision);
+  }
+  SetUserModified();
 }
 
 //_____________________________________________________________________________
@@ -620,11 +669,17 @@ void AliFlowEventSimple::TagRP( AliFlowTrackSimpleCuts* cuts )
   {
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
     if (!track) continue;
-    if (cuts->PassesCuts(track)) 
+    Bool_t pass=cuts->PassesCuts(track);
+    Bool_t rpTrack=track->InRPSelection();
+    if (pass) 
     {
-      track->SetForRPSelection();
-      fNumberOfRPs++;
+      if (!rpTrack) fNumberOfRPs++; //only increase if not already tagged
     }
+    else
+    {
+      if (rpTrack) fNumberOfRPs--; //only decrease if detagging
+    }
+    track->SetForRPSelection(pass);
   }
 }
 
@@ -636,7 +691,8 @@ void AliFlowEventSimple::TagPOI( AliFlowTrackSimpleCuts* cuts )
   {
     AliFlowTrackSimple* track = static_cast<AliFlowTrackSimple*>(fTrackCollection->At(i));
     if (!track) continue;
-    if (cuts->PassesCuts(track)) track->SetForPOISelection();
+    Bool_t pass=cuts->PassesCuts(track);
+    track->SetForPOISelection(pass);
   }
 }
 
@@ -674,4 +730,18 @@ Int_t AliFlowEventSimple::CleanUpDeadTracks()
   }
   fTrackCollection->Compress(); //clean up empty slots
   return ncleaned;
+}
+
+//_____________________________________________________________________________
+TF1* AliFlowEventSimple::SimplePtDepV2()
+{
+  //return a standard pt dependent v2 formula, user has to clean up!
+  return new TF1("StandardPtDepV2","((x<1.0)*(0.05/1.0)*x+(x>=1.0)*0.05)");
+}
+
+//_____________________________________________________________________________
+TF1* AliFlowEventSimple::SimplePtSpectrum()
+{
+  //return a standard pt spectrum, user has to clean up!
+  return new TF1("StandardPtSpectrum","x*TMath::Exp(-pow(0.13957*0.13957+x*x,0.5)/0.4)",0.1,10.);
 }

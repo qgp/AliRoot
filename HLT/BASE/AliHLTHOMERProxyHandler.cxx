@@ -127,6 +127,8 @@ void AliHLTHOMERProxyHandler::IdentifyRealm() {
   // see header file for class documentation
 
   TString hostIP(gSystem->GetHostByName(gSystem->HostName()).GetHostAddress());
+  
+  HLTInfo(hostIP.Data());
 
   if ( hostIP.Contains("10.162.") )
     fRealm = kHLT;
@@ -137,6 +139,7 @@ void AliHLTHOMERProxyHandler::IdentifyRealm() {
   else  if ( hostIP.Contains("137.138") 
 	     || hostIP.Contains("128.141") 
 	     || hostIP.Contains("127.0.") 
+	     || hostIP.Contains("192.168")
 	     )
     fRealm = kGPN;
   else {
@@ -196,7 +199,7 @@ Int_t AliHLTHOMERProxyHandler::RequestXmlRpcResponse() {
   // -- send request
   // -----------------
 
-  Char_t reqMsg[] = "PUT / HTTP/1.1\r\n\
+  Char_t reqMsg[] = "POST / HTTP/1.1\r\n\
 User-Agent: curl/7.18.0 (x86_64-pc-linux-gnu) libcurl/7.18.0 OpenSSL/0.9.8g zlib/1.2.3.3 libidn/1.1\r\n\
 Host: localhost:10000\r\n\
 Accept: */*\r\n\

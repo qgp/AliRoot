@@ -47,7 +47,8 @@ AliTRDrecoTask::AliTRDrecoTask()
   ,fkESD(NULL)
   ,fPlotFuncList(NULL)
 {
-// Default constructor  
+// Default constructor
+  snprintf(fNameId, 10, "no name");
 }
 
 //_______________________________________________________
@@ -64,6 +65,7 @@ AliTRDrecoTask::AliTRDrecoTask(const char *name, const char *title)
 // Constructor for all derived performance tasks
 
   SetTitle(title);
+  snprintf(fNameId, 10, "no name");
   DefineInput (1, TObjArray::Class()); // track list
   DefineOutput(1, TObjArray::Class()); // histogram list
 }
@@ -239,7 +241,8 @@ Bool_t AliTRDrecoTask::PostProcess()
 }
 
 //_______________________________________________________
-void AliTRDrecoTask::MakeSummary(){
+void AliTRDrecoTask::MakeSummary()
+{
 // To be implemented by particular tasks
   AliWarning("Summary not available");
 }
@@ -264,7 +267,7 @@ void AliTRDrecoTask::Terminate(Option_t *)
   //
   // Terminate
   //
-  return;
+
   if(fgDebugStream){ 
     delete fgDebugStream;
     fgDebugStream = NULL;

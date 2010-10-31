@@ -15,7 +15,7 @@
 /* $Id: $ */
 
 //_________________________________________________________________________
-// Example class on how to read AODCaloClusters, ESDCaloCells and AODTracks and how 
+// Example class on how to read CaloClusters, and AODTracks and how 
 // fill AODs with PWG4PartCorr analysis frame
 // Select the type of detector information that you want to analyze, CTS (tracking), PHOS or EMCAL
 // Select the PID custer type of the calorimeters
@@ -39,67 +39,23 @@
 #include "AliAnaExample.h"
 #include "AliCaloTrackReader.h"
 #include "AliAODPWG4Particle.h"
-#include "AliESDCaloCells.h"
 #include "AliStack.h"
 #include "AliCaloPID.h"
 #include "AliFiducialCut.h"
-#include "AliAODCaloCells.h"
-#include "AliAODCaloCluster.h"
+#include "AliVCluster.h"
 #include "AliAODTrack.h"
 
 ClassImp(AliAnaExample)
   
 //____________________________________________________________________________
   AliAnaExample::AliAnaExample() : 
-    AliAnaPartCorrBaseClass(),fPdg(0),  fDetector(""), fhPt(0),fhPhi(0),fhEta(0),  fh2Pt(0),fh2Phi(0),fh2Eta(0),
-    fhNCells(0), fhAmplitude(0)
+    AliAnaPartCorrBaseClass(),fPdg(0),  fDetector(""), fhPt(0),fhPhi(0),fhEta(0),  fh2Pt(0),fh2Phi(0),fh2Eta(0)
 {
   //Default Ctor
 
   //Initialize parameters
   InitParameters();
 }
-/*
-//____________________________________________________________________________
-AliAnaExample::AliAnaExample(const AliAnaExample & ex) :   
-  AliAnaPartCorrBaseClass(ex), fPdg(ex.fPdg), fDetector(ex.fDetector), fhPt(ex.fhPt),  fhPhi(ex.fhPhi),fhEta(ex.fhEta), 
-  fh2Pt(ex.fh2Pt),  fh2Phi(ex.fh2Phi),fh2Eta(ex.fh2Eta), fhNCells(ex.fhNCells), fhAmplitude(ex.fhAmplitude)
-{
-  // cpy ctor
-  
-}
-
-//_________________________________________________________________________
-AliAnaExample & AliAnaExample::operator = (const AliAnaExample & ex)
-{
-  // assignment operator
-
-  if(this == &ex)return *this;
-  ((AliAnaPartCorrBaseClass *)this)->operator=(ex);
- 
-  fPdg = ex.fPdg;
-  fDetector = ex.fDetector;
-  fhPt = ex.fhPt;
-  fhPhi = ex.fhPhi;
-  fhEta = ex.fhEta;
-  fh2Pt = ex.fh2Pt;
-  fh2Phi = ex.fh2Phi;
-  fh2Eta = ex.fh2Eta;
-  fhNCells = ex.fhNCells;
-  fhAmplitude = ex.fhAmplitude;
-
-  return *this;
-
-}
-*/
-// //____________________________________________________________________________
-// AliAnaExample::~AliAnaExample() 
-// {
-//   // Remove all pointers except analysis output pointers.
-
-//   ;
-// }
-
 
 //________________________________________________________________________
 TList *  AliAnaExample::GetCreateOutputObjects()
@@ -131,18 +87,6 @@ TList *  AliAnaExample::GetCreateOutputObjects()
   fhEta  = new TH1F ("hEta","#eta distribution",netabins,etamin,etamax); 
   fhEta->SetXTitle("#eta ");
   outputContainer->Add(fhEta);
-  
-  if(GetReader()->GetDataType()!= AliCaloTrackReader::kMC) {
-    
-    //Calo cells
-    fhNCells  = new TH1F ("hNCells","# cells per event", 100,0,1000); 
-    fhNCells->SetXTitle("n cells");
-    outputContainer->Add(fhNCells);
-    
-    fhAmplitude  = new TH1F ("hAmplitude","#eta distribution", 100,0,1000); 
-    fhAmplitude->SetXTitle("Amplitude ");
-    outputContainer->Add(fhAmplitude);
-  } 
   
   if(IsDataMC()){
     fh2Pt  = new TH2F ("h2Pt","p_T distribution, reconstructed vs generated", nptbins,ptmin,ptmax,nptbins,ptmin,ptmax); 
@@ -201,97 +145,71 @@ void  AliAnaExample::MakeAnalysisFillAOD()
   //Some prints
   if(GetDebug() > 0){
     if(fDetector == "EMCAL" && GetAODEMCAL())printf("AliAnaExample::MakeAnalysisFillAOD() - In EMCAL aod entries %d\n", GetAODEMCAL()->GetEntriesFast());
-    if(fDetector == "CTS" && GetAODCTS())printf("AliAnaExample::MakeAnalysisFillAOD() - In CTS aod entries %d\n", GetAODCTS()->GetEntriesFast());
-    if(fDetector == "PHOS" && GetAODPHOS())printf("AliAnaExample::MakeAnalysisFillAOD() - In PHOS aod entries %d\n", GetAODPHOS()->GetEntriesFast());
+    if(fDetector == "CTS"   && GetAODCTS())  printf("AliAnaExample::MakeAnalysisFillAOD() - In CTS aod entries %d\n",   GetAODCTS()  ->GetEntriesFast());
+    if(fDetector == "PHOS"  && GetAODPHOS()) printf("AliAnaExample::MakeAnalysisFillAOD() - In PHOS aod entries %d\n",  GetAODPHOS() ->GetEntriesFast());
   }
   
   //Get List with tracks or clusters  
   TObjArray * partList = 0x0;
-  if(fDetector == "CTS") partList = GetAODCTS();
+  if(fDetector == "CTS")        partList = GetAODCTS();
   else if(fDetector == "EMCAL") partList = GetAODEMCAL();
-  else if(fDetector == "PHOS") partList = GetAODPHOS();
+  else if(fDetector == "PHOS")  partList = GetAODPHOS();
   
   if(!partList || partList->GetEntriesFast() == 0) return ;
   
-  //Fill AODCaloClusters and AODParticle with PHOS/EMCAL aods
+  //Fill AODParticle with PHOS/EMCAL aods
   if(fDetector == "EMCAL" || fDetector == "PHOS"){
     
     //Get vertex for photon momentum calculation
-    Double_t v[3] ; //vertex ;
-    GetReader()->GetVertex(v);
+
     
     TLorentzVector mom ;
     for(Int_t i = 0; i < partList->GetEntriesFast(); i++){
       
-      AliAODCaloCluster * calo =  (AliAODCaloCluster*) (partList->At(i));
+      AliVCluster * calo =  (AliVCluster*) (partList->At(i));
       
+      //Get the index where the cluster comes, to retrieve the corresponding vertex
+      Int_t evtIndex = 0 ; 
+      if (GetMixedEvent()) {
+        evtIndex=GetMixedEvent()->EventIndexForCaloCluster(calo->GetID()) ; 
+      }
+
       //Fill AODParticle after some selection
-      calo->GetMomentum(mom,v);
+      if(GetReader()->GetDataType() != AliCaloTrackReader::kMC){
+        calo->GetMomentum(mom,GetVertex(evtIndex)) ;}//Assume that come from vertex in straight line
+      else{
+        Double_t vertex[]={0,0,0};
+        calo->GetMomentum(mom,vertex) ;
+      }
+      
       Int_t pdg = fPdg;
       
       if(IsCaloPIDOn()){
-	Double_t pid[13];
-	calo->GetPID(pid);
-	pdg = GetCaloPID()->GetPdg(fDetector,pid,mom.E());
-	//pdg = GetCaloPID()->GetPdg(fDetector,mom,
-	//		  calo->GetM02(), calo->GetM02(),
-	//		  calo->GetDispersion(), 0, 0); 
+        const Double_t *pid = calo->GetPID();
+        pdg = GetCaloPID()->GetPdg(fDetector,pid,mom.E());
+        //pdg = GetCaloPID()->GetPdg(fDetector,mom,
+        //		  calo->GetM02(), calo->GetM02(),
+        //		  calo->GetDispersion(), 0, 0); 
       }
       
       //Acceptance selection   
       Bool_t in = kTRUE;
       if(IsFiducialCutOn())
-	in =  GetFiducialCut()->IsInFiducialCut(mom,fDetector) ;
+        in =  GetFiducialCut()->IsInFiducialCut(mom,fDetector) ;
       
       if(GetDebug() > 1) printf("AliAnaExample::MakeAnalysisFillAOD() - Cluster pt %2.2f, phi %2.2f, pdg %d, in fiducial cut %d \n",mom.Pt(), mom.Phi(), pdg, in);
       
       //Select cluster if momentum, pdg and acceptance are good
       if(mom.Pt() > GetMinPt() && pdg ==fPdg && in) {
-	AliAODPWG4Particle ph = AliAODPWG4Particle(mom);
-	//AddAODParticleCorrelation(AliAODPWG4ParticleCorrelation(mom));
-	ph.SetLabel(calo->GetLabel(0));
-	ph.SetPdg(pdg);
-	ph.SetDetector(fDetector);
-	AddAODParticle(ph);
+        AliAODPWG4Particle ph = AliAODPWG4Particle(mom);
+        //AddAODParticleCorrelation(AliAODPWG4ParticleCorrelation(mom));
+        ph.SetLabel(calo->GetLabel());
+        ph.SetPdg(pdg);
+        ph.SetDetector(fDetector);
+        AddAODParticle(ph);
       }//selection
     }//loop
-    
-    if(GetReader()->GetDataType()!= AliCaloTrackReader::kMC) {
-      //WORK WITH ESDCALOCELLS
-      //Don't connect in the same analysis PHOS and EMCAL cells.
-      
-      AliESDCaloCells * esdCell = new AliESDCaloCells ;
-      if(fDetector == "PHOS") {
-	ConnectAODPHOSCells(); //Do Only when filling AODCaloCells
-	esdCell = (AliESDCaloCells *) GetPHOSCells();
-      }
-      else  {
-	ConnectAODEMCALCells(); //Do Only when filling AODCaloCells
-	esdCell = (AliESDCaloCells *) GetEMCALCells();
-      }
-      
-      if(!esdCell) {
-	printf("AliAnaExample::MakeAnalysisFillAOD() - STOP: No CELLS available for analysis");
-	abort();
-      }
-      //Some prints
-      if(GetDebug() > 0 && esdCell )
-	printf("AliAnaExample::MakeAnalysisFillAOD() - In ESD %s cell entries %d\n", fDetector.Data(), esdCell->GetNumberOfCells());    
-      
-      //Fill AODCells in file
-      Int_t ncells = esdCell->GetNumberOfCells() ;
-      GetAODCaloCells()->CreateContainer(ncells);
-      
-      GetAODCaloCells()->SetType((AliAODCaloCells::AODCells_t) esdCell->GetType());
-      
-      for (Int_t iCell = 0; iCell < ncells; iCell++) {      
-	if(GetDebug() > 2)  printf("AliAnaExample::MakeAnalysisFillAOD() - Cell : amp %f, absId %d,  time %f\n", esdCell->GetAmplitude(iCell), esdCell->GetCellNumber(iCell), esdCell->GetTime(iCell));
-	
-	GetAODCaloCells()->SetCell(iCell,esdCell->GetCellNumber(iCell),esdCell->GetAmplitude(iCell));
-      }
-      GetAODCaloCells()->Sort();
-    } 
-  }//cluster-cell analysis
+  }//Calorimeters
   else if(fDetector == "CTS"){ //Track analysis
     //Fill AODParticle with CTS aods
     TVector3 p3;
@@ -307,16 +225,15 @@ void  AliAnaExample::MakeAnalysisFillAOD()
       Bool_t in =  GetFiducialCut()->IsInFiducialCut(mom,"CTS") ;
       if(GetDebug() > 1) printf("AliAnaExample::MakeAnalysisFillAOD() - Track pt %2.2f, phi %2.2f, in fiducial cut %d\n",p3.Pt(), p3.Phi(), in);
       if(p3.Pt() > GetMinPt() && in) {
-	AliAODPWG4Particle tr = AliAODPWG4Particle(mom[0],mom[1],mom[2],0);
-	tr.SetDetector("CTS");
-	AddAODParticle(tr);
+        AliAODPWG4Particle tr = AliAODPWG4Particle(mom[0],mom[1],mom[2],0);
+        tr.SetDetector("CTS");
+        AddAODParticle(tr);
       }//selection
     }//loop
   }//CTS analysis
   
   if(GetDebug() > 0) {
     if(fDetector!="CTS" && GetReader()->GetDataType()!= AliCaloTrackReader::kMC) 
-      //printf("Example: final aod calocluster entries %d\n", GetAODCaloClusters()->GetEntriesFast());
       printf("AliAnaExample::MakeAnalysisFillAOD() - Final aod branch entries %d\n", GetOutputAODBranch()->GetEntriesFast());  
     //	if(fDetector!="CTS" && GetReader()->GetDataType()!= AliCaloTrackReader::kMC) 
     //printf("Example: final aod cell  entries %d\n", GetAODCaloCells()->GetNumberOfCells());
@@ -339,7 +256,7 @@ void  AliAnaExample::MakeAnalysisFillHistograms()
     fhEta->Fill(ph->Eta());
     
     if(IsDataMC()){
-      //Play with the MC stack if available
+    //Play with the MC stack if available
 	  Float_t ptprim  = 0;
 	  Float_t phiprim = 0;
 	  Float_t etaprim = 0;
@@ -357,7 +274,7 @@ void  AliAnaExample::MakeAnalysisFillHistograms()
 		  }
       
 		  TParticle * mom = GetMCStack()->Particle(ph->GetLabel());
-      	  ptprim  = mom->Pt();
+      ptprim  = mom->Pt();
 		  phiprim = mom->Phi();
 		  etaprim = mom->Eta();
 	  }
@@ -370,20 +287,7 @@ void  AliAnaExample::MakeAnalysisFillHistograms()
     }//Work with stack also
   }// aod branch loop
   
-  // CaloCells histograms
-  if(GetReader()->GetDataType()!= AliCaloTrackReader::kMC) {
-    if(GetAODCaloCells()){
-      
-      Int_t ncells = GetAODCaloCells()->GetNumberOfCells();
-      fhNCells->Fill(ncells) ;
-      
-      for (Int_t iCell = 0; iCell < ncells; iCell++) {      
-	if(GetDebug() > 2)  printf("AliAnaExample::MakeAnalysisFillHistograms() - Cell : amp %f, absId %d \n", GetAODCaloCells()->GetAmplitude(iCell), GetAODCaloCells()->GetCellNumber(iCell));
-	fhAmplitude->Fill(GetAODCaloCells()->GetAmplitude(iCell));
-      }
-    }//calo cells container exist
-  }
-}
+ }
 
 //________________________________________________________________________
 void AliAnaExample::ReadHistograms(TList* outputList)
@@ -399,11 +303,6 @@ void AliAnaExample::ReadHistograms(TList* outputList)
 	fhPt   = (TH1F *) outputList->At(index++); 
 	fhPhi  = (TH1F *) outputList->At(index++); 
 	fhEta  = (TH1F *) outputList->At(index++);
-	
-	if(GetReader()->GetDataType()!= AliCaloTrackReader::kMC) {
-	 fhNCells     = (TH1F *) outputList->At(index++); 
-	 fhAmplitude  = (TH1F *) outputList->At(index++); 
-	}
 	
 	if(IsDataMC()){
 	  fh2Pt  = (TH2F *) outputList->At(index++); 
@@ -442,11 +341,12 @@ void  AliAnaExample::Terminate(TList* outputList)
   fhEta->Draw();
  
   c->Print("Example.eps");
- 
-  char line[1024] ; 
-  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
+  
+  const Int_t buffersize = 1024;
+  char line[buffersize] ; 
+  snprintf(line,buffersize, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
-  sprintf(line, ".!rm -fR *.eps"); 
+  snprintf(line,buffersize, ".!rm -fR *.eps"); 
   gROOT->ProcessLine(line);
  
   printf("AliAnaExample::Terminate() - !! All the eps files are in %s.tar.gz !!!", GetName());

@@ -24,6 +24,8 @@
 // --- ROOT system ---
 #include "TH1.h"
 #include "TString.h"
+#include "TList.h"
+#include "TCanvas.h"
 
 // --- AliRoot header files ---
 #include "AliITSQASPDChecker.h"
@@ -32,6 +34,16 @@
 
 ClassImp(AliITSQASPDChecker)
 //__________________________________________________________________
+AliITSQASPDChecker::AliITSQASPDChecker() : 
+ TObject(),
+ fSubDetOffset(0), 
+ fStepBitSPD(NULL),
+ fLowSPDValue(NULL),
+ fHighSPDValue(NULL),
+ fImage(NULL) 
+ {
+ }
+//__________________________________________________________________
 AliITSQASPDChecker& AliITSQASPDChecker::operator = (const AliITSQASPDChecker& qac ) 
 {
   // Equal operator.
@@ -39,7 +51,13 @@ AliITSQASPDChecker& AliITSQASPDChecker::operator = (const AliITSQASPDChecker& qa
   new(this) AliITSQASPDChecker(qac);
   return *this;
 }
-
+//__________________________________________________________________
+AliITSQASPDChecker::~AliITSQASPDChecker() {
+if(fStepBitSPD) delete[] fStepBitSPD ;
+if(fLowSPDValue)delete[]fLowSPDValue;
+if(fHighSPDValue) delete[]fHighSPDValue;
+if(fImage) delete[]fImage;
+} 
 
 //__________________________________________________________________
 Double_t AliITSQASPDChecker::Check(AliQAv1::ALITASK_t index, TObjArray * list, const AliDetectorRecoParam * /*recoParam*/)
@@ -153,30 +171,75 @@ Double_t response =0;
 Bool_t fatalProblem = kFALSE;
 
 while ( (hdata = dynamic_cast<TH1 *>(next())) ) {
-if (hdata) {
+ if (hdata) {
         TString histName = hdata->GetName();
         if(!histName.Contains("SPD")) continue;
         totalHistos++;
         // data format error
-        if(histName.Contains("SPDErrorsAll")){
-        if(hdata->Integral(0,hdata->GetNbinsX())>0){
-           response = fHighSPDValue[AliQAv1::kFATAL];
-	   fatalProblem=kTRUE;
-           break;
-         }
-        }
+       if(histName.Contains("SPDErrorsAll")){
+	if(hdata->GetListOfFunctions()->GetEntries()<1) hdata->GetListOfFunctions()->Add(new TPaveText(0.2,0.23,0.7,0.5,"NDC"));
+
+	   for(Int_t i=0; i<hdata->GetListOfFunctions()->GetEntries(); i++){
+	   TString funcName = hdata->GetListOfFunctions()->At(i)->ClassName();
+	   if(funcName.Contains("TPaveText")){
+	    TPaveText *p = (TPaveText*)hdata->GetListOfFunctions()->At(i);
+             p->Clear();
+
+            if(hdata->Integral(0,hdata->GetNbinsX())>0){
+	     Bool_t isHighMult = kFALSE;
+	     for(Int_t ieq=0; ieq<20; ieq++){
+	      if(hdata->GetBinContent(ieq+1,17+1)>0 && hdata->GetBinContent(ieq+1,20+1)>0) isHighMult = kTRUE;
+	     }
+	     if(isHighMult) {
+	      p->SetFillColor(kOrange);
+	      p->AddText("High occupancy in a chip detected (-> errors type 17,20 and 0 are present). ");
+	      p->AddText("ONLY IF OTHER error types are present CALL the expert");
+	      } else {
+	     p->SetFillColor(kRed);
+	     p->AddText("Data Format NOT OK. Please call the expert!");
+	     }
+            response = fHighSPDValue[AliQAv1::kFATAL];
+            fatalProblem=kTRUE;
+            continue;
+	    } // if errors 
+           else {
+             p->Clear();
+             p->SetFillColor(kGreen);
+             p->AddText("OK");
+            }
+	   } // TPaveText
+         } // list entries   
+        } // data format error
+
         // MEB error
-        if(histName.Contains("MEB")){
+        else if(histName.Contains("MEB")){
+	  if(hdata->GetListOfFunctions()->GetEntries()<1) hdata->GetListOfFunctions()->Add(new TPaveText(0.2,0.23,0.7,0.5,"NDC"));
+
+	   for(Int_t i=0; i<hdata->GetListOfFunctions()->GetEntries(); i++){
+	   TString funcName = hdata->GetListOfFunctions()->At(i)->ClassName();
+	   if(funcName.Contains("TPaveText")){
+	     TPaveText *p = (TPaveText*)hdata->GetListOfFunctions()->At(i);
+	     p->Clear();
+
           if(hdata->GetEntries()>0){
-	   AliWarning("************* MEB ERROR!!!! ****************\n");
-           response = fHighSPDValue[AliQAv1::kFATAL];
-	   fatalProblem=kTRUE;
-           break;
-          }
+	     p->SetFillColor(kRed);
+	     p->AddText("MEB problem could be present. Please check if SPD is in READY state.");
+	     p->AddText("If SPD is in -READY- state, please notify it to the expert."); 
+            response = fHighSPDValue[AliQAv1::kFATAL];
+            fatalProblem=kTRUE;
+            continue;
+
+           } else {
+	     p->SetFillColor(kGreen);
+	     p->AddText("OK");
+              }   
+
+	    } // pave text
+	   } // list 
          }
-        goodHistos++;
+	goodHistos++;
         }
-}
+     }
     if(!fatalProblem) response = goodHistos/totalHistos;
    // printf("n histos %f - good ones %f ----> ratio %f , fatal response %i\n",totalHistos,goodHistos,goodHistos/totalHistos,(Int_t)fatalProblem);
     return response;
@@ -215,4 +278,132 @@ void  AliITSQASPDChecker::SetSPDLimits(const Float_t *lowvalue, const Float_t * 
     }
 
 }
+//__________________________________________________________________
+Bool_t  AliITSQASPDChecker::MakeSPDImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, AliQAv1::MODE_t mode)
+{
+  Bool_t val=kFALSE;
 
+  fImage=(TCanvas**)AliQAChecker::Instance()->GetDetQAChecker(0)->GetImage();
+  //create the image for raws and recpoints. In the other case, the default methodof CheckerBase class will be used
+  switch(task)
+    {
+    case AliQAv1::kRAWS:{
+      val = MakeSPDRawsImage(list, task,mode);
+    }
+      break;
+    case AliQAv1::kRECPOINTS:;
+    case AliQAv1::kHITS:; 
+    case AliQAv1::kESDS:; 
+    case AliQAv1::kDIGITS:;
+    case AliQAv1::kDIGITSR:;
+    case AliQAv1::kSDIGITS:;
+    case AliQAv1::kTRACKSEGMENTS:;
+    case AliQAv1::kRECPARTICLES:; 
+    default:
+    {
+       //AliQAChecker::Instance()->GetDetQAChecker(0)->MakeImage(list,task,mode);
+      val = kFALSE;
+    }
+    break;
+    case AliQAv1::kNULLTASKINDEX:; case  AliQAv1::kNTASKINDEX: 
+      {AliWarning(Form("No histograms for these tasks ( %s ) \n", AliQAv1::GetTaskName(task).Data())); val = kFALSE;}
+      break;
+    }
+ return val; 
+}
+//_______________________________________________________________________
+Bool_t AliITSQASPDChecker::MakeSPDRawsImage(TObjArray ** list, AliQAv1::TASKINDEX_t task, AliQAv1::MODE_t mode )
+{
+    //
+    // create layout of the histograms used in the DQM
+    //
+  
+  
+    for (Int_t esIndex = 0 ; esIndex < AliRecoParam::kNSpecies ; esIndex++) {
+      //printf("-------------------------> %i \n", esIndex);
+      if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(esIndex)) || list[esIndex]->GetEntries() == 0) 
+          {printf ("Nothing for %s \n", AliRecoParam::GetEventSpecieName(esIndex)); continue;}
+      else{
+	const Char_t * title = Form("QA_%s_%s_%s", GetName(), AliQAv1::GetTaskName(task).Data(), AliRecoParam::GetEventSpecieName(esIndex)) ; 
+	if ( !fImage[esIndex] ) {
+	  fImage[esIndex] = new TCanvas(title, title,1280,980) ;
+	}
+	
+	fImage[esIndex]->Clear() ; 
+	fImage[esIndex]->SetTitle(title) ; 
+	fImage[esIndex]->cd();
+ 
+	TPaveText someText(0.015, 0.015, 0.98, 0.98);
+	someText.AddText(title);
+	someText.Draw(); 
+	fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat()), "ps") ; 
+	fImage[esIndex]->Clear() ; 
+	Int_t nx =3; 
+	Int_t ny =2; 
+	
+	fImage[esIndex]->Divide(nx, ny) ; 
+         
+	TH1* hist = NULL ;
+	Int_t npad = 1 ; 
+	fImage[esIndex]->cd(npad); 
+	fImage[esIndex]->cd(npad)->SetBorderMode(0) ;
+        
+        TIter next(list[esIndex]);
+
+	while ( (hist=static_cast<TH1*>(next())) ) {
+	  //gPad=fImage[esIndex]->cd(npad)->GetPad(npad);
+          if(!hist->TestBit(AliQAv1::GetImageBit())) continue;
+          TString name(hist->GetName());
+           if(name.Contains("SPDErrorsAll")) {
+            fImage[esIndex]->cd(1) ; 
+	    gPad->SetBorderMode(0) ;  
+            gPad->SetRightMargin(0.25);
+	    hist->SetStats(0);
+	    hist->SetOption("colz") ;
+            hist->DrawCopy();  
+           }     
+           if(name.Contains("MEB")) {
+            fImage[esIndex]->cd(2) ; 
+	    gPad->SetBorderMode(0) ;  
+            gPad->SetBottomMargin(0.25);
+	    hist->SetOption("colz") ;
+            hist->DrawCopy();  
+           }     
+           if(name.Contains("SPDFastOrCorrelation")){
+            fImage[esIndex]->cd(3) ; 
+	    gPad->SetBorderMode(0) ;  
+	    hist->SetOption("") ;
+            hist->DrawCopy();               
+           }
+           
+            if(name.Contains("SPDHitMapStaveChipInner")){
+            fImage[esIndex]->cd(4) ; 
+	    gPad->SetBorderMode(0) ;  
+            gPad->SetRightMargin(0.25);
+	    hist->SetOption("colz") ;
+            hist->DrawCopy();               
+           }
+            if(name.Contains("SPDHitMapStaveChipOuter")){
+            fImage[esIndex]->cd(5) ; 
+	    gPad->SetBorderMode(0) ;  
+            gPad->SetRightMargin(0.25);
+	    hist->SetOption("colz") ;
+            hist->DrawCopy();               
+           }
+            if(name.Contains("SPDFastOrMapStaveChip")){
+            fImage[esIndex]->cd(6) ; 
+	    gPad->SetBorderMode(0) ;  
+            gPad->SetRightMargin(0.25);
+            gPad->SetBottomMargin(0.25);
+	    hist->SetOption("colz") ;
+            hist->DrawCopy();               
+           }
+          
+          
+	}
+        
+	fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat()), "ps") ; 
+      }
+    }
+  return kTRUE;
+}

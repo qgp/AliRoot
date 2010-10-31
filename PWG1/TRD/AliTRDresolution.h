@@ -25,11 +25,10 @@ class TF1;
 class TGraphErrors;
 class TObjArray;
 class TDatabasePDG;
-class AliTRDReconstructor;
-class AliTRDgeometry;
 class AliTRDrecoParam;
 class AliTRDseedV1;
 class AliTRDtrackInfo;
+class AliTrackPoint;
 class AliTRDresolution : public AliTRDrecoTask
 {
 public:
@@ -48,8 +47,10 @@ public:
     ,kNprojs     = 70 // total number of projections for all views
   };
   enum ETRDresolutionSteer {
-    kVerbose  = 0
-    ,kVisual  = 1
+     kVerbose    = BIT(18) // switch verbosity
+    ,kVisual     = BIT(19) // show partial results during processing
+    ,kTrackRefit = BIT(20) // steer track refit
+    ,kTrackSelect= BIT(21) // steer track selection
   };
   enum ETRDresolutionOutSlots {
      kClToTrk    = 2
@@ -63,9 +64,12 @@ public:
   AliTRDresolution(char* name);
   virtual ~AliTRDresolution();
   
+  static Bool_t  FitTrack(const Int_t np, AliTrackPoint *points, Float_t params[10]);
+  static Bool_t  FitTracklet(const Int_t ly, const Int_t np, const AliTrackPoint *points, const Float_t trackPars[10], Float_t trackletPars[3]);
   void    UserCreateOutputObjects();
+  Float_t GetDyRange() const {return fDyRange;}
   Float_t GetPtThreshold() const {return fPtThreshold;}
-  Float_t GetSegmentationLevel() {return fSegmentLevel;}
+  Float_t GetSegmentationLevel() const {return fSegmentLevel;}
   Bool_t  GetRefFigure(Int_t ifig);
   TObjArray*  Histos(); 
   Bool_t  Load(const Char_t *file = "AnalysisResults.root", const Char_t *dir="TRD_Performance");
@@ -74,8 +78,10 @@ public:
   TObjArray*  Results(Int_t i=0) const {return i ? fGraphS : fGraphM;} 
   void    UserExec(Option_t * opt);
   void    InitExchangeContainers();
-  Bool_t  IsVerbose() const {return TESTBIT(fStatus, kVerbose);}
-  Bool_t  IsVisual() const {return TESTBIT(fStatus, kVisual);}
+  Bool_t  HasTrackRefit() const {return TestBit(kTrackRefit);}
+  Bool_t  HasTrackSelection() const {return TestBit(kTrackSelect);}
+  Bool_t  IsVerbose() const {return TestBit(kVerbose);}
+  Bool_t  IsVisual() const {return TestBit(kVisual);}
   Bool_t  PostProcess();
 
   TH1*    PlotCharge(const AliTRDtrackV1 *t=NULL);
@@ -85,16 +91,20 @@ public:
   TH1*    PlotTrackOut(const AliTRDtrackV1 *t=NULL);
   TH1*    PlotMC(const AliTRDtrackV1 *t=NULL);
 
+  static Bool_t  Process(TH2* const h2, TGraphErrors **g, Int_t stat=100);
+  void    SetDyRange(Float_t dy) {fDyRange = dy;}
   void    SetSegmentationLevel(Int_t l=0);
   void    SetPtThreshold(Float_t pt) {fPtThreshold = pt;}
-  void    SetRecoParam(AliTRDrecoParam *r);
-  void    SetVerbose(Bool_t v = kTRUE) {v ? SETBIT(fStatus ,kVerbose): CLRBIT(fStatus ,kVerbose);}
-  void    SetVisual(Bool_t v = kTRUE) {v ? SETBIT(fStatus, kVisual) : CLRBIT(fStatus, kVisual);}
+  void    SetVerbose(Bool_t v = kTRUE) {SetBit(kVerbose, v);}
+  void    SetVisual(Bool_t v = kTRUE) {SetBit(kVisual, v);}
+  void    SetTrackRefit(Bool_t v = kTRUE) {SetBit(kTrackRefit, v);}
+  void    SetTrackSelection(Bool_t v = kTRUE) {SetBit(kTrackSelect, v);}
 
   void    Terminate(Option_t * opt);
   Bool_t  GetGraph(Float_t *bb, ETRDresolutionPlot ip, Int_t idx=-1, Bool_t kLEG=kTRUE, const Char_t *explain=NULL);
   Bool_t  GetGraphArray(Float_t *bb, ETRDresolutionPlot ip, Int_t idx, Bool_t kLEG=kTRUE, Int_t n=0, Int_t *sel=NULL, const Char_t *explain=NULL);
-  
+  static Bool_t  UseTrack(const Int_t np, const AliTrackPoint *points, Float_t params[10]);
+    
 private:
   AliTRDresolution(const AliTRDresolution&);
   AliTRDresolution& operator=(const AliTRDresolution&);
@@ -114,21 +124,20 @@ private:
   Bool_t  Process3DL(ETRDresolutionPlot ip, Int_t idx=-1, TF1 *f=NULL,  Float_t scale=1.);
   Bool_t  Process3Darray(ETRDresolutionPlot ip, Int_t idx=-1, TF1 *f=NULL,  Float_t scale=1.);
   Bool_t  Process3DlinkedArray(ETRDresolutionPlot ip, Int_t idx=-1, TF1 *f=NULL,  Float_t scale=1.);
-  Bool_t  Pulls(Double_t dyz[2], Double_t cc[3], Double_t tilt);
+  Bool_t  Pulls(Double_t dyz[2], Double_t cc[3], Double_t tilt) const;
 
-  UChar_t             fStatus;          // steer parameter of the task
-  UChar_t             fSegmentLevel;    // steer parameter of the task
+  UChar_t             fSegmentLevel;    // segmentation level [sector/stack/chamber]
   UShort_t            fIdxPlot;         // plot counter (internal)
   UShort_t            fIdxFrame;        // frame counter (internal)
   UShort_t            fNcomp[kNprojs];  // number of projections per task
   Char_t              *fAxTitle[kNprojs][4]; //! Title for all ref histos
   Float_t             fPtThreshold;     // pt threshold for some performance plots
+  Float_t             fDyRange;         // min/max dy
   static Char_t const *fgPerformanceName[kNviews]; //! name of performance plot
+  static Char_t const *fgParticle[11];    //! latex name of particles/sign 
   static UChar_t const fgNproj[kNviews]; //! number of projections per task
-  static Int_t const  fgkNresYsegm[3];  //! number of segments for saving y resolution
+  static Int_t const  fgkNresYsegm[3];   //! number of segments for saving y resolution
   static Char_t const *fgkResYsegmName[3];//! name of segment for saving y resolution
-  AliTRDReconstructor *fReconstructor;  //! local reconstructor
-  AliTRDgeometry      *fGeo;            //! TRD geometry
   TDatabasePDG        *fDBPDG;          // PDG database
   TObjArray           *fGraphS;         //! result holder - sigma values
   TObjArray           *fGraphM;         //! result holder - mean values
@@ -139,6 +148,6 @@ private:
 /*  TObjArray           *fTrklt;  //! tracklet2track calib
   TObjArray           *fMCtrklt;//! tracklet2mc calib*/
   
-  ClassDef(AliTRDresolution, 7) // TRD tracking resolution task
+  ClassDef(AliTRDresolution, 9) // TRD tracking resolution task
 };
 #endif

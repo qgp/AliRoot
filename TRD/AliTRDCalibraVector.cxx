@@ -167,13 +167,16 @@ AliTRDCalibraVector::~AliTRDCalibraVector()
   // AliTRDCalibraVector destructor
   //
 
-  if(fPHEntries) delete fPHEntries;
-  if(fPHMean) delete fPHMean;
-  if(fPHSquares) delete fPHSquares;
-  if(fPRFEntries) delete fPRFEntries;
-  if(fPRFMean) delete fPRFMean;
-  if(fPRFSquares) delete fPRFSquares;
-  if(fCHEntries) delete fCHEntries;
+  for (Int_t i=0; i<540; i++) {
+    delete fPHEntries[i];
+    delete fPHMean[i];
+    delete fPHSquares[i];
+    delete fPRFEntries[i];
+    delete fPRFMean[i];
+    delete fPRFSquares[i];
+    delete fCHEntries[i];
+  }
+
   if(fHisto) delete fHisto;
   if(fGraph) delete fGraph;
   if(fCalVector) delete fCalVector;
@@ -980,10 +983,12 @@ TGraphErrors *AliTRDCalibraVector::ConvertVectorPHTGraphErrors(Int_t det, Int_t 
   // Axis
   Float_t sf = 10.0;
   AliTRDCommonParam *parCom = AliTRDCommonParam::Instance();
-  if (!parCom) {
+  if (parCom) {
+    sf = parCom->GetSamplingFrequency();
+  }
+  else {
     AliInfo("Could not get CommonParam, take the default 10MHz");
   }
-  sf = parCom->GetSamplingFrequency();
   // Axis
   Double_t x[35];  // Xaxis
   Double_t y[35];  // Sum/entries

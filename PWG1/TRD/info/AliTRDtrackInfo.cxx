@@ -108,6 +108,8 @@ AliTRDtrackInfo::AliMCinfo::AliMCinfo(const AliMCinfo &mc)
 //________________________________________________________
 Int_t AliTRDtrackInfo::AliMCinfo::GetPID() const
 {
+// Translate pdg code to PID index
+
   switch(fPDG){
   case kElectron: 
   case kPositron: return AliPID::kElectron;  
@@ -140,6 +142,7 @@ AliTRDtrackInfo::AliESDinfo::AliESDinfo()
   //
 
   memset(fTRDr, 0, AliPID::kSPECIES*sizeof(Double32_t));
+  memset(fTRDv0pid, 0, AliPID::kSPECIES*sizeof(Int_t));
 }
 
 //___________________________________________________
@@ -159,6 +162,7 @@ AliTRDtrackInfo::AliESDinfo::AliESDinfo(const AliESDinfo &esd)
   //
 
   memcpy(fTRDr, esd.fTRDr, AliPID::kSPECIES*sizeof(Double32_t));
+  memcpy(fTRDv0pid, esd.fTRDv0pid, AliPID::kSPECIES*sizeof(Int_t));
 
   if(fTRDnSlices){
     fTRDslices = new Double32_t[fTRDnSlices];
@@ -353,7 +357,7 @@ AliTrackReference* AliTRDtrackInfo::GetTrackRef(Int_t idx) const
 }
 
 //___________________________________________________
-AliTrackReference* AliTRDtrackInfo::GetTrackRef(AliTRDseedV1* const tracklet) const
+AliTrackReference* AliTRDtrackInfo::GetTrackRef(const AliTRDseedV1* const tracklet) const
 {
 //
 // Returns a track reference
@@ -460,7 +464,8 @@ Bool_t AliTRDtrackInfo::AliMCinfo::GetDirections(Float_t &x0, Float_t &y0, Float
     else SETBIT(status, 1);
     return kFALSE;
   }
-  if((pt=tr[1]->Pt()) < 1.e-3) return kFALSE;
+  pt=tr[1]->Pt();
+  if(pt < 1.e-3) return kFALSE;
 
   Double_t dx = tr[1]->LocalX() - tr[0]->LocalX();
   if(dx <= 0.){

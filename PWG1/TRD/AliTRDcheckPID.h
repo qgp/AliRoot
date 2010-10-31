@@ -23,7 +23,6 @@
 #include "AliPID.h"
 #endif
 
-class AliTRDReconstructor;
 class AliTRDpidUtil;
 class AliTRDcheckPID : public AliTRDrecoTask 
 {
@@ -73,7 +72,7 @@ public:
   static Char_t const* MethodName(Int_t id) { return fgMethod[id]; };
   //TObjArray *GetHistos() { return fContainer; };
   virtual TObjArray *Histos();
-  void EvaluateEfficiency(TObjArray* const histoContainer, TObjArray *results, Int_t species, Float_t electronEfficiency);
+  void EvaluateEfficiency(const TObjArray* const histoContainer, TObjArray *results, Int_t species, Float_t electronEfficiency);
   inline void SetMomentumBinning(Int_t nBins, Double_t *bins);
   inline Int_t FindBin(Int_t species, Double_t momentum);
   inline Bool_t IsInRange(Double_t momentum);
@@ -87,7 +86,6 @@ private:
   void   LocalInit();
 
   static Char_t const *fgMethod[3];        // PID method name
-  AliTRDReconstructor *fReconstructor;     // reconstructor needed for recalculation the PID
   AliTRDpidUtil       *fUtil;              // utility class for PID calculations
   TObjArray           *fGraph;             //! array of graphs filled in PostProcess
   TObjArray           *fPID;               //! array of PID info/track for calibration
@@ -96,7 +94,7 @@ private:
   TAxis               *fMomentumAxis;      // helper mementum binning
   Int_t                fMinNTracklets;     // minimum number of required Tracklets (for systematic studies)
   Int_t                fMaxNTracklets;     // maximum number of required Tracklets (for systematic studies) 
-  ClassDef(AliTRDcheckPID, 2); // TRD PID checker
+  ClassDef(AliTRDcheckPID, 3); // TRD PID checker
 };
 
 //________________________________________________________________________

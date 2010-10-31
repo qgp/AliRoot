@@ -1,11 +1,21 @@
-// add comment
-//
-// RF = Reference Flow
-// RP = Reference Particles
-// POI = Particles Of Interest
+// Macro compareFlowResults.C is used to show a set of predefined plots with results 
+// of flow analysis. It's usage is very simple: If you have output root file of flow
+// analysis <outputFileName> in directory <dir>, simply copy the macro in <dir> and
+// execute it. Remarks: 
+//  1.) Make sure that the 'TString analysisType' bellow is the same as the one which 
+//      was used in the analysis which have produced the <outputFileName>;
+//  2.) Abbreviations used here are: RF = Reference Flow, RP = Reference Particles,
+//      POI = Particles Of Interest;
+//  3.) To modify cosmetics of each plot change default settings in function which 
+//      have produced that plot. Example: If you want to modify marker colors in 
+//      the plot for reference flow, modify array Int_t methodMarkerColor[nMethods] 
+//      in the function PlotReferenceFlow().
+
+// Set name of the output file of flow analysis to be accessed:
+TString outputFileName = "AnalysisResults.root";
 
 // Set here which plots will be shown by default:
-// Results:
+//  Results:
 Bool_t plotReferenceFlow = kTRUE; // reference flow 
 Bool_t plotIntFlowPOI = kTRUE; // integrated flow of POIs
 Bool_t plotDiffFlowPtPOI = kTRUE; // differential flow v(pt) for POIs
@@ -13,7 +23,7 @@ Bool_t plotDiffFlowEtaPOI = kTRUE; // differential flow v(eta) for POIs
 Bool_t plotIntFlowRP = kTRUE; // integrated flow of RPs
 Bool_t plotDiffFlowPtRP = kTRUE; // differential flow v(pt) for RPs
 Bool_t plotDiffFlowEtaRP = kTRUE; // differential flow v(eta) for RPs
-// Results relative to MC:
+//  Results relative to MC:
 Bool_t plotReferenceFlowRelativeToMC = kTRUE; // plot (v{MC}-v{method})/v{MC} for reference flow
 Bool_t plotIntFlowRelativeToMCPOI = kTRUE; // plot (v{MC}-v{method})/v{MC} for integrated flow of POIs   
 Bool_t plotDiffFlowPtRelativeToMCPOI = kTRUE; // plot (v{MC}-v{method})/v{MC} as a function of pt for POIs 
@@ -24,24 +34,33 @@ Bool_t plotDiffFlowEtaRelativeToMCRP = kTRUE; // plot (v{MC}-v{method})/v{MC} as
 // Set here if the legends will be shown on the plots:
 Bool_t showLegend = kTRUE; 
 Bool_t showLegendDiffFlow = kTRUE;
-// Set here if both the error mesh and markers will be shown for specified method in the plots for differential flow:
-Bool_t showBothErrorMeshAndMarkers = kFALSE; 
 // Some quick settings:
 Bool_t showOnlyReferenceFlow = kFALSE;
-Bool_t showResultsRelativeToMC = kTRUE;
+Bool_t showResultsRelativeToMC = kFALSE;
 Bool_t showOnlyPlotsForPOIs = kFALSE;
 Bool_t showOnlyPlotsForRPs = kFALSE;
+// Set here if you want to rebin pt bins to reduce the statistical errors in the plots for differential flow vs pt:
+Bool_t rebinInPt = kTRUE;
+const Int_t nPtIntervals = 3;
+Double_t ptInterval[nPtIntervals+1] = {0.,2.,5.,10.}; // in GeV
+Int_t nMergedBins[nPtIntervals] = {1,5,10}; // for instance in 2nd pt interval (2-5 GeV) 5 pt bins will be merged into 1
+// Set here if you want to show error mesh:
+Bool_t showErrorMesh = kTRUE;
+Bool_t showErrorMeshDiffFlow = kTRUE;
+// Set here if both the error mesh and markers will be shown for specified method in the plots for differential flow:
+Bool_t showBothErrorMeshAndMarkers = kFALSE; 
 
+// Do not touch this unless you are looking for a trouble:
 const Int_t nMethods = 12;
 TString method[nMethods] = {"MCEP","SP","GFC","QC","FQD","LYZ1SUM","LYZ1PROD","LYZ2SUM","LYZ2PROD","LYZEP","MH","NL"};
 TList *list[nMethods] = {NULL}; // lists holding histograms for each flow analysis method
 
 enum libModes{mLocal,mLocalSource};
 
-//void newCompare(TString analysisType="",Int_t analysisMode=mLocalSource)
-void compareFlowResults(TString analysisType="",Int_t analysisMode=mLocal)
+//void compareFlowResults(TString analysisType="",Int_t analysisMode=mLocalSource)
+void compareFlowResults(TString analysisType="ESD",Int_t analysisMode=mLocal)
 {
- // 1. analysisType: "ESD", "AOD", "ESDMC0", "ESDMC1"; for Monte Carlo and 'on the fly' use simply "";
+ // 1. analysisType: "ESD", "AOD", "MC", "ESDMCkineESD", "ESDMCkineMC", "MK", for analysis 'on the fly' use simply "";
  // 2. analysisMode: if analysisMode = mLocal -> analyze data on your computer using aliroot
  //                  if analysisMode = mLocalSource -> analyze data on your computer using root + source files 
   
@@ -49,8 +68,7 @@ void compareFlowResults(TString analysisType="",Int_t analysisMode=mLocal)
  LoadLibrariesCFR(analysisMode); 
 
  // Access common output file:
- TString outputFileName = "AnalysisResults.root"; // name of the common output file
- TFile *outputFile = AccessOutputFile(outputFileName);
+ TFile *outputFile = AccessOutputFile(outputFileName); 
  
  // Access from common output file the TDirectoryFile's for each flow analysis method
  // and from them the lists holding histograms with final results:
@@ -58,7 +76,7 @@ void compareFlowResults(TString analysisType="",Int_t analysisMode=mLocal)
  
  // Global settings which will affect all plots:
  GlobalSettings();
-  
+   
  // Calling the functions to produce the final plots:
  if(plotReferenceFlow) PlotReferenceFlow();
  if(!showOnlyReferenceFlow)
@@ -205,7 +223,7 @@ void PlotDiffFlowEtaPOI()
 void PlotDiffFlowPtRP()
 {
  // Make a plot which compares the results for differential flow of RPs vs pt.
-
+ 
  // Settings for methods:
  const Int_t nMethods = 10;
  TString method[nMethods] = {"MCEP","SP","2,GFC","2,QC","4,GFC","4,QC","6,GFC","8,GFC","LYZ2SUM","LYZ2PROD"};
@@ -412,8 +430,8 @@ void PlotDiffFlow(Int_t nMethods, TString *method, Int_t *methodMarkerStyle, Int
  // Style histogram:
  StyleHistDiffFlow(ptEta.Data(),rpPoi.Data())->Draw();
  // Error mesh:  
- TGraph *errorMesh = GetErrorMeshDiffFlow(methodUsedToMakeErrorMesh.Data(),rpPoi.Data(),ptEta.Data());
- if(errorMesh) 
+ TGraph *errorMesh = GetErrorMeshDiffFlow(methodUsedToMakeErrorMesh.Data(),rpPoi.Data(),ptEta.Data()); 
+ if(errorMesh && showErrorMeshDiffFlow) 
  {
   errorMesh->SetFillStyle(meshStyle);
   errorMesh->SetFillColor(meshColor);
@@ -426,9 +444,10 @@ void PlotDiffFlow(Int_t nMethods, TString *method, Int_t *methodMarkerStyle, Int
   TH1D *hist = GetResultHistogram(method[b].Data(),rpPoi.Data(),ptEta.Data());
   if(hist)
   {
+   if(rebinInPt && ptEta == "Pt"){hist = RebinInPt(hist);}
    hist->SetMarkerStyle(methodMarkerStyle[b]);
    hist->SetMarkerColor(methodMarkerColor[b]);
-   hist->Draw("e1psame");
+   hist->Draw("e1psamex0");
   }
  } 
  if(showLegendDiffFlow)
@@ -532,64 +551,168 @@ TGraph* GetErrorMeshDiffFlow(TString methodUsedToMakeErrorMesh, TString rpPoi, T
  
  TH1D *hist = GetResultHistogram(methodUsedToMakeErrorMesh.Data(),rpPoi.Data(),ptEta.Data());
  
- Double_t dMin = 0.;
- if(ptEta == "Pt")
- { 
-  dMin = AliFlowCommonConstants::GetMaster()->GetPtMin();
- } else if(ptEta == "Eta")
-   {
-    dMin = AliFlowCommonConstants::GetMaster()->GetEtaMin();
-   }  
- TGraph* errorMesh = NULL;
+ // Rebin higher pt bins:
+ if(hist && rebinInPt && ptEta == "Pt")
+ {
+  hist = RebinInPt(hist);
+ }
+  
+ // Make a mesh: 
  if(hist)
  {
   Int_t nBins = hist->GetNbinsX();
-  Double_t binWidth = hist->GetBinWidth(1); // assuming that all bins have the same width
+  Double_t value = 0.;
+  Double_t error = 0.;
   // Counting the non-empty bins: 
-  Int_t nNonEmptyBins=0;
+  Int_t nNonEmptyBins = 0;
   for(Int_t i=1;i<nBins+1;i++)
   {
-   if(!(hist)->GetBinError(i)==0.0))
+   value = hist->GetBinContent(i);
+   error = hist->GetBinError(i);
+   if(TMath::Abs(value)>0.0 && error>0.0)
    {
     nNonEmptyBins++;
    }
-  }   
-  errorMesh = new TGraph(2*nNonEmptyBins+1); 
-  Double_t value=0.,error=0.;
-  Int_t count=1;
-  Double_t xFirst=0.,yUpFirst=0.; // needed to close up the mesh
+  } // end of for(Int_t i=1;i<nBins+1;i++)  
+  // Error mesh:
+  TGraph *errorMesh = new TGraph(2*nNonEmptyBins+1); 
+  Int_t count = 0;
+  Double_t binCenter = 0.;
   for(Int_t i=1;i<nBins+1;i++)
   {
-   // Setting up the upper limit of the mesh:
    value = hist->GetBinContent(i);
-   error = hist->GetBinError(i);   
-   if(!(error==0.0))
+   error = hist->GetBinError(i);
+   // Setting up the the mesh:
+   if(TMath::Abs(value)>0.0 && error>0.0)
    {    
-    errorMesh->SetPoint(count++,(i-0.5)*binWidth+dMin,value+error);
-    if(xFirst==0.)
-    {
-     xFirst=(i-0.5)*binWidth+dMin;
-     yUpFirst=value+error;
-    }
-   } 
-  }   
-  for(Int_t i=nBins+1;i<2*nBins+1;i++)
-  {
-   // Setting up the lower limit of the mesh:
-   value = hist->GetBinContent(2*nBins+1-i);
-   error = hist->GetBinError(2*nBins+1-i); 
-   if(!(error==0.0))
-   {      
-    errorMesh->SetPoint(count++,(2*nBins-i+0.5)*binWidth+dMin,value-error);
-   }  
-  }
+    binCenter = hist->GetBinCenter(i);   
+    errorMesh->SetPoint(count,binCenter,value+error);
+    errorMesh->SetPoint(2*nNonEmptyBins-(count+1),binCenter,value-error);
+    count++;
+   }
+  } // end of for(Int_t i=1;i<nBins+1;i++)
   // Closing the mesh area:
-  errorMesh->SetPoint(2*nNonEmptyBins+1,xFirst,yUpFirst);   
+  Double_t xStart = 0.;
+  Double_t yStart = 0.;
+  errorMesh->GetPoint(0,xStart,yStart);
+  errorMesh->SetPoint(2*nNonEmptyBins,xStart,yStart);   
  } // end if(hist)
  
  return errorMesh;
  
 } // end of TGraph* GetErrorMeshDiffFlow(TString methodUsedToMakeErrorMesh, TString ptEta, TString rpPoi)
+
+// ===========================================================================================
+
+TH1D* RebinInPt(TH1D *hist)
+{
+ // Rebin original histograms.
+ 
+ if(!hist)
+ {
+  cout<<endl;
+  cout<<" WARNING: hist is NULL in RebinInPt() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
+ 
+ Double_t binWidthOld = hist->GetXaxis()->GetBinWidth(4);
+ Int_t nBinsOld = hist->GetXaxis()->GetNbins(); 
+ for(Int_t b=1;b<=nBinsOld;b++)
+ {
+  if(TMath::Abs(hist->GetXaxis()->GetBinWidth(b)-binWidthOld)>1.e-44)
+  {
+   cout<<endl;
+   cout<<Form(" WARNING: %s have bins of unequal width !!!!",hist->GetName())<<endl;
+   cout<<"               Do not trust rebinning for high pt." <<endl;
+   cout<<endl;
+  }
+ } // end of for(Int_t b=1;b<=nBinsOld;b++)
+ if(binWidthOld<1.e-44)
+ {
+  cout<<endl;
+  cout<<Form(" WARNING: in %s bin width is 0 !!!!",hist->GetName())<<endl;
+  cout<<"               Cannot do rebinning in pt." <<endl;
+  cout<<endl;
+  exit(0);
+ }
+   
+ // Book rebinned histogram:
+ Int_t nBinsNew = 0;
+ for(Int_t i=0;i<nPtIntervals;i++)
+ {
+  Double_t xMin = TMath::Nint(ptInterval[i]/binWidthOld)*binWidthOld;
+  Double_t xMax = TMath::Nint(ptInterval[i+1]/binWidthOld)*binWidthOld;
+  Int_t nBins = TMath::Nint((xMax-xMin)/binWidthOld); 
+  if(nBins <= 0)
+  {
+   cout<<endl;
+   cout<<Form(" WARNING: nBins <=0 when rebinning %s !!!!",hist->GetName())<<endl;
+   cout<<"               Check entries in array ptInterval." <<endl;
+   cout<<endl;
+   exit(0);
+  }
+  if(nBins % nMergedBins[i] == 0)
+  {
+   nBinsNew += nBins/nMergedBins[i];
+  } else
+    {
+     nBinsNew += (nBins/nMergedBins[i] + 1);  
+    }      
+ } // end of for(Int_t i=0;i<nPtIntervals;i++) 
+ const Int_t nBinsRebinned = nBinsNew;
+ Double_t binEdges[nBinsRebinned+1] = {0.};
+ Int_t counterForRebinnedBins = 0; 
+ for(Int_t i=0;i<nPtIntervals;i++)
+ {
+  Double_t xMin = TMath::Nint(ptInterval[i]/binWidthOld)*binWidthOld;
+  Double_t xMax = TMath::Nint(ptInterval[i+1]/binWidthOld)*binWidthOld;
+  Int_t nBins = TMath::Nint((xMax-xMin)/binWidthOld); 
+  if(nBins % nMergedBins[i] == 0)
+  {
+   nBins = nBins/nMergedBins[i];
+  } else
+    {
+     nBins = (nBins/nMergedBins[i] + 1);  
+    }      
+  for(Int_t b=0;b<nBins;b++)
+  {
+   binEdges[counterForRebinnedBins] = xMin + b*binWidthOld*nMergedBins[i];
+   counterForRebinnedBins++;
+  }          
+ } // end of for(Int_t i=0;i<nPtIntervals;i++) 
+ // Last bin edge:
+ binEdges[counterForRebinnedBins] = hist->GetXaxis()->GetXmax(); 
+
+ TH1D *temp = new TH1D("","",nBinsRebinned,binEdges); // rebinned histogram 
+ for(Int_t br=0;br<nBinsRebinned;br++) // bins in rebinned histogram
+ { 
+  Double_t value = 0.;
+  Double_t error = 0.;
+  Double_t dSum1 = 0.; // sum value_i/(error_i)^2
+  Double_t dSum2 = 0.; // sum 1/(error_i)^2
+  Int_t startingBin = hist->FindBin(binEdges[br]);
+  Int_t endingBin = hist->FindBin(binEdges[br+1]);  
+  for(Int_t bo=startingBin;bo<endingBin;bo++) // bins in original histogram
+  {
+   value = hist->GetBinContent(bo);  
+   error = hist->GetBinError(bo);  
+   if(error>0.)
+   {
+    dSum1+=value/(error*error);
+    dSum2+=1./(error*error);
+   }
+  } 
+  if(dSum2>0.)
+  {
+   temp->SetBinContent(br+1,dSum1/dSum2);
+   temp->SetBinError(br+1,pow(1./dSum2,0.5));
+  }
+ } // end of for(Int_t b=1;b<=nBinsOld;b++)
+    
+ return temp;
+      
+} // end of RebinInPt()
 
 // ===========================================================================================
 
@@ -697,7 +820,7 @@ void Plot(const Int_t nMethods,TString *method,Int_t *methodMarkerStyle,Int_t *m
   c->cd(1)->SetPad(0.0,0.0,0.75,1.0);
  } 
  StyleHist(title,nMethods,method,results,errors)->Draw();
- if(errorMesh)errorMesh->Draw("lfsame");
+ if(errorMesh && showErrorMesh){errorMesh->Draw("lfsame");}
  for(Int_t b=0;b<nMethods;b++)
  {
   if(ge[b])ge[b]->Draw("psame");
@@ -1222,12 +1345,12 @@ TFile* AccessOutputFile(TString outputFileName)
 void GetListsWithHistograms(TFile *outputFile, TString analysisType)
 {
  // Access from common output file the TDirectoryFile's for each flow analysis method
- // and from them the lists holding histograms with final results:
+ // and from them the TList's holding histograms with final results:
  
  TString fileName[nMethods]; 
  TDirectoryFile *dirFile[nMethods] = {NULL}; 
  TString listName[nMethods]; 
- Int_t fileCounter = 0;
+ Int_t failureCounter = 0;
  for(Int_t i=0;i<nMethods;i++)
  {
   // Form a file name for each method:
@@ -1238,28 +1361,28 @@ void GetListsWithHistograms(TFile *outputFile, TString analysisType)
   // Access this file:
   dirFile[i] = (TDirectoryFile*)outputFile->FindObjectAny(fileName[i].Data());
   // Form a list name for each method:
-  listName[i]+="cobj";
-  listName[i]+=method[i].Data();
-  // Access this list:
   if(dirFile[i])
   {
-   if(!(dirFile[i]->GetNkeys() == 0))
+   TList* listTemp = dirFile[i]->GetListOfKeys();
+   if(listTemp && listTemp->GetEntries() == 1)
    {
+    listName[i] = listTemp->At(0)->GetName(); // to be improved - implemented better (use dynamic_cast instead)
     dirFile[i]->GetObject(listName[i].Data(),list[i]);
    } else
      {
-      TString temp = listName[i].Data();
-      cout<<"WARNING: Couldn't access a list holding histograms for "<<temp.Remove(0,4).Data()<<" method !!!!"<<endl;     
-     } 
-   fileCounter++;
+      cout<<" WARNING: Accessing TList from TDirectoryFile failed for method "<<method[i].Data()<<" !!!!"<<endl;
+      cout<<"          Did you actually use "<<method[i].Data()<<" in the analysis?"<<endl;
+      cout<<endl;
+     }
   } else 
     {
-     cout<<"WARNING: Couldn't find a file "<<fileName[i].Data()<<".root !!!!"<<endl;
-    }
+     cout<<" WARNING: Couldn't find a TDirectoryFile "<<fileName[i].Data()<<".root !!!!"<<endl;
+     failureCounter++;
+    }   
  } // end of for(Int_t i=0;i<nMethods;i++) 
  
  // If no files were found most probably the 'TString analysisType' was specified wrongly:
- if(fileCounter == 0)
+ if(failureCounter == nMethods)
  {
   cout<<endl; 
   cout<<"Did you specify 'TString analysisType' correctly? Can be \"\", \"ESD\", \"AOD\", etc."<<endl;
@@ -1402,7 +1525,7 @@ TH1D* GetResultHistogram(TString method, TString rfRpPoi, TString ptEta="")
            }  
       }
  }
-
+  
  return hist;
 
 } // end of TH1D* GetResultHistogram(TString method, TString rfRpPoi, TString ptEta="")
@@ -1415,6 +1538,7 @@ void GlobalSettings()
  
  gROOT->SetStyle("Plain"); // default color is white instead of gray
  gStyle->SetOptStat(0); // remove stat. box from all histos
+ TGaxis::SetMaxDigits(4); // prefer exp notation for 5 and more significant digits
  
 } // end of void GlobalSettings()
 

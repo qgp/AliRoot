@@ -99,6 +99,11 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromAOD()
   
   AliAODEvent* aod = dynamic_cast<AliAODEvent*>(InputEvent());
   
+  if(!aod) {
+    printf("AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromAOD() - This event does not contain AODs?");
+    return;
+  }
+  
   // set arrays and pointers
   Float_t posF[3];
   Double_t pos[3];
@@ -132,7 +137,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromAOD()
   //
   //
   Int_t nVertices = 1 ;/* = prim. vtx*/;
-  Int_t nCaloClus = aod->GetNCaloClusters();
+  Int_t nCaloClus = aod->GetNumberOfCaloClusters();
   
   AODEvent()->ResetStd(0, nVertices, 0, 0, 0, nCaloClus, 0, 0);
   
@@ -161,7 +166,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromAOD()
     AliAODCaloCluster * cluster = aod->GetCaloCluster(iClust);
     
     //Check if it is a PHOS cluster
-    if(!cluster->IsPHOSCluster())  continue ;
+    if(!cluster->IsPHOS())  continue ;
     
     Int_t id       = cluster->GetID();
     Float_t energy = cluster->E();
@@ -177,13 +182,13 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromAOD()
 			NULL,
 			ttype);
     
-    caloCluster->SetCaloCluster(cluster->GetDistToBadChannel(),
+    caloCluster->SetCaloCluster(cluster->GetDistanceToBadChannel(),
 				cluster->GetDispersion(),
 				cluster->GetM20(), cluster->GetM02(),
 				cluster->GetEmcCpvDistance(),  
 				cluster->GetNExMax(),cluster->GetTOF()) ;
     
-    caloCluster->SetPIDFromESD(cluster->PID());
+    caloCluster->SetPIDFromESD(cluster->GetPID());
     caloCluster->SetNCells(cluster->GetNCells());
     caloCluster->SetCellsAbsId(cluster->GetCellsAbsId());
     caloCluster->SetCellsAmplitudeFraction(cluster->GetCellsAmplitudeFraction());
@@ -200,7 +205,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromAOD()
     
     AliAODCaloCells &aodPHcells = *(AODEvent()->GetPHOSCells());
     aodPHcells.CreateContainer(nPHcell);
-    aodPHcells.SetType(AliAODCaloCells::kPHOS);
+    aodPHcells.SetType(AliVCaloCells::kPHOSCell);
     for (Int_t iCell = 0; iCell < nPHcell; iCell++) {      
       aodPHcells.SetCell(iCell,aodinPHcells.GetCellNumber(iCell),aodinPHcells.GetAmplitude(iCell));
     }
@@ -217,6 +222,11 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromESD()
   // Copy Header, Vertex, CaloClusters and CaloCells from ESDs to AODs
   
   AliESDEvent* esd = dynamic_cast<AliESDEvent*>(InputEvent());
+  
+  if(!esd) {
+    printf("AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromESD() - This event does not contain AODs?");
+    return;
+  }
   
   // set arrays and pointers
   Float_t posF[3];
@@ -297,12 +307,12 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromESD()
 			AliAODCluster::kPHOSNeutral);
     
     caloCluster->SetCaloCluster(cluster->GetDistanceToBadChannel(),
-				cluster->GetClusterDisp(),
+				cluster->GetDispersion(),
 				cluster->GetM20(), cluster->GetM02(),
 				cluster->GetEmcCpvDistance(),  
 				cluster->GetNExMax(),cluster->GetTOF()) ;
     
-    caloCluster->SetPIDFromESD(cluster->GetPid());
+    caloCluster->SetPIDFromESD(cluster->GetPID());
     caloCluster->SetNCells(cluster->GetNCells());
     caloCluster->SetCellsAbsId(cluster->GetCellsAbsId());
     caloCluster->SetCellsAmplitudeFraction(cluster->GetCellsAmplitudeFraction());
@@ -318,7 +328,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::CreateAODFromESD()
     
     AliAODCaloCells &aodPHcells = *(AODEvent()->GetPHOSCells());
     aodPHcells.CreateContainer(nPHcell);
-    aodPHcells.SetType(AliAODCaloCells::kPHOS);
+    aodPHcells.SetType(AliVCaloCells::kPHOSCell);
     for (Int_t iCell = 0; iCell < nPHcell; iCell++) {      
       aodPHcells.SetCell(iCell,esdPHcells.GetCellNumber(iCell),esdPHcells.GetAmplitude(iCell));
     }
@@ -332,16 +342,16 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserCreateOutputObjects()
 {
   //Create output container
   fOutputContainer = new TList();
-  
-  char hname[128], htitl[128];
+  const Int_t buffersize = 255;
+  char hname[buffersize], htitl[buffersize];
   
   for(Int_t iMod=0; iMod<5; iMod++) {
     for(Int_t iX=0; iX<64; iX++) {
       for(Int_t iZ=0; iZ<56; iZ++) {
-	sprintf(hname,"%d_%d_%d",iMod,iX,iZ);
-	sprintf(htitl,"Two-gamma inv. mass for mod %d, cell (%d,%d)",iMod,iX,iZ);
-	fHmpi0[iMod][iX][iZ] = new TH1F(hname,htitl,100,0.,300.);
-	fOutputContainer->Add(fHmpi0[iMod][iX][iZ]);
+        snprintf(hname,buffersize,"%d_%d_%d",iMod,iX,iZ);
+        snprintf(htitl,buffersize,"Two-gamma inv. mass for mod %d, cell (%d,%d)",iMod,iX,iZ);
+        fHmpi0[iMod][iX][iZ] = new TH1F(hname,htitl,100,0.,300.);
+        fOutputContainer->Add(fHmpi0[iMod][iX][iZ]);
       }
     }
   }
@@ -364,12 +374,22 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserExec(Option_t* /* option */)
   if(!strcmp(InputEvent()->GetName(),"AliAODEvent")) {
     //Input are ESDs
     aod = dynamic_cast<AliAODEvent*>(InputEvent());
+    if(!aod) {
+      printf("AliAnalysisTaskEMCALPi0CalibSelection::UserExec() - This event does not contain AODs?");
+      return;
+    }    
+    
     // Create new AOD with only CaloClusters and CaloCells
     if(fCopyAOD) CreateAODFromAOD();
   }
   else  if(!strcmp(InputEvent()->GetName(),"AliESDEvent")) {
     //Input are ESDs
     aod = AODEvent();
+    if(!aod) {
+      printf("AliAnalysisTaskPHOSPi0CalibSelection::UserExec() - This event does not contain AODs?");
+      return;
+    } 
+    
     // Create AOD with CaloClusters and use it as input.
     // If filtering task is already executed, this is not needed.
     if(fCopyAOD) CreateAODFromESD();
@@ -397,6 +417,10 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserExec(Option_t* /* option */)
   else{	
 	  if(DebugLevel() > 1) printf("AliAnalysisTaskPHOSPi0CalibSelection Load Misaligned matrices. \n");
 	  AliESDEvent* esd = dynamic_cast<AliESDEvent*>(InputEvent()) ;
+    if(!esd) {
+       printf("AliAnalysisTaskPHOSPi0CalibSelection::UserExec() - This event does not contain ESDs?");
+      return;
+    }
 	  for(Int_t mod=0; mod<5; mod++){ 
 		if(esd->GetPHOSMatrix(mod))
 			fPhosGeo->SetMisalMatrix(esd->GetPHOSMatrix(mod),mod) ;
@@ -404,8 +428,6 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserExec(Option_t* /* option */)
   }
 	
   if(DebugLevel() > 1) printf("AliAnalysisTaskPHOSPi0CalibSelection Will use fLogWeight %.3f .\n",fLogWeight);
-
-  AliPHOSPIDv1 pid;
 
   Int_t mod1 = -1;
   TLorentzVector p1;
@@ -427,7 +449,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserExec(Option_t* /* option */)
   for(Int_t iClu=0; iClu<kNumberOfPhosClusters; iClu++) {
     
     AliAODCaloCluster *c1 = (AliAODCaloCluster *) caloClustersArr->At(iClu);
-    if(!c1->IsPHOSCluster()) continue; // EMCAL cluster!
+    if(!c1->IsPHOS()) continue; // EMCAL cluster!
 
     Float_t e1i = c1->E();   // cluster energy before correction
     if(e1i<fEmin) continue;
@@ -435,7 +457,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserExec(Option_t* /* option */)
     AliPHOSAodCluster clu1(*c1);
     clu1.Recalibrate(fCalibData, phsCells);
     clu1.EvalAll(fLogWeight,vtx);
-    clu1.EnergyCorrection(&pid) ;
+    clu1.EnergyCorrection() ;
 
     clu1.GetMomentum(p1,v);
 
@@ -449,7 +471,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserExec(Option_t* /* option */)
     
     for (Int_t jClu=iClu; jClu<kNumberOfPhosClusters; jClu++) {
       AliAODCaloCluster *c2 = (AliAODCaloCluster *) caloClustersArr->At(jClu);
-      if(!c2->IsPHOSCluster())   continue; // EMCAL cluster!
+      if(!c2->IsPHOS())   continue; // EMCAL cluster!
       if(c2->IsEqual(c1)) continue;
 
       Float_t e2i = c2->E();
@@ -458,7 +480,7 @@ void AliAnalysisTaskPHOSPi0CalibSelection::UserExec(Option_t* /* option */)
       AliPHOSAodCluster clu2(*c2);
       clu2.Recalibrate(fCalibData, phsCells);
       clu2.EvalAll(fLogWeight,vtx);
-      clu2.EnergyCorrection(&pid) ;
+      clu2.EnergyCorrection() ;
         
       clu2.GetMomentum(p2,v);
 	  Float_t e2ii = clu2.E();

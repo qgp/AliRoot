@@ -172,6 +172,7 @@ void AliMagWrapCheb::Clear(const Option_t *)
 {
   // clear all dynamic parts
   if (fNParamsSol) {
+    fParamsSol->SetOwner(kTRUE);
     delete   fParamsSol;  fParamsSol = 0;
     delete[] fSegZSol;    fSegZSol   = 0;
     delete[] fSegPSol;    fSegPSol   = 0;
@@ -188,6 +189,7 @@ void AliMagWrapCheb::Clear(const Option_t *)
   fMaxRSol = 0;
   //
   if (fNParamsTPC) {
+    fParamsTPC->SetOwner(kTRUE);
     delete   fParamsTPC;  fParamsTPC = 0;
     delete[] fSegZTPC;    fSegZTPC   = 0;
     delete[] fSegPTPC;    fSegPTPC   = 0;
@@ -204,6 +206,7 @@ void AliMagWrapCheb::Clear(const Option_t *)
   fMaxRTPC = 0;
   //
   if (fNParamsTPCRat) {
+    fParamsTPCRat->SetOwner(kTRUE);
     delete   fParamsTPCRat;  fParamsTPCRat = 0;
     delete[] fSegZTPCRat;    fSegZTPCRat   = 0;
     delete[] fSegPTPCRat;    fSegPTPCRat   = 0;
@@ -220,6 +223,7 @@ void AliMagWrapCheb::Clear(const Option_t *)
   fMaxRTPCRat = 0;
   //
   if (fNParamsDip) {
+    fParamsDip->SetOwner(kTRUE);
     delete   fParamsDip;  fParamsDip = 0;
     delete[] fSegZDip;    fSegZDip   = 0;
     delete[] fSegYDip;    fSegYDip   = 0; 
@@ -528,8 +532,9 @@ Double_t AliMagWrapCheb::FieldCylSolBz(const Double_t *rphiz) const
   AliCheb3D* par = GetParamSol(id);
 #ifndef _BRING_TO_BOUNDARY_  
   return par->IsInside(rphiz) ? par->Eval(rphiz,2) : 0;
-#endif
+#else
   return par->Eval(rphiz,2);
+#endif
   //
 }
 

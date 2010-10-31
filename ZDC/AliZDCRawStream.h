@@ -129,6 +129,10 @@ class AliZDCRawStream: public TObject {
     Int_t  GetScalerSignFromMap(Int_t i) const {return fScalerMap[i][2];}
     Int_t  GetScDetectorFromMap(Int_t i) const {return fScalerMap[i][3];}
     Int_t  GetScTowerFromMap(Int_t i)    const {return fScalerMap[i][4];}
+    //  TDC map
+    Int_t  GetTDCModFromMap(Int_t i)  const {return fTDCMap[i][0];}
+    Int_t  GetTDCChFromMap(Int_t i)   const {return fTDCMap[i][1];}
+    Int_t  GetTDCSignFromMap(Int_t i) const {return fTDCMap[i][2];}
     
     Bool_t IsCalibration()   const {return fIsCalib;}
     Bool_t IsDARCHeader()    const {return fIsDARCHeader;}
@@ -166,14 +170,17 @@ class AliZDCRawStream: public TObject {
     Bool_t IsL0BitSet()     const {return fIsL0BitSet;}  
     Bool_t IsPileUpEvent()  const {return fIsPileUpEvent;} 
     
+    void SetReadOutCard(Int_t icard)  {fReadOutCard=icard;}
+    void SetDataOffset(Int_t iOffset) {fDataOffset=iOffset;}
     void SetNChannelsOn(Int_t val) {fNChannelsOn = val;}
     void SetSector(Int_t i, Int_t val) {fSector[i] = val;}
+    void SetMapRead(Bool_t value) {fIsMapRead=value;}
     void SetMapADCMod(Int_t iraw, Int_t imod) {fMapADC[iraw][0]=imod;}
     void SetMapADCCh(Int_t iraw, Int_t ich)   {fMapADC[iraw][1]=ich;}
     void SetMapADCSig(Int_t iraw, Int_t isig) {fMapADC[iraw][2]=isig;}
     void SetMapDet(Int_t iraw, Int_t idet)    {fMapADC[iraw][3]=idet;}
     void SetMapTow(Int_t iraw, Int_t itow)    {fMapADC[iraw][4]=itow;}
-    
+    void SetReadCDH(Bool_t value) {fReadCDH=value;}
     void SetSODReading(Bool_t iset) {fSODReading = iset;}
      
   private :
@@ -198,6 +205,7 @@ class AliZDCRawStream: public TObject {
     Bool_t fIsADCEOB;	      // True when EOB
     Bool_t fSODReading;	      // True when reading SOD (DA)
     Bool_t fIsMapRead; 	      // True if map is already read
+    Bool_t fReadCDH;          // False for sim raw data (uncorrect CDH!)
     
     Int_t  fDeadfaceOffset;   // deadface offset
     Int_t  fDeadbeefOffset;   // deadbeef offset
@@ -263,6 +271,8 @@ class AliZDCRawStream: public TObject {
     Int_t fMapADC[48][5];    // ADC map {ADC mod., ch., signal, det., sec.}
     Int_t fCurrScCh;	     // current mapped scaler ch.
     Int_t fScalerMap[32][5]; // Scaler map {Scaler mod., ch., signal, det., sec.}
+    Int_t fCurrTDCCh;	     // current mapped TDC ch.
+    Int_t fTDCMap[32][3];    // TDC map {Scaler mod., ch., signal}
     
     // Checks over raw data event quality
     Bool_t fIsADCEventGood; // true if not valid datum not corrupted
@@ -285,7 +295,7 @@ class AliZDCRawStream: public TObject {
     Bool_t fIsADDTDCdatum;   // true when streaming ADD TDC data
     Int_t  fADDTDCdatum;     // datum for ADD TDC
    
-    ClassDef(AliZDCRawStream, 19)    // class for reading ZDC raw data
+    ClassDef(AliZDCRawStream, 20)    // class for reading ZDC raw data
 };
 
 #endif

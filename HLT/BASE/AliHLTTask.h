@@ -206,7 +206,9 @@ class AliHLTTask : public TObject, public AliHLTLogging {
    * processing, the data blocks are released. <br>
    * The @ref StartRun method must be called before.
    */
-  int ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType=gkAliEventTypeData, AliHLTUInt64_t trgMask=0);
+  int ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType,
+		  AliHLTUInt64_t trgMask, AliHLTUInt32_t timestamp,
+		  AliHLTUInt32_t participatingDetectors = 0);
 
   /**
    * Determine the number of matching data block between the component and the
@@ -254,6 +256,11 @@ class AliHLTTask : public TObject, public AliHLTLogging {
    * Print the status of the task with component, dependencies and targets.
    */
   void PrintStatus();
+
+  /**
+   * Overloaded from TObject
+   */
+  void Print(const char* options) const;
 
   /**
    * Search task dependency list recursively to find a dependency.
@@ -328,7 +335,7 @@ class AliHLTTask : public TObject, public AliHLTLogging {
    */
   vector<AliHLTComponentBlockData> fBlockDataArray;               //! transient
 
-  ClassDef(AliHLTTask, 2);
+  ClassDef(AliHLTTask, 0);
 };
 
 #endif

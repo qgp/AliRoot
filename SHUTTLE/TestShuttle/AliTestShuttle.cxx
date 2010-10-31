@@ -701,3 +701,14 @@ UInt_t AliTestShuttle::GetEndTimeDCSQuery()
 
 	return fEndTime+fDCSQueryOffset;
 }
+//______________________________________________________________________________________________
+void AliTestShuttle::SendMLFromDet(const char* value)
+{
+	// 
+	// Sending an information coming from the current detector to ML
+	//
+	
+	Printf("%s will be sent to monalisa in the $currentdetector_RunCondition tag",value); 
+	return;
+}
+

@@ -61,26 +61,25 @@ AliTRDv0Info::AliTRDv0Info()
   ,fMagField(0)
   ,fRadius(0)
   ,fV0Momentum(0)
-  ,fTrackP(NULL)
-  ,fTrackN(NULL)
   ,fNindex(0)
   ,fPindex(0)
   ,fInputEvent(NULL)
   ,fPrimaryVertex(NULL)
+  ,fTrackP(NULL)
+  ,fTrackN(NULL)
 {
   //
   // Default constructor
   //
 
-  memset(fPplus, 0, 2*kNlayer*sizeof(Float_t));
-  memset(fPminus, 0, 2*kNlayer*sizeof(Float_t));
   memset(fDetPID, 0, 2*kNDaughters*kNDetectors*AliPID::kSPECIES*sizeof(Float_t));
   memset(fComPID, 0, 2*kNDaughters*AliPID::kSPECIES*sizeof(Float_t));
-  memset(fInvMass, 0, kNMomBins*kNDecays*sizeof(Double_t));
+  memset(fInvMass, 0, kNDecays*sizeof(Double_t));
   memset(fArmenteros, 0, kNDecays*sizeof(Bool_t));
-  memset(fTPCdEdx, 0, kNDecays*sizeof(Float_t));
+  memset(fTPCdEdx, 0, kNDaughters*sizeof(Float_t));
   memset(fChi2ndf, 0, kNDecays*sizeof(Double_t));
-
+  memset(fDownOpenAngle, 0, kNDecays*sizeof(Float_t));
+  memset(fDownPsiPair, 0, kNDecays*sizeof(Float_t));
   /////////////////////////////////////////////////////////////////////////////
   //Set Cut values: First specify decay in brackets, then the actual cut value!
   ///////////////////////////////////////////////////////////////////////////// 
@@ -249,22 +248,20 @@ AliTRDv0Info::AliTRDv0Info(const AliTRDv0Info &ref)
   ,fMagField(ref.fMagField)
   ,fRadius(ref.fRadius)
   ,fV0Momentum(ref.fV0Momentum)
-  ,fTrackP(ref.fTrackP)
-  ,fTrackN(ref.fTrackN)
   ,fNindex(ref.fNindex)
   ,fPindex(ref.fPindex)
   ,fInputEvent(ref.fInputEvent)
   ,fPrimaryVertex(ref.fPrimaryVertex)
+  ,fTrackP(ref.fTrackP)
+  ,fTrackN(ref.fTrackN)
 {
   //
   // Copy constructor
   //
-
-  memcpy(fPplus, ref.fPplus, 2*kNlayer*sizeof(Float_t));
-  memcpy(fPminus, ref.fPminus, 2*kNlayer*sizeof(Float_t));
+ 
   memcpy(fDetPID, ref.fDetPID, 2*kNDaughters*kNDetectors*AliPID::kSPECIES*sizeof(Float_t));
   memcpy(fComPID, ref.fComPID, 2*kNDaughters*AliPID::kSPECIES*sizeof(Float_t));
-  memcpy(fInvMass, ref.fInvMass, kNMomBins*kNDecays*sizeof(Double_t));
+  memcpy(fInvMass, ref.fInvMass, kNDecays*sizeof(Double_t));
   memcpy(fArmenteros, ref.fArmenteros, kNDecays*sizeof(Bool_t));
   memcpy(fChi2ndf, ref.fChi2ndf, kNDecays*sizeof(Double_t));
   memcpy(fTPCdEdx, ref.fTPCdEdx, kNDaughters*sizeof(Float_t));
@@ -290,8 +287,9 @@ AliTRDv0Info::AliTRDv0Info(const AliTRDv0Info &ref)
 }
 
 //_________________________________________________
-void AliTRDv0Info::SetV0Info(AliESDv0 *esdv0)
-{//Gets values of ESDv0 and daughter track properties
+void AliTRDv0Info::SetV0Info(const AliESDv0 *esdv0)
+{
+  //Gets values of ESDv0 and daughter track properties
   //See header file for description of variables
 
   fQuality = Quality(esdv0);//Attributes an Int_t to the V0 due to quality cuts (= 1 if V0 is accepted, other integers depending on cut which excludes the vertex)    
@@ -340,7 +338,7 @@ void AliTRDv0Info::SetV0Info(AliESDv0 *esdv0)
 
 }
 //_________________________________________________
-Float_t  AliTRDv0Info::V0Momentum(AliESDv0 *esdv0) const
+Float_t  AliTRDv0Info::V0Momentum(const AliESDv0 *esdv0) const
 {
   //
   // Reconstructed momentum of V0 mother particle
@@ -358,7 +356,7 @@ Float_t  AliTRDv0Info::V0Momentum(AliESDv0 *esdv0) const
 }
 
 //_________________________________________________
-Double_t AliTRDv0Info::InvMass(Int_t part1, Int_t part2, AliESDv0 *esdv0) const
+Double_t AliTRDv0Info::InvMass(Int_t part1, Int_t part2, const AliESDv0 *esdv0) const
 {
   //
   // Invariant mass of reconstructed V0 mother
@@ -400,8 +398,9 @@ Double_t AliTRDv0Info::InvMass(Int_t part1, Int_t part2, AliESDv0 *esdv0) const
   
 }
 //_________________________________________________
-Float_t AliTRDv0Info::OpenAngle(AliESDv0 *esdv0)
-{//Opening angle between two daughter tracks
+Float_t AliTRDv0Info::OpenAngle(const AliESDv0 *esdv0)
+{
+  //Opening angle between two daughter tracks
   Double_t mn[3] = {0,0,0};
   Double_t mp[3] = {0,0,0};
     
@@ -416,8 +415,9 @@ Float_t AliTRDv0Info::OpenAngle(AliESDv0 *esdv0)
 }
 
 //_________________________________________________
-Float_t AliTRDv0Info::PsiPair(AliESDv0 *esdv0)
-{//Angle between daughter momentum plane and plane perpendicular to magnetic field
+Float_t AliTRDv0Info::PsiPair(const AliESDv0 *esdv0)
+{
+  //Angle between daughter momentum plane and plane perpendicular to magnetic field
   Double_t x, y, z;
   esdv0->GetXYZ(x,y,z);//Reconstructed coordinates of V0; to be replaced by Markus Rammler's method in case of conversions!
   
@@ -487,7 +487,7 @@ Double_t AliTRDv0Info::KFChi2ndf(Int_t part1, Int_t part2,Int_t decay){
   return chi2ndf; 
 }
 //________________________________________________________________
-AliKFParticle *AliTRDv0Info::CreateMotherParticle(AliESDtrack *pdaughter, AliESDtrack *ndaughter, Int_t pspec, Int_t nspec){
+AliKFParticle *AliTRDv0Info::CreateMotherParticle(const AliESDtrack *pdaughter, const AliESDtrack *ndaughter, Int_t pspec, Int_t nspec){
   //
   // Creates a mother particle
   //
@@ -506,16 +506,20 @@ AliKFParticle *AliTRDv0Info::CreateMotherParticle(AliESDtrack *pdaughter, AliESD
   return m;
 }
 //_________________________________________________
-Int_t AliTRDv0Info::HasTrack(AliTRDtrackInfo * const track)
+Int_t AliTRDv0Info::HasTrack(const AliTRDtrackInfo * const track) const
 {
-//Checks if track is a secondary vertex daughter (due to V0 finder)
+  //Checks if track is a secondary vertex daughter (due to V0 finder)
   
+  if(!track) return 0;
+  if(!fTrackP->GetID()) return 0;
+  if(!fTrackN->GetID()) return 0;
+
   Int_t trackID(track->GetTrackId());//index of the track
   return HasTrack(trackID);
 }
 
 //_________________________________________________
-Int_t AliTRDv0Info::HasTrack(Int_t trackID)
+Int_t AliTRDv0Info::HasTrack(Int_t trackID) const
 {
   //comparing index of track with indices of pos./neg. V0 daughter :
   if(fNindex==trackID) return -1;
@@ -525,7 +529,8 @@ Int_t AliTRDv0Info::HasTrack(Int_t trackID)
 
 //_________________________________________________
 void AliTRDv0Info::GetDetectorPID()
-{//PID likelihoods from TPC, TOF, and ITS, for all particle species
+{
+  //PID likelihoods from TPC, TOF, and ITS, for all particle species
 
   fTrackN->GetTPCpid(fDetPID[kNeg][kTPC]);
   fTrackP->GetTPCpid(fDetPID[kPos][kTPC]);
@@ -574,6 +579,7 @@ void AliTRDv0Info::GetDetectorPID()
 //____________________________________________________________________________________
 void AliTRDv0Info::CombinePID()
 {
+  //combined bayesian PID from TPC and TOF
   Double_t partrat[AliPID::kSPECIES] = {0.208, 0.010, 0.662, 0.019, 0.101};
   
   for(Int_t iSign = 0; iSign < kNDaughters; iSign++)
@@ -586,15 +592,24 @@ void AliTRDv0Info::CombinePID()
     }
 }
 //_________________________________________________
-void AliTRDv0Info::GetTPCdEdx()
+Bool_t AliTRDv0Info::GetTPCdEdx()
 {
+  //gets the TPC dE/dx for both daughter tracks
+  if(!fTrackP->GetID()) return 0;
+  if(!fTrackN->GetID()) return 0;
+
   fTPCdEdx[kNeg] = fTrackN->GetTPCsignal();
   fTPCdEdx[kPos] = fTrackP->GetTPCsignal();
+  return 1;
 
 }
 //_________________________________________________
-Bool_t AliTRDv0Info::TPCdEdxCuts(Int_t part, AliTRDtrackInfo * const track)
+Bool_t AliTRDv0Info::TPCdEdxCuts(Int_t part, const AliTRDtrackInfo * const track)
 {
+  //applies cuts on TPC dE/dx according to particle species; cutting lines are drawn shifted to the Bethe-Bloch paremeterization
+  if(!fTrackP->GetID()) return 0;
+  if(!fTrackN->GetID()) return 0;
+
   //Bethe-Bloch lines
   Double_t alephParameters[5];
   
@@ -647,8 +662,9 @@ Bool_t AliTRDv0Info::TPCdEdxCuts(Int_t part, AliTRDtrackInfo * const track)
 
 }
 //_________________________________________________
-Float_t AliTRDv0Info::Radius(AliESDv0 *esdv0)
-{//distance from secondary vertex to primary vertex in x-y plane
+Float_t AliTRDv0Info::Radius(const AliESDv0 *esdv0)
+{
+  //distance from secondary vertex to primary vertex in x-y plane
   Double_t x, y, z;
   esdv0->GetXYZ(x,y,z); //Reconstructed coordinates of V0
   fRadius = TMath::Sqrt(x*x + y*y);
@@ -657,7 +673,7 @@ Float_t AliTRDv0Info::Radius(AliESDv0 *esdv0)
 }
 
 //_________________________________________________
-Int_t AliTRDv0Info::Quality(AliESDv0 *const esdv0)
+Int_t AliTRDv0Info::Quality(const AliESDv0 *const esdv0)
 { 
   //
   // Checking track and V0 quality status in order to exclude vertices based on poor information
@@ -726,7 +742,7 @@ Bool_t AliTRDv0Info::V0SignCheck(){
   return kTRUE;
 }
 //___________________________________________________________________
-Bool_t AliTRDv0Info::Armenteros(AliESDv0 *esdv0, Int_t decay){
+Bool_t AliTRDv0Info::Armenteros(const AliESDv0 *esdv0, Int_t decay){
   //
   // computes the Armenteros variables for given V0
   //
@@ -759,7 +775,7 @@ Bool_t AliTRDv0Info::Armenteros(AliESDv0 *esdv0, Int_t decay){
   ap[0] = alfa;
   ap[1] = qt;
 
-  Double_t LcutAP[2];//Lambda/Anti-Lambda cuts
+  Double_t lCutAP[2];//Lambda/Anti-Lambda cuts
   if(decay == 0){
     // armenteros cuts
     const Double_t cutAlpha[2] = {0.35, 0.45};   // [0.35, 0.45]
@@ -778,19 +794,19 @@ Bool_t AliTRDv0Info::Armenteros(AliESDv0 *esdv0, Int_t decay){
   else if(decay == 2){
     const Double_t cutQT = 0.03;
     const Double_t cutAlpha = 0.7;  // VERY strong - should supress the overlap with K0
-    LcutAP[0] = 1.0 - (ap[0]-0.7 * ap[0]-0.7)*1.1 - 0.87;
+    lCutAP[0] = 1.0 - (ap[0]-0.7 * ap[0]-0.7)*1.1 - 0.87;
     if(TMath::Abs(ap[0]) > cutAlpha) return kFALSE;
     if(ap[1] < cutQT) return kFALSE;
-    if(ap[1] > LcutAP[0]) return kFALSE;
+    if(ap[1] > lCutAP[0]) return kFALSE;
 
   }
   else if(decay == 3){
     const Double_t cutQT = 0.03;
     const Double_t cutAlpha = 0.7;  // VERY strong - should supress the overlap with K0
-    LcutAP[1] = 1.0 - (ap[0]+0.7 * ap[0]+0.7)*1.1 - 0.87;
+    lCutAP[1] = 1.0 - (ap[0]+0.7 * ap[0]+0.7)*1.1 - 0.87;
     if(TMath::Abs(ap[0]) > cutAlpha) return kFALSE;
     if(ap[1] < cutQT) return kFALSE;
-    if(ap[1] > LcutAP[1]) return kFALSE;
+    if(ap[1] > lCutAP[1]) return kFALSE;
   }
   return kTRUE;
 }
@@ -815,7 +831,7 @@ Int_t AliTRDv0Info::GetPID(Int_t ipart, AliTRDtrackInfo *track)
   case AliPID::kPion: iDecay = kK0s; break;
   case AliPID::kProton: iDecay = kLambda; break;
   default:
-    AliWarning(Form("Hypothesis \"ipart=%d\" not handled", ipart));
+    AliDebug(1, Form("Hypothesis \"ipart=%d\" not handled", ipart));
     return -3;
   }
 
@@ -942,6 +958,7 @@ Int_t AliTRDv0Info::GetPID(Int_t ipart, AliTRDtrackInfo *track)
 //_________________________________________________
 void AliTRDv0Info::Print(Option_t *opt) const
 {
+  //prints text for debugging etc.
   printf("V0 P[%d] N[%d]\n", fPindex, fNindex);
   printf("  DCA[%5.3f] Radius[%5.3f]\n", fDCA, fRadius);
   printf("  Angles : Pointing[%5.3f] Open[%5.3f] Psi[%5.3f]\n", fPointingAngle, fOpenAngle, fPsiPair);
@@ -963,8 +980,19 @@ void AliTRDv0Info::Print(Option_t *opt) const
 //_________________________________________________
 void AliTRDv0Info::SetV0tracks(AliESDtrack *p, AliESDtrack *n) 
 {
+  //sets the two daughter trex and their indices
   fTrackP = p; fPindex = p->GetID();
   fTrackN = n; fNindex = n->GetID();
 }
+//_________________________________________________
 
+AliESDtrack *AliTRDv0Info::GetV0Daughter(Int_t sign)
+{
+  //Gets positive of negative daughter of decay
+  if(sign>0)
+    return fTrackP;
+  else if(sign < 0)
+    return fTrackN;
 
+  return 0;
+}

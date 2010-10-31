@@ -42,6 +42,7 @@
 #include <AliESDZDC.h>
 #include <AliESDFMD.h>
 #include <AliESDVertex.h>
+#include <AliESDtrackCuts.h>
 
 ClassImp(AliTriggerAnalysis)
 
@@ -65,7 +66,8 @@ AliTriggerAnalysis::AliTriggerAnalysis() :
   fHistFMDSingle(0),
   fHistFMDSum(0),
   fTriggerClasses(0),
-  fMC(kFALSE)
+  fMC(kFALSE),
+  fEsdTrackCuts(0)
 {
   // constructor
 }
@@ -133,6 +135,11 @@ AliTriggerAnalysis::~AliTriggerAnalysis()
     fTriggerClasses->DeleteAll();
     delete fTriggerClasses;
     fTriggerClasses = 0;
+  }
+
+  if (fEsdTrackCuts){
+    delete fEsdTrackCuts;
+    fEsdTrackCuts =0;
   }
 }
 
@@ -202,6 +209,9 @@ const char* AliTriggerAnalysis::GetTriggerName(Trigger trigger)
   
   if (trigger & kOneParticle)
     str += " OneParticle";  
+
+  if (trigger & kOneTrack)
+    str += " OneTrack";  
 
   return str;
 }
@@ -445,6 +455,43 @@ Bool_t AliTriggerAnalysis::IsOfflineTriggerFired(const AliESDEvent* aEsd, Trigge
     }
   }
 
+  // hadron level definition for TPC tracks
+
+  if (decision && (trigger & kOneTrack))
+  {
+    decision = kFALSE;
+    const AliESDVertex* vertex =0x0;
+    vertex = aEsd->GetPrimaryVertexTracks();
+    if (!vertex || vertex->GetNContributors() <= 0)
+    {
+      vertex = aEsd->GetPrimaryVertexSPD();
+    }
+    Float_t ptmin, ptmax;
+    fEsdTrackCuts->GetPtRange(ptmin,ptmax);
+    AliDebug(3, Form("ptmin = %f, ptmax = %f\n",ptmin, ptmax));
+
+    if (vertex && vertex->GetNContributors() > 0 && (!vertex->IsFromVertexerZ() || vertex->GetDispersion() < 0.02) && TMath::Abs(vertex->GetZv()) < 10.) {
+      AliDebug(3,Form("Check on the vertex passed\n"));
+      for (Int_t i=0; i<aEsd->GetNumberOfTracks(); ++i){
+	if (fEsdTrackCuts->AcceptTrack(aEsd->GetTrack(i))){
+	  AliDebug(2, Form("pt of track = %f --> check passed\n",aEsd->GetTrack(i)->Pt()));
+	  decision = kTRUE;
+	  break;
+        }
+      }
+    }
+    else{
+      AliDebug(4,Form("Check on the vertex not passed\n"));
+      for (Int_t i=0; i<aEsd->GetNumberOfTracks(); ++i){
+        if (fEsdTrackCuts->AcceptTrack(aEsd->GetTrack(i))){
+	  AliDebug(4,Form("pt of track = %f --> check would be passed if the vertex was ok\n",aEsd->GetTrack(i)->Pt()));
+	  break;
+	}
+      }
+    }
+    if (!decision) AliDebug(3,("Check for kOneTrack NOT passed\n"));
+  }
+
   return decision;
 }
 
@@ -648,33 +695,14 @@ AliTriggerAnalysis::V0Decision AliTriggerAnalysis::V0Trigger(const AliESDEvent* 
   // argument 'online' is used as a switch between online and offline trigger algorithms
   //
   // Based on an algorithm by Cvetan Cheshkov
-  
+
   AliESDVZERO* esdV0 = aEsd->GetVZEROData();
   if (!esdV0)
   {
     AliError("AliESDVZERO not available");
     return kV0Invalid;
   }
-
-  if (esdV0->TestBit(AliESDVZERO::kDecisionFilled)) {
-    if (online) {
-      AliWarning("V0 online trigger analysis is not yet available!");
-      return kV0BB;
-    }
-    else {
-
-      if (fillHists) {
-	if (side == kASide && fHistV0A)
-	  fHistV0A->Fill(esdV0->GetV0ATime());
-	if (side == kCSide && fHistV0C)
-	  fHistV0C->Fill(esdV0->GetV0CTime());
-      }
-
-      if (side == kASide) return (V0Decision)esdV0->GetV0ADecision();
-      else if (side == kCSide) return (V0Decision)esdV0->GetV0CDecision();
-      else return kV0Invalid;
-    }
-  }
+  AliDebug(2,Form("In V0Trigger: %f %f",esdV0->GetV0ATime(),esdV0->GetV0CTime()));
 
   Int_t begin = -1;
   Int_t end = -1;
@@ -692,6 +720,37 @@ AliTriggerAnalysis::V0Decision AliTriggerAnalysis::V0Trigger(const AliESDEvent* 
   else
     return kV0Invalid;
     
+   if (esdV0->TestBit(AliESDVZERO::kDecisionFilled)) {
+    if (online) {
+      if (esdV0->TestBit(AliESDVZERO::kOnlineBitsFilled)) {
+	for (Int_t i = begin; i < end; ++i) {
+	  if (esdV0->GetBBFlag(i)) return kV0BB;
+	}
+	for (Int_t i = begin; i < end; ++i) {
+	  if (esdV0->GetBGFlag(i)) return kV0BG;
+	}
+	return kV0Empty;
+      }
+      else {
+	AliWarning("V0 online trigger analysis is not yet available!");
+	return kV0BB;
+      }
+    }
+    else {
+
+      if (fillHists) {
+	if (side == kASide && fHistV0A)
+	  fHistV0A->Fill(esdV0->GetV0ATime());
+	if (side == kCSide && fHistV0C)
+	  fHistV0C->Fill(esdV0->GetV0CTime());
+      }
+
+      if (side == kASide) return (V0Decision)esdV0->GetV0ADecision();
+      else if (side == kCSide) return (V0Decision)esdV0->GetV0CDecision();
+      else return kV0Invalid;
+    }
+  }
+
   Float_t time = 0;
   Float_t weight = 0;
   if (fMC)

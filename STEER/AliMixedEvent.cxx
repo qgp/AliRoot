@@ -31,28 +31,47 @@
 #include <TMath.h>
 #include <TMatrix.h>
 #include <TMatrixD.h>
+#include "AliLog.h"
+#include "AliVCaloCells.h"
+
 
 ClassImp(AliMixedEvent)
 
 
 AliMixedEvent::AliMixedEvent() :
-    AliVEvent(),
-    fEventList(),
-    fNEvents(0),       
-    fNumberOfTracks(0),
-    fNTracksCumul(0),
-    fMeanVertex(0)
+  AliVEvent(),
+  fEventList(),
+  fNEvents(0),       
+  fNumberOfTracks(0),
+  fNumberOfCaloClusters(0), 
+  fNumberOfPHOSCells(0), 
+  fNumberOfEMCALCells(0),
+  fNTracksCumul(0),
+  fNCaloClustersCumul(0),
+  fNPHOSCellsCumul(0), 
+  fNEMCALCellsCumul(0), 
+  fPHOSCells(NULL), 
+  fEMCALCells(NULL), 
+  fMeanVertex(0)
 {
     // Default constructor
 }
 
 AliMixedEvent::AliMixedEvent(const AliMixedEvent& Evnt) :
-    AliVEvent(Evnt),
-    fEventList(),
-    fNEvents(0),
-    fNumberOfTracks(0),
-    fNTracksCumul(0),
-    fMeanVertex(0)
+  AliVEvent(Evnt),
+  fEventList(),
+  fNEvents(0),
+  fNumberOfTracks(0),
+  fNumberOfCaloClusters(0), 
+  fNumberOfPHOSCells(0), 
+  fNumberOfEMCALCells(0),
+  fNTracksCumul(0),
+  fNCaloClustersCumul(0),
+  fNPHOSCellsCumul(0), 
+  fNEMCALCellsCumul(0), 
+  fPHOSCells(NULL), 
+  fEMCALCells(NULL), 
+  fMeanVertex(0)
 { } // Copy constructor
 
 AliMixedEvent& AliMixedEvent::operator=(const AliMixedEvent& vEvnt)
@@ -62,6 +81,14 @@ AliMixedEvent& AliMixedEvent::operator=(const AliMixedEvent& vEvnt)
   
   return *this; 
 }
+
+AliMixedEvent::~AliMixedEvent() 
+{
+    // dtor
+  Reset();
+  delete fPHOSCells ; 
+  delete fEMCALCells ; 
+} 
 
 
 void AliMixedEvent::AddEvent(AliVEvent* evt)
@@ -74,19 +101,84 @@ void AliMixedEvent::AddEvent(AliVEvent* evt)
 void AliMixedEvent::Init()
 {
     // Initialize meta information
-    fNEvents = fEventList.GetEntries();
-    fNTracksCumul = new Int_t[fNEvents];
-    fNumberOfTracks = 0;
-    TIter next(&fEventList);
-    AliVEvent* event;
-    Int_t iev = 0;
-    
-    while((event = (AliVEvent*)next())) {
-	fNTracksCumul[iev++] = fNumberOfTracks;
-	fNumberOfTracks += (event->GetNumberOfTracks());
-    }
-}
+  fNEvents = fEventList.GetEntries();
+  fNTracksCumul = new Int_t[fNEvents];
+  fNumberOfTracks = 0;
+  fNCaloClustersCumul = new Int_t[fNEvents];
+  fNumberOfCaloClusters = 0;
+  fNumberOfPHOSCells    = 0;  
+  fNumberOfEMCALCells   = 0; 
+  fNPHOSCellsCumul  = new Int_t[fNEvents];
+  fNEMCALCellsCumul = new Int_t[fNEvents];
 
+  TIter next(&fEventList);
+  AliVEvent* event;
+  Int_t iev = 0;
+    
+  while((event = (AliVEvent*)next())) {
+    fNTracksCumul[iev] = fNumberOfTracks;
+    fNumberOfTracks += (event->GetNumberOfTracks());
+    fNCaloClustersCumul[iev] = fNumberOfCaloClusters;
+    fNumberOfCaloClusters += event->GetNumberOfCaloClusters(); 
+    fNPHOSCellsCumul[iev] = fNumberOfPHOSCells;
+    if (event->GetPHOSCells()) 
+      fNumberOfPHOSCells += event->GetPHOSCells()->GetNumberOfCells(); 
+    fNEMCALCellsCumul[iev] = fNumberOfEMCALCells;
+    if (event->GetEMCALCells()) 
+      fNumberOfEMCALCells += event->GetEMCALCells()->GetNumberOfCells(); 
+    iev++ ;  
+  }
+
+  next.Reset() ; 
+  Short_t phosPos = 0, emcalPos = 0; 
+  Int_t firstPHOSEvent  = kTRUE;
+  Int_t firstEMCALEvent = kTRUE;
+  
+  while((event = (AliVEvent*)next())) {
+    AliVCaloCells * phosCells = event->GetPHOSCells() ; 
+    if (phosCells) {
+      
+      //Create the container
+      if(firstPHOSEvent)
+      {
+        if(!fPHOSCells) fPHOSCells = phosCells->CopyCaloCells(kFALSE) ;// Just recover the first event type:  ESD/AOD
+        else fPHOSCells->DeleteContainer(); //delete the previous container 
+        //Now create a new container with the adequate size
+        fPHOSCells->SetType(AliVCaloCells::kPHOSCell) ; 
+        fPHOSCells->CreateContainer(fNumberOfPHOSCells) ;
+        firstPHOSEvent=kFALSE;
+
+      }//First event
+
+      Int_t ncells = event->GetPHOSCells()->GetNumberOfCells() ;
+      for (Int_t icell = 0; icell < ncells; icell++) {
+          fPHOSCells->SetCell(phosPos++, phosCells->GetCellNumber(icell), phosCells->GetAmplitude(icell), phosCells->GetTime(icell)) ; 
+      }
+     
+    }// phos cells
+    
+    AliVCaloCells * emcalCells = event->GetEMCALCells() ; 
+    if (emcalCells) {
+      
+      //Create the container
+      if(firstEMCALEvent)
+      {
+        if(!fEMCALCells)fEMCALCells = emcalCells->CopyCaloCells(kFALSE) ; // Just recover the first event type:  ESD/AOD
+        else fEMCALCells->DeleteContainer();       // delete the previous container
+        //Now create a new container with the adequate size
+        fEMCALCells->SetType(AliVCaloCells::kEMCALCell) ; 
+        fEMCALCells->CreateContainer(fNumberOfEMCALCells) ;
+        firstEMCALEvent=kFALSE;
+      }//First event
+      
+      Int_t ncells = emcalCells->GetNumberOfCells() ;
+      for (Int_t icell = 0; icell < ncells; icell++) {
+          fEMCALCells->SetCell(emcalPos++, emcalCells->GetCellNumber(icell), emcalCells->GetAmplitude(icell), emcalCells->GetTime(icell)) ; 
+      }
+    }//EMCAL cells
+  }//while event
+  
+}
 
 AliVParticle* AliMixedEvent::GetTrack(Int_t i) const
 {
@@ -99,31 +191,92 @@ AliVParticle* AliMixedEvent::GetTrack(Int_t i) const
     return (evt->GetTrack(irel));
 }
 
+AliVCluster* AliMixedEvent::GetCaloCluster(Int_t i) const
+{
+    // Return calo cluster # i
+  Int_t iEv  = TMath::BinarySearch(fNEvents, fNCaloClustersCumul, i);
+  while((iEv < (fNEvents - 1)) && (fNCaloClustersCumul[iEv] == fNCaloClustersCumul[iEv+1])) {iEv++;}
+  
+  Int_t irel = i - fNCaloClustersCumul[iEv];
+  AliVEvent* evt = (AliVEvent*) (fEventList.At(iEv));
+  return (evt->GetCaloCluster(irel));
+}
+
 const AliVVertex* AliMixedEvent::GetEventVertex(Int_t i) const
 {
-    // Return track # i
+    // Return vertex of track # i
     Int_t iEv  = TMath::BinarySearch(fNEvents, fNTracksCumul, i);
     while((iEv < (fNEvents - 1)) && (fNTracksCumul[iEv] == fNTracksCumul[iEv+1])) {iEv++;}
     AliVEvent* evt = (AliVEvent*) (fEventList.At(iEv));
     return (evt->GetPrimaryVertex());
 }
 
+const AliVVertex* AliMixedEvent::GetVertexOfEvent(Int_t i) const
+{
+    // Return vertex of event # i
+  if (i > fNEvents)
+    AliFatal(Form("%d events in buffer, event %d requested", fNEvents, i)) ;  
+  AliVEvent* evt = (AliVEvent*) (fEventList.At(i));
+  return (evt->GetPrimaryVertex());
+}
+
 void AliMixedEvent::Reset()
 {
     // Reset the event
-    fEventList.Clear();
-    fNEvents = 0;
-    fNumberOfTracks = 0;
-    if (fNTracksCumul) {
-	delete[]  fNTracksCumul;
-	fNTracksCumul = 0;
-    }
+  fEventList.Clear();
+  fNEvents = 0;
+  fNumberOfTracks = 0;
+  fNumberOfCaloClusters = 0;
+  fNumberOfPHOSCells = 0;
+  fNumberOfEMCALCells = 0;
+  if (fNTracksCumul) {
+    delete[]  fNTracksCumul;
+    fNTracksCumul = 0;
+  }
+  if (fNCaloClustersCumul) {
+    delete[]  fNCaloClustersCumul;
+    fNCaloClustersCumul = 0;
+  }
+  if (fNPHOSCellsCumul) {
+    delete[]  fNPHOSCellsCumul;
+    fNPHOSCellsCumul = 0;
+  }
+  if (fNEMCALCellsCumul) {
+    delete[]  fNEMCALCellsCumul;
+    fNEMCALCellsCumul = 0;
+  }
+  
+  if (fPHOSCells) {	 
+    fPHOSCells->DeleteContainer();	 
+  }	 
+  if (fEMCALCells) {	 
+    fEMCALCells->DeleteContainer();	 
+  }
+  
 }
 
-Int_t AliMixedEvent::EventIndex(Int_t itrack)
+Int_t AliMixedEvent::EventIndex(Int_t itrack) const
 {
   // Return the event index for track #itrack
   return  TMath::BinarySearch(fNEvents, fNTracksCumul, itrack);
+}
+
+Int_t AliMixedEvent::EventIndexForCaloCluster(Int_t icluster) const
+{
+    // Return the event index for track #itrack
+  return  TMath::BinarySearch(fNEvents, fNCaloClustersCumul, icluster);
+}
+
+Int_t AliMixedEvent::EventIndexForPHOSCell(Int_t icell) const
+{
+    // Return the event index for track #itrack
+  return  TMath::BinarySearch(fNEvents, fNPHOSCellsCumul, icell);
+}
+
+Int_t AliMixedEvent::EventIndexForEMCALCell(Int_t icell) const
+{
+    // Return the event index for track #itrack
+  return  TMath::BinarySearch(fNEvents, fNEMCALCellsCumul, icell);
 }
 
 Bool_t AliMixedEvent::ComputeVtx(TObjArray *vertices, Double_t *pos,Double_t *sig,Int_t *nContributors){

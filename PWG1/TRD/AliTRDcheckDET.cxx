@@ -68,6 +68,7 @@
 
 #include "info/AliTRDtrackInfo.h"
 #include "info/AliTRDeventInfo.h"
+#include "AliTRDinfoGen.h"
 #include "AliTRDcheckDET.h"
 
 #include <cstdio>
@@ -80,14 +81,12 @@ AliTRDcheckDET::AliTRDcheckDET():
   AliTRDrecoTask()
   ,fEventInfo(NULL)
   ,fTriggerNames(NULL)
-  ,fReconstructor(NULL)
-  ,fGeo(NULL)
   ,fFlags(0)
 {
   //
   // Default constructor
   //
-  SetNameTitle("checkDET", "Basic TRD data checker");
+  SetNameTitle("TRDcheckDET", "Basic TRD data checker");
 }
 
 //_______________________________________________________
@@ -95,8 +94,6 @@ AliTRDcheckDET::AliTRDcheckDET(char* name):
   AliTRDrecoTask(name, "Basic TRD data checker")
   ,fEventInfo(NULL)
   ,fTriggerNames(NULL)
-  ,fReconstructor(NULL)
-  ,fGeo(NULL)
   ,fFlags(0)
 {
   //
@@ -104,9 +101,6 @@ AliTRDcheckDET::AliTRDcheckDET(char* name):
   //
   DefineInput(2, AliTRDeventInfo::Class());
 
-  fReconstructor = new AliTRDReconstructor;
-  fReconstructor->SetRecoParam(AliTRDrecoParam::GetLowFluxParam());
-  fGeo = new AliTRDgeometry;
   InitFunctorList();
 }
 
@@ -117,8 +111,6 @@ AliTRDcheckDET::~AliTRDcheckDET(){
   // Destructor
   // 
   if(fTriggerNames) delete fTriggerNames;
-  delete fReconstructor;
-  delete fGeo;
 }
 
 //_______________________________________________________
@@ -136,34 +128,37 @@ void AliTRDcheckDET::UserExec(Option_t *opt){
   // Execution function
   // Filling TRD quality histos
   //
-
   fEventInfo = dynamic_cast<AliTRDeventInfo *>(GetInputData(2));
   AliDebug(2, Form("EventInfo[%p] Header[%p]", (void*)fEventInfo, (void*)(fEventInfo?fEventInfo->GetEventHeader():NULL)));
 
   AliTRDrecoTask::UserExec(opt);  
-  Int_t nTracks = 0;		// Count the number of tracks per event
-  Int_t triggermask = fEventInfo->GetEventHeader()->GetTriggerMask();
-  TString triggername =  fEventInfo->GetRunInfo()->GetFiredTriggerClasses(triggermask);
-  AliDebug(6, Form("Trigger cluster: %d, Trigger class: %s\n", triggermask, triggername.Data()));
-  dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTrigger))->Fill(triggermask);
+
+  TH1F *histo(NULL); AliTRDtrackInfo *fTrackInfo(NULL); Int_t nTracks(0);		// Count the number of tracks per event
   for(Int_t iti = 0; iti < fTracks->GetEntriesFast(); iti++){
     if(!fTracks->UncheckedAt(iti)) continue;
-    AliTRDtrackInfo *fTrackInfo = dynamic_cast<AliTRDtrackInfo *>(fTracks->UncheckedAt(iti));
+    if(!(fTrackInfo = dynamic_cast<AliTRDtrackInfo *>(fTracks->UncheckedAt(iti)))) continue;
     if(!fTrackInfo->GetTrack()) continue;
     nTracks++;
   }
+  if(nTracks)
+    if((histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNtracksEvent)))) histo->Fill(nTracks);
+
+  if(!fEventInfo->GetEventHeader()) return; // For trigger statistics event header is essential
+  Int_t triggermask = fEventInfo->GetEventHeader()->GetTriggerMask();
+  TString triggername =  fEventInfo->GetRunInfo()->GetFiredTriggerClasses(triggermask);
+  AliDebug(6, Form("Trigger cluster: %d, Trigger class: %s\n", triggermask, triggername.Data()));
+  if((histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTrigger)))) histo->Fill(triggermask);
 
   if(nTracks){
-    dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTriggerTracks))->Fill(triggermask);
-    dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNtracksEvent))->Fill(nTracks);
+    if((histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTriggerTracks)))) histo->Fill(triggermask);
   }
   if(triggermask <= 20 && !fTriggerNames->FindObject(Form("%d", triggermask))){
     fTriggerNames->Add(new TObjString(Form("%d", triggermask)), new TObjString(triggername));
     // also set the label for both histograms
-    TH1 *histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTriggerTracks));
-    histo->GetXaxis()->SetBinLabel(histo->FindBin(triggermask), triggername);
-    histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTrigger));
-    histo->GetXaxis()->SetBinLabel(histo->FindBin(triggermask), triggername);
+    if((histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTriggerTracks))))
+      histo->GetXaxis()->SetBinLabel(histo->FindBin(triggermask), triggername);
+    if((histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNeventsTrigger))))
+      histo->GetXaxis()->SetBinLabel(histo->FindBin(triggermask), triggername);
   }
 }
 
@@ -174,53 +169,57 @@ Bool_t AliTRDcheckDET::PostProcess(){
   // Do Postprocessing (for the moment set the number of Reference histograms)
   //
   
-  TH1 * h = NULL;
-  
+  TH1F *h(NULL), *h1(NULL);
+
   // Calculate of the trigger clusters purity
-  h = dynamic_cast<TH1F *>(fContainer->FindObject("hEventsTrigger"));
-  TH1F *h1 = dynamic_cast<TH1F *>(fContainer->FindObject("hEventsTriggerTracks"));
-  h1->Divide(h);
-  Float_t purities[20], val = 0;
-  TString triggernames[20];
-  Int_t nTriggerClasses = 0;
-  for(Int_t ibin = 1; ibin <= h->GetNbinsX(); ibin++){
-    if((val = h1->GetBinContent(ibin))){
-      purities[nTriggerClasses] = val;
-      triggernames[nTriggerClasses] = h1->GetXaxis()->GetBinLabel(ibin);
-      nTriggerClasses++;
+  if((h  = dynamic_cast<TH1F *>(fContainer->FindObject("hEventsTrigger"))) &&
+     (h1 = dynamic_cast<TH1F *>(fContainer->FindObject("hEventsTriggerTracks")))) {
+    h1->Divide(h);
+    Float_t purities[20], val = 0; memset(purities, 0, 20*sizeof(Float_t));
+    TString triggernames[20];
+    Int_t nTriggerClasses = 0;
+    for(Int_t ibin = 1; ibin <= h->GetNbinsX(); ibin++){
+      if((val = h1->GetBinContent(ibin))){
+        purities[nTriggerClasses] = val;
+        triggernames[nTriggerClasses] = h1->GetXaxis()->GetBinLabel(ibin);
+        nTriggerClasses++;
+      }
+    }
+
+    if((h = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kTriggerPurity)))){
+      TAxis *ax = h->GetXaxis();
+      for(Int_t itrg = 0; itrg < nTriggerClasses; itrg++){
+        h->Fill(itrg, purities[itrg]);
+        ax->SetBinLabel(itrg+1, triggernames[itrg].Data());
+      }
+      ax->SetRangeUser(-0.5, nTriggerClasses+.5);
+      h->GetYaxis()->SetRangeUser(0,1);
     }
   }
-  h = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kTriggerPurity));
-  TAxis *ax = h->GetXaxis();
-  for(Int_t itrg = 0; itrg < nTriggerClasses; itrg++){
-    h->Fill(itrg, purities[itrg]);
-    ax->SetBinLabel(itrg+1, triggernames[itrg].Data());
-  }
-  ax->SetRangeUser(-0.5, nTriggerClasses+.5);
-  h->GetYaxis()->SetRangeUser(0,1);
 
   // track status
-  h=dynamic_cast<TH1F*>(fContainer->At(kTrackStatus));
-  Float_t ok = h->GetBinContent(1);
-  Int_t nerr = h->GetNbinsX();
-  for(Int_t ierr=nerr; ierr--;){
-    h->SetBinContent(ierr+1, ok>0.?1.e2*h->GetBinContent(ierr+1)/ok:0.);
-  }
-  h->SetBinContent(1, 0.);
-
-  // tracklet status
-  
-  TObjArray *arr = dynamic_cast<TObjArray*>(fContainer->UncheckedAt(kTrackletStatus));
-  for(Int_t ily = AliTRDgeometry::kNlayer; ily--;){
-    h=dynamic_cast<TH1F*>(arr->At(ily));
-    Float_t okB = h->GetBinContent(1);
-    Int_t nerrB = h->GetNbinsX();
-    for(Int_t ierr=nerrB; ierr--;){
-      h->SetBinContent(ierr+1, okB>0.?1.e2*h->GetBinContent(ierr+1)/okB:0.);
+  if((h=dynamic_cast<TH1F*>(fContainer->At(kTrackStatus)))){
+    Float_t ok = h->GetBinContent(1);
+    Int_t nerr = h->GetNbinsX();
+    for(Int_t ierr=nerr; ierr--;){
+      h->SetBinContent(ierr+1, ok>0.?1.e2*h->GetBinContent(ierr+1)/ok:0.);
     }
     h->SetBinContent(1, 0.);
   }
-
+  // tracklet status
+  
+  TObjArray *arr(NULL);
+  if(( arr = dynamic_cast<TObjArray*>(fContainer->UncheckedAt(kTrackletStatus)))){
+    for(Int_t ily = AliTRDgeometry::kNlayer; ily--;){
+      if(!(h=dynamic_cast<TH1F*>(arr->At(ily)))) continue;
+      Float_t okB = h->GetBinContent(1);
+      Int_t nerrB = h->GetNbinsX();
+      for(Int_t ierr=nerrB; ierr--;){
+        h->SetBinContent(ierr+1, okB>0.?1.e2*h->GetBinContent(ierr+1)/okB:0.);
+      }
+      h->SetBinContent(1, 0.);
+    }
+  }
   fNRefFigures = 17;
 
   return kTRUE;
@@ -248,19 +247,19 @@ void AliTRDcheckDET::MakeSummary(){
   cOut->cd(6); GetRefFigure(kFigNTrackletsP);
   cOut->cd(7); GetRefFigure(kFigChargeCluster);
   cOut->cd(8); GetRefFigure(kFigChargeTracklet);
-  cOut->SaveAs(Form("TRDsummary%s1.gif", GetName()));
+  cOut->SaveAs("TRD_TrackQuality.gif");
   delete cOut;
 
   // Second Plot: PHS
   cOut = new TCanvas(Form("summary%s2", GetName()), Form("Summary 2 for task %s", GetName()), 1024, 512);
   cOut->cd(); GetRefFigure(kFigPH);
-  cOut->SaveAs(Form("TRDsummary%s2.gif", GetName())); 
+  cOut->SaveAs("TRD_PH.gif"); 
   delete cOut;
 
   // Third Plot: Mean Number of clusters as function of eta, phi and layer
    cOut = new TCanvas(Form("summary%s3", GetName()), Form("Summary 3 for task %s", GetName()), 1024, 768);
   cOut->cd(); MakePlotMeanClustersLayer();
-  cOut->SaveAs(Form("TRDsummary%s3.gif", GetName())); 
+  cOut->SaveAs("TRD_MeanNclusters.gif"); 
   delete cOut;
 
 }
@@ -288,8 +287,10 @@ Bool_t AliTRDcheckDET::GetRefFigure(Int_t ifig){
     return kTRUE;
   case kFigNtrackletsTrack:
     h=MakePlotNTracklets();
-    PutTrendValue("NTrackletsTrack", h->GetMean());
-    PutTrendValue("NTrackletsTrackRMS", h->GetRMS());
+    if(h){
+      PutTrendValue("NTrackletsTrack", h->GetMean());
+      PutTrendValue("NTrackletsTrackRMS", h->GetRMS());
+    }
     return kTRUE;
   case kFigNTrackletsP:
     MakePlotnTrackletsVsP();
@@ -344,7 +345,6 @@ Bool_t AliTRDcheckDET::GetRefFigure(Int_t ifig){
     gPad->SetLogy(0);
     return kTRUE;
   case kFigChi2:
-    return kTRUE;
     MakePlotChi2();
     return kTRUE;
   case kFigPH:
@@ -435,9 +435,9 @@ TObjArray *AliTRDcheckDET::Histos(){
 
   // Binning for momentum dependent tracklet Plots
   const Int_t kNp(30);
-  Float_t P=0.2;
+  Float_t p=0.2;
   Float_t binsP[kNp+1], binsTrklt[AliTRDgeometry::kNlayer+1];
-  for(Int_t i=0;i<kNp+1; i++,P+=(TMath::Exp(i*i*.001)-1.)) binsP[i]=P;
+  for(Int_t i=0;i<kNp+1; i++,p+=(TMath::Exp(i*i*.001)-1.)) binsP[i]=p;
   for(Int_t il = 0; il <= AliTRDgeometry::kNlayer; il++) binsTrklt[il] = 0.5 + il;
   if(!(h = (TH1F *)gROOT->FindObject("htlsBAR"))){
     // Make tracklets for barrel tracks momentum dependent (if we do not exceed min and max values)
@@ -550,7 +550,6 @@ TObjArray *AliTRDcheckDET::Histos(){
   if(!(h = (TH1F *)gROOT->FindObject("hEventsTrigger")))
     h = new TH1F("hEventsTrigger", "Trigger Class", 100, 0, 100);
   else h->Reset();
-  printf("Histos Adding \n");
   
   fContainer->AddAt(h, kNeventsTrigger);
 
@@ -786,12 +785,13 @@ TH1 *AliTRDcheckDET::PlotNTrackletsTrack(const AliTRDtrackV1 *track){
 
   if(DebugLevel() > 2){
     AliTRDseedV1 *tracklet = NULL;
+    AliTRDgeometry *geo(AliTRDinfoGen::Geometry());
     Int_t sector = -1, stack = -1, detector;
     for(Int_t itl = 0; itl < AliTRDgeometry::kNlayer; itl++){
       if(!(tracklet = fkTrack->GetTracklet(itl)) || !(tracklet->IsOK())) continue;
       detector = tracklet->GetDetector();
-      sector = fGeo->GetSector(detector);
-      stack = fGeo->GetStack(detector);
+      sector = geo->GetSector(detector);
+      stack = geo->GetStack(detector);
       break;
     }
     (*DebugStream()) << "NTrackletsTrack"
@@ -892,7 +892,7 @@ TH1 *AliTRDcheckDET::PlotFindableTracklets(const AliTRDtrackV1 *track){
   AliTRDpadPlane *pp;  
   for(Int_t il = 0; il < AliTRDgeometry::kNlayer; il++){
     if((tracklet = fkTrack->GetTracklet(il)) && tracklet->IsOK()){
-      tracklet->SetReconstructor(fReconstructor);
+      tracklet->SetReconstructor(AliTRDinfoGen::Reconstructor());
       nFound++;
     }
   }
@@ -936,11 +936,12 @@ TH1 *AliTRDcheckDET::PlotFindableTracklets(const AliTRDtrackV1 *track){
     AliTRDtrackerV1::FitKalman(&copyTrack, NULL, kTRUE, 6, pointsInward);
     memcpy(points, pointsOutward, sizeof(AliTrackPoint) * AliTRDgeometry::kNlayer);
   }
+  AliTRDgeometry *geo(AliTRDinfoGen::Geometry());
   for(Int_t il = 0; il < AliTRDgeometry::kNlayer; il++){
     y = points[il].GetY();
     z = points[il].GetZ();
-    if((stack = fGeo->GetStack(z, il)) < 0) continue; // Not findable
-    pp = fGeo->GetPadPlane(il, stack);
+    if((stack = geo->GetStack(z, il)) < 0) continue; // Not findable
+    pp = geo->GetPadPlane(il, stack);
     ymin = pp->GetCol0() + epsilon;
     ymax = pp->GetColEnd() - epsilon; 
     zmin = pp->GetRowEnd() + epsilon; 
@@ -1028,10 +1029,10 @@ TH1 *AliTRDcheckDET::PlotPHt(const AliTRDtrackV1 *track){
         Float_t theta = TMath::ATan(tracklet->GetZref(1));
         Float_t phi = TMath::ATan(tracklet->GetYref(1));
         AliExternalTrackParam *trdPar = fkTrack->GetTrackIn();
-        Float_t momentumMC = 0, momentumRec = trdPar ? trdPar->P() : track->P(); // prefer Track Low
+        Float_t momentumMC = 0, momentumRec = trdPar ? trdPar->P() : fkTrack->P(); // prefer Track Low
         Int_t pdg = 0;
         Int_t kinkIndex = fkESD ? fkESD->GetKinkIndex() : 0;
-        UShort_t TPCncls = fkESD ? fkESD->GetTPCncls() : 0;
+        UShort_t tpcNCLS = fkESD ? fkESD->GetTPCncls() : 0;
         if(fkMC){
           if(fkMC->GetTrackRef()) momentumMC = fkMC->GetTrackRef()->P();
           pdg = fkMC->GetPDG();
@@ -1048,7 +1049,7 @@ TH1 *AliTRDcheckDET::PlotPHt(const AliTRDtrackV1 *track){
           << "theta="			<< theta
           << "phi="				<< phi
           << "kinkIndex="	<< kinkIndex
-          << "TPCncls="		<< TPCncls
+          << "TPCncls="		<< tpcNCLS
           << "dy="        << distance[0]
           << "dz="        << distance[1]
           << "c.="        << c
@@ -1229,13 +1230,6 @@ TH1 *AliTRDcheckDET::PlotNTracksSector(const AliTRDtrackV1 *track){
 
 
 //________________________________________________________
-void AliTRDcheckDET::SetRecoParam(AliTRDrecoParam *r)
-{
-
-  fReconstructor->SetRecoParam(r);
-}
-
-//________________________________________________________
 void AliTRDcheckDET::GetDistanceToTracklet(Double_t *dist, AliTRDseedV1 * const tracklet, AliTRDcluster * const c)
 {
   Float_t x = c->GetX();
@@ -1244,7 +1238,7 @@ void AliTRDcheckDET::GetDistanceToTracklet(Double_t *dist, AliTRDseedV1 * const 
 }
 
 //________________________________________________________
-void AliTRDcheckDET::GetEtaPhiAt(AliExternalTrackParam *track, Double_t x, Double_t &eta, Double_t &phi){
+void AliTRDcheckDET::GetEtaPhiAt(const AliExternalTrackParam *track, Double_t x, Double_t &eta, Double_t &phi){
   //
   // Get phi and eta at a given radial position
   // 
@@ -1259,7 +1253,7 @@ void AliTRDcheckDET::GetEtaPhiAt(AliExternalTrackParam *track, Double_t x, Doubl
 
 
 //_______________________________________________________
-TH1* AliTRDcheckDET::MakePlotChi2()
+TH1* AliTRDcheckDET::MakePlotChi2() const
 {
 // Plot chi2/track normalized to number of degree of freedom 
 // (tracklets) and compare with the theoretical distribution.
@@ -1268,7 +1262,7 @@ TH1* AliTRDcheckDET::MakePlotChi2()
 
   return NULL;
 
-  TH2S *h2 = (TH2S*)fContainer->At(kChi2);
+/*  TH2S *h2 = (TH2S*)fContainer->At(kChi2);
   TF1 f("fChi2", "[0]*pow(x, [1]-1)*exp(-0.5*x)", 0., 50.);
   f.SetParLimits(1,1, 1e100);
   TLegend *leg = new TLegend(.7,.7,.95,.95);
@@ -1291,7 +1285,7 @@ TH1* AliTRDcheckDET::MakePlotChi2()
   }
   leg->Draw();
   gPad->SetLogy();
-  return h1;
+  return h1;*/
 }
 
 
@@ -1309,7 +1303,7 @@ TH1* AliTRDcheckDET::MakePlotNTracklets(){
   leg->SetFillColor(0);
 
   Float_t scale = hCON->Integral();
-  hCON->Scale(100./scale);
+  if(scale) hCON->Scale(100./scale);
   hCON->SetFillColor(kRed);hCON->SetLineColor(kRed);
   hCON->SetBarWidth(0.2);
   hCON->SetBarOffset(0.6);
@@ -1319,7 +1313,7 @@ TH1* AliTRDcheckDET::MakePlotNTracklets(){
   hCON->Draw("bar1"); leg->AddEntry(hCON, "Total", "f");
   hCON->SetMaximum(55.);
 
-  hBAR->Scale(100./scale);
+  if(scale) hBAR->Scale(100./scale);
   hBAR->SetFillColor(kGreen);hBAR->SetLineColor(kGreen);
   hBAR->SetBarWidth(0.2);
   hBAR->SetBarOffset(0.2);
@@ -1329,7 +1323,7 @@ TH1* AliTRDcheckDET::MakePlotNTracklets(){
   hBAR->GetYaxis()->SetTitleOffset(1.2);
   hBAR->Draw("bar1same"); leg->AddEntry(hBAR, "Barrel", "f");
 
-  hSTA->Scale(100./scale);
+  if(scale) hSTA->Scale(100./scale);
   hSTA->SetFillColor(kBlue);hSTA->SetLineColor(kBlue);
   hSTA->SetBarWidth(0.2);
   hSTA->SetBarOffset(0.4);
@@ -1412,26 +1406,30 @@ Bool_t AliTRDcheckDET::MakePlotPulseHeight(){
   TH1 *h, *h1, *h2;
   TObjArray *arr = (TObjArray*)fContainer->FindObject("<PH>");
   h = (TH1F*)arr->At(0);
-  h->SetMarkerStyle(24);
-  h->SetMarkerColor(kBlack);
-  h->SetLineColor(kBlack);
-  h->GetYaxis()->SetTitleOffset(1.5);
-  h->Draw("e1");
-  // Trending for the pulse height: plateau value, slope and timebin of the maximum
-  TLinearFitter fit(1,"pol1");
-  Double_t time = 0.;
-  for(Int_t itime = 10; itime <= 20; itime++){
-    time = static_cast<Double_t>(itime);
-    fit.AddPoint(&time, h->GetBinContent(itime + 1), h->GetBinError(itime + 1));
+  if((Int_t)h->GetEntries()){
+    h->SetMarkerStyle(24);
+    h->SetMarkerColor(kBlack);
+    h->SetLineColor(kBlack);
+    h->GetYaxis()->SetTitleOffset(1.5);
+    h->Draw("e1");
+    // Trending for the pulse height: plateau value, slope and timebin of the maximum
+    TLinearFitter fit(1,"pol1");
+    Double_t time = 0.;
+    for(Int_t itime = 10; itime <= 20; itime++){
+      time = Double_t(itime);
+      Double_t err(h->GetBinError(itime + 1));
+      if(err>1.e-10) fit.AddPoint(&time, h->GetBinContent(itime + 1), err);
+    }
+    if(!fit.Eval()){
+      Double_t plateau = fit.GetParameter(0) + 12 * fit.GetParameter(1);
+      Double_t slope = fit.GetParameter(1);
+      PutTrendValue("PHplateau", plateau);
+      PutTrendValue("PHslope", slope);
+      PutTrendValue("PHamplificationPeak", static_cast<Double_t>(h->GetMaximumBin()-1));
+      AliDebug(1, Form("plateau %f, slope %f, MaxTime %f", plateau, slope, static_cast<Double_t>(h->GetMaximumBin()-1)));
+    }
   }
-  fit.Eval();
-  Double_t plateau = fit.GetParameter(0) + 12 * fit.GetParameter(1);
-  Double_t slope = fit.GetParameter(1);
-  PutTrendValue("PHplateau", plateau);
-  PutTrendValue("PHslope", slope);
-  PutTrendValue("PHamplificationPeak", static_cast<Double_t>(h->GetMaximumBin()-1));
-  AliDebug(1, Form("plateau %f, slope %f, MaxTime %f", plateau, slope, static_cast<Double_t>(h->GetMaximumBin()-1)));
-//   copy the second histogram in a new one with the same x-dimension as the phs with respect to time
+  //   copy the second histogram in a new one with the same x-dimension as the phs with respect to time
   h1 = (TH1F *)arr->At(1);
   h2 = new TH1F("hphs1","Average PH", 31, -0.5, 30.5);
   for(Int_t ibin = h1->GetXaxis()->GetFirst(); ibin < h1->GetNbinsX(); ibin++) 
@@ -1441,6 +1439,7 @@ Bool_t AliTRDcheckDET::MakePlotPulseHeight(){
   h2->SetLineColor(kBlue);
   h2->Draw("e1same");
   gPad->Update();
+  
 //   create axis according to the histogram dimensions of the original second histogram
   TGaxis *axis = new TGaxis(gPad->GetUxmin(),
                     gPad->GetUymax(),
@@ -1475,7 +1474,7 @@ void AliTRDcheckDET::MakePlotMeanClustersLayer(){
   }
   TProfile2D *hlayer = NULL;
   for(Int_t ily = 0; ily < AliTRDgeometry::kNlayer; ily++){
-    hlayer = dynamic_cast<TProfile2D *>(histos->At(ily));
+    if(!(hlayer = dynamic_cast<TProfile2D *>(histos->At(ily)))) continue;
     output->cd(ily + 1);
     gPad->SetGrid(0,0);
     hlayer->Draw("colz");

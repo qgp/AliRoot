@@ -45,6 +45,7 @@ public:
    virtual void        SetExecutableArgs(const char *name="")            {fExecutableArgs = name;}
    virtual void        SetAnalysisMacro(const char *name="myAnalysis.C") {fAnalysisMacro = name;}
    virtual void        SetAnalysisSource(const char *name="myAnalysisClass.cxx") {fAnalysisSource = name;}
+   virtual void        SetValidationScript(const char *name="validation.sh") {fValidationScript = name;}
    virtual void        SetAdditionalLibs(const char *list)               {fAdditionalLibs = list;}
    virtual void        SetAdditionalRootLibs(const char *list)           {fAdditionalRootLibs = list;}
    virtual void        SetPrice(Int_t price=1)                           {fPrice = price;}
@@ -70,6 +71,7 @@ public:
    virtual void        SetOutputToRunNo(Int_t mode=1)                    {fOutputToRunNo = mode;}
    virtual void        SetInputFormat(const char *format="xml-single")   {fInputFormat = format;}
    virtual void        SetMaxInitFailed(Int_t nfail=5)                   {fMaxInitFailed = nfail;}
+   virtual void        SetTerminateFiles(const char *list)               {fTerminateFiles = list;}
    virtual void        SetMergeExcludes(const char *list)                {fMergeExcludes = list;};
    virtual void        SetMergeViaJDL(Bool_t on=kTRUE)                   {fMergeViaJDL = on ? 1 : 0;}
    virtual void        SetMasterResubmitThreshold(Int_t percentage)      {fMasterResubmitThreshold = percentage;}
@@ -94,6 +96,7 @@ public:
    static Bool_t       DirectoryExists(const char *lfn);
    static Bool_t       FileExists(const char *lfn);
    static const char  *GetJobStatus(Int_t jobidstart, Int_t lastid, Int_t &nrunning, Int_t &nwaiting, Int_t &nerror, Int_t &ndone);
+   const char         *GetListOfFiles(const char *type);
    static Bool_t       CheckMergedFiles(const char *filename, const char *aliendir, Int_t nperchunk, Bool_t submit=kTRUE, const char *jdl="");
    static Bool_t       MergeOutput(const char *output, const char *basedir, Int_t nmaxmerge, Int_t stage=0, Int_t ichunk=0);
    virtual Bool_t      MergeOutputs();
@@ -111,6 +114,19 @@ public:
    virtual Bool_t      WriteJDL(Bool_t copy);
    virtual void        WriteProductionFile(const char *filename) const;
    virtual void        WriteValidationScript(Bool_t merge=kFALSE);
+
+// PROOF mode
+   virtual void        SetProofCluster(const char *cluster)              {fProofCluster = cluster;}
+   virtual void        SetProofDataSet(const char *dataset)              {fProofDataSet = dataset;}
+   virtual const char *GetProofDataSet() const                           {return fProofDataSet.Data();}
+   virtual void        SetProofReset(Int_t mode)                         {fProofReset = mode;}
+   virtual void        SetNproofWorkers(Int_t nworkers)                  {fNproofWorkers = nworkers;}
+   virtual void        SetNproofWorkersPerSlave(Int_t nworkers)          {fNproofWorkersPerSlave = nworkers;}
+   virtual void        SetRootVersionForProof(const char *version)       {fRootVersionForProof = version;}
+   virtual void        SetAliRootMode(const char *mode)                  {fAliRootMode = mode;}
+   // .txt file containing the list of files to be chained in test mode
+   virtual void        SetFileForTestMode(const char *filename)          {fFileForTestMode = filename;}
+   virtual TChain     *GetChainForTestMode(const char *treeName) const;
 
 protected:
    void                CdWork();
@@ -143,6 +159,9 @@ private:
    Int_t            fFastReadOption;  // Use xrootd tweaks to reduce timeouts in file access
    Int_t            fOverwriteMode;   // Overwrite existing files if any
    Int_t            fNreplicas;       // Number of replicas for the output files
+   Int_t            fNproofWorkers;   // Number of workers in proof mode
+   Int_t            fNproofWorkersPerSlave; // Max number of workers per slave in proof mode
+   Int_t            fProofReset;      // Proof reset mode: 0=no reset, 1=soft, 2=hard
    TString          fRunNumbers;      // List of runs to be processed
    TString          fExecutable;      // Executable script for AliEn job
    TString          fExecutableCommand;  // Command(s) to be executed in the executable script
@@ -150,6 +169,7 @@ private:
    TString          fExecutableArgs;  // arguments added to the executable script after the analysis macro
    TString          fAnalysisMacro;   // Root macro steering the analysis
    TString          fAnalysisSource;  // User analysis implementation (.cxx) file(s)
+   TString          fValidationScript; // Name of the validation script
    TString          fAdditionalRootLibs;  // List (separated by blacs) of additional libraries needed for/before analysis libs/par file compilation
    TString          fAdditionalLibs;  // List (separated by blacs) of additional libraries needed for the analysis loaded AFTER all par files
    TString          fSplitMode;       // Job split mode
@@ -167,6 +187,7 @@ private:
    TString          fInputFormat;     // Input format (xml-single)
    TString          fDatasetName;     // Dataset xml file to be created
    TString          fJDLName;         // JDL file to be generated
+   TString          fTerminateFiles;  // List of output files produced during Terminate
    TString          fMergeExcludes;   // List of output files excluded from merging
    TString          fIncludePath;     // Include path
    TString          fCloseSE;         // Preffered storage element. Taken from alien_CLOSE_SE environment.
@@ -174,9 +195,14 @@ private:
    TString          fJobTag;          // Job tag
    TString          fOutputSingle;    // Directory name for the output when split is per file
    TString          fRunPrefix;       // Run prefix to be applied to run numbers
+   TString          fProofCluster;    // Proof cluster name
+   TString          fProofDataSet;    // Proof dataset to be used
+   TString          fFileForTestMode; // .txt file for the chain to be used in PROOF test mode
+   TString          fRootVersionForProof; // ROOT version to be used in PROOF mode. The default one taken if empty.
+   TString          fAliRootMode;     // AliRoot mode among the list supported by the proof cluster
    TObjArray       *fInputFiles;      // List of input files to be processed by the job
    TObjArray       *fPackages;        // List of packages to be used
    
-   ClassDef(AliAnalysisAlien, 13)   // Class providing some AliEn utilities
+   ClassDef(AliAnalysisAlien, 15)   // Class providing some AliEn utilities
 };
 #endif

@@ -56,6 +56,8 @@ class AliITSv11GeometrySPD : public AliITSv11Geometry
     virtual TGeoMedium* GetMedium(const char* mediumName,
                                   TGeoManager *mgr = gGeoManager) const;
     // retrieve the mounting location and rotation needed to mount an SPD stave
+    virtual Int_t GetSPDsectorX0Size() const
+        {return fSPDsectorX0.GetSize();}
     virtual Bool_t GetSectorMountingPoints(Int_t index, Double_t &x0,
                                Double_t &y0, Double_t &x1, Double_t &y1) const;
     // displace the staves on the carbon fiber sector
@@ -105,7 +107,7 @@ class AliITSv11GeometrySPD : public AliITSv11Geometry
     virtual TGeoVolumeAssembly* CreateStave(Int_t layer, TArrayD &sizes,
              /*Bool_t addClips = kFALSE,*/TGeoManager *mgr = gGeoManager);
     // the complete Carbon Fiber sector (support + staves)
-    virtual void CarbonFiberSector(TGeoVolume *moth, Double_t &xAAtubeCenter0,
+    virtual void CarbonFiberSector(TGeoVolume *moth, Int_t sect, Double_t &xAAtubeCenter0,
                      Double_t &yAAtubeCenter0, TGeoManager *mgr = gGeoManager);
     // the whole SPD barrel (the 10 sectors at once)
     virtual void SPDSector(TGeoVolume *moth, TGeoManager *mgr = gGeoManager);

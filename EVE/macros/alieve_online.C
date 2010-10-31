@@ -7,6 +7,9 @@
 class TEveProjectionManager;
 class TEveGeoShape;
 class TEveUtil;
+class AliTriggerAnalysis;
+
+TH2D* V0StateHistogram;
 
 Bool_t gCenterProjectionsAtPrimaryVertex = kFALSE;
 
@@ -27,18 +30,19 @@ void alieve_online_init()
   // Gentle-geom loading changes gGeoManager.
   TEveGeoManagerHolder mgrRestore;
 
-  AliEveMultiView *multiView = new AliEveMultiView;
+  AliEveMultiView *multiView = new AliEveMultiView(kTRUE);
 
   TEveUtil::LoadMacro("geom_gentle.C");
   multiView->InitGeomGentle(geom_gentle(),
                              geom_gentle_rphi(), 
+                             geom_gentle_rhoz(),
                              geom_gentle_rhoz());
 
   TEveUtil::LoadMacro("geom_gentle_trd.C");
   multiView->InitGeomGentleTrd(geom_gentle_trd());
 
   TEveUtil::LoadMacro("geom_gentle_muon.C");
-  multiView->InitGeomGentleMuon(geom_gentle_muon(), kFALSE, kTRUE);
+  multiView->InitGeomGentleMuon(geom_gentle_muon(), kFALSE, kFALSE, kTRUE);
 
   //============================================================================
   // Standard macros to execute -- not all are enabled by default.
@@ -68,17 +72,19 @@ void alieve_online_init()
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW ITS",     "its_raw.C",     "its_raw"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW TPC",     "tpc_raw.C",     "tpc_raw"));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW TOF",     "tof_raw.C",     "tof_raw"));
-  exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW VZERO",   "vzero_raw.C",   "vzero_raw"));
-  exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW ACORDE",  "acorde_raw.C",  "acorde_raw"));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW VZERO",   "vzero_raw.C",   "vzero_raw", "", kFALSE));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW ACORDE",  "acorde_raw.C",  "acorde_raw", "", kFALSE));
   exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW MUON",    "muon_raw.C++",  "muon_raw"));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kRawReader, "RAW FMD",     "fmd_raw.C",     "fmd_raw"));
 
-  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track", "esd_tracks.C", "esd_tracks",             "", kFALSE));
-  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track", "esd_tracks.C", "esd_tracks_MI",          "", kFALSE));
-  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track", "esd_tracks.C", "esd_tracks_by_category", "", kTRUE));
-  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track MUON", "esd_muon_tracks.C++", "esd_muon_tracks", "kTRUE,kFALSE", kTRUE));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track",      "esd_tracks.C",        "esd_tracks",             "", kFALSE));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track",      "esd_tracks.C",        "esd_tracks_MI",          "", kFALSE));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track",      "esd_tracks.C",        "esd_tracks_by_category", "", kTRUE));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC Track MUON", "esd_muon_tracks.C++", "esd_muon_tracks",        "kTRUE,kFALSE", kTRUE));
+  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC FMD",        "fmd_esd.C",           "fmd_esd",                "", kTRUE));
 
   // ???
-  exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC TRD", "trd_detectors.C++", "trd_detectors",         "", kFALSE));
+  // exec->AddMacro(new AliEveMacro(AliEveMacro::kESD, "REC TRD", "trd_detectors.C++", "trd_detectors",         "", kFALSE));
   // trd_tracks disabled due to memory leaks
 
   //----------------------------------------------------------------------------
@@ -88,6 +94,31 @@ void alieve_online_init()
   AliEveMacroExecutorWindow* exewin = new AliEveMacroExecutorWindow(exec);
   slot->StopEmbedding("DataSelection");
   exewin->PopulateMacros();
+
+  //============================================================================
+  // VZERO state histogram
+  //============================================================================
+
+  slot = TEveWindow::CreateWindowInTab(browser->GetTabRight());
+  slot->StartEmbedding();  
+  TCanvas* pad = new TCanvas();
+
+  gStyle->SetCanvasColor(0);
+
+  V0StateHistogram = new TH2D("V0 Histogram","V0 Trigger State", 4, 0, 4, 4, 0, 4);
+  V0StateHistogram->Draw("colz");
+
+  V0StateHistogram->GetXaxis()->SetBinLabel(1,"V0A Invalid");
+  V0StateHistogram->GetXaxis()->SetBinLabel(2,"V0A Empty");
+  V0StateHistogram->GetXaxis()->SetBinLabel(3,"V0A BB");
+  V0StateHistogram->GetXaxis()->SetBinLabel(4,"V0A BG");
+
+  V0StateHistogram->GetYaxis()->SetBinLabel(1,"V0C Invalid");
+  V0StateHistogram->GetYaxis()->SetBinLabel(2,"V0C Empty");
+  V0StateHistogram->GetYaxis()->SetBinLabel(3,"V0C BB");
+  V0StateHistogram->GetYaxis()->SetBinLabel(4,"V0C BG");
+
+  slot->StopEmbedding("V0 Trigger State");
 
   //============================================================================
   // Final GUI setup
@@ -120,14 +151,33 @@ void alieve_online_init()
     vf->Layout();
   }
 
+  gEve->GetWindowManager()->HideAllEveDecorations();
+
+  if(gEve->GetScenes()->FindChild("Geometry scene")->FindChild("Gentle MUON"))
+  {
+    gEve->GetScenes()->FindChild("Geometry scene")->FindChild("Gentle MUON")->SetRnrSelf(kFALSE);
+    gEve->GetScenes()->FindChild("Geometry scene")->FindChild("Gentle MUON")->SetRnrChildren(kFALSE);
+  }
+
+  if(gEve->GetScenes()->FindChild("Muon Geometry")->FindChild("Gentle MUON [P]"))
+  {
+    gEve->GetScenes()->FindChild("Muon Geometry")->FindChild("Gentle MUON [P]")->SetRnrSelf(kTRUE);
+    gEve->GetScenes()->FindChild("Muon Geometry")->FindChild("Gentle MUON [P]")->SetRnrChildren(kTRUE);
+  }
+
   gEve->FullRedraw3D(kTRUE);
 
-  TGLViewer *glv = multiView->Get3DView()->GetGLViewer();
-  glv->CurrentCamera().RotateRad(-0.4, 1);
-  glv->DoDraw();
-}
+  TGLViewer *glv1 = multiView->Get3DView()->GetGLViewer();
+  TGLViewer *glv2 = multiView->GetRPhiView()->GetGLViewer();
+  TGLViewer *glv3 = multiView->GetRhoZView()->GetGLViewer();
 
-//   multiView->Get3DView()->GetGLViewer()->CurrentCamera().RotateRad(-1, 1)
+  glv1->CurrentCamera().RotateRad(-0.4, -1.8);
+  glv2->CurrentCamera().Dolly(450, kFALSE, kFALSE);
+  glv3->CurrentCamera().Dolly(1500, kFALSE, kFALSE);
+
+  gEve->FullRedraw3D();
+
+}
 
 Int_t      g_pic_id  = 0;
 Int_t      g_pic_max = 100;
@@ -135,14 +185,18 @@ TTimeStamp g_pic_prev(0, 0);
 
 void alieve_online_on_new_event()
 {
+
+  AliTriggerAnalysis atr;
+
   AliESDEvent* esd = AliEveEventManager::AssertESD();
-  Double_t x[3];
+  Double_t x[3] = { 0, 0, 0 };
   esd->GetPrimaryVertex()->GetXYZ(x);
 
   TEveElement* top = gEve->GetCurrentEvent();
 
   AliEveMultiView *multiView = AliEveMultiView::Instance();
 
+/*
   TGLViewer *glv = (dynamic_cast<TEveViewer*>(gEve->GetViewers()->FindChild("3D View")))->GetGLViewer();
   
   if(gEve->GetScenes()->FirstChild()->FindChild("Gentle MUON"))
@@ -174,6 +228,50 @@ void alieve_online_on_new_event()
   }
 
   glv->DoDraw();
+*/
+
+  AliTriggerAnalysis::V0Decision decisionV0a = 
+    atr.V0Trigger(esd, AliTriggerAnalysis::kASide, kFALSE);
+  AliTriggerAnalysis::V0Decision decisionV0c = 
+    atr.V0Trigger(esd, AliTriggerAnalysis::kCSide, kFALSE);
+
+  Double_t a = 0;
+  Double_t c = 0;
+
+  if( decisionV0a == AliTriggerAnalysis::kV0Invalid ) a = 0.5;
+  if( decisionV0a == AliTriggerAnalysis::kV0Empty ) a = 1.5;
+  if( decisionV0a == AliTriggerAnalysis::kV0BB ) a = 2.5;
+  if( decisionV0a == AliTriggerAnalysis::kV0BG ) a = 3.5;
+
+  if( decisionV0c == AliTriggerAnalysis::kV0Invalid ) c = 0.5;
+  if( decisionV0c == AliTriggerAnalysis::kV0Empty ) c = 1.5;
+  if( decisionV0c == AliTriggerAnalysis::kV0BB ) c = 2.5;
+  if( decisionV0c == AliTriggerAnalysis::kV0BG ) c = 3.5;
+
+  V0StateHistogram->Fill(a,c);
+
+  TGLViewer *glv = multiView->Get3DView()->GetGLViewer();
+  TGLViewer *glv1 = multiView->GetRPhiView()->GetGLViewer();
+  TGLViewer *glv2 = multiView->GetRhoZView()->GetGLViewer();
+ 
+  Double_t RPhiCameraFrustrumCenter = TMath::Sqrt(glv1->CurrentCamera().FrustumCenter().X()*glv1->CurrentCamera().FrustumCenter().X() + glv1->CurrentCamera().FrustumCenter().Y()*glv1->CurrentCamera().FrustumCenter().Y());
+
+  Double_t RhoZCameraFrustrumCenter = TMath::Sqrt(glv2->CurrentCamera().FrustumCenter().X()*glv2->CurrentCamera().FrustumCenter().X() + glv2->CurrentCamera().FrustumCenter().Y()*glv2->CurrentCamera().FrustumCenter().Y());
+
+  if(RPhiCameraFrustrumCenter > 500 || RhoZCameraFrustrumCenter > 500)
+  {
+
+    glv->ResetCurrentCamera();
+    glv1->ResetCurrentCamera();
+    glv2->ResetCurrentCamera();
+
+    glv->CurrentCamera().RotateRad(-0.4, -1.8);
+    glv1->CurrentCamera().Dolly(450, kFALSE, kFALSE);
+    glv2->CurrentCamera().Dolly(1500, kFALSE, kFALSE);
+
+    gEve->FullRedraw3D();
+
+  }
 
   multiView->DestroyEventRPhi();
   if (gCenterProjectionsAtPrimaryVertex)
@@ -185,8 +283,85 @@ void alieve_online_on_new_event()
     multiView->SetCenterRhoZ(x[0], x[1], x[2]);
   multiView->ImportEventRhoZ(top);
 
+  if(multiView->IsMuonView()) { multiView->DestroyEventMuon(); multiView->ImportEventMuon(top); }
+
+  if(gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("MUON Clusters"))
+  {
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("MUON Clusters")->SetRnrSelf(kFALSE);
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("MUON Clusters")->SetRnrChildren(kFALSE);
+  }
+
+  if(gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("ESD MUON Clusters"))
+  {
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("ESD MUON Clusters")->SetRnrSelf(kFALSE);
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("ESD MUON Clusters")->SetRnrChildren(kFALSE);
+  }
+
+  if(gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("ESD MUON Tracks"))
+  {
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("ESD MUON Tracks")->SetRnrSelf(kFALSE);
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("ESD MUON Tracks")->SetRnrChildren(kFALSE);
+  }
+
+  if(gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("MUON Raw digits"))
+  {
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("MUON Raw digits")->SetRnrSelf(kFALSE);
+    gEve->GetScenes()->FindChild("Event scene")->FindChild("Online Event")->FindChild("MUON Raw digits")->SetRnrChildren(kFALSE);
+  }
+
+  if(gEve->GetScenes()->FindChild("Muon Event Data"))
+  {
+    if(gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]"))
+    {
+      if(gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("MUON Clusters [P]"))
+      {
+        gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("MUON Clusters [P]")->SetRnrSelf(kTRUE);
+        gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("MUON Clusters [P]")->SetRnrChildren(kTRUE);
+      }
+
+      if(gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("ESD MUON Clusters [P]"))
+      {
+        gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("ESD MUON Clusters [P]")->SetRnrSelf(kTRUE);
+        gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("ESD MUON Clusters [P]")->SetRnrChildren(kTRUE);
+      }
+
+      if(gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("ESD MUON Tracks [P]"))
+      {
+        gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("ESD MUON Tracks [P]")->SetRnrSelf(kTRUE);
+        gEve->GetScenes()->FindChild("Muon Event Data")->FindChild("Online Event [P]")->FindChild("ESD MUON Tracks [P]")->SetRnrChildren(kTRUE);
+      }
+    }
+  }
+
+  if(gEve->GetScenes()->FindChild("RhoZ Event Data"))
+  {
+    if(gEve->GetScenes()->FindChild("RhoZ Event Data")->FindChild("Online Event [P]"))
+    {
+      if(gEve->GetScenes()->FindChild("RhoZ Event Data")->FindChild("Online Event [P]")->FindChild("FMD [P]"))
+      {
+        gEve->GetScenes()->FindChild("RhoZ Event Data")->FindChild("Online Event [P]")->FindChild("FMD [P]")->SetRnrSelf(kFALSE);
+        gEve->GetScenes()->FindChild("RhoZ Event Data")->FindChild("Online Event [P]")->FindChild("FMD [P]")->SetRnrChildren(kFALSE);
+      }
+    }
+  }
+
+  if(gEve->GetScenes()->FindChild("RPhi Event Data"))
+  {
+    if(gEve->GetScenes()->FindChild("RPhi Event Data")->FindChild("Online Event [P]"))
+    {
+      if(gEve->GetScenes()->FindChild("RPhi Event Data")->FindChild("Online Event [P]")->FindChild("FMD [P]"))
+      {
+        gEve->GetScenes()->FindChild("RPhi Event Data")->FindChild("Online Event [P]")->FindChild("FMD [P]")->SetRnrSelf(kFALSE);
+        gEve->GetScenes()->FindChild("RPhi Event Data")->FindChild("Online Event [P]")->FindChild("FMD [P]")->SetRnrChildren(kFALSE);
+      }
+    }
+  }
+
+  gEve->FullRedraw3D();
+
   // Register image to amore.
-  const TString pichost("aldaqacrs3");
+  // const TString pichost("aldaqacrs3");
+  const TString pichost(gEnv->GetValue("AliEve.imageDumpHost", "aldaqacrs3"));
   TTimeStamp now;
   Double_t delta = now.AsDouble() - g_pic_prev.AsDouble();
 

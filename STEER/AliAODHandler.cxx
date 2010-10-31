@@ -133,7 +133,8 @@ Bool_t AliAODHandler::Init(Option_t* opt)
   Bool_t createStdAOD = fIsStandard || fFillAOD;
   if(!fAODEvent && createStdAOD){
     fAODEvent = new AliAODEvent();
-    if (fIsStandard) fAODEvent->CreateStdContent();
+    if (fIsStandard) 
+      fAODEvent->CreateStdContent();
   }
   //
   // File opening according to execution mode
@@ -358,15 +359,15 @@ void AliAODHandler::StoreMCParticles(){
   // AOD calo cluster
   TClonesArray *clusters = fAODEvent->GetCaloClusters();
   if(clusters){
-    for (Int_t iClust = 0;iClust < fAODEvent->GetNCaloClusters(); ++iClust) {
+    for (Int_t iClust = 0;iClust < fAODEvent->GetNumberOfCaloClusters(); ++iClust) {
       AliAODCaloCluster * cluster = fAODEvent->GetCaloCluster(iClust);
-      UInt_t nLabel    = cluster->GetNLabel();
+      UInt_t nLabel    = cluster->GetNLabels();
       // Ugly but do not want to fragment memory by creating 
       // new Int_t (nLabel)
       Int_t* labels    = const_cast<Int_t*>(cluster->GetLabels());
       if (labels){
 	for(UInt_t i = 0;i < nLabel;++i){
-	  labels[i] = fMCEventH->GetNewLabel(cluster->GetLabel(i));
+	  labels[i] = fMCEventH->GetNewLabel(cluster->GetLabelAt(i));
 	}
       }
       //      cluster->SetLabels(labels,nLabel);
@@ -498,6 +499,13 @@ void AliAODHandler::AddBranch(const char* cname, void* addobj, const char* filen
        AliAODExtension *ext = AddExtension(filename);
        ext->AddBranch(cname, addobj);
        return;
+    } else {
+       // Add branch to all filters
+      if (fFilters) {
+         TIter next(fFilters);
+         AliAODExtension *ext;
+         while ((ext=(AliAODExtension*)next())) ext->AddBranch(cname, addobj);
+      }
     }
     TDirectory *owd = gDirectory;
     if (fFileA) {
@@ -586,6 +594,30 @@ const char *AliAODHandler::GetOutputFileName()
 }
 
 //______________________________________________________________________________
+const char *AliAODHandler::GetExtraOutputs() const
+{
+// Get extra outputs as a string separated by commas.
+   static TString eoutputs;
+   eoutputs = "";
+   TObject *obj;
+   if (fExtensions) {
+      TIter next1(fExtensions);
+      while ((obj=next1())) {
+         if (!eoutputs.IsNull()) eoutputs += ",";
+         eoutputs += obj->GetName();
+      }
+   }
+   if (fFilters) {
+      TIter next2(fFilters);
+      while ((obj=next2())) {
+         if (!eoutputs.IsNull()) eoutputs += ",";
+         eoutputs += obj->GetName();
+      }
+   }
+   return eoutputs.Data();
+}
+
+//______________________________________________________________________________
 void  AliAODHandler::SetMCHeaderInfo(AliAODMCHeader *mcHeader,AliGenEventHeader *genHeader){
 
 
@@ -665,13 +697,13 @@ AliAODExtension::~AliAODExtension()
 void AliAODExtension::AddBranch(const char* cname, void* addobj)
 {
     // Add a new branch to the aod 
-    if (IsFilteredAOD()) {
-       Error("AddBranch", "Not allowed to add branched to filtered AOD's.");
-       return;
-    }   
+//    if (IsFilteredAOD()) {
+//       Error("AddBranch", "Not allowed to add branched to filtered AOD's.");
+//       return;
+//    }   
     if (!fAODEvent) {
        char type[20];
-       gROOT->ProcessLine(Form("TString s_tmp; AliAnalysisManager::GetAnalysisManager()->GetAnalysisTypeString(s_tmp); sprintf((char*)0x%s, \"%%s\", s_tmp.Data());", type));
+       gROOT->ProcessLine(Form("TString s_tmp; AliAnalysisManager::GetAnalysisManager()->GetAnalysisTypeString(s_tmp); sprintf((char*)%p, \"%%s\", s_tmp.Data());", type));
        Init(type);
     }
     TDirectory *owd = gDirectory;

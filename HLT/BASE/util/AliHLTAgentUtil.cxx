@@ -34,6 +34,7 @@
 #include "AliHLTRootFileWriterComponent.h"
 #include "AliHLTRootFilePublisherComponent.h"
 #include "AliHLTRootSchemaEvolutionComponent.h"
+#include "AliHLTRecoParamComponent.h"
 //#include "AliHLTMCGeneratorComponent.h"
 #include "AliHLTESDMCEventPublisherComponent.h"
 #include "AliHLTFileWriter.h"
@@ -44,6 +45,7 @@
 #include "AliHLTReadoutListDumpComponent.h"
 #include "AliHLTOUTPublisherComponent.h"
 #include "AliHLTCompStatCollector.h"
+#include "AliHLTCorruptorComponent.h"
 
 /** global instance for agent registration */
 AliHLTAgentUtil gAliHLTAgentUtil;
@@ -84,7 +86,7 @@ int AliHLTAgentUtil::CreateConfigurations(AliHLTConfigurationHandler* handler,
   handler->CreateConfiguration("UTIL-hltout-compstat-publisher", "AliHLTOUTPublisher"   , NULL, "-disable-component-stat");
 
   // collector configuration
-  handler->CreateConfiguration("UTIL-compstat-converter", "StatisticsCollector", "UTIL-hltout-compstat-publisher", "-disable-component-stat -arraysize 10000");
+  handler->CreateConfiguration("UTIL-compstat-converter", "StatisticsCollector", "UTIL-hltout-compstat-publisher", "-disable-component-stat");
 
   // writer configuration
   handler->CreateConfiguration("UTIL-compstat-writer", "ROOTFileWriter", "UTIL-compstat-converter", "-datafile HLT.statistics.root -concatenate-events -overwrite");
@@ -117,6 +119,7 @@ int AliHLTAgentUtil::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTRootFileWriterComponent);
   pHandler->AddComponent(new AliHLTRootFilePublisherComponent);
   pHandler->AddComponent(new AliHLTRootSchemaEvolutionComponent);
+  pHandler->AddComponent(new AliHLTRecoParamComponent);
   //  pHandler->AddComponent(new AliHLTMCGeneratorComponent);
   pHandler->AddComponent(new AliHLTESDMCEventPublisherComponent);
   pHandler->AddComponent(new AliHLTFileWriter);
@@ -127,6 +130,7 @@ int AliHLTAgentUtil::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTReadoutListDumpComponent);
   pHandler->AddComponent(new AliHLTOUTPublisherComponent);
   pHandler->AddComponent(new AliHLTCompStatCollector);
+  pHandler->AddComponent(new AliHLTCorruptorComponent);
   return 0;
 }
 

@@ -16,19 +16,12 @@
 #ifndef ALITRDRECOTASK_H
 #include "AliTRDrecoTask.h"
 #endif
-#ifndef ALIPID_H
-#include "AliPID.h"
-#endif
-#ifndef ALITRDCALPID_H
-#include "Cal/AliTRDCalPID.h"
-#endif
-#ifndef ALITRDGEOMETRY_H
-#include "AliTRDgeometry.h"
+#ifndef ALITRDPIDUTIL_H
+#include "AliTRDpidUtil.h"
 #endif
 
 class TTree;
 class TObjArray;
-class AliTRDReconstructor;
 class AliTRDseedV1;
 class AliTRDtrackInfo;
 class AliTRDpidInfo;
@@ -66,7 +59,7 @@ public:
 
   void    SetAbundance(Float_t train);
   void    SetPthreshold(Float_t t) { fPthreshold = t;}
-  void    SetRefPID(ETRDpidRefMakerSource select, AliTRDtrackInfo *t, Float_t *pid);
+  void    SetRefPID(ETRDpidRefMakerSource select, AliTRDtrackInfo *t, const AliTRDtrackInfo::AliESDinfo *infoESD, Float_t *pid);
   void    SetSource(ETRDpidRefMakerSource pid, ETRDpidRefMakerSource momentum) {fRefPID = pid; fRefP = momentum;}
 
 
@@ -76,7 +69,6 @@ protected:
   virtual void     LinkPIDdata();
   virtual void     Fill();
 
-  AliTRDReconstructor *fReconstructor;  // reconstructor needed for recalculation the PID
   TObjArray     *fV0s;                  //! v0 array
   TTree         *fData;                 //! dEdx-P data
   TObjArray     *fInfo;                 //! list of PID info
@@ -85,7 +77,7 @@ protected:
   ETRDpidRefMakerSource  fRefP;         // reference momentum source
   Float_t       fFreq;                  // training sample relative abundance
   Float_t       fP;                     // momentum
-  Float_t       fdEdx[8];               // dEdx array
+  Float_t       fdEdx[AliTRDpidUtil::kNNslices];// dEdx array
   Float_t       fPID[AliPID::kSPECIES]; // pid from v0s
 
 private:
@@ -94,7 +86,7 @@ private:
 
   Float_t        fPthreshold;            // momentum threshold [GeV/c]
 
-  ClassDef(AliTRDpidRefMaker, 3); // TRD PID reference  maker base class
+  ClassDef(AliTRDpidRefMaker, 4); // TRD PID reference  maker base class
 };
 
 #endif

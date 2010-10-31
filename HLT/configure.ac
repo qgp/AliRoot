@@ -352,6 +352,7 @@ if test ! "x$have_aliroot" = "xno" ; then
   AC_CHECK_HEADER([AliQAv1.h], [have_aliqav1=yes], [])
   AM_CONDITIONAL(EN_HLT_QA, test x$have_aliqav1 = xyes)
   AC_CHECK_HEADER([AliESDHLTDecision.h], [], [AC_DEFINE(HAVE_NOT_ALIESDHLTDECISION)])
+  AC_CHECK_HEADER([AliVCluster.h], [], [AC_DEFINE(HAVE_NOT_ALIVCLUSTER)])
 
   dnl
   dnl required header files and libraries for modules
@@ -609,8 +610,8 @@ AH_TEMPLATE([HLT_UTIL],[HLT utility library])
 ALIUTIL_LIBS=
 CHECK_HLTMODULE([util],
 		[], 
-		[$ALIROOT_CPPFLAGS -I$ALICE_ROOT/STEER -I$ALICE_ROOT/RAW -I$ALICE_ROOT/PYTHIA6],
-		[], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], [$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS],
+		[$ALIROOT_CPPFLAGS -I$ALICE_ROOT/STEER -I$ALICE_ROOT/RAW -I$ALICE_ROOT/PYTHIA6 -I$ALICE_ROOT/ANALYSIS],
+		[ANALYSIS ANALYSISalice], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], [$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS],
 		[], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
 		[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
 
@@ -853,13 +854,24 @@ else
 				        have_alicalorawstream=yes], 
   				       [])
     AC_MSG_RESULT([$have_alicalorawstream])
+    have_aliphosrecoparamemc=no
     AC_MSG_CHECKING([for required EMC functionality in AliPHOSRecoParam.h ])
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliPHOSRecoParam.h>], 
                                        [AliPHOSRecoParam param;
 				        param.GetEMCClusteringThreshold()])],
-                                       [have_aliphosrecoparam=yes], 
+                                       [have_aliphosrecoparamemc=yes], 
   				       [AC_DEFINE(HAVE_NOT_PHOSRECOPARAMEMC)])
-    AC_MSG_RESULT([$have_aliphosrecoparam])
+    AC_MSG_RESULT([$have_aliphosrecoparamemc])
+
+    have_aliphosreconstructor_r44091=no
+    AC_MSG_CHECKING([for AliPHOSReconstructor r44091 ])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliPHOSReconstructor.h>], 
+                                       [float e=0.0;
+				        AliPHOSReconstructor::CorrectNonlinearity(e)])],
+                                       [have_aliphosreconstructor_r44091=yes], 
+  				       [AC_DEFINE(HAVE_NOT_ALIPHOSRECONSTRUCTOR_r44091)])
+    AC_MSG_RESULT([$have_aliphosreconstructor_r44091])
+
     AC_LANG_POP(C++)
     CPPFLAGS="$save_CPPFLAGS"
   fi
@@ -972,6 +984,14 @@ else
                                          [have_alitrdrecoparam_r41621=yes],
                                          [AC_DEFINE(HAVE_NOT_ALITRD_RECOPARAM_r41621)])
       AC_MSG_RESULT([$have_alitrdrecoparam_r41621])
+
+      have_alitrdclusterizer_r42837=no
+      AC_MSG_CHECKING([checking for AliTRDclusterizer r42837])
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliTRDclusterizer.h>], 
+                                         [AliTRDclusterizer o; o.SetSkipTransform()]);],
+                                         [have_alitrdclusterizer_r42837=yes],
+                                         [AC_DEFINE(HAVE_NOT_ALITRD_CLUSTERIZER_r42837)])
+      AC_MSG_RESULT([$have_alitrdclusterizer_r42837])
     fi
 
     AC_LANG_POP(C++)
@@ -1019,6 +1039,60 @@ AM_CONDITIONAL(EN_HLT_FMD, test x$enable_fmd = xyes)
 AC_MSG_CHECKING([whether to compile FMD library])
 AC_MSG_RESULT([$enable_module])
 AC_SUBST([ALIFMD_LIBS])
+
+dnl ------------------------------------------------------------------
+AH_TEMPLATE([HLT_ZDC],[hlt zdc library])
+
+ALIZDC_LIBS=$ALIHLTMODULE_LIBS
+CHECK_HLTMODULE([zdc],
+		[], [$ALIROOT_CPPFLAGS],
+		[], [-L$ROOTLIBDIR], [$ROOTLIBS $ADD_ROOTLIBS],
+		[ZDCbase ZDCrec], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS],
+		[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
+
+if test "x$enable_module" = "xmissheader"; then
+  enable_module="no...missing.headers"
+  enable_zdc=$enable_module
+elif test "x$enable_module" = "xforce"; then
+  enable_zdc="yes"
+else
+  enable_zdc=$enable_module
+
+  if test "x$enable_zdc" = "xyes" ; then
+    AC_LANG_PUSH(C++)
+    save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$save_CPPFLAGS $ALIROOT_CPPFLAGS -I$ALICE_ROOT/ZDC"
+
+
+    # AliZDCReconstructor::GetZDCESDData() is needed, requires revision 43770, Wed Sep 22 2010
+    have_alizdcreconstructor_r43770=no
+    AC_MSG_CHECKING([checking for  AliZDCReconstructor::GetZDCESDData() r43770])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliZDCReconstructor.h>], 
+                                       [AliZDCReconstructor rec;
+				        rec.GetZDCESDData()])],
+                                       [have_alizdcreconstructor_r43770=yes], 
+  				       [AC_DEFINE(HAVE_NOT_ALIZDCRECONSTRUCTOR_r43770)])
+    if test "x$have_alizdcreconstructor_r43770"	!= "xyes"; then
+       enable_zdc="no...requires.r43770"
+    fi
+    AC_MSG_RESULT([$have_alizdcreconstructor_r43770])       
+
+    AC_LANG_POP(C++)
+    CPPFLAGS="$save_CPPFLAGS"
+  fi
+
+fi
+
+if test "x$enable_zdc" = "xyes" ; then
+  AC_DEFINE(HLT_ZDC)
+  ALIZDC_LIBS=$ALIHLTMODULE_LIBS
+else
+  enable_module=$enable_zdc
+fi
+AM_CONDITIONAL(EN_HLT_ZDC, test x$enable_zdc = xyes)
+AC_MSG_CHECKING([whether to compile ZDC library])
+AC_MSG_RESULT([$enable_module])
+AC_SUBST([ALIZDC_LIBS])
 
 dnl ------------------------------------------------------------------
 AH_TEMPLATE([HLT_MUON],[hlt dimuon library])
@@ -1187,7 +1261,7 @@ fi
 
 CHECK_HLTMODULE([jet],
 	[$ALIFASTJET_HEADER], [$ALIROOT_CPPFLAGS -I$ALICE_ROOT/JETAN $ALIFASTJET_INCFLAGS],
-	[$ALIFASTJET_LIBS], [$ROOTLIBDIR $ALIFASTJET_LDFLAGS], [$ROOTLIBS $ADD_ROOTLIBS],
+	[$ALIFASTJET_LIBS], [-L$ROOTLIBDIR $ALIFASTJET_LDFLAGS], [$ROOTLIBS $ADD_ROOTLIBS],
 	[AOD ESD ANALYSIS ANALYSISalice JETAN], 
 	[-L$ROOTLIBDIR $ALIROOT_LDFLAGS $ALIFASTJET_LDFLAGS -L$ALICE_ROOT/lib/tgt_$ALICE_TARGET],
 	[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
@@ -1221,6 +1295,54 @@ AM_CONDITIONAL(EN_HLT_JET, test x$enable_jet = xyes)
 AC_MSG_CHECKING([whether to compile Jet library])
 AC_MSG_RESULT([$enable_module])
 AC_SUBST([ALIJET_LIBS])
+
+dnl ------------------------------------------------------------------
+AH_TEMPLATE([HLT_VZERO],[hlt vzero library])
+
+ALIVZERO_LIBS=
+CHECK_HLTMODULE([vzero],
+		[], [$ALIROOT_CPPFLAGS],
+		[], [-L$ROOTLIBDIR], [$ROOTLIBS $ADD_ROOTLIBS],
+		[], [-L$ROOTLIBDIR $ALIROOT_LDFLAGS], 
+		[$ROOTLIBS $ADD_ROOTLIBS $ALIROOT_LIBS])
+
+if test "x$enable_module" = "xmissheader"; then
+  enable_module="no...header.missing"
+  enable_vzero=$enable_module
+elif test "x$enable_module" = "xforce"; then
+  enable_vzero="yes"
+else
+  enable_vzero=$enable_module
+
+  if test "x$enable_vzero" = "xyes" ; then
+    AC_LANG_PUSH(C++)
+    save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$save_CPPFLAGS $ALIROOT_CPPFLAGS -I$ALICE_ROOT/VZERO"
+
+    # AliVZEROReconstructor::GetESDVZERO() is needed, requires revision 43718, Tue Sep 21 2010
+    AC_MSG_CHECKING([checking for AliVZEROReconstructor::GetESDVZERO() r43718])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <AliVZEROReconstructor.h>], 
+                                       [AliVZEROReconstructor rec;
+				        rec.GetESDVZERO()])],
+                                       [], 
+  				       [enable_vzero="no...requires.r43718"])
+    AC_MSG_RESULT([$enable_vzero])       
+
+    AC_LANG_POP(C++)
+    CPPFLAGS="$save_CPPFLAGS"
+  fi
+fi
+
+if test "x$enable_vzero" = "xyes" ; then 
+  AC_DEFINE(HLT_VZERO)
+  ALIVZERO_LIBS=$ALIHLTMODULE_LIBS
+else
+  enable_module=$enable_vzero
+fi
+AM_CONDITIONAL(EN_HLT_VZERO, test x$enable_vzero = xyes)
+AC_MSG_CHECKING([whether to compile VZERO library])
+AC_MSG_RESULT([$enable_module])
+AC_SUBST([ALIVZERO_LIBS])
 
 dnl ------------------------------------------------------------------
 AH_TEMPLATE([HLT_ITS],[hlt its library])
@@ -1491,6 +1613,11 @@ if test "x$enable_fmd" = "xyes"; then
   AC_CONFIG_FILES([FMD/Makefile])
 fi
 
+AC_MSG_NOTICE([compile ZDC library: $enable_zdc])
+if test "x$enable_zdc" = "xyes"; then 
+  AC_CONFIG_FILES([ZDC/Makefile])
+fi
+
 AC_MSG_NOTICE([compile MUON library: $enable_muon])
 if test "x$enable_muon" = "xyes"; then 
   AC_CONFIG_FILES([MUON/Makefile])
@@ -1515,6 +1642,11 @@ fi
 AC_MSG_NOTICE([compile jet library: $enable_jet])
 if test "x$enable_jet" = "xyes"; then 
   AC_CONFIG_FILES([JET/Makefile])
+fi
+
+AC_MSG_NOTICE([compile vzero library: $enable_vzero])
+if test "x$enable_vzero" = "xyes"; then 
+  AC_CONFIG_FILES([VZERO/Makefile])
 fi
 
 AC_MSG_NOTICE([compile comp library: $enable_comp])

@@ -899,7 +899,7 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 			Log(Form("Problems in retrieving LHC Clock data from LHC file"));
 			return 4;
 		}			
-		AliLHCClockPhase *phaseObj = ProcessLHCClockPhase(beam1phase,beam2phase,timeStart,timeEnd);
+		AliLHCClockPhase *phaseObj = ProcessLHCClockPhase(beam1phase,beam2phase,timeEnd);
 		if (phaseObj){
 			AliInfo(Form("LHC Phase found"));
 			AliCDBMetaData mdPhase;
@@ -2822,7 +2822,7 @@ Float_t AliGRPPreprocessor::ProcessEnergy(TObjArray* const array, Double_t timeS
 	return energy;
 }
 //------------------------------------------------------------------------------------------------------
-AliLHCClockPhase* AliGRPPreprocessor::ProcessLHCClockPhase(TObjArray *beam1phase,TObjArray *beam2phase, Double_t timeStart, Double_t timeEnd)
+AliLHCClockPhase* AliGRPPreprocessor::ProcessLHCClockPhase(TObjArray *beam1phase,TObjArray *beam2phase, Double_t timeEnd)
 {
   //
   // Method to process LHC-Clock Phase data
@@ -2832,6 +2832,9 @@ AliLHCClockPhase* AliGRPPreprocessor::ProcessLHCClockPhase(TObjArray *beam1phase
 
   Bool_t foundBeam1Phase = kFALSE, foundBeam2Phase = kFALSE;
   const Float_t threshold = 0.050; // we store the measurement only in case they differ with more 50ps from the previous one 
+
+  TString timeCreatedStr = GetRunParameter("time_created");
+  Double_t timeCreated = timeCreatedStr.Atof();
 
   Int_t nCounts = beam1phase->GetEntries();
   AliDebug(2,Form("Beam1 phase measurements = %d\n",nCounts));
@@ -2845,7 +2848,8 @@ AliLHCClockPhase* AliGRPPreprocessor::ProcessLHCClockPhase(TObjArray *beam1phase
     for (Int_t i = 0; i < nCounts; i++){
       AliDCSArray *dcs = (AliDCSArray*)beam1phase->At(i);
       if (dcs){
-	if (dcs->GetTimeStamp()>=timeStart && dcs->GetTimeStamp()<=timeEnd) {
+	      //if (dcs->GetTimeStamp()>=timeStart && dcs->GetTimeStamp()<=timeEnd) {
+	      if (dcs->GetTimeStamp()>=timeCreated && dcs->GetTimeStamp()<=timeEnd) {
 	  if ((i == 0) || (i == (nCounts-1)) ||
 	      !foundBeam1Phase ||
 	      (TMath::Abs(dcs->GetDouble(0)-prevPhase) > threshold)) {
@@ -2877,7 +2881,7 @@ AliLHCClockPhase* AliGRPPreprocessor::ProcessLHCClockPhase(TObjArray *beam1phase
     for (Int_t i = 0; i < nCounts; i++){
       AliDCSArray *dcs = (AliDCSArray*)beam2phase->At(i);
       if (dcs){
-	if (dcs->GetTimeStamp()>=timeStart && dcs->GetTimeStamp()<=timeEnd) {
+	if (dcs->GetTimeStamp()>=timeCreated && dcs->GetTimeStamp()<=timeEnd) {
 	  if ((i == 0) || (i == (nCounts-1)) ||
 	      !foundBeam2Phase ||
 	      (TMath::Abs(dcs->GetDouble(0)-prevPhase) > threshold)) {

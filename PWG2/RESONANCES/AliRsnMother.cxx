@@ -10,6 +10,7 @@
 //          Alberto Pulvirenti (alberto.pulvirenti@ct.infn.it)
 //
 #include <Riostream.h>
+#include <TVector3.h>
 #include "AliRsnDaughter.h"
 #include "AliRsnPairDef.h"
 #include "AliRsnMother.h"
@@ -150,6 +151,47 @@ void AliRsnMother::ResetPair()
   fRef  .SetXYZM(0.0, 0.0, 0.0, 0.0);
   fSumMC.SetXYZM(0.0, 0.0, 0.0, 0.0);
   fRefMC.SetXYZM(0.0, 0.0, 0.0, 0.0);
+}
+
+//_____________________________________________________________________________
+Double_t AliRsnMother::CosThetaStar(Bool_t first, Bool_t useMC)
+{
+  TLorentzVector mother    = (useMC ? fSumMC : fSum);
+  TLorentzVector daughter0 = (first ? fDaughter[0]->P() : fDaughter[1]->P());
+  TLorentzVector daughter1 = (first ? fDaughter[1]->P() : fDaughter[0]->P());
+  TVector3 momentumM          (mother.Vect());
+  //cout << mother.Vect().X() << ' ' << mother.Vect().Y() << ' ' << mother.Vect().Z() << endl;
+  TVector3 normal             (mother.Y()/momentumM.Mag(), -mother.X()/momentumM.Mag(), 0.0);
+  //cout << momentumM.Mag() << ' ' << normal.X() << ' ' << normal.Y() << ' ' << normal.Z() << endl;
+
+// Computes first the invariant mass of the mother
+
+  Double_t mass0            = fDaughter[0]->P().M();
+  Double_t mass1            = fDaughter[1]->P().M();
+  Double_t p0               = daughter0.Vect().Mag();
+  Double_t p1               = daughter1.Vect().Mag();
+  Double_t E0               = TMath::Sqrt(mass0*mass0+p0*p0);
+  Double_t E1               = TMath::Sqrt(mass1*mass1+p1*p1);
+  Double_t MotherMass       = TMath::Sqrt((E0+E1)*(E0+E1)-(p0*p0+2.0*daughter0.Vect().Dot(daughter1.Vect())+p1*p1));
+  MotherMass = fSum.M();
+
+// Computes components of beta
+
+  Double_t betaX = -mother.X()/mother.E(); //TMath::Sqrt(momentumM.Mag()*momentumM.Mag()+MotherMass*MotherMass);
+  Double_t betaY = -mother.Y()/mother.E(); //TMath::Sqrt(momentumM.Mag()*momentumM.Mag()+MotherMass*MotherMass);
+  Double_t betaZ = -mother.Z()/mother.E(); //TMath::Sqrt(momentumM.Mag()*momentumM.Mag()+MotherMass*MotherMass);
+
+// Computes Lorentz transformation of the momentum of the first daughter
+// into the rest frame of the mother and theta*
+  //cout << "Beta = " << betaX << ' ' << betaY << ' ' << betaZ << endl;
+
+  daughter0.Boost(betaX,betaY,betaZ);
+  TVector3 momentumD = daughter0.Vect();
+
+  Double_t cosThetaStar = normal.Dot(momentumD)/momentumD.Mag();
+
+  return cosThetaStar;
+
 }
 
 //_____________________________________________________________________________

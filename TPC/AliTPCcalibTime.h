@@ -8,7 +8,6 @@
 #include "THnSparse.h"           // Temporary
 #include "TH1D.h"                // Temporary make code compiling for HLT in the 
 class TObjArray;
-
 class TH1F;
 class TH3F;
 class TH2F;
@@ -25,7 +24,7 @@ class AliESDfriendTrack;
 class AliTPCcalibTime:public AliTPCcalibBase {
 public:
   AliTPCcalibTime(); 
-  AliTPCcalibTime(const Text_t *name, const Text_t *title, UInt_t StartTime, UInt_t EndTime, Int_t deltaIntegrationTimeVdrift);
+  AliTPCcalibTime(const Text_t *name, const Text_t *title, UInt_t StartTime, UInt_t EndTime, Int_t deltaIntegrationTimeVdrift, Int_t memoryMode=2);
   virtual ~AliTPCcalibTime();
   
   virtual void           Process(AliESDEvent *event);
@@ -54,12 +53,13 @@ public:
   AliSplineFit* GetFitDrift(const char* name);
 //  TObjArray*    GetFitDrift();
   TH1F*         GetCosmiMatchingHisto(Int_t index=0) const {return fCosmiMatchingHisto[index];};
-  
   void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);};
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
   TObjArray* GetAlignITSTPC() const {return fAlignITSTPC;}              // alignemnt array ITS TPC match
   TObjArray* GetAlignTRDTPC() const {return fAlignTRDTPC;}              // alignemnt array TRD TPC match
   TObjArray* GetAlignTOFTPC() const {return fAlignTOFTPC;}              // alignemnt array TOF TPC match
+
+  THnSparse * GetTPCVertexHisto(Int_t index) { return fTPCVertex[index%12];}
 
   THnSparse*  GetResHistoTPCCE(Int_t index) const { return (index<5) ? fResHistoTPCCE[index]:0;}        //TPC-CE    matching map
   THnSparse*  GetResHistoTPCITS(Int_t index) const { return (index<5) ? fResHistoTPCITS[index]:0;}        //TPC-ITS    matching map
@@ -74,9 +74,12 @@ public:
   void        FillResHistoTPCTRD(const AliExternalTrackParam * pTPCOut, const AliExternalTrackParam * pTRDIn );
   void        FillResHistoTPCTOF(const AliExternalTrackParam * pTPCOut, const AliExternalTrackParam * pTOFIn );
 
-private:
-  void ResetCurrent();                  // reset current values
+  TObjArray * GetLaserArrayA() const { return fArrayLaserA;}
+  TObjArray * GetLaserArrayC() const { return fArrayLaserC;}
 
+protected:
+  void ResetCurrent();                  // reset current values
+  Int_t              fMemoryMode;       // 0 -do not fill THnSparse with residuals  1- fill only important QA THn 2 - Fill all THnsparse for calibration
   AliTPCcalibLaser * fLaser;            //! laser calibration
   //
   // current information
@@ -91,8 +94,6 @@ private:
   Float_t fCutMinDir;   // direction vector products
   Int_t   fCutTracks;   // maximal number of tracks
  
-  AliTPCcalibTime(const AliTPCcalibTime&); 
-  AliTPCcalibTime& operator=(const AliTPCcalibTime&); 
 
   TH1F* fCosmiMatchingHisto[10];
   //
@@ -106,11 +107,18 @@ private:
   // laser histo
   THnSparse * fHistVdriftLaserA[3];	//Histograms for V drift from laser
   THnSparse * fHistVdriftLaserC[3];	//Histograms for V drift from laser
+  TObjArray *fArrayLaserA;              //Object array of driftvelocity laserA
+  TObjArray *fArrayLaserC;              //Object array of driftvelocity laserC
+  //
+  // TPC vertex A side C side histo
+  //
+  THnSparse * fTPCVertex[12];                  // TPC vertex histograms A side c side - A+C -ESD
   // DELTA Z histo
   TObjArray* fArrayDz;                  // array of DZ histograms for different triggers
   TObjArray* fAlignITSTPC;              // alignemnt array ITS TPC match
   TObjArray* fAlignTRDTPC;              // alignemnt array TRD TPC match
   TObjArray* fAlignTOFTPC;              // alignemnt array TOF TPC match
+  Int_t      fTimeKalmanBin;            // width of Kalman bin - time in seconds
   Int_t    fTimeBins;			//Bins time
   Double_t fTimeStart;			//Start time
   Double_t fTimeEnd;			//End time
@@ -126,7 +134,12 @@ private:
   Int_t    fBinsVdrift[4];		//Bins for vdrift
   Double_t fXminVdrift[4];		//Xmax for vdrift
   Double_t fXmaxVdrift[4];		//Xmin for vdrift
-  ClassDef(AliTPCcalibTime, 4); 
+
+private:
+  AliTPCcalibTime(const AliTPCcalibTime&); 
+  AliTPCcalibTime& operator=(const AliTPCcalibTime&); 
+
+  ClassDef(AliTPCcalibTime, 8); 
 };
 
 #endif

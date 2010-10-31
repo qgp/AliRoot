@@ -4,6 +4,9 @@
 #pragma link C++ class AliRsnMother+;
 #pragma link C++ class AliRsnEvent+;
 
+#pragma link C++ class AliRsnValue+;
+#pragma link C++ class AliRsnFunction+;
+
 #pragma link C++ class AliRsnExpression+;
 #pragma link C++ class AliRsnVariableExpression+;
 #pragma link C++ class AliRsnCut+;
@@ -14,12 +17,11 @@
 #pragma link C++ class AliRsnCutPrimaryVertex+;
 #pragma link C++ class AliRsnCutDaughterType+;
 #pragma link C++ class AliRsnCutESD2010+;
+#pragma link C++ class AliRsnCutAOD2010+;
+#pragma link C++ class AliRsnCutValue+;
 
 #pragma link C++ class AliRsnCutSet+;
 #pragma link C++ class AliRsnCutManager+;
-
-#pragma link C++ class AliRsnValue+;
-#pragma link C++ class AliRsnFunction+;
 
 #pragma link C++ class AliRsnPairDef+;
 #pragma link C++ class AliRsnPair+;
@@ -34,7 +36,7 @@
 
 #pragma link C++ class AliRsnAnalysisSE+;
 #pragma link C++ class AliRsnAnalysisME+;
-//#pragma link C++ class AliRsnAnalysisEffSE+;
+#pragma link C++ class AliRsnAnalysisEffSE+;
 
 #pragma link C++ class AliRsnTOFT0maker+;
 #pragma link C++ class AliRsnAnalysisPhi900GeV+;
@@ -43,5 +45,7 @@
 
 #pragma link C++ class AliRsnMonitorTrack+;
 #pragma link C++ class AliRsnAnalysisMonitorTask+;
+#pragma link C++ class AliRsnAnalysisMonitorPairTask+;
+//#pragma link C++ class AliRsnFitResult+;
 
 #endif

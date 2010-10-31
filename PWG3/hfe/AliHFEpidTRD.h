@@ -27,6 +27,7 @@
 class AliAODTrack;
 class AliAODMCParticle;
 class AliESDtrack;
+class AliHFEcollection;
 class AliMCParticle;
 class AliVParticle;
 class TList;
@@ -49,6 +50,7 @@ class AliHFEpidTRD : public AliHFEpidBase{
       kHistTRDSigV2 = 4,
       kHistOverallSpecies = 5
     };
+    AliHFEpidTRD();
     AliHFEpidTRD(const Char_t *name);
     AliHFEpidTRD(const AliHFEpidTRD &ref);
     AliHFEpidTRD& operator=(const AliHFEpidTRD &ref);
@@ -61,26 +63,35 @@ class AliHFEpidTRD : public AliHFEpidBase{
     Double_t GetTRDSignalV1(AliESDtrack *track, Int_t mcPID);
     Double_t GetTRDSignalV2(AliESDtrack *track, Int_t mcPID);
 
+    Bool_t IsCalculateTRDSignals() const { return TestBit(kTRDsignals); }
     void SetPIDMethod(PIDMethodTRD_t method) { fPIDMethod = method; };
+    void SetElectronEfficiency(Double_t electronEfficiency) { fElectronEfficiency = electronEfficiency; }
+    void SetMinP(Double_t p) { fMinP = p; }
+    void CalculateTRDSignals(Bool_t docalc) { SetBit(kTRDsignals, docalc); } 
 
     Double_t GetTRDthresholds(Double_t electronEff, Double_t p);
   protected:
+    enum{
+      kTRDsignals = BIT(16)
+    };
     void Copy(TObject &ref) const;
     Int_t MakePIDesd(AliESDtrack *esdTrack, AliMCParticle *mcTrack);
     Int_t MakePIDaod(AliAODTrack *aofTrack, AliAODMCParticle *aodMC);
     Int_t GetMCpid(AliESDtrack *track);
     void InitParameters();
+    void InitParameters1DLQ();
     virtual void AddQAhistograms(TList *l);
     void GetParameters(Double_t electronEff, Double_t *parameters);
 
-    void FillHistogramsLikelihood(Int_t whenFilled, Float_t p, Float_t elProb);
-    void FillHistogramsTRDSignalV1(Double_t signal, Double_t p, Int_t species);
-    void FillHistogramsTRDSignalV2(Double_t signal, Double_t p, Int_t species);
+    void FillStandardQA(Int_t whenFilled, AliESDtrack *esdTrack);
+    void FillHistogramsTRDSignal(Double_t signal, Double_t p, Int_t species, UInt_t version);
   private:
     static const Double_t fgkVerySmall;                       // Check for 0
+    Double_t fMinP;                                         // Minimum momentum above which TRD PID is applied
+    Double_t fElectronEfficiency;                           // Cut on electron efficiency
     PIDMethodTRD_t fPIDMethod;                              // PID Method: 2D Likelihood or Neural Network
     Double_t fThreshParams[kThreshParams];                  // Threshold parametrisation
-    TList *fContainer;                                      // QA  Histogram Container
+    AliHFEcollection *fContainer;                                      // QA  Histogram Container
   ClassDef(AliHFEpidTRD, 1)     // TRD electron ID class
 };
 

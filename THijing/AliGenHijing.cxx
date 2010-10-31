@@ -75,7 +75,7 @@ AliGenHijing::AliGenHijing()
      fRandomPz(kFALSE),
      fNoHeavyQuarks(kFALSE),
      fEventTime(0.),
-     fHeader(0)
+     fHeader(AliGenHijingEventHeader("Hijing"))
 {
   // Constructor
   fEnergyCMS = 5500.;
@@ -120,7 +120,7 @@ AliGenHijing::AliGenHijing(Int_t npart)
      fRandomPz(kFALSE),
      fNoHeavyQuarks(kFALSE),
      fEventTime(0.),
-     fHeader(0)
+     fHeader(AliGenHijingEventHeader("Hijing"))
 {
 // Default PbPb collisions at 5. 5 TeV
 //
@@ -131,6 +131,7 @@ AliGenHijing::AliGenHijing(Int_t npart)
 //
 // Set random number generator   
     AliHijingRndm::SetHijingRandom(GetRandom());
+    
 }
 
 AliGenHijing::~AliGenHijing()
@@ -279,7 +280,6 @@ void AliGenHijing::Generate()
       
 //      Get event vertex
 //
-      TParticle *  iparticle = (TParticle *) fParticles.At(0);
       fVertex[0] = origin0[0];
       fVertex[1] = origin0[1];	
       fVertex[2] = origin0[2];
@@ -287,7 +287,7 @@ void AliGenHijing::Generate()
 //
 //      First select parent particles
 //
-
+      TParticle *  iparticle = 0;
       for (i = 0; i < np; i++) {
 	  iparticle = (TParticle *) fParticles.At(i);
 
@@ -444,7 +444,12 @@ void AliGenHijing::EvaluateCrossSections()
     Float_t* b   = new Float_t[kMax];
     Float_t* si1 = new Float_t[kMax];    
     Float_t* si2 = new Float_t[kMax];    
-    
+    for (i = 0; i < kMax; i++){
+      b[i] = 0.;
+      si1[i] = 0.;
+      si2[i] = 0.;
+    }
+
     for (i = 0; i < kMax; i++)
     {
 	Float_t xb  = bMin+i*kdib;
@@ -557,24 +562,18 @@ Bool_t AliGenHijing::Stable(TParticle*  particle) const
 void AliGenHijing::MakeHeader()
 {
 // Builds the event header, to be called after each event
-    if (fHeader) delete fHeader;
-    fHeader = new AliGenHijingEventHeader("Hijing");
-
-    ((AliGenHijingEventHeader*) fHeader)->SetNProduced(fNprimaries);
-    ((AliGenHijingEventHeader*) fHeader)->SetImpactParameter(fHijing->GetHINT1(19));
-    ((AliGenHijingEventHeader*) fHeader)->SetTotalEnergy(fHijing->GetEATT());
-    ((AliGenHijingEventHeader*) fHeader)->SetHardScatters(fHijing->GetJATT());
-    ((AliGenHijingEventHeader*) fHeader)->SetParticipants(fHijing->GetNP(), fHijing->GetNT());
-    ((AliGenHijingEventHeader*) fHeader)->SetCollisions(fHijing->GetN0(),
-						       fHijing->GetN01(),
-						       fHijing->GetN10(),
-						       fHijing->GetN11());
-    ((AliGenHijingEventHeader*) fHeader)->SetSpectators(fProjectileSpecn, fProjectileSpecp,
-    						       fTargetSpecn,fTargetSpecp);
-    ((AliGenHijingEventHeader*) fHeader)->SetReactionPlaneAngle(fHijing->GetHINT1(20));
-//    printf("Impact Parameter %13.3f \n", fHijing->GetHINT1(19));
-    
-
+    fHeader.SetNProduced(fNprimaries);
+    fHeader.SetImpactParameter(fHijing->GetHINT1(19));
+    fHeader.SetTotalEnergy(fHijing->GetEATT());
+    fHeader.SetHardScatters(fHijing->GetJATT());
+    fHeader.SetParticipants(fHijing->GetNP(), fHijing->GetNT());
+    fHeader.SetCollisions(fHijing->GetN0(),
+			  fHijing->GetN01(),
+			  fHijing->GetN10(),
+			  fHijing->GetN11());
+    fHeader.SetSpectators(fProjectileSpecn, fProjectileSpecp,
+			  fTargetSpecn,fTargetSpecp);
+    fHeader.SetReactionPlaneAngle(fHijing->GetHINT1(20));
 
 // 4-momentum vectors of the triggered jets.
 //
@@ -598,14 +597,14 @@ void AliGenHijing::MakeHeader()
 					      fHijing->GetHINT1(37),
 					      fHijing->GetHINT1(38),
 					      fHijing->GetHINT1(39));
-    ((AliGenHijingEventHeader*) fHeader)->SetJets(jet1, jet2, jet3, jet4);
+    fHeader.SetJets(jet1, jet2, jet3, jet4);
 // Bookkeeping for kinematic bias
-    ((AliGenHijingEventHeader*) fHeader)->SetTrials(fTrials);
+    fHeader.SetTrials(fTrials);
 // Event Vertex
-    fHeader->SetPrimaryVertex(fVertex);
-    fHeader->SetInteractionTime(fEventTime);
-    AddHeader(fHeader);
-    fCollisionGeometry = (AliGenHijingEventHeader*)  fHeader;
+    fHeader.SetPrimaryVertex(fVertex);
+    fHeader.SetInteractionTime(fEventTime);
+    AddHeader(&fHeader);
+    fCollisionGeometry = &fHeader;
 }
 
 

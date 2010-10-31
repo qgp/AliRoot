@@ -15,7 +15,7 @@
 
 /* $Id: */
 
-//_________________________________________________________________________∫
+//________________________________________________________________________
 // A basic analysis task to analyse photon detected by PHOS
 // A basic analysis task to analyse photon detected by PHOS
 // A basic analysis task to analyse photon detected by PHOS
@@ -184,7 +184,7 @@ void AliAnalysisTaskPHOSExample::UserExec(Option_t *)
   AliESDEvent* esd = (AliESDEvent*)InputEvent();
   
   //************************  PHOS *************************************
-      TRefArray * caloClustersArr  = new TRefArray();  
+  TRefArray * caloClustersArr  = new TRefArray();  
   esd->GetPHOSClusters(caloClustersArr);
   
   const Int_t kNumberOfPhosClusters   = caloClustersArr->GetEntries() ;  
@@ -209,7 +209,7 @@ void AliAnalysisTaskPHOSExample::UserExec(Option_t *)
       fhPHOSPos->Fill( pos[0], pos[1], pos[2] ) ;
       fhPHOSDigits->Fill(Entry(), caloCluster->GetNCells() ) ;
       numberOfDigitsInPhos += caloCluster->GetNCells() ;
-      Double_t * pid = caloCluster->GetPid() ;
+      const Double_t * pid = caloCluster->GetPID() ;
       if(pid[AliPID::kPhoton] > GetPhotonId() ) {
 	phosVector[fPhotonsInPhos] = new TVector3(pos[0],pos[1],pos[2]) ;
 	phosPhotonsEnergy[fPhotonsInPhos]=caloCluster->E() ;
@@ -259,7 +259,7 @@ void AliAnalysisTaskPHOSExample::Terminate(Option_t *)
 {
   // Processing when the event loop is ended
   
-  Bool_t problem = kFALSE ; 
+//  Bool_t problem = kFALSE ; 
   AliInfo(Form(" *** %s Report:", GetName())) ; 
   printf("        PHOSEnergy Mean         : %5.3f , RMS : %5.3f \n", fhPHOSEnergy->GetMean(),         fhPHOSEnergy->GetRMS()         ) ;
   printf("        PHOSDigits Mean         : %5.3f , RMS : %5.3f \n", fhPHOSDigits->GetMean(),         fhPHOSDigits->GetRMS()         ) ;
@@ -311,18 +311,18 @@ void AliAnalysisTaskPHOSExample::Terminate(Option_t *)
   cPHOS->Print("PHOS.eps");
  
   char line[1024] ; 
-  sprintf(line, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
+  snprintf(line,1024, ".!tar -zcf %s.tar.gz *.eps", GetName()) ; 
   gROOT->ProcessLine(line);
-  sprintf(line, ".!rm -fR *.eps"); 
+  snprintf(line,1024, ".!rm -fR *.eps"); 
   gROOT->ProcessLine(line);
  
   AliInfo(Form("!!! All the eps files are in %s.tar.gz !!!", GetName())) ;
 
-  char * report = 0x0 ; 
-  if(problem)
-    sprintf(report,"Problems found, please check!!!");  
-  else 
-    sprintf(report,"OK");
+//  char * report = 0x0 ; 
+// if(problem)
+//    sprintf(report,"Problems found, please check!!!");  
+//  else 
+//    sprintf(report,"OK");
 
-  AliInfo(Form("*** %s Summary Report: %s \n",GetName(), report)) ; 
+//  AliInfo(Form("*** %s Summary Report: %s \n",GetName(), report)) ; 
 }

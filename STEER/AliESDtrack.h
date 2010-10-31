@@ -47,6 +47,7 @@ public:
     kTPCin=0x0010,kTPCout=0x0020,kTPCrefit=0x0040,kTPCpid=0x0080,
     kTRDin=0x0100,kTRDout=0x0200,kTRDrefit=0x0400,kTRDpid=0x0800,
     kTOFin=0x1000,kTOFout=0x2000,kTOFrefit=0x4000,kTOFpid=0x8000,
+    kTOFmismatch=0x100000,
     kHMPIDout=0x10000,kHMPIDpid=0x20000,
     kEMCALmatch=0x40000,
     kPHOSmatch=0x200000,
@@ -77,7 +78,7 @@ public:
   void AddCalibObject(TObject * object);     // add calib object to the list
   TObject *  GetCalibObject(Int_t index);    // return calib objct at given position
   void MakeMiniESDtrack();
-  void SetID(Int_t id) { fID =id;}
+  void SetID(Short_t id) { fID =id;}
   Int_t GetID() const { return fID;}
   void SetVertexID(Char_t id) { fVertexID=id;}
   Char_t GetVertexID() const { return fVertexID;}

@@ -20,7 +20,7 @@
 /// @date   26 Nov 2008
 /// @brief  Implementation of the AliHLTGlobalTriggerComponent component class.
 ///
-/// The AliHLTGlobalTriggerComponentComponent class applies the global HLT trigger to all
+/// The AliHLTGlobalTriggerComponent class applies the global HLT trigger to all
 /// trigger information produced by components deriving from AliHLTTrigger.
 
 #include "AliHLTGlobalTriggerComponent.h"
@@ -32,9 +32,8 @@
 #include "AliCDBManager.h"
 #include "AliCDBStorage.h"
 #include "AliCDBEntry.h"
+#include "AliRawDataHeader.h"
 #include "TUUID.h"
-#include "TMD5.h"
-#include "TRandom3.h"
 #include "TROOT.h"
 #include "TSystem.h"
 #include "TRegexp.h"
@@ -45,6 +44,7 @@
 #include "TDatime.h"
 #include "TClass.h"
 #include "TNamed.h"
+#include "TRandom3.h"
 #include <fstream>
 #include <cerrno>
 #include <cassert>
@@ -74,6 +74,7 @@ AliHLTGlobalTriggerComponent::AliHLTGlobalTriggerComponent() :
 	fDebugMode(false),
 	fRuntimeCompile(true),
 	fDeleteCodeFile(false),
+	fMakeSoftwareTriggers(true),
 	fCodeFileName(),
 	fClassName(),
 	fCTPDecisions(NULL),
@@ -83,8 +84,11 @@ AliHLTGlobalTriggerComponent::AliHLTGlobalTriggerComponent() :
 	fIncludeFiles(TObjString::Class()),
 	fLibStateAtLoad(),
 	fBits(0),
-	fDataEventsOnly(true)
-	, fMonitorPeriod(-1)
+	fDataEventsOnly(true),
+	fMonitorPeriod(-1),
+	fUniqueID(0),
+	fSoftwareTrigger(true, "SOFTWARE"),
+	fTotalEventCounter(0)
 {
   // Default constructor.
   
@@ -129,12 +133,15 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
   fClassName = "";
   fCodeFileName = "";
   fDeleteCodeFile = false;
+  fMakeSoftwareTriggers = true;
   const char* configFileName = NULL;
   const char* codeFileName = NULL;
   fIncludePaths.Clear();
   fIncludeFiles.Clear();
   SetBit(kIncludeInput);
   fDataEventsOnly = true;
+  UInt_t randomSeed = 0;
+  bool randomSeedSet = false;
   
   for (int i = 0; i < argc; i++)
   {
@@ -315,6 +322,37 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
       }
       continue;
     }
+
+    if (strcmp(argv[i], "-dont-make-software-triggers") == 0)
+    {
+      fMakeSoftwareTriggers = false;
+      continue;
+    }
+    if (strcmp(argv[i], "-randomseed") == 0)
+    {
+      if (randomSeedSet)
+      {
+        HLTWarning("The random seed was already specified previously with the option -randomseed."
+                   "Will replace the previous value of %d with the new one.",
+                   randomSeed
+        );
+      }
+      if (argc <= i+1)
+      {
+        HLTError("The number to use as the seed was not specified for the -randomseed option." );
+        return -EINVAL;
+      }
+      TString numstr = argv[i+1];
+      if (not numstr.IsDigit())
+      {
+        HLTError("The number specified in the -randomseed option is not a valid decimal integer." );
+        return -EINVAL;
+      }
+      randomSeed = numstr.Atoi();
+      randomSeedSet = true;
+      i++;
+      continue;
+    }
     
     HLTError("Unknown option '%s'.", argv[i]);
     return -EINVAL;
@@ -379,6 +417,15 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
   SetDescription(menu->DefaultDescription());
   SetTriggerDomain(menu->DefaultTriggerDomain());
   
+  // Initialise the random number generator seed value.
+  // NOTE: The GenerateTrigger method called above will set the fUniqueID value
+  // with a random value based on a GUID that should be unique across the system.
+  // This is then used as the seed to the random number generator if the -randomseed
+  // option is not used.
+  if (not randomSeedSet) randomSeed = fUniqueID;
+  gRandom->SetSeed(randomSeed);
+  
+  fTotalEventCounter = 0;
   return 0;
 }
 
@@ -473,22 +520,30 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
   if (pCTPData) {
     AddCTPDecisions(fTrigger, pCTPData, GetTriggerData());
   }
-
+  
+  bool softwareTriggerIsValid = FillSoftwareTrigger();
+  if (softwareTriggerIsValid)
+  {
+    fTrigger->Add(&fSoftwareTrigger, kAliHLTDataTypeTriggerDecision, kAliHLTVoidDataSpec);
+  }
+  
   // Calculate the global trigger result and trigger domain, then create and push
   // back the new global trigger decision object.
   TString description;
   AliHLTTriggerDomain triggerDomain;
-  bool triggerResult = fTrigger->CalculateTriggerDecision(triggerDomain, description);
+  bool triggerResult = false;
+  bool matchedItems = fTrigger->CalculateTriggerDecision(triggerResult, triggerDomain, description);
   if (fTrigger->CallFailed()) return -EPROTO;
   AliHLTGlobalTriggerDecision decision(
       triggerResult,
       // The following will cause the decision to be generated with default values
       // (set in fTriggerDomain and fDescription) if the trigger result is false.
-      (triggerResult == true) ? triggerDomain : GetTriggerDomain(),
-      (triggerResult == true) ? description.Data() : GetDescription()
+      (matchedItems == true) ? triggerDomain : GetTriggerDomain(),
+      (matchedItems == true) ? description.Data() : GetDescription()
     );
 
-  decision.SetCounters(fTrigger->GetCounters(), GetEventCount()+1);
+  decision.SetUniqueID(fUniqueID);
+  decision.SetCounters(fTrigger->GetCounters(), fTotalEventCounter+1);
   if (fTrigger->CallFailed()) return -EPROTO;
   
   TClonesArray shortInfo(TNamed::Class(), GetNumberOfInputBlocks());
@@ -544,6 +599,8 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
   // modifies the kCanDelete bit and nothing else.
   if (!TestBit(kSkipCTP) && CTPData()) decision.AddInputObjectRef(const_cast<AliHLTCTPData*>(CTPData()));
   
+  if (softwareTriggerIsValid and TestBit(kIncludeInput)) decision.AddTriggerInput(fSoftwareTrigger);
+  
   static UInt_t lastTime=0;
   TDatime time;
   if (time.Get()-lastTime>60) {
@@ -575,7 +632,7 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
     CreateEventDoneReadoutFilter(monitoringFilter, 4);
   }
 
-  if (TriggerEvent(&decision) == -ENOSPC)
+  if (TriggerEvent(&decision, kAliHLTDataTypeGlobalTrigger) == -ENOSPC)
   {
     // Increase the estimated buffer space required if the PushBack methods in TriggerEvent
     // returned the "no buffer space" error code. Also remember to set the trigger counters
@@ -587,6 +644,8 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
     if (fTrigger->CallFailed()) return -EPROTO;
     return -ENOSPC;
   }
+  
+  ++fTotalEventCounter;
   return 0;
 }
 
@@ -706,52 +765,26 @@ int AliHLTGlobalTriggerComponent::LoadTriggerMenu(const char* cdbPath, const Ali
 }
 
 
-void AliHLTGlobalTriggerComponent::GenerateFileName(TString& name, TString& filename) const
+void AliHLTGlobalTriggerComponent::GenerateFileName(TString& name, TString& filename)
 {
   // Creates a unique file name for the generated code.
   
-  // Start by creating a new UUID. We cannot use the one automatically generated
-  // by ROOT because the algorithm used will not guarantee unique IDs when generating
-  // these UUIDs at a high rate in parallel.
-  TUUID uuid;
-  // We then use the generated UUID to form part of the random number seeds which
-  // will be used to generate a proper random UUID. For good measure we use a MD5
-  // hash also. Note that we want to use the TUUID class because it will combine the
-  // host address information into the UUID. Using gSystem->GetHostByName() apparently
-  // can cause problems on Windows machines with a firewall, because it always tries
-  // to contact a DNS. The TUUID class handles this case appropriately.
+  TUUID guid = GenerateGUID();
   union
   {
     UChar_t buf[16];
-    UShort_t word[8];
-    UInt_t dword[4];
+    UInt_t bufAsInt[4];
   };
-  uuid.GetUUID(buf);
-  TMD5 md5;
-  md5.Update(buf, sizeof(buf));
-  TMD5 md52 = md5;
-  md5.Final(buf);
-  dword[0] += gSystem->GetUid();
-  dword[1] += gSystem->GetGid();
-  dword[2] += gSystem->GetPid();
-  for (int i = 0; i < 4; ++i)
+  guid.GetUUID(buf);
+  fUniqueID = bufAsInt[0];
+  TString guidstr = guid.AsString();
+  // Replace '-' with '_' in string.
+  for (int i = 0; i < guidstr.Length(); ++i)
   {
-    gRandom->SetSeed(dword[i]);
-    dword[i] = gRandom->Integer(0xFFFFFFFF);
+    if (guidstr[i] == '-') guidstr[i] = '_';
   }
-  md52.Update(buf, sizeof(buf));
-  md52.Final(buf);
-  // To keep to the standard we need to set the version and reserved bits.
-  word[3] = (word[3] & 0x0FFF) | 0x4000;
-  buf[8] = (buf[8] & 0x3F) | 0x80;
-
-  // Create the name of the new class and file.
-  char uuidstr[64];
-  sprintf(uuidstr, "%08x_%04x_%04x_%02x%02x_%02x%02x%02x%02x%02x%02x",
-    dword[0], word[2], word[3], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]
-  );
   name = "AliHLTGlobalTriggerImpl_";
-  name += uuidstr;
+  name += guidstr;
   filename = name + ".cxx";
 
   // For good measure, check that the file names are not used. If they are then regenerate.
@@ -794,6 +827,7 @@ int AliHLTGlobalTriggerComponent::GenerateTrigger(
   code << "#include \"TClass.h\"" << endl;
   code << "#include \"TString.h\"" << endl;
   code << "#include \"TClonesArray.h\"" << endl;
+  code << "#include \"TRandom3.h\"" << endl;
   code << "#include \"AliHLTLogging.h\"" << endl;
   code << "#include \"AliHLTGlobalTrigger.h\"" << endl;
   code << "#include \"AliHLTGlobalTriggerDecision.h\"" << endl;
@@ -1109,7 +1143,7 @@ int AliHLTGlobalTriggerComponent::GenerateTrigger(
   // positive results. Again, if no trailing operators are used in the individual
   // merging expressions then the default domain operator is placed between two
   // expression fragments.
-  code << "  virtual bool CalculateTriggerDecision(AliHLTTriggerDomain& _domain_, TString& _description_) {" << endl;
+  code << "  virtual bool CalculateTriggerDecision(bool& _trigger_result_, AliHLTTriggerDomain& _domain_, TString& _description_) {" << endl;
   if (fDebugMode)
   {
     code << "#ifdef __CINT__" << endl;
@@ -1213,10 +1247,22 @@ int AliHLTGlobalTriggerComponent::GenerateTrigger(
       code << "    if (" << triggerCondition << ") {" << endl;
       code << "      ++fCounter[" << i << "];" << endl;
       const char* indentation = "";
-      if (item->PreScalar() != 0)
+      // Generate the code to handle the prescalar and scale-down
+      bool havePrescalar = item->PreScalar() != 0;
+      bool haveScaledown = item->ScaleDown() < 1;
+      if (havePrescalar or haveScaledown) 
       {
         indentation = "  ";
-        code << "      if ((fCounter[" << i << "] % " << item->PreScalar() << ") == 1) {" << endl;
+        code << "      if (";
+        if (havePrescalar) code << "(fCounter[" << i << "] % " << item->PreScalar() << ") == 1";
+        if (havePrescalar and haveScaledown) code << " && ";
+        if (haveScaledown)
+        {
+          std::streamsize oldprecision = code.precision(17);
+          code << "gRandom->Rndm() < " << item->ScaleDown();
+          code.precision(oldprecision);
+        }
+        code << ") {" << endl;
       }
       code << indentation << "      _item_result_ = true;" << endl;
       if (fDebugMode)
@@ -1224,7 +1270,7 @@ int AliHLTGlobalTriggerComponent::GenerateTrigger(
         code << indentation << "      HLTDebug(Form(\"Matched trigger condition " << i
              << " (Description = '%s').\", fMenuItemDescription" << i << ".Data()));" << endl;
       }
-      if (item->PreScalar() != 0)
+      if (havePrescalar or haveScaledown)
       {
         code << "      }" << endl;
       }
@@ -1303,11 +1349,33 @@ int AliHLTGlobalTriggerComponent::GenerateTrigger(
         code << "      HLTDebug(Form(\"Matched triggers in trigger priority group " << priorities[n] << ".\"));" << endl;
       }
     }
+    bool methodReturnResult = true;
+    if (priorityGroup[n].size() > 0)
+    {
+      const AliHLTTriggerMenuItem* item = menu->Item(priorityGroup[n][0]);
+      methodReturnResult = item->DefaultResult();
+    }
+    // Check to see if the items of the group all have the same default result.
+    // If not then warn the user since only the first item's value will be used.
+    for (size_t m = 1; m < priorityGroup[n].size(); m++)
+    {
+      const AliHLTTriggerMenuItem* item = menu->Item(priorityGroup[n][m]);
+      if (item->DefaultResult() != methodReturnResult)
+      {
+        HLTWarning("Found items with different default results set for priority group %d."
+                   "Will only use the value from the first item.",
+                   item->Priority()
+                  );
+        break;
+      }
+    }
+    code << "      _trigger_result_ = " << (methodReturnResult ? "true" : "false") << ";" << endl;
     code << "      return true;" << endl;
     code << "    }" << endl;
   }
   code << "    _domain_.Clear();" << endl;
   code << "    _description_ = \"\";" << endl;
+  code << "    _trigger_result_ = " << (menu->DefaultResult() ? "true" : "false") << ";" << endl;
   code << "    return false;" << endl;
   code << "  }" << endl;
   
@@ -1534,6 +1602,21 @@ int AliHLTGlobalTriggerComponent::FindSymbol(const char* name, const TClonesArra
 }
 
 
+namespace
+{
+  /**
+   * Helper routine to compare two trigger menu symbols to see if b is a subset of a.
+   * \returns true if b is a subset of a or they are unrelated.
+   */
+  bool AliHLTCheckForContainment(const AliHLTTriggerMenuSymbol* a, const AliHLTTriggerMenuSymbol* b)
+  {
+    TString bstr = b->Name();
+    return bstr.Contains(a->Name());
+  }
+
+} // end of namespace
+
+
 int AliHLTGlobalTriggerComponent::BuildSymbolList(const AliHLTTriggerMenu* menu, TClonesArray& list)
 {
   // Builds the list of symbols to use in the custom global trigger menu
@@ -1564,9 +1647,11 @@ int AliHLTGlobalTriggerComponent::BuildSymbolList(const AliHLTTriggerMenu* menu,
       return -ENOMEM;
     }
   }
+  Int_t initialEntryCount = list.GetEntriesFast();
   
-  TRegexp exp("[_a-zA-Z][-_a-zA-Z0-9]*");
-  TRegexp hexexp("x[a-fA-F0-9]+");
+  // Note: the \\. must not be the first element in the character class, otherwise
+  // it is interpreted as an "any character" dot symbol.
+  TRegexp exp("[_a-zA-Z][-\\._a-zA-Z0-9]*");
   for (UInt_t i = 0; i < menu->NumberOfItems(); i++)
   {
     const AliHLTTriggerMenuItem* item = menu->Item(i);
@@ -1608,6 +1693,27 @@ int AliHLTGlobalTriggerComponent::BuildSymbolList(const AliHLTTriggerMenu* menu,
         // Ignore iso646.h and other keywords.
         continue;
       }
+      
+      // We need to handle the special case where the symbol contains a dot.
+      // In C++ this is a dereferencing operator. So we need to check if the
+      // current symbol we are handling starts with the same string as any of
+      // the existing symbols defined manually in the symbols table.
+      // If we do find such a case then revert to treating the dot as an operator
+      // rather than part of the symbol name. i.e. skip adding the automatic symbol.
+      bool dereferencedSymbol = false;
+      for (int j = 0; j < initialEntryCount; j++)
+      {
+        const AliHLTTriggerMenuSymbol* symbol = dynamic_cast<const AliHLTTriggerMenuSymbol*>( list.UncheckedAt(j) );
+        if (symbol == NULL) continue;
+        TString symstr = symbol->Name();
+        symstr += ".";
+        if (s.BeginsWith(symstr))
+        {
+          dereferencedSymbol = true;
+          break;
+        }
+      }
+      if (dereferencedSymbol) continue;
 
       // Need to create the symbols first and check if its name is in the list
       // before actually adding it to the symbols list.
@@ -1631,6 +1737,30 @@ int AliHLTGlobalTriggerComponent::BuildSymbolList(const AliHLTTriggerMenu* menu,
       }
     }
     while (start < str.Length());
+  }
+  
+  // This last part is necessary to make sure that symbols are replaced in the
+  // trigger condition and domain merging expressions in a greedy manner.
+  // I.e. we need to make sure that if one symbol's string representation is
+  // contained inside another (string subset) that the longer symbol name is
+  // always first in the symbols list.
+  // This will work because the symbol table is traversed from first to last
+  // element and TString::ReplaceAll is used to replace the substrings inside
+  // the AliHLTGlobalTriggerComponent::GenerateTrigger method.
+  std::vector<AliHLTTriggerMenuSymbol*> orderedList;
+  for (Int_t i = 0; i < list.GetEntriesFast(); i++)
+  {
+    orderedList.push_back( static_cast<AliHLTTriggerMenuSymbol*>(list.UncheckedAt(i)) );
+  }
+  std::sort(orderedList.begin(), orderedList.end(), AliHLTCheckForContainment);
+  //std::sort(orderedList.begin(), orderedList.end());
+  // Now swap values around according to the orderedList.
+  for (Int_t i = 0; i < list.GetEntriesFast(); i++)
+  {
+    AliHLTTriggerMenuSymbol* target = static_cast<AliHLTTriggerMenuSymbol*>(list.UncheckedAt(i));
+    AliHLTTriggerMenuSymbol tmp = *target;
+    *target = *orderedList[i];
+    *orderedList[i] = tmp;
   }
   
   return 0;
@@ -1690,6 +1820,40 @@ bool AliHLTGlobalTriggerComponent::ExtractedOperator(TString& expr, TString& op)
   }
   
   return false;
+}
+
+
+bool AliHLTGlobalTriggerComponent::FillSoftwareTrigger()
+{
+  // Fills the fSoftwareTrigger structure.
+  const AliRawDataHeader* cdh;
+  if (ExtractTriggerData(*GetTriggerData(), NULL, NULL, &cdh, NULL) != 0) return false;
+  UChar_t l1msg = cdh->GetL1TriggerMessage();
+  if ((l1msg & 0x1) == 0x0) return false;  // skip physics events.
+  // From here on everything must be a software trigger.
+  if (((l1msg >> 2) & 0xF) == 0xE)
+  {
+    fSoftwareTrigger.Name("START_OF_DATA");
+    fSoftwareTrigger.Description("Generated internal start of data trigger.");
+  }
+  else if (((l1msg >> 2) & 0xF) == 0xF)
+  {
+    fSoftwareTrigger.Name("END_OF_DATA");
+    fSoftwareTrigger.Description("Generated internal end of data trigger.");
+  }
+  else if (((l1msg >> 6) & 0x1) == 0x1)
+  {
+    fSoftwareTrigger.Name("CALIBRATION");
+    fSoftwareTrigger.Description("Generated internal calibration trigger.");
+  }
+  else
+  {
+    fSoftwareTrigger.Name("SOFTWARE");
+    fSoftwareTrigger.Description("Generated internal software trigger.");
+  }
+  UInt_t detectors = cdh->GetSubDetectors();
+  fSoftwareTrigger.ReadoutList( AliHLTReadoutList(Int_t(detectors)) );
+  return true;
 }
 
 

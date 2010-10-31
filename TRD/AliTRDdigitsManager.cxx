@@ -90,6 +90,11 @@ AliTRDdigitsManager::AliTRDdigitsManager(const AliTRDdigitsManager &m)
   // AliTRDdigitsManager copy constructor
   //
 
+  for (Int_t iDict = 0; iDict < kNDict; iDict++) 
+    {
+      fDict[iDict] = NULL;
+    }
+
 }
 
 //_____________________________________________________________________________
@@ -369,8 +374,9 @@ Bool_t AliTRDdigitsManager::MakeBranch(TTree * const tree)
       // Make the branches for the dictionaries
       for (Int_t iDict = 0; iDict < kNDict; iDict++) 
 	{
-	  Char_t branchname[15];
-	  sprintf(branchname,"TRDdictionary%d",iDict); 
+          const Int_t kBranchname = 15;
+	  Char_t branchname[kBranchname];
+	  snprintf(branchname,kBranchname,"TRDdictionary%d",iDict); 
 	  if (fDict[iDict]) 
 	    {
 	      const AliTRDarrayDictionary *kDictionary = (AliTRDarrayDictionary *) fDict[iDict]->At(0);
@@ -872,7 +878,7 @@ Bool_t AliTRDdigitsManager::LoadArrayDict()
 
       // Get the branch
       Char_t branchname[15];
-      sprintf(branchname,"TRDdictionary%d",iDict);
+      snprintf(branchname,15,"TRDdictionary%d",iDict);
       TBranch *branch = fTree->GetBranch(branchname);
       if (!branch) 
         {
@@ -1007,7 +1013,7 @@ Bool_t AliTRDdigitsManager::StoreArrayDict()
 
        // Get the branch
        Char_t branchname[15];
-       sprintf(branchname,"TRDdictionary%d",iDict);
+       snprintf(branchname,15,"TRDdictionary%d",iDict);
        TBranch *branch = fTree->GetBranch(branchname);
        if (!branch) 
          {

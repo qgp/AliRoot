@@ -82,12 +82,14 @@ TObject(),fTriggerData(NULL),fDigitsTree(NULL),fDigits(NULL),fTriggerWord(0)
 //_____________________________________________________________________________
 AliVZEROTriggerSimulator::~AliVZEROTriggerSimulator(){
 // Destructor
-	if(fBBGate) delete [] fBBGate;
-	if(fBGGate) delete [] fBGGate;
-	if(fBBLatch) delete [] fBBLatch;
-	if(fBBReset) delete [] fBBReset;
-	if(fBGLatch) delete [] fBGLatch;
-	if(fBGReset) delete [] fBGReset;
+  for (Int_t i=0; i<AliVZEROTriggerData::kNCIUBoards; i++) {
+    delete fBBGate[i];
+    delete fBGGate[i];
+    delete fBBLatch[i];
+    delete fBBReset[i];
+    delete fBGLatch[i];
+    delete fBGReset[i];
+  }
 }
 
 //_____________________________________________________________________________
@@ -158,6 +160,7 @@ void AliVZEROTriggerSimulator::Run() {
 			Int_t pmNumber   = digit->PMNumber();
 			Int_t board   = AliVZEROCalibData::GetBoardNumber(pmNumber);
 			Int_t channel = AliVZEROCalibData::GetFEEChannelNumber(pmNumber);
+			if (board < 0 || channel < 0) continue;
 			
 			if(fTriggerData->GetEnableCharge(board,channel)) {
 				fCharges[pmNumber] = digit->ChargeADC(AliVZEROdigit::kNClocks/2);

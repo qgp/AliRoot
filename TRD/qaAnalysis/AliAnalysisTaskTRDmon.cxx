@@ -438,6 +438,7 @@ void AliAnalysisTaskTRDmon::Exec(Option_t *){
   }
 
   fESDfriend = dynamic_cast<AliESDfriend*> (fESD->FindListObject("AliESDfriend"));
+  if (!fESDfriend) return;
   AliESDtrack *fTrack = 0x0;
   AliESDfriendTrack *fFriendTrack = 0x0;
   AliTRDtrackV1 *fTRDtrack=0x0; //TRD "calibration" object
@@ -457,7 +458,6 @@ void AliAnalysisTaskTRDmon::Exec(Option_t *){
   
   fHzvert1->Fill(zvert1);
   fHzvert2->Fill(zvert2);
-
  
   Int_t ntracks = fESD->GetNumberOfTracks();
   fHntracks->Fill((Float_t)ntracks);
@@ -626,7 +626,6 @@ void AliAnalysisTaskTRDmon::Exec(Option_t *){
       for(Int_t itl = 0; itl < 6; itl++){ // TRD layers
 	AliTRDseedV1 * tracklet = fTRDtrack->GetTracklet(itl);
 	if(!tracklet || !tracklet->IsOK()) continue;
-	if(!tracklet) continue;
 	nTracklets++;
 	Int_t nclsTracklet = 0;
 	for(Int_t itb = 0; itb < AliTRDseedV1::kNtb; itb++){ // timebins

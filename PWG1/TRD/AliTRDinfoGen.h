@@ -26,6 +26,8 @@ class AliESDtrackCuts;
 class TObjArray;
 class TString;
 class TTreeSRedirector;
+class AliTRDReconstructor;
+class AliTRDgeometry;
 class AliTRDinfoGen : public AliAnalysisTaskSE
 {
 public:
@@ -34,31 +36,36 @@ public:
    ,kUseLocalEvSelection  = BIT(19)
    ,kUseLocalTrkSelection = BIT(20)
    ,kCollision            = BIT(21)
+   ,kOCDB                 = BIT(22)
   };
 
   AliTRDinfoGen();
   AliTRDinfoGen(char* name);
   virtual ~AliTRDinfoGen();
   
-  void    ConnectInputData(Option_t *opt) {AliAnalysisTaskSE::ConnectInputData(opt);}
   static Float_t GetEndITS() { return fgkITS;}
   static Float_t GetEndTPC() { return fgkTPC;}
   static Float_t GetEndTRD() { return fgkTRD;}
   Int_t   GetNRefFigures() const  { return 1;} 
+  const char* GetOCDB() const {return fOCDB.Data();}
   Bool_t  GetRefFigure(Int_t ifig);
   Bool_t  Load(const Char_t *fn="AnalysisResults.root", const Char_t *dir="TRD_Performance", const Char_t *name=NULL);
 
   Bool_t  HasMCdata() const       { return TestBit(kMCdata);};
   // temporary until check with AliAnalysisTaskSE collision selection mechanism
+  Bool_t  IsInitOCDB() const {return TestBit(kOCDB);}
   Bool_t  IsCollision() const {return TestBit(kCollision);}
+  static const AliTRDReconstructor* Reconstructor() {return fgReconstructor;}
+  static AliTRDgeometry*      Geometry() {return fgGeo;}
+  void    SetInitOCDB(Bool_t set=kTRUE) {SetBit(kOCDB, set);}
   void    SetCollision(Bool_t set=kTRUE) {SetBit(kCollision, set);}
-
-  void    SetLocalEvSelection(AliTRDeventCuts */*cut*/){;} 
+  //void    SetLocalEvSelection(const AliTRDeventCuts */*cut*/){;} 
   void    SetLocalEvSelection(Bool_t use=kTRUE) {SetBit(kUseLocalEvSelection, use);}
-  void    SetLocalTrkSelection(AliESDtrackCuts */*cut*/){;} 
+  //void    SetLocalTrkSelection(const AliESDtrackCuts */*cut*/){;} 
   void    SetLocalTrkSelection(Bool_t use=kTRUE) {SetBit(kUseLocalTrkSelection, use);}
-  void    SetLocalV0Selection(AliTRDv0Info *v0);
+  void    SetLocalV0Selection(const AliTRDv0Info *v0);
   void    SetMCdata(Bool_t mc = kTRUE) {SetBit(kMCdata, mc);}
+  void    SetOCDB(const char *ocdb) {fOCDB=ocdb;}
   void    SetTrigger(const Char_t *trigger);
 
   Bool_t  UseLocalEvSelection() const {return TestBit(kUseLocalEvSelection);}
@@ -83,7 +90,9 @@ private:
   static const Int_t   fgkNclTPC;   // N clusters TPC
   static const Float_t fgkPt;       // min. pt
   static const Float_t fgkEta;      // eta range
-  
+  static AliTRDReconstructor   *fgReconstructor; // single instance of TRD reconstructor used by all tasks
+  static AliTRDgeometry        *fgGeo;           // single instance of TRD geometry used by all tasks
+
   AliTRDinfoGen(const AliTRDinfoGen&);
   AliTRDinfoGen& operator=(const AliTRDinfoGen&);
   TTreeSRedirector* DebugStream();
@@ -94,6 +103,7 @@ private:
   AliTRDeventCuts  *fEventCut;       // event cut
   AliESDtrackCuts  *fTrackCut;       // track cut
   AliTRDv0Info     *fV0Cut;          // v0 cut
+  TString           fOCDB;           // OCDB location
   AliTRDtrackInfo  *fTrackInfo;      //! Track info
   AliTRDeventInfo  *fEventInfo;	     //! Event info
   AliTRDv0Info     *fV0Info;         //! V0 info
@@ -104,6 +114,6 @@ private:
   TObjArray        *fContainer;      //! container to store results
   TTreeSRedirector *fDebugStream;    //! debug stream
 
-  ClassDef(AliTRDinfoGen, 6)         // entry to TRD analysis train
+  ClassDef(AliTRDinfoGen, 7)         // entry to TRD analysis train
 };
 #endif

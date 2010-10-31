@@ -53,7 +53,10 @@ AliESDZDC::AliESDZDC() :
   for(Int_t i=0; i<2; i++){
     fZNACentrCoord[i] = fZNCCentrCoord[i] = 0.;
   }
-  for(Int_t i=0; i<32; i++) fVMEScaler[i]=0;
+  for(Int_t i=0; i<32; i++){
+    fVMEScaler[i]=0;
+    for(Int_t y=0; y<4; y++) fZDCTDCData[i][y]=0;
+  }
 }
 
 //______________________________________________________________________________
@@ -88,7 +91,10 @@ AliESDZDC::AliESDZDC(const AliESDZDC& zdc) :
     fZNACentrCoord[i] = zdc.fZNACentrCoord[i];
     fZNCCentrCoord[i] = zdc.fZNCCentrCoord[i];
   }
-  for(Int_t i=0; i<32; i++) fVMEScaler[i] = zdc.fVMEScaler[i];
+  for(Int_t i=0; i<32; i++){
+    fVMEScaler[i] = zdc.fVMEScaler[i];
+    for(Int_t y=0; y<4; y++) fZDCTDCData[i][y] = zdc.fZDCTDCData[i][y];
+  }
 }
 
 //______________________________________________________________________________
@@ -127,7 +133,10 @@ AliESDZDC& AliESDZDC::operator=(const AliESDZDC&zdc)
     }
     //
     fESDQuality = zdc.fESDQuality;
-    for(Int_t i=0; i<32; i++) fVMEScaler[i] = zdc.fVMEScaler[i];
+    for(Int_t i=0; i<32; i++){
+      fVMEScaler[i] = zdc.fVMEScaler[i];
+      for(Int_t y=0; y<4; y++) fZDCTDCData[i][y] = zdc.fZDCTDCData[i][y];
+    }
   } 
   return *this;
 }
@@ -173,7 +182,10 @@ void AliESDZDC::Reset()
        fZNACentrCoord[i] = fZNCCentrCoord[i] = 0.;
   }
   fESDQuality=0;
-  for(Int_t i=0; i<32; i++) fVMEScaler[i] = 0;
+  for(Int_t i=0; i<32; i++){
+     fVMEScaler[i] = 0;
+     for(Int_t y=0; y<4; y++) fZDCTDCData[i][y] = 0;
+  }
 }
 
 //______________________________________________________________________________
@@ -185,8 +197,15 @@ void AliESDZDC::Print(const Option_t *) const
   fZDCN1Energy/1000.,fZDCP1Energy/1000.,fZDCN2Energy/1000.,fZDCP2Energy/1000.,
   fZDCEMEnergy+fZDCEMEnergy1, fZDCParticipants,fImpactParameter);
   //
-  printf(" ### fVMEScaler: \n");
-  for(Int_t i=0; i<32; i++) printf("\t datum %d: %d \n",i,fVMEScaler[i]);
+  printf(" ### VMEScaler (!=0): \n");
+  for(Int_t i=0; i<32; i++) if(fVMEScaler[i]!=0) printf("\t %d \n",fVMEScaler[i]);
+  printf("\n");
+  //
+  printf(" ### TDCData (!=0): \n");
+  for(Int_t i=0; i<32; i++){
+    for(Int_t j=0; j<4; j++)
+      if(fZDCTDCData[i][j]!=0) printf("\t %d \n",fZDCTDCData[i][j]);
+  }
   printf("\n");
 }
 
@@ -214,7 +233,7 @@ Bool_t AliESDZDC::GetZNCentroidInPbPb(Float_t beamEne, Double_t centrZNC[2], Dou
       denZNC += wZNC;
     }
     if(fZN2TowerEnergy[i+1]>0.) {
-      wZNA = TMath::Power(fZN1TowerEnergy[i+1], alpha);
+      wZNA = TMath::Power(fZN2TowerEnergy[i+1], alpha);
       numXZNA += x[i]*wZNA;
       numYZNA += y[i]*wZNA;
       denZNA += wZNA;
@@ -233,8 +252,8 @@ Bool_t AliESDZDC::GetZNCentroidInPbPb(Float_t beamEne, Double_t centrZNC[2], Dou
   if(denZNA!=0){
     Float_t nSpecnA = fZDCN1Energy/beamEne;
     cZNA = 1.89358-0.71262/(nSpecnA+0.71789);
-    fZNCCentrCoord[0] = cZNA*numXZNA/denZNA;
-    fZNCCentrCoord[1] = cZNA*numYZNA/denZNA;
+    fZNACentrCoord[0] = cZNA*numXZNA/denZNA;
+    fZNACentrCoord[1] = cZNA*numYZNA/denZNA;
   } 
   else{
     fZNACentrCoord[0] = fZNACentrCoord[1] = 999.;

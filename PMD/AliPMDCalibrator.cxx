@@ -123,9 +123,16 @@ AliPMDCalibrator &AliPMDCalibrator::operator=(const AliPMDCalibrator &pmdcalibra
 AliPMDCalibrator::~AliPMDCalibrator()
 {
   // destructor
-  if(fHdetIso) delete fHdetIso ;
-  if(fHsmIso)  delete fHsmIso ;
-  if(fHadcIso) delete fHadcIso ;
+  for (Int_t i=0; i<kDet; i++)
+    delete fHdetIso[i] ;
+  for (Int_t i=0; i<kDet; i++)
+    for (Int_t j=0; j<kMaxSMN; j++)
+      delete fHsmIso[i][j] ;
+  for (Int_t i=0; i<kDet; i++)
+    for (Int_t j=0; j<kMaxSMN; j++)
+      for (Int_t k=0; k<kMaxRow; k++)
+	for (Int_t l=0; l<kMaxCol; l++)
+	  delete fHadcIso[i][j][k][l] ;
   delete fCalibGain;
   delete fCalibPed;
 }
@@ -141,25 +148,25 @@ void AliPMDCalibrator::Exec()
 void AliPMDCalibrator::Init()
 {
   // intializes everything
-  char hname2[kDet];
-  char htitle2[2];
-  char hname[kMaxSMN];
-  char hname24[kMaxSMN];
+  char hname[50];
+  char hname2[50];
+  char hname24[50];
   char hnameiso[120];
   char htitle1[120];
+  char htitle2[120];
   
   for(Int_t d = 0; d < kDet; d++) {
-    sprintf(hname2,"Isolated cell adc for Det Plane %d",d);
+    snprintf(hname2,50,"Isolated cell adc for Det Plane %d",d);
     fHdetIso[d]= new TH1F(hname2,htitle2,100,0,1000);
     for(Int_t i1 = 0; i1 < kMaxSMN; i1++) {
-      sprintf(hname,"det_%d_iso_sm_%2d",d,i1);
-      sprintf(hname24,"det_%d_iso_sm_%2d",d,i1);
+      snprintf(hname,50,"det_%d_iso_sm_%2d",d,i1);
+      snprintf(hname24,50,"det_%d_iso_sm_%2d",d,i1);
       fHsmIso[d][i1]= new TH1F(hname,hname24,100,0,1000);
       for(Int_t j1 = 0; j1 < kMaxRow; j1++) {
 	for(Int_t k1 = 0; k1 < kMaxCol; k1++) {
-	  sprintf(hnameiso,"Isolated Cell ADC for det_%d_cell_sm%d_row%d_col%d"
+	  snprintf(hnameiso,120,"Isolated Cell ADC for det_%d_cell_sm%d_row%d_col%d"
 		  ,d,i1,j1,k1);
-	  sprintf(htitle1,"Isolated Cell ADC for det_%d_cell_sm%d_row%d_col%d"
+	  snprintf(htitle1,120,"Isolated Cell ADC for det_%d_cell_sm%d_row%d_col%d"
 		  ,d,i1,j1,k1);
 	  
 	  TObject *old=gDirectory->GetList()->FindObject(hnameiso);
@@ -185,12 +192,12 @@ void AliPMDCalibrator::CalculateIsoCell()
   Int_t neibx[6] = {1,0,-1,-1,0,1};
   Int_t neiby[6] = {0,1,1,0,-1,-1};
 
-  Int_t id1,jd1;            //neighbour row/col
-  Int_t countisocell = 0 ;  //number of isilated cell
-  Int_t isocount;           //number of neighbours with 0 signal
-  Int_t d1[kDet][kMaxSMN][kMaxRow][kMaxCol];
-  Int_t maxhit;
+  Int_t id1 = 0,jd1 = 0;        //neighbour row/col
+  Int_t countisocell = 0 ;      //number of isilated cell
+  Int_t isocount = 0;           //number of neighbours with 0 signal
+  Int_t maxhit = 0;
   Int_t nhit[kDet][kMaxSMN];
+  Int_t d1[kDet][kMaxSMN][kMaxRow][kMaxCol];
   Int_t nhitcell[kDet][kMaxSMN][kMaxRow][kMaxCol];
   
   for(Int_t idet = 0; idet < kDet; idet++)

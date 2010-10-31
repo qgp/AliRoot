@@ -12,6 +12,8 @@
  
 #pragma link C++ class AliVParticle+;
 #pragma link C++ class AliVTrack+;
+#pragma link C++ class AliVCluster+;
+#pragma link C++ class AliVCaloCells+;
 #pragma link C++ class AliVVertex+;
 #pragma link C++ class AliVEvent+;
 #pragma link C++ class AliVHeader+;
@@ -29,6 +31,7 @@
 #pragma link C++ class AliLHCTag+;
 #pragma link C++ class AliDetectorTag+;
 #pragma link C++ class AliEventTag+;
+#pragma link C++ class AliFileTag+;
 
 #pragma link C++ class AliRunTagCuts+;
 #pragma link C++ class AliLHCTagCuts+;

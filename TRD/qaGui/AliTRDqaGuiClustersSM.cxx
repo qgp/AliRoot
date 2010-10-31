@@ -48,6 +48,7 @@ const Int_t AliTRDqaGuiClustersSM::fgkLogList[4] = {0,0,0,0};
 
 AliTRDqaGuiClustersSM::AliTRDqaGuiClustersSM() 
   : fIdx(0),
+    fFileName(0x0),
     fGPanel(0),
     fGCanvas(0),
     fGSelect(0),
@@ -55,7 +56,18 @@ AliTRDqaGuiClustersSM::AliTRDqaGuiClustersSM()
     fGNext(0),
     fGPlay(0)
 {
+  //
+  // Default constructor
+  //
   
+  for (Int_t i = 0; i < 4; i++) {
+    fNameList[i]   = 0x0;
+    fCanvasList[i] = 0x0;
+    fHistList[i]   = 0x0;
+  }
+
+  //strncpy(fFileName,"",256);
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -63,6 +75,7 @@ AliTRDqaGuiClustersSM::AliTRDqaGuiClustersSM()
 AliTRDqaGuiClustersSM::AliTRDqaGuiClustersSM(TGWindow *parent) 
   : TGCompositeFrame(parent, 720, 500),
     fIdx(0),
+    fFileName(0x0),
     fGPanel(0),
     fGCanvas(0),
     fGSelect(0),
@@ -140,7 +153,8 @@ void AliTRDqaGuiClustersSM::SetQAFile(const char *filename) {
   // Ste file with histograms
   //
 
-  strcpy(fFileName, filename);
+  //strncpy(fFileName,filename,256);
+  fFileName = filename;
 
   for(Int_t i=0; i<4; i++) {
     if (fHistList[i]) delete fHistList[i];

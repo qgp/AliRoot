@@ -108,6 +108,7 @@ public:
 
   Float_t   GetAnodeWireOffset(Float_t zt);
   Float_t   GetC(Int_t typ=0) const    { return fC[typ]; }
+  Float_t   GetCharge(Bool_t useOutliers=kFALSE);
   Float_t   GetChi2() const          { return fChi2; }
   inline Float_t   GetChi2Z() const;
   inline Float_t   GetChi2Y() const;
@@ -128,6 +129,7 @@ public:
   void      GetCalibParam(Float_t &exb, Float_t &vd, Float_t &t0, Float_t &s2, Float_t &dl, Float_t &dt) const    { 
               exb = fExB; vd = fVD; t0 = fT0; s2 = fS2PRF; dl = fDiffL; dt = fDiffT;}
   AliTRDcluster*  GetClusters(Int_t i) const               { return i<0 || i>=kNclusters ? NULL: fClusters[i];}
+  Bool_t    GetEstimatedCrossPoint(Float_t &x, Float_t &z) const;
   Int_t     GetIndexes(Int_t i) const{ return i<0 || i>=kNclusters ? -1 : fIndexes[i];}
   Int_t     GetLabels(Int_t i) const { return fLabels[i];}  
   Float_t   GetMomentum(Float_t *err = NULL) const;

@@ -27,7 +27,6 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TH2S.h"
-//#include "TH3F.h"
 #include "TF1.h"
 #include "TFile.h"
 #include "TCanvas.h"
@@ -52,6 +51,7 @@ AliTRDqaBlackEvents::AliTRDqaBlackEvents()
   ,fThresh(0)
   ,fCount(0)
   ,fRefEv(0)
+  ,fRefFileName(0x0)
   ,fOccupancy(0)
   ,fDetRob(0)
   ,fTBEvent(0)
@@ -77,14 +77,61 @@ AliTRDqaBlackEvents::AliTRDqaBlackEvents()
   ,fMinNoise(0.5)
   ,fMaxNoise(2)
   ,fFitType(0) 
-  //  ,fRefFileName("")
 {
   //
   // Constructor 
   // to create the histograms call Init()
   //
 
-  strcpy(fRefFileName, "");
+  for (Int_t i = 0; i < kDET; i++) {
+    fPed[i]            = 0x0;
+    fNoise[i]          = 0x0;
+    fChPP[i]           = 0x0;
+    fNPointDist[i]     = 0x0;
+    fChPed[i]          = 0x0;
+    fChNoise[i]        = 0x0;
+    fNPoint[i]         = 0x0;
+    fData[i]           = 0x0;
+    fSignal[i]         = 0x0;
+    fnEntriesRM[i]     = 0x0;
+    fnEntriesRMDist[i] = 0x0;
+    fChPedRes[i]       = 0x0;
+    fChNoiseRes[i]     = 0x0;
+    fErrorLocHC[i]     = 0x0;
+    fErrorLocMCM[i]    = 0x0;
+    fErrorLocADC[i]    = 0x0;
+  }
+  for (Int_t i = 0; i < 3; i++) {
+    fGraphPP[i]        = 0x0;
+    fSMLink[i]         = 0x0;
+    fGrLink[i]         = 0x0;
+    fppThresh[i]       = 0;
+    fnPP[i]            = 0;
+    fnLink[i]          = 0;
+  }
+  for (Int_t i = 0; i < 2; i++) {
+    fnErrorHC[i]       = 0;
+    fnErrorMCM[i]      = 0;
+    fnErrorADC[i]      = 0;
+  }
+  for (Int_t i = 0; i < kSM; i++) {
+    fSmNoiseRms[i]     = 0x0;
+    fSmNoiseFit[i]     = 0x0;
+    fSmPP[i]           = 0x0;
+  }
+  for (Int_t i = 0; i < kSM+1; i++) {
+    fNumberADC[i]      = 0x0;
+    fnADCinSM[i]       = 0;
+  }
+  for (Int_t i = 0; i < 1000; i++) {
+    fEvNoDist[i]       = 0;
+  }
+  for (Int_t i = 0; i < kDET*kROB*kMCM; i++) {
+    fFullSignal[i]     = 0x0;
+    fFullCounter[i]    = 0;
+  }
+  //strncpy(fRefFileName,"",256);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,6 +143,7 @@ AliTRDqaBlackEvents::AliTRDqaBlackEvents(const AliTRDqaBlackEvents &qa)
   ,fThresh(0)
   ,fCount(0)
   ,fRefEv(0)
+  ,fRefFileName(0x0)
   ,fOccupancy(0)
   ,fDetRob(0)
   ,fTBEvent(0)
@@ -121,14 +169,61 @@ AliTRDqaBlackEvents::AliTRDqaBlackEvents(const AliTRDqaBlackEvents &qa)
   ,fMinNoise(0.5)
   ,fMaxNoise(2) 
   ,fFitType(0)
-   //,fRefFileName("")
 {
   //
   // Copy constructor 
   // to create the histograms call Init()
   //
   
-  strcpy(fRefFileName, "");
+  for (Int_t i = 0; i < kDET; i++) {
+    fPed[i]            = 0x0;
+    fNoise[i]          = 0x0;
+    fChPP[i]           = 0x0;
+    fNPointDist[i]     = 0x0;
+    fChPed[i]          = 0x0;
+    fChNoise[i]        = 0x0;
+    fNPoint[i]         = 0x0;
+    fData[i]           = 0x0;
+    fSignal[i]         = 0x0;
+    fnEntriesRM[i]     = 0x0;
+    fnEntriesRMDist[i] = 0x0;
+    fChPedRes[i]       = 0x0;
+    fChNoiseRes[i]     = 0x0;
+    fErrorLocHC[i]     = 0x0;
+    fErrorLocMCM[i]    = 0x0;
+    fErrorLocADC[i]    = 0x0;
+  }
+  for (Int_t i = 0; i < 3; i++) {
+    fGraphPP[i]        = 0x0;
+    fSMLink[i]         = 0x0;
+    fGrLink[i]         = 0x0;
+    fppThresh[i]       = 0;
+    fnPP[i]            = 0;
+    fnLink[i]          = 0;
+  }
+  for (Int_t i = 0; i < 2; i++) {
+    fnErrorHC[i]       = 0;
+    fnErrorMCM[i]      = 0;
+    fnErrorADC[i]      = 0;
+  }
+  for (Int_t i = 0; i < kSM; i++) {
+    fSmNoiseRms[i]     = 0x0;
+    fSmNoiseFit[i]     = 0x0;
+    fSmPP[i]           = 0x0;
+  }
+  for (Int_t i = 0; i < kSM+1; i++) {
+    fNumberADC[i]      = 0x0;
+    fnADCinSM[i]       = 0;
+  }
+  for (Int_t i = 0; i < 1000; i++) {
+    fEvNoDist[i]       = 0;
+  }
+  for (Int_t i = 0; i < kDET*kROB*kMCM; i++) {
+    fFullSignal[i]     = 0x0;
+    fFullCounter[i]    = 0;
+  }
+  //strncpy(fRefFileName,"",256);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -284,7 +379,9 @@ void AliTRDqaBlackEvents::Reset()
 
 void AliTRDqaBlackEvents::SetRefFile(const char *filename) {
   
-  strcpy(fRefFileName, filename);
+  //strncpy(fRefFileName,filename,256);
+  fRefFileName = filename;
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -297,8 +394,8 @@ void AliTRDqaBlackEvents::ReadRefHists(Int_t det) {
   fRefHistPed = 0;
   fRefHistNoise = 0;
   
-  TFile *file = 0;
-  if (fRefFileName) TFile::Open(fRefFileName);
+  TFile *file = 0x0;
+  if (fRefFileName) file = TFile::Open(fRefFileName);
   if (!file) return;
 
   fRefHistPed   = (TH2D*)file->Get(Form("ped_%d",det));
@@ -357,7 +454,7 @@ void AliTRDqaBlackEvents::AddBuffer(AliTRDrawStreamOld *data, AliRawReader * con
   //printf("reading SM %d\n", sm);
   AliInfo(Form("reading SM %d", sm));
   
-  if (sm < 0 || sm > 18) return;
+  if (sm < 0 || sm > 17) return;
 
   // lopp over stacks, links ...
 
@@ -515,7 +612,7 @@ void AliTRDqaBlackEvents::AddBuffer(AliTRDrawStreamOld *data, AliRawReader * con
 	    //fSignal[det]->Fill(sig[k]);
 	    //fData[det]->Fill(row, col, sig[k]); // slow
 
-	    if (sig[k] < kCH) {
+	    if ((sig[k] >=0) && (sig[k] < kCH)) {
 	      fSignalDirect[det][sig[k]]++;
 	      fDataDirect[det][row][col][sig[k]]++; // direct data
 	    }
@@ -665,8 +762,8 @@ void AliTRDqaBlackEvents::Process(const char *filename)
   // Process something
   //
   
-  char fn[256];
-  strcpy(fn, filename);
+  //char fn[256];
+  //strncpy(fn,filename,256);
   
   //AliInfo(Form("FILENAME = %s (%s)\n", filename, fn));
 
@@ -740,7 +837,10 @@ void AliTRDqaBlackEvents::Process(const char *filename)
 	  Double_t refnoise = 0;
 	  
 	  if (fRefHistPed)   refped   = fRefHistPed->GetBinContent(bin);
-	  if (fRefHistNoise) refnoise = fRefHistPed->GetBinContent(bin);
+	  if (fRefHistPed)   refnoise = fRefHistPed->GetBinContent(bin);
+	  // Original code, should it not be fRefHistNoise->GetBinContent(bin)
+	  // instead of fRefHistPed->GetBinContent(bin)  (CBL) ???
+	  //if (fRefHistNoise) refnoise = fRefHistPed->GetBinContent(bin);
 
 	  fChPedRes[det]->SetBinContent(bin, ped-refped);
 	  fChNoiseRes[det]->SetBinContent(bin, noise-refnoise);
@@ -789,7 +889,7 @@ void AliTRDqaBlackEvents::Process(const char *filename)
     
     if (!map[i]) continue;
     
-    sprintf(entriesDistName, "entriesDist_%d", i);
+    snprintf(entriesDistName,100,"entriesDist_%d",i);
     fNPointDist[i] = new TH1D(entriesDistName, ";number of events", max+2, -0.5, max+1.5);
     
     for(Int_t j=0; j<fNPoint[i]->GetXaxis()->GetNbins(); j++) {
@@ -812,7 +912,7 @@ void AliTRDqaBlackEvents::Process(const char *filename)
   // save histograms
 
   //AliInfo(Form("FILENAME 2 = %s (%d)\n", fn, fn));
-  TFile *file = new TFile(fn, "recreate");
+  TFile *file = new TFile(filename, "recreate");
   for(Int_t det = 0; det < kDET; det++) {
     if (!map[det]) continue; 
     fChPed[det]->Write();
@@ -933,41 +1033,41 @@ void AliTRDqaBlackEvents::Process(const char *filename)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-Int_t AliTRDqaBlackEvents::CheckMCM(Int_t index) const {
+Int_t AliTRDqaBlackEvents::CheckMCM(Int_t /*index*/) const {
   //
   // Checks a single MCM
   //  
 
   return 1;
   
-  static Int_t data[21][3] = {
-    {1, 0, 1}, 
-    {242, 0, 0}, 
-    {242, 0, 1}, 
-    {242, 0, 2}, 
-    {242, 0, 4}, 
-    {242, 0, 5}, 
-    {242, 0, 6}, 
-    {242, 0, 8}, 
-    {242, 0, 12}, 
-    {251, 7, 7}, 
-    {254, 3, 11}, 
-    {259, 3, 14}, 
-    {260, 1, 9}, 
-    {260, 3, 15}, 
-    {273, 1, 7}, 
-    {273, 1, 15}, 
-    {276, 5, 11}, 
-    {280, 6, 2}, 
-    {299, 6, 4}, 
-    {511, 2, 9}, 
-    {517, 7, 15}
-  };
+  // static Int_t data[21][3] = {
+  //   {1, 0, 1}, 
+  //   {242, 0, 0}, 
+  //   {242, 0, 1}, 
+  //   {242, 0, 2}, 
+  //   {242, 0, 4}, 
+  //   {242, 0, 5}, 
+  //   {242, 0, 6}, 
+  //   {242, 0, 8}, 
+  //   {242, 0, 12}, 
+  //   {251, 7, 7}, 
+  //   {254, 3, 11}, 
+  //   {259, 3, 14}, 
+  //   {260, 1, 9}, 
+  //   {260, 3, 15}, 
+  //   {273, 1, 7}, 
+  //   {273, 1, 15}, 
+  //   {276, 5, 11}, 
+  //   {280, 6, 2}, 
+  //   {299, 6, 4}, 
+  //   {511, 2, 9}, 
+  //   {517, 7, 15}
+  // };
   
-  for(Int_t i=0; i<21; i++) {
-    Int_t wIndex = data[i][0] * kROB*kMCM + data[i][1] * kMCM + data[i][2];
-    if (index == wIndex) return 0;
-  }
+  // for(Int_t i=0; i<21; i++) {
+  //   Int_t wIndex = data[i][0] * kROB*kMCM + data[i][1] * kMCM + data[i][2];
+  //   if (index == wIndex) return 0;
+  // }
 
   return 1;
 }

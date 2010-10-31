@@ -6,14 +6,15 @@
 // reconstructed and MC particle tracks (TPC resolution).   
 // 
 // Author: J.Otwinowski 04/02/2008 
-// Changes by M.Knichel 27/07/2010
+// Changes by M.Knichel 15/10/2010
 //------------------------------------------------------------------------------
 
 class TString;
 class TNamed;
 class TCanvas;
-class TH1F;
-class TH2F;
+class TH1;
+class TH2;
+class TH3;
 
 class AliESDVertex;
 class AliESDtrack;
@@ -29,8 +30,9 @@ class AliRecInfoCuts;
 
 class AliPerformanceTPC : public AliPerformanceObject {
 public :
-  AliPerformanceTPC(); 
-  AliPerformanceTPC(Char_t* name, Char_t* title, Int_t analysisMode, Bool_t hptGenerator);
+  //AliPerformanceTPC(); 
+  AliPerformanceTPC(Char_t* name="AliPerformanceTPC", Char_t* title="AliPerformanceTPC",Int_t analysisMode=0,Bool_t hptGenerator=kFALSE, Int_t run=-1);
+
   virtual ~AliPerformanceTPC();
 
   // Init data members
@@ -46,6 +48,9 @@ public :
 
   // Get analysis folder
   virtual TFolder* GetAnalysisFolder() const {return fAnalysisFolder;}
+  
+  // produce summary
+  virtual TTree* CreateSummary();
 
   // Process events
   void ProcessConstrained(AliStack* const stack, AliESDtrack *const esdTrack, AliESDEvent *const esdEvent);
@@ -62,26 +67,29 @@ public :
   void SetAliRecInfoCuts(AliRecInfoCuts* const cuts=0) {fCutsRC = cuts;}   
   void SetAliMCInfoCuts(AliMCInfoCuts* const cuts=0) {fCutsMC = cuts;}  
    
-  AliRecInfoCuts*  GetAliRecInfoCuts() const {return fCutsRC;}  
-  AliMCInfoCuts*   GetAliMCInfoCuts()  const {return fCutsMC;}  
+  AliRecInfoCuts*  GetAliRecInfoCuts() const {return fCutsRC;}
+  AliMCInfoCuts*   GetAliMCInfoCuts()  const {return fCutsMC;}
 
   // getters
   //
   THnSparse *GetTPCClustHisto() const  { return fTPCClustHisto; }
   THnSparse *GetTPCEventHisto() const  { return fTPCEventHisto; }
   THnSparse *GetTPCTrackHisto() const  { return fTPCTrackHisto; }
-  TObjArray* GetTPCHistos() const { return fFolderObj; }
+  
+  TObjArray* GetHistos() const { return fFolderObj; }
+  
   static Bool_t GetMergeTHnSparse() { return fgMergeTHnSparse; }
   static void SetMergeTHnSparse(Bool_t mergeTHnSparse) { fgMergeTHnSparse = mergeTHnSparse; }
+  void SetUseHLT(Bool_t useHLT = kTRUE) {fUseHLT = useHLT;}
+  Bool_t GetUseHLT() { return fUseHLT; }
 
 
 private:
 
   static Bool_t fgMergeTHnSparse;
-  void AddTrackHistos(TObjArray* aFolderObj, Char_t* selString);
 
   // TPC histogram
-  THnSparseF *fTPCClustHisto; //-> padRow:phi:TPCSide
+  THnSparseF *fTPCClustHisto; //-> padRow:phi:TPCside:pad:detector
   THnSparseF *fTPCEventHisto;  //-> Xv:Yv:Zv:mult:multP:multN:vertStatus
   THnSparseF *fTPCTrackHisto;  //-> nClust:chi2PerClust:nClust/nFindableClust:DCAr:DCAz:eta:phi:pt:charge:vertStatus
   TObjArray* fFolderObj; // array of analysed histograms
@@ -93,11 +101,12 @@ private:
   // analysis folder 
   TFolder *fAnalysisFolder; // folder for analysed histograms
 
+  Bool_t fUseHLT; // use HLT ESD
 
   AliPerformanceTPC(const AliPerformanceTPC&); // not implemented
   AliPerformanceTPC& operator=(const AliPerformanceTPC&); // not implemented
 
-  ClassDef(AliPerformanceTPC,5);
+  ClassDef(AliPerformanceTPC,8);
 };
 
 #endif

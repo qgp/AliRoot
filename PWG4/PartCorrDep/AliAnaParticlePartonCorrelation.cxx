@@ -212,17 +212,23 @@ void  AliAnaParticlePartonCorrelation::MakeAnalysisFillAOD()
     }
     
     //Fill AOD reference only with partons
-    TParticle * parton = new TParticle ;
 
     //Array with reference to partons, initialize
-    TObjArray * objarray  = new TObjArray;
-
+    TObjArray * objarray  = NULL;
+    Int_t nrefs = 0;
+    
+    TParticle * parton    = NULL ;
     for(Int_t ipr = 0;ipr < 8; ipr ++ ){
       parton = stack->Particle(ipr) ;
-	  objarray->Add(parton);
+      nrefs++;
+      if(nrefs==1){
+        objarray = new TObjArray(0);
+        objarray->SetName(GetAODObjArrayName());
+        objarray->SetOwner(kFALSE);
+      }
+      objarray->Add(parton);
     }//parton loop
 	
-    objarray->SetName(GetAODObjArrayName());
     if(objarray->GetEntriesFast() > 0) particle->AddObjArray(objarray);
 
   }//Aod branch loop
@@ -251,7 +257,7 @@ void  AliAnaParticlePartonCorrelation::MakeAnalysisFillHistograms()
  
   //Loop on stored AOD particles
   Int_t naod = GetInputAODBranch()->GetEntriesFast();
-  TParticle *  mom =new TParticle ;
+  TParticle *  mom = NULL ;
   
   for(Int_t iaod = 0; iaod < naod ; iaod++){
     AliAODPWG4ParticleCorrelation* particle =  (AliAODPWG4ParticleCorrelation*) (GetInputAODBranch()->At(iaod));
@@ -273,14 +279,19 @@ void  AliAnaParticlePartonCorrelation::MakeAnalysisFillHistograms()
     if(imom < 8 ) iparent = imom ;   //mother is already a parton
     else if (imom <  stack->GetNtrack()) {
       mom =  stack->Particle(imom);
-      iparent=mom->GetFirstMother();
-      //cout<<" iparent "<<iparent<<endl;
-      while(iparent > 7 ){
-	mom = stack->Particle(iparent);
-	imom = iparent ; //Mother label is of the inmediate parton daughter
-	iparent = mom->GetFirstMother();
-	//cout<<" while iparent "<<iparent<<endl;
-      }   
+      if(mom){
+        iparent=mom->GetFirstMother();
+        //cout<<" iparent "<<iparent<<endl;
+        while(iparent > 7 ){
+          mom = stack->Particle(iparent);
+          if (mom) {
+            imom = iparent ; //Mother label is of the inmediate parton daughter
+            iparent = mom->GetFirstMother();
+          }
+          else iparent = -1;
+        //cout<<" while iparent "<<iparent<<endl;
+        } 
+      }
     }
     
     if(GetDebug() > 1) printf("AliAnaParticlePartonCorrelation::MakeAnalysisFillHistograms() - N reference partons %d; labels:  mother %d, parent %d \n", objarray->GetEntriesFast(), imom, iparent);

@@ -118,6 +118,9 @@ Bool_t AliESDInputHandlerRP::Init(Option_t* opt)
     fFileNumber       =  0;
     // Get number of events from esd tree 
     printf("AliESDInputHandlerRP::Init() %d %d\n",__LINE__, fNEvents);
+    //
+    AliESDInputHandler::Init(opt);
+    //
     return kTRUE;
 }
 
@@ -213,9 +216,11 @@ Bool_t AliESDInputHandlerRP::Notify(const char *path)
   // Notify about directory change
   // The directory is taken from the 'path' argument
   // 
-    AliInfo(Form("Directory change %s \n", path));
+
     // Get path to directory
     TString fileName(path);
+    if (fileName.IsNull()) return kFALSE;
+    AliInfo(Form("Directory change %s \n", path));
 
     if(fileName.Contains("#")){
     // If this is an archive it will contain a # 
@@ -262,7 +267,12 @@ Bool_t AliESDInputHandlerRP::Notify(const char *path)
     {
 	TString name(entry->GetName());
 	TObjArray* tokens = name.Tokenize(".");
-	Int_t ntok = tokens->GetEntries();
+	Int_t ntok = 0;
+	if (tokens) {
+	  ntok = tokens->GetEntries();
+	} else {
+	  continue;
+	}
 	if (ntok <= 1) continue;
 	TString str = ((TObjString*) tokens->At(1))->GetString();
 	if (!(strcmp(str.Data(), "RecPoints"))){

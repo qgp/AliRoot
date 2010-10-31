@@ -1,11 +1,10 @@
 /*
 T0 DA for online calibration
  
-Contact: Michal.Oledzki@cern.ch
-Link: http://users.jyu.fi/~mioledzk/
-Run Type: STANDALONE
+Contact: Alla.Maevskaya@cern.ch
+Run Type: AMPLITUDE_CALIBRATION
 DA Type: MON
-Number of events needed: 400000 
+Number of events needed: 5000 
 Input Files: inLaser.dat, external parameters
 Output Files: daLaser.root, to be exported to the DAQ FXS
 Trigger types used: CALIBRATION_EVENT
@@ -139,8 +138,8 @@ int main(int argc, char **argv) {
   
   for(Int_t ic=0; ic<24; ic++) 
     {
-      hQTC[ic] = new TH1F(Form("hQTC%d_%d",ic+1,nIndex),"QTC",1000, 500, 4500);
-      hLED[ic] = new TH1F(Form("hLED%d_%d",ic+1,nIndex),"LED",300,300,600);
+      hQTC[ic] = new TH1F(Form("hQTC%d_%d",ic+1,nIndex),"QTC",1000, 500, 10000);
+      hLED[ic] = new TH1F(Form("hLED%d_%d",ic+1,nIndex),"LED",125,200,700);
       hCFD[ic] = new TH1F(Form("hCFD%d_%d",ic+1,nIndex),"CFD", Int_t ((hcfd-lcfd)/2), lcfd, hcfd);
     }
  
@@ -249,7 +248,8 @@ int main(int argc, char **argv) {
       
       delete start;
       start = 0x0;
-      reader->Reset();
+      delete reader;
+      reader= 0x0;
       // End of fill histograms
 
     }
@@ -266,8 +266,8 @@ int main(int argc, char **argv) {
   }
 
   printf("After loop, before writing histos\n");
-  TH1F* hAmp = new TH1F("hAmpLaser"," Laser amplitude ", 1000, 0.5, 10.5);  
-  for(Int_t k=0; k<nEntries; k++)   hAmp->Fill(mipsin[k]); 
+  TH1F* hAmp = new TH1F("hAmpLaser"," Laser amplitude ", 1000, 0.5, 20.5);  
+  for(Int_t i=0; i<nIndex; i++)   hAmp->Fill(mipsin[i]); 
   // write a file with the histograms
   TFile *hist=0;
   if(nIndex == 1 )

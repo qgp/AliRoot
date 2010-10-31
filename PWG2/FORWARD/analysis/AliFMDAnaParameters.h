@@ -45,6 +45,8 @@
 #include <TString.h>
 //#include "AliPWG0Helper.h"
 #include "AliESDEvent.h"
+#include "AliInputEventHandler.h"
+#include "AliAnalysisManager.h"
 //class AliESDEvent;
 
 /**
@@ -62,11 +64,11 @@ public:
     kSharingEfficiency            = 0x8  // Sharing algorithm efficiency
   };
   
-  enum Trigger { kMB1 = 0, kMB2, kSPDFASTOR, kNOCTP, kEMPTY };
+  enum Trigger { kMB1 = 0, kMB2, kSPDFASTOR, kNOCTP, kEMPTY , kNSD};
   
-  enum Energy { k900 , k10000, k14000 , k7000, k2400, k5500};
+  enum Energy { k900 , k10000, k14000 , k7000, k2400, k5500, k2750};
   
-  enum MagField {k0G, k5G};
+  enum MagField {k0G, k5G, k5Gnegative};
   
   enum Species {kPP, kPbPb};
 
@@ -96,23 +98,28 @@ public:
   static const char* GetEventSelectionEffID()      { return fgkEventSelectionEffID;}
   static const char* GetSharingEffID()      { return fgkSharingEffID;}
   TH2F* GetBackgroundCorrection(Int_t det, Char_t ring, Int_t vtxbin);
+  TH2F* GetBackgroundCorrectionNSD(Int_t det, Char_t ring, Int_t vtxbin);
   TH1F* GetDoubleHitCorrection(Int_t det, Char_t ring);
   TH1F* GetSPDDeadCorrection(Int_t vtxbin);
+  TH1F* GetFMDDeadCorrection(Int_t vtxbin);
   
   TH1F* GetSharingEfficiency(Int_t det, Char_t ring, Int_t vtxbin);
   TH1F* GetSharingEfficiencyTrVtx(Int_t det, Char_t ring, Int_t vtxbin);
+  
+  void     SetParametersFromESD(AliESDEvent* esd);
   Float_t  GetEventSelectionEfficiency(Int_t vtxbin);
-  TH2F*    GetEventSelectionEfficiency(Int_t vtxbin, Char_t ring);
+  TH2F*    GetEventSelectionEfficiency(TString trig, Int_t vtxbin, Char_t ring);
   Float_t  GetPhiFromSector(UShort_t det, Char_t ring, UShort_t sec) const;
   Float_t  GetEtaFromStrip(UShort_t det, Char_t ring, UShort_t sec, UShort_t strip, Float_t zvtx) const;
   Float_t  GetStripLength(Char_t ring, UShort_t strip)  ;
   Float_t  GetBaseStripLength(Char_t ring, UShort_t strip)  ;
   Float_t  GetMaxR(Char_t ring) const;
   Float_t  GetMinR(Char_t ring) const;
-  void     SetBackgroundPath(const Char_t* bgpath) {fBackgroundPath.Form(bgpath);}
-  void     SetEnergyPath(const Char_t* epath) {fEnergyPath.Form(epath);}
-  void     SetEventSelectionPath(const Char_t* evpath) {fEventSelectionEffPath.Form(evpath);}
-  void     SetSharingEfficiencyPath(const Char_t* sharpath) {fSharingEffPath.Form(sharpath);}
+  void     SetBackgroundPath(const Char_t* bgpath) {fBackgroundPath = bgpath;}
+  void     SetEnergyPath(const Char_t* epath) {fEnergyPath = epath;}
+  void     SetEventSelectionPath(const Char_t* evpath) {fEventSelectionEffPath = evpath;}
+  void     SetSharingEfficiencyPath(const Char_t* sharpath) {fSharingEffPath = sharpath;}
+  void     SetInelGtZero(Bool_t InelGtZero) {fInelGtZero = InelGtZero;}
   void     SetProcessPrimary(Bool_t prim=kTRUE) {fProcessPrimary = prim;}
   void     SetProcessHits(Bool_t hits=kTRUE) {fProcessHits = hits;}
   Bool_t   GetProcessPrimary() const {return fProcessPrimary;} 
@@ -120,21 +127,30 @@ public:
   Bool_t   GetVertex(const AliESDEvent* esd, Double_t* vertexXYZ);
   void     SetTriggerDefinition(Trigger trigger) {fTrigger = trigger;}
   Trigger  GetTriggerDefinition() const {return fTrigger;}
-  Bool_t   IsEventTriggered(const AliESDEvent *esd) const;
-  Bool_t   IsEventTriggered(const AliESDEvent *esd, Trigger trigger) ;
+  void     SetRunDndeta(Bool_t rundndeta) { fRunDndeta = rundndeta;  }
+  void     SetRunBFCorrelation(Bool_t runBFcor) { fRunBFCorrelation = runBFcor;  }
+  void     SetRunMultiplicity(Bool_t runMultiplicity) { fRunMultiplicity = runMultiplicity;  }
+  
+  Bool_t   GetRunDndeta()        {return fRunDndeta;}
+  Bool_t   GetRunBFCorrelation() {return fRunBFCorrelation;}
+  Bool_t   GetRunMultiplicity()  {return fRunMultiplicity;}
+
+  //Bool_t   IsEventTriggered(const AliESDEvent *esd) ;
+  Bool_t   IsEventTriggered(Trigger trigger) ;
+  void     SetTriggerStatus(const AliESDEvent *esd) ;
   void     SetEnergy(Energy energy) {fEnergy = energy;}
   Energy   GetEnergy() {return fEnergy;}
   void     SetMagField(MagField magfield) {fMagField = magfield;}
-  char*    GetPath(const char* species);
+  const char*    GetPath(const char* species);
   void     SetCollisionSystem(Species collsystem) {fSpecies = collsystem;}
   Species  GetCollisionSystem() const {return fSpecies;}
   void     PrintStatus() const;
   void     Print(Option_t* /* option */) const { PrintStatus(); }
-  char*    GetDndetaAnalysisName() const {return "PWG2forwardDnDeta";}
+  const Char_t*  GetDndetaAnalysisName() const {return "PWG2forwardDnDeta";}
   TH1F*    GetEnergyDistribution(Int_t det, Char_t ring, Float_t eta);
   TH1F*    GetEmptyEnergyDistribution(Int_t det, Char_t ring);
   TH1F*    GetRingEnergyDistribution(Int_t det, Char_t ring);
-  AliPhysicsSelection* GetPhysicsSelection() const {return fPhysicsSelection;}
+  AliPhysicsSelection* GetPhysicsSelection() const { return fPhysicsSelection ? fPhysicsSelection : (AliPhysicsSelection*)((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->GetEventSelection();  /*return fPhysicsSelection;*/ }
   Bool_t   IsRealData() const {return fRealData; }
   void     SetRealData(Bool_t realdata) {fRealData = realdata;}
   Float_t  GetLowSPDLimit() const {return fSPDlowLimit;}
@@ -145,7 +161,7 @@ public:
   Bool_t   SharingEffPresent() {return fSharingObjectPresent;}
   Int_t    GetFirstEtaBinToInclude(Int_t vtxbin, Int_t det, Char_t ring) ;
   Int_t    GetLastEtaBinToInclude(Int_t vtxbin, Int_t det, Char_t ring) ;
-  
+  void     SetUseInternalNSDTrigger(Bool_t internalNSD) {fUseBuiltInNSD = internalNSD;}
 
   void     SetNumberOfEtaBinsToCut(Int_t nbins) {fNumberOfEtaBinsToCut = nbins;}
   Int_t    GetNumberOfEtaBinsToCut() const {return fNumberOfEtaBinsToCut;}
@@ -180,7 +196,15 @@ protected:
       fSharingObjectPresent(o.fSharingObjectPresent),
       fNumberOfEtaBinsToCut(o.fNumberOfEtaBinsToCut),
       fEtaLowBinLimits(o.fEtaLowBinLimits),
-      fEtaHighBinLimits(o.fEtaHighBinLimits)
+      fEtaHighBinLimits(o.fEtaHighBinLimits),
+      fTriggerInel(o.fTriggerInel),
+      fTriggerNSD(o.fTriggerNSD),
+      fTriggerEmpty(o.fTriggerEmpty),
+      fUseBuiltInNSD(o.fUseBuiltInNSD),
+      fInelGtZero(o.fInelGtZero),
+      fRunDndeta(o.fRunDndeta),
+      fRunBFCorrelation(o.fRunBFCorrelation),
+      fRunMultiplicity(o.fRunMultiplicity)
   {}
   AliFMDAnaParameters& operator=(const AliFMDAnaParameters&) { return *this; }
   virtual ~AliFMDAnaParameters() {}
@@ -197,7 +221,6 @@ protected:
   Int_t    GetFirstEtaBinFromMap(Int_t vtxbin, Int_t det, Char_t ring) ;
   Int_t    GetLastEtaBinFromMap(Int_t vtxbin, Int_t det, Char_t ring) ;
 
-  
   TObjArray* GetBackgroundArray();
   
   TAxis* GetRefAxis();
@@ -236,9 +259,19 @@ protected:
   Bool_t   fCentralSelection;         //if event selection is done centrally
   Bool_t   fSharingObjectPresent ;    //Do we have a sharing object ? 
   Int_t    fNumberOfEtaBinsToCut;     //Number of eta bins to remove from edge effects
-  TH3F     fEtaLowBinLimits;
-  TH3F     fEtaHighBinLimits;
-  ClassDef(AliFMDAnaParameters,1) // Manager of parameters
+  TH3F     fEtaLowBinLimits;          //Histogram of low eta bin limits
+  TH3F     fEtaHighBinLimits;         //Histogram of high eta bin limits
+  Bool_t   fTriggerInel;              //If the selected INEL trigger fired
+  Bool_t   fTriggerNSD;               //If the NSD trigger fired
+  Bool_t   fTriggerEmpty;             //Event should be empty (empty bunches)
+  Bool_t   fUseBuiltInNSD;            //Should we use the internal NSD trigger by A. Hansen
+  Bool_t   fInelGtZero;               //Should INEL be INEL>0
+  Bool_t   fRunDndeta;                //Run the Dndeta analysis ?
+  Bool_t   fRunBFCorrelation;         //Run the BF correlation analysis ?
+  Bool_t   fRunMultiplicity;          //Run the multiplicity analysis ?
+  
+  ClassDef(AliFMDAnaParameters,1)     // Manager of parameters
+  
 };
 
 #endif

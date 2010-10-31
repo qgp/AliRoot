@@ -43,9 +43,13 @@ AliAnalysisTaskQCumulants::AliAnalysisTaskQCumulants(const char *name, Bool_t us
  fQC(NULL), 
  fListHistos(NULL),
  fHarmonic(2),  
- fApplyCorrectionForNUA(kTRUE), 
+ fApplyCorrectionForNUA(kFALSE), 
+ fApplyCorrectionForNUAVsM(kFALSE), 
+ fPropagateErrorAlsoFromNIT(kFALSE),
  fCalculate2DFlow(kFALSE),
  fStoreDistributions(kFALSE),
+ fCalculateCumulantsVsM(kTRUE), 
+ fMinimumBiasReferenceFlow(kTRUE), 
  fnBinsMult(10000),
  fMinMult(0.),  
  fMaxMult(10000.), 
@@ -82,8 +86,12 @@ AliAnalysisTaskQCumulants::AliAnalysisTaskQCumulants():
  fListHistos(NULL),
  fHarmonic(0),  
  fApplyCorrectionForNUA(kFALSE), 
+ fApplyCorrectionForNUAVsM(kFALSE), 
+ fPropagateErrorAlsoFromNIT(kFALSE),
  fCalculate2DFlow(kFALSE),
  fStoreDistributions(kFALSE),
+ fCalculateCumulantsVsM(kFALSE),  
+ fMinimumBiasReferenceFlow(kFALSE), 
  fnBinsMult(0),
  fMinMult(0.),  
  fMaxMult(0.), 
@@ -111,9 +119,13 @@ void AliAnalysisTaskQCumulants::UserCreateOutputObjects()
  // Common:
  fQC->SetHarmonic(fHarmonic);
  fQC->SetApplyCorrectionForNUA(fApplyCorrectionForNUA);
+ fQC->SetApplyCorrectionForNUAVsM(fApplyCorrectionForNUAVsM);
+ fQC->SetPropagateErrorAlsoFromNIT(fPropagateErrorAlsoFromNIT);
  fQC->SetCalculate2DFlow(fCalculate2DFlow);
  fQC->SetStoreDistributions(fStoreDistributions);
- // multiparticle correlations vs multiplicity:
+ fQC->SetCalculateCumulantsVsM(fCalculateCumulantsVsM);
+ fQC->SetMinimumBiasReferenceFlow(fMinimumBiasReferenceFlow); 
+ // Multiparticle correlations vs multiplicity:
  fQC->SetnBinsMult(fnBinsMult);
  fQC->SetMinMult(fMinMult);
  fQC->SetMaxMult(fMaxMult);

@@ -14,6 +14,7 @@
 #include "AliTRDtrackV1.h"
 #include "AliTRDseedV1.h"
 #include "AliTRDpidRefMaker.h"
+#include "AliTRDinfoGen.h"
 #include "info/AliTRDv0Info.h"
 #include "info/AliTRDpidInfo.h"
 
@@ -36,13 +37,12 @@ ClassImp(AliTRDpidRefMaker)
 //________________________________________________________________________
 AliTRDpidRefMaker::AliTRDpidRefMaker() 
   :AliTRDrecoTask()
-  ,fReconstructor(NULL)
   ,fV0s(NULL)
   ,fData(NULL)
   ,fInfo(NULL)
   ,fPIDdataArray(NULL)
-  ,fRefPID(kMC)
-  ,fRefP(kMC)
+  ,fRefPID(kV0)
+  ,fRefP(kRec)
   ,fFreq(1.)
   ,fP(-1.)
   ,fPthreshold(0.)
@@ -56,13 +56,12 @@ AliTRDpidRefMaker::AliTRDpidRefMaker()
 //________________________________________________________________________
 AliTRDpidRefMaker::AliTRDpidRefMaker(const char *name, const char *title) 
   :AliTRDrecoTask(name, title)
-  ,fReconstructor(NULL)
   ,fV0s(NULL)
   ,fData(NULL)
   ,fInfo(NULL)
   ,fPIDdataArray(NULL)
-  ,fRefPID(kMC)
-  ,fRefP(kMC)
+  ,fRefPID(kV0)
+  ,fRefP(kRec)
   ,fFreq(1.)
   ,fP(-1.)
   ,fPthreshold(0.5)
@@ -71,9 +70,7 @@ AliTRDpidRefMaker::AliTRDpidRefMaker(const char *name, const char *title)
   // Default constructor
   //
 
-  fReconstructor = new AliTRDReconstructor();
-  fReconstructor->SetRecoParam(AliTRDrecoParam::GetLowFluxParam());
-  memset(fdEdx, 0, 10*sizeof(Float_t));
+  memset(fdEdx, 0, AliTRDpidUtil::kNNslices*sizeof(Float_t));
   memset(fPID, 0, AliPID::kSPECIES*sizeof(Float_t));
 
   DefineInput(2, TObjArray::Class()); // v0 list
@@ -86,7 +83,6 @@ AliTRDpidRefMaker::AliTRDpidRefMaker(const char *name, const char *title)
 AliTRDpidRefMaker::~AliTRDpidRefMaker() 
 {
   if(fPIDdataArray) delete fPIDdataArray;
-  if(fReconstructor) delete fReconstructor;
 }
 
 //________________________________________________________________________
@@ -150,15 +146,15 @@ void AliTRDpidRefMaker::UserExec(Option_t *)
     return;
   }
 
-  AliDebug(1, Form("Entries: Tracks[%d] V0[%d] PID[%d]", fTracks->GetEntriesFast(), fV0s->GetEntriesFast(), fInfo->GetEntriesFast()));
+  AliDebug(1, Form("Entries: Ev[%d] Tracks[%d] V0[%d] PID[%d]", ev, fTracks->GetEntriesFast(), fV0s->GetEntriesFast(), fInfo->GetEntriesFast()));
   AliTRDtrackInfo     *track = NULL;
-  AliTRDtrackV1    *trackTRD = NULL;
+  //AliTRDtrackV1    *trackTRD = NULL;
   AliTrackReference     *ref = NULL;
   const AliTRDtrackInfo::AliESDinfo *infoESD = NULL;
   for(Int_t itrk=0; itrk<fTracks->GetEntriesFast(); itrk++){
     track = (AliTRDtrackInfo*)fTracks->UncheckedAt(itrk);
     if(!track->HasESDtrack()) continue;
-    trackTRD = track->GetTrack();
+    //trackTRD = track->GetTrack();
     infoESD  = track->GetESDinfo();
     Double32_t *infoPID = infoESD->GetSliceIter();
     Int_t n = infoESD->GetNSlices() - AliTRDgeometry::kNlayer;
@@ -173,11 +169,11 @@ void AliTRDpidRefMaker::UserExec(Option_t *)
     if(!(status&AliESDtrack::kTRDpid)) continue;
 
     // fill the pid information
-    SetRefPID(fRefPID, track, fPID);
+    SetRefPID(fRefPID, track, infoESD, fPID);
     // get particle type
-    Int_t idx(TMath::LocMax(AliPID::kSPECIES, fPID)); 
+    Int_t idx(TMath::Max(Long64_t(0), TMath::LocMax(AliPID::kSPECIES, fPID))); 
     if(fPID[idx]<1.e-5) continue;
-
+    
     // prepare PID data array
     if(!fPIDdataArray){ 
       fPIDdataArray = new AliTRDpidInfo();
@@ -188,42 +184,19 @@ void AliTRDpidRefMaker::UserExec(Option_t *)
     for(Int_t ily = 0; ily < AliTRDgeometry::kNlayer; ily++){
 
       // fill P & dE/dx information
-      if(HasFriends()){ // from TRD track
-        if(!trackTRD) continue;
-        AliTRDseedV1 *trackletTRD(NULL);
-        trackTRD -> SetReconstructor(fReconstructor);
-        if(!(trackletTRD = trackTRD -> GetTracklet(ily))) continue;
-        if(!CheckQuality(trackletTRD)) continue;
-        if(!CookdEdx(trackletTRD)) continue;
-
-        // fill momentum information
-        fP = 0.;
-        switch(fRefP){
-        case kMC:
-          if(!(ref = track->GetTrackRef(trackletTRD))) continue;
-          fP = ref->P();
-          break;
-        case kRec:
-          fP = trackletTRD->GetMomentum();
-          break;
-        default: continue;
-        }
-      } else { // from ESD track
-        // fill momentum information
-        switch(fRefP){
-        case kMC:
-          if(!(ref = track->GetTrackRef(ily))) continue;
-          fP = ref->P();
-          break;
-        case kRec:
-          fP = p[ily];
-          break;
-        default: continue;
-        } 
-        Double32_t *it = &infoPID[ily*AliTRDCalPID::kNSlicesNN];
-        for(Int_t is=AliTRDCalPID::kNSlicesNN; is--; it++) fdEdx[is] = (*it);
+      switch(fRefP){
+      case kMC:
+	if(!(ref = track->GetTrackRef(ily))) continue;
+	fP = ref->P();
+	break;
+      case kRec:
+	fP = p[ily];
+	break;
+      default: continue;
       }
-
+      Double32_t *it = &infoPID[ily*AliTRDCalPID::kNSlicesNN];
+      for(Int_t is=AliTRDCalPID::kNSlicesNN; is--; it++) fdEdx[is] = (*it);
+      
       // momentum threshold
       if(fP < fPthreshold) continue;
 
@@ -261,7 +234,7 @@ void AliTRDpidRefMaker::LinkPIDdata()
 }
 
 //________________________________________________________________________
-void AliTRDpidRefMaker::SetRefPID(ETRDpidRefMakerSource select, AliTRDtrackInfo *track, Float_t *pid) 
+void AliTRDpidRefMaker::SetRefPID(ETRDpidRefMakerSource select, AliTRDtrackInfo *track, const AliTRDtrackInfo::AliESDinfo *infoESD, Float_t *pid) 
 {
 // Fill the reference PID values "pid" from "source" object
 // according to the option "select". Possible options are
@@ -273,18 +246,14 @@ void AliTRDpidRefMaker::SetRefPID(ETRDpidRefMakerSource select, AliTRDtrackInfo 
     AliError("No trackInfo found");
     return;
   }
-  memset(fPID, 0, AliPID::kSPECIES*sizeof(Float_t));
+  memset(pid, 0, AliPID::kSPECIES*sizeof(Float_t));
   switch(select){ 
   case kV0:
     {
-      //Get V0 PID decisions from the AliTRDv0Info for all particle species (implemented so far : electrons from conversions, pions from K0s and protons from Lambdas) :
-      AliTRDv0Info *v0(NULL);
-      for(Int_t iv(0); iv<fV0s->GetEntriesFast(); iv++){
-        if(!(v0 = (AliTRDv0Info*)fV0s->At(iv))) continue;
-        if(!v0->HasTrack(track)) continue;
-        for(Int_t is=AliPID::kSPECIES; is--;) fPID[is] = v0->GetPID(is, track);
-        break;
-      }
+      //Get V0 PID decisions for all particle species (implemented so far : electrons from conversions, pions from K0s and protons from Lambdas) :
+      if(!infoESD->HasV0()) return;
+      const Int_t *v0pid=infoESD->GetV0pid();
+      for(Int_t is=AliPID::kSPECIES; is--;){ pid[is] = (Float_t)v0pid[is];}
     }
     break;
   case kMC:
@@ -295,30 +264,30 @@ void AliTRDpidRefMaker::SetRefPID(ETRDpidRefMakerSource select, AliTRDtrackInfo 
     switch(track->GetPDG()){
     case kElectron:
     case kPositron:
-      fPID[AliPID::kElectron] = 1.;
+      pid[AliPID::kElectron] = 1.;
       break;
     case kMuonPlus:
     case kMuonMinus:
-      fPID[AliPID::kMuon] = 1.;
+      pid[AliPID::kMuon] = 1.;
       break;
     case kPiPlus:
     case kPiMinus:
-      fPID[AliPID::kPion] = 1.;
+      pid[AliPID::kPion] = 1.;
       break;
     case kKPlus:
     case kKMinus:
-      fPID[AliPID::kKaon] = 1.;
+      pid[AliPID::kKaon] = 1.;
       break;
     case kProton:
     case kProtonBar:
-      fPID[AliPID::kProton] = 1.;
+      pid[AliPID::kProton] = 1.;
       break;
     }
     break;
   case kRec:
     { 
       AliTRDtrackV1 *trackTRD = track->GetTrack();
-      trackTRD -> SetReconstructor(fReconstructor);
+      trackTRD -> SetReconstructor(AliTRDinfoGen::Reconstructor());
       //fReconstructor -> SetOption("nn");
       trackTRD -> CookPID();
       for(Int_t iPart = 0; iPart < AliPID::kSPECIES; iPart++){
@@ -332,11 +301,11 @@ void AliTRDpidRefMaker::SetRefPID(ETRDpidRefMakerSource select, AliTRDtrackInfo 
     return;
   }
   AliDebug(4, Form("Ref PID : %s[%5.2f] %s[%5.2f] %s[%5.2f] %s[%5.2f] %s[%5.2f]"
-    ,AliPID::ParticleShortName(0), 1.e2*fPID[0]
-    ,AliPID::ParticleShortName(1), 1.e2*fPID[1]
-    ,AliPID::ParticleShortName(2), 1.e2*fPID[2]
-    ,AliPID::ParticleShortName(3), 1.e2*fPID[3]
-    ,AliPID::ParticleShortName(4), 1.e2*fPID[4]
+    ,AliPID::ParticleShortName(0), 1.e2*pid[0]
+    ,AliPID::ParticleShortName(1), 1.e2*pid[1]
+    ,AliPID::ParticleShortName(2), 1.e2*pid[2]
+    ,AliPID::ParticleShortName(3), 1.e2*pid[3]
+    ,AliPID::ParticleShortName(4), 1.e2*pid[4]
   ));
 }
 

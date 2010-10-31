@@ -1,3 +1,4 @@
+// -*- mode: c++ -*-
 #ifndef ALIEMCALRAWUTILS_H
 #define ALIEMCALRAWUTILS_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
@@ -19,7 +20,8 @@
 //
 #include "TObject.h" // for ROOT types
 #include <TString.h>
-//#include "AliCaloRawStreamV3.h"
+
+
 class AliCaloRawStreamV3;
 class AliAltroMapping;
 class TGraph;
@@ -27,13 +29,16 @@ class AliRawReader;
 class AliEMCALGeometry;
 class AliCaloCalibPedestal;
 class AliCaloRawAnalyzer;
+class AliEMCALTriggerRawDigitMaker;
+class AliEMCALTriggerData;
+#include "AliCaloConstants.h"
 
 class AliEMCALRawUtils : public TObject {
  public:
-  enum fitAlgorithm {kStandard = 0, kFastFit= 1, kNeuralNet = 2, kLogFit = 3, kLMS = 4, kPeakFinder = 5, kCrude = 6};
+  // enum fitAlgorithm {kStandard = 0, kFastFit= 1, kNeuralNet = 2, kLogFit = 3, kLMS = 4, kPeakFinder = 5, kCrude = 6};
 	
- AliEMCALRawUtils(fitAlgorithm fitAlgo = kStandard);
-  AliEMCALRawUtils(AliEMCALGeometry *pGeometry, fitAlgorithm fitAlgo = kStandard);
+  AliEMCALRawUtils(Algo::fitAlgorithm fitAlgo = Algo::kStandard);
+  AliEMCALRawUtils(AliEMCALGeometry *pGeometry, Algo::fitAlgorithm fitAlgo = Algo::kStandard);
   virtual ~AliEMCALRawUtils();
 	
   AliEMCALRawUtils(const AliEMCALRawUtils& rawUtils);  //copy ctor
@@ -41,10 +46,10 @@ class AliEMCALRawUtils : public TObject {
 
   void Digits2Raw();
   void Raw2Digits(AliRawReader *reader, TClonesArray *digitsArr, const AliCaloCalibPedestal* pedbadmap,
-				  TClonesArray *digitsTRG=0x0);
+				  TClonesArray *digitsTRG=0x0, AliEMCALTriggerData* trgData = 0x0);
 
   void AddDigit(TClonesArray *digitsArr, Int_t id, Int_t lowGain, Float_t amp, Float_t time, Float_t chi2, Int_t ndf);
-  void AddDigit(TClonesArray *digitsArr, Int_t id, Int_t timeSamples[], Int_t nSamples);
+//  void AddDigit(TClonesArray *digitsArr, Int_t id, Int_t timeSamples[], Int_t nSamples);
   void TrimDigits(TClonesArray *digitsArr);
 
   // Signal shape parameters
@@ -135,6 +140,8 @@ class AliEMCALRawUtils : public TObject {
 	
   AliCaloRawAnalyzer *fRawAnalyzer;     // e.g. for sample selection for fits
 
+  AliEMCALTriggerRawDigitMaker* fTriggerRawDigitMaker;	
+	
   ClassDef(AliEMCALRawUtils,7)          // utilities for raw signal fitting
 };
 

@@ -36,7 +36,7 @@
 
 //---- Analysis system ----
 #include "AliAODTrack.h"
-#include "AliAODCaloCluster.h"
+#include "AliVCluster.h"
 #include "AliCaloTrackReader.h"
 #include "AliNeutralMesonSelection.h"
 #include "AliAnaParticleJetLeadingConeCorrelation.h"  
@@ -44,7 +44,6 @@
 #include "AliAODPWG4ParticleCorrelation.h"
 #include "AliFiducialCut.h"
 #include "AliAODTrack.h"
-#include "AliAODCaloCluster.h"
 
 ClassImp(AliAnaParticleJetLeadingConeCorrelation)
 
@@ -355,20 +354,6 @@ AliAnaParticleJetLeadingConeCorrelation & AliAnaParticleJetLeadingConeCorrelatio
 AliAnaParticleJetLeadingConeCorrelation::~AliAnaParticleJetLeadingConeCorrelation() 
 {
    // Remove all pointers except analysis output pointers.
-  delete [] fJetE1;  
-  delete [] fJetE2;    
-  delete [] fJetSigma1;
-  delete [] fJetSigma2;
-  delete [] fBkgMean; 
-  delete [] fBkgRMS;  
-  delete [] fJetXMin1;
-  delete [] fJetXMin2;
-  delete [] fJetXMax1;
-  delete [] fJetXMax2; 
-  delete [] fJetCones;         
-  delete [] fJetNameCones;   
-  delete [] fJetPtThres;       
-  delete [] fJetNamePtThres;  
 }
 
 //____________________________________________________________________________
@@ -403,26 +388,35 @@ void AliAnaParticleJetLeadingConeCorrelation::FillJetHistos(AliAODPWG4ParticleCo
   Double_t etaJet = jet.Eta();
   Double_t etaLead = leading.Eta();
   
-  dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sPt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
-    Fill(ptTrig,ptJet);
+  TH2F *h1 = 0x0;
+  h1 = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sPt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+  if(h1)h1->Fill(ptTrig,ptJet);
   
-  dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sRatioPt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
-    Fill(ptTrig,ptJet/ptTrig);
-  dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sLeadingRatioPt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
-    Fill(ptTrig,ptLead/ptJet);
+  TH2F *h2 = 0x0;
+  h2 = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sRatioPt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+  if(h2) h2->Fill(ptTrig,ptJet/ptTrig);
+  
+  TH2F *h3 = 0x0;
+  h3 = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sLeadingRatioPt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+  if(h3)h3->Fill(ptTrig,ptLead/ptJet);
+  
   //   dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sPhi%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
   //     Fill(ptTrig,phiJet);
-  dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sDeltaPhi%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
-    Fill(ptTrig,phiJet-phiTrig);
-  dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sLeadingDeltaPhi%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
-    Fill(ptTrig,phiJet-phiLead);
+  TH2F *h4 = 0x0;
+  h4 = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sDeltaPhi%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+  if(h4) h4->Fill(ptTrig,phiJet-phiTrig);
+  TH2F *h5 = 0x0;
+  h5 = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sLeadingDeltaPhi%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+  if(h5) h5->Fill(ptTrig,phiJet-phiLead);
   
   //   dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sEta%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
   //     Fill(ptTrig,etaJet);
-  dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sDeltaEta%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
-    Fill(ptTrig,etaJet-etaTrig);
-  dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sLeadingDeltaEta%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))->
-    Fill(ptTrig,etaJet-etaLead);
+  TH2F *h6 = 0x0;
+  h6 = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sDeltaEta%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+  if(h6) h6->Fill(ptTrig,etaJet-etaTrig);
+  TH2F *h7 = 0x0;
+  h7 = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sLeadingDeltaEta%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+  if(h7) h7->Fill(ptTrig,etaJet-etaLead);
   
   //Construct fragmentation function
   TObjArray * pl = new TObjArray;
@@ -442,7 +436,8 @@ void AliAnaParticleJetLeadingConeCorrelation::FillJetHistos(AliAODPWG4ParticleCo
   
   for(Int_t ipr = 0;ipr < pl->GetEntriesFast() ; ipr ++ ){
     AliAODTrack* track = dynamic_cast<AliAODTrack *>(pl->At(ipr)) ;
-    p3.SetXYZ(track->Px(),track->Py(),track->Pz());
+    if(track)p3.SetXYZ(track->Px(),track->Py(),track->Pz());
+    else printf("AliAnaParticleJetLeadingConeCorrelation::FillJetHistos() - Track not available\n");
     
     //Recheck if particle is in jet cone
     if(fReMakeJet || fSeveralConeAndPtCuts)
@@ -450,17 +445,19 @@ void AliAnaParticleJetLeadingConeCorrelation::FillJetHistos(AliAODPWG4ParticleCo
     
     nTracksInCone++; 
     
-    dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sFFz%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))
-      ->Fill(ptTrig,p3.Pt()/ptTrig);
-    dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sFFxi%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))
-      ->Fill(ptTrig,TMath::Log(ptTrig/p3.Pt()));
-    dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sFFpt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))
-      ->Fill(ptTrig,p3.Pt());
+    TH2F *ha =dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sFFz%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+    if(ha) ha->Fill(ptTrig,p3.Pt()/ptTrig);
+    TH2F *hb  =dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sFFxi%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+    if(hb) hb->Fill(ptTrig,TMath::Log(ptTrig/p3.Pt()));
+    TH2F *hc =dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sFFpt%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+    if(hc) hc->Fill(ptTrig,p3.Pt());
     
   }//track loop
   
-  if(nTracksInCone > 0) dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sNTracksInCone%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())))
-    ->Fill(ptTrig, nTracksInCone);
+  if(nTracksInCone > 0) {
+    TH2F *hd = dynamic_cast<TH2F*>(GetOutputContainer()->FindObject(Form("%s%sNTracksInCone%s",GetAddedHistogramsStringToName().Data(),type.Data(),lastname.Data())));
+    if(hd)hd->Fill(ptTrig, nTracksInCone);
+  }
   
 }
 
@@ -956,102 +953,104 @@ void  AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0(AliAODPWG4ParticleC
     TLorentzVector gammai;
     TLorentzVector gammaj;
 	  
-	//Get vertex for photon momentum calculation
-	Double_t vertex [] = {0,0,0} ; //vertex 
-	Double_t vertex2[] = {0,0,0} ; //vertex of second input AOD 
-	if(GetReader()->GetDataType() != AliCaloTrackReader::kMC) 
-	{
-		GetReader()->GetVertex(vertex);
-		if(GetReader()->GetSecondInputAODTree()) GetReader()->GetSecondInputAODVertex(vertex2);
-	}
+    //Get vertex for photon momentum calculation
+    Double_t vertex [] = {0,0,0} ; //vertex 
+    //Double_t vertex2[] = {0,0,0} ; //vertex of second input AOD 
+    if(GetReader()->GetDataType() != AliCaloTrackReader::kMC) 
+    {
+      GetVertex(vertex);
+      //if(GetReader()->GetSecondInputAODTree()) GetReader()->GetSecondInputAODVertex(vertex2);
+    }
 	  
     //Cluster loop, select pairs with good pt, phi and fill AODs or histograms
     for(Int_t iclus = 0;iclus < GetAODEMCAL()->GetEntriesFast() ; iclus ++ ){
-      AliAODCaloCluster * calo = (AliAODCaloCluster *)(GetAODEMCAL()->At(iclus)) ;
+      AliVCluster * calo = (AliVCluster *)(GetAODEMCAL()->At(iclus)) ;
       
-	  //Input from second AOD?
-	  Int_t inputi = 0;
-	  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) inputi = 1 ;
-	  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) inputi = 1;
-		
-	  //Cluster selection, not charged, with photon or pi0 id and in fiducial cut
-	  Int_t pdgi=0;
-	  if     (inputi == 0 && !SelectCluster(calo, vertex,  gammai, pdgi))  continue ;
-	  else if(inputi == 1 && !SelectCluster(calo, vertex2, gammai, pdgi))  continue ;	
+      //Input from second AOD?
+      //Int_t inputi = 0;
+      //	  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) inputi = 1 ;
+      //	  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) inputi = 1;
+      
+      //Cluster selection, not charged, with photon or pi0 id and in fiducial cut
+      Int_t pdgi=0;
+      //if     (inputi == 0 && !SelectCluster(calo, vertex,  gammai, pdgi))  continue ;
+      //else if(inputi == 1 && !SelectCluster(calo, vertex2, gammai, pdgi))  continue ;	
+      if(!SelectCluster(calo, vertex,  gammai, pdgi))  continue ;
       
       if(GetDebug() > 2) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Neutral cluster: pt %2.3f, phi %2.3f \n", 
-				gammai.Pt(),gammai.Phi());
+                                gammai.Pt(),gammai.Phi());
       
       //2 gamma overlapped, found with PID
       if(pdgi == AliCaloPID::kPi0){ 
-	
-	if(GetDebug() > 2) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Neutral cluster ID as Pi0 \n");
-	
-	pt  = gammai.Pt();
-	rat = pt/ptTrig;
-	phi = gammai.Phi();
-	if(phi < 0) phi+=TMath::TwoPi();
-	
-	//Selection within angular and energy limits
-	Float_t deltaphi = TMath::Abs(phiTrig-phi);
-	if(pt > ptl  && rat > fLeadingRatioMinCut  && rat < fLeadingRatioMaxCut  && 
-	   deltaphi > fDeltaPhiMinCut && deltaphi < fDeltaPhiMaxCut )
-	  {
-	    phil = phi ;
-	    ptl  = pt ;
-	    pLeading.SetPxPyPzE(gammai.Px(),gammai.Py(),gammai.Pz(),gammai.E());
-	  }// cuts
+        
+        if(GetDebug() > 2) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Neutral cluster ID as Pi0 \n");
+        
+        pt  = gammai.Pt();
+        rat = pt/ptTrig;
+        phi = gammai.Phi();
+        if(phi < 0) phi+=TMath::TwoPi();
+        
+        //Selection within angular and energy limits
+        Float_t deltaphi = TMath::Abs(phiTrig-phi);
+        if(pt > ptl  && rat > fLeadingRatioMinCut  && rat < fLeadingRatioMaxCut  && 
+           deltaphi > fDeltaPhiMinCut && deltaphi < fDeltaPhiMaxCut )
+        {
+          phil = phi ;
+          ptl  = pt ;
+          pLeading.SetPxPyPzE(gammai.Px(),gammai.Py(),gammai.Pz(),gammai.E());
+        }// cuts
       }// pdg = AliCaloPID::kPi0
       //Make invariant mass analysis
       else if(pdgi == AliCaloPID::kPhoton){	
-	//Search the photon companion in case it comes from  a Pi0 decay
-	//Apply several cuts to select the good pair
-	for(Int_t jclus = iclus+1; jclus < GetAODEMCAL()->GetEntriesFast() ; jclus ++ ){
-	  AliAODCaloCluster * calo2 = (AliAODCaloCluster *) (GetAODEMCAL()->At(jclus)) ;
-	  
-	  //Input from second AOD?
-	  Int_t inputj = 0;
-	  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= jclus) inputj = 1;
-	  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= jclus) inputj = 1;
-		
-	  //Cluster selection, not charged with photon or pi0 id and in fiducial cut
-	  Int_t pdgj=0;
-	  if     (inputj == 0 && !SelectCluster(calo2, vertex,  gammaj, pdgj))  continue ;
-	  else if(inputj == 1 && !SelectCluster(calo2, vertex2, gammaj, pdgj))  continue ;
-	  
-	  if(pdgj == AliCaloPID::kPhoton ){
-	    
-	    pt  = (gammai+gammaj).Pt();
-	    phi = (gammai+gammaj).Phi();
-		if(phi < 0) phi+=TMath::TwoPi();  
-		rat = pt/ptTrig;
-		
-		//Selection within angular and energy limits
-		Float_t deltaphi = TMath::Abs(phiTrig-phi);  
-		if(GetDebug() > 3 ) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Neutral Hadron Correlation: gamma pair: pt %2.2f, phi %2.2f, eta %2.2f, |phiTrig-phi| %2.3f, pt/ptTrig %2.3f, M %2.3f\n",
-					   pt,phi,(gammai+gammaj).Eta(), deltaphi, rat, (gammai+gammaj).M());
-		
-		if(pt > ptl  && rat > fLeadingRatioMinCut  && rat < fLeadingRatioMaxCut  && 
-		   deltaphi > fDeltaPhiMinCut && deltaphi < fDeltaPhiMaxCut ){
-		  //Select good pair (aperture and invariant mass)
-		  if(GetNeutralMesonSelection()->SelectPair(gammai, gammaj)){
-		    phil = phi ;
-		    ptl  = pt ;
-		    pLeading=(gammai+gammaj);  	
-		    
-		    if(GetDebug() > 3 ) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Neutral Hadron Correlation: Selected gamma pair: pt %2.2f, phi %2.2f, eta %2.2f, M %2.3f\n",
-					       ptl,phil,(gammai+gammaj).Eta(), (gammai+gammaj).M());
-		  }//pi0 selection
-		  
-		  
-		}//Pair selected as leading
- 	  }//if pair of gammas
- 	}//2nd loop
+        //Search the photon companion in case it comes from  a Pi0 decay
+        //Apply several cuts to select the good pair
+        for(Int_t jclus = iclus+1; jclus < GetAODEMCAL()->GetEntriesFast() ; jclus ++ ){
+          AliVCluster * calo2 = (AliVCluster *) (GetAODEMCAL()->At(jclus)) ;
+          
+          //Input from second AOD?
+          //Int_t inputj = 0;
+          //	  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= jclus) inputj = 1;
+          //	  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= jclus) inputj = 1;
+          
+          //Cluster selection, not charged with photon or pi0 id and in fiducial cut
+          Int_t pdgj=0;
+          //if     (inputj == 0 && !SelectCluster(calo2, vertex,  gammaj, pdgj))  continue ;
+          //else if(inputj == 1 && !SelectCluster(calo2, vertex2, gammaj, pdgj))  continue ;
+          if     (!SelectCluster(calo2, vertex,  gammaj, pdgj))  continue ;
+
+          if(pdgj == AliCaloPID::kPhoton ){
+            
+            pt  = (gammai+gammaj).Pt();
+            phi = (gammai+gammaj).Phi();
+            if(phi < 0) phi+=TMath::TwoPi();  
+            rat = pt/ptTrig;
+            
+            //Selection within angular and energy limits
+            Float_t deltaphi = TMath::Abs(phiTrig-phi);  
+            if(GetDebug() > 3 ) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Neutral Hadron Correlation: gamma pair: pt %2.2f, phi %2.2f, eta %2.2f, |phiTrig-phi| %2.3f, pt/ptTrig %2.3f, M %2.3f\n",
+                                       pt,phi,(gammai+gammaj).Eta(), deltaphi, rat, (gammai+gammaj).M());
+            
+            if(pt > ptl  && rat > fLeadingRatioMinCut  && rat < fLeadingRatioMaxCut  && 
+               deltaphi > fDeltaPhiMinCut && deltaphi < fDeltaPhiMaxCut ){
+              //Select good pair (aperture and invariant mass)
+              if(GetNeutralMesonSelection()->SelectPair(gammai, gammaj)){
+                phil = phi ;
+                ptl  = pt ;
+                pLeading=(gammai+gammaj);  	
+                
+                if(GetDebug() > 3 ) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Neutral Hadron Correlation: Selected gamma pair: pt %2.2f, phi %2.2f, eta %2.2f, M %2.3f\n",
+                                           ptl,phil,(gammai+gammaj).Eta(), (gammai+gammaj).M());
+              }//pi0 selection
+              
+              
+            }//Pair selected as leading
+          }//if pair of gammas
+        }//2nd loop
       }// if pdg = 22
     }// 1st Loop
     
     if(GetDebug() > 2 && pLeading.Pt() > 0 ) printf("AliAnaParticleJetLeadingConeCorrelation::GetLeadingPi0() - Leading EMCAL: pt %2.3f eta %2.3f phi %2.3f pt/Eg %2.3f \n",  
-						    pLeading.Pt(), pLeading.Eta(), phil,  pLeading.Pt()/ptTrig) ;
+                                                    pLeading.Pt(), pLeading.Eta(), phil,  pLeading.Pt()/ptTrig) ;
     
   }//EMCAL list exists
 }
@@ -1508,27 +1507,27 @@ void AliAnaParticleJetLeadingConeCorrelation::MakeAODJet(AliAODPWG4ParticleCorre
     
 	//Get vertex for photon momentum calculation
 	Double_t vertex[]  = {0,0,0} ; //vertex 
-	Double_t vertex2[] = {0,0,0} ; //vertex of second input aod
+	//Double_t vertex2[] = {0,0,0} ; //vertex of second input aod
 	if(GetReader()->GetDataType()!= AliCaloTrackReader::kMC) 
 	{
 		GetReader()->GetVertex(vertex);
-		if(GetReader()->GetSecondInputAODTree()) GetReader()->GetSecondInputAODVertex(vertex2);
+		//if(GetReader()->GetSecondInputAODTree()) GetReader()->GetSecondInputAODVertex(vertex2);
 	}
 	  
     for(Int_t iclus = 0;iclus < (GetAODEMCAL())->GetEntriesFast() ; iclus ++ ){
-      AliAODCaloCluster * calo = (AliAODCaloCluster *) (GetAODEMCAL()->At(iclus)) ;
+      AliVCluster * calo = (AliVCluster *) (GetAODEMCAL()->At(iclus)) ;
       
       //Cluster selection, not charged
-      if(calo->GetNTracksMatched() > 0) continue ;
+      if(IsTrackMatched(calo)) continue ;
       
 	  //Input from second AOD?
 	  Int_t input = 0;
-	  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) input = 1 ;
-	  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) input = 1;
-		
+//	  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) input = 1 ;
+//	  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) input = 1;
+//		
 	  //Get Momentum vector, 
 	  if     (input == 0) calo->GetMomentum(lv,vertex) ;//Assume that come from vertex in straight line
-	  else if(input == 1) calo->GetMomentum(lv,vertex2);//Assume that come from vertex in straight line  
+	  //else if(input == 1) calo->GetMomentum(lv,vertex2);//Assume that come from vertex in straight line  
 		
       //Particles in jet 
       if(IsParticleInJetCone(lv.Eta(),lv.Phi(), etal, phil)){
@@ -1626,26 +1625,26 @@ void AliAnaParticleJetLeadingConeCorrelation::MakeJetFromAOD(AliAODPWG4ParticleC
     
 	//Get vertex for photon momentum calculation
 	Double_t vertex[]  = {0,0,0} ; //vertex 
-	Double_t vertex2[] = {0,0,0} ; //vertex of second input aod
+	//Double_t vertex2[] = {0,0,0} ; //vertex of second input aod
 	if(GetReader()->GetDataType()!= AliCaloTrackReader::kMC) 
 	{
 		GetReader()->GetVertex(vertex);
-		if(GetReader()->GetSecondInputAODTree()) GetReader()->GetSecondInputAODVertex(vertex2);
+		//if(GetReader()->GetSecondInputAODTree()) GetReader()->GetSecondInputAODVertex(vertex2);
 	}
 	  
     //Loop on jet particles
     if(refclusters){
       for(Int_t iclus = 0;iclus < refclusters->GetEntriesFast() ; iclus ++ ){
-		  AliAODCaloCluster * calo = (AliAODCaloCluster *) refclusters->At(iclus) ;
+		  AliVCluster * calo = (AliVCluster *) refclusters->At(iclus) ;
 		  
 		  //Input from second AOD?
 		  Int_t input = 0;
-		  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) input = 1 ;
-		  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) input = 1;
+	//	  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) input = 1 ;
+//		  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) input = 1;
 		  
 		  //Get Momentum vector, 
 		  if     (input == 0) calo->GetMomentum(lv,vertex) ;//Assume that come from vertex in straight line
-		  else if(input == 1) calo->GetMomentum(lv,vertex2);//Assume that come from vertex in straight line  
+		  //else if(input == 1) calo->GetMomentum(lv,vertex2);//Assume that come from vertex in straight line  
 		  
 		  if(lv.Pt() > ptcut && IsParticleInJetCone(lv.Eta(),lv.Phi(), etal, phil)) jet+=lv;   
       }//jet cluster loop
@@ -1654,16 +1653,16 @@ void AliAnaParticleJetLeadingConeCorrelation::MakeJetFromAOD(AliAODPWG4ParticleC
     //Loop on background particles
     if(refclustersbkg){
       for(Int_t iclus = 0;iclus < refclustersbkg->GetEntriesFast() ; iclus ++ ){
-		  AliAODCaloCluster * calo = (AliAODCaloCluster *) refclustersbkg->At(iclus) ;
+		  AliVCluster * calo = (AliVCluster *) refclustersbkg->At(iclus) ;
 
 		  //Input from second AOD?
 		  Int_t input = 0;
-		  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) input = 1 ;
-		  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) input = 1;
+//		  if     (particle->GetDetector() == "EMCAL" && GetReader()->GetAODEMCALNormalInputEntries() <= iclus) input = 1 ;
+//		  else if(particle->GetDetector() == "PHOS"  && GetReader()->GetAODPHOSNormalInputEntries()  <= iclus) input = 1;
 		  
 		  //Get Momentum vector, 
 		  if     (input == 0) calo->GetMomentum(lv,vertex) ;//Assume that come from vertex in straight line
-		  else if(input == 1) calo->GetMomentum(lv,vertex2);//Assume that come from vertex in straight line  
+		  //else if(input == 1) calo->GetMomentum(lv,vertex2);//Assume that come from vertex in straight line  
 		  
 		  if( lv.Pt() > ptcut && IsParticleInJetCone(lv.Eta(),lv.Phi(),etal, phiTrig)) bkg+=lv;
       }//background cluster loop 
@@ -1682,40 +1681,40 @@ void AliAnaParticleJetLeadingConeCorrelation::MakeJetFromAOD(AliAODPWG4ParticleC
 }
 
 //____________________________________________________________________________
-Bool_t  AliAnaParticleJetLeadingConeCorrelation::SelectCluster(AliAODCaloCluster * calo, Double_t *vertex, TLorentzVector & mom, Int_t & pdg) {
-  //Select cluster depending on its pid and acceptance selections
-  
-  //Skip matched clusters with tracks
-  if(calo->GetNTracksMatched() > 0) return kFALSE;
-  
-  //Check PID
-  calo->GetMomentum(mom,vertex);//Assume that come from vertex in straight line
-  pdg = AliCaloPID::kPhoton;   
-  if(IsCaloPIDOn()){
-    //Get most probable PID, 2 options check PID weights (in MC this option is mandatory)
-    //or redo PID, recommended option for EMCal.
-    if(!IsCaloPIDRecalculationOn() || GetReader()->GetDataType() == AliCaloTrackReader::kMC )
-      pdg = GetCaloPID()->GetPdg("EMCAL",calo->PID(),mom.E());//PID with weights
-    else
-      pdg = GetCaloPID()->GetPdg("EMCAL",mom,calo);//PID recalculated
-    
-  //  if(GetDebug() > 3) printf("AliAnaParticleJetLeadingConeCorrelation::SelectCluster() - PDG of identified particle %d\n",pdg);
-    //If it does not pass pid, skip
-    if(pdg != AliCaloPID::kPhoton && pdg != AliCaloPID::kPi0) 
-      return kFALSE ;
-  }//CaloPID
-  
-   //Check acceptance selection
-  if(IsFiducialCutOn()){
-    Bool_t in = GetFiducialCut()->IsInFiducialCut(mom,"EMCAL") ;
-    if(! in ) return kFALSE ;
-  }
-  
-  //if(GetDebug() > 3) printf("AliAnaParticleJetLeadingConeCorrelation::SelectCluster() - Cluster selection cuts passed: pT %3.2f, pdg %d\n",mom.Pt(), pdg);
-  
-  return kTRUE; 
-  
-}
+//Bool_t  AliAnaParticleJetLeadingConeCorrelation::SelectCluster(AliVCluster * calo, Double_t *vertex, TLorentzVector & mom, Int_t & pdg) {
+//  //Select cluster depending on its pid and acceptance selections
+//  
+//  //Skip matched clusters with tracks
+//  if(IsTrackMatched(calo)) return kFALSE;
+//  
+//  //Check PID
+//  calo->GetMomentum(mom,vertex);//Assume that come from vertex in straight line
+//  pdg = AliCaloPID::kPhoton;   
+//  if(IsCaloPIDOn()){
+//    //Get most probable PID, 2 options check PID weights (in MC this option is mandatory)
+//    //or redo PID, recommended option for EMCal.
+//    if(!IsCaloPIDRecalculationOn() || GetReader()->GetDataType() == AliCaloTrackReader::kMC )
+//      pdg = GetCaloPID()->GetPdg("EMCAL",calo->GetPID(),mom.E());//PID with weights
+//    else
+//      pdg = GetCaloPID()->GetPdg("EMCAL",mom,calo);//PID recalculated
+//    
+//  //  if(GetDebug() > 3) printf("AliAnaParticleJetLeadingConeCorrelation::SelectCluster() - PDG of identified particle %d\n",pdg);
+//    //If it does not pass pid, skip
+//    if(pdg != AliCaloPID::kPhoton && pdg != AliCaloPID::kPi0) 
+//      return kFALSE ;
+//  }//CaloPID
+//  
+//   //Check acceptance selection
+//  if(IsFiducialCutOn()){
+//    Bool_t in = GetFiducialCut()->IsInFiducialCut(mom,"EMCAL") ;
+//    if(! in ) return kFALSE ;
+//  }
+//  
+//  //if(GetDebug() > 3) printf("AliAnaParticleJetLeadingConeCorrelation::SelectCluster() - Cluster selection cuts passed: pT %3.2f, pdg %d\n",mom.Pt(), pdg);
+//  
+//  return kTRUE; 
+//  
+//}
 
 //__________________________________________________________________
 void AliAnaParticleJetLeadingConeCorrelation::Print(const Option_t * opt) const

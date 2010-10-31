@@ -31,12 +31,9 @@ using namespace std;
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCClusterDataFormat.h"
 
-#include "AliTPCcalibDB.h"
-#include "AliTPCTransform.h"
-#include "AliTPCCalPad.h"
-
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
+#include "AliTPCcalibDB.h"
 
 #include "TMath.h"
 #include "TObjString.h" 
@@ -50,16 +47,19 @@ const char* AliHLTTPCHWClusterTransformComponent::fgkOCDBEntryHWTransform="HLT/C
 
 AliHLTTPCHWClusterTransformComponent::AliHLTTPCHWClusterTransformComponent()
 :
-fOfflineTransform(NULL),
 fDataId(kFALSE),
 fChargeThreshold(10),
-fOfflineTPCRecoParam()
+fTransform(),
+fBenchmark("HWClusterTransform")
 {
   // see header file for class documentation
   // or
   // refer to README to build package
   // or
   // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt  
+
+  fBenchmark.Reset();
+  fBenchmark.SetTimer(0,"total");
 }
 
 AliHLTTPCHWClusterTransformComponent::~AliHLTTPCHWClusterTransformComponent() { 
@@ -107,19 +107,13 @@ AliHLTComponent* AliHLTTPCHWClusterTransformComponent::Spawn() {
 	
 int AliHLTTPCHWClusterTransformComponent::DoInit( int argc, const char** argv ) { 
 // see header file for class documentation
+  
+  int err = fTransform.Init( GetBz(), GetTimeStamp() );
 
-  AliTPCcalibDB* pCalib=AliTPCcalibDB::Instance();
-  if(!pCalib ||
-     !(fOfflineTransform = AliTPCcalibDB::Instance()->GetTransform())){
-    HLTError("Cannot retrieve offline transform from AliTPCcalibDB (%p)", pCalib);
+  if( err!=0 ){
+    HLTError("Cannot retrieve offline transform from AliTPCcalibDB");
     return -ENOENT;
   }
-  // set the flags in the reco param
-  fOfflineTPCRecoParam.SetUseExBCorrection(1);
-  fOfflineTPCRecoParam.SetUseTOFCorrection(1);
-  fOfflineTransform->SetCurrentRecoParam(&fOfflineTPCRecoParam);
-  
-  pCalib->SetExBField(GetBz());
 
   int iResult=0;
   iResult = ConfigureFromCDBTObjString(fgkOCDBEntryHWTransform);
@@ -146,28 +140,28 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
      size = 0;
      return 0;
   }
- 
-  const AliHLTComponentBlockData *iter = NULL;    
-  unsigned long ndx;
 
-  AliHLTTPCClusterData* outPtr;
+  fBenchmark.StartNewEvent();
+  fBenchmark.Start(0);
+
+  fTransform.SetCurrentTimeStamp( GetTimeStamp() );
+
+  const AliHLTComponentBlockData *iter = NULL;    
+  unsigned long ndx; 
 
   AliHLTUInt8_t* outBPtr;
   UInt_t offset, mysize, nSize, tSize = 0;
 
   outBPtr = outputPtr;
-  outPtr  = (AliHLTTPCClusterData*)outBPtr;
-  
-  AliHLTTPCSpacePointData *spacePoints = outPtr->fSpacePoints;
-
-  unsigned long maxPoints = 0;
-    
+      
   for(ndx=0; ndx<evtData.fBlockCnt; ndx++){
      
      iter   = blocks+ndx;
      mysize = 0;
      offset = tSize;
- 
+     
+     fBenchmark.AddInput(iter->fSize);
+
      HLTDebug("Event 0x%08LX (%Lu) received datatype: %s - required datatype: %s",
      	       evtData.fEventID, evtData.fEventID, 
      	       DataType2Text( iter->fDataType).c_str(), 
@@ -179,11 +173,14 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
      UInt_t minPartition = AliHLTTPCDefinitions::GetMinPatchNr(*iter);
      //UInt_t maxSlice     = AliHLTTPCDefinitions::GetMaxSliceNr(*iter); 
      //UInt_t maxPartition = AliHLTTPCDefinitions::GetMaxPatchNr(*iter);
-     
+
+     fBenchmark.SetName(Form("HWClusterTransform slice %d patch %d",minSlice,minPartition));
+
      HLTDebug("minSlice: %d, minPartition: %d", minSlice, minPartition);
     
-     outPtr = (AliHLTTPCClusterData*)outBPtr;
-     maxPoints = (size-tSize-sizeof(AliHLTTPCClusterData))/sizeof(AliHLTTPCSpacePointData);
+     AliHLTTPCClusterData* outPtr  = (AliHLTTPCClusterData*)outBPtr;
+
+     unsigned long maxPoints = (size-tSize-sizeof(AliHLTTPCClusterData))/sizeof(AliHLTTPCSpacePointData);
      
      AliHLTUInt32_t *buffer;     
      buffer = (AliHLTUInt32_t*)iter->fPtr;  
@@ -209,8 +206,6 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
      //RCU trailer
      buffer[13]=0x80000000;
      */
-
-     Int_t sector=-99, thisrow=-99;
 
      // PrintDebug(buffer, 14);
      
@@ -260,43 +255,22 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 	   // Kenneth: 12.11.2009 I'm not sure if this is a correct calculation. Leave it out for now since it is anyway not used later since it caused segfaults.
 	   // cluster.fSigmaY2 = TMath::Sqrt( *((Float_t*)&buffer[nWords+3]) - *((Float_t*)&buffer[nWords+1])* (*((Float_t*)&buffer[nWords+1])) );
 	   // cluster.fSigmaZ2 = TMath::Sqrt( *((Float_t*)&buffer[nWords+3]) - *((Float_t*)&buffer[nWords+1])* (*((Float_t*)&buffer[nWords+1])) );
-
-    	   Float_t xyz[3]; xyz[0] = xyz[1] = xyz[2] = -99.;
     	  	   
 	   HLTDebug("padrow: %d, charge: %d, pad: %f, time: %f, errY: %f, errZ: %f \n", cluster.fPadRow, (UInt_t)cluster.fCharge, tmpPad, tmpTime, cluster.fSigmaY2, cluster.fSigmaZ2);        	   
-	   
-	   //fOfflineTransform=NULL;
-	   
-	   if(fOfflineTransform == NULL){	   	   
-	      cluster.fPadRow += AliHLTTPCTransform::GetFirstRow(minPartition);             	   
-	      AliHLTTPCTransform::Slice2Sector(minSlice, cluster.fPadRow, sector, thisrow);	      
-    	      AliHLTTPCTransform::Raw2Local(xyz, sector, thisrow, tmpPad, tmpTime); 
-	      if(minSlice>17) xyz[1]=(-1)*xyz[1];	   
-	      cluster.fX = xyz[0];
-    	      cluster.fY = xyz[1];
-    	      cluster.fZ = xyz[2]; 
-     	   } else {	
-	   
-	         
-	    
-	     cluster.fPadRow += AliHLTTPCTransform::GetFirstRow(minPartition);
-	     
-	     AliHLTTPCTransform::Slice2Sector(minSlice, (UInt_t)cluster.fPadRow, sector, thisrow);	     
-	     
+	   	    
+	   cluster.fPadRow += AliHLTTPCTransform::GetFirstRow(minPartition);	     	     
 	      
-	     Double_t x[3] = {thisrow,tmpPad+.5,tmpTime}; 
-	     Int_t iSector[1]= {sector};
-	     fOfflineTransform->Transform(x,iSector,0,1);
-	     cluster.fX = x[0];
-	     cluster.fY = x[1];
-	     cluster.fZ = x[2];		     
- 	   }	   
+	   Float_t xyz[3];
+	   fTransform.Transform( minSlice, cluster.fPadRow, tmpPad, tmpTime, xyz );
+	   cluster.fX = xyz[0];
+	   cluster.fY = xyz[1];
+	   cluster.fZ = xyz[2];		     		   
 
 	   // set the cluster ID so that the cluster dump printout is the same for FCF and SCF
 	   cluster.fID = nAddedClusters +((minSlice&0x7f)<<25)+((minPartition&0x7)<<22);
 
 	   HLTDebug("Cluster number %d: %f, Y: %f, Z: %f, charge: %d \n", nAddedClusters, cluster.fX, cluster.fY, cluster.fZ, (UInt_t)cluster.fCharge);
-	   spacePoints[nAddedClusters] = cluster;
+	   outPtr->fSpacePoints[nAddedClusters] = cluster;
 	   	   
            nAddedClusters++; 
 	} // end of clusters starting with 11=0x3
@@ -324,13 +298,19 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
      
      outputBlocks.push_back( bd );
      
+     fBenchmark.AddOutput(bd.fSize);
+    
      tSize   += mysize;
      outBPtr += mysize;
-     outPtr   = (AliHLTTPCClusterData*)outBPtr;
   
    } // end of loop over data blocks
-   size = tSize;
-   return 0;
+
+  size = tSize;
+  
+  fBenchmark.Stop(0);
+  HLTInfo(fBenchmark.GetStatistics());
+
+  return 0;
 } // end DoEvent()
 
 int AliHLTTPCHWClusterTransformComponent::ScanConfigurationArgument(int argc, const char** argv){
@@ -363,7 +343,7 @@ int AliHLTTPCHWClusterTransformComponent::ScanConfigurationArgument(int argc, co
   if (argument.CompareTo("-charge-threshold")==0) {
     if (++i>=argc) return -EPROTO;
     argument=argv[i];
-    fChargeThreshold=argument.Atof();
+    fChargeThreshold=(UInt_t)argument.Atoi();
     HLTInfo("The charge threshold has been set to %d.", fChargeThreshold);
     return 2;
   }    

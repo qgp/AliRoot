@@ -29,9 +29,15 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
+#include "TProfile.h"
 #include "TList.h"
+#include "TFile.h"
 #include "TChain.h"
 #include "TH3F.h"
+#include "TKey.h"
+#include "TSystem.h"
+
+#include "AliAnalysisTask.h"
 #include "AliAnalysisManager.h"
 #include "AliESDInputHandler.h"
 #include "AliMCEvent.h"
@@ -41,17 +47,29 @@
 #include "AliESDtrackCuts.h"
 #include "AliExternalTrackParam.h"
 #include "AliLog.h"
+#include "AliGenPythiaEventHeader.h"
+#include "AliGenCocktailEventHeader.h"
+//#include "AliAnalysisHelperJetTasks.h"
 
 using namespace std; //required for resolving the 'cout' symbol
 
 ClassImp(AliPWG4HighPtQAMC)
 
-AliPWG4HighPtQAMC::AliPWG4HighPtQAMC(): AliAnalysisTask("AliPWG4HighPtQAMC", ""), 
+AliPWG4HighPtQAMC::AliPWG4HighPtQAMC()
+: AliAnalysisTask("AliPWG4HighPtQAMC", ""), 
   fESD(0), 
+  fMC(0),
   fTrackCuts(0), 
   fTrackCutsITS(0),
+  fTrackType(0),
+  fPtMax(100.),
+  fAvgTrials(1),
   fNEventAll(0),
   fNEventSel(0),
+  fh1Xsec(0),
+  fh1Trials(0),
+  fh1PtHard(0),
+  fh1PtHardTrials(0),
   fPtAll(0),  
   fPtSel(0),  
   fPtAllminPtMCvsPtAll(0),
@@ -83,12 +101,20 @@ AliPWG4HighPtQAMC::AliPWG4HighPtQAMC(): AliAnalysisTask("AliPWG4HighPtQAMC", "")
 }
 //________________________________________________________________________
 AliPWG4HighPtQAMC::AliPWG4HighPtQAMC(const char *name): 
-  AliAnalysisTask(name, ""), 
+  AliAnalysisTask(name,""), 
   fESD(0),
+  fMC(0),
   fTrackCuts(),
   fTrackCutsITS(),
+  fTrackType(0),
+  fPtMax(100.),
+  fAvgTrials(1),
   fNEventAll(0),
   fNEventSel(0),
+  fh1Xsec(0),
+  fh1Trials(0),
+  fh1PtHard(0),
+  fh1PtHardTrials(0),
   fPtAll(0),
   fPtSel(0),
   fPtAllminPtMCvsPtAll(0),
@@ -122,33 +148,40 @@ AliPWG4HighPtQAMC::AliPWG4HighPtQAMC(const char *name):
   AliDebug(2,Form("AliPWG4HighPtQAMC Calling Constructor"));
   // Input slot #0 works with a TChain ESD
   DefineInput(0, TChain::Class());
-  // Output slot #0 writes into a TList
+  // Output slot #0, #1 write into a TList
   DefineOutput(0, TList::Class());
-  // Output slot #1 writes into a TList
   DefineOutput(1, TList::Class());
-  // Output slot #2 writes into a TList
-  DefineOutput(2, TList::Class());
 }
 
 //________________________________________________________________________
 void AliPWG4HighPtQAMC::ConnectInputData(Option_t *) 
 {
-  // Connect ESD here
+  // Connect ESD and MC event handler here
   // Called once
   AliDebug(2,Form(">> AliPWG4HighPtSpectra::ConnectInputData \n"));
   TTree* tree = dynamic_cast<TTree*> (GetInputData(0));
   if (!tree) {
-    AliDebug(2,Form("ERROR: Could not read chain from input slot 0"));
-  } else {
-    
-    AliESDInputHandler *esdH = dynamic_cast<AliESDInputHandler*> (AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler());
-    
-    if (!esdH) {
-      AliDebug(2,Form("ERROR: Could not get ESDInputHandler"));
-    } else
-      fESD = esdH->GetEvent();
+    AliDebug(2,Form( "ERROR: Could not read chain from input slot 0 \n"));
+    return;
   }
+
+  AliESDInputHandler *esdH = dynamic_cast<AliESDInputHandler*> (AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler());
+
+  if (!esdH) {
+    AliDebug(2,Form("ERROR: Could not get ESDInputHandler"));
+    return;
+  } else
+    fESD = esdH->GetEvent();
+  
+ AliMCEventHandler *eventHandler = dynamic_cast<AliMCEventHandler*> (AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler());
+ if (!eventHandler) {
+   AliDebug(2,Form( "ERROR: Could not retrieve MC event handler \n"));
+ }
+  else
+    fMC = eventHandler->MCEvent();
+
 }
+
 
 //________________________________________________________________________
 void AliPWG4HighPtQAMC::CreateOutputObjects() {
@@ -160,8 +193,10 @@ void AliPWG4HighPtQAMC::CreateOutputObjects() {
 
   OpenFile(0);
   fHistList = new TList();
+  fHistList->SetOwner(kTRUE);
   OpenFile(1);
   fHistListITS = new TList();
+  fHistListITS->SetOwner(kTRUE);
 
   Int_t fgkNPhiBins=18;
   Float_t kMinPhi = 0.;
@@ -169,13 +204,27 @@ void AliPWG4HighPtQAMC::CreateOutputObjects() {
   
   Int_t fgkNPtBins=98;
   Float_t fgkPtMin=2.;
-  Float_t fgkPtMax=100.;
+  Float_t fgkPtMax=fPtMax;
   Int_t fgkResPtBins=80;
 
   fNEventAll = new TH1F("fNEventAll","NEventAll",1,-0.5,0.5);
   fHistList->Add(fNEventAll);
   fNEventSel = new TH1F("fNEventSel","NEvent Selected for analysis",1,-0.5,0.5);
   fHistList->Add(fNEventSel);
+
+  fh1Xsec = new TProfile("fh1Xsec","xsec from pyxsec.root",1,0,1);
+  fh1Xsec->GetXaxis()->SetBinLabel(1,"<#sigma>");
+  fHistList->Add(fh1Xsec);
+
+  fh1Trials = new TH1F("fh1Trials","trials root file",1,0,1);
+  fh1Trials->GetXaxis()->SetBinLabel(1,"#sum{ntrials}");
+  fHistList->Add(fh1Trials);
+
+  fh1PtHard       = new TH1F("fh1PtHard","PYTHIA Pt hard;p_{T,hard}",350,-.5,349.5);
+  fHistList->Add(fh1PtHard);
+  fh1PtHardTrials = new TH1F("fh1PtHardTrials","PYTHIA Pt hard weight with trials;p_{T,hard}",350,-.5,349.5);
+  fHistList->Add(fh1PtHardTrials);
+
   fPtAll = new TH1F("fPtAll","PtAll",fgkNPtBins, fgkPtMin, fgkPtMax);
   fHistList->Add(fPtAll);
   fPtSel = new TH1F("fPtSel","PtSel",fgkNPtBins, fgkPtMin, fgkPtMax);
@@ -306,12 +355,11 @@ void AliPWG4HighPtQAMC::Exec(Option_t *) {
   // Main loop
   // Called for each event
   AliDebug(2,Form(">> AliPWG4HighPtQATPConly::Exec \n"));  
-  
   // All events without selection
   fNEventAll->Fill(0.);
 
   if (!fESD) {
-    AliDebug(2,Form("ERROR: fESD not available"));
+    AliDebug(2,Form("ERROR: fInputEvent not available\n"));
     PostData(0, fHistList);
     PostData(1, fHistListITS);
     return;
@@ -326,34 +374,41 @@ void AliPWG4HighPtQAMC::Exec(Option_t *) {
     return;
   }
   
- AliMCEventHandler* eventHandler = dynamic_cast<AliMCEventHandler*> (AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler());
-  if (!eventHandler) {
-    AliDebug(2,Form("ERROR: Could not retrieve MC event handler"));
+  AliStack* stack = 0x0;
+  
+  if(fMC) {
+    AliDebug(2,Form("MC particles: %d", fMC->GetNumberOfTracks()));
+    stack = fMC->Stack();                //Particles Stack
+    AliDebug(2,Form("MC particles stack: %d", stack->GetNtrack()));
+  } else {
+    AliDebug(2,Form("ERROR: Could not retrieve MC eventHandler"));
     PostData(0, fHistList);
     PostData(1, fHistListITS);
     return;
   }
 
-  AliMCEvent* mcEvent = eventHandler->MCEvent();
-  if (!mcEvent) {
-    AliDebug(2,Form("ERROR: Could not retrieve MC event"));
-    PostData(0, fHistList);
-    PostData(1, fHistListITS);
-    return;
-  }
+  //___ get MC information __________________________________________________________________
 
-  AliDebug(2,Form("MC particles: %d", mcEvent->GetNumberOfTracks()));
+  Double_t ptHard = 0.;
+  Double_t nTrials = 1; // trials for MC trigger weight for real data
+  
+  if(fMC){
+    AliGenPythiaEventHeader*  pythiaGenHeader = GetPythiaEventHeader(fMC);
+     if(!pythiaGenHeader){
+       AliDebug(2,Form("ERROR: Could not retrieve AliGenPythiaEventHeader"));
+       PostData(0, fHistList);
+       PostData(1, fHistListITS);
+       return;
+     } else {
+        nTrials = pythiaGenHeader->Trials();
+        ptHard  = pythiaGenHeader->GetPtHard();
 
-  if (!fESD) {
-    AliDebug(2,Form("ERROR: fESD not available"));
-    PostData(0, fHistList);
-    PostData(1, fHistListITS);
-    return;
-  }
+        fh1PtHard->Fill(ptHard);
+        fh1PtHardTrials->Fill(ptHard,nTrials);
 
-  AliStack* stack = mcEvent->Stack();                //Particles Stack
-
-  AliDebug(2,Form("MC particles stack: %d", stack->GetNtrack()));
+        fh1Trials->Fill("#sum{ntrials}",fAvgTrials);
+     }
+   }
 
   const AliESDVertex *vtx = fESD->GetPrimaryVertex();
   // Need vertex cut
@@ -372,7 +427,6 @@ void AliPWG4HighPtQAMC::Exec(Option_t *) {
 
   double primVtx[3];
   vtx->GetXYZ(primVtx);
-  //  printf("primVtx: %g  %g  %g \n",primVtx[0],primVtx[1],primVtx[2]);
   if(TMath::Sqrt(primVtx[0]*primVtx[0] + primVtx[1]*primVtx[1])>1. || TMath::Abs(primVtx[2]>10.)){
     // Post output data
     PostData(0, fHistList);
@@ -382,47 +436,77 @@ void AliPWG4HighPtQAMC::Exec(Option_t *) {
   
   AliDebug(2,Form("Vertex title %s, status %d, nCont %d\n",vtx->GetTitle(), vtx->GetStatus(), vtx->GetNContributors()));
 
-  // Need to keep track of evts without vertex
-  fNEventSel->Fill(0.);
-
   if(!fESD->GetNumberOfTracks() || fESD->GetNumberOfTracks()<2)  {
     PostData(0, fHistList);
     PostData(1, fHistListITS);
     return;
   }
 
+  //Need to keep track of selected events
+  fNEventSel->Fill(0.);
+
   Int_t nTracks = fESD->GetNumberOfTracks();
-  AliDebug(2,Form("nTracks %d", nTracks));
+  AliDebug(2,Form("nTracks ESD%d", nTracks));
 
   int nMCtracks = stack->GetNtrack();
 
+  Float_t pt      = 0.;
+  Float_t ptMC    = 0.;
+  Float_t phi     = 0.;
+  Float_t dca2D   = 0.;
+  Float_t dcaZ    = 0.;
+  Int_t nPointITS = 0;
+  Float_t chi2C   = 0.;
+  Float_t nSigmaToVertex    = 0.;
+  Float_t relUncertainty1Pt = 0.;
+
   for (Int_t iTrack = 0; iTrack < nTracks; iTrack++) {
     
-    AliESDtrack *track = fESD->GetTrack(iTrack);
+    AliESDtrack *track;
+    AliESDtrack *esdtrack = fESD->GetTrack(iTrack);
+    if(!esdtrack) continue;
+    AliExternalTrackParam *trackTPC = (AliExternalTrackParam *)esdtrack->GetTPCInnerParam();
+
+    if(fTrackType==1)
+      track = AliESDtrackCuts::GetTPCOnlyTrack(fESD,esdtrack->GetID());
+    else
+      track = esdtrack;
+
+    
     if(!track) continue;
+
     Int_t label = TMath::Abs(track->GetLabel());
     if(label>=nMCtracks)continue;
     TParticle *particle = stack->Particle(label) ;
     if(!particle) continue;
 
-    Float_t pt = track->Pt();
-    Float_t ptMC = particle->Pt();
-    Float_t phi = track->Phi();
-    Float_t dca2D, dcaZ;
-    track->GetImpactParameters(dca2D,dcaZ);
+    ptMC = particle->Pt();
+
+    if(fTrackType==0) {       //Global
+      pt  = track->Pt();
+      phi = track->Phi();
+      track->GetImpactParameters(dca2D,dcaZ);
+    }
+    else if(fTrackType==1) {  //TPConly
+      pt  = trackTPC->Pt();
+      phi = trackTPC->Phi();
+      track->GetImpactParametersTPC(dca2D,dcaZ);
+    }
+    else {continue;}
+
+    
     UChar_t itsMap = track->GetITSClusterMap();
-    Int_t nPointITS = 0;
     for (Int_t i=0; i < 6; i++) {
       if (itsMap & (1 << i))
 	nPointITS ++;
     }
-    Float_t nSigmaToVertex = fTrackCuts->GetSigmaToVertex(track);// Calculates the number of sigma to the vertex for a track.
-    Float_t chi2C = track->GetConstrainedChi2();
-    Float_t relUncertainty1Pt = TMath::Sqrt(track->GetSigma1Pt2())*pt;
-
+    nSigmaToVertex = fTrackCuts->GetSigmaToVertex(track);// Calculates the number of sigma to the vertex for a track.
+    chi2C = track->GetConstrainedChi2();
+    relUncertainty1Pt = TMath::Sqrt(track->GetSigma1Pt2())*pt;
+    
     fPtAll->Fill(pt);
     fPtAllMC->Fill(ptMC);
-    
+
     if (fTrackCuts->AcceptTrack(track)) {
 
       fPtSel->Fill(pt);
@@ -440,8 +524,9 @@ void AliPWG4HighPtQAMC::Exec(Option_t *) {
     }//fTrackCuts selection
     
     
+    
     //ITSrefit selection
-    if (fTrackCutsITS->AcceptTrack(track)) {
+    if (fTrackCutsITS->AcceptTrack(track) && fTrackType==0) {
       
       fPtSelITS->Fill(pt);
       fPtSelMCITS->Fill(ptMC);
@@ -455,7 +540,7 @@ void AliPWG4HighPtQAMC::Exec(Option_t *) {
       fPtITSminPtMCvsPtITSChi2C->Fill(ptMC,(1./pt-1./ptMC)/(1./ptMC),chi2C);
       fPtITSminPtMCvsPtITSRel1PtUncertainty->Fill(ptMC,(1./pt-1./ptMC)/(1./ptMC),relUncertainty1Pt);
     }//fTrackCutsITS loop
-      
+    
   }//ESD track loop
    
   // Post output data
@@ -463,6 +548,135 @@ void AliPWG4HighPtQAMC::Exec(Option_t *) {
   PostData(1, fHistListITS);
 
 }
+//________________________________________________________________________
+Bool_t AliPWG4HighPtQAMC::PythiaInfoFromFile(const char* currFile,Float_t &fXsec,Float_t &fTrials){
+  //
+  // get the cross section and the trails either from pyxsec.root or from pysec_hists.root
+  // This is to called in Notify and should provide the path to the AOD/ESD file
+  // Copied from AliAnalysisTaskJetSpectrum2
+  //
+
+  TString file(currFile);  
+  fXsec = 0;
+  fTrials = 1;
+
+  if(file.Contains("root_archive.zip#")){
+    Ssiz_t pos1 = file.Index("root_archive",12,TString::kExact);
+    Ssiz_t pos = file.Index("#",1,pos1,TString::kExact);
+    file.Replace(pos+1,20,"");
+  }
+  else {
+    // not an archive take the basename....
+    file.ReplaceAll(gSystem->BaseName(file.Data()),"");
+  }
+  Printf("%s",file.Data());
+   
+
+  TFile *fxsec = TFile::Open(Form("%s%s",file.Data(),"pyxsec.root")); // problem that we cannot really test the existance of a file in a archive so we have to lvie with open error message from root
+  if(!fxsec){
+    // next trial fetch the histgram file
+    fxsec = TFile::Open(Form("%s%s",file.Data(),"pyxsec_hists.root"));
+    if(!fxsec){
+	// not a severe condition but inciate that we have no information
+      return kFALSE;
+    }
+    else{
+      // find the tlist we want to be independtent of the name so use the Tkey
+      TKey* key = (TKey*)fxsec->GetListOfKeys()->At(0); 
+      if(!key){
+	fxsec->Close();
+	return kFALSE;
+      }
+      TList *list = dynamic_cast<TList*>(key->ReadObj());
+      if(!list){
+	fxsec->Close();
+	return kFALSE;
+      }
+      fXsec = ((TProfile*)list->FindObject("h1Xsec"))->GetBinContent(1);
+      fTrials  = ((TH1F*)list->FindObject("h1Trials"))->GetBinContent(1);
+      fxsec->Close();
+    }
+  } // no tree pyxsec.root
+  else {
+    TTree *xtree = (TTree*)fxsec->Get("Xsection");
+    if(!xtree){
+      fxsec->Close();
+      return kFALSE;
+    }
+    UInt_t   ntrials  = 0;
+    Double_t  xsection  = 0;
+    xtree->SetBranchAddress("xsection",&xsection);
+    xtree->SetBranchAddress("ntrials",&ntrials);
+    xtree->GetEntry(0);
+    fTrials = ntrials;
+    fXsec = xsection;
+    fxsec->Close();
+  }
+  return kTRUE;
+}
+//________________________________________________________________________
+Bool_t AliPWG4HighPtQAMC::Notify()
+{
+  //
+  // Implemented Notify() to read the cross sections
+  // and number of trials from pyxsec.root
+  // Copied from AliAnalysisTaskJetSpectrum2
+  // 
+
+  TTree *tree = AliAnalysisManager::GetAnalysisManager()->GetTree();
+  Float_t xsection = 0;
+  Float_t ftrials  = 1;
+
+  fAvgTrials = 1;
+  if(tree){
+    TFile *curfile = tree->GetCurrentFile();
+    if (!curfile) {
+      Error("Notify","No current file");
+      return kFALSE;
+    }
+    if(!fh1Xsec||!fh1Trials){
+      Printf("%s%d No Histogram fh1Xsec",(char*)__FILE__,__LINE__);
+      return kFALSE;
+    }
+    PythiaInfoFromFile(curfile->GetName(),xsection,ftrials);
+    fh1Xsec->Fill("<#sigma>",xsection);
+    // construct a poor man average trials 
+    Float_t nEntries = (Float_t)tree->GetTree()->GetEntries();
+    if(ftrials>=nEntries && nEntries>0.)fAvgTrials = ftrials/nEntries;
+  }  
+  return kTRUE;
+}
+
+//________________________________________________________________________
+AliGenPythiaEventHeader*  AliPWG4HighPtQAMC::GetPythiaEventHeader(AliMCEvent *mcEvent){
+  
+  if(!mcEvent)return 0;
+  AliGenEventHeader* genHeader = mcEvent->GenEventHeader();
+  AliGenPythiaEventHeader* pythiaGenHeader = dynamic_cast<AliGenPythiaEventHeader*>(genHeader);
+  if(!pythiaGenHeader){
+    // cocktail ??
+    AliGenCocktailEventHeader* genCocktailHeader = dynamic_cast<AliGenCocktailEventHeader*>(genHeader);
+    
+    if (!genCocktailHeader) {
+      AliWarningGeneral(Form(" %s:%d",(char*)__FILE__,__LINE__),"Unknown header type (not Pythia or Cocktail)");
+      //      AliWarning(Form("%s %d: Unknown header type (not Pythia or Cocktail)",(char*)__FILE__,__LINE__));
+      return 0;
+    }
+    TList* headerList = genCocktailHeader->GetHeaders();
+    for (Int_t i=0; i<headerList->GetEntries(); i++) {
+      pythiaGenHeader = dynamic_cast<AliGenPythiaEventHeader*>(headerList->At(i));
+      if (pythiaGenHeader)
+        break;
+    }
+    if(!pythiaGenHeader){
+      AliWarningGeneral(Form(" %s:%d",(char*)__FILE__,__LINE__),"Pythia event header not found");
+      return 0;
+    }
+  }
+  return pythiaGenHeader;
+
+}
+
 //________________________________________________________________________
 void AliPWG4HighPtQAMC::Terminate(Option_t *)
 {

@@ -75,26 +75,23 @@
 #include "TRD/AliTRDtrackerV1.h"
 #include "TRD/AliTRDcalibDB.h"
 
-#include "PWG1/TRD/macros/AliTRDperformanceTrain.h"
 #include "PWG1/TRD/macros/AddTRDcheckESD.C"
 #include "PWG1/TRD/macros/AddTRDinfoGen.C"
 #include "PWG1/TRD/macros/AddTRDcheckDET.C"
 #include "PWG1/TRD/macros/AddTRDefficiency.C"
 #include "PWG1/TRD/macros/AddTRDresolution.C"
 #include "PWG1/TRD/macros/AddTRDcheckPID.C"
-
 #endif
-
-#include "macros/AliTRDperformanceTrain.h"
-
 
 Bool_t MEM = kFALSE;
 
-TChain* MakeChainLST(const char* filename = 0x0);
-TChain* MakeChainXML(const char* filename = 0x0);
-void run(Char_t *optList="ALL", const Char_t *files=0x0, Long64_t nev=1234567890, Long64_t first = 0, Int_t runNo=0, const Char_t *ocdb_uri="local://$ALICE_ROOT/OCDB", const Char_t *grp_uri=Form("local://%s", gSystem->pwd()))
+TChain* MakeChainLST(const char* filename = NULL);
+TChain* MakeChainXML(const char* filename = NULL);
+Bool_t UseMC(Char_t *opt);
+Bool_t UseFriends(Char_t *opt);
+void run(Char_t *optList="ALL", const Char_t *files=NULL, Long64_t nev=1234567890, Long64_t first = 0)
 {
-  TMemStat *mem = 0x0;
+  TMemStat *mem = NULL;
   if(MEM){ 
     if(gSystem->Load("libMemStat.so")<0) return;
     if(gSystem->Load("libMemStatGui.so")<0) return;
@@ -106,36 +103,16 @@ void run(Char_t *optList="ALL", const Char_t *files=0x0, Long64_t nev=1234567890
 
   // VERY GENERAL SETTINGS
   //AliLog::SetGlobalLogLevel(AliLog::kError);
-  gStyle->SetOptStat(0);
   if(gSystem->Load("libANALYSIS.so")<0) return;
   if(gSystem->Load("libANALYSISalice.so")<0) return;
   if(gSystem->Load("libTENDER.so")<0) return;
   if(gSystem->Load("libPWG1.so")<0) return;
 
-  Bool_t fHasMCdata =  HasReadMCData(optList);
-  Bool_t fHasFriends = HasReadFriendData(optList);
+  Bool_t fHasMCdata = UseMC(optList);
+  Bool_t fHasFriends = UseFriends(optList);
   
-  // INITIALIZATION OF RUNNING ENVIRONMENT
-  // initialize OCDB manager
-  AliCDBManager *cdbManager = AliCDBManager::Instance();
-  cdbManager->SetDefaultStorage(ocdb_uri);
-  if(!cdbManager->IsDefaultStorageSet()){
-    Error("run.C", "Error setting OCDB.");
-    return;
-  }
-  cdbManager->SetRun(runNo);
-  cdbManager->SetSpecificStorage("GRP/GRP/Data", grp_uri);
-  cdbManager->SetCacheFlag(kFALSE);
-  cdbManager->Print();
-  // initialize magnetic field from the GRP manager.
-  AliGRPManager grpMan;
-  if(!grpMan.ReadGRPEntry()) return;
-  if(!grpMan.SetMagField()) return;
-  //AliRunInfo *runInfo = grpMan.GetRunInfo();
-  AliGeomManager::LoadGeometry();
-
   // DEFINE DATA CHAIN
-  TChain *chain = 0x0;
+  TChain *chain = NULL;
   if(!files) chain = MakeChainLST();
   else{
     TString fn(files);
@@ -153,8 +130,10 @@ void run(Char_t *optList="ALL", const Char_t *files=0x0, Long64_t nev=1234567890
   AliAnalysisManager *mgr = new AliAnalysisManager("TRD Reconstruction Performance & Calibration");
   AliESDInputHandlerRP *esdH(NULL);
   mgr->SetInputEventHandler(esdH = new AliESDInputHandlerRP);
-  esdH->SetReadFriends(kTRUE);
-  esdH->SetActiveBranches("ESDfriend");
+  if(fHasFriends){
+    esdH->SetReadFriends(kTRUE);
+    esdH->SetActiveBranches("ESDfriend");
+  }
   AliMCEventHandler *mcH(NULL);
   if(fHasMCdata) mgr->SetMCtruthEventHandler(mcH = new AliMCEventHandler());
   //mgr->SetDebugLevel(10);
@@ -176,11 +155,8 @@ void run(Char_t *optList="ALL", const Char_t *files=0x0, Long64_t nev=1234567890
   }
   //mgr->PrintStatus();
   mgr->StartAnalysis("local", chain, nev, first);
-
   timer.Stop();
   timer.Print();  
-
-  delete cdbManager;
 
   // verbosity
   printf("\tCLEANING TASK LIST:\n");
@@ -225,24 +201,24 @@ TChain* MakeChainXML(const char* xmlfile)
 {
   if (!TFile::Open(xmlfile)) {
     Error("MakeChainXML", Form("No file %s was found", xmlfile));
-    return 0x0;
+    return NULL;
   }
 
-  if(gSystem->Load("libNetx.so")<0) return 0x0;
-  if(gSystem->Load("libRAliEn.so")<0) return 0x0;
+  if(gSystem->Load("libNetx.so")<0) return NULL;
+  if(gSystem->Load("libRAliEn.so")<0) return NULL;
   TGrid::Connect("alien://") ;
 
   TGridCollection *collection = (TGridCollection*) TAlienCollection::Open(xmlfile);
   if (!collection) {
     Error("MakeChainXML", Form("No collection found in %s", xmlfile)) ; 
-    return 0x0; 
+    return NULL;
   }
   //collection->CheckIfOnline();
 
   TGridResult* result = collection->GetGridResult("",0 ,0);
   if(!result->GetEntries()){
     Error("MakeChainXML", Form("No entries found in %s", xmlfile)) ; 
-    return 0x0; 
+    return NULL;
   }
   // Makes the ESD chain 
   TChain* chain = new TChain("esdTree");
@@ -250,4 +226,14 @@ TChain* MakeChainXML(const char* xmlfile)
     chain->Add(result->GetKey(idx, "turl")); 
   }
   return chain;
+}
+
+//______________________________________________________
+Bool_t UseMC(Char_t *opt){
+  return !(Bool_t)strstr(opt, "NOMC");
+}
+
+//____________________________________________
+Bool_t UseFriends(Char_t *opt){
+  return !(Bool_t)strstr(opt, "NOFR");
 }

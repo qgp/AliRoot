@@ -13,6 +13,7 @@
 
 #include "AliReconstructor.h"
 #include "AliZDCRecoParam.h"
+#include "AliESDZDC.h"
 
 class AliCDBManager;
 class AliCDBStorage;
@@ -31,6 +32,7 @@ public:
   virtual ~AliZDCReconstructor();
 
   virtual void   Init();
+  virtual void   Init(TString beamType, Float_t beamEnergy);
   virtual Bool_t HasDigitConversion() const {return kFALSE;};
   
   virtual void Reconstruct(TTree*digitsTree, TTree* clustersTree) const; 
@@ -41,6 +43,8 @@ public:
   virtual void FillESD(AliRawReader* /*rawReader*/, TTree* clustersTree, 
 		       AliESDEvent* esd) const {FillZDCintoESD(clustersTree, esd);}
   
+  void   FillZDCintoESD(TTree *clustersTree, AliESDEvent *esd) const;
+  
   // parameter settings for reconstruction
   void SetRecoMode(Int_t recoMode, Float_t beamEnergy) 
        {fRecoMode=recoMode; fBeamEnergy=beamEnergy;}
@@ -49,6 +53,8 @@ public:
   
   Int_t   GetRecoMode() const {return fRecoMode;}
   Float_t GetBeamEnergy() const {return fBeamEnergy;}
+  
+  AliESDZDC* GetZDCESDData() const {return fESDZDC;}
   
   static const AliZDCRecoParam* GetRecoParam() 
   {return dynamic_cast<const AliZDCRecoParam*>(AliReconstructor::GetRecoParam(9));}
@@ -75,17 +81,15 @@ private:
 	 const Float_t* const corrADCZN2, const Float_t* const corrADCZP2,
 	 const Float_t* const corrADCZEM1, const Float_t* const corrADCZEM2,
 	 Float_t* sPMRef1, Float_t* sPMRef2, Bool_t isScalerOn, UInt_t* scaler, 
-	 const Int_t* const evQualityBlock, const Int_t* const triggerBlock, 
-	 const Int_t* const chBlock, UInt_t puBits) const;
+	 Int_t tdcData[32][4], const Int_t* const evQualityBlock, 
+	 const Int_t* const triggerBlock, const Int_t* const chBlock, UInt_t puBits) const;
   void   ReconstructEventPbPb(TTree *clustersTree, 
 	 const Float_t* const corrADCZN1, const Float_t* const corrADCZP1, 
 	 const Float_t* const corrADCZN2, const Float_t* const corrADCZP2,
 	 const Float_t* const corrADCZEM1, const Float_t* const corrADCZEM2,
 	 Float_t* sPMRef1, Float_t* sPMRef2, Bool_t isScalerOn, UInt_t* scaler, 
-	 const Int_t* const evQualityBlock, const Int_t* const triggerBlock, 
-	 const Int_t* const chBlock, UInt_t puBits) const;
-  
-  void   FillZDCintoESD(TTree *clustersTree, AliESDEvent*esd) const;
+	 Int_t tdcData[32][4], const Int_t* const evQualityBlock, 
+	 const Int_t* const triggerBlock, const Int_t* const chBlock, UInt_t puBits) const;
 
   static AliZDCRecoParam *fgRecoParam; // reconstruction parameters
 
@@ -100,8 +104,10 @@ private:
   Bool_t  fIsCalibrationMB; // true if run type = "CALIBRATION_MB"
   Int_t   fPedSubMode;	    // =0->mean values, =1->from correlations
   Float_t fSignalThreshold; // Threshold value for "triggering" in p-p
+  
+  AliESDZDC* fESDZDC;       // ESD output object  
 
-  ClassDef(AliZDCReconstructor, 10)   // class for the ZDC reconstruction
+  ClassDef(AliZDCReconstructor, 11)   // class for the ZDC reconstruction
 };
 
 #endif

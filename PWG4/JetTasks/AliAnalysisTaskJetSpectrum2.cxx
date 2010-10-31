@@ -95,6 +95,7 @@ AliAnalysisTaskJetSpectrum2::AliAnalysisTaskJetSpectrum2(): AliAnalysisTaskSE(),
   fh1PtHard(0x0),
   fh1PtHardNoW(0x0),  
   fh1PtHardTrials(0x0),
+  fh1ZVtx(0x0),
   fh1NGenJets(0x0),
   fh1NRecJets(0x0),
   fh1PtTrackRec(0x0),   
@@ -126,20 +127,27 @@ AliAnalysisTaskJetSpectrum2::AliAnalysisTaskJetSpectrum2(): AliAnalysisTaskSE(),
   fh1DijetMinvCut(0x0),         
   fh1Bkg1(0x0),
   fh1Bkg2(0x0),
+  fh1Bkg3(0x0),
   fh1Sigma1(0x0),
   fh1Sigma2(0x0),
+  fh1Sigma3(0x0),
   fh1Area1(0x0),
   fh1Area2(0x0),
+  fh1Area3(0x0),
   fh1Ptjet(0x0),
   fh1Ptjetsub1(0x0),
   fh1Ptjetsub2(0x0),
+  fh1Ptjetsub3(0x0), 
   fh1Ptjethardest(0x0),
   fh1Ptjetsubhardest1(0x0),
   fh1Ptjetsubhardest2(0x0),
+  fh1Ptjetsubhardest3(0x0),
   fh1Rhovspthardest1(0x0), 
   fh1Rhovspthardest2(0x0),
+  fh1Rhovspthardest3(0x0),
   fh1Errorvspthardest1(0x0), 
   fh1Errorvspthardest2(0x0),
+  fh1Errorvspthardest3(0x0),
   fHistList(0x0)  
 {
   for(int i = 0;i < kMaxStep*2;++i){
@@ -195,6 +203,7 @@ AliAnalysisTaskJetSpectrum2::AliAnalysisTaskJetSpectrum2(const char* name):
   fh1PtHard(0x0),
   fh1PtHardNoW(0x0),  
   fh1PtHardTrials(0x0),
+  fh1ZVtx(0x0),
   fh1NGenJets(0x0),
   fh1NRecJets(0x0),
   fh1PtTrackRec(0x0),   
@@ -224,22 +233,29 @@ AliAnalysisTaskJetSpectrum2::AliAnalysisTaskJetSpectrum2(const char* name):
   fh2DijetDifvsSum(0x0),        
   fh1DijetMinv(0x0),            
   fh1DijetMinvCut(0x0),         
-  fh1Bkg1(0x0),
+  fh1Bkg1(0x0), 
   fh1Bkg2(0x0),
+  fh1Bkg3(0x0),
   fh1Sigma1(0x0),
   fh1Sigma2(0x0),
+  fh1Sigma3(0x0),
   fh1Area1(0x0),
   fh1Area2(0x0),
+  fh1Area3(0x0),
   fh1Ptjet(0x0),
-  fh1Ptjetsub1(0x0),
-  fh1Ptjetsub2(0x0),
+  fh1Ptjetsub1(0x0),      
+  fh1Ptjetsub2(0x0),   
+  fh1Ptjetsub3(0x0),     
   fh1Ptjethardest(0x0),
   fh1Ptjetsubhardest1(0x0),
   fh1Ptjetsubhardest2(0x0),
-  fh1Rhovspthardest1(0x0), 
+  fh1Ptjetsubhardest3(0x0),
+  fh1Rhovspthardest1(0x0),
   fh1Rhovspthardest2(0x0),
-  fh1Errorvspthardest1(0x0), 
+  fh1Rhovspthardest3(0x0),
+  fh1Errorvspthardest1(0x0),
   fh1Errorvspthardest2(0x0),
+  fh1Errorvspthardest3(0x0),
   fHistList(0x0)
 {
 
@@ -381,6 +397,8 @@ void AliAnalysisTaskJetSpectrum2::UserCreateOutputObjects()
   fh1PtHardNoW = new TH1F("fh1PtHardNoW","PYTHIA Pt hard no weight;p_{T,hard}",nBinPt,binLimitsPt);
   fh1PtHardTrials = new TH1F("fh1PtHardTrials","PYTHIA Pt hard weight with trials;p_{T,hard}",nBinPt,binLimitsPt);
 
+  fh1ZVtx = new TH1F("fh1ZVtx","z vtx;z_{vtx} (cm)",400,-20,20);
+
   fh1NGenJets  = new TH1F("fh1NGenJets","N generated jets",20,-0.5,19.5);
   fh1NRecJets = new TH1F("fh1NRecJets","N reconstructed jets",20,-0.5,19.5);
 
@@ -423,15 +441,15 @@ void AliAnalysisTaskJetSpectrum2::UserCreateOutputObjects()
 			      nBinPhi,binLimitsPhi,nBinEta,binLimitsEta);
 
     fh2RhoPtRec[ij] =  new TH2F(Form("fh2RhoPtRec_j%d",ij),"jet shape rho for jets;r;p_{T,rec};",
-				20,0.,1.,nBinPt,binLimitsPt);
+				40,0.,1.,nBinPt,binLimitsPt);
     fh2PsiPtRec[ij] =  new TH2F(Form("fh2PsiPtRec_j%d",ij),"jet shape psi for jets;r;p_{T,rec};",
-				20,0.,1.,nBinPt,binLimitsPt);
+				40,0.,2.,nBinPt,binLimitsPt);
 
     fh2RhoPtGen[ij] =  new TH2F(Form("fh2RhoPtGen_j%d",ij),"jet shape rho for jets;r;p_{T,gen};",
-				20,0.,1.,nBinPt,binLimitsPt);
+			       40,0.,2.,nBinPt,binLimitsPt);
     fh2PsiPtGen[ij] =  new TH2F(Form("fh2PsiPtGen_j%d",ij),"jet shape psi for jets;r;p_{T,gen};",
-				20,0.,1.,nBinPt,binLimitsPt);
-    if(!fh1TmpRho)fh1TmpRho = new TH1F("fh1TmpRho","tmp histo for jet shape",20,0.,1);
+				40,0.,2.,nBinPt,binLimitsPt);
+    if(!fh1TmpRho)fh1TmpRho = new TH1F("fh1TmpRho","tmp histo for jet shape",40,0.,2);
 
 
     fh2FragRec[ij] = new TH2F(Form("fh2FragRec_j%d",ij),"Jet Fragmentation;x=p_{T,i}/p_{T,jet};p_{T,jet};1/N_{jet}dN_{ch}/dx",
@@ -447,7 +465,7 @@ void AliAnalysisTaskJetSpectrum2::UserCreateOutputObjects()
 
   // Dijet histograms
 
-  fh2DijetDeltaPhiPt       = new TH2F("fh2DeltaPhiPt","Difference in the azimuthal angle;#Delta#phi;p_{T,1};Entries",180,0.,TMath::Pi(),nBinPt,binLimitsPt);
+  fh2DijetDeltaPhiPt       = new TH2F("fh2DijetDeltaPhiPt","Difference in the azimuthal angle;#Delta#phi;p_{T,1};Entries",180,0.,TMath::Pi(),nBinPt,binLimitsPt);
   fh2DijetAsymPt            = new TH2F("fh2DijetAsym","Pt asymmetry;#Deltap_{T}/(p_{T,1}+p_{T,2});p_{T,1};Entries",50,0.,1.,nBinPt,binLimitsPt);
   fh2DijetAsymPtCut         = new TH2F("fh2DijetAsymCut","Pt asymmetry after delta phi cut;#Deltap_{T}/(p_{T,1}+p_{T,2});p_{T,1};Entries",50,0.,1.,nBinPt,binLimitsPt);
   fh2DijetDeltaPhiDeltaEta = new TH2F("fh2DijetDeltaPhiDeltaEta","Difference in the azimuthal angle;#Delta#phi;Entries",180,0.,TMath::Pi(),20,-2.,2.);
@@ -459,21 +477,27 @@ void AliAnalysisTaskJetSpectrum2::UserCreateOutputObjects()
   if(fBkgSubtraction){
     fh1Bkg1 = new TH1F("fh1Bkg1","Background estimate 1",100,0.,10.);
     fh1Bkg2 = new TH1F("fh1Bkg2","Background estimate 2",100,0.,10.);
+    fh1Bkg3 = new TH1F("fh1Bkg3","Background estimate 3",100,0.,10.);
     fh1Sigma1 = new TH1F("fh1Sigma1","Background fluctuations 1",100,0.,10.);
     fh1Sigma2 = new TH1F("fh1Sigma2","Background fluctuations 2",100,0.,10.);
+    fh1Sigma3 = new TH1F("fh1Sigma3","Background fluctuations 3",100,0.,10.);
     fh1Area1 = new TH1F("fh1Area1","Background mean area 1",50,0.,5.);
     fh1Area2 = new TH1F("fh1Area2","Background mean area 2",50,0.,5.);
-    
+    fh1Area3 = new TH1F("fh1Area3","Background mean area 3",50,0.,5.);
     fh1Ptjet = new TH1F("fh1Ptjet","Jet spectrum",100,0.,200.);
     fh1Ptjetsub1 = new TH1F("fh1Ptjetsub1","Subtracted spectrum 1",50,0.,200.);
     fh1Ptjetsub2 = new TH1F("fh1Ptjetsub2","Subtracted spectrum 2",50,0.,200.);
+    fh1Ptjetsub3 = new TH1F("fh1Ptjetsub3","Subtracted spectrum 3",50,0.,200.);
     fh1Ptjethardest = new TH1F("fh1Ptjethardest","Hardest jet spectrum",50,0.,200.);
     fh1Ptjetsubhardest1 = new TH1F("fh1Pthardestsub1","Subtracted hardest jet spectrum 1",100,0.,200.);
     fh1Ptjetsubhardest2 = new TH1F("fh1Pthardestsub2","Subtracted hardest jet spectrum 2",100,0.,200.);
+    fh1Ptjetsubhardest3 = new TH1F("fh1Pthardestsub3","Subtracted hardest jet spectrum 3",100,0.,200.);
     fh1Rhovspthardest1 = new TH2F("fh1Rhovspthardest1","Background vs pTjet 1",100,0.,200.,50,0.,5.);
     fh1Rhovspthardest2 = new TH2F("fh1Rhovspthardest2","Background vs pTjet 2",100,0.,200.,50,0.,5.);
+    fh1Rhovspthardest3 = new TH2F("fh1Rhovspthardest3","Background vs pTjet 3",100,0.,200.,50,0.,5.);
     fh1Errorvspthardest1 = new TH2F("fhErorvspthardest1","Relative error 1",100,0.,200.,50,0.,5.);
     fh1Errorvspthardest2 = new TH2F("fh1Errorvspthardest2","Relative error 2",100,0.,200.,50,0.,5.);
+    fh1Errorvspthardest3 = new TH2F("fh1Errorvspthardest3","Relative error 3",100,0.,200.,50,0.,5.);
   }
   
 
@@ -486,6 +510,7 @@ void AliAnalysisTaskJetSpectrum2::UserCreateOutputObjects()
     fHistList->Add(fh1PtHard);
     fHistList->Add(fh1PtHardNoW);
     fHistList->Add(fh1PtHardTrials);
+    fHistList->Add(fh1ZVtx);
     if(fBranchGen.Length()>0){
       fHistList->Add(fh1NGenJets);
       fHistList->Add(fh1PtTracksGenIn);
@@ -539,22 +564,27 @@ void AliAnalysisTaskJetSpectrum2::UserCreateOutputObjects()
     if(fBkgSubtraction){
       fHistList->Add(fh1Bkg1);
       fHistList->Add(fh1Bkg2);
+      fHistList->Add(fh1Bkg3);
       fHistList->Add(fh1Sigma1);
       fHistList->Add(fh1Sigma2);
+      fHistList->Add(fh1Sigma3);
       fHistList->Add(fh1Area1);
       fHistList->Add(fh1Area2);
+      fHistList->Add(fh1Area3);
       fHistList->Add(fh1Ptjet);
       fHistList->Add(fh1Ptjethardest);
       fHistList->Add(fh1Ptjetsub1);
       fHistList->Add(fh1Ptjetsub2);
-      
+      fHistList->Add(fh1Ptjetsub3);      
       fHistList->Add(fh1Ptjetsubhardest1);
       fHistList->Add(fh1Ptjetsubhardest2);
+      fHistList->Add(fh1Ptjetsubhardest3);
       fHistList->Add(fh1Rhovspthardest1);
       fHistList->Add(fh1Rhovspthardest2);
-      
+      fHistList->Add(fh1Rhovspthardest3);
       fHistList->Add(fh1Errorvspthardest1);
       fHistList->Add(fh1Errorvspthardest2);
+     fHistList->Add(fh1Errorvspthardest3);
     }
   }
 
@@ -620,9 +650,7 @@ void AliAnalysisTaskJetSpectrum2::UserExec(Option_t */*option*/)
       Printf("%s:%d AODEvent not found in the Output",(char*)__FILE__,__LINE__);
       return;
     }
-    if(fDebug>0){
-      fESD = dynamic_cast<AliESDEvent*> (InputEvent());
-    }
+    fESD = dynamic_cast<AliESDEvent*> (InputEvent());
   }
   
 
@@ -658,23 +686,27 @@ void AliAnalysisTaskJetSpectrum2::UserExec(Option_t */*option*/)
      ///just to start: some very simple plots containing rho, sigma and area of the background. 
      
      Int_t nJets = aodRecJets->GetEntriesFast();
-     Float_t pthardest=0;
+     Float_t pthardest=0.;
      if(nJets!=0){
- 
-
+  
        Float_t bkg1=evBkg->GetBackground(0);
        Float_t bkg2=evBkg->GetBackground(1);
+       Float_t bkg3=evBkg->GetBackground(2);
        Float_t sigma1=evBkg->GetSigma(0);
        Float_t sigma2=evBkg->GetSigma(1);
+       Float_t sigma3=evBkg->GetSigma(2); 
        Float_t area1=evBkg->GetMeanarea(0);
        Float_t area2=evBkg->GetMeanarea(1);  
+       Float_t area3=evBkg->GetMeanarea(2);
        fh1Bkg1->Fill(bkg1); //rho computed with all background jets.
-       fh1Bkg2->Fill(bkg2); //rho computed with all background jets but the hardest. 
+       fh1Bkg2->Fill(bkg2); //rho computed with all background jets but the 2 hardest. 
+       fh1Bkg3->Fill(bkg3); //rho computed with randomized jets
        fh1Sigma1->Fill(sigma1); 
        fh1Sigma2->Fill(sigma2);
+       fh1Sigma3->Fill(sigma3);
        fh1Area1->Fill(area1);
        fh1Area2->Fill(area2);
-       
+       fh1Area3->Fill(area3);
        
        
        for(Int_t k=0;k<nJets;k++){
@@ -682,23 +714,30 @@ void AliAnalysisTaskJetSpectrum2::UserExec(Option_t */*option*/)
 	 fh1Ptjet->Fill(jet->Pt());
 	 Float_t ptsub1=jet->Pt()-bkg1*jet->EffectiveAreaCharged();
 	 Float_t ptsub2=jet->Pt()-bkg2*jet->EffectiveAreaCharged();
+         Float_t ptsub3=jet->Pt()-bkg3*jet->EffectiveAreaCharged();
 	 Float_t err1=sigma1*sqrt(area1);
 	 Float_t err2=sigma2*sqrt(area2);
-	 
+         Float_t err3=sigma3*sqrt(area3);	 
 	 fh1Ptjetsub1->Fill(ptsub1);
 	 fh1Ptjetsub2->Fill(ptsub2);
-	 
+	 fh1Ptjetsub3->Fill(ptsub3);
 	 if(k==0) {
 	   pthardest=jet->Pt();
 	   fh1Ptjethardest->Fill(pthardest);
 	   fh1Ptjetsubhardest1->Fill(ptsub1);
 	   fh1Ptjetsubhardest2->Fill(ptsub2);
+           fh1Ptjetsubhardest3->Fill(ptsub3);
 	   fh1Errorvspthardest1->Fill(ptsub1,err1/ptsub1);
 	   fh1Errorvspthardest2->Fill(ptsub2,err2/ptsub2);
+           fh1Errorvspthardest3->Fill(ptsub3,err3/ptsub3);
 	 }
        }
        fh1Rhovspthardest1->Fill(pthardest,bkg1);
        fh1Rhovspthardest2->Fill(pthardest,bkg2);
+       fh1Rhovspthardest3->Fill(pthardest,bkg3); 
+
+
+
      }
   }// background subtraction
   
@@ -794,6 +833,8 @@ void AliAnalysisTaskJetSpectrum2::UserExec(Option_t */*option*/)
   fh1PtHard->Fill(ptHard,eventW);
   fh1PtHardNoW->Fill(ptHard,1);
   fh1PtHardTrials->Fill(ptHard,nTrials);
+  fh1ZVtx->Fill(fAOD->GetPrimaryVertex()->GetZ());
+
 
   // If we set a second branch for the input jets fetch this 
   if(fBranchGen.Length()>0){
@@ -1030,7 +1071,7 @@ void AliAnalysisTaskJetSpectrum2::UserExec(Option_t */*option*/)
 
       }
       Float_t rhoSum = 0;
-      for(int ibx = 1;ibx<fh2RhoPtGen[ir]->GetNbinsX();ibx++){
+      for(int ibx = 1;ibx<=fh2RhoPtGen[ir]->GetNbinsX();ibx++){
 	Float_t r = fh2RhoPtGen[ir]->GetXaxis()->GetBinCenter(ibx);
 	Float_t rho = fh1TmpRho->GetBinContent(ibx);
 	rhoSum += rho;
@@ -1042,6 +1083,7 @@ void AliAnalysisTaskJetSpectrum2::UserExec(Option_t */*option*/)
       fhnJetContainer[kStep2]->Fill(&container[3],eventW);
       Double_t etaRec = recJets[ir].Eta();
       if(TMath::Abs(etaRec)<fRecEtaWindow)fhnJetContainer[kStep4]->Fill(&container[3],eventW);
+      if(TMath::Abs(etaRec)<fRecEtaWindow&&TMath::Abs(etaGen)<fRecEtaWindow)fhnJetContainer[kStep3]->Fill(&container[3],eventW);
     }
   }// loop over generated jets
   
@@ -1173,7 +1215,7 @@ void AliAnalysisTaskJetSpectrum2::UserExec(Option_t */*option*/)
       }
       // fill the jet shapes
       Float_t rhoSum = 0;
-      for(int ibx = 1;ibx<fh2RhoPtRec[ir]->GetNbinsX();ibx++){
+      for(int ibx = 1;ibx<=fh2RhoPtRec[ir]->GetNbinsX();ibx++){
 	Float_t r = fh2RhoPtRec[ir]->GetXaxis()->GetBinCenter(ibx);
 	Float_t rho = fh1TmpRho->GetBinContent(ibx);
 	rhoSum += rho;

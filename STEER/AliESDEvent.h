@@ -35,6 +35,11 @@
 #include "AliESDtrack.h"
 // same for AliESDVertex (which is a AliVVertex)
 #include "AliESDVertex.h"
+// same for CaloCells and CaloClusters (which is a AliVCaloCells, AliVCluster)
+#include "AliESDCaloCluster.h"
+#include "AliESDCaloCells.h"
+
+#include "AliTOFHeader.h"
 
 class AliESDfriend;
 class AliESDVZERO;
@@ -43,8 +48,6 @@ class AliESDVertex;
 class AliESDPmdTrack;
 class AliESDFMD;
 class AliESDkink;
-class AliESDCaloCluster;
-class AliESDCaloCells;
 class AliESDv0;
 class AliMultiplicity;
 class AliRawDataErrorLog;
@@ -53,6 +56,7 @@ class AliESDTrdTrack;
 class AliESDMuonTrack;
 class AliESD;
 class AliESDcascade;
+class AliESDCentrality;
 class TRefArray;
 class AliESDACORDE;
 class AliESDHLTDecision;
@@ -91,6 +95,7 @@ public:
 		       kPHOSCells,
 		       kErrorLogs,
                        kESDACORDE,
+		       kTOFHeader,
 		       kESDListN
   };
 
@@ -106,7 +111,10 @@ public:
   // Delegated methods for fESDRun
   void     SetRunNumber(Int_t n) {if(fESDRun) fESDRun->SetRunNumber(n);}
   Int_t    GetRunNumber() const {return fESDRun?fESDRun->GetRunNumber():-1;}
-  void     SetPeriodNumber(UInt_t n){if(fESDRun) fESDRun->SetPeriodNumber(n);}
+  void     SetPeriodNumber(UInt_t n){
+    if(fESDRun) fESDRun->SetPeriodNumber(n);
+    if(fHeader) fHeader->SetPeriodNumber(n);
+  }
   UInt_t   GetPeriodNumber() const {return fESDRun?fESDRun->GetPeriodNumber():0;}
   void     SetMagneticField(Double_t mf){if(fESDRun) fESDRun->SetMagneticField(mf);}
   Double_t GetMagneticField() const {return fESDRun?fESDRun->GetMagneticField():0;}
@@ -169,6 +177,7 @@ public:
 
   // ZDC CKB: put this in the header?
   AliESDZDC*    GetESDZDC() const {return fESDZDC;}
+  void SetZDCData(AliESDZDC * obj);
 
   // Delegated methods for fESDZDC
   Double_t GetZDCN1Energy() const {return fESDZDC?fESDZDC->GetZDCN1Energy():0;}
@@ -177,14 +186,15 @@ public:
   Double_t GetZDCP2Energy() const {return fESDZDC?fESDZDC->GetZDCP2Energy():0;}
   Double_t GetZDCEMEnergy(Int_t i=0) const {return fESDZDC?fESDZDC->GetZDCEMEnergy(i):0;}
   Int_t    GetZDCParticipants() const {return fESDZDC?fESDZDC->GetZDCParticipants():0;}
+  AliESDCentrality* GetCentrality() {return fCentrality;}
+
   void     SetZDC(Float_t n1Energy, Float_t p1Energy, Float_t em1Energy, Float_t em2Energy,
                   Float_t n2Energy, Float_t p2Energy, Int_t participants, Int_t nPartA,
 	 	  Int_t nPartC, Double_t b, Double_t bA, Double_t bC, UInt_t recoflag)
   {if(fESDZDC) fESDZDC->SetZDC(n1Energy, p1Energy, em1Energy, em2Energy, n2Energy, p2Energy, 
             participants, nPartA, nPartC, b, bA, bC,  recoflag);}
-  void     SetZDCScaler(UInt_t *counts) {if(fESDZDC) fESDZDC->SetZDCScaler(counts);}
 
-
+  void SetCentrality(AliESDCentrality* cent) {fCentrality = cent;}
   // FMD
   void SetFMDData(AliESDFMD * obj);
   AliESDFMD *GetFMDData() const { return fESDFMD; }
@@ -239,6 +249,13 @@ public:
 
   const AliESDVertex *GetPrimaryVertex() const;
 
+
+
+  void SetTOFHeader(const AliTOFHeader * tofEventTime);
+  const AliTOFHeader *GetTOFHeader() const {return fTOFHeader;}
+
+
+
   void SetMultiplicity(const AliMultiplicity *mul);
 
   const AliMultiplicity *GetMultiplicity() const {return fSPDMult;}
@@ -265,6 +282,8 @@ public:
 				  Double_t nSigmaDiamXY=2., 
 				  Double_t nSigmaDiamZ=5.) const;
   
+  virtual Bool_t IsPileupFromSPDInMultBins() const;
+
   AliESDtrack *GetTrack(Int_t i) const {
     return (AliESDtrack *)(fTracks?fTracks->UncheckedAt(i):0x0);
   }
@@ -337,18 +356,19 @@ public:
   AliESDCaloCells *GetEMCALCells() const {return fEMCALCells; }  
   AliESDCaloCells *GetPHOSCells() const {return fPHOSCells; }  
 
+  AliESDCaloTrigger* GetCaloTrigger(TString calo) const 
+  {
+	  if (calo.Contains("EMCAL")) return fEMCALTrigger;
+	  else
+		  return fPHOSTrigger;
+  }
+	
   AliRawDataErrorLog *GetErrorLog(Int_t i) const {
     return (AliRawDataErrorLog *)(fErrorLogs?fErrorLogs->UncheckedAt(i):0x0);
   }
   void  AddRawDataErrorLog(const AliRawDataErrorLog *log) const;
 
   Int_t GetNumberOfErrorLogs()   const {return fErrorLogs?fErrorLogs->GetEntriesFast():0;}
-
-    
-  void AddPHOSTriggerPosition(TArrayF array)   { if(fPHOSTrigger) fPHOSTrigger->AddTriggerPosition(array); }
-  void AddPHOSTriggerAmplitudes(TArrayF array) { if(fPHOSTrigger) fPHOSTrigger->AddTriggerAmplitudes(array);}
-  void AddEMCALTriggerPosition(TArrayF array)  { if(fEMCALTrigger) fEMCALTrigger->AddTriggerPosition(array); }
-  void AddEMCALTriggerAmplitudes(TArrayF array){ if(fEMCALTrigger) fEMCALTrigger->AddTriggerAmplitudes(array); }
 
   Int_t GetNumberOfPileupVerticesSPD() const {
     return (fSPDPileupVertices?fSPDPileupVertices->GetEntriesFast():0);
@@ -376,11 +396,6 @@ public:
   void SetUseOwnList(Bool_t b){fUseOwnList = b;}
   Bool_t GetUseOwnList() const {return fUseOwnList;}
 
-  TArrayF *GetEMCALTriggerPosition() const {return  fEMCALTrigger?fEMCALTrigger->GetTriggerPosition():0x0;}
-  TArrayF *GetEMCALTriggerAmplitudes() const {return  fEMCALTrigger?fEMCALTrigger->GetTriggerAmplitudes():0x0;}
-  TArrayF *GetPHOSTriggerPosition() const {return  fPHOSTrigger?fPHOSTrigger->GetTriggerPosition():0x0;}
-  TArrayF *GetPHOSTriggerAmplitudes() const {return  fPHOSTrigger?fPHOSTrigger->GetTriggerAmplitudes():0x0;}
-
   void ResetV0s() { if(fV0s) fV0s->Clear(); }
   void ResetCascades() { if(fCascades) fCascades->Clear(); }
   void Reset();
@@ -399,6 +414,13 @@ public:
   void SetStdNames();
   void CopyFromOldESD();
   TList* GetList() const {return fESDObjects;}
+  
+    //Following needed only for mixed event
+  virtual Int_t        EventIndex(Int_t)       const {return 0;}
+  virtual Int_t        EventIndexForCaloCluster(Int_t) const {return 0;}
+  virtual Int_t        EventIndexForPHOSCell(Int_t)    const {return 0;}
+  virtual Int_t        EventIndexForEMCALCell(Int_t)   const {return 0;} 
+  
 
 protected:
   AliESDEvent(const AliESDEvent&);
@@ -443,7 +465,12 @@ protected:
 
   static const char* fgkESDListName[kESDListN]; //!
 
-  ClassDef(AliESDEvent,11)  //ESDEvent class 
+  AliTOFHeader *fTOFHeader;  //! event times (and sigmas) as estimated by TOF
+			     //  combinatorial algorithm.
+                             //  It contains also TOF time resolution
+                             //  and T0spread as written in OCDB
+  AliESDCentrality *fCentrality; // Centrality for AA collision
+  ClassDef(AliESDEvent,12)  //ESDEvent class 
 };
 #endif 
 

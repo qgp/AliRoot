@@ -12,6 +12,8 @@
 #define AliAnalysisTaskFlowEvent_H
 
 class AliCFManager;
+class AliFlowEventCuts;
+class AliFlowTrackCuts;
 class AliFlowEventSimpleMaker;
 class TList;
 class TRandom3;
@@ -21,18 +23,18 @@ class TString;
 class AliAnalysisTaskFlowEvent : public AliAnalysisTaskSE {
  public:
   AliAnalysisTaskFlowEvent();
-  AliAnalysisTaskFlowEvent(const char *name,TString RPtype,Bool_t QAon,UInt_t=666);
+  AliAnalysisTaskFlowEvent(const char *name, TString RPtype, Bool_t QAon, UInt_t seed=666);
   virtual ~AliAnalysisTaskFlowEvent();
   
   virtual void   UserCreateOutputObjects();
   virtual void   UserExec(Option_t *option);
   virtual void   Terminate(Option_t *);
 
-  void SetAnalysisType(TString type) { this->fAnalysisType = type; }
-  TString GetAnalysisType() const    { return this->fAnalysisType; }
+  void    SetAnalysisType(TString type) { this->fAnalysisType = type; }
+  TString GetAnalysisType() const       { return this->fAnalysisType; }
 
-  void SetRPType(TString rptype) { this->fRPType = rptype; }
-  TString GetRPType() const    { return this->fRPType; }
+  void    SetRPType(TString rptype) { this->fRPType = rptype; }
+  TString GetRPType() const         { return this->fRPType; }
 
   void    SetMinMult(Int_t multmin)    {this->fMinMult = multmin; }
   Int_t   GetMinMult() const           {return this->fMinMult; }
@@ -46,6 +48,17 @@ class AliAnalysisTaskFlowEvent : public AliAnalysisTaskSE {
   Double_t GetMinB() const {return this->fMinB;}
   Double_t GetMaxB() const {return this->fMaxB;}
   
+  void DefineDeadZone( Double_t etaMin, Double_t etaMax, Double_t phiMin, Double_t phiMax )
+  {this->fExcludedEtaMin = etaMin; this->fExcludedEtaMax = etaMax; 
+    this->fExcludedPhiMin = phiMin; this->fExcludedPhiMax = phiMax; }
+
+  void          SetCutsEvent(AliFlowEventCuts* cutsEvent) {fCutsEvent=cutsEvent;}
+  AliFlowEventCuts* GetCutsEvent() const {return fCutsEvent;}
+  void          SetCutsRP(AliFlowTrackCuts* cutsRP) {fCutsRP=cutsRP;}
+  AliFlowTrackCuts* GetCutsRP() const {return fCutsRP;}
+  void          SetCutsPOI(AliFlowTrackCuts* cutsPOI) {fCutsPOI=cutsPOI;}
+  AliFlowTrackCuts* GetCutsPOI() const {return fCutsPOI;}
+
   void          SetCFManager1(AliCFManager* cfmgr) {this->fCFManager1 = cfmgr; } 
   AliCFManager* GetCFManager1()           {return this->fCFManager1; }
   void          SetCFManager2(AliCFManager* cfmgr) {this->fCFManager2 = cfmgr; } 
@@ -77,17 +90,9 @@ class AliAnalysisTaskFlowEvent : public AliAnalysisTaskSE {
   // end setters common constants
 
   // setters for adding by hand flow values (afterburner)
-  void SetMCReactionPlaneAngle(Double_t fPhiRP)  { this->fMCReactionPlaneAngle = fPhiRP; }
-  void SetNoOfLoops(Int_t noofl) {this->fNoOfLoops = noofl;}
-  Int_t GetNoOfLoops() const {return this->fNoOfLoops;} 
-  void SetEllipticFlowValue(Double_t elfv) {this->fEllipticFlowValue = elfv;}
-  Double_t GetEllipticFlowValue() const {return this->fEllipticFlowValue;} 
-  void SetSigmaEllipticFlowValue(Double_t sigelfv) {this->fSigmaEllipticFlowValue = sigelfv;}
-  Double_t GetSigmaEllipticFlowValue() const {return this->fSigmaEllipticFlowValue;} 
-  void SetMultiplicityOfEvent(Int_t multevnt) {this->fMultiplicityOfEvent = multevnt;}
-  Int_t GetMultiplicityOfEvent() const {return this->fMultiplicityOfEvent;} 
-  void SetSigmaMultiplicityOfEvent(Int_t sigmultevnt) {this->fSigmaMultiplicityOfEvent = sigmultevnt;}
-  Int_t GetSigmaMultiplicityOfEvent() const {return this->fSigmaMultiplicityOfEvent;} 
+  void SetAfterburnerOn(Bool_t b=kTRUE) {fAfterburnerOn=b;}
+  void SetNonFlowNumberOfTrackClones(Int_t n) {fNonFlowNumberOfTrackClones=n;}
+  void SetFlow(Double_t v1, Double_t v2, Double_t v3, Double_t v4) {fV1=v1;fV2=v2;fV3=v3;fV4=v4;}
   // end setters afterburner
 
  private:
@@ -102,6 +107,9 @@ class AliAnalysisTaskFlowEvent : public AliAnalysisTaskSE {
   TString       fRPType;            // can be Global or Tracklet or FMD
   AliCFManager* fCFManager1;        // correction framework manager
   AliCFManager* fCFManager2;        // correction framework manager
+  AliFlowEventCuts* fCutsEvent;     //event cuts
+  AliFlowTrackCuts* fCutsRP;        //cuts for RPs
+  AliFlowTrackCuts* fCutsPOI;       //cuts for POIs
   TList*        fQAInt;             // QA histogram list
   TList*        fQADiff;            // QA histogram list
   Int_t         fMinMult;           // Minimum multiplicity from tracks selected using CORRFW
@@ -134,17 +142,22 @@ class AliAnalysisTaskFlowEvent : public AliAnalysisTaskSE {
   Double_t  fQMax;     // histogram limit
   // end common constants
 
+  // Excluding a range
+  Double_t  fExcludedEtaMin;  // excluded region limit 
+  Double_t  fExcludedEtaMax;  // excluded region limit 
+  Double_t  fExcludedPhiMin;  // excluded region limit 
+  Double_t  fExcludedPhiMax;  // excluded region limit 
+  // End of excluding a range
+
   // values afterburner
-  Double_t  fMCReactionPlaneAngle;     // the angle of the reaction plane from the MC truth
-  Int_t     fCount;                    // counter for the number of events processed
-  Int_t     fNoOfLoops;                // number of times to use the same particle (nonflow) 
-  Double_t  fEllipticFlowValue;        // Add Flow. Must be in range [0,1].
-  Double_t  fSigmaEllipticFlowValue;   // Sigma Flow (Gaussian). Must be in range [0,1].
-  Int_t     fMultiplicityOfEvent;      // Set maximal multiplicity.
-  Int_t     fSigmaMultiplicityOfEvent; // Sigma multiplicity (Gaussian).
+  Bool_t    fAfterburnerOn;              // do we afterburn?
+  Int_t     fNonFlowNumberOfTrackClones; // number of times to clone the particles (nonflow) 
+  Double_t  fV1;        // Add Flow. Must be in range [0,0.5].
+  Double_t  fV2;        // Add Flow. Must be in range [0,0.5].
+  Double_t  fV3;        // Add Flow. Must be in range [0,0.5].
+  Double_t  fV4;        // Add Flow. Must be in range [0,0.5].
     
   TRandom3* fMyTRandom3;     // TRandom3 generator
-  Bool_t    fbAfterburnerOn;
   // end afterburner
   
   ClassDef(AliAnalysisTaskFlowEvent, 1); // example of analysis

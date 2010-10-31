@@ -18,10 +18,11 @@ enum anaModes {mLocal, mLocalCAF,mPROOF,mGRID};
 //---------------------------------------------------------------------------
 //Settings to read locally several files, only for "mLocal" mode
 //The different values are default, they can be set with environmental 
-//variables: INDIR, PATTERN, NEVENT, respectivelly
+//variables: INDIR, PATTERN, NFILES, respectivelly
+
 char * kInDir = "/user/data/files/"; 
 char * kPattern = ""; // Data are in files kInDir/kPattern+i 
-Int_t kEvent = 1; // Number of files
+Int_t kFile = 1; // Number of files
 //---------------------------------------------------------------------------
 //Collection file for grid analysis
 char * kXML = "collection.xml";
@@ -32,27 +33,30 @@ char * kXML = "collection.xml";
 //This is an specific case for normalization of Pythia files.
 const Bool_t kGetXSectionFromFileAndScale = kFALSE ;
 const char * kXSFileName = "pyxsec.root";
-const Int_t kNumberOfEventsPerFile = 100; 
+
 //---------------------------------------------------------------------------
 
-const Bool_t kMC = kTRUE; //With real data kMC = kFALSE
-const TString kInputData = "ESD";//ESD, AOD, MC or deltaAOD
+const Bool_t kMC = kFALSE; //With real data kMC = kFALSE
+const TString kInputData = "ESD"; //ESD, AOD, MC, deltaAOD
+const Bool_t  outAOD = kFALSE; //Some tasks doesnt need it.
 TString kTreeName = "esdTree";
+const Int_t kFilter = kFALSE; //Use ESD filter
 
-void ana(Int_t mode=mLocal, TString configName = "ConfigAnalysisPhoton")
+void ana(Int_t mode=mLocal)
 {
   // Main
-
+  
   //--------------------------------------------------------------------
   // Load analysis libraries
   // Look at the method below, 
   // change whatever you need for your analysis case
   // ------------------------------------------------------------------
   LoadLibraries(mode) ;
-  
+  // TGeoManager::Import("geometry.root") ; //need file "geometry.root" in local dir!!!!
+
   //-------------------------------------------------------------------------------------------------
   //Create chain from ESD and from cross sections files, look below for options.
-  //------------------------------------------------------------------------------------------------- 
+  //-------------------------------------------------------------------------------------------------
   if(kInputData == "ESD") kTreeName = "esdTree" ;
   else if(kInputData.Contains("AOD")) kTreeName = "aodTree" ;
   else if (kInputData == "MC") kTreeName = "TE" ;
@@ -60,11 +64,11 @@ void ana(Int_t mode=mLocal, TString configName = "ConfigAnalysisPhoton")
     cout<<"Wrong  data type "<<kInputData<<endl;
     break;
   }
-
-  TChain *chain   = new TChain(kTreeName) ;
+  
+  TChain *chain       = new TChain(kTreeName) ;
   TChain * chainxs = new TChain("Xsection") ;
   CreateChain(mode, chain, chainxs);  
-
+  
   if(chain){
     AliLog::SetGlobalLogLevel(AliLog::kError);//Minimum prints on screen
     
@@ -72,78 +76,83 @@ void ana(Int_t mode=mLocal, TString configName = "ConfigAnalysisPhoton")
     // Make the analysis manager
     //-------------------------------------
     AliAnalysisManager *mgr  = new AliAnalysisManager("Manager", "Manager");
+    //AliAnalysisManager::SetUseProgressBar(kTRUE);
+    //mgr->SetSkipTerminate(kTRUE);
+    //mgr->SetNSysInfo(1);
+    
     // MC handler
-    if(kMC || kInputData == "MC"){
+    if((kMC || kInputData == "MC") && !kInputData.Contains("AOD")){
       AliMCEventHandler* mcHandler = new AliMCEventHandler();
       mcHandler->SetReadTR(kFALSE);//Do not search TrackRef file
       mgr->SetMCtruthEventHandler(mcHandler);
-      if( kInputData == "MC") mgr->SetInputEventHandler(NULL);
+      if( kInputData == "MC") {
+	cout<<"INPUT EVENT HANDLER"<<endl;
+	mgr->SetInputEventHandler(NULL);
+      }
     }
-
+    
     // AOD output handler
-    if(kInputData!="deltaAOD"){
+    if(kInputData!="deltaAOD" && outAOD){
+      cout<<"Init output handler"<<endl;
       AliAODHandler* aodoutHandler   = new AliAODHandler();
       aodoutHandler->SetOutputFileName("aod.root");
-      //aodoutHandler->SetCreateNonStandardAOD();
+      ////aodoutHandler->SetCreateNonStandardAOD();
       mgr->SetOutputEventHandler(aodoutHandler);
     }
-
+    
     //input
+    
     if(kInputData == "ESD"){
       // ESD handler
       AliESDInputHandler *esdHandler = new AliESDInputHandler();
+      esdHandler->SetReadFriends(kFALSE);
       mgr->SetInputEventHandler(esdHandler);
+      cout<<"ESD handler "<<mgr->GetInputEventHandler()<<endl;
     }
-    if(kInputData.Contains("AOD")){
+    else if(kInputData.Contains("AOD")){
       // AOD handler
       AliAODInputHandler *aodHandler = new AliAODInputHandler();
-      if(kInputData == "deltaAOD") aodHandler->AddFriend("deltaAODPartCorr.root");
       mgr->SetInputEventHandler(aodHandler);
+      if(kInputData == "deltaAOD") aodHandler->AddFriend("deltaAODPartCorr.root");
+      cout<<"AOD handler "<<mgr->GetInputEventHandler()<<endl;
     }
-
+    //mgr->RegisterExternalFile("deltaAODPartCorr.root");
     //mgr->SetDebugLevel(-1); // For debugging, do not uncomment if you want no messages.
-
+    
     //-------------------------------------------------------------------------
     //Define task, put here any other task that you want to use.
     //-------------------------------------------------------------------------
-    AliAnalysisTaskParticleCorrelation * taskpwg4 = new AliAnalysisTaskParticleCorrelation ("Particle");
-    taskpwg4->SetConfigFileName(configName); //Default name is ConfigAnalysis
-		
-    mgr->AddTask(taskpwg4);
-    
-    // Create containers for input/output
     AliAnalysisDataContainer *cinput1 = mgr->GetCommonInputContainer();
-    AliAnalysisDataContainer *coutput1 = mgr->GetCommonOutputContainer();
-    AliAnalysisDataContainer *coutput2 = mgr->CreateContainer("histos", TList::Class(),
-							      AliAnalysisManager::kOutputContainer, "histos.root");
-    
-    mgr->ConnectInput  (taskpwg4,     0, cinput1);
-    if(kInputData != "deltaAOD")   mgr->ConnectOutput (taskpwg4,     0, coutput1 );
-    mgr->ConnectOutput (taskpwg4,     1, coutput2 );
-  
-    //------------------------  
-    //Scaling task
-    //-----------------------
-    Int_t nfiles = chainxs->GetEntries();
-    //cout<<"Get? "<<kGetXSectionFromFileAndScale<<" nfiles "<<nfiles<<endl;
-    if(kGetXSectionFromFileAndScale && nfiles > 0){
-      //cout<<"Init AnaScale"<<endl;
-      //Get the cross section
-      Double_t xsection=0; 
-      Float_t ntrials = 0;
-      GetAverageXsection(chainxs, xsection, ntrials);
+    AliAnalysisDataContainer *coutput1;
+    if(outAOD){
       
-      AliAnaScale * scale = new AliAnaScale("scale") ;
-      scale->Set(xsection/ntrials/nfiles) ;
-      scale->MakeSumw2(kFALSE);//If you want histograms with error bars set to kTRUE
-      //scale->SetDebugLevel(2);
-      mgr->AddTask(scale);
+      coutput1 = mgr->GetCommonOutputContainer();
       
-      AliAnalysisDataContainer *coutput3 = mgr->CreateContainer("histosscaled", TList::Class(),
-								AliAnalysisManager::kOutputContainer, "histosscaled.root");
-      mgr->ConnectInput  (scale,     0, coutput2);
-      mgr->ConnectOutput (scale,     0, coutput3 );
+      if(kInputData=="ESD"){
+	
+	gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPhysicsSelection.C");
+	AliPhysicsSelectionTask* physSelTask = AddTaskPhysicsSelection();
+	if(kFilter){
+	  gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskESDFilter.C");
+	  AliAnalysisTaskESDfilter *taskesdfilter = AddTaskESDFilter(kFALSE);
+	}
+      }
     }
+    
+    gROOT->LoadMacro("$ALICE_ROOT/PWG4/macros/AddTaskPartCorr.C");
+    TString data = kInputData;
+    if(kFilter && kInputData=="ESD" && outAOD) data = "AOD";
+    //data="MC";
+    AliAnalysisTaskParticleCorrelation *taskEMCAL = AddTaskPartCorr(data,"EMCAL", kFALSE,kFALSE, kFALSE);	
+    //mgr->ProfileTask("PartCorrEMCAL");
+    
+    //AliAnalysisTaskParticleCorrelation *taskPHOS  = AddTaskPartCorr(data,"PHOS", kFALSE,kFALSE,kFALSE);
+    //mgr->ProfileTask("PartCorrPHOS");
+    
+    //gROOT->LoadMacro("AddTaskCalorimeterQA.C");
+    gROOT->LoadMacro("$ALICE_ROOT/PWG4/macros/QA/AddTaskCalorimeterQA.C");
+    AliAnalysisTaskParticleCorrelation *taskQA = AddTaskCalorimeterQA(kInputData,kFALSE,kFALSE);
+    //mgr->ProfileTask("CalorimeterPerformance");      
     
     //-----------------------
     // Run the analysis
@@ -155,15 +164,16 @@ void ana(Int_t mode=mLocal, TString configName = "ConfigAnalysisPhoton")
       smode = "proof";
     else if (mode==mGRID) 
       smode = "local";
-    
     mgr->InitAnalysis();
     mgr->PrintStatus();
     mgr->StartAnalysis(smode.Data(),chain);
 
-cout <<" Analysis ended sucessfully "<< endl ;
-
+    cout <<" Analysis ended sucessfully "<< endl ;
+    
   }
   else cout << "Chain was not produced ! "<<endl;
+  //printf("*** DELETE MANAGER ***\n");
+  // delete mgr;
   
 }
 
@@ -176,7 +186,8 @@ void  LoadLibraries(const anaModes mode) {
   gSystem->Load("libGeom.so");
   gSystem->Load("libVMC.so");
   gSystem->Load("libXMLIO.so");
-  
+  gSystem->Load("libMatrix.so");
+  gSystem->Load("libPhysics.so");
   //----------------------------------------------------------
   // >>>>>>>>>>> Local mode <<<<<<<<<<<<<< 
   //----------------------------------------------------------
@@ -185,30 +196,42 @@ void  LoadLibraries(const anaModes mode) {
     // If you want to use already compiled libraries 
     // in the aliroot distribution
     //--------------------------------------------------------
-    //gSystem->Load("libSTEERBase");
-    //gSystem->Load("libESD");
-    //gSystem->Load("libAOD");
-    //gSystem->Load("libANALYSIS");
-    //gSystem->Load("libANALYSISalice");
-    //gSystem->Load("libPHOSUtils");
-	//gSystem->Load("libEMCALUtils");
-    //gSystem->Load("libPWG4PartCorrBase");
-    //gSystem->Load("libPWG4PartCorrDep");
-	
+    gSystem->Load("libSTEERBase.so");
+    gSystem->Load("libESD.so");
+    gSystem->Load("libAOD.so");
+    gSystem->Load("libANALYSIS.so");
+    gSystem->Load("libANALYSISalice.so");
+    gSystem->Load("libPHOSUtils");
+    gSystem->Load("libEMCALUtils");
+    gSystem->Load("libPWG4PartCorrBase.so");
+    gSystem->Load("libPWG4PartCorrDep.so");
+    if(kFilter){
+      gSystem->Load("libCORRFW.so");
+      gSystem->Load("libPWG3base.so");
+      gSystem->Load("libPWG3muon.so");
+    }
+
     //--------------------------------------------------------
     //If you want to use root and par files from aliroot
     //--------------------------------------------------------  
-    SetupPar("STEERBase");
-    SetupPar("ESD");
-    SetupPar("AOD");
-    SetupPar("ANALYSIS");
-    SetupPar("ANALYSISalice");
-	SetupPar("PHOSUtils");
-	SetupPar("EMCALUtils");
-	  //	//Create Geometry
-//    TGeoManager::Import("geometry.root") ; //need file "geometry.root" in local dir!!!!
+    /*
+     SetupPar("STEERBase");
+     SetupPar("ESD");
+     SetupPar("AOD");
+     SetupPar("ANALYSIS");
+     SetupPar("ANALYSISalice");
+     //If your analysis needs PHOS geometry uncomment following lines
+     SetupPar("PHOSUtils");
+     SetupPar("EMCALUtils");
+     //Create Geometry
      SetupPar("PWG4PartCorrBase");
      SetupPar("PWG4PartCorrDep");
+     if(kFilter){
+     gSystem->Load("libCORRFW.so");
+     gSystem->Load("libPWG3base.so");
+     gSystem->Load("libPWG3muon.so");
+    }
+    */
   }
 
   //---------------------------------------------------------
@@ -241,15 +264,12 @@ void  LoadLibraries(const anaModes mode) {
     gProof->UploadPackage("ANALYSIS.par");
     gProof->EnablePackage("ANALYSIS");
 	// Enable the PHOS geometry Package
-    gProof->UploadPackage("PHOSUtils.par");
-    gProof->EnablePackage("PHOSUtils");
-	// Enable the PHOS geometry Package
-	gProof->UploadPackage("EMCALUtils.par");
-	gProof->EnablePackage("EMCALUtils");	  
+    //gProof->UploadPackage("PHOSUtils.par");
+    //gProof->EnablePackage("PHOSUtils");
     // Enable PartCorr analysis
     gProof->UploadPackage("PWG4PartCorrBase.par");
     gProof->EnablePackage("PWG4PartCorrBase");
-	gProof->UploadPackage("PWG4PartCorrDep.par");
+    gProof->UploadPackage("PWG4PartCorrDep.par");
     gProof->EnablePackage("PWG4PartCorrDep");    
     gProof->ShowEnabledPackages();
   }  
@@ -327,7 +347,7 @@ void CreateChain(const anaModes mode, TChain * chain, TChain * chainxs){
   else if(mode == mLocal){    
     //If you want to add several ESD files sitting in a common directory INDIR
     //Specify as environmental variables the directory (INDIR), the number of files 
-    //to analyze (NEVENT) and the pattern name of the directories with files (PATTERN)
+    //to analyze (NFILES) and the pattern name of the directories with files (PATTERN)
 
     if(gSystem->Getenv("INDIR"))  
       kInDir = gSystem->Getenv("INDIR") ; 
@@ -337,21 +357,35 @@ void CreateChain(const anaModes mode, TChain * chain, TChain * chainxs){
       kPattern = gSystem->Getenv("PATTERN") ; 
     else  cout<<"PATTERN not set, use default: "<<kPattern<<endl;
     
-    if(gSystem->Getenv("NEVENT"))
-      kEvent = atoi(gSystem->Getenv("NEVENT")) ;
-    else cout<<"NEVENT not set, use default: "<<kEvent<<endl;
+    if(gSystem->Getenv("NFILES"))
+      kFile = atoi(gSystem->Getenv("NFILES")) ;
+    else cout<<"NFILES not set, use default: "<<kFile<<endl;
     
     //Check if env variables are set and are correct
-    if ( kInDir  && kEvent) {
-      printf("Get %d files from directory %s\n",kEvent,kInDir);
+    if ( kInDir  && kFile) {
+      printf("Get %d files from directory %s\n",kFile,kInDir);
       if ( ! gSystem->cd(kInDir) ) {//check if ESDs directory exist
 	printf("%s does not exist\n", kInDir) ;
 	return ;
       }
-      cout<<"INDIR : "<<kInDir<<endl;
-      cout<<"NEVENT : "<<kEvent<<endl;
-      cout<<"PATTERN: " <<kPattern<<endl;
-      
+
+      //if(gSystem->Getenv("XSFILE"))  
+      //kXSFileName = gSystem->Getenv("XSFILE") ; 
+      //else cout<<" XS file name not set, use default: "<<kXSFileName<<endl;	
+      char * kGener = gSystem->Getenv("GENER");
+      if(kGener) {
+	cout<<"GENER "<<kGener<<endl;
+	if(!strcmp(kGener,"PYTHIA")) kXSFileName = "pyxsec.root";
+	else if(!strcmp(kGener,"HERWIG")) kXSFileName = "hexsec.root";
+	else cout<<" UNKNOWN GENER, use default: "<<kXSFileName<<endl;
+      }
+      else cout<<" GENER not set, use default xs file name: "<<kXSFileName<<endl;
+
+      cout<<"INDIR   : "<<kInDir<<endl;
+      cout<<"NFILES  : "<<kFile<<endl;
+      cout<<"PATTERN : " <<kPattern<<endl;
+      cout<<"XSFILE  : "<<kXSFileName<<endl;
+
       TString datafile="";
       if(kInputData == "ESD") datafile = "AliESDs.root" ;
       else if(kInputData.Contains("AOD")) datafile = "AliAOD.root" ;
@@ -363,7 +397,7 @@ void CreateChain(const anaModes mode, TChain * chain, TChain * chainxs){
       char file[120] ;
       char filexs[120] ;
       
-      for (event = 0 ; event < kEvent ; event++) {
+      for (event = 0 ; event < kFile ; event++) {
 	sprintf(file, "%s/%s%d/%s", kInDir,kPattern,event,datafile.Data()) ; 
 	sprintf(filexs, "%s/%s%d/%s", kInDir,kPattern,event,kXSFileName) ; 
 	TFile * fESD = 0 ; 
@@ -380,7 +414,7 @@ void CreateChain(const anaModes mode, TChain * chain, TChain * chainxs){
 	  skipped++ ;
 	}
       }
-      printf("number of entries # %lld, skipped %d\n", chain->GetEntries(), skipped) ; 	
+      printf("number of entries # %lld, skipped %d\n", chain->GetEntries(), skipped*100) ; 	
     }
     else {
       TString input = "AliESDs.root" ;

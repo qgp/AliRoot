@@ -345,13 +345,14 @@ void AliHLTTPCClusterFinder::ReadDataUnsortedDeconvoluteTime(void* ptr,unsigned 
 	  // The same is true for the function ReadDataUnsorted() above.
 	  // In addition the signals are organized in the opposite direction
 	  if(f32BitFormat){
-	    indexInBunchData = fDigitReader->GetBunchSize();
+	    indexInBunchData = fDigitReader->GetBunchSize()-1;
 	    const UShort_t *bunchData= fDigitReader->GetSignalsShort();
-	    
+
 	    do{
 	      AliHLTTPCClusters candidate;
 	      //for(Int_t i=indexInBunchData;i<fDigitReader->GetBunchSize();i++){
 	      for(Int_t i=indexInBunchData;i>=0;i--){
+
 		// Checks if one need to deconvolute the signals
 		if(bunchData[i]>prevSignal && signalFalling==kTRUE){
 		  if(i<fDigitReader->GetBunchSize()-1){ // means there are more than one signal left in the bunch
@@ -377,7 +378,6 @@ void AliHLTTPCClusterFinder::ReadDataUnsortedDeconvoluteTime(void* ptr,unsigned 
 		if(bunchData[i]>candidate.fQMax){
 		  candidate.fQMax=bunchData[i];
 		}
-		
 		prevSignal=bunchData[i];
 		time++;
 		indexInBunchData--;
@@ -389,8 +389,7 @@ void AliHLTTPCClusterFinder::ReadDataUnsortedDeconvoluteTime(void* ptr,unsigned 
 		candidate.fLastMergedPad=pad;
 		candidate.fRowNumber=row+fDigitReader->GetRowOffset();
 	      }
-	      fRowPadVector[row][pad]->AddClusterCandidate(candidate);
-	      fRowPadVector[row][pad]->AddCandidateDigits(fMCDigits);
+	      fRowPadVector[row][pad]->AddClusterCandidate(candidate);	      
 	      if(indexInBunchData<fDigitReader->GetBunchSize()-1){
 		moreDataInBunch=kFALSE;
 	      }
@@ -400,6 +399,9 @@ void AliHLTTPCClusterFinder::ReadDataUnsortedDeconvoluteTime(void* ptr,unsigned 
 	    const UInt_t *bunchData= fDigitReader->GetSignals();
 	    do{
 	      AliHLTTPCClusters candidate;
+	      const AliHLTTPCDigitData* digits = fDigitReader->GetBunchDigits();
+	      if(fDoMC)	fMCDigits.clear();	      
+
 	      for(Int_t i=indexInBunchData;i<fDigitReader->GetBunchSize();i++){
 		// Checks if one need to deconvolute the signals
 		if(bunchData[i]>prevSignal && signalFalling==kTRUE){
@@ -420,13 +422,13 @@ void AliHLTTPCClusterFinder::ReadDataUnsortedDeconvoluteTime(void* ptr,unsigned 
 		if(prevSignal>bunchData[i]){//means the peak of the signal has been reached and deconvolution will happen if the signal rise again.
 		  signalFalling=kTRUE;
 		}
-
 		candidate.fTotalCharge+=bunchData[i];	
 		candidate.fTime += time*bunchData[i];
 		candidate.fTime2 += time*time*bunchData[i];
 		if(bunchData[i]>candidate.fQMax){
 		  candidate.fQMax=bunchData[i];
 		}
+		if( fDoMC ) fMCDigits.push_back(digits[i]);
 		
 		prevSignal=bunchData[i];
 		time++;
@@ -440,6 +442,10 @@ void AliHLTTPCClusterFinder::ReadDataUnsortedDeconvoluteTime(void* ptr,unsigned 
 		candidate.fRowNumber=row+fDigitReader->GetRowOffset();
 	      }
 	      fRowPadVector[row][pad]->AddClusterCandidate(candidate);
+	      if(fDoMC){
+		fRowPadVector[row][pad]->AddCandidateDigits(fMCDigits);
+		fMCDigits.clear();
+	      }
 	      if(indexInBunchData<fDigitReader->GetBunchSize()-1){
 		moreDataInBunch=kFALSE;
 	      }
@@ -691,17 +697,17 @@ void AliHLTTPCClusterFinder::PrintClusters(){
   }
 }
 
-void AliHLTTPCClusterFinder::FillMCClusterVector(vector<AliHLTTPCDigitData> digitData){
+void AliHLTTPCClusterFinder::FillMCClusterVector(vector<AliHLTTPCDigitData> *digitData){
   // see header file for class documentation
-
-  for(UInt_t d=0;d<digitData.size();d++){
-    Int_t nIDsInDigit = (digitData.at(d).fTrackID[0]>=0) + (digitData.at(d).fTrackID[1]>=0) + (digitData.at(d).fTrackID[2]>=0);
+  if( !digitData ) return;
+  for(UInt_t d=0;d<digitData->size();d++){
+    Int_t nIDsInDigit = (digitData->at(d).fTrackID[0]>=0) + (digitData->at(d).fTrackID[1]>=0) + (digitData->at(d).fTrackID[2]>=0);
     for(Int_t id=0; id<3; id++){
-      if(digitData.at(d).fTrackID[id]>=0){
+      if(digitData->at(d).fTrackID[id]>=0){
 	Bool_t matchFound = kFALSE;
 	MCWeight mc;
-	mc.fMCID = digitData.at(d).fTrackID[id];
-	mc.fWeight = ((Float_t)digitData.at(d).fCharge)/nIDsInDigit;
+	mc.fMCID = digitData->at(d).fTrackID[id];
+	mc.fWeight = ((Float_t)digitData->at(d).fCharge)/nIDsInDigit;
 	for(UInt_t i=0;i<fClusterMCVector.size();i++){
 	  if(mc.fMCID == fClusterMCVector.at(i).fMCID){
 	    fClusterMCVector.at(i).fWeight += mc.fWeight;

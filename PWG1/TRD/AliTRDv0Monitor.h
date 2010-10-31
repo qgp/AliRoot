@@ -37,13 +37,13 @@ public:
   };
 
   AliTRDv0Monitor();
-  AliTRDv0Monitor(const char *name, const char *title);
+  AliTRDv0Monitor(const char *name);
   virtual ~AliTRDv0Monitor(){};
 
   Bool_t      GetRefFigure(Int_t ifig); 
   TObjArray*  Histos();
   void        UserExec(Option_t *option);
-  void        MakeSummary();
+  //void        MakeSummary();
 
 private:
   AliTRDv0Monitor(const AliTRDv0Monitor&);              // not implemented

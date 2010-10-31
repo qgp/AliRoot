@@ -381,7 +381,6 @@ Double_t AliTRDCommonParam::TimeStruct(Float_t vdrift, Double_t dist, Double_t z
   if (r1 <  0) r1 =  0;
   if (r1 > 37) r1 = 37;
   Int_t r2 = r1 + 1;
-  if (r2 <  0) r2 =  0;
   if (r2 > 37) r2 = 37;
   const Int_t kz1 = ((Int_t)(100 * z / 2.5));
   const Int_t kz2 = kz1 + 1;
@@ -401,9 +400,7 @@ Double_t AliTRDCommonParam::TimeStruct(Float_t vdrift, Double_t dist, Double_t z
   const Float_t ky121 = (kz2 <= 10)             
                       ? fTimeStruct1[r1+38*kz2] 
                       : fTimeStruct1[r1+38*10];
-  const Float_t ky211 = (r2 <= 37)              
-                      ? fTimeStruct1[r2+38*kz1] 
-                      : fTimeStruct1[37+38*kz1];
+  const Float_t ky211 = fTimeStruct1[r2+38*kz1];
 
   const Float_t ky112 = fTimeStruct2[r1+38*kz1];
   const Float_t ky222 = ((r2 <= 37) && (kz2 <= 10)) 
@@ -412,9 +409,7 @@ Double_t AliTRDCommonParam::TimeStruct(Float_t vdrift, Double_t dist, Double_t z
   const Float_t ky122 = (kz2 <= 10)             
                       ? fTimeStruct2[r1+38*kz2] 
                       : fTimeStruct2[r1+38*10];
-  const Float_t ky212 = (r2 <= 37)              
-                      ? fTimeStruct2[r2+38*kz1] 
-                      : fTimeStruct2[37+38*kz1];
+  const Float_t ky212 = fTimeStruct2[r2+38*kz1];
 
   // Interpolation in dist-directions, lower drift time map
   const Float_t ky11  = (ky211-ky111)*10*dist + ky111 - (ky211-ky111)*r1;

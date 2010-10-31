@@ -23,6 +23,7 @@ SRCS = AliESDEvent.cxx AliESDInputHandler.cxx AliESDInputHandlerRP.cxx AliESDfri
        AliESDTZERO.cxx \
        AliESDTZEROfriend.cxx \
        AliESDCaloTrigger.cxx \
+       AliESDCentrality.cxx \
        AliRawDataErrorLog.cxx \
        AliMeanVertex.cxx \
        AliESDCaloCells.cxx \
@@ -32,7 +33,8 @@ SRCS = AliESDEvent.cxx AliESDInputHandler.cxx AliESDInputHandlerRP.cxx AliESDfri
        AliTriggerScalersESD.cxx \
        AliTriggerScalersRecordESD.cxx \
        AliESDHandler.cxx \
-       AliTrackerBase.cxx
+       AliTrackerBase.cxx \
+       AliTOFHeader.cxx 
 
 HDRS:= $(SRCS:.cxx=.h) 
 

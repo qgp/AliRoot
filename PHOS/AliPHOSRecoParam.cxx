@@ -32,18 +32,23 @@ TObjArray* AliPHOSRecoParam::fgkMaps =0; //ALTRO mappings
 //-----------------------------------------------------------------------------
 AliPHOSRecoParam::AliPHOSRecoParam() :
   AliDetectorRecoParam(),
+  fNonLinearityParams(3),
   fEMCClusteringThreshold(0.2),
   fEMCLocMaxCut(0.03),
   fEMCRawDigitThreshold(2),
   fEMCMinE(0.012),
   fEMCW0(4.5),
   fEMCSampleQualityCut(1.),
+  fTimeGateAmpThresh(10.),
+  fTimeGateLow(1.e-6),
+  fTimeGateHigh(1.e-6),
   fEMCEcoreRadius(3.),
   fEMCEcore2ESD(kFALSE),
   fEMCSubtractPedestals(kTRUE),
   fEMCUnfold(kTRUE),
   fEMCEnergyCorrectionOn(kTRUE),
   fEMCFitterVersion(""),
+  fNonlinearityCorrVersion(""),
   fGlobalAltroOffset(0),
   fGlobalAltroThreshold(0),
   fCPVClusteringThreshold(0.0),
@@ -53,23 +58,29 @@ AliPHOSRecoParam::AliPHOSRecoParam() :
   fCPVUnfold(kTRUE)
 {
   //Default constructor.
+  SetNonlinearityCorrectionVersion("Gustavo2005") ;
 }
 
 //-----------------------------------------------------------------------------
 AliPHOSRecoParam::AliPHOSRecoParam(const AliPHOSRecoParam& ):
   AliDetectorRecoParam(),
+  fNonLinearityParams(3),
   fEMCClusteringThreshold(0.2),
   fEMCLocMaxCut(0.03),
   fEMCRawDigitThreshold(2),
   fEMCMinE(0.012),
   fEMCW0(4.5),
   fEMCSampleQualityCut(1.),
+  fTimeGateAmpThresh(10.),
+  fTimeGateLow(1.e-6),
+  fTimeGateHigh(1.e-6),
   fEMCEcoreRadius(3.),
   fEMCEcore2ESD(kFALSE),
   fEMCSubtractPedestals(kTRUE),
   fEMCUnfold(kTRUE),
   fEMCEnergyCorrectionOn(kTRUE),
   fEMCFitterVersion(""),
+  fNonlinearityCorrVersion(""),
   fGlobalAltroOffset(0),
   fGlobalAltroThreshold(0),
   fCPVClusteringThreshold(0.0),
@@ -87,18 +98,23 @@ AliPHOSRecoParam& AliPHOSRecoParam::operator = (const AliPHOSRecoParam& recoPara
   //Assignment operator.
 
   if(this != &recoParam) {
+    fNonLinearityParams     = recoParam.fNonLinearityParams;
     fEMCClusteringThreshold = recoParam.fEMCClusteringThreshold;
     fEMCLocMaxCut           = recoParam.fEMCLocMaxCut;
     fEMCRawDigitThreshold   = recoParam.fEMCRawDigitThreshold;
     fEMCMinE                = recoParam.fEMCMinE;
     fEMCW0                  = recoParam.fEMCW0;
     fEMCSampleQualityCut    = recoParam.fEMCSampleQualityCut;
+    fTimeGateAmpThresh      = recoParam.fTimeGateAmpThresh ;
+    fTimeGateLow            = recoParam.fTimeGateLow ;
+    fTimeGateHigh           = recoParam.fTimeGateHigh ;
     fEMCEcoreRadius         = recoParam.fEMCEcoreRadius;
     fEMCEcore2ESD           = recoParam.fEMCEcore2ESD;
     fEMCSubtractPedestals   = recoParam.fEMCSubtractPedestals;
     fEMCUnfold              = recoParam.fEMCUnfold;
     fEMCEnergyCorrectionOn  = recoParam.fEMCEnergyCorrectionOn;
     fEMCFitterVersion       = recoParam.fEMCFitterVersion;
+    fNonlinearityCorrVersion= recoParam.fNonlinearityCorrVersion;
     fGlobalAltroOffset      = recoParam.fGlobalAltroOffset;
     fGlobalAltroThreshold   = recoParam.fGlobalAltroThreshold;
     fCPVClusteringThreshold = recoParam.fCPVClusteringThreshold;
@@ -106,6 +122,7 @@ AliPHOSRecoParam& AliPHOSRecoParam::operator = (const AliPHOSRecoParam& recoPara
     fCPVMinE                = recoParam.fCPVMinE;
     fCPVW0                  = recoParam.fCPVW0;
     fCPVUnfold              = recoParam.fCPVUnfold;
+    fNonLinearityParams     = recoParam.fNonLinearityParams ;
   }
 
   return *this;
@@ -175,4 +192,30 @@ const TObjArray* AliPHOSRecoParam::GetMappings()
   
   return fgkMaps;
   
+}
+//-----------------------------------------------------------------------------
+void AliPHOSRecoParam::SetNonlinearityCorrectionVersion(const char * ver){
+  //Set non-linearity correction version and adjust parameters
+
+  if(strcmp(ver,"NoCorrection")==0){
+    fNonLinearityParams.Set(1) ;
+    fNonLinearityParams.AddAt(0.,0) ;
+    fNonlinearityCorrVersion=ver ;
+    return ;
+  }
+  if(strcmp(ver,"Henrik2010")==0){
+    Float_t pars[7]={1.051,2.54e-003,-1.737e-002,5.69e-002,3.3e-001,1.42e-001,1.50e-002} ;
+    fNonLinearityParams.Set(7,pars) ;
+    fNonlinearityCorrVersion=ver ;
+    return ;
+  }
+  if(strcmp(ver,"Gustavo2005")==0){
+    Float_t pars[3]={0.0241, 1.0504, 0.000249} ;
+    fNonLinearityParams.Set(3,pars) ;
+    fNonlinearityCorrVersion=ver ;
+    return ;
+  }
+  AliError(Form("Non known correction version: %s, still using default \n",ver)) ;
+
+
 }

@@ -126,6 +126,21 @@ AliTRDseed::AliTRDseed(const AliTRDseed &s)
 }
 
 //_____________________________________________________________________________
+AliTRDseed &AliTRDseed::operator=(const AliTRDseed &s)
+{
+  //
+  // Assignment operator
+  //
+
+  if (this != &s) {
+    ((AliTRDseed &) s).Copy(*this);
+  }
+
+  return *this;
+
+}
+
+//_____________________________________________________________________________
 void AliTRDseed::Copy(TObject &o) const
 {
 	//printf("AliTRDseed::Copy()\n");
@@ -301,6 +316,7 @@ void AliTRDseed::Update()
                                          // Get 1 and second max probable coodinates in z
   Int_t    zouts[2*knTimebins];       
   Float_t  allowedz[knTimebins];         // Allowed z for given time bin
+  memset(allowedz, 0, knTimebins*sizeof(Float_t));
   Float_t  yres[knTimebins];             // Residuals from reference
   //Float_t  anglecor = fTilt * fZref[1];  // Correction to the angle
   

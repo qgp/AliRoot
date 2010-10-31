@@ -21,7 +21,6 @@
 
 using namespace std;
 
-TF1 * AliBWTools::fFuncForNormalized = 0;
 
 ClassImp(AliBWTools)
 
@@ -33,16 +32,16 @@ AliBWTools::~AliBWTools(){
   // dtor
 }
 
-TH1 * AliBWTools::GetdNdmtFromdNdpt(TH1 * hpt, Double_t mass) {
+TH1 * AliBWTools::GetdNdmtFromdNdpt(const TH1 * hpt, Double_t mass) {
   // convert the x axis from pt to mt. Assumes you have 1/pt dNdpt in the histo you start with
 
   Int_t nbins = hpt->GetNbinsX();
   Float_t * xbins = new Float_t[nbins+1];
   for(Int_t ibins = 0; ibins <= nbins; ibins++){
     xbins[ibins] = TMath::Sqrt(hpt->GetBinLowEdge(ibins+1)*hpt->GetBinLowEdge(ibins+1) +
-			       mass *mass) - mass;
-//     xbins[ibins] = TMath::Sqrt(hpt->GetBinLowEdge(ibins+1)*hpt->GetBinLowEdge(ibins+1) +
-// 			       mass *mass);
+    			       mass *mass) - mass;
+    // // xbins[ibins] = TMath::Sqrt(hpt->GetBinLowEdge(ibins+1)*hpt->GetBinLowEdge(ibins+1) +
+    // // 			       mass *mass);
     //    cout << ibins << " "<< xbins[ibins]  << endl;
 
   }
@@ -58,12 +57,15 @@ TH1 * AliBWTools::GetdNdmtFromdNdpt(TH1 * hpt, Double_t mass) {
 
   hmt->SetXTitle("m_{t} - m_{0} (GeV/c^{2})");
   hmt->SetYTitle("1/m_{t} dN/dm_{t} (a.u.)");
-  
+  hmt->SetMarkerStyle(hpt->GetMarkerStyle());
+  hmt->SetMarkerColor(hpt->GetMarkerColor());
+  hmt->SetLineColor(hpt->GetLineColor());
+
   return hmt;
 
 }
 
-TH1 * AliBWTools::GetdNdPtFromOneOverPt(TH1 * h1Pt) {
+TH1 * AliBWTools::GetdNdPtFromOneOverPt(const TH1 * h1Pt) {
 
   // convert an histo from 1/pt dNdpt to dNdpt, using the pt at the center of the bin
 
@@ -80,7 +82,7 @@ TH1 * AliBWTools::GetdNdPtFromOneOverPt(TH1 * h1Pt) {
     
     Double_t pt   = h1Pt->GetBinCenter(ibinx);
     
-    if(pt != 0) {
+    if(pt > 0) {
       cont *= pt;
       err  *= pt;
     } else {
@@ -103,7 +105,7 @@ TH1 * AliBWTools::GetdNdPtFromOneOverPt(TH1 * h1Pt) {
 
 
 
-TH1 * AliBWTools::GetOneOverPtdNdPt(TH1 * hPt) {
+TH1 * AliBWTools::GetOneOverPtdNdPt(const TH1 * hPt) {
 
   // convert an histo from dNdpt to 1/pt dNdpt, using the pt at the center of the bin
 
@@ -119,7 +121,7 @@ TH1 * AliBWTools::GetOneOverPtdNdPt(TH1 * hPt) {
     
     Double_t pt   = hPt->GetBinCenter(ibinx);
     
-    if(pt != 0) {
+    if(pt > 0) {
       cont /= pt;
       err  /= pt;
     } else {
@@ -140,7 +142,7 @@ TH1 * AliBWTools::GetOneOverPtdNdPt(TH1 * hPt) {
 }
 
 
-TGraphErrors * AliBWTools::GetGraphFromHisto(TH1F * h, Bool_t binWidth) {
+TGraphErrors * AliBWTools::GetGraphFromHisto(const TH1F * h, Bool_t binWidth) {
   // Convert a histo to a graph
   // if binWidth is true ex is set to the bin width of the histos, otherwise it is set to zero
   Int_t nbin = h->GetNbinsX();
@@ -149,7 +151,7 @@ TGraphErrors * AliBWTools::GetGraphFromHisto(TH1F * h, Bool_t binWidth) {
   Int_t ipoint = 0;
   for(Int_t ibin = 1; ibin <= nbin; ibin++){
     Double_t xerr = binWidth ? h->GetBinWidth(ibin)/2 : 0;
-    if (h->GetBinContent(ibin)!=0) {
+    if (h->GetBinContent(ibin)) {
       g->SetPoint     (ipoint,   h->GetBinCenter(ibin), h->GetBinContent(ibin));
       g->SetPointError(ipoint,   xerr,  h->GetBinError(ibin));
       ipoint++;
@@ -159,6 +161,8 @@ TGraphErrors * AliBWTools::GetGraphFromHisto(TH1F * h, Bool_t binWidth) {
   g->SetMarkerStyle(h->GetMarkerStyle());
   g->SetMarkerColor(h->GetMarkerColor());
   g->SetLineColor(h->GetLineColor());
+  g->SetLineStyle(h->GetLineStyle());
+  g->SetLineWidth(h->GetLineWidth());
 
   g->SetTitle(h->GetTitle());
   g->SetName(TString("g_")+h->GetName());
@@ -167,7 +171,7 @@ TGraphErrors * AliBWTools::GetGraphFromHisto(TH1F * h, Bool_t binWidth) {
 
 }
 
-TH1F * AliBWTools::GetHistoFromGraph(TGraphErrors * g, TH1F* hTemplate) {
+TH1F * AliBWTools::GetHistoFromGraph(const TGraphErrors * g, const TH1F* hTemplate) {
 
   // convert a graph to histo with the binning of hTemplate.
   // Warning: the template should be chosen
@@ -197,7 +201,7 @@ TH1F * AliBWTools::GetHistoFromGraph(TGraphErrors * g, TH1F* hTemplate) {
   return h;
 }
 
-TGraphErrors * AliBWTools::ConcatenateGraphs(TGraphErrors * g1,TGraphErrors * g2){
+TGraphErrors * AliBWTools::ConcatenateGraphs(const TGraphErrors * g1,const TGraphErrors * g2){
 
   // concatenates two graphs
 
@@ -224,10 +228,11 @@ TGraphErrors * AliBWTools::ConcatenateGraphs(TGraphErrors * g1,TGraphErrors * g2
 }
 
 
-TH1F * AliBWTools::Combine3HistosWithErrors(TH1 * h1,  TH1 * h2,  TH1* h3, 
-					    TH1 * he1, TH1 * he2, TH1 * he3, 
-					    TH1* htemplate, Int_t statFrom, 
-					    Float_t renorm1, Float_t renorm2, Float_t renorm3) {
+TH1F * AliBWTools::Combine3HistosWithErrors(const TH1 * h1,  const TH1 * h2,  const TH1* h3, 
+					    TH1 * he1,  TH1 * he2,  TH1 * he3, 
+					    const TH1* htemplate, Int_t statFrom, 
+					    Float_t renorm1, Float_t renorm2, Float_t renorm3,
+					    TH1 ** hSyst, Bool_t errorFromBinContent) {
 
   // Combines 3 histos (h1,h2,h3), weighting by the errors provided in
   // he1,he2,he3, supposed to be the independent systematic errors.
@@ -237,7 +242,8 @@ TH1F * AliBWTools::Combine3HistosWithErrors(TH1 * h1,  TH1 * h2,  TH1* h3,
   // of tracks. statFrom tells the stat error of which of the 3 is
   // going to be assigned to the combined
   // Optionally, it is possible to rescale any of the histograms.
-
+  // if hSyst is give, the histo is filled with combined syst error vs pt
+  // if errorFromBinContent is true, the weights are taken from the he* content rather than errors
   TH1F * hcomb = (TH1F*) htemplate->Clone(TString("hComb_")+h1->GetName()+"_"+h2->GetName()+h3->GetName());
 
   // TODO: I should have used an array for h*local...
@@ -250,7 +256,7 @@ TH1F * AliBWTools::Combine3HistosWithErrors(TH1 * h1,  TH1 * h2,  TH1* h3,
   h2local->Scale(renorm2);
   h3local->Scale(renorm3);
 
-  TH1 * hStatError = 0;
+  const TH1 * hStatError = 0;
   if (statFrom == 0)      hStatError = h1; 
   else if (statFrom == 1) hStatError = h2; 
   else if (statFrom == 2) hStatError = h3; 
@@ -275,42 +281,47 @@ TH1F * AliBWTools::Combine3HistosWithErrors(TH1 * h1,  TH1 * h2,  TH1* h3,
     y[0]  = h1local->GetBinContent(ibin1);
     y[1]  = h2local->GetBinContent(ibin2);
     y[2]  = h3local->GetBinContent(ibin3);
-    ye[0] = he1->GetBinError(ibin1);
-    ye[1] = he2->GetBinError(ibin2);
-    ye[2] = he3->GetBinError(ibin3);
- 
+    if (errorFromBinContent) {
+      ye[0] = he1->GetBinContent(he1->FindBin(hcomb->GetBinCenter(ibin)));
+      ye[1] = he2->GetBinContent(he2->FindBin(hcomb->GetBinCenter(ibin)));
+      ye[2] = he3->GetBinContent(he3->FindBin(hcomb->GetBinCenter(ibin)));
+    } else {
+      ye[0] = he1->GetBinError(ibin1);
+      ye[1] = he2->GetBinError(ibin2);
+      ye[2] = he3->GetBinError(ibin3);
+    }
     // Set error to 0 if content is 0 (means it was not filled)
-    if(h1local->GetBinContent(ibin1)==0) ye[0] = 0;
-    if(h2local->GetBinContent(ibin2)==0) ye[1] = 0;
-    if(h3local->GetBinContent(ibin3)==0) ye[2] = 0;
+    if(!h1local->GetBinContent(ibin1)) ye[0] = 0;
+    if(!h2local->GetBinContent(ibin2)) ye[1] = 0;
+    if(!h3local->GetBinContent(ibin3)) ye[2] = 0;
     
     // Compute weighted mean
+    //    cout << "Bins:  "<< ibin1 << " " << ibin2 << " " << ibin3 << endl;    
     Double_t mean, err;
     WeightedMean(3,y,ye,mean,err);
 
 
     // Fill combined
-    // TODO: return error from weighted mean somehow...
     hcomb->SetBinContent(ibin,mean);
     Double_t statError = 0;
-    if (hStatError->GetBinContent(ibinError) != 0) {
+    if (hStatError->GetBinContent(ibinError)) {
       //      cout << "def" << endl;
       statError = hStatError->GetBinError(ibinError)/hStatError->GetBinContent(ibinError)*hcomb->GetBinContent(ibin);
     }
-    else if (h1local->GetBinContent(ibin1) != 0) {
+    else if (h1local->GetBinContent(ibin1)) {
       //      cout << "1" << endl;
       statError = h1local->GetBinError(ibin1)/h1local->GetBinContent(ibin1)*hcomb->GetBinContent(ibin);
     }
-    else if (h2local->GetBinContent(ibin2) != 0) {
+    else if (h2local->GetBinContent(ibin2)) {
       //      cout << "2" << endl;
       statError = h2local->GetBinError(ibin2)/h2local->GetBinContent(ibin2)*hcomb->GetBinContent(ibin);
     }
-    else if (h3local->GetBinContent(ibin3) != 0) {
+    else if (h3local->GetBinContent(ibin3)) {
       //      cout << "3" << endl;
       statError = h3local->GetBinError(ibin3)/h3local->GetBinContent(ibin3)*hcomb->GetBinContent(ibin);
     }
     hcomb->SetBinError  (ibin,statError);
-
+    if(hSyst) (*hSyst)->SetBinContent(ibin,err);
     //    cout << "BIN " << ibin << " " << mean << " " << statError << endl;
 
   }
@@ -330,8 +341,52 @@ TH1F * AliBWTools::Combine3HistosWithErrors(TH1 * h1,  TH1 * h2,  TH1* h3,
 }
 
 
-TH1F * AliBWTools::CombineHistos(TH1 * h1, TH1 * h2, TH1* htemplate, Float_t renorm1){
+void AliBWTools::GetMeanDataAndExtrapolation(const TH1 * hData, TF1 * fExtrapolation, Double_t &mean, Double_t &error, Float_t min, Float_t max){
+  // Computes the mean of the combined data and extrapolation in a
+  // given range, use data where they are available and the function
+  // where data are not available
+  // ERROR is from DATA ONLY returned in this version! 
+  //
+  Printf("AliBWTools::GetMeanDataAndExtrapolation: WARNING from data only");
+  Float_t minData    = GetLowestNotEmptyBinEdge (hData);
+  Float_t minDataBin = GetLowestNotEmptyBin     (hData);
+  Float_t maxData    = GetHighestNotEmptyBinEdge(hData);
+  Float_t maxDataBin = GetHighestNotEmptyBin    (hData);
+  Double_t integral  = 0; 
+  mean      = 0;
+  error     = 0; 
+  if (min < minData) {
+    // Compute integral exploiting root function to calculate moments, "unnormalizing" them
+    mean     += fExtrapolation->Mean(min,minData)*fExtrapolation->Integral(min,minData);
+    integral += fExtrapolation->Integral(min,minData);
+    cout << " Low "<< mean << " " << integral << endl;
+    
+  }
+  
+  if (max > maxData) {
+    // Compute integral exploiting root function to calculate moments, "unnormalizing" them
+    mean     += fExtrapolation->Mean(maxData,max)*fExtrapolation->Integral(maxData,max);
+    integral += fExtrapolation->Integral(maxData,max);
+    cout << " Hi "<< mean << " " << integral << endl;
+  } 
+  Float_t err2 = 0;
+  
+  for(Int_t ibin = minDataBin; ibin <= maxDataBin; ibin++){
+    if(hData->GetBinCenter(ibin) < min) continue;
+    if(hData->GetBinCenter(ibin) > max) continue;
+    mean     = mean + (hData->GetBinCenter(ibin) *  hData->GetBinWidth(ibin)* hData->GetBinContent(ibin));
+    err2     = err2 + TMath::Power(hData->GetBinError(ibin) * hData->GetBinCenter(ibin) *  hData->GetBinWidth(ibin),2);
+    integral = integral + hData->GetBinContent(ibin) * hData->GetBinWidth(ibin);
+  }
+  cout << " Data "<< mean << " " << integral << endl;
+  
+  mean = mean/integral;
+  error = TMath::Sqrt(err2)/integral;
 
+
+}
+
+TH1F * AliBWTools::CombineHistos(const TH1 * h1, TH1 * h2, const TH1* htemplate, Float_t renorm1){
   // Combine two histos. This assumes the histos have the same binning
   // in the overlapping region. It computes the arithmetic mean in the
   // overlapping region and assigns as an error the relative error
@@ -347,15 +402,15 @@ TH1F * AliBWTools::CombineHistos(TH1 * h1, TH1 * h2, TH1* htemplate, Float_t ren
     Int_t ibin1 = h1local->FindBin(hcomb->GetBinCenter(ibin));
     Int_t ibin2 = h2->FindBin(hcomb->GetBinCenter(ibin));
     
-      if (h1local->GetBinContent(ibin1) == 0 && h2->GetBinContent(ibin2) == 0) {
+      if (!h1local->GetBinContent(ibin1) && !h2->GetBinContent(ibin2) ) {
 	// None has data: go to next bin
 	hcomb->SetBinContent(ibin,0);
 	hcomb->SetBinError  (ibin,0);	
-      } else if(h1local->GetBinContent(ibin1) != 0 && h2->GetBinContent(ibin2) == 0) {
+      } else if(h1local->GetBinContent(ibin1) && !h2->GetBinContent(ibin2)) {
 	// take data from h1local:
 	hcomb->SetBinContent(ibin,h1local->GetBinContent(ibin1));
 	hcomb->SetBinError  (ibin,h1local->GetBinError(ibin1));
-      } else if(h1local->GetBinContent(ibin1) == 0 && h2->GetBinContent(ibin2) != 0) {
+      } else if(!h1local->GetBinContent(ibin1) && h2->GetBinContent(ibin2)) {
 	// take data from h2:
 	hcomb->SetBinContent(ibin,h2->GetBinContent(ibin2));
 	hcomb->SetBinError  (ibin,h2->GetBinError(ibin2));
@@ -381,7 +436,7 @@ TH1F * AliBWTools::CombineHistos(TH1 * h1, TH1 * h2, TH1* htemplate, Float_t ren
 }
 
 
-void AliBWTools::GetFromHistoGraphDifferentX(TH1F * h, TF1 * f, TGraphErrors ** gBarycentre, TGraphErrors ** gXlw) {
+void AliBWTools::GetFromHistoGraphDifferentX(const TH1F * h, TF1 * f, TGraphErrors ** gBarycentre, TGraphErrors ** gXlw) {
 
   // Computes the baycentre in each bin and the xlw as defined in NIMA
   // 355 - 541 using f. Returs 2 graphs with the same y content of h
@@ -398,16 +453,16 @@ void AliBWTools::GetFromHistoGraphDifferentX(TH1F * h, TF1 * f, TGraphErrors ** 
     Float_t max = h->GetBinLowEdge(ibin+1);
     Double_t xerr = 0;
     Double_t xbar = f->Mean(min,max);
-    // compute x_LW
+    // compute xLW
     Double_t temp = 1./(max-min) * f->Integral(min,max);
     Double_t epsilon   = 0.000000001;
     Double_t increment = 0.0000000001;
-    Double_t x_lw = min;
+    Double_t xLW = min;
 
-    while ((f->Eval(x_lw)- temp) > epsilon) {
-      x_lw += increment;
-      if(x_lw > max) {
-	Printf("Cannot find x_lw");
+    while ((f->Eval(xLW)- temp) > epsilon) {
+      xLW += increment;
+      if(xLW > max) {
+	Printf("Cannot find xLW");
 	break;
       }
     }
@@ -415,7 +470,7 @@ void AliBWTools::GetFromHistoGraphDifferentX(TH1F * h, TF1 * f, TGraphErrors ** 
     if (h->GetBinContent(ibin)!=0) {
       (*gBarycentre)->SetPoint     (ipoint,   xbar, h->GetBinContent(ibin));
       (*gBarycentre)->SetPointError(ipoint,   xerr, h->GetBinError(ibin));
-      (*gXlw)       ->SetPoint     (ipoint,   x_lw, h->GetBinContent(ibin));
+      (*gXlw)       ->SetPoint     (ipoint,   xLW,  h->GetBinContent(ibin));
       (*gXlw)       ->SetPointError(ipoint,   xerr, h->GetBinError(ibin));
       ipoint++;
     }
@@ -438,57 +493,82 @@ void AliBWTools::GetFromHistoGraphDifferentX(TH1F * h, TF1 * f, TGraphErrors ** 
 }
 
 
-Float_t AliBWTools::GetMean(TH1F * h, Float_t min, Float_t max) {
+Float_t AliBWTools::GetMean(TH1F * h, Float_t min, Float_t max, Float_t * error) {
 
-  // Get the mean of histo in a range; root is not reliable in sub ranges with variable binning.
-
+  // Get the mean of histo in a range; root is not reliable in sub
+  // ranges with variable binning.  
   Int_t minBin = h->FindBin(min);
-  Int_t maxBin = h->FindBin(max);
+  Int_t maxBin = h->FindBin(max-0.00001);
 
   Float_t mean = 0 ;
   Float_t integral = 0;
-  for(Int_t ibin = minBin; ibin < maxBin; ibin++){
+  Float_t err2 = 0;
+  for(Int_t ibin = minBin; ibin <= maxBin; ibin++){
     mean     = mean + (h->GetBinCenter(ibin) *  h->GetBinWidth(ibin)* h->GetBinContent(ibin));
+    err2     = err2 + TMath::Power(h->GetBinError(ibin) * h->GetBinCenter(ibin) *  h->GetBinWidth(ibin),2);
     integral = integral + h->GetBinContent(ibin) * h->GetBinWidth(ibin);
   }
   
-  return mean/integral;
+  Float_t value = mean/integral;  
+  if (error) (*error) = TMath::Sqrt(err2);
+  return value;
 
 
 }
 
-void AliBWTools::GetMean(TF1 * func, Float_t &mean, Float_t &error, Float_t min, Float_t max) {
+void AliBWTools::GetMean(TF1 * func, Float_t &mean, Float_t &error, Float_t min, Float_t max, Int_t normPar) {
 
-  // Get the mean of function in a range; 
+  // Get the mean of function in a range; If normPar is >= 0, it means
+  // that the function is defined such that par[normPar] is its
+  // integral.  In this case the error on meanpt can be calculated
+  // correctly. Otherwise, the function is normalized in get moment,
+  // but the error is not computed correctly.
 
-  return GetMoment("fMean", "x*", func, mean, error, min,max);
-
-}
-
-void AliBWTools::GetMeanSquare(TF1 * func, Float_t &mean, Float_t &error, Float_t min, Float_t max) {
-
-  // Get the mean2 of function in a range; 
-
-  return GetMoment("fMean2", "x*x*", func, mean, error, min,max);
-
+  return GetMoment("fMean", TString("x*")+func->GetExpFormula(), func, mean, error, min, max, normPar);
 
 }
 
-void AliBWTools::GetMoment(TString name, TString var, TF1 * func, Float_t &mean, Float_t &error, Float_t min, Float_t max) {
+void AliBWTools::GetMeanSquare(TF1 * func, Float_t &mean, Float_t &error, Float_t min, Float_t max, Int_t normPar) {
+
+  // Get the mean2 of function in a range;  If normPar is >= 0, it means
+  // that the function is defined such that par[normPar] is its
+  // integral.  In this case the error on meanpt can be calculated
+  // correctly. Otherwise, the function is normalized in get moment,
+  // but the error is not computed correctly.
+
+  return GetMoment("fMean2", TString("x*x*")+func->GetExpFormula(), func, mean, error, min, max, normPar);
+
+
+}
+
+void AliBWTools::GetMoment(TString name, TString var, TF1 * func, Float_t &mean, Float_t &error, Float_t min, Float_t max, Int_t normPar) {
 
   // returns the integral of a function derived from func by prefixing some operation.
+  // the derived function MUST have the same parameter in the same order
   // Used as a base method for mean and mean2
-  Printf("AliBWTools::GetMoment: Error on <pt> is not correct!!! It is overestimated, fix required");
-  Int_t npar = func->GetNpar();
-  Double_t integr  = func->Integral(min,max);
+  //  If normPar is >= 0, it means that the function is defined such
+  // that par[normPar] is its integral.  In this case the error on
+  // meanpt can be calculated correctly. Otherwise, the function is
+  // normalized using its numerical integral, but the error is not computed
+  // correctly. 
 
-  TF1 * f = new TF1(name, var+func->GetName());	// FIXME
-//   fFuncForNormalized = func;// TMP: computing mean pt
-//   TF1 * f = new TF1(name,GetNormalizedFunc,0,10,npar);// FIXME
-//   for(Int_t ipar = 0; ipar < npar; ipar++){ // FIXME
-//     f->SetParameter(ipar,func->GetParameter(ipar)); // FIXME
-//   }
-  
+  // TODO:
+  // - improve to propagate error also in the case you need the
+  //   numerical integrals (will be rather slow)
+  // - this version assumes that func is defined using a
+  //   TFormula. Generalize to the case of a C++ function
+
+  if (normPar<0) Printf("AliBWTools::GetMoment: Warning: If normalization is required, the error may bot be correct");
+  if (!strcmp(func->GetExpFormula(),"")) Printf("AliBWTools::GetMoment: Warning: Empty formula in the base function");
+  Int_t npar = func->GetNpar();
+
+  // Definition changes according to the value of normPar
+  TF1 * f = normPar < 0 ? 
+    new TF1(name, var) :	              // not normalized
+    new TF1(name, var+Form("/[%d]",normPar)); // normalized with par normPar
+
+  // integr is used to normalize if no parameter is provided
+  Double_t integr  = normPar < 0 ? func->Integral(min,max) : 1;
   
   // The parameter of the function used to compute the mean should be
   // the same as the parent function: fixed if needed and they should
@@ -499,9 +579,11 @@ void AliBWTools::GetMoment(TString name, TString var, TF1 * func, Float_t &mean,
   for(Int_t ipar = 0; ipar < npar; ipar++){
     Double_t parmin, parmax;
     Double_t value = func->GetParameter(ipar);
+    f->SetParameter(ipar,value);
     func->GetParLimits(ipar, parmin, parmax);
     if ( parmin == parmax )   {
-      if ( parmin != 0 || (parmin == 1 && value == 0) ) {
+      //      if ( parmin || (parmin == 1 && !value) ) { // not sure we I check parmin == 1 here. 
+      if ( parmin || (TMath::Abs(parmin-1)<0.000001 && !value) ) { // not sure we I check parmin == 1 here. Changed like this because of coding conventions. Does it still work? FIXME
 	f->FixParameter(ipar,func->GetParameter(ipar));
 	//	cout << "Fixing " << ipar << "("<<value<<","<<parmin<<","<<parmax<<")"<<endl;
       }       
@@ -515,28 +597,18 @@ void AliBWTools::GetMoment(TString name, TString var, TF1 * func, Float_t &mean,
       //      cout << "Setting Err" << ipar << "("<<func->GetParError(ipar)<<")"<<endl;      
     }
   }
-  //  f->Print();
-//   mean  = f->Integral     (min,max)/func->Integral(min,max);
-//   error = f->IntegralError(min,max)/func->Integral(min,max);
-  mean  = f->Integral     (min,max)/integr;
-  error = f->IntegralError(min,max)/integr;
+
+//   f->Print();
+//   cout << "----" << endl;
+//   func->Print();
+
+  mean  = normPar < 0 ? f->Integral     (min,max)/integr : f->Integral     (min,max);
+  error = normPar < 0 ? f->IntegralError(min,max)/integr : f->IntegralError(min,max);
 //   cout << "Mean " << mean <<"+-"<< error<< endl;
 //   cout << "Integral Error "  << error << endl;
   
 }
 
-Double_t AliBWTools::GetNormalizedFunc(double * x, double* p){
-
-  // Static function used to provide normalized pointer to a function
-
-  Int_t npar = fFuncForNormalized->GetNpar();
-  for(Int_t ipar = 0; ipar < npar; ipar++){ // FIXME
-    fFuncForNormalized->SetParameter(ipar,p[ipar]); // FIXME
-  }
-
-  return x[0]*fFuncForNormalized->Eval(x[0])/fFuncForNormalized->Integral(0,100);
-  
-}
 
 
 Bool_t AliBWTools::Fit (TH1 * h1, TF1* func, Float_t min, Float_t max) { 
@@ -647,7 +719,7 @@ Bool_t AliBWTools::Fit (TH1 * h1, TF1* func, Float_t min, Float_t max) {
   
 }
 
-Int_t AliBWTools::GetLowestNotEmptyBin(TH1*h) {
+Int_t AliBWTools::GetLowestNotEmptyBin(const TH1*h) {
 
   // Return the index of the lowest non empty bin in the histo h
 
@@ -660,7 +732,7 @@ Int_t AliBWTools::GetLowestNotEmptyBin(TH1*h) {
 
 }
 
-Int_t AliBWTools::GetHighestNotEmptyBin(TH1*h) {
+Int_t AliBWTools::GetHighestNotEmptyBin(const TH1*h) {
 
   // Return the index of the highest non empty bin in the histo h
 
@@ -673,7 +745,7 @@ Int_t AliBWTools::GetHighestNotEmptyBin(TH1*h) {
 
 }
 
-void AliBWTools::GetResiduals(TGraphErrors * gdata, TF1 * func, TH1F ** hres, TGraphErrors ** gres) {
+void AliBWTools::GetResiduals(const TGraphErrors * gdata, const TF1 * func, TH1F ** hres, TGraphErrors ** gres) {
 
   // Returns a graph of residuals vs point and the res/err distribution
 
@@ -707,7 +779,7 @@ void AliBWTools::GetResiduals(TGraphErrors * gdata, TF1 * func, TH1F ** hres, TG
 
 }
 
-void AliBWTools::GetResiduals(TH1F* hdata, TF1 * func, TH1F ** hres, TH1F ** hresVsBin) {
+void AliBWTools::GetResiduals(const TH1F* hdata, const TF1 * func, TH1F ** hres, TH1F ** hresVsBin) {
 
   // Returns an histo of residuals bin by bin and the res/err distribution
 
@@ -728,7 +800,7 @@ void AliBWTools::GetResiduals(TH1F* hdata, TF1 * func, TH1F ** hres, TH1F ** hre
 
   Int_t nbin = hdata->GetNbinsX();
   for(Int_t ibin = 1; ibin <= nbin; ibin++){
-    if(hdata->GetBinContent(ibin)==0) continue;
+    if(!hdata->GetBinContent(ibin)) continue;
     Float_t res = (hdata->GetBinContent(ibin) - func->Eval(hdata->GetBinCenter(ibin)) ) / 
       func->Eval(hdata->GetBinCenter(ibin));
     Float_t err = hdata->GetBinError  (ibin) /  func->Eval(hdata->GetBinCenter(ibin));
@@ -748,7 +820,7 @@ void AliBWTools::GetResiduals(TH1F* hdata, TF1 * func, TH1F ** hres, TH1F ** hre
 
 }
 
-void AliBWTools::GetYield(TH1* h, TF1 * f, Double_t &yield, Double_t &yieldError, Float_t min, Float_t max,
+void AliBWTools::GetYield(TH1* h,  TF1 * f, Double_t &yield, Double_t &yieldError, Float_t min, Float_t max,
 			  Double_t *partialYields, Double_t *partialYieldsErrors){
 
   // Returns the yield extracted from the data in the histo where
@@ -770,10 +842,10 @@ void AliBWTools::GetYield(TH1* h, TF1 * f, Double_t &yield, Double_t &yieldError
   Double_t integralAbove      = max > bin2Edge ? f->Integral(bin2Edge,max) : 0;
   Double_t integralAboveError = max > bin2Edge ? f->Integral(bin2Edge,max) : 0;
 
-  cout << "GetYield INFO" << endl;
-  cout << " " << bin1Edge << " " << bin2Edge << endl;  
-  cout << " " << integralFromHisto      << " " << integralBelow      << " " << integralAbove      << endl;
-  cout << " " << integralFromHistoError << " " << integralBelowError << " " << integralAboveError << endl;
+//   cout << "GetYield INFO" << endl;
+//   cout << " " << bin1Edge << " " << bin2Edge << endl;  
+//   cout << " " << integralFromHisto      << " " << integralBelow      << " " << integralAbove      << endl;
+//   cout << " " << integralFromHistoError << " " << integralBelowError << " " << integralAboveError << endl;
   
   if(partialYields) {
     partialYields[0] = integralFromHisto;
@@ -792,7 +864,7 @@ void AliBWTools::GetYield(TH1* h, TF1 * f, Double_t &yield, Double_t &yieldError
 
 }
 
-TGraphErrors * AliBWTools::DivideGraphByFunc(TGraphErrors * g, TF1 * f, Bool_t invert){ 
+TGraphErrors * AliBWTools::DivideGraphByFunc(const TGraphErrors * g, const TF1 * f, Bool_t invert){ 
 
   // Divides g/f. If invert == true => f/g
 
@@ -812,7 +884,7 @@ TGraphErrors * AliBWTools::DivideGraphByFunc(TGraphErrors * g, TF1 * f, Bool_t i
 
 }
 
-TGraphErrors * AliBWTools::DivideGraphByHisto(TGraphErrors * g, TH1 * h, Bool_t invert){ 
+TGraphErrors * AliBWTools::DivideGraphByHisto(const TGraphErrors * g, TH1 * h, Bool_t invert){ 
 
   // Divides g/h. If invert == true => h/g
 
@@ -829,12 +901,9 @@ TGraphErrors * AliBWTools::DivideGraphByHisto(TGraphErrors * g, TH1 * h, Bool_t 
     Double_t yde  = h->GetBinError(binData);
     Double_t xd   = h->GetBinCenter(binData);
     
-    //    cout << TMath::Abs((xd-xj)/xd) << endl;
-    
 
      
-    if (yd == 0) continue;
-    //    if (binData == 28 ) cout << TMath::Abs(xd-xj)/TMath::Abs(xd) << endl;
+    if (!yd) continue;
     
     if (TMath::Abs(xd-xj)/TMath::Abs(xd) > 0.01){
       Printf( "WARNING: bin center (%f)  and x graph (%f) are more than 1 %% away, skipping",xd,xj );
@@ -888,6 +957,7 @@ TH1F * AliBWTools::DivideHistoByFunc(TH1F * h, TF1 * f, Bool_t invert){
 
 void AliBWTools::WeightedMean(Int_t npoints, const Double_t *x, const Double_t *xerr, Double_t &mean, Double_t &meanerr){
 
+  // Performs the weighted mean of npoints numbers in x with errors in xerr
 
   mean = 0;
   meanerr = 0;
@@ -902,7 +972,7 @@ void AliBWTools::WeightedMean(Int_t npoints, const Double_t *x, const Double_t *
       Double_t weight = 1. / xerr2;
       sumweight += weight;
       mean += weight * x[ipoint];
-    }
+    }// else cout << " Skipping " << ipoint << endl;
     
   }
 
@@ -912,9 +982,174 @@ void AliBWTools::WeightedMean(Int_t npoints, const Double_t *x, const Double_t *
     meanerr = TMath::Sqrt(1./ sumweight);
   }
   else {
+    //    cout << " No sumweight" << endl;
     mean = 0;
     meanerr = 0;
   }
 
   
+}
+
+void AliBWTools::GetValueAndError(TH1 * hdest, const TH1 * hvalue, const TH1 * herror, Bool_t isPercentError) {
+  
+  // Put into source, bin-by-bin, the values from hvalue and the
+  // errors from content from herror. 
+  // Used mainly to combine histos of systemati errors with their spectra
+  // Set isPercentError to kTRUE if the error is given in % 
+
+  if(hdest == NULL){ 
+    Printf("AliBWTools::GetValueAndError Errror: hdest is null");
+    return;
+  }
+
+
+  Int_t nbin  = hdest->GetNbinsX();
+  Int_t nBinSourceVal = hvalue->GetNbinsX();
+  Int_t nBinSourceErr = herror->GetNbinsX();
+  
+  for(Int_t iBinDest = 1; iBinDest <= nbin; iBinDest++){
+    Float_t lowPtDest=hdest->GetBinLowEdge(iBinDest);
+    Float_t binWidDest=hdest->GetBinWidth(iBinDest);
+    // Loop over Source bins and find overlapping bins to Dest
+    // First value then error
+    // Value
+    Bool_t foundValue = kFALSE;
+    for(Int_t iBinSourceVal=1; iBinSourceVal<=nBinSourceVal; iBinSourceVal++){
+      Float_t lowPtSource=  hvalue->GetBinLowEdge(iBinSourceVal) ;
+      Float_t binWidSource= hvalue->GetBinWidth(iBinSourceVal);
+      if(TMath::Abs(lowPtDest-lowPtSource)<0.001 && TMath::Abs(binWidSource-binWidDest)<0.001){
+	Double_t content = hvalue->GetBinContent(iBinSourceVal);
+	hdest->SetBinContent(iBinDest, content);
+	foundValue = kTRUE;
+	break;
+      }
+    }
+    // if (!foundValue){
+    //   Printf("AliBWTools::GetValueAndError: Error: cannot find matching value source bin for destination %d",iBinDest);
+    // }
+
+    // Error
+    Bool_t foundError = kFALSE;
+    for(Int_t iBinSourceErr=1; iBinSourceErr<=nBinSourceErr; iBinSourceErr++){
+      Float_t lowPtSource=  herror->GetBinLowEdge(iBinSourceErr) ;
+      Float_t binWidSource= herror->GetBinWidth(iBinSourceErr);
+      if(TMath::Abs(lowPtDest-lowPtSource)<0.001 && TMath::Abs(binWidSource-binWidDest)<0.001){
+	Double_t error = herror->GetBinContent(iBinSourceErr);
+	//	cout << "-> " << iBinDest << " " << error << " " << hdest->GetBinContent(iBinDest) << endl;
+	
+	hdest->SetBinError(iBinDest, isPercentError ? error * hdest->GetBinContent(iBinDest) : error);
+	foundError=kTRUE;
+	break;
+      }      
+    }
+    // if (!foundError ){
+    //   Printf("AliBWTools::GetValueAndError: Error: cannot find matching error source bin for destination %d",iBinDest);
+    // }
+  }
+  
+
+}
+
+void AliBWTools::AddHisto(TH1 * hdest, const TH1* hsource, Bool_t getMirrorBins) {
+
+  // Adds hsource to hdest bin by bin, even if they have a different
+  // binning If getMirrorBins is true, it takes the negative bins
+  // (Needed because sometimes the TPC uses the positive axis for
+  // negative particles and the possitive axis for positive
+  // particles).
+
+
+  if (hdest == NULL) {
+    Printf("Error: hdest is NULL\n");
+  } 
+  if (hsource == NULL) {
+    Printf("Error: hsource is NULL\n");
+  } 
+
+  Int_t nBinSource = hsource->GetNbinsX();
+  Int_t nBinDest = hdest->GetNbinsX();
+
+  // Loop over destination bins, 
+  for(Int_t iBinDest=1; iBinDest<=nBinDest; iBinDest++){
+    Float_t lowPtDest=hdest->GetBinLowEdge(iBinDest);
+    Float_t binWidDest=hdest->GetBinWidth(iBinDest);
+    // Loop over Source bins and find overlapping bins to Dest
+    Bool_t found = kFALSE;
+    for(Int_t iBinSource=1; iBinSource<=nBinSource; iBinSource++){      
+      Float_t lowPtSource= getMirrorBins ? -hsource->GetBinLowEdge(iBinSource)+hsource->GetBinWidth(iBinSource) : hsource->GetBinLowEdge(iBinSource) ;
+      Float_t binWidSource= hsource->GetBinWidth(iBinSource)  ;
+      if(TMath::Abs(lowPtDest-lowPtSource)<0.001 && TMath::Abs(binWidSource-binWidDest)<0.001){
+	Float_t dest=hdest->GetBinContent(iBinDest);
+	Float_t source=hsource->GetBinContent(iBinSource);
+	Float_t edest=hdest->GetBinError(iBinDest);
+	Float_t esource=hsource->GetBinError(iBinSource);
+	Double_t cont=dest+source;
+	Double_t econt=TMath::Sqrt(edest*edest+esource*esource);
+	hdest->SetBinContent(iBinDest,cont);
+	hdest->SetBinError  (iBinDest,econt);
+	found = kTRUE;
+	
+	break;
+      }
+    }
+    // if (!found){
+    //   Printf("Error: cannot find matching source bin for destination %d",iBinDest);
+    // }
+  }
+
+
+}
+
+void AliBWTools::GetHistoCombinedErrors(TH1 * hdest, const TH1 * h1) {
+
+  // Combine the errors of hdest with the errors of h1, summing in
+  // quadrature. Results are put in hdest. Histograms are assumed to
+  // have the same binning
+
+  Int_t nbin = hdest->GetNbinsX();
+  for(Int_t ibin = 0; ibin < nbin; ibin++){
+    Double_t e1 = hdest->GetBinError(ibin);
+    Double_t e2 = h1->GetBinError(ibin);
+    hdest->SetBinError(ibin, TMath::Sqrt(e1*e1+e2*e2));
+  }
+  
+
+}
+
+TH1F * AliBWTools::DivideHistosDifferentBins(const TH1F* h1, const TH1F* h2) {
+  // Divides 2 histos even if they have a different binning. Finds
+  // overlapping bins and divides them
+  
+  // 1. clone histo
+  TH1F * hRatio = new TH1F(*h1);
+  Int_t nBinsH1=h1->GetNbinsX();
+  Int_t nBinsH2=h2->GetNbinsX();
+  // Loop over H1 bins, 
+  for(Int_t iBin=1; iBin<=nBinsH1; iBin++){
+    hRatio->SetBinContent(iBin,0.);
+    hRatio->SetBinContent(iBin,0.);
+    Float_t lowPtH1=h1->GetBinLowEdge(iBin);
+    Float_t binWidH1=h1->GetBinWidth(iBin);
+    // Loop over H2 bins and find overlapping bins to H1
+    for(Int_t jBin=1; jBin<=nBinsH2; jBin++){
+      Float_t lowPtH2=h2->GetBinLowEdge(jBin);
+      Float_t binWidH2=h2->GetBinWidth(jBin);
+      if(TMath::Abs(lowPtH1-lowPtH2)<0.001 && TMath::Abs(binWidH2-binWidH1)<0.001){
+	Float_t numer=h1->GetBinContent(iBin);
+	Float_t denom=h2->GetBinContent(jBin);
+	Float_t enumer=h1->GetBinError(iBin);
+	Float_t edenom=h2->GetBinError(jBin);
+	Double_t ratio=0.;
+	Double_t eratio=0.;
+	if(numer>0. && denom>0.){
+	  ratio=numer/denom;
+	  eratio=ratio*TMath::Sqrt((enumer/numer)*(enumer/numer)+(edenom/denom)*(edenom/denom));
+	}
+	hRatio->SetBinContent(iBin,ratio);
+	hRatio->SetBinError(iBin,eratio);
+	break;
+      }
+    }
+  }
+  return hRatio;
 }

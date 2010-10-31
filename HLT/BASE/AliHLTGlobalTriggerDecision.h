@@ -217,7 +217,7 @@ class AliHLTGlobalTriggerDecision : public AliHLTTriggerDecision
    * \param  option  This is passed onto the internal array clear methods.
    * The method is inherited from TObject.
    */
-  virtual void Clear(Option_t* option = "");
+  virtual void Clear(Option_t* option = "C");
   
  private:
   
@@ -226,6 +226,12 @@ class AliHLTGlobalTriggerDecision : public AliHLTTriggerDecision
    * and empties the whole array.
    */
   void DeleteInputObjects();
+  
+  /**
+   * This method is called in the streamer to mark the entries in fInputObjects as
+   * owned and deletable.
+   */
+  void MarkInputObjectsAsOwned();
   
   TClonesArray fContributingTriggers;  /// The list of contributing trigger decisions from all AliHLTTrigger components that were considered.
   TObjArray fInputObjects;  /// The list of other input objects.

@@ -463,7 +463,7 @@ void AliTRDtrack::CookdEdx(Double_t low, Double_t up)
     sorted[i] = TMath::Abs(fdQdl[i]);
   }
   // Sort the dedx values by amplitude
-  Int_t *index = new Int_t[fNdedx];
+  Int_t *index = new Int_t[4*fNdedx];
   TMath::Sort(fNdedx, sorted, index, kFALSE);
 
   // Sum up the truncated charge between lower and upper bounds 
@@ -1165,20 +1165,3 @@ void AliTRDtrack::SetSampledEdx(Float_t q)
   fNdedx++;
 
 }     
-
-//_____________________________________________________________________________
-Double_t AliTRDtrack::GetBz() const 
-{
-  //
-  // Returns Bz component of the magnetic field (kG)
-  //
-
-  if (AliTracker::UniformField()) {
-    return AliTracker::GetBz();
-  }
-  Double_t r[3]; 
-  GetXYZ(r);
-
-  return AliTracker::GetBz(r);
-
-}

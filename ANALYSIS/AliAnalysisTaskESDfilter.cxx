@@ -21,6 +21,7 @@
 #include <TArrayI.h>
 #include <TRandom.h>
 #include <TParticle.h>
+#include <TFile.h>
 
 #include "AliAnalysisTaskESDfilter.h"
 #include "AliAnalysisManager.h"
@@ -119,13 +120,12 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
     // ESD Filter analysis task executed for each event
 
     AliESDEvent* esd = dynamic_cast<AliESDEvent*>(InputEvent());
+    if(!esd)return;
     AliESD*      old = esd->GetAliESDOld();
 
     // Fetch Stack for debuggging if available 
-    AliStack *pStack = 0;
     AliMCEventHandler *mcH = 0;
     if(MCEvent()){
-      pStack = MCEvent()->Stack();
       mcH = (AliMCEventHandler*) ((AliAnalysisManager::GetAnalysisManager())->GetMCtruthEventHandler()); 
     }
     // set arrays and pointers
@@ -161,6 +161,12 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
     
     header->SetRunNumber(esd->GetRunNumber());
     header->SetOfflineTrigger(fInputHandler->IsEventSelected()); // propagate the decision of the physics selection
+    TTree* tree = fInputHandler->GetTree();
+    if (tree) {
+	TFile* file = tree->GetCurrentFile();
+	if (file) header->SetESDFileName(file->GetName());
+    }
+    
     if (old) {
 	header->SetBunchCrossNumber(0);
 	header->SetOrbitNumber(0);
@@ -173,13 +179,16 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 	header->SetOrbitNumber(esd->GetOrbitNumber());
 	header->SetPeriodNumber(esd->GetPeriodNumber());
 	header->SetEventType(esd->GetEventType());
-	header->SetCentrality(-999.);        // FIXME
+	header->SetCentrality(-999.);
+	header->SetEventNumberESDFile(esd->GetHeader()->GetEventNumberInFile());
     }
     // Trigger
     header->SetFiredTriggerClasses(esd->GetFiredTriggerClasses());
     header->SetTriggerMask(esd->GetTriggerMask()); 
     header->SetTriggerCluster(esd->GetTriggerCluster());
-    
+    header->SetL0TriggerInputs(esd->GetHeader()->GetL0TriggerInputs());    
+    header->SetL1TriggerInputs(esd->GetHeader()->GetL1TriggerInputs());    
+    header->SetL2TriggerInputs(esd->GetHeader()->GetL2TriggerInputs());    
 
     header->SetMagneticField(esd->GetMagneticField());
     header->SetMuonMagFieldScale(esd->GetCurrentDip()/6000.);
@@ -1145,50 +1154,39 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
 
       AliESDCaloCluster * cluster = esd->GetCaloCluster(iClust);
 
-      Int_t id        = cluster->GetID();
-      Int_t nLabel    = cluster->GetNLabels();
-      TArrayI* labels = cluster->GetLabels();
-      Int_t *label = 0;
-      if (labels){
-	label = (cluster->GetLabels())->GetArray();
-	for(int i = 0;i < labels->GetSize();++i){
-	  if(mcH)mcH->SelectParticle(label[i]);
-	}
-      }     
+      Int_t  id        = cluster->GetID();
+      Int_t  nLabel    = cluster->GetNLabels();
+      Int_t *labels    = cluster->GetLabels();
+      if(labels){ 
+		  for(int i = 0;i < nLabel;++i){
+			  if(mcH)mcH->SelectParticle(labels[i]);
+		  }
+	  }		
 
       Float_t energy = cluster->E();
       cluster->GetPosition(posF);
-      Char_t ttype = AliAODCluster::kUndef; 
 
-      if (cluster->GetClusterType() == AliESDCaloCluster::kPHOSCluster) {
-	ttype=AliAODCluster::kPHOSNeutral;
-      } 
-      else if (cluster->GetClusterType() == AliESDCaloCluster::kEMCALClusterv1) {
-	ttype = AliAODCluster::kEMCALClusterv1;
-      }
-
-      
       AliAODCaloCluster *caloCluster = new(caloClusters[jClusters++]) AliAODCaloCluster(id,
 											nLabel,
-											label,
+											labels,
 											energy,
 											posF,
 											NULL,
-											ttype);
+											cluster->GetType(),0);
       
       caloCluster->SetCaloCluster(cluster->GetDistanceToBadChannel(),
-				  cluster->GetClusterDisp(),
+				  cluster->GetDispersion(),
 				  cluster->GetM20(), cluster->GetM02(),
 				  cluster->GetEmcCpvDistance(),  
 				  cluster->GetNExMax(),cluster->GetTOF()) ;
 
-      caloCluster->SetPIDFromESD(cluster->GetPid());
+      caloCluster->SetPIDFromESD(cluster->GetPID());
       caloCluster->SetNCells(cluster->GetNCells());
       caloCluster->SetCellsAbsId(cluster->GetCellsAbsId());
       caloCluster->SetCellsAmplitudeFraction(cluster->GetCellsAmplitudeFraction());
 
       TArrayI* matchedT = 	cluster->GetTracksMatched();
-      if (nTracks>0 && matchedT && cluster->GetTrackMatched() >= 0) {	
+      if (nTracks>0 && matchedT && cluster->GetTrackMatchedIndex() >= 0) {	
 	for (Int_t im = 0; im < matchedT->GetSize(); im++) {
 	    Int_t iESDtrack = matchedT->At(im);;
 	    if (aodTrackRefs->At(iESDtrack) != 0) {
@@ -1208,7 +1206,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
       
       AliAODCaloCells &aodEMcells = *(AODEvent()->GetEMCALCells());
       aodEMcells.CreateContainer(nEMcell);
-      aodEMcells.SetType(AliAODCaloCells::kEMCAL);
+      aodEMcells.SetType(AliAODCaloCells::kEMCALCell);
       for (Int_t iCell = 0; iCell < nEMcell; iCell++) {      
 	aodEMcells.SetCell(iCell,esdEMcells.GetCellNumber(iCell),esdEMcells.GetAmplitude(iCell));
       }
@@ -1222,7 +1220,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD() {
       
       AliAODCaloCells &aodPHcells = *(AODEvent()->GetPHOSCells());
       aodPHcells.CreateContainer(nPHcell);
-      aodPHcells.SetType(AliAODCaloCells::kPHOS);
+      aodPHcells.SetType(AliAODCaloCells::kPHOSCell);
       for (Int_t iCell = 0; iCell < nPHcell; iCell++) {      
 	aodPHcells.SetCell(iCell,esdPHcells.GetCellNumber(iCell),esdPHcells.GetAmplitude(iCell));
       }
@@ -1316,6 +1314,7 @@ void AliAnalysisTaskESDfilter::SetDetectorRawSignals(AliAODPid *aodpid, AliESDtr
 
  aodpid->SetITSsignal(track->GetITSsignal());
  aodpid->SetTPCsignal(track->GetTPCsignal());
+ aodpid->SetTPCsignalN(track->GetTPCsignalN());
 
  //n TRD planes = 6
  Int_t nslices = track->GetNumberOfTRDslices()*6;

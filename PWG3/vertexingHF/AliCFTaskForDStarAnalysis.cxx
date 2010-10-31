@@ -144,9 +144,6 @@ void AliCFTaskForDStarAnalysis::UserExec(Option_t *)
     return;
   }
   
-  fEvents++;
-
-  if (fEvents%10000 ==0) AliDebug(2,Form("Event %d",fEvents));
   AliAODEvent* aodEvent = dynamic_cast<AliAODEvent*>(fInputEvent);
   
   TClonesArray *arrayDStartoD0pi=0;
@@ -173,12 +170,19 @@ void AliCFTaskForDStarAnalysis::UserExec(Option_t *)
     return;
   }
   
+  // fix for temporary bug in ESDfilter 
+  // the AODs with null vertex pointer didn't pass the PhysSel
+  if(!aodEvent->GetPrimaryVertex() || TMath::Abs(aodEvent->GetMagneticField())<0.001) return;
+
+  fEvents++;
+  if (fEvents%10000 ==0) AliDebug(2,Form("Event %d",fEvents));
+
   fCFManager->SetRecEventInfo(aodEvent);
   fCFManager->SetMCEventInfo(aodEvent);
   
   // event selection
-  Double_t containerInput[14] ;
-  Double_t containerInputMC[14] ;
+  Double_t containerInput[15] ;
+  Double_t containerInputMC[15] ;
   
   //loop on the MC event
   

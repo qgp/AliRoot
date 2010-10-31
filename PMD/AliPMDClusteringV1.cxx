@@ -111,16 +111,15 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
   const float ktwobysqrt3 = 1.1547; // 2./sqrt(3.)
   const Int_t kNmaxCell   = 19;     // # of cells surrounding a cluster center
 
-  Int_t    i,  j, nmx1, incr, id, jd;
+  Int_t    i = 0,  j = 0, nmx1 = 0;
+  Int_t    incr = 0, id = 0, jd = 0;
   Int_t    celldataX[kNmaxCell], celldataY[kNmaxCell];
   Int_t    celldataTr[kNmaxCell], celldataPid[kNmaxCell];
   Float_t  celldataAdc[kNmaxCell];
-  Float_t  clusdata[6];
+  Float_t  clusdata[6] = {0.,0.,0.,0.,0.,0.};
   Double_t cutoff, ave;
   Double_t edepcell[kNMX];
-  
-  
-  Double_t cellenergy[11424];
+  Double_t cellenergy[kNMX];
   
   // ndimXr and ndimYr are different because of different module size
 
@@ -138,7 +137,7 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
       ndimYr = 96;
     }
 
-  for (i =0; i < 11424; i++)
+  for (i = 0; i < kNMX; i++)
   {
       cellenergy[i] = 0.;
   }
@@ -178,9 +177,11 @@ void AliPMDClusteringV1::DoClust(Int_t idet, Int_t ismn,
       edepcell[i] = cellenergy[i];
     }
 
-  Int_t iord1[kNMX];
-  TMath::Sort((Int_t)kNMX,edepcell,iord1);// order the data
-  cutoff = fCutoff;                       // cutoff to discard cells
+  Bool_t jsort = true;
+  // the dimension of iord1 is increased twice
+  Int_t iord1[2*kNMX];
+  TMath::Sort((Int_t)kNMX,edepcell,iord1,jsort);// order the data
+  cutoff = fCutoff;                             // cutoff to discard cells
   ave  = 0.;
   nmx1 = -1;
   for(i = 0;i < kNMX; i++)
@@ -314,8 +315,9 @@ Int_t AliPMDClusteringV1::CrClust(Double_t ave, Double_t cutoff, Int_t nmx1,
   // connected cells
   //
   const Int_t kndim = 4609;
-  Int_t i,j,k,id1,id2,icl, numcell, clust[2][kndim];
-  Int_t jd1,jd2, icell, cellcount;
+  Int_t i=0,j=0,k=0,id1=0,id2=0,icl=0, numcell=0;
+  Int_t jd1=0,jd2=0, icell=0, cellcount=0;
+  Int_t clust[2][kndim];
   static Int_t neibx[6]={1,0,-1,-1,0,1}, neiby[6]={0,1,1,0,-1,-1};
 
   AliDebug(1,Form("kNMX = %d nmx1 = %d kNDIMX = %d kNDIMY = %d ave = %f cutoff = %f",kNMX,nmx1,kNDIMX,kNDIMY,ave,cutoff));
@@ -446,10 +448,13 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
   
   Int_t    *ncl  = 0x0;
   Int_t    *clxy = 0x0;  
-  Int_t    i12, i22;
-  Int_t    i, j, k, i1, i2, id, icl,  itest,ihld, ig, nsupcl,clno, t1, t2;
+  Int_t    i12 = 0, i22 = 0;
+  Int_t    i = 0, j = 0, k = 0;
+  Int_t    i1 = 0, i2 = 0, id = 0, icl = 0;
+  Int_t    itest = 0, ihld = 0, ig = 0;
+  Int_t    nsupcl = 0, clno = 0, t1 = 0, t2 = 0;
   Float_t  clusdata[6];
-  Double_t x1, y1, z1, x2, y2, z2, rr;
+  Double_t x1 = 0, y1 = 0, z1 = 0, x2 = 0, y2 = 0, z2 = 0, rr = 0;
   
   ncl   = new Int_t [ndim];
   clxy  = new Int_t [kNmaxCell];
@@ -458,8 +463,14 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
   for(i = 0; i<ndim; i++)
     {
       ncl[i]  = -1; 
-      if (i < 6) clusdata[i] = 0.;
-      if (i < kNmaxCell) clxy[i]    = 0;
+    }
+  for(i = 0; i<6; i++)
+    {
+      clusdata[i] = 0.;
+    }
+  for(i = 0; i<19; i++)
+    {
+      clxy[i] = 0;
     }
 
   // clno counts the final clusters
@@ -478,10 +489,10 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	{
 	  nsupcl++;
 	}
-      if (nsupcl > ndim) 
+      if (nsupcl >= ndim) 
 	{
 	  AliWarning("RefClust: Too many superclusters!");
-	  nsupcl = ndim;
+	  nsupcl = ndim - 1;
 	  break;
 	}
       ncl[nsupcl]++;
@@ -501,6 +512,8 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  if (clno >= 4608) 
 	    {
 	      AliWarning("RefClust: Too many clusters! more than 4608");
+	      delete [] ncl;
+	      delete [] clxy;
 	      return;
 	    }
 	  clno++;
@@ -533,6 +546,9 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	  if (clno >= 4608) 
 	    {
 	      AliWarning("RefClust: Too many clusters! more than 4608");
+	      delete [] ncl;
+	      delete [] clxy;
+
 	      return;
 	    }
 	  clno++;
@@ -574,14 +590,12 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	}
       else
 	{
-	  
 	  Int_t    *iord, *tc, *t;
 	  Double_t *x, *y, *z, *xc, *yc, *zc;
 
 	  iord = new Int_t [ncl[i]+1];
 	  tc   = new Int_t [ncl[i]+1];
 	  t    = new Int_t [ncl[i]+1];
-	  
 	  x    = new Double_t [ncl[i]+1];
 	  y    = new Double_t [ncl[i]+1];
 	  z    = new Double_t [ncl[i]+1];
@@ -623,13 +637,11 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 	      i1      = fInfcl[1][id];
 	      i2      = fInfcl[2][id];
 	      i12     = i1 + i2*kNDIMX;
-
 	      iord[j] = j;
 	      x[j]    = fCoord[0][i1][i2];
 	      y[j]    = fCoord[1][i1][i2];
 	      z[j]    = edepcell[i12];
 	      t[j]    = i1*10000 + i2;
-
 	    }
 	  
 	  // arranging cells within supercluster in decreasing order
@@ -904,6 +916,39 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 		  if (clno >= 4608) 
 		    {
 		      AliWarning("RefClust: Too many clusters! more than 4608");
+
+		      delete [] cellCount;
+		      for(Int_t jj = 0; jj < ncl[i]+1; jj++) delete [] cellXY[jj];
+		      delete [] cellXY;
+
+		      delete [] status;
+		      delete [] totaladc;
+		      delete [] totaladc2;
+		      delete [] ncell;
+		      delete [] xclust;
+		      delete [] yclust;
+		      delete [] sigxclust;
+		      delete [] sigyclust;
+		      delete [] ax;
+		      delete [] ay;
+		      delete [] ax2;
+		      delete [] ay2;
+		      delete [] weight;
+
+		      delete [] iord;
+		      delete [] tc;	  
+		      delete [] t;
+		      delete [] x;
+		      delete [] y;
+		      delete [] z;
+		      delete [] xc;
+		      delete [] yc;
+		      delete [] zc;
+
+
+		      delete [] ncl;
+		      delete [] clxy;
+
 		      return;
 		    }
 		  clusdata[0] = xclust[kcl];
@@ -939,7 +984,8 @@ void AliPMDClusteringV1::RefClust(Int_t incr, Double_t edepcell[])
 		}
 	      delete [] cellCount;
 	      for(Int_t jj = 0; jj < ncl[i]+1; jj++) delete [] cellXY[jj];
-	      
+	      delete [] cellXY;
+
 	      delete [] status;
 	      delete [] totaladc;
 	      delete [] totaladc2;

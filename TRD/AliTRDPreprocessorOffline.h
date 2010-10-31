@@ -43,6 +43,7 @@ public:
   TString GetNameList() const { return fNameList;}; 
   void SetCalDetGain(AliTRDCalDet *calDetGainUsed) {fCalDetGainUsed = calDetGainUsed;};
   void SetCalDetVdrift(AliTRDCalDet *calDetVdriftUsed) {fCalDetVdriftUsed = calDetVdriftUsed;};
+  void SetSwitchOnValidation(Bool_t switchOnValidation) {fSwitchOnValidation = switchOnValidation;};
   AliTRDCalDet *GetCalDetGain() const { return fCalDetGainUsed;};
   AliTRDCalDet *GetCalDetVdrift() const { return fCalDetVdriftUsed;};
 
@@ -70,11 +71,20 @@ public:
   void UpdateOCDBGain(Int_t  startRunNumber, Int_t endRunNumber, const char* storagePath);
   void UpdateOCDBPRF(Int_t  startRunNumber, Int_t endRunNumber, const char* storagePath);
 
+  Bool_t ValidateGain() const;
+  Bool_t ValidateVdrift();
+  Bool_t ValidateT0();
+  Bool_t ValidatePRF() const;
+
   Int_t    GetVersionGainUsed() const                                { return fVersionGainUsed;        }
   Int_t    GetSubVersionGainUsed() const                             { return fSubVersionGainUsed;     }
   Int_t    GetVersionVdriftUsed() const                              { return fVersionVdriftUsed;      }
   Int_t    GetSubVersionVdriftUsed() const                           { return fSubVersionVdriftUsed;   }
-  
+
+  void     SetMinStatsVdriftT0PH(Int_t minStatsVdriftT0PH)           { fMinStatsVdriftT0PH = minStatsVdriftT0PH; }  
+  void     SetMinStatsVdriftLinear(Int_t minStatsVdriftLinear)       { fMinStatsVdriftLinear = minStatsVdriftLinear; }  
+  void     SetMinStatsGain(Int_t minStatsGain)                       { fMinStatsGain = minStatsGain; }  
+  void     SetMinStatsPRF(Int_t minStatsPRF)                         { fMinStatsPRF = minStatsPRF; }  
   
  private:
   Bool_t fMethodSecond;                   // Second Method for drift velocity   
@@ -93,6 +103,14 @@ public:
   Int_t    fSubVersionGainUsed;           // SubVersionGainUsed
   Int_t    fVersionVdriftUsed;            // VersionVdriftUsed 
   Int_t    fSubVersionVdriftUsed;         // SubVersionVdriftUsed
+  Bool_t   fSwitchOnValidation;           // Validation
+  Bool_t   fVdriftValidated;              // Vdrift validation
+  Bool_t   fT0Validated;                  // T0 validation
+  Int_t    fMinStatsVdriftT0PH;           // MinStats VdriftT0
+  Int_t    fMinStatsVdriftLinear;         // MinStats Vdrift Linear
+  Int_t    fMinStatsGain;                 // MinStats Gain
+  Int_t    fMinStatsPRF;                  // MinStats PRF
+
 
   Int_t GetSubVersion(TString name) const;
   Int_t GetVersion(TString name) const;

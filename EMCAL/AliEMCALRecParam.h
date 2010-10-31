@@ -23,6 +23,12 @@
 class AliEMCALRecParam : public AliDetectorRecoParam
 {
  public:
+
+  enum AliEMCALClusterizerFlag
+  {
+    kClusterizerv1  = 0,
+    kClusterizerNxN = 1   
+  };
   
   AliEMCALRecParam() ;
   AliEMCALRecParam(const AliEMCALRecParam& recParam);
@@ -46,7 +52,7 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   void SetTimeCut            (Float_t t)         {fTimeCut   = t          ;}
   void SetTimeMin            (Float_t t)         {fTimeMin   = t          ;}
   void SetTimeMax            (Float_t t)         {fTimeMax   = t          ;}
-  void SetUnfold             (Bool_t unfold)     {fUnfold = unfold ; if(fUnfold) AliWarning("Cluster Unfolding ON. Implementing only for eta=0 case!!!");}
+  void SetUnfold             (Bool_t unfold)     {fUnfold = unfold ;}
   
   //PID (Guenole)
   Double_t GetGamma(Int_t i, Int_t j) const       {return fGamma[i][j];} 
@@ -113,15 +119,27 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   Bool_t   UseFALTRO()            const {return fUseFALTRO; }
   Bool_t   FitLEDEvents()         const {return fFitLEDEvents; }
 
-	virtual void Print(Option_t * option="") const ;
+  //Unfolding (Adam)
+  Double_t GetSSPars(Int_t i) const   {return fSSPars[i];}
+  Double_t GetPar5(Int_t i) const     {return fPar5[i];}
+  Double_t GetPar6(Int_t i) const     {return fPar6[i];}
+  void SetSSPars(Int_t i, Double_t param )     {fSSPars[i]=param;}
+  void SetPar5(Int_t i, Double_t param )       {fPar5[i]=param;}
+  void SetPar6(Int_t i, Double_t param )       {fPar6[i]=param;}
+
+
+  virtual void Print(Option_t * option="") const ;
   
   static AliEMCALRecParam* GetDefaultParameters();
   static AliEMCALRecParam* GetLowFluxParam();
   static AliEMCALRecParam* GetHighFluxParam();
   static AliEMCALRecParam* GetCalibParam();
   static AliEMCALRecParam* GetCosmicParam();
-  
+
   static const  TObjArray* GetMappings();
+  
+  void    SetClusterizerFlag(Short_t val) { fClusterizerFlag = val;  }
+  Short_t GetClusterizerFlag() const      { return fClusterizerFlag; }
   
  private:
   //Clustering
@@ -133,6 +151,7 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   Float_t fTimeCut ;             // Maximum time of digits with respect to EMC cluster max.
   Float_t fTimeMin ;             // Minimum time of digits
   Float_t fTimeMax ;             // Maximum time of digits
+  Short_t fClusterizerFlag ;     // Choice of the clusterizer; Default selection (v1) is zero
 
   //PID (Guenole)
   Double_t fGamma[6][6];         // Parameter to Compute PID for photons     
@@ -167,9 +186,14 @@ class AliEMCALRecParam : public AliDetectorRecoParam
   Bool_t   fUseFALTRO;             // get FALTRO (trigger) and put it on trigger digits.
   Bool_t   fFitLEDEvents;          // fit LED events or not
 	
+  //Shower shape parameters (Adam)
+  Double_t fSSPars[8]; // Unfolding shower shape parameters
+  Double_t fPar5[3];   // UF SSPar nr 5
+  Double_t fPar6[3];   // UF SSPar nr 6
+
   static TObjArray* fgkMaps;       // ALTRO mappings for RCU0..RCUX
   
-  ClassDef(AliEMCALRecParam,12)     // Reconstruction parameters
+  ClassDef(AliEMCALRecParam,14)     // Reconstruction parameters
     
     } ;
 

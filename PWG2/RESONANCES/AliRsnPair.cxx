@@ -33,6 +33,7 @@ ClassImp(AliRsnPair)
 AliRsnPair::AliRsnPair(const char *name, AliRsnPairDef *def) :
   TNamed(name, ""),
   fOnlyTrue(kFALSE),
+  fCheckDecay(kFALSE),
   fIsMixed(kFALSE),
   fPairDef(def),
   fCutManager(),
@@ -51,6 +52,7 @@ AliRsnPair::AliRsnPair(const char *name, AliRsnPairDef *def) :
 AliRsnPair::AliRsnPair(const AliRsnPair& copy) :
   TNamed(copy),
   fOnlyTrue(copy.fOnlyTrue),
+  fCheckDecay(copy.fCheckDecay),
   fIsMixed(copy.fIsMixed),
   fPairDef(copy.fPairDef),
   fCutManager(copy.fCutManager),
@@ -69,6 +71,7 @@ AliRsnPair::AliRsnPair(const AliRsnPair& copy) :
 AliRsnPair& AliRsnPair::operator=(const AliRsnPair& copy)
 {
   fOnlyTrue = copy.fOnlyTrue;
+  fCheckDecay = copy.fCheckDecay;
   fIsMixed = copy.fIsMixed;
   fPairDef = copy.fPairDef;
   fMother = copy.fMother;
@@ -119,6 +122,11 @@ Bool_t AliRsnPair::Fill
 
   AliDebug(AliLog::kDebug+2,"<-");
   
+  // first of all, compute the 4-momenta of the daughters
+  // and that of the mother, according to current pair def
+  // this could be needed for some cuts
+  fMother.SetDaughters(daughter0, fPairDef->GetMass(0), daughter1, fPairDef->GetMass(1));
+  
   // check for correct type-charge match for first element
   if (daughter0->RefType() != fPairDef->GetDaughterType(0)) return kFALSE;
   if (daughter0->ChargeChar() != fPairDef->GetCharge(0)) return kFALSE;
@@ -129,24 +137,74 @@ Bool_t AliRsnPair::Fill
     
   // cuts on track #1 & common
   fCutManager.SetEvent(ev0);
-  if (!fCutManager.PassDaughter1Cuts(daughter0)) return kFALSE;
-  if (!fCutManager.PassCommonDaughterCuts(daughter0)) return kFALSE;
+  if (!fCutManager.PassDaughter1Cuts(daughter0)) 
+  {
+    AliDebug(AliLog::kDebug+2, "Specific cuts for track #1 not passed");
+    return kFALSE;
+  }
+  if (!fCutManager.PassCommonDaughterCuts(daughter0))
+  {
+    AliDebug(AliLog::kDebug+2, "Common cuts for track #1 not passed");
+    return kFALSE;
+  }
   
   // cuts on track #2 & common
   fCutManager.SetEvent(ev1);
-  if (!fCutManager.PassDaughter2Cuts(daughter1)) return kFALSE;
-  if (!fCutManager.PassCommonDaughterCuts(daughter1)) return kFALSE;
+  if (!fCutManager.PassDaughter2Cuts(daughter1))
+  {
+    AliDebug(AliLog::kDebug+2, "Specific cuts for track #2 not passed");
+    return kFALSE;
+  }
+  if (!fCutManager.PassCommonDaughterCuts(daughter1))
+  {
+    AliDebug(AliLog::kDebug+2, "Common cuts for track #2 not passed");
+    return kFALSE;
+  }
   
   // point to first event as reference
   fEvent = ev0;
   
   // define pair & check
-  fMother.SetDaughters(daughter0, fPairDef->GetMass(0), daughter1, fPairDef->GetMass(1));
   fCutManager.SetEvent(fEvent);
   if (!fCutManager.PassMotherCuts(&fMother)) return kFALSE;
   
   // if required a true pair, check this here and eventually return a fail message
-  if (fOnlyTrue && !fMother.MatchesDef(fPairDef)) return kFALSE;
+  if (fOnlyTrue)
+  {
+    // are we in a MonteCarlo?
+    if (!daughter0->GetParticle() || !daughter1->GetParticle()) return kFALSE;
+    
+    // are the daughters really secondaries (in MC)?
+    Int_t m0 = daughter0->GetParticle()->GetFirstMother();
+    Int_t m1 = daughter1->GetParticle()->GetFirstMother();
+    if (m0 < 0 || m1 < 0) return kFALSE;
+    
+    // if they are, do they come from the same mother?
+    if (m0 != m1) return kFALSE;
+    
+    //cout << "Checking a true pair..." << endl;
+    
+    // if they do, is this mother the correct type?
+    Int_t mpdg0 = TMath::Abs(daughter0->GetMotherPDG());
+    Int_t mpdg1 = TMath::Abs(daughter1->GetMotherPDG());
+    Int_t mpdg  = TMath::Abs(fPairDef->GetMotherPDG());
+    if (mpdg0 != mpdg) return kFALSE; //{cout << "Mother of d0 is " << mpdg0 << " instead of " << mpdg << endl; return kFALSE;}
+    if (mpdg1 != mpdg) return kFALSE; //{cout << "Mother of d1 is " << mpdg1 << " instead of " << mpdg << endl; return kFALSE;}
+    
+    // do they match the expected decay channel (that is, are they the expected types)?
+    if (fCheckDecay)
+    {
+      //cout << "Checking decay tree..." << endl;
+      Int_t pdg0 = TMath::Abs(daughter0->GetParticle()->GetPdgCode());
+      Int_t pdg1 = TMath::Abs(daughter1->GetParticle()->GetPdgCode());
+      if (AliPID::ParticleCode(fPairDef->GetPID(0)) != pdg0) return kFALSE; // {cout << "PDG0 is " << pdg0 << " instead of " << fPairDef->GetPID(0) << endl; return kFALSE;};
+      if (AliPID::ParticleCode(fPairDef->GetPID(1)) != pdg1) return kFALSE; // {cout << "PDG1 is " << pdg1 << " instead of " << fPairDef->GetPID(1) << endl; return kFALSE;};
+      //cout << "Decay tree accepted!" << endl;
+    }
+    
+    // ok... if we arrive here that must really be a true pair! :-)
+    //cout << "Pair accepted!" << endl;
+  }
 
   AliDebug(AliLog::kDebug+2,"->");
   

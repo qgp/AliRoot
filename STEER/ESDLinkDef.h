@@ -78,6 +78,7 @@
 
 #pragma link C++ class  AliMeanVertex+;
 #pragma link C++ class  AliESDCaloCells+;
+#pragma link C++ class  AliESDCentrality+;
 
 #pragma link C++ class  AliTriggerIR+;
 
@@ -88,6 +89,7 @@
 #pragma link C++ class  AliTriggerScalersRecordESD+;
 #pragma link C++ class  AliESDHandler+;
 #pragma link C++ class  AliTrackerBase+;
+#pragma link C++ class  AliTOFHeader+;
 
 #pragma link C++ function operator*(const AliFMDMap&,const AliFMDMap&);
 #pragma link C++ function operator/(const AliFMDMap&,const AliFMDMap&);

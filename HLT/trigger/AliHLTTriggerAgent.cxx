@@ -42,7 +42,6 @@
 #include "AliHLTD0Trigger.h"
 #include "AliHLTTriggerITSMultiplicity.h"
 #include "AliHLTTriggerBarrelGeomMultiplicity.h"
-#include "AliHLTTriggerBarrelCosmic.h"
 #include "AliHLTGlobalTriggerComponent.h"
 #include "AliHLTTriggerPhosClusterEnergy.h"
 #include "AliHLTTriggerEmcalClusterEnergy.h"
@@ -85,7 +84,6 @@ int AliHLTTriggerAgent::RegisterComponents(AliHLTComponentHandler* pHandler) con
   pHandler->AddComponent(new AliHLTTriggerITSMultiplicity);
   pHandler->AddComponent(new AliHLTD0Trigger);
   pHandler->AddComponent(new AliHLTTriggerBarrelGeomMultiplicity);
-  pHandler->AddComponent(new AliHLTTriggerBarrelCosmic);
   pHandler->AddComponent(new AliHLTTriggerPhosClusterEnergy); 
   pHandler->AddComponent(new AliHLTTriggerEmcalClusterEnergy); 
   pHandler->AddComponent(new AliHLTTriggerPhosMip); 
@@ -194,10 +192,14 @@ int AliHLTTriggerAgent::CreateConfigurations(AliHLTConfigurationHandler* pHandle
     // simulation without simulated raw data
     // use ESD as input and add in addition the MC information for trigger evaluation
     triggerInputs="GLOBAL-esd-converter ";
-    
-    const char* mcpublisherId="TRIGGER-mc-publisher";
-    pHandler->CreateConfiguration(mcpublisherId, "ESDMCEventPublisher", NULL, "-entrytype MC -datapath ./");
-    triggerInputs+=mcpublisherId;
+
+    // 2010-09-13
+    // disable the publishing of MC information. It seems to be way too big for AA
+    // simulation, anyhow the evaluation of the trigger should be done outside the
+    // component    
+    // const char* mcpublisherId="TRIGGER-mc-publisher";
+    // pHandler->CreateConfiguration(mcpublisherId, "ESDMCEventPublisher", NULL, "-entrytype MC -datapath ./");
+    // triggerInputs+=mcpublisherId;
   }
   else{
     // simulation with simulated raw data, or raw data reconstruction
@@ -223,8 +225,11 @@ int AliHLTTriggerAgent::CreateConfigurations(AliHLTConfigurationHandler* pHandle
   if (triggerInputs.Length()>0) {
     HLTInfo("Configuring inputs for %s: %s", configurationId.Data(), triggerInputs.Data());
     pHandler->CreateConfiguration(configurationId.Data(), "D0Trigger", triggerInputs.Data(), argD0.Data());
-    if (triggerOutputs.Length()>0) triggerOutputs+=" ";
-    triggerOutputs+=configurationId;
+    // FIXME: due to a rare segfault for reconstruction of PbPb data the
+    // component is temporarily excluded
+    // https://savannah.cern.ch/bugs/?72590
+    //if (triggerOutputs.Length()>0) triggerOutputs+=" ";
+    //triggerOutputs+=configurationId;
   } else {
     HLTWarning("No inputs for %s found, skipping component", configurationId.Data());
   }

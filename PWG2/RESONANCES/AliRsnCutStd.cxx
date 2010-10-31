@@ -19,6 +19,8 @@
 #include <TMath.h>
 #include <TLorentzVector.h>
 
+#include "AliStack.h"
+#include "AliMCEvent.h"
 #include "AliRsnDaughter.h"
 #include "AliRsnMother.h"
 #include "AliRsnEvent.h"
@@ -63,8 +65,10 @@ AliRsnCutStd::AliRsnCutStd
     // double
     case kP:
     case kPt:
+    case kPtLeading:
     case kEta:
     case kY:
+    case kDipAngle:
     case kThetaDeg:
       if (fVarType != kDouble) 
       {
@@ -109,8 +113,10 @@ AliRsnCutStd::AliRsnCutStd
     // double
     case kP:
     case kPt:
+    case kPtLeading:
     case kEta:
     case kY:
+    case kDipAngle:
     case kThetaDeg:
       break;
     // other cuts are not based on a value, so no problem
@@ -135,8 +141,10 @@ AliRsnCut::EVarType AliRsnCutStd::CheckType()
     // double couts
     case kP:
     case kPt:
+    case kPtLeading:
     case kEta:
     case kY:
+    case kDipAngle:
     case kThetaDeg:
       return kDouble;
     // other cuts are not based on a value, so no problem
@@ -196,6 +204,12 @@ Bool_t AliRsnCutStd::IsDaughterSelected(AliRsnDaughter *daughter)
     case kCharge:
       fCutValueI = (Int_t)ref->Charge();
       return OkValue();
+    case kPhysPrimary:
+      if (!fEvent->GetRefMC()) return kFALSE;
+      else
+      {
+        return fEvent->GetRefMC()->Stack()->IsPhysicalPrimary(TMath::Abs(((AliVTrack*)ref)->GetLabel()));
+      }
     default:
       AliWarning(Form("Value %d is not included in available cuts for DAUGHTER. Cut skipped.", fType));
       return kTRUE;
@@ -228,6 +242,10 @@ Bool_t AliRsnCutStd::IsMotherSelected(AliRsnMother * const mother)
     case kY:
       fCutValueD = ref.Rapidity();
       return OkRange();
+    case kDipAngle:
+      fCutValueD = mother->GetDaughter(0)->P().Angle(mother->GetDaughter(1)->P().Vect());
+      fCutValueD = TMath::Abs(TMath::ACos(fCutValueD));
+      return OkRangeD();
     case kSameLabel:
       return mother->IsLabelEqual();
     default:
@@ -249,6 +267,17 @@ Bool_t AliRsnCutStd::IsEventSelected(AliRsnEvent * const event)
     case kMult:
       fCutValueI = event->GetMultiplicity();
       return OkRange();
+    case kPtLeading:
+    {
+      int leadingID = event->SelectLeadingParticle(0);
+      if(leadingID >= 0) {
+    	  AliRsnDaughter leadingPart = event->GetDaughter(leadingID);
+    	  AliVParticle *ref = fUseMC ? leadingPart.GetRefMC() : leadingPart.GetRef();
+    	  fCutValueD = ref->Pt();
+      }
+      else fCutValueD = 0;
+      return OkRange();
+    }
     default:
       AliWarning(Form("Value %d is not included in available cuts for EVENT. Cut skipped.", fType));
       return kTRUE;

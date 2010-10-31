@@ -43,12 +43,13 @@ class AliHMPIDAnalysisTask : public AliAnalysisTaskSE {
   virtual ~AliHMPIDAnalysisTask();
   
   virtual void   ConnectInputData(Option_t *);
-  virtual void   CreateOutputObjects();
-  virtual void   Exec(Option_t *option);
+  virtual void   UserCreateOutputObjects();
+  virtual void   UserExec(Option_t *option);
   virtual void   Terminate(Option_t *);
 
+          void   SetUseMC(Bool_t useMC) { fUseMC = useMC; }
           Bool_t Equal(Double_t x, Double_t y, Double_t tolerance);
-  
+
  protected:
      
  private:     
@@ -57,10 +58,12 @@ class AliHMPIDAnalysisTask : public AliAnalysisTaskSE {
   AliESDEvent *fESD;               //! ESD object
   AliMCEvent  *fMC;                //! MC event
 
+  Bool_t       fUseMC;             // decide whether use or not the MC information
+
   TList         *fHmpHistList ;    // list of histograms
-  Int_t          fNevts       ;    //event numbering
-  Int_t          fTrigNevts   ;    //event numbering with the requested trigger
-  Int_t          fTrigger     ;    //requested trigger
+  Int_t          fNevts       ;    // event numbering
+  Int_t          fTrigNevts   ;    // event numbering with the requested trigger
+  Int_t          fTrigger     ;    // requested trigger
 
   TH2F          *fHmpPesdPhmp;     // HMP momentum vs ESD momentum
   TH2F          *fHmpCkovPesd;     // Ckov angle vs ESD momentum
@@ -93,8 +96,10 @@ class AliHMPIDAnalysisTask : public AliAnalysisTaskSE {
   TH2F          *fThetaKvsPesd;    // theta chkov of kaons vs Pesd
   TH2F          *fThetaPvsPesd;    // theta chkov of protons vs Pesd
 
+  TTree         *fTree;            // tree with useful data for subsequent analysis
+  Float_t        fVar[34];         // array of data to fill the tree
 
-  ClassDef(AliHMPIDAnalysisTask,3);
+  ClassDef(AliHMPIDAnalysisTask,4);
 };
 
 #endif

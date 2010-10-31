@@ -271,6 +271,7 @@ int AliHLTTRDCalibHistoComponent::DoDeinit()
   
   HLTDebug("DeinitCalibration");
   delete fTracksArray; fTracksArray=0;
+  fTRDCalibraFillHisto->DestroyDebugStreamer();
   //fTRDCalibraFillHisto->Destroy();
   //fOutArray->Delete();
   delete fOutArray; fOutArray=0;
@@ -375,6 +376,10 @@ Int_t AliHLTTRDCalibHistoComponent::DoEvent(const AliHLTComponent_EventData& /*e
 
   if(!fOutArray->At(0))FormOutput();
   PushBack(fOutArray, AliHLTTRDDefinitions::fgkCalibrationDataType, fSpec);
+
+  if(blockOrObject<0){
+    TCAarray[0]->Delete();
+  }
 
   return 0;
 }

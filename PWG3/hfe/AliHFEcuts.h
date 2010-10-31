@@ -20,8 +20,8 @@
 #ifndef ALIHFECUTS_H
 #define ALIHFECUTS_H
 
-#ifndef ROOT_TObject
-#include <TObject.h>
+#ifndef ROOT_TNamed
+#include <TNamed.h>
 #endif
 
 #ifndef ALIHFEEXTRACUTS_H
@@ -35,7 +35,7 @@ class AliMCParticle;
 class TObjArray;
 class TList;
 
-class AliHFEcuts : public TObject{
+class AliHFEcuts : public TNamed{
   public:
     typedef enum{
       kStepMCGenerated = 0,
@@ -50,17 +50,20 @@ class AliHFEcuts : public TObject{
     } CutStep_t;
     typedef enum{
       kEventStepGenerated = 0,
-      kEventStepReconstructed = 1
+      kEventStepRecNoCut = 1,
+      kEventStepReconstructed = 2
     } EventCutStep_t;
     enum{
-      kNcutStepsEvent = 2,
+      kNcutStepsEvent = 3,
       kNcutStepsTrack = 9,
       kNcutStepsESDtrack = 6 
     };    // Additional constants
 
     AliHFEcuts();
+    AliHFEcuts(const Char_t *name, const Char_t *title);
     AliHFEcuts(const AliHFEcuts &c);
     AliHFEcuts &operator=(const AliHFEcuts &c);
+    void Copy(TObject &o) const;
     ~AliHFEcuts();
     
     void Initialize(AliCFManager *cfm);
@@ -70,11 +73,11 @@ class AliHFEcuts : public TObject{
   
     TList *GetQAhistograms() const { return fHistQA; }
     
-    void SetDebugMode();
+    void SetQAOn() {SetBit(kDebugMode, kTRUE); };
+    void UnsetQA() {SetBit(kDebugMode, kFALSE); };
+    Bool_t IsQAOn() const { return TestBit(kDebugMode); };
     void SetAOD() { SetBit(kAOD, kTRUE); }
     void SetESD() { SetBit(kAOD, kFALSE); }
-    void UnsetDebugMode() { SetBit(kDebugMode, kFALSE); }
-    Bool_t IsInDebugMode() const { return TestBit(kDebugMode); };
     Bool_t IsAOD() const { return TestBit(kAOD); }
     Bool_t IsESD() const { return !TestBit(kAOD); }
     
@@ -85,6 +88,7 @@ class AliHFEcuts : public TObject{
     Bool_t IsRequireProdVertex() const { return TESTBIT(fRequirements, kProductionVertex); };
     Bool_t IsRequireSigmaToVertex() const { return TESTBIT(fRequirements, kSigmaToVertex); };
     Bool_t IsRequireDCAToVertex() const {return TESTBIT(fRequirements, kDCAToVertex); };
+    Bool_t IsRequireKineMCCuts() const {return TESTBIT(fRequirements, kKineMCCuts); };
     
     // Setters
     inline void SetCutITSpixel(UChar_t cut);
@@ -101,11 +105,12 @@ class AliHFEcuts : public TObject{
     inline void CreateStandardCuts();
     
     // Requirements
-    void SetRequireDCAToVertex() { SETBIT(fRequirements, kDCAToVertex); };
+    void SetRequireDCAToVertex() { SETBIT(fRequirements, kDCAToVertex); CLRBIT(fRequirements, kSigmaToVertex); };
     void SetRequireIsPrimary() { SETBIT(fRequirements, kPrimary); };
     void SetRequireITSPixel() { SETBIT(fRequirements, kITSPixel); }
     void SetRequireProdVertex() { SETBIT(fRequirements, kProductionVertex); };
-    void SetRequireSigmaToVertex() { SETBIT(fRequirements, kSigmaToVertex); };
+    void SetRequireSigmaToVertex() { SETBIT(fRequirements, kSigmaToVertex); CLRBIT(fRequirements, kDCAToVertex); };
+    void SetRequireKineMCCuts() { SETBIT(fRequirements, kKineMCCuts); };
 
     void SetDebugLevel(Int_t level) { fDebugLevel = level; };
     Int_t GetDebugLevel() const { return fDebugLevel; };
@@ -121,7 +126,8 @@ class AliHFEcuts : public TObject{
       kSigmaToVertex = 2,
       kDCAToVertex = 3,
       kITSPixel = 4,
-      kMaxImpactParam = 5
+      kMaxImpactParam = 5,
+      kKineMCCuts = 6
     } Require_t;
     void SetParticleGenCutList();
     void SetAcceptanceCutList();
@@ -186,14 +192,14 @@ void AliHFEcuts::CreateStandardCuts(){
   // Standard Cuts defined by the HFE Group
   //
   SetRequireProdVertex();
-  fProdVtx[0] = -3;
+  fProdVtx[0] = 0;
   fProdVtx[1] = 3;
-  fProdVtx[2] = -3;
+  fProdVtx[2] = 0;
   fProdVtx[3] = 3;
-  SetRequireDCAToVertex();
-  fDCAtoVtx[0] = 2.;
-  fDCAtoVtx[1] = 10.;
-  fMinClustersTPC = 50;
+  //SetRequireDCAToVertex();
+  //fDCAtoVtx[0] = 0.5;
+  //fDCAtoVtx[1] = 1.5;
+  fMinClustersTPC = 80;
   fMinTrackletsTRD = 0;
   SetRequireITSPixel();
   fCutITSPixel = AliHFEextraCuts::kFirst;
@@ -201,5 +207,6 @@ void AliHFEcuts::CreateStandardCuts(){
   fMinClusterRatioTPC = 0.6;
   fPtRange[0] = 0.1;
   fPtRange[1] = 20.;
+  SetRequireKineMCCuts();
 }
 #endif

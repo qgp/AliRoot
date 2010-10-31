@@ -30,6 +30,10 @@
 #pragma link C++ class AliAnalysisTaskSELambdac+;
 #pragma link C++ class AliAnalysisTaskSED0Mass+;
 #pragma link C++ class AliAnalysisTaskSECharmFraction+;
+#pragma link C++ class AliCFVertexingHF+;
+#pragma link C++ class AliCFVertexingHF2Prong+;
+#pragma link C++ class AliCFVertexingHF3Prong+;
+#pragma link C++ class AliCFTaskVertexingHF+;
 #pragma link C++ class AliCFHeavyFlavourTaskMultiVarMultiStep+;
 #pragma link C++ class AliCFTaskForDStarAnalysis+;
 #pragma link C++ class AliAnalysisTaskSEDStarJets+;
@@ -38,6 +42,8 @@
 #pragma link C++ class AliMultiDimVector+;
 #pragma link C++ class AliSignificanceCalculator+;
 #pragma link C++ class AliHFMassFitter+;
+#pragma link C++ class AliHFPtSpectrum+;
+#pragma link C++ class AliNormalizationCounter+;
 #pragma link C++ class AliAnalysisTaskSEBkgLikeSignJPSI+;
 #pragma link C++ class AliAnalysisTaskSEBkgLikeSignD0+;
 #pragma link C++ class AliAnalysisTaskSEJPSItoEle+;

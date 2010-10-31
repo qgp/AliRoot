@@ -32,6 +32,7 @@ class AliMultiEventInputHandler : public AliInputEventHandler {
     virtual AliVEvent       *GetEvent()          const {return GetLatestEvent();}
     virtual AliVEvent       *GetEvent(Int_t iev) const;
     AliVEvent               *GetLatestEvent()    const {return fEventBuffer[fIndex];}
+    Int_t                    GetFormat() { return fFormat ;} 
     // From the interface
     virtual Bool_t Init(Option_t* /*opt*/)    {return kTRUE;}
     virtual Bool_t Init(TTree* tree, Option_t* /*opt*/);
@@ -48,8 +49,10 @@ class AliMultiEventInputHandler : public AliInputEventHandler {
     Int_t          fNBuffered;    // Number of events actually buffered
     Int_t          fIndex;        // Pointer to most recent event
     Int_t          fCurrentBin;   // Current bin from the pool
+    Int_t          fCurrentEvt;   // Current event
+    Bool_t         fInit;         // Current event
     AliVEventPool* fEventPool;    // Pointer to the pool
-    AliVEvent**    fEventBuffer;  // The event buffer
+    AliVEvent**    fEventBuffer;  //! The event buffer
     ClassDef(AliMultiEventInputHandler, 1);
 };
 

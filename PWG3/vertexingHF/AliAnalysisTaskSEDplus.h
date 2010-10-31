@@ -18,11 +18,13 @@
 #include <TSystem.h>
 #include <TNtuple.h>
 #include <TH1F.h>
+#include <TH2F.h>
 #include <TArrayD.h>
 
 #include "AliRDHFCutsDplustoKpipi.h"
 #include "AliAnalysisTaskSE.h"
 #include "AliAnalysisVertexingHF.h"
+#include "AliNormalizationCounter.h"
 
 class AliAnalysisTaskSEDplus : public AliAnalysisTaskSE
 {
@@ -34,6 +36,7 @@ class AliAnalysisTaskSEDplus : public AliAnalysisTaskSE
 
   void SetReadMC(Bool_t readMC=kTRUE){fReadMC=readMC;}
   void SetDoLikeSign(Bool_t dols=kTRUE){fDoLS=dols;}
+  void SetUseStrangeness(Bool_t uses=kTRUE){fUseStrangeness=uses;}
   void SetMassLimits(Float_t range);
   void SetMassLimits(Float_t lowlimit, Float_t uplimit);
   void SetPtBinLimit(Int_t n, Float_t *limitarray);
@@ -76,6 +79,8 @@ class AliAnalysisTaskSEDplus : public AliAnalysisTaskSE
   TH1F*   fPtMaxHist[3*kMaxPtBins]; //!hist. for Pt Max (LC)
   TH1F*   fDCAHist[3*kMaxPtBins]; //!hist. for DCA (LC)
   TH1F *fMassHistTC[3*kMaxPtBins]; //!hist. for inv mass (TC)
+  TH1F *fMassHistTCPlus[3*kMaxPtBins]; //!hist. for D+ inv mass (TC)
+  TH1F *fMassHistTCMinus[3*kMaxPtBins]; //!hist. for D- inv mass (TC)
   TH1F *fMassHistLS[5*kMaxPtBins];//!hist. for LS inv mass (LC)
   TH1F *fCosPHistLS[3*kMaxPtBins];//!hist. for LS cuts variable 1 (LC)
   TH1F *fDLenHistLS[3*kMaxPtBins];//!hist. for LS cuts variable 2 (LC)
@@ -84,6 +89,12 @@ class AliAnalysisTaskSEDplus : public AliAnalysisTaskSE
   TH1F *fPtMaxHistLS[3*kMaxPtBins];//!hist. for LS cuts variable 5 (LC)
   TH1F *fDCAHistLS[3*kMaxPtBins];//!hist. for LS cuts variable 6 (LC)
   TH1F *fMassHistLSTC[5*kMaxPtBins];//!hist. for LS inv mass (TC)
+  TH2F *fPtVsMass;    //! hist. of pt vs. mass (prod. cuts)
+  TH2F *fPtVsMassTC;  //! hist. of pt vs. mass (analysis cuts)
+  TH2F *fYVsPt;       //! hist. of Y vs. Pt (prod. cuts)
+  TH2F *fYVsPtTC;     //! hist. of Y vs. Pt (analysis cuts)
+  TH2F *fYVsPtSig;    //! hist. of Y vs. Pt (MC, only sig, prod. cuts)
+  TH2F *fYVsPtSigTC;    //! hist. of Y vs. Pt (MC, only sig, analysis cuts)
   TNtuple *fNtupleDplus; //! output ntuple
   Float_t fUpmasslimit;  //upper inv mass limit for histos
   Float_t fLowmasslimit; //lower inv mass limit for histos
@@ -92,12 +103,14 @@ class AliAnalysisTaskSEDplus : public AliAnalysisTaskSE
   TList *fListCuts; //list of cuts
   AliRDHFCutsDplustoKpipi *fRDCutsProduction; //Production D+ Cuts
   AliRDHFCutsDplustoKpipi *fRDCutsAnalysis; //Cuts for Analysis
+  AliNormalizationCounter *fCounter;//!Counter for normalization
   Double_t fArrayBinLimits[kMaxPtBins+1]; //limits for the Pt bins
   Bool_t fFillNtuple;   // flag for filling ntuple
   Bool_t fReadMC;    //flag for access to MC
+  Bool_t fUseStrangeness;//flag to enhance strangeness in MC to fit to data
   Bool_t fDoLS;      //flag to do LS analysis
   
-  ClassDef(AliAnalysisTaskSEDplus,6); // AliAnalysisTaskSE for the MC association of heavy-flavour decay candidates
+  ClassDef(AliAnalysisTaskSEDplus,9); // AliAnalysisTaskSE for the MC association of heavy-flavour decay candidates
 };
 
 #endif

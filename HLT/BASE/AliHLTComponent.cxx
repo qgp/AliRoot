@@ -42,6 +42,9 @@ using namespace std;
 #include "TClass.h"
 #include "TStopwatch.h"
 #include "TFormula.h"
+#include "TUUID.h"
+#include "TMD5.h"
+#include "TRandom3.h"
 #include "AliHLTMemoryFile.h"
 #include "AliHLTMisc.h"
 #include <cassert>
@@ -401,7 +404,7 @@ int AliHLTComponent::SetComponentDescription(const char* desc)
   TObjArray* pTokens=descriptor.Tokenize(" ");
   if (pTokens) {
     for (int i=0; i<pTokens->GetEntriesFast() && iResult>=0; i++) {
-      TString argument=((TObjString*)pTokens->At(i++))->GetString();
+      TString argument=pTokens->At(i++)->GetName();
       if (!argument || argument.IsNull()) continue;
 
       // chainid
@@ -426,46 +429,96 @@ int AliHLTComponent::SetComponentDescription(const char* desc)
 
 int AliHLTComponent::ConfigureFromArgumentString(int argc, const char** argv)
 {
-  // see header file for function documentation
+  // Configure from an array of argument strings
+  // Function supports individual arguments in the argv array and arguments
+  // separated by blanks.
+  //
+  // Each argv entry can contain blanks, quotes and newlines. Newlines are interpreted
+  // as blanks. Enclosing quotes deactivate blank as delimiter.
+  // The separated arguments are stored in an array of strings, and the pointers to
+  // those strings in an array of pointers. The latter is used in the custom argument
+  // scan of the component.
+
   int iResult=0;
-  vector<const char*> array;
-  TObjArray choppedArguments;
+  vector<string> stringarray;   // array of argument copies
+  // array of pointers to the argument copies
+  // note: not necessarily in sync with the entries in stringarray
+  // can contain any pointer to valid arguments in arbitrary sequence
+  vector<const char*> ptrarray;
+
   TString argument="";
   int i=0;
   for (i=0; i<argc && iResult>=0; i++) {
     argument=argv[i];
+    if (argument.IsWhitespace()) continue;
+
+    // special handling for single component arguments ending with
+    // a sequence of blanks. All characters until the first occurence
+    // of a blank are removed. If the remainder contains only whitespaces
+    // the argument is a single argument, just having whitespaces at the end.
+    argument.Remove(0, argument.First(' '));
+    if (argument.IsWhitespace()) {
+      ptrarray.push_back(argv[i]);
+      continue;
+    }
+
+    // outer loop checks for enclosing quotes
+    // extra blank to insert blank token before leading quotes, then
+    // quoted arguments are always the even ones
+    argument=" ";
+    argument+=argv[i];
+    // insert blank in consecutive quotes to correctly tokenize
+    argument.ReplaceAll("''", "' '");
+    // replace newlines by blanks
+    argument.ReplaceAll("\n", " ");
     if (argument.IsNull()) continue;
+    TObjArray* pTokensQuote=argument.Tokenize("'");
+    if (pTokensQuote) {
+      if (pTokensQuote->GetEntriesFast()>0) {
+	for (int k=0; k<pTokensQuote->GetEntriesFast(); k++) {
+	  argument=pTokensQuote->At(k)->GetName();
+	  if (argument.IsWhitespace()) continue;
+	  if (k%2) {
+	    // every second entry is enclosed by quotes and thus
+	    // one single argument
+	    stringarray.push_back(argument.Data());
+	    ptrarray.push_back(stringarray.back().c_str());
+	  } else {
     TObjArray* pTokens=argument.Tokenize(" ");
     if (pTokens) {
       if (pTokens->GetEntriesFast()>0) {
 	for (int n=0; n<pTokens->GetEntriesFast(); n++) {
-	  choppedArguments.AddLast(pTokens->At(n));
-	  TString data=((TObjString*)pTokens->At(n))->GetString();
-	  if (!data.IsNull()) {
-	    array.push_back(data.Data());
+	  TString data=pTokens->At(n)->GetName();
+	  if (!data.IsNull() && !data.IsWhitespace()) {
+	    stringarray.push_back(data.Data());
+	    ptrarray.push_back(stringarray.back().c_str());
 	  }
 	}
-	pTokens->SetOwner(kFALSE);
       }
       delete pTokens;
     }
+	  }
+	}
+      }
+      delete pTokensQuote;
+    }
   }
 
-  for (i=0; (unsigned)i<array.size() && iResult>=0;) {
-    int result=ScanConfigurationArgument(array.size()-i, &array[i]);
+  for (i=0; (unsigned)i<ptrarray.size() && iResult>=0;) {
+    int result=ScanConfigurationArgument(ptrarray.size()-i, &ptrarray[i]);
     if (result==0) {
-      HLTWarning("unknown component argument %s", array[i]);
+      HLTWarning("unknown component argument %s", ptrarray[i]);
       i++;
     } else if (result>0) {
       i+=result;
     } else {
       iResult=result;
       if (iResult==-EINVAL) {
-	HLTError("unknown argument %s", array[i]);
+	HLTError("unknown argument %s", ptrarray[i]);
       } else if (iResult==-EPROTO) {
-	HLTError("missing/wrong parameter for argument %s (%s)", array[i], (array.size()>(unsigned)i+1)?array[i+1]:"missing");
+	HLTError("missing/wrong parameter for argument %s (%s)", ptrarray[i], (ptrarray.size()>(unsigned)i+1)?ptrarray[i+1]:"missing");
       } else {
-	HLTError("scan of argument %s failed (%d)", array[i], iResult);
+	HLTError("scan of argument %s failed (%d)", ptrarray[i], iResult);
       }
     }
   }
@@ -473,27 +526,44 @@ int AliHLTComponent::ConfigureFromArgumentString(int argc, const char** argv)
   return iResult;
 }
 
-int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries)
+int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries, const char* key)
 {
-  // see header file for function documentation
+  // load a list of OCDB objects and configure from the objects
+  // can either be a TObjString or a TMap with a TObjString:TObjString key-value pair
   int iResult=0;
   TString arguments;
   TString confEntries=entries;
   TObjArray* pTokens=confEntries.Tokenize(" ");
   if (pTokens) {
     for (int n=0; n<pTokens->GetEntriesFast(); n++) {
-      const char* path=((TObjString*)pTokens->At(n))->GetString().Data();
+      const char* path=pTokens->At(n)->GetName();
       const char* chainId=GetChainId();
-      HLTInfo("configure from entry %s, chain id %s", path, (chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
-      TObject* pOCDBObject = LoadAndExtractOCDBObject(path);
+      HLTInfo("configure from entry \"%s\"%s%s, chain id %s", path, key?" key ":"",key?key:"", (chainId!=NULL && chainId[0]!=0)?chainId:"<none>");
+      TObject* pOCDBObject = LoadAndExtractOCDBObject(path, key);
       if (pOCDBObject) {
 	TObjString* pString=dynamic_cast<TObjString*>(pOCDBObject);
+	if (!pString) {
+	  TMap* pMap=dynamic_cast<TMap*>(pOCDBObject);
+	  if (pMap) {
+	    // this is the case where no key has been specified and the OCDB
+	    // object is a TMap, search for the default key
+	    TObject* pObject=pMap->GetValue("default");
+	    if (pObject && (pString=dynamic_cast<TObjString*>(pObject))!=NULL) {
+	      HLTInfo("using default key of TMap of configuration object \"%s\"", path);
+	    } else {
+	      HLTError("no default key available in TMap of configuration object \"%s\"", path);
+	      iResult=-ENOENT;
+	      break;
+	    }
+	  }
+	}
+
 	if (pString) {
 	  HLTInfo("received configuration object string: \'%s\'", pString->GetString().Data());
 	  arguments+=pString->GetString().Data();
 	  arguments+=" ";
 	} else {
-	  HLTError("configuration object \"%s\" has wrong type, required TObjString", path);
+	  HLTError("configuration object \"%s\"%s%s has wrong type, required TObjString", path, key?" key ":"",key?key:"");
 	  iResult=-EINVAL;
 	}
       } else {
@@ -510,12 +580,27 @@ int AliHLTComponent::ConfigureFromCDBTObjString(const char* entries)
   return iResult;
 }
 
-TObject* AliHLTComponent::LoadAndExtractOCDBObject(const char* path, int version, int subVersion)
+TObject* AliHLTComponent::LoadAndExtractOCDBObject(const char* path, int version, int subVersion, const char* key)
 {
   // see header file for function documentation
   AliCDBEntry* pEntry=AliHLTMisc::Instance().LoadOCDBEntry(path, GetRunNo(), version, subVersion);
   if (!pEntry) return NULL;
-  return AliHLTMisc::Instance().ExtractObject(pEntry);
+  TObject* pObject=AliHLTMisc::Instance().ExtractObject(pEntry);
+  TMap* pMap=dynamic_cast<TMap*>(pObject);
+  if (pMap && key) {
+    pObject=pMap->GetValue(key);
+    if (!pObject) {
+      pObject=pMap->GetValue("default");
+      if (pObject) {
+	HLTWarning("can not find object for key \"%s\" in TMap of configuration object \"%s\", using key \"default\"", key, path);
+      }
+    }
+    if (!pObject) {
+      HLTError("can not find object for key \"%s\" in TMap of configuration object \"%s\"", key, path);
+      return NULL;
+    }
+  }
+  return pObject;
 }
 
 int AliHLTComponent::DoInit( int /*argc*/, const char** /*argv*/)
@@ -620,6 +705,39 @@ string AliHLTComponent::DataType2Text( const AliHLTComponentDataType& type, int 
   // see header file for function documentation
   string out("");
 
+  // 'typeid' 'origin'
+  // aligned to 8 and 4 chars respectively, blocks enclosed in quotes and
+  // separated by blank e.g.
+  // 'DDL_RAW ' 'TPC '
+  if (mode==3) {
+    int i=0;
+    char tmp[8];
+    out+="'";
+    for (i=0; i<kAliHLTComponentDataTypefIDsize; i++) {
+      unsigned char* puc=(unsigned char*)type.fID;
+      if (puc[i]<32)
+	sprintf(tmp, "\\%x", type.fID[i]);
+      else
+	sprintf(tmp, "%c", type.fID[i]);
+      out+=tmp;
+    }
+    out+="' '";
+    for (i=0; i<kAliHLTComponentDataTypefOriginSize; i++) {
+      unsigned char* puc=(unsigned char*)type.fOrigin;
+      if ((puc[i])<32)
+	sprintf(tmp, "\\%x", type.fOrigin[i]);
+      else
+	sprintf(tmp, "%c", type.fOrigin[i]);
+      out+=tmp;
+    }
+    out+="'";
+    return out;
+  }
+
+  // origin typeid as numbers separated by colon e.g.
+  // aligned to 8 and 4 chars respectively, all characters separated by
+  // quotes, e.g.
+  // '84'80'67'32':'68'68'76'95'82'65'87'32'
   if (mode==2) {
     int i=0;
     char tmp[8];
@@ -635,6 +753,10 @@ string AliHLTComponent::DataType2Text( const AliHLTComponentDataType& type, int 
     return out;
   }
 
+  // origin typeid separated by colon e.g.
+  // aligned to 8 and 4 chars respectively, all characters separated by
+  // quotes, e.g.
+  // 'T'P'C' ':'D'D'L'_'R'A'W' '
   if (mode==1) {
     int i=0;
     char tmp[8];
@@ -658,6 +780,9 @@ string AliHLTComponent::DataType2Text( const AliHLTComponentDataType& type, int 
     return out;
   }
 
+  // origin typeid
+  // aligned to 8 and 4 chars respectively, separated by colon e.g.
+  // TPC :DDL_RAW 
   if (type==kAliHLTVoidDataType) {
     out="VOID:VOID";
   } else {
@@ -1172,7 +1297,7 @@ int AliHLTComponent::Forward(const AliHLTComponentBlockData* pBlock)
   int iResult=0;
   int idx=fCurrentInputBlock;
   if (pBlock) {
-    if (fpInputObjects==NULL || (idx=FindInputBlock(pBlock))>=0) {
+    if ((idx=FindInputBlock(pBlock))>=0) {
     } else {
       HLTError("unknown Block %p", pBlock);
       iResult=-ENOENT;      
@@ -1584,6 +1709,68 @@ int AliHLTComponent::CreateEventDoneData(AliHLTComponentEventDoneData edd)
   return iResult;
 }
 
+namespace
+{
+  // helper function for std:sort, implements an operator<
+  bool SortComponentStatisticsById(const AliHLTComponentStatistics& a, const AliHLTComponentStatistics& b)
+  {
+    return a.fId<b.fId;
+  }
+
+  // helper function for std:sort
+  bool SortComponentStatisticsDescendingByLevel(const AliHLTComponentStatistics& a, const AliHLTComponentStatistics& b)
+  {
+    return a.fId>b.fId;
+  }
+
+  // helper class to define operator== between AliHLTComponentStatistics and AliHLTComponentStatistics.fId
+  class AliHLTComponentStatisticsId {
+  public:
+    AliHLTComponentStatisticsId(AliHLTUInt32_t id) : fId(id) {}
+    AliHLTComponentStatisticsId(const AliHLTComponentStatisticsId& src) : fId(src.fId) {}
+    bool operator==(const AliHLTComponentStatistics& a) const {return a.fId==fId;}
+  private:
+    AliHLTComponentStatisticsId();
+    AliHLTUInt32_t fId;
+  };
+
+  // operator for std::find of AliHLTComponentStatistics by id
+  bool operator==(const AliHLTComponentStatistics& a, const AliHLTComponentStatisticsId& b)
+  {
+    return b==a;
+  }
+
+  bool AliHLTComponentStatisticsCompareIds(const AliHLTComponentStatistics& a, const AliHLTComponentStatistics& b)
+  {
+    return a.fId==b.fId;
+  }
+
+  // helper class to define operator== between AliHLTComponentBlockData and AliHLTComponentBlockData.fSpecification
+  class AliHLTComponentBlockDataSpecification {
+  public:
+    AliHLTComponentBlockDataSpecification(AliHLTUInt32_t specification) : fSpecification(specification) {}
+    AliHLTComponentBlockDataSpecification(const AliHLTComponentBlockDataSpecification& src) : fSpecification(src.fSpecification) {}
+    bool operator==(const AliHLTComponentBlockData& bd) const {return bd.fSpecification==fSpecification;}
+  private:
+    AliHLTComponentBlockDataSpecification();
+    AliHLTUInt32_t fSpecification;
+  };
+
+  // operator for std::find of AliHLTComponentBlockData by specification
+  bool operator==(const AliHLTComponentBlockData& bd, const AliHLTComponentBlockDataSpecification& spec)
+  {
+    return spec==bd;
+  }
+
+  // operator for std::find
+  bool operator==(const AliHLTComponentBlockData& a, const AliHLTComponentBlockData& b)
+  {
+    if (!MatchExactly(a.fDataType,b.fDataType)) return false;
+    return a.fSpecification==b.fSpecification;
+  }
+
+} // end of namespace
+
 int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
 				   const AliHLTComponentBlockData* blocks, 
 				   AliHLTComponentTriggerData& trigData,
@@ -1615,6 +1802,7 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
   AliHLTComponentStatisticsList compStats;
   bool bAddComponentTableEntry=false;
   vector<AliHLTUInt32_t> parentComponentTables;
+  int processingLevel=-1;
 #if defined(HLT_COMPONENT_STATISTICS)
   if ((fFlags&kDisableComponentStat)==0) {
     AliHLTComponentStatistics outputStat;
@@ -1676,6 +1864,18 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
 	indexUpdtDCSEvent=i;
       } else if (fpInputBlocks[i].fDataType==kAliHLTDataTypeEvent) {
 	fEventType=fpInputBlocks[i].fSpecification;
+	if (fEventType != gkAliEventTypeConfiguration and
+	    fEventType != gkAliEventTypeReadPreprocessor
+	   )
+	{
+	  // We can actually get the event type from the CDH if it is valid.
+	  // Otherwise just use the specification of the input block.
+	  const AliRawDataHeader* cdh;
+	  if (ExtractTriggerData(trigData, NULL, NULL, &cdh, NULL) == 0)
+	  {
+	    fEventType = ExtractEventTypeFromCDH(cdh);
+	  }
+	}
 
 	// skip always in case of gkAliEventTypeConfiguration
 	if (fpInputBlocks[i].fSpecification==gkAliEventTypeConfiguration) bSkipDataProcessing|=skipModeForce;
@@ -1696,12 +1896,30 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
 	    if (pStat && compStats[0].fLevel<=pStat->fLevel) {
 	      compStats[0].fLevel=pStat->fLevel+1;
 	    }
-	    compStats.push_back(*pStat);
+	    if (find(compStats.begin(), compStats.end(), AliHLTComponentStatisticsId(pStat->fId))==compStats.end()) {
+	      compStats.push_back(*pStat);
+	    }
 	  }
 	}
       } else if (fpInputBlocks[i].fDataType==kAliHLTDataTypeComponentTable) {
-	forwardedBlocks.push_back(fpInputBlocks[i]);
+	AliHLTComponentBlockDataList::iterator element=forwardedBlocks.begin();
+	while ((element=find(element, forwardedBlocks.end(), AliHLTComponentBlockDataSpecification(fpInputBlocks[i].fSpecification)))!=forwardedBlocks.end()) {
+	  if (element->fDataType==fpInputBlocks[i].fDataType) break;
+	  // TODO: think about some more checks inclusing also the actual data buffers
+	  // this has to handle multiplicity>1 in the online system, where all components
+	  // send the information on SOR, because this event is broadcasted
+	}
+	if (element==forwardedBlocks.end()) {
+	  forwardedBlocks.push_back(fpInputBlocks[i]);
+	}
 	parentComponentTables.push_back(fpInputBlocks[i].fSpecification);
+	if (fpInputBlocks[i].fSize>=sizeof(AliHLTComponentTableEntry)) {
+	  const AliHLTComponentTableEntry* entry=reinterpret_cast<AliHLTComponentTableEntry*>(fpInputBlocks[i].fPtr);
+	  if (entry->fStructSize==sizeof(AliHLTComponentTableEntry)) {
+	    if (processingLevel<0 || processingLevel<=(int)entry->fLevel) 
+	      processingLevel=entry->fLevel+1;
+	  }
+	}
       } else if (fpInputBlocks[i].fDataType==kAliHLTDataTypeECSParam) {
 	indexECSParamBlock=i;
       } else {
@@ -1719,6 +1937,7 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
     if (indexSOREvent>=0) {
       // start of run
       bAddComponentTableEntry=true;
+      compStats.clear();   // no component statistics for SOR
       if (fpRunDesc==NULL) {
 	fpRunDesc=new AliHLTRunDesc;
 	if (fpRunDesc) *fpRunDesc=kAliHLTVoidRunDesc;
@@ -1761,6 +1980,7 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
     if (indexEOREvent>=0) {
       fLastPushBackTime=0; // always send at EOR
       bAddComponentTableEntry=true;
+      compStats.clear();   // no component statistics for EOR
       if (fpRunDesc!=NULL) {
 	if (fpRunDesc) {
 	  AliHLTRunDesc rundesc;
@@ -1812,6 +2032,9 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
   // for the private blocks
   if ((fFlags&kRequireSteeringBlocks)!=0) bSkipDataProcessing=0;
 
+  // data processing is not skipped for data sources
+  if (GetComponentType()==AliHLTComponent::kSource) bSkipDataProcessing=0;
+
   if (fpCTPData) {
     // set the active triggers for this event
     fpCTPData->SetTriggers(trigData);
@@ -1856,7 +2079,7 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
 	    if (offset>0) fOutputBufferFilled+=offset;
 	  }
 	  if (bAddComponentTableEntry) {
-	    int offset=AddComponentTableEntry(fOutputBlocks, fpOutputBuffer, fOutputBufferSize, fOutputBufferFilled, parentComponentTables);
+	    int offset=AddComponentTableEntry(fOutputBlocks, fpOutputBuffer, fOutputBufferSize, fOutputBufferFilled, parentComponentTables, processingLevel);
 	    if (offset>0) size+=offset;
 	  }
 	  if (forwardedBlocks.size()>0) {
@@ -1868,12 +2091,18 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
       }
     } else {
       // Low Level interface
+      if (blockData.empty() && size!=0) {
+	// set the size to zero because there is no announced data
+	//HLTWarning("no output blocks added by component but output buffer filled %d of %d", size, fOutputBufferSize);
+	size=0;
+      }
+
       if (compStats.size()>0) {
 	int offset=AddComponentStatistics(blockData, fpOutputBuffer, fOutputBufferSize, size, compStats);
 	if (offset>0) size+=offset;
       }
       if (bAddComponentTableEntry) {
-	int offset=AddComponentTableEntry(blockData, fpOutputBuffer, fOutputBufferSize, size, parentComponentTables);
+	int offset=AddComponentTableEntry(blockData, fpOutputBuffer, fOutputBufferSize, size, parentComponentTables, processingLevel);
 	if (offset>0) size+=offset;
       }
       if (forwardedBlocks.size()>0) {
@@ -1937,7 +2166,12 @@ int  AliHLTComponent::AddComponentStatistics(AliHLTComponentBlockDataList& block
     stats[0].fCTime=(AliHLTUInt32_t)(fpBenchmark->CpuTime()*ALIHLTCOMPONENT_STATTIME_SCALER);
     fpBenchmark->Continue();
   }
+
+  sort(stats.begin(), stats.end(), SortComponentStatisticsDescendingByLevel);
+
+  // shrink the number of entries if the buffer is too small
   if (offset+stats.size()*sizeof(AliHLTComponentStatistics)>bufferSize) {
+    unsigned originalSize=stats.size();
     AliHLTUInt32_t removedLevel=0;
     do {
       // remove all entries of the level of the last entry
@@ -1953,6 +2187,10 @@ int  AliHLTComponent::AddComponentStatistics(AliHLTComponentBlockDataList& block
       }
     } while (stats.size()>1 && 
 	     (offset+stats.size()*sizeof(AliHLTComponentStatistics)>bufferSize));
+    HLTWarning("too little space in output buffer to add block of %d statistics entries (size %d), available %d, removed %d entries",
+	       originalSize, sizeof(AliHLTComponentStatistics), bufferSize-offset, originalSize-stats.size());
+  } else {
+    HLTDebug("adding block of %d statistics entries", stats.size());
   }
   assert(stats.size()>0);
   if (stats.size()==0) return 0;
@@ -1963,26 +2201,7 @@ int  AliHLTComponent::AddComponentStatistics(AliHLTComponentBlockDataList& block
     bd.fOffset        = offset;
     bd.fSize          = stats.size()*sizeof(AliHLTComponentStatistics);
     bd.fDataType      = kAliHLTDataTypeComponentStatistics;
-    bd.fSpecification = kAliHLTVoidDataSpec;
-    unsigned int master=0;
-    for (unsigned int i=1; i<blocks.size(); i++) {
-      if (blocks[i].fSize>blocks[master].fSize && 
-	  !MatchExactly(blocks[i].fDataType, kAliHLTVoidDataType|kAliHLTDataOriginPrivate))
-	master=i;
-    }
-    if (blocks.size()>0 && !MatchExactly(blocks[master].fDataType, kAliHLTVoidDataType|kAliHLTDataOriginPrivate)) {
-      // take the data origin of the biggest block as specification
-      // this is similar to the treatment in the HOMER interface. For traditional
-      // reasons, the bytes are swapped there on a little endian architecture, so
-      // we do it as well.
-      memcpy(&bd.fSpecification, &blocks[master].fDataType.fOrigin, sizeof(bd.fSpecification));
-#ifdef R__BYTESWAP // set on little endian architectures
-      bd.fSpecification=((bd.fSpecification & 0xFFULL) << 24) | 
-	((bd.fSpecification & 0xFF00ULL) << 8) | 
-	((bd.fSpecification & 0xFF0000ULL) >> 8) | 
-	((bd.fSpecification & 0xFF000000ULL) >> 24);
-#endif
-    }
+    bd.fSpecification = fChainIdCrc;
     memcpy(buffer+offset, &(stats[0]), bd.fSize);
     blocks.push_back(bd);
     iResult=bd.fSize;
@@ -1999,7 +2218,8 @@ int  AliHLTComponent::AddComponentTableEntry(AliHLTComponentBlockDataList& block
 					     AliHLTUInt8_t* buffer,
 					     AliHLTUInt32_t bufferSize,
 					     AliHLTUInt32_t offset,
-					     const vector<AliHLTUInt32_t>& parents) const
+					     const vector<AliHLTUInt32_t>& parents,
+					     int processingLevel) const
 {
   // see header file for function documentation
   int iResult=0;
@@ -2028,6 +2248,7 @@ int  AliHLTComponent::AddComponentTableEntry(AliHLTComponentBlockDataList& block
     // write entry
     AliHLTComponentTableEntry* pEntry=reinterpret_cast<AliHLTComponentTableEntry*>(pTgt);
     pEntry->fStructSize=sizeof(AliHLTComponentTableEntry);
+    pEntry->fLevel=processingLevel>=0?processingLevel:0;
     pEntry->fNofParents=parents.size();
     pEntry->fSizeDescription=descriptionSize;
     pTgt=pEntry->fBuffer;
@@ -2061,7 +2282,7 @@ int  AliHLTComponent::AddComponentTableEntry(AliHLTComponentBlockDataList& block
     iResult=bd.fSize;
   }
 #else
-  if (blocks.size() && buffer && bufferSize && offset && parents.size()) {
+  if (blocks.size() && buffer && bufferSize && offset && parents.size() && processingLevel) {
     // get rid of warning
   }
 #endif // HLT_COMPONENT_STATISTICS
@@ -2236,8 +2457,7 @@ bool AliHLTComponent::IsDataEvent(AliHLTUInt32_t* pTgt) const
   // see header file for function documentation
   if (pTgt) *pTgt=fEventType;
   return (fEventType==gkAliEventTypeData ||
-	  fEventType==gkAliEventTypeDataReplay ||
-	  fEventType==gkAliEventTypeCalibration);
+	  fEventType==gkAliEventTypeDataReplay);
 }
 
 int AliHLTComponent::CopyStruct(void* pStruct, unsigned int iStructSize, unsigned int iBlockNo,
@@ -2326,18 +2546,22 @@ AliHLTUInt32_t AliHLTComponent::CalculateChecksum(const AliHLTUInt8_t* buffer, i
 
 int AliHLTComponent::ExtractComponentTableEntry(const AliHLTUInt8_t* pBuffer, AliHLTUInt32_t size,
 						string& retChainId, string& retCompId, string& retCompArgs,
-						vector<AliHLTUInt32_t>& parents)
+						vector<AliHLTUInt32_t>& parents, int& level)
 {
   // see header file for function documentation
   retChainId.clear();
   retCompId.clear();
   retCompArgs.clear();
   parents.clear();
+  level=-1;
   if (!pBuffer || size==0) return 0;
 
   const AliHLTComponentTableEntry* pEntry=reinterpret_cast<const AliHLTComponentTableEntry*>(pBuffer);
   if (size<8/* the initial size of the structure*/ ||
       pEntry==NULL || pEntry->fStructSize<8) return -ENOMSG;
+
+  if (pEntry->fStructSize!=sizeof(AliHLTComponentTableEntry)) return -EBADF;
+  level=pEntry->fLevel;
   const AliHLTUInt32_t* pParents=reinterpret_cast<const AliHLTUInt32_t*>(pEntry->fBuffer);
   const AliHLTUInt8_t* pEnd=pBuffer+size;
 
@@ -2360,20 +2584,20 @@ int AliHLTComponent::ExtractComponentTableEntry(const AliHLTUInt8_t* pBuffer, Al
   if (pTokens) {
     int n=0;
     if (pTokens->GetEntriesFast()>n) {
-      retChainId=((TObjString*)pTokens->At(n++))->GetString();
+      retChainId=pTokens->At(n++)->GetName();
     }
     if (pTokens->GetEntriesFast()>n) {
-      compId=((TObjString*)pTokens->At(n++))->GetString();
+      compId=pTokens->At(n++)->GetName();
     }
     delete pTokens;
   }
   if (!compId.IsNull() && (pTokens=compId.Tokenize(":"))!=NULL) {
     int n=0;
     if (pTokens->GetEntriesFast()>n) {
-      compId=((TObjString*)pTokens->At(n++))->GetString();
+      compId=pTokens->At(n++)->GetName();
     }
     if (pTokens->GetEntriesFast()>n) {
-      compArgs=((TObjString*)pTokens->At(n++))->GetString();
+      compArgs=pTokens->At(n++)->GetName();
     }
     delete pTokens;
   }
@@ -2488,6 +2712,21 @@ int AliHLTComponent::ExtractTriggerData(
   return 0;
 }
 
+AliHLTUInt32_t AliHLTComponent::ExtractEventTypeFromCDH(const AliRawDataHeader* cdh)
+{
+  // see header file for function documentation
+  
+  UChar_t l1msg = cdh->GetL1TriggerMessage();
+  if ((l1msg & 0x1) == 0x0) return gkAliEventTypeData;
+  // The L2SwC bit must be one if we got here, i.e. l1msg & 0x1 == 0x1.
+  if (((l1msg >> 2) & 0xF) == 0xE) return gkAliEventTypeStartOfRun;
+  if (((l1msg >> 2) & 0xF) == 0xF) return gkAliEventTypeEndOfRun;
+  // Check the C1T bit to see if this is a calibration event,
+  // if not then it must be some other software trigger event.
+  if (((l1msg >> 6) & 0x1) == 0x1) return gkAliEventTypeCalibration;
+  return gkAliEventTypeSoftware;
+}
+
 int AliHLTComponent::LoggingVarargs(AliHLTComponentLogSeverity severity, 
 				    const char* originClass, const char* originFunc,
 				    const char* file, int line, ... ) const
@@ -2509,6 +2748,55 @@ int AliHLTComponent::LoggingVarargs(AliHLTComponentLogSeverity severity,
   va_end(args);
 
   return iResult;
+}
+
+TUUID AliHLTComponent::GenerateGUID()
+{
+  // Generates a globally unique identifier.
+
+  // Start by creating a new UUID. We cannot use the one automatically generated
+  // by ROOT because the algorithm used will not guarantee unique IDs when generating
+  // these UUIDs at a high rate in parallel.
+  TUUID uuid;
+  // We then use the generated UUID to form part of the random number seeds which
+  // will be used to generate a proper random UUID. For good measure we use a MD5
+  // hash also. Note that we want to use the TUUID class because it will combine the
+  // host address information into the UUID. Using gSystem->GetHostByName() apparently
+  // can cause problems on Windows machines with a firewall, because it always tries
+  // to contact a DNS. The TUUID class handles this case appropriately.
+  union
+  {
+    UChar_t buf[16];
+    UShort_t word[8];
+    UInt_t dword[4];
+  };
+  uuid.GetUUID(buf);
+  TMD5 md5;
+  md5.Update(buf, sizeof(buf));
+  TMD5 md52 = md5;
+  md5.Final(buf);
+  dword[0] += gSystem->GetUid();
+  dword[1] += gSystem->GetGid();
+  dword[2] += gSystem->GetPid();
+  for (int i = 0; i < 4; ++i)
+  {
+    gRandom->SetSeed(dword[i]);
+    dword[i] = gRandom->Integer(0xFFFFFFFF);
+  }
+  md52.Update(buf, sizeof(buf));
+  md52.Final(buf);
+  // To keep to the standard we need to set the version and reserved bits.
+  word[3] = (word[3] & 0x0FFF) | 0x4000;
+  buf[8] = (buf[8] & 0x3F) | 0x80;
+
+  // Create the name of the new class and file.
+  char uuidstr[64];
+  sprintf(uuidstr, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+    dword[0], word[2], word[3], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]
+  );
+
+  uuid.SetUUID(uuidstr);
+  return uuid;
 }
 
 int AliHLTComponent::ScanECSParam(const char* ecsParam)
@@ -2534,13 +2822,13 @@ int AliHLTComponent::ScanECSParam(const char* ecsParam)
   TObjArray* parameter=string.Tokenize(";");
   if (parameter) {
     for (int i=0; i<parameter->GetEntriesFast(); i++) {
-      TString entry=((TObjString*)parameter->At(i))->GetString();
+      TString entry=parameter->At(i)->GetName();
       HLTDebug("scanning ECS entry: %s", entry.Data());
       TObjArray* entryParams=entry.Tokenize("=");
       if (entryParams) {
 	if (entryParams->GetEntriesFast()>1) {
 	  if ((((TObjString*)entryParams->At(0))->GetString()).CompareTo("CTP_TRIGGER_CLASS")==0) {
-	    int result=InitCTPTriggerClasses((((TObjString*)entryParams->At(1))->GetString()).Data());
+	    int result=InitCTPTriggerClasses(entryParams->At(1)->GetName());
 	    if (iResult>=0 && result<0) iResult=result;
 	  } else {
 	    // TODO: scan the other parameters

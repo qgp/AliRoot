@@ -4,7 +4,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class AliEMCALGeometry+; 
 #pragma link C++ class AliEMCALHit+;
 #pragma link C++ class AliEMCALLoader+;	
 #pragma link C++ class AliEMCALWsuCosmicRaySetUp+;
@@ -49,6 +48,9 @@
 #pragma link C++ class AliEMCALTriggerTRUDCSConfig+;
 #pragma link C++ class AliEMCALTriggerSTUDCSConfig+;
 #pragma link C++ class AliEMCALTriggerDCSConfigDB+;
+#pragma link C++ class AliEMCALTriggerRawDigitMaker+;
+#pragma link C++ class AliCaloRawAnalyzerFakeALTRO+;
+#pragma link C++ class AliEMCALTriggerRawDigit+;
 
 #endif
 

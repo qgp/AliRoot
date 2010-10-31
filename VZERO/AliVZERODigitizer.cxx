@@ -47,6 +47,7 @@
 #include "AliCDBEntry.h"
 #include "AliVZEROCalibData.h"
 #include "AliCTPTimeParams.h"
+#include "AliLHCClockPhase.h"
 #include "AliVZEROdigit.h"
 #include "AliVZERODigitizer.h"
 #include "AliVZEROSDigit.h"
@@ -174,6 +175,10 @@ Bool_t AliVZERODigitizer::Init()
   if (!entry2) AliFatal("VZERO time delays are not found in OCDB !");
   TH1F *delays = (TH1F*)entry2->GetObject();
 
+  AliCDBEntry *entry3 = AliCDBManager::Instance()->Get("GRP/Calib/LHCClockPhase");
+  if (!entry3) AliFatal("LHC clock-phase shift is not found in OCDB !");
+  AliLHCClockPhase *phase = (AliLHCClockPhase*)entry3->GetObject();
+
   for(Int_t i = 0 ; i < 64; ++i) {
 
     for(Int_t j = 0; j < kNClocks; ++j) fAdc[i][j] = 0;
@@ -196,7 +201,8 @@ Bool_t AliVZERODigitizer::Init()
     fHptdcOffset[i] = (((Float_t)fCalibData->GetTriggerCountOffset(board)-
 			(Float_t)fCalibData->GetRollOver(board))*25.0+
 		       fCalibData->GetTimeOffset(i)-
-		       l1Delay+
+		       l1Delay-
+		       phase->GetMeanPhase()+
 		       delays->GetBinContent(i+1)+
 		       kV0Offset);
 
@@ -384,8 +390,6 @@ void AliVZERODigitizer::DigitizeHits()
      }
      TClonesArray* hits = fVZERO->Hits();
 
-     //     Float_t lightYieldCorr[64] = {0.00707,0.00517,0.00520,0.00537,0.00735,0.00537,0.00733,0.00605,0.00778,0.00749,0.00701,0.00755,0.00732,0.00617,0.00669,0.00525,0.00752,0.00820,0.00797,0.01107,0.01080,0.00889,0.00880,0.01712,0.00866,0.00701,0.00811,0.00602,0.00879,0.00821,0.00861,0.01433,0.00061,0.00032,0.00099,0.00061,0.00034,0.00046,0.00031,0.00122,0.00155,0.00091,0.00032,0.00096,0.00120,0.00067,0.00113,0.00060,0.00158,0.00136,0.00340,0.00066,0.00076,0.00119,0.00129,0.00147,0.00137,0.00117,0.00088,0.00164,0.00128,0.00081,0.00121,0.00250};
-     Float_t lightYieldCorr[64] = {0.01173,0.00874,0.00878,0.00886,0.01151,0.00925,0.01167,0.00983,0.01181,0.01243,0.01115,0.01220,0.01228,0.01053,0.01021,0.00930,0.01270,0.01411,0.01316,0.01894,0.01923,0.01860,0.01738,0.00305,0.01584,0.01251,0.01344,0.00310,0.01302,0.01266,0.01407,0.00338,0.00089,0.00100,0.00130,0.00081,0.00052,0.01230,0.00059,0.02452,0.02980,0.00137,0.01421,0.00116,0.00141,0.00092,0.02480,0.00096,0.00182,0.00174,0.00218,0.00106,0.00116,0.00160,0.00162,0.03097,0.00194,0.00171,0.00132,0.00239,0.00173,0.00118,0.00163,0.00262};
 //  Now makes Digits from hits
      Int_t nTracks = (Int_t) treeH->GetEntries();
      for (Int_t iTrack = 0; iTrack < nTracks; iTrack++) {
@@ -397,6 +401,7 @@ void AliVZERODigitizer::DigitizeHits()
 	   Int_t nPhot = hit->Nphot();
 	   Int_t cell  = hit->Cell();                          
 	   Int_t pmt = Cell2Pmt(cell);
+	   if (pmt < 0) continue;
 	   Int_t trackLabel = hit->GetTrack();
 	   for(Int_t l = 0; l < 3; ++l) {
 	     if (fLabels[pmt][l] < 0) {
@@ -409,7 +414,7 @@ void AliVZERODigitizer::DigitizeHits()
 	   if (pmt < 32) t += kV0CDelayCables;
 	   t += fHptdcOffset[pmt];
 	   Int_t nPhE;
-	   Float_t prob = lightYieldCorr[pmt]*fPhotoCathodeEfficiency; // Optical losses included!
+	   Float_t prob = fCalibData->GetLightYields(pmt)*fPhotoCathodeEfficiency; // Optical losses included!
 	   if (nPhot > 100)
 	     nPhE = (Int_t)gRandom->Gaus(prob*Float_t(nPhot)+0.5,
 					 sqrt(Float_t(nPhot)*prob*(1.-prob)));

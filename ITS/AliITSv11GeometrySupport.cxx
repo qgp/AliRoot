@@ -555,8 +555,8 @@ void AliITSv11GeometrySupport::CreateSPDThermalShape(
 
 //______________________________________________________________________
 void AliITSv11GeometrySupport::CreateSPDOmegaShape(
-                             Double_t *xin, Double_t *yin, Double_t  d,
-			     Double_t   *x, Double_t *y)
+                   const Double_t *xin, const Double_t *yin, Double_t  d,
+		   Double_t   *x, Double_t *y)
 {
 //
 // Creates the proper sequence of X and Y coordinates to determine
@@ -630,7 +630,7 @@ void AliITSv11GeometrySupport::CreateSPDOmegaShape(
 //______________________________________________________________________
 void AliITSv11GeometrySupport::FillSPDXtruShape(Double_t a, Double_t b,
 						Double_t r, Double_t t,
-						Double_t *x, Double_t *y)
+						Double_t *x, Double_t *y) const
 {
 //
 // Creates the partial sequence of X and Y coordinates to determine
@@ -670,7 +670,7 @@ void AliITSv11GeometrySupport::FillSPDXtruShape(Double_t a, Double_t b,
 //______________________________________________________________________
 void AliITSv11GeometrySupport::PointFromParallelLines(Double_t x1, Double_t y1,
 			      Double_t x2, Double_t y2, Double_t d,
-			      Double_t &x, Double_t &y)
+			      Double_t &x, Double_t &y) const
 {
 //
 // Determines the X and Y of the first internal point of the Omega shape
@@ -702,17 +702,17 @@ void AliITSv11GeometrySupport::PointFromParallelLines(Double_t x1, Double_t y1,
   Double_t b = (x1 - x2)*(y1 - y2);
   Double_t c = (y1 - y2)*(y1 - y2) - d*d;
 
-  // (Delta4 is Delta/4 because we use the reduced formula)
-  Double_t Delta4 = b*b - a*c;
+  // (delta4 is Delta/4 because we use the reduced formula)
+  Double_t delta4 = b*b - a*c;
 
   // Compute the slope of the two parallel lines
   // (one of the two possible slopes, the one with the smaller
   // absolute value is needed)
-  if (Delta4 < 0) { // Should never happen with our data, but just to be sure
+  if (delta4 < 0) { // Should never happen with our data, but just to be sure
     x = -1;         // x is expected positive, so this flags an error
     return;
   } else
-    m = (b + TMath::Sqrt(Delta4))/a;  // b is negative with our data
+    m = (b + TMath::Sqrt(delta4))/a;  // b is negative with our data
 
   // Finally compute the coordinates of the point
   x = x2 + (y1 - y2 - d)/m;
@@ -726,7 +726,7 @@ void AliITSv11GeometrySupport::PointFromParallelLines(Double_t x1, Double_t y1,
 void AliITSv11GeometrySupport::ReflectPoint(Double_t x1, Double_t y1,
 					    Double_t x2, Double_t y2,
 					    Double_t x3, Double_t y3,
-					    Double_t &x, Double_t &y)
+					    Double_t &x, Double_t &y) const
 {
 //
 // Given two points (x1,y1) and (x2,y2), determines the point (x,y)
@@ -3343,15 +3343,16 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
 //
 // Created:      15 Feb 2010  Mario Sitta
 // Updated:      10 Jun 2010  Mario Sitta  Freon inside cooling pipes
+// Updated:      08 Sep 2010  Mario Sitta
+// Updated:      14 Sep 2010  Mario Sitta  Cables prolonged till cone
 //
 // Technical data are taken from AutoCAD drawings, L.Simonetti technical
 // drawings and other (oral) information given by F.Tosello and D.Elia
 // (small differences with blueprints - e.g. -0.07mm in R1Trans and
 // R2Trans - fix small overlaps; they are then compensated in positioning
 // the Rear Tray to avoid its own overlaps with the rear supporting ring)
-// Optical cables and low voltage cables are approximated with mean
-// materials and square cross sections, but preserving the total material
-// budget.
+// Optical fibers and voltage cables are approximated with mean materials
+// and square cross sections, but preserving the total material budget.
 //
 
   // Overall position and rotation of the A-Side Cable Trays
@@ -3372,19 +3373,26 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   const Double_t kForwardTrayInterSpace  =   18.00 *fgkmm;//!!!TO BE CHECKED!!!
   const Double_t kForwardTrayThick       =    2.00 *fgkmm;
 
-  const Int_t kForwardSideNpoints        =    6;
+  const Int_t    kForwardSideNpoints     =    6;
 
   const Double_t kExternalTrayLen        = 1200.00 *fgkmm;
   const Double_t kExternalTrayWide       = kForwardTrayWide;
   const Double_t kExternalTrayHigh       = kForwardTraySecondHigh;
   const Double_t kExternalTrayThick      = kForwardTrayThick;
 
-  const Double_t kCoolingTubeRmin        =    5.00 *fgkmm;
-  const Double_t kCoolingTubeRmax        =    6.00 *fgkmm;
+  const Double_t kCoolingTubeRmin        =    2.00 *fgkmm;
+  const Double_t kCoolingTubeRmax        =    3.00 *fgkmm;
 
   const Double_t kOpticalFibersSect      =    8.696*fgkmm;//!!!ESTIMATED!!!
-  const Double_t kLowVoltageCableSect    =    3.412*fgkmm;//!!!ESTIMATED!!!
-  const Double_t kHiVoltageCableSect     =    1.873*fgkmm;//!!!ESTIMATED!!!
+  const Double_t kLowVoltageCableSectCu  =    7.675*fgkmm;// Computed
+  const Double_t kLowVoltageCableHighPUR =    1.000*fgkmm;// Computed
+  const Double_t kHiVoltageCableSectCu   =    1.535*fgkmm;// Computed
+  const Double_t kHiVoltageCableHighPUR  =    0.500*fgkmm;// Computed
+  const Double_t kCoaxCableSectCu        =    6.024*fgkmm;// Computed
+  const Double_t kCoaxCableHighMeg       =    5.695*fgkmm;// Computed
+
+  const Double_t kTrayCCablesRot         =   75.000*fgkDegree;// Computed
+  const Double_t kTrayCCablesZLenOut     =  227.000*fgkmm;// Computed
 
 
   // Local variables
@@ -3487,10 +3495,25 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
 					0, SinD(kTrayAZRot),-CosD(kTrayAZRot),
 					0,                0,               1);
 
-  // The optical fibers inside the forward tray: a BBox
-  TGeoBBox *optFibsForw = new TGeoBBox(kOpticalFibersSect/2,
-				       kOpticalFibersSect/2,
-				       kForwardTrayTotalLen/2);
+  // The optical fibers inside the forward tray: a Xtru
+  TGeoXtru *optFibsForw = new TGeoXtru(2);
+
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesRot);
+  xprof[1] = 0;
+  yprof[1] = 0;
+  xprof[2] = kForwardTrayTotalLen;
+  yprof[2] = yprof[1];
+  xprof[3] = xprof[2];
+  yprof[3] = yprof[2] + kOpticalFibersSect;
+  xprof[4] = xprof[1];
+  yprof[4] = yprof[3];
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kOpticalFibersSect;
+
+  optFibsForw->DefinePolygon(6, xprof, yprof);
+  optFibsForw->DefineSection(0,-kOpticalFibersSect/2);
+  optFibsForw->DefineSection(1, kOpticalFibersSect/2);
 
   // The optical fibers inside the external tray: a Xtru
   TGeoXtru *optFibsExt = new TGeoXtru(2);
@@ -3510,14 +3533,48 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   optFibsExt->DefineSection(0, 0);
   optFibsExt->DefineSection(1, kOpticalFibersSect);
 
-  // The Low Voltage cables inside the forward tray: a BBox
-  TGeoBBox *lowCablesForw = new TGeoBBox(kLowVoltageCableSect/2,
-					 kLowVoltageCableSect/2,
-					 kForwardTrayTotalLen/2);
+  // The Low Voltage cables inside the forward tray: two Xtru
+  TGeoXtru *lowCablesForwCu = new TGeoXtru(2);
 
-  // The Low Voltage inside the external tray: a Xtru
-  TGeoXtru *lowCablesExt = new TGeoXtru(2);
-  lowCablesExt->SetName("ITSsuppSPDExtTrayLowVoltage");
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesRot);
+  xprof[1] = 0;
+  yprof[1] = 0;
+  xprof[2] = kForwardTrayTotalLen;
+  yprof[2] = yprof[1];
+  xprof[3] = xprof[2];
+  yprof[3] = yprof[2] + kLowVoltageCableSectCu/2;
+  xprof[4] = xprof[1];
+  yprof[4] = yprof[3];
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kLowVoltageCableSectCu/2;
+
+  lowCablesForwCu->DefinePolygon(6, xprof, yprof);
+  lowCablesForwCu->DefineSection(0,-kLowVoltageCableSectCu);
+  lowCablesForwCu->DefineSection(1, kLowVoltageCableSectCu);
+
+  TGeoXtru *lowCablesForwPUR = new TGeoXtru(2);
+
+  xprof[0] = lowCablesForwCu->GetX(5);
+  yprof[0] = lowCablesForwCu->GetY(5);
+  xprof[1] = lowCablesForwCu->GetX(4);
+  yprof[1] = lowCablesForwCu->GetY(4);
+  xprof[2] = lowCablesForwCu->GetX(3);
+  yprof[2] = lowCablesForwCu->GetY(3);
+  xprof[3] = xprof[2];
+  yprof[3] = yprof[2] + kLowVoltageCableHighPUR/2;
+  xprof[4] = xprof[1];
+  yprof[4] = yprof[3];
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kLowVoltageCableHighPUR/2;
+
+  lowCablesForwPUR->DefinePolygon(6, xprof, yprof);
+  lowCablesForwPUR->DefineSection(0,-kLowVoltageCableSectCu);
+  lowCablesForwPUR->DefineSection(1, kLowVoltageCableSectCu);
+
+  // The Low Voltage inside the external tray: two Xtru
+  TGeoXtru *lowCablesExtCu = new TGeoXtru(2);
+  lowCablesExtCu->SetName("ITSsuppSPDExtTrayLowVoltageCu");
 
   yprof[0] = -kExternalTrayHigh + 2*kExternalTrayThick
 	   + 2*forwTrayWall->GetDY();
@@ -3525,22 +3582,72 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   xprof[1] = kExternalTrayLen;
   yprof[1] = yprof[0];
   xprof[2] = xprof[1];
-  yprof[2] = yprof[1] + kLowVoltageCableSect;
+  yprof[2] = yprof[1] + kLowVoltageCableSectCu/2;
   yprof[3] = yprof[2];
   xprof[3] = yprof[2]*TanD(kTrayAZRot);
 
-  lowCablesExt->DefinePolygon(4, xprof, yprof);
-  lowCablesExt->DefineSection(0, 0);
-  lowCablesExt->DefineSection(1, kLowVoltageCableSect);
+  lowCablesExtCu->DefinePolygon(4, xprof, yprof);
+  lowCablesExtCu->DefineSection(0, 0);
+  lowCablesExtCu->DefineSection(1, kLowVoltageCableSectCu*2);
 
-  // The High Voltage cables inside the forward tray: a BBox
-  TGeoBBox *hiCablesForw = new TGeoBBox(kHiVoltageCableSect/2,
-					kHiVoltageCableSect/2,
-					kForwardTrayTotalLen/2);
+  TGeoXtru *lowCablesExtPUR = new TGeoXtru(2);
+  lowCablesExtPUR->SetName("ITSsuppSPDExtTrayLowVoltagePUR");
 
-  // The High Voltage inside the external tray: a Xtru
-  TGeoXtru *hiCablesExt = new TGeoXtru(2);
-  hiCablesExt->SetName("ITSsuppSPDExtTrayHiVoltage");
+  xprof[0] = lowCablesExtCu->GetX(3);
+  yprof[0] = lowCablesExtCu->GetY(3);
+  xprof[1] = lowCablesExtCu->GetX(2);
+  yprof[1] = lowCablesExtCu->GetY(2);
+  xprof[2] = xprof[1];
+  yprof[2] = yprof[1] + kLowVoltageCableHighPUR/2;
+  yprof[3] = yprof[2];
+  xprof[3] = yprof[2]*TanD(kTrayAZRot);
+
+  lowCablesExtPUR->DefinePolygon(4, xprof, yprof);
+  lowCablesExtPUR->DefineSection(0, 0);
+  lowCablesExtPUR->DefineSection(1, kLowVoltageCableSectCu*2);
+
+  // The High Voltage cables inside the forward tray: two Xtru
+  TGeoXtru *hiCablesForwCu = new TGeoXtru(2);
+
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesRot);
+  xprof[1] = 0;
+  yprof[1] = 0;
+  xprof[2] = kForwardTrayTotalLen;
+  yprof[2] = yprof[1];
+  xprof[3] = xprof[2];
+  yprof[3] = yprof[2] + kHiVoltageCableSectCu/2;
+  xprof[4] = xprof[1];
+  yprof[4] = yprof[3];
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kHiVoltageCableSectCu/2;
+
+  hiCablesForwCu->DefinePolygon(6, xprof, yprof);
+  hiCablesForwCu->DefineSection(0,-kHiVoltageCableSectCu);
+  hiCablesForwCu->DefineSection(1, kHiVoltageCableSectCu);
+
+  TGeoXtru *hiCablesForwPUR = new TGeoXtru(2);
+
+  xprof[0] = hiCablesForwCu->GetX(5);
+  yprof[0] = hiCablesForwCu->GetY(5);
+  xprof[1] = hiCablesForwCu->GetX(4);
+  yprof[1] = hiCablesForwCu->GetY(4);
+  xprof[2] = hiCablesForwCu->GetX(3);
+  yprof[2] = hiCablesForwCu->GetY(3);
+  xprof[3] = xprof[2];
+  yprof[3] = yprof[2] + kHiVoltageCableHighPUR/2;
+  xprof[4] = xprof[1];
+  yprof[4] = yprof[3];
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kHiVoltageCableHighPUR/2;
+
+  hiCablesForwPUR->DefinePolygon(6, xprof, yprof);
+  hiCablesForwPUR->DefineSection(0,-kHiVoltageCableSectCu);
+  hiCablesForwPUR->DefineSection(1, kHiVoltageCableSectCu);
+
+  // The High Voltage inside the external tray: two Xtru
+  TGeoXtru *hiCablesExtCu = new TGeoXtru(2);
+  hiCablesExtCu->SetName("ITSsuppSPDExtTrayHiVoltageCu");
 
   yprof[0] = -kExternalTrayHigh + 2*kExternalTrayThick
 	   + 2*forwTrayWall->GetDY();
@@ -3548,13 +3655,104 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   xprof[1] = kExternalTrayLen;
   yprof[1] = yprof[0];
   xprof[2] = xprof[1];
-  yprof[2] = yprof[1] + kHiVoltageCableSect;
+  yprof[2] = yprof[1] + kHiVoltageCableSectCu/2;
   yprof[3] = yprof[2];
   xprof[3] = yprof[2]*TanD(kTrayAZRot);
 
-  hiCablesExt->DefinePolygon(4, xprof, yprof);
-  hiCablesExt->DefineSection(0, 0);
-  hiCablesExt->DefineSection(1, kHiVoltageCableSect);
+  hiCablesExtCu->DefinePolygon(4, xprof, yprof);
+  hiCablesExtCu->DefineSection(0, 0);
+  hiCablesExtCu->DefineSection(1, kHiVoltageCableSectCu*2);
+
+  TGeoXtru *hiCablesExtPUR = new TGeoXtru(2);
+  hiCablesExtPUR->SetName("ITSsuppSPDExtTrayHiVoltagePUR");
+
+  xprof[0] = hiCablesExtCu->GetX(3);
+  yprof[0] = hiCablesExtCu->GetY(3);
+  xprof[1] = hiCablesExtCu->GetX(2);
+  yprof[1] = hiCablesExtCu->GetY(2);
+  xprof[2] = xprof[1];
+  yprof[2] = yprof[1] + kHiVoltageCableHighPUR/2;
+  yprof[3] = yprof[2];
+  xprof[3] = yprof[2]*TanD(kTrayAZRot);
+
+  hiCablesExtPUR->DefinePolygon(4, xprof, yprof);
+  hiCablesExtPUR->DefineSection(0, 0);
+  hiCablesExtPUR->DefineSection(1, kHiVoltageCableSectCu*2);
+
+  // The Coaxial cables inside the forward tray: two Xtru
+  TGeoXtru *coaxCablesForwCu = new TGeoXtru(2);
+  coaxCablesForwCu->SetName("ITSsuppSPDForwTrayCoaxCu");
+
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesRot);
+  xprof[1] = 0;
+  yprof[1] = 0;
+  xprof[2] = kForwardTrayTotalLen;
+  yprof[2] = yprof[1];
+  xprof[3] = xprof[2];
+  yprof[3] = yprof[2] + kCoaxCableSectCu/2;
+  xprof[4] = xprof[1];
+  yprof[4] = yprof[3];
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kCoaxCableSectCu/2;
+
+  coaxCablesForwCu->DefinePolygon(6, xprof, yprof);
+  coaxCablesForwCu->DefineSection(0,-kCoaxCableSectCu);
+  coaxCablesForwCu->DefineSection(1, kCoaxCableSectCu);
+
+  TGeoXtru *coaxCablesForwMeg = new TGeoXtru(2);
+  coaxCablesForwMeg->SetName("ITSsuppSPDForwTrayCoaxMeg");
+
+  xprof[0] = coaxCablesForwCu->GetX(5);
+  yprof[0] = coaxCablesForwCu->GetY(5);
+  xprof[1] = coaxCablesForwCu->GetX(4);
+  yprof[1] = coaxCablesForwCu->GetY(4);
+  xprof[2] = coaxCablesForwCu->GetX(3);
+  yprof[2] = coaxCablesForwCu->GetY(3);
+  xprof[3] = xprof[2];
+  yprof[3] = yprof[2] + kCoaxCableHighMeg/2;
+  xprof[4] = xprof[1];
+  yprof[4] = yprof[3];
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kCoaxCableHighMeg/2;
+
+  coaxCablesForwMeg->DefinePolygon(6, xprof, yprof);
+  coaxCablesForwMeg->DefineSection(0,-kCoaxCableSectCu);
+  coaxCablesForwMeg->DefineSection(1, kCoaxCableSectCu);
+
+  // The Coaxial inside the external tray: two Xtru
+  TGeoXtru *coaxCablesExtCu = new TGeoXtru(2);
+  coaxCablesExtCu->SetName("ITSsuppSPDExtTrayCoaxCu");
+
+  yprof[0] = -kExternalTrayHigh + 2*kExternalTrayThick
+	   + 2*forwTrayWall->GetDY();
+  xprof[0] = yprof[0]*TanD(kTrayAZRot);
+  xprof[1] = kExternalTrayLen;
+  yprof[1] = yprof[0];
+  xprof[2] = xprof[1];
+  yprof[2] = yprof[1] + kCoaxCableSectCu/2;
+  yprof[3] = yprof[2];
+  xprof[3] = yprof[2]*TanD(kTrayAZRot);
+
+  coaxCablesExtCu->DefinePolygon(4, xprof, yprof);
+  coaxCablesExtCu->DefineSection(0, 0);
+  coaxCablesExtCu->DefineSection(1, kCoaxCableSectCu*2);
+
+  TGeoXtru *coaxCablesExtMeg = new TGeoXtru(2);
+  coaxCablesExtMeg->SetName("ITSsuppSPDExtTrayCoaxMeg");
+
+  xprof[0] = coaxCablesExtCu->GetX(3);
+  yprof[0] = coaxCablesExtCu->GetY(3);
+  xprof[1] = coaxCablesExtCu->GetX(2);
+  yprof[1] = coaxCablesExtCu->GetY(2);
+  xprof[2] = xprof[1];
+  yprof[2] = yprof[1] + kCoaxCableHighMeg/2;
+  yprof[3] = yprof[2];
+  xprof[3] = yprof[2]*TanD(kTrayAZRot);
+
+  coaxCablesExtMeg->DefinePolygon(4, xprof, yprof);
+  coaxCablesExtMeg->DefineSection(0, 0);
+  coaxCablesExtMeg->DefineSection(1, kCoaxCableSectCu*2);
 
 
   // We have all shapes: now create the real volumes
@@ -3562,8 +3760,9 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   TGeoMedium *medIn    = mgr->GetMedium("ITS_INOX$");
   TGeoMedium *medFreon = mgr->GetMedium("ITS_GASEOUS FREON$");
   TGeoMedium *medFibs  = mgr->GetMedium("ITS_SDD OPTICFIB$");//!TO BE CHECKED!
-  TGeoMedium *medLVC   = mgr->GetMedium("ITS_SPD_LOWCABLES$");
-  TGeoMedium *medHVC   = mgr->GetMedium("ITS_SPD_HICABLES$");
+  TGeoMedium *medCu    = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medPUR   = mgr->GetMedium("ITS_POLYURETHANE$");
+  TGeoMedium *medMeg   = mgr->GetMedium("ITS_MEGOLON$");
 
   TGeoVolume *forwTrayABase = new TGeoVolume("ITSsuppSPDSideAForwTrayABase",
 					    forwTrayLowerFace, medAl);
@@ -3709,41 +3908,113 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   extOptFibs->SetFillColor(extOptFibs->GetLineColor());
   extOptFibs->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *forwLowCabs = new TGeoVolume("ITSsuppSPDSideAForwTrayLowCabs",
-					   lowCablesForw, medLVC);
+  TGeoVolume *forwLowCabsCu = new TGeoVolume("ITSsuppSPDSideAForwLowCabsCu",
+					     lowCablesForwCu, medCu);
 
-  forwLowCabs->SetVisibility(kTRUE);
-  forwLowCabs->SetLineColor(kRed); // Red
-  forwLowCabs->SetLineWidth(1);
-  forwLowCabs->SetFillColor(forwLowCabs->GetLineColor());
-  forwLowCabs->SetFillStyle(4000); // 0% transparent
+  forwLowCabsCu->SetVisibility(kTRUE);
+  forwLowCabsCu->SetLineColor(kRed); // Red
+  forwLowCabsCu->SetLineWidth(1);
+  forwLowCabsCu->SetFillColor(forwLowCabsCu->GetLineColor());
+  forwLowCabsCu->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *extLowCabs = new TGeoVolume("ITSsuppSPDSideAExtTrayLowCabs",
-					  lowCablesExt, medLVC);
+  TGeoVolume *forwLowCabsPUR = new TGeoVolume("ITSsuppSPDSideAForwLowCabsPUR",
+					      lowCablesForwPUR, medPUR);
 
-  extLowCabs->SetVisibility(kTRUE);
-  extLowCabs->SetLineColor(kRed); // Red
-  extLowCabs->SetLineWidth(1);
-  extLowCabs->SetFillColor(extLowCabs->GetLineColor());
-  extLowCabs->SetFillStyle(4000); // 0% transparent
+  forwLowCabsPUR->SetVisibility(kTRUE);
+  forwLowCabsPUR->SetLineColor(kBlack); // Black
+  forwLowCabsPUR->SetLineWidth(1);
+  forwLowCabsPUR->SetFillColor(forwLowCabsPUR->GetLineColor());
+  forwLowCabsPUR->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *forwHiCabs = new TGeoVolume("ITSsuppSPDSideAForwTrayHiCabs",
-					  hiCablesForw, medHVC);
+  TGeoVolume *extLowCabsCu = new TGeoVolume("ITSsuppSPDSideAExtLowCabsCu",
+					    lowCablesExtCu, medCu);
 
-  forwHiCabs->SetVisibility(kTRUE);
-  forwHiCabs->SetLineColor(kRed); // Red
-  forwHiCabs->SetLineWidth(1);
-  forwHiCabs->SetFillColor(forwHiCabs->GetLineColor());
-  forwHiCabs->SetFillStyle(4000); // 0% transparent
+  extLowCabsCu->SetVisibility(kTRUE);
+  extLowCabsCu->SetLineColor(kRed); // Red
+  extLowCabsCu->SetLineWidth(1);
+  extLowCabsCu->SetFillColor(extLowCabsCu->GetLineColor());
+  extLowCabsCu->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *extHiCabs = new TGeoVolume("ITSsuppSPDSideAExtTrayHiCabs",
-					 hiCablesExt, medHVC);
+  TGeoVolume *extLowCabsPUR = new TGeoVolume("ITSsuppSPDSideAExtLowCabsPUR",
+					     lowCablesExtPUR, medPUR);
 
-  extHiCabs->SetVisibility(kTRUE);
-  extHiCabs->SetLineColor(kRed); // Red
-  extHiCabs->SetLineWidth(1);
-  extHiCabs->SetFillColor(extHiCabs->GetLineColor());
-  extHiCabs->SetFillStyle(4000); // 0% transparent
+  extLowCabsPUR->SetVisibility(kTRUE);
+  extLowCabsPUR->SetLineColor(kBlack); // Black
+  extLowCabsPUR->SetLineWidth(1);
+  extLowCabsPUR->SetFillColor(extLowCabsPUR->GetLineColor());
+  extLowCabsPUR->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *forwHiCabsCu = new TGeoVolume("ITSsuppSPDSideAForwTrayHiCabsCu",
+					    hiCablesForwCu, medCu);
+
+  forwHiCabsCu->SetVisibility(kTRUE);
+  forwHiCabsCu->SetLineColor(kRed); // Red
+  forwHiCabsCu->SetLineWidth(1);
+  forwHiCabsCu->SetFillColor(forwHiCabsCu->GetLineColor());
+  forwHiCabsCu->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *forwHiCabsPUR = new TGeoVolume("ITSsuppSPDSideAForwTrayHiCabsPUR",
+					     hiCablesForwPUR, medPUR);
+
+  forwHiCabsPUR->SetVisibility(kTRUE);
+  forwHiCabsPUR->SetLineColor(kBlack); // Black
+  forwHiCabsPUR->SetLineWidth(1);
+  forwHiCabsPUR->SetFillColor(forwHiCabsPUR->GetLineColor());
+  forwHiCabsPUR->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *extHiCabsCu = new TGeoVolume("ITSsuppSPDSideAExtTrayHiCabsCu",
+					   hiCablesExtCu, medCu);
+
+  extHiCabsCu->SetVisibility(kTRUE);
+  extHiCabsCu->SetLineColor(kRed); // Red
+  extHiCabsCu->SetLineWidth(1);
+  extHiCabsCu->SetFillColor(extHiCabsCu->GetLineColor());
+  extHiCabsCu->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *extHiCabsPUR = new TGeoVolume("ITSsuppSPDSideAExtTrayHiCabsPUR",
+					    hiCablesExtPUR, medPUR);
+
+  extHiCabsPUR->SetVisibility(kTRUE);
+  extHiCabsPUR->SetLineColor(kBlack); // Black
+  extHiCabsPUR->SetLineWidth(1);
+  extHiCabsPUR->SetFillColor(extHiCabsPUR->GetLineColor());
+  extHiCabsPUR->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *forwCoaxCu = new TGeoVolume("ITSsuppSPDSideAForwTrayCoaxCu",
+					  coaxCablesForwCu, medCu);
+
+  forwCoaxCu->SetVisibility(kTRUE);
+  forwCoaxCu->SetLineColor(kRed); // Red
+  forwCoaxCu->SetLineWidth(1);
+  forwCoaxCu->SetFillColor(forwCoaxCu->GetLineColor());
+  forwCoaxCu->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *forwCoaxMeg = new TGeoVolume("ITSsuppSPDSideAForwTrayCoaxMeg",
+					   coaxCablesForwMeg, medMeg);
+
+  forwCoaxMeg->SetVisibility(kTRUE);
+  forwCoaxMeg->SetLineColor(kBlack); // Black
+  forwCoaxMeg->SetLineWidth(1);
+  forwCoaxMeg->SetFillColor(forwCoaxMeg->GetLineColor());
+  forwCoaxMeg->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *extCoaxCu = new TGeoVolume("ITSsuppSPDSideAExtTrayCoaxCu",
+					 coaxCablesExtCu, medCu);
+
+  extCoaxCu->SetVisibility(kTRUE);
+  extCoaxCu->SetLineColor(kRed); // Red
+  extCoaxCu->SetLineWidth(1);
+  extCoaxCu->SetFillColor(extCoaxCu->GetLineColor());
+  extCoaxCu->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *extCoaxMeg = new TGeoVolume("ITSsuppSPDSideAExtTrayCoaxMeg",
+					  coaxCablesExtMeg, medMeg);
+
+  extCoaxMeg->SetVisibility(kTRUE);
+  extCoaxMeg->SetLineColor(kBlack); // Black
+  extCoaxMeg->SetLineWidth(1);
+  extCoaxMeg->SetFillColor(extCoaxMeg->GetLineColor());
+  extCoaxMeg->SetFillStyle(4000); // 0% transparent
 
 
   // Now build up the trays
@@ -3796,24 +4067,40 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   cableTrayAForw->AddNode(forwCoolTube, 1,
 		      new TGeoTranslation(0, yloc, zloc));
 
-  xloc = optFibsForw->GetDX() + coolTubeForw->GetRmax();
-  yloc = 2*kForwardTrayThick + 2*forwTrayWall->GetDY() + optFibsForw->GetDY();
-  zloc = optFibsForw->GetDZ();
+  xloc = optFibsForw->GetZ(1) + coolTubeForw->GetRmax();
+  yloc = 2*kForwardTrayThick + 2*forwTrayWall->GetDY();
   cableTrayAForw->AddNode(forwOptFibs, 1,
-		      new TGeoTranslation(xloc, yloc, zloc));
+		      new TGeoCombiTrans( xloc, yloc, 0,
+					 new TGeoRotation("",-90.,90.,90.)));
 
-  xloc = lowCablesForw->GetDX() + coolTubeForw->GetRmax();
-  yloc = 2*kForwardTrayThick + 2*forwTrayWall->GetDY() +lowCablesForw->GetDY();
-  zloc = lowCablesForw->GetDZ();
-  cableTrayAForw->AddNode(forwLowCabs, 1,
-		      new TGeoTranslation(-xloc, yloc, zloc));
+  xloc = 2*optFibsForw->GetZ(1) + lowCablesForwCu->GetZ(1) +
+	 coolTubeForw->GetRmax();
+  yloc = 2*kForwardTrayThick + 2*forwTrayWall->GetDY();
+  cableTrayAForw->AddNode(forwLowCabsCu, 1,
+		      new TGeoCombiTrans( xloc, yloc, 0,
+					 new TGeoRotation("",-90.,90.,90.)));
+  cableTrayAForw->AddNode(forwLowCabsPUR, 1,
+		      new TGeoCombiTrans( xloc, yloc, 0,
+					 new TGeoRotation("",-90.,90.,90.)));
 
-  xloc = hiCablesForw->GetDX() + 2*lowCablesForw->GetDX()
-       + coolTubeForw->GetRmax();
-  yloc = 2*kForwardTrayThick + 2*forwTrayWall->GetDY() + hiCablesForw->GetDY();
-  zloc = hiCablesForw->GetDZ();
-  cableTrayAForw->AddNode(forwHiCabs, 1,
-		      new TGeoTranslation(-xloc, yloc, zloc));
+  xloc = 2*optFibsForw->GetZ(1) + 2*lowCablesForwCu->GetZ(1) +
+	 hiCablesForwCu->GetZ(1) + coolTubeForw->GetRmax();
+  yloc = 2*kForwardTrayThick + 2*forwTrayWall->GetDY();
+  cableTrayAForw->AddNode(forwHiCabsCu, 1,
+		      new TGeoCombiTrans( xloc, yloc, 0,
+					 new TGeoRotation("",-90.,90.,90.)));
+  cableTrayAForw->AddNode(forwHiCabsPUR, 1,
+		      new TGeoCombiTrans( xloc, yloc, 0,
+					 new TGeoRotation("",-90.,90.,90.)));
+
+  xloc = coaxCablesForwCu->GetZ(1) + coolTubeForw->GetRmax();
+  yloc = 2*kForwardTrayThick + 2*forwTrayWall->GetDY();
+  cableTrayAForw->AddNode(forwCoaxCu, 1,
+		      new TGeoCombiTrans(-xloc, yloc, 0,
+					 new TGeoRotation("",-90.,90.,90.)));
+  cableTrayAForw->AddNode(forwCoaxMeg, 1,
+		      new TGeoCombiTrans(-xloc, yloc, 0,
+					 new TGeoRotation("",-90.,90.,90.)));
 
   // To simplify following placement in MARS, origin is on top
   yloc = -kExternalTrayHigh + kExternalTrayThick/2;
@@ -3849,19 +4136,34 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
   cableTrayAExt->AddNode(extCoolTube, 1,
 		      new TGeoTranslation(0, yloc, zloc));
 
-  xloc = kOpticalFibersSect + coolTubeExt->GetRmax();
+  xloc = optFibsExt->GetZ(1) + coolTubeExt->GetRmax();
   cableTrayAExt->AddNode(extOptFibs, 1,
 		      new TGeoCombiTrans( xloc, 0, 0,
 					 new TGeoRotation("",90,-90,-90)));
 
-  xloc = kLowVoltageCableSect + coolTubeExt->GetRmax();
-  cableTrayAExt->AddNode(extLowCabs, 1,
+  xloc = coolTubeExt->GetRmax();
+  cableTrayAExt->AddNode(extLowCabsCu, 1,
+		      new TGeoCombiTrans(-xloc, 0, 0,
+					 new TGeoRotation("",90,-90,-90)));
+  cableTrayAExt->AddNode(extLowCabsPUR, 1,
 		      new TGeoCombiTrans(-xloc, 0, 0,
 					 new TGeoRotation("",90,-90,-90)));
 
-  xloc = 2*kHiVoltageCableSect + kLowVoltageCableSect + coolTubeExt->GetRmax();
-  cableTrayAExt->AddNode(extHiCabs, 1,
+  xloc = lowCablesExtCu->GetZ(1) + coolTubeExt->GetRmax();
+  cableTrayAExt->AddNode(extHiCabsCu, 1,
 		      new TGeoCombiTrans(-xloc, 0, 0,
+					 new TGeoRotation("",90,-90,-90)));
+  cableTrayAExt->AddNode(extHiCabsPUR, 1,
+		      new TGeoCombiTrans(-xloc, 0, 0,
+					 new TGeoRotation("",90,-90,-90)));
+
+  xloc = coaxCablesExtCu->GetZ(1) + optFibsExt->GetZ(1) +
+	 coolTubeExt->GetRmax();
+  cableTrayAExt->AddNode(extCoaxCu, 1,
+		      new TGeoCombiTrans( xloc, 0, 0,
+					 new TGeoRotation("",90,-90,-90)));
+  cableTrayAExt->AddNode(extCoaxMeg, 1,
+		      new TGeoCombiTrans( xloc, 0, 0,
 					 new TGeoRotation("",90,-90,-90)));
 
 
@@ -4002,13 +4304,20 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
 // Created:         ???       Bjorn S. Nilsen
 // Updated:      22 Apr 2010  Mario Sitta
 // Updated:      10 Jun 2010  Mario Sitta  Freon inside cooling pipes
+// Updated:      08 Sep 2010  Mario Sitta
+// Updated:      14 Sep 2010  Mario Sitta  Cables prolonged till cone
 //
 // Technical data are taken from AutoCAD drawings and other (oral)
 // information given by D.Elia
+// Optical fibers and voltage cables are approximated with mean materials
+// and square cross sections, but preserving the total material budget.
 //
 
   // Dimensions and positions of the C-Side Cable Tray elements
   const Int_t    kNumTraysSideC       =   10;
+
+  const Double_t kTrayCCablesOutRot   =   75.000 *fgkDegree;// Computed
+  const Double_t kTrayCCablesZLenOut  =  245.000 *fgkmm;// Computed
 
   const Double_t kTrayCHalfWide       =    6.350 *fgkcm;
   const Double_t kTrayCLength1        =  172.800 *fgkcm;
@@ -4020,11 +4329,15 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
   const Double_t kTrayCInterSpace     =   18.000 *fgkmm;//!!!TO BE CHECKED!!!
   const Double_t kTrayCFoldAngle      =    5.000 *fgkDegree;
 
-  const Double_t kCoolingTubeRmin     =    5.000 *fgkmm;
-  const Double_t kCoolingTubeRmax     =    6.000 *fgkmm;
+  const Double_t kCoolingTubeRmin     =    2.000 *fgkmm;
+  const Double_t kCoolingTubeRmax     =    3.000 *fgkmm;
   const Double_t kOpticalFibersSect   =    8.696 *fgkmm;//!!!ESTIMATED!!!
-  const Double_t kLowVoltageCableSect =    3.412 *fgkmm;//!!!ESTIMATED!!!
-  const Double_t kHiVoltageCableSect  =    1.873 *fgkmm;//!!!ESTIMATED!!!
+  const Double_t kLowVoltCableSectCu  =    7.675 *fgkmm;// Computed
+  const Double_t kLowVoltCableHighPUR =    1.000 *fgkmm;// Computed
+  const Double_t kHiVoltCableSectCu   =    1.535 *fgkmm;// Computed
+  const Double_t kHiVoltCableHighPUR  =    0.500 *fgkmm;// Computed
+  const Double_t kCoaxCableSectCu     =    6.024 *fgkmm;// Computed
+  const Double_t kCoaxCableHighMeg    =    5.695 *fgkmm;// Computed
 
   // Overall position and rotation of the C-Side Cable Trays
   const Double_t kTraySideCRPos       =   45.300 *fgkcm;
@@ -4187,65 +4500,184 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
 			       0, SinD(kTrayCFoldAngle),-CosD(kTrayCFoldAngle),
 			       0,                     0,                    1);
 
+  // The part of the cooling tube outside the tray: a Ctub
+  TGeoCtub *outTube = new TGeoCtub(0, kCoolingTubeRmax,
+			0.5*kTrayCCablesZLenOut/SinD(kTrayCCablesOutRot),
+			0, 360,
+			0,                        0,                      -1,
+			0,-SinD(kTrayCCablesOutRot), CosD(kTrayCCablesOutRot));
+
+  // The freon inside the part of the cooling tube outside the tray: a Ctub
+  TGeoCtub *outFreon = new TGeoCtub(0, kCoolingTubeRmin,
+			outTube->GetDz(),
+			0, 360,
+			0,                        0,                      -1,
+			0,-SinD(kTrayCCablesOutRot), CosD(kTrayCCablesOutRot));
+
   // The optical fibers inside the tray: a Xtru
   TGeoXtru *optFibs = new TGeoXtru(2);
 
-  xprof[0] = sideCMidFace->GetX(5);
-  yprof[0] = sideCMidFace->GetY(5);
-  xprof[1] = sideCMidFace->GetX(4);
-  yprof[1] = sideCMidFace->GetY(4);
-  xprof[2] = sideCMidFace->GetX(3);
-  yprof[2] = sideCMidFace->GetY(3);
-  xprof[3] = xprof[2] - kOpticalFibersSect*SinD(kTrayCFoldAngle);
-  yprof[3] = yprof[2] + kOpticalFibersSect*CosD(kTrayCFoldAngle);
-  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
-	      kOpticalFibersSect , xprof[4], yprof[4]);
-  xprof[5] = 0.;
-  yprof[5] = yprof[0] + kOpticalFibersSect;
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesOutRot);
+  xprof[1] = sideCMidFace->GetX(5);
+  yprof[1] = sideCMidFace->GetY(5);
+  xprof[2] = sideCMidFace->GetX(4);
+  yprof[2] = sideCMidFace->GetY(4);
+  xprof[3] = sideCMidFace->GetX(3);
+  yprof[3] = sideCMidFace->GetY(3);
+  xprof[4] = xprof[3] - kOpticalFibersSect*SinD(kTrayCFoldAngle);
+  yprof[4] = yprof[3] + kOpticalFibersSect*CosD(kTrayCFoldAngle);
+  InsidePoint(xprof[1], yprof[1], xprof[2], yprof[2], xprof[3], yprof[3],
+	      kOpticalFibersSect , xprof[5], yprof[5]);
+  xprof[6] = 0.;
+  yprof[6] = yprof[1] + kOpticalFibersSect;
+  xprof[7] = xprof[0];
+  yprof[7] = yprof[0] + kOpticalFibersSect;
 
-  optFibs->DefinePolygon(6, xprof, yprof);
+  optFibs->DefinePolygon(8, xprof, yprof);
   optFibs->DefineSection(0, 0);
   optFibs->DefineSection(1, kOpticalFibersSect);
 
-  // The low voltage cables inside the tray: a Xtru
-  TGeoXtru *lowCables = new TGeoXtru(2);
+  // The low voltage cables inside the tray: two Xtru
+  TGeoXtru *lowCablesCu = new TGeoXtru(2);
 
-  xprof[0] = sideCMidFace->GetX(5);
-  yprof[0] = sideCMidFace->GetY(5);
-  xprof[1] = sideCMidFace->GetX(4);
-  yprof[1] = sideCMidFace->GetY(4);
-  xprof[2] = sideCMidFace->GetX(3);
-  yprof[2] = sideCMidFace->GetY(3);
-  xprof[3] = xprof[2] - kLowVoltageCableSect*SinD(kTrayCFoldAngle);
-  yprof[3] = yprof[2] + kLowVoltageCableSect*CosD(kTrayCFoldAngle);
-  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
-	      kLowVoltageCableSect , xprof[4], yprof[4]);
-  xprof[5] = 0.;
-  yprof[5] = yprof[0] + kLowVoltageCableSect;
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesOutRot);
+  xprof[1] = sideCMidFace->GetX(5);
+  yprof[1] = sideCMidFace->GetY(5);
+  xprof[2] = sideCMidFace->GetX(4);
+  yprof[2] = sideCMidFace->GetY(4);
+  xprof[3] = sideCMidFace->GetX(3);
+  yprof[3] = sideCMidFace->GetY(3);
+  xprof[4] = xprof[3] - kLowVoltCableSectCu*SinD(kTrayCFoldAngle);
+  yprof[4] = yprof[3] + kLowVoltCableSectCu*CosD(kTrayCFoldAngle);
+  InsidePoint(xprof[1], yprof[1], xprof[2], yprof[2], xprof[3], yprof[3],
+	      kLowVoltCableSectCu , xprof[5], yprof[5]);
+  xprof[6] = 0.;
+  yprof[6] = yprof[1] + kLowVoltCableSectCu;
+  xprof[7] = xprof[0];
+  yprof[7] = yprof[0] + kLowVoltCableSectCu;
 
-  lowCables->DefinePolygon(6, xprof, yprof);
-  lowCables->DefineSection(0, 0);
-  lowCables->DefineSection(1, kLowVoltageCableSect);
+  lowCablesCu->DefinePolygon(8, xprof, yprof);
+  lowCablesCu->DefineSection(0, 0);
+  lowCablesCu->DefineSection(1, kLowVoltCableSectCu);
 
-  // The high voltage cables inside the tray: a Xtru
-  TGeoXtru *hiCables = new TGeoXtru(2);
+  TGeoXtru *lowCablesPUR = new TGeoXtru(2);
 
-  xprof[0] = sideCMidFace->GetX(5);
-  yprof[0] = sideCMidFace->GetY(5);
-  xprof[1] = sideCMidFace->GetX(4);
-  yprof[1] = sideCMidFace->GetY(4);
-  xprof[2] = sideCMidFace->GetX(3);
-  yprof[2] = sideCMidFace->GetY(3);
-  xprof[3] = xprof[2] - kHiVoltageCableSect*SinD(kTrayCFoldAngle);
-  yprof[3] = yprof[2] + kHiVoltageCableSect*CosD(kTrayCFoldAngle);
-  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
-	      kHiVoltageCableSect , xprof[4], yprof[4]);
-  xprof[5] = 0.;
-  yprof[5] = yprof[0] + kHiVoltageCableSect;
+  xprof[0] = lowCablesCu->GetX(7);
+  yprof[0] = lowCablesCu->GetY(7);
+  xprof[1] = lowCablesCu->GetX(6);
+  yprof[1] = lowCablesCu->GetY(6);
+  xprof[2] = lowCablesCu->GetX(5);
+  yprof[2] = lowCablesCu->GetY(5);
+  xprof[3] = lowCablesCu->GetX(4);
+  yprof[3] = lowCablesCu->GetY(4);
+  xprof[4] = xprof[3] - kLowVoltCableHighPUR*SinD(kTrayCFoldAngle);
+  yprof[4] = yprof[3] + kLowVoltCableHighPUR*CosD(kTrayCFoldAngle);
+  InsidePoint(xprof[1], yprof[1], xprof[2], yprof[2], xprof[3], yprof[3],
+	      kLowVoltCableHighPUR , xprof[5], yprof[5]);
+  xprof[6] = 0.;
+  yprof[6] = yprof[1] + kLowVoltCableHighPUR;
+  xprof[7] = xprof[0];
+  yprof[7] = yprof[0] + kLowVoltCableHighPUR;
 
-  hiCables->DefinePolygon(6, xprof, yprof);
-  hiCables->DefineSection(0, 0);
-  hiCables->DefineSection(1, kHiVoltageCableSect);
+  lowCablesPUR->DefinePolygon(8, xprof, yprof);
+  lowCablesPUR->DefineSection(0, 0);
+  lowCablesPUR->DefineSection(1, kLowVoltCableSectCu);
+
+  // The high voltage cables inside the tray: two Xtru
+  TGeoXtru *hiCablesCu = new TGeoXtru(2);
+
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesOutRot);
+  xprof[1] = sideCMidFace->GetX(5);
+  yprof[1] = sideCMidFace->GetY(5);
+  xprof[2] = sideCMidFace->GetX(4);
+  yprof[2] = sideCMidFace->GetY(4);
+  xprof[3] = sideCMidFace->GetX(3);
+  yprof[3] = sideCMidFace->GetY(3);
+  xprof[4] = xprof[3] - kHiVoltCableSectCu*SinD(kTrayCFoldAngle);
+  yprof[4] = yprof[3] + kHiVoltCableSectCu*CosD(kTrayCFoldAngle);
+  InsidePoint(xprof[1], yprof[1], xprof[2], yprof[2], xprof[3], yprof[3],
+	      kHiVoltCableSectCu , xprof[5], yprof[5]);
+  xprof[6] = 0.;
+  yprof[6] = yprof[1] + kHiVoltCableSectCu;
+  xprof[7] = xprof[0];
+  yprof[7] = yprof[0] + kHiVoltCableSectCu;
+
+  hiCablesCu->DefinePolygon(8, xprof, yprof);
+  hiCablesCu->DefineSection(0, 0);
+  hiCablesCu->DefineSection(1, kHiVoltCableSectCu);
+
+  TGeoXtru *hiCablesPUR = new TGeoXtru(2);
+
+  xprof[0] = hiCablesCu->GetX(7);
+  yprof[0] = hiCablesCu->GetY(7);
+  xprof[1] = hiCablesCu->GetX(6);
+  yprof[1] = hiCablesCu->GetY(6);
+  xprof[2] = hiCablesCu->GetX(5);
+  yprof[2] = hiCablesCu->GetY(5);
+  xprof[3] = hiCablesCu->GetX(4);
+  yprof[3] = hiCablesCu->GetY(4);
+  xprof[4] = xprof[3] - kHiVoltCableHighPUR*SinD(kTrayCFoldAngle);
+  yprof[4] = yprof[3] + kHiVoltCableHighPUR*CosD(kTrayCFoldAngle);
+  InsidePoint(xprof[1], yprof[1], xprof[2], yprof[2], xprof[3], yprof[3],
+	      kHiVoltCableHighPUR , xprof[5], yprof[5]);
+  xprof[6] = 0.;
+  yprof[6] = yprof[1] + kHiVoltCableHighPUR;
+  xprof[7] = xprof[0];
+  yprof[7] = yprof[0] + kHiVoltCableHighPUR;
+
+  hiCablesPUR->DefinePolygon(8, xprof, yprof);
+  hiCablesPUR->DefineSection(0, 0);
+  hiCablesPUR->DefineSection(1, kHiVoltCableSectCu);
+
+  // The coaxial cables inside the tray: two Xtru
+  TGeoXtru *coaxCablesCu = new TGeoXtru(2);
+
+  xprof[0] = -kTrayCCablesZLenOut;
+  yprof[0] = xprof[0]/TanD(kTrayCCablesOutRot);
+  xprof[1] = sideCMidFace->GetX(5);
+  yprof[1] = sideCMidFace->GetY(5);
+  xprof[2] = sideCMidFace->GetX(4);
+  yprof[2] = sideCMidFace->GetY(4);
+  xprof[3] = sideCMidFace->GetX(3);
+  yprof[3] = sideCMidFace->GetY(3);
+  xprof[4] = xprof[3] - kCoaxCableSectCu*SinD(kTrayCFoldAngle);
+  yprof[4] = yprof[3] + kCoaxCableSectCu*CosD(kTrayCFoldAngle);
+  InsidePoint(xprof[1], yprof[1], xprof[2], yprof[2], xprof[3], yprof[3],
+	      kCoaxCableSectCu , xprof[5], yprof[5]);
+  xprof[6] = 0.;
+  yprof[6] = yprof[1] + kCoaxCableSectCu;
+  xprof[7] = xprof[0];
+  yprof[7] = yprof[0] + kCoaxCableSectCu;
+
+  coaxCablesCu->DefinePolygon(8, xprof, yprof);
+  coaxCablesCu->DefineSection(0, 0);
+  coaxCablesCu->DefineSection(1, kCoaxCableSectCu);
+
+  TGeoXtru *coaxCablesMeg = new TGeoXtru(2);
+
+  xprof[0] = coaxCablesCu->GetX(7);
+  yprof[0] = coaxCablesCu->GetY(7);
+  xprof[1] = coaxCablesCu->GetX(6);
+  yprof[1] = coaxCablesCu->GetY(6);
+  xprof[2] = coaxCablesCu->GetX(5);
+  yprof[2] = coaxCablesCu->GetY(5);
+  xprof[3] = coaxCablesCu->GetX(4);
+  yprof[3] = coaxCablesCu->GetY(4);
+  xprof[4] = xprof[3] - kCoaxCableHighMeg*SinD(kTrayCFoldAngle);
+  yprof[4] = yprof[3] + kCoaxCableHighMeg*CosD(kTrayCFoldAngle);
+  InsidePoint(xprof[1], yprof[1], xprof[2], yprof[2], xprof[3], yprof[3],
+	      kCoaxCableHighMeg , xprof[5], yprof[5]);
+  xprof[6] = 0.;
+  yprof[6] = yprof[1] + kCoaxCableHighMeg;
+  xprof[7] = xprof[0];
+  yprof[7] = yprof[0] + kCoaxCableHighMeg;
+
+  coaxCablesMeg->DefinePolygon(8, xprof, yprof);
+  coaxCablesMeg->DefineSection(0, 0);
+  coaxCablesMeg->DefineSection(1, kCoaxCableSectCu);
 
 
   // We have all shapes: now create the real volumes
@@ -4253,8 +4685,9 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
   TGeoMedium *medIn   = mgr->GetMedium("ITS_INOX$");
   TGeoMedium *medFr   = mgr->GetMedium("ITS_Freon$");
   TGeoMedium *medFibs = mgr->GetMedium("ITS_SDD OPTICFIB$");//!!TO BE CHECKED!!
-  TGeoMedium *medLVC  = mgr->GetMedium("ITS_SPD_LOWCABLES$");
-  TGeoMedium *medHVC  = mgr->GetMedium("ITS_SPD_HICABLES$");
+  TGeoMedium *medCu   = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medPUR  = mgr->GetMedium("ITS_POLYURETHANE$");
+  TGeoMedium *medMeg  = mgr->GetMedium("ITS_MEGOLON$");
 
   TGeoVolume *traySideCHorFace  = new TGeoVolume("ITSsuppSPDTraySideCHor",
 						 sideCHorFace, medAl);
@@ -4346,6 +4779,24 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
   traySideCIncFreon->SetFillColor(traySideCIncFreon->GetLineColor());
   traySideCIncFreon->SetFillStyle(4000); // 0% transparent
 
+  TGeoVolume *traySideCOutTube = new TGeoVolume("ITSsuppSPDTraySideCOutTube",
+						outTube, medIn);
+
+  traySideCOutTube->SetVisibility(kTRUE);
+  traySideCOutTube->SetLineColor(kGray); // as in GeometrySPD
+  traySideCOutTube->SetLineWidth(1);
+  traySideCOutTube->SetFillColor(traySideCOutTube->GetLineColor());
+  traySideCOutTube->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *traySideCOutFreon = new TGeoVolume("ITSsuppSPDTraySideCOutFreon",
+						 outFreon, medFr);
+
+  traySideCOutFreon->SetVisibility(kTRUE);
+  traySideCOutFreon->SetLineColor(kBlue); // Blue
+  traySideCOutFreon->SetLineWidth(1);
+  traySideCOutFreon->SetFillColor(traySideCOutFreon->GetLineColor());
+  traySideCOutFreon->SetFillStyle(4000); // 0% transparent
+
   TGeoVolume *traySideCOptFibs = new TGeoVolume("ITSsuppSPDTraySideCOptFibs",
 						optFibs, medFibs);
 
@@ -4355,23 +4806,59 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
   traySideCOptFibs->SetFillColor(traySideCOptFibs->GetLineColor());
   traySideCOptFibs->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *traySideCLowCabs = new TGeoVolume("ITSsuppSPDTraySideCLowCabs",
-						lowCables, medLVC);
+  TGeoVolume *traySideCLowCabsCu = new TGeoVolume("ITSsuppSPDTraySideCLVCu",
+						  lowCablesCu, medCu);
 
-  traySideCLowCabs->SetVisibility(kTRUE);
-  traySideCLowCabs->SetLineColor(kRed); // Red
-  traySideCLowCabs->SetLineWidth(1);
-  traySideCLowCabs->SetFillColor(traySideCLowCabs->GetLineColor());
-  traySideCLowCabs->SetFillStyle(4000); // 0% transparent
+  traySideCLowCabsCu->SetVisibility(kTRUE);
+  traySideCLowCabsCu->SetLineColor(kRed); // Red
+  traySideCLowCabsCu->SetLineWidth(1);
+  traySideCLowCabsCu->SetFillColor(traySideCLowCabsCu->GetLineColor());
+  traySideCLowCabsCu->SetFillStyle(4000); // 0% transparent
 
-  TGeoVolume *traySideCHiCabs = new TGeoVolume("ITSsuppSPDTraySideCHiCabs",
-					       hiCables, medHVC);
+  TGeoVolume *traySideCLowCabsPUR = new TGeoVolume("ITSsuppSPDTraySideCLVPUR",
+						   lowCablesPUR, medPUR);
 
-  traySideCHiCabs->SetVisibility(kTRUE);
-  traySideCHiCabs->SetLineColor(kRed); // Red
-  traySideCHiCabs->SetLineWidth(1);
-  traySideCHiCabs->SetFillColor(traySideCHiCabs->GetLineColor());
-  traySideCHiCabs->SetFillStyle(4000); // 0% transparent
+  traySideCLowCabsPUR->SetVisibility(kTRUE);
+  traySideCLowCabsPUR->SetLineColor(kBlack); // Black
+  traySideCLowCabsPUR->SetLineWidth(1);
+  traySideCLowCabsPUR->SetFillColor(traySideCLowCabsPUR->GetLineColor());
+  traySideCLowCabsPUR->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *traySideCHiCabsCu = new TGeoVolume("ITSsuppSPDTraySideCHVCu",
+						 hiCablesCu, medCu);
+
+  traySideCHiCabsCu->SetVisibility(kTRUE);
+  traySideCHiCabsCu->SetLineColor(kRed); // Red
+  traySideCHiCabsCu->SetLineWidth(1);
+  traySideCHiCabsCu->SetFillColor(traySideCHiCabsCu->GetLineColor());
+  traySideCHiCabsCu->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *traySideCHiCabsPUR = new TGeoVolume("ITSsuppSPDTraySideCHVPUR",
+						  hiCablesPUR, medPUR);
+
+  traySideCHiCabsPUR->SetVisibility(kTRUE);
+  traySideCHiCabsPUR->SetLineColor(kBlack); // Black
+  traySideCHiCabsPUR->SetLineWidth(1);
+  traySideCHiCabsPUR->SetFillColor(traySideCHiCabsPUR->GetLineColor());
+  traySideCHiCabsPUR->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *traySideCCoaxCu = new TGeoVolume("ITSsuppSPDTraySideCCoaxCu",
+					       coaxCablesCu, medCu);
+
+  traySideCCoaxCu->SetVisibility(kTRUE);
+  traySideCCoaxCu->SetLineColor(kRed); // Red
+  traySideCCoaxCu->SetLineWidth(1);
+  traySideCCoaxCu->SetFillColor(traySideCCoaxCu->GetLineColor());
+  traySideCCoaxCu->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *traySideCCoaxMeg = new TGeoVolume("ITSsuppSPDTraySideCCoaxMeg",
+						coaxCablesMeg, medMeg);
+
+  traySideCCoaxMeg->SetVisibility(kTRUE);
+  traySideCCoaxMeg->SetLineColor(kBlack); // Black
+  traySideCCoaxMeg->SetLineWidth(1);
+  traySideCCoaxMeg->SetFillColor(traySideCCoaxMeg->GetLineColor());
+  traySideCCoaxMeg->SetFillStyle(4000); // 0% transparent
 
 
   // Now build up the trays
@@ -4397,6 +4884,7 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
 
   traySideCHorTube->AddNode(traySideCHorFreon, 1, 0);
   traySideCIncTube->AddNode(traySideCIncFreon, 1, 0);
+  traySideCOutTube->AddNode(traySideCOutFreon, 1, 0);
 
   xloc = horTube->GetDz();
   yloc = sideCMidFace->GetY(5) + horTube->GetRmax();
@@ -4411,17 +4899,34 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
 		      new TGeoCombiTrans( xloc, yloc, 0,
 		      new TGeoRotation("",-90.+kTrayCFoldAngle,-90.,90.)));
 
+  xloc = -kTrayCCablesZLenOut/2 - outTube->GetRmax();
+  yloc = xloc/TanD(kTrayCCablesOutRot) + sideCMidFace->GetY(4) -
+	 2*outTube->GetRmax();
+  cableTrayC->AddNode(traySideCOutTube, 1,
+		      new TGeoCombiTrans( xloc, yloc, 0,
+		      new TGeoRotation("",-70.,-90.,90.)));
+
   zloc = horTube->GetRmax();
   cableTrayC->AddNode(traySideCOptFibs, 1,
 		      new TGeoTranslation( 0, 0, zloc));
 
-  zloc = kLowVoltageCableSect + horTube->GetRmax();
-  cableTrayC->AddNode(traySideCLowCabs, 1,
+  zloc = kLowVoltCableSectCu + horTube->GetRmax();
+  cableTrayC->AddNode(traySideCLowCabsCu, 1,
+		      new TGeoTranslation( 0, 0,-zloc));
+  cableTrayC->AddNode(traySideCLowCabsPUR, 1,
 		      new TGeoTranslation( 0, 0,-zloc));
 
-  zloc = kHiVoltageCableSect + kLowVoltageCableSect + horTube->GetRmax();
-  cableTrayC->AddNode(traySideCHiCabs, 1,
+  zloc = kHiVoltCableSectCu + kLowVoltCableSectCu + horTube->GetRmax();
+  cableTrayC->AddNode(traySideCHiCabsCu, 1,
 		      new TGeoTranslation( 0, 0,-zloc));
+  cableTrayC->AddNode(traySideCHiCabsPUR, 1,
+		      new TGeoTranslation( 0, 0,-zloc));
+
+  zloc = kOpticalFibersSect + kCoaxCableSectCu + horTube->GetRmax();
+  cableTrayC->AddNode(traySideCCoaxCu, 1,
+		      new TGeoTranslation( 0, 0, zloc));
+  cableTrayC->AddNode(traySideCCoaxMeg, 1,
+		      new TGeoTranslation( 0, 0, zloc));
 
 
   // Finally put everything in the mother volume
@@ -4462,6 +4967,7 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
 // Created:         ???       Bjorn S. Nilsen
 // Updated:       5 Jan 2010  Mario Sitta
 // Updated:      26 Feb 2010  Mario Sitta
+// Updated:      06 Sep 2010  Mario Sitta
 //
 // Technical data are taken from AutoCAD drawings, L.Simonetti technical
 // drawings and other (oral) information given by F.Tosello
@@ -4472,12 +4978,14 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
   const Double_t kTrayARTrans            =  408.35 *fgkmm;
   const Double_t kTrayAZTrans            = 1011.00 *fgkmm;
   const Double_t kTrayAZToSupportRing    =  435.00 *fgkmm;
-  const Double_t kExternTrayZTrans       =  853.00 *fgkmm;
+  const Double_t kExternTrayYTrans       =   96.00 *fgkmm; // Computed
+  const Double_t kExternTrayZTrans       =  823.00 *fgkmm;
   const Double_t kExternCoverYTrans      =    2.00 *fgkmm;
   const Double_t kTrayAZRot              = (180-169.5);// Degrees
   const Double_t kTrayAFirstRotAng       =   22.00;    // Degrees
   const Double_t kTrayASecondRotAng      =   15.00;    // Degrees
 
+  const Double_t kForwardTrayThick       =    2.00 *fgkmm;
   const Double_t kForwardTrayTailHeight  =  100.00 *fgkmm; // Computed
   const Double_t kForwardTrayTotalHeight =  170.00 *fgkmm; // Computed
   const Double_t kForwardTrayUpperLength =  405.00 *fgkmm; // Computed
@@ -4494,10 +5002,63 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
 
   const Int_t    kForwardTrayNpoints     =    8;
 
+  // Dimensions and positions of the Cable Tray elements
+  const Double_t kSideACoolManifWide     =    8.23 *fgkcm;
+  const Double_t kSideACoolManifHigh     =    8.06 *fgkcm;
+  const Double_t kSideACoolManifLen      =    3.90 *fgkcm;
+  const Double_t kSideACoolManifPOMFrac  =    0.0054;
+  const Double_t kSideACoolManifSteelFrac=    0.8850;
+  const Double_t kSideACoolManifWaterFrac=    0.0913;
+  const Double_t kSideACoolManifAlFrac   =    0.0183;
+
+  const Double_t kSideACoolTubesWide     =    9.07 *fgkcm;
+  const Double_t kSideACoolTubesHigh     =    1.88 *fgkcm;
+  const Double_t kSideACoolTubesTrans    =    0.88 *fgkcm;
+  const Double_t kSideACoolTubesPURFrac  =    0.5897;
+  const Double_t kSideACoolTubesWaterFrac=    0.4101;
+  const Double_t kSideACoolTubesAirFrac  =    0.0002;
+
+  const Double_t kSideAOptConnWide       =    0.90    *fgkcm;
+  const Double_t kSideAOptConnLen        =    1.37    *fgkcm;
+  const Double_t kSideAOptConnPBTFrac    =    0.5010;
+  const Double_t kSideAOptConnSteelFrac  =    0.1784;
+  const Double_t kSideAOptConnAlFrac     =    0.3206;
+
+  const Double_t kSideAOptFibsWide       =    0.71    *fgkcm;
+  const Double_t kSideAOptFibsHigh       =    3.20    *fgkcm;
+
+  const Double_t kSideAInputCablesWide   =   12.50    *fgkcm;
+  const Double_t kSideAInputCablesHigh   =    1.24    *fgkcm;
+  const Double_t kSideAInputCablesLen    =   25.20    *fgkcm;
+  const Double_t kSideAInputCablesYTrans =    1.15    *fgkcm;
+  const Double_t kSideAInputCablesCu     =    0.7404;
+  const Double_t kSideAInputCablesPlast  =    0.1269;
+  const Double_t kSideAInputCablesAl     =    0.0057;
+  const Double_t kSideAInputCablesKapton =    0.0172;
+  const Double_t kSideAInputCablesPOLYAX =    0.1098;
+
+  const Double_t kSideAOutputCablesWide  =    8.30    *fgkcm;
+  const Double_t kSideAOutputCablesHigh  =    1.56    *fgkcm;
+  const Double_t kSideAOutputCablesCu    =    0.6783;
+  const Double_t kSideAOutputCablesPlast =    0.1605;
+  const Double_t kSideAOutputCablesAl    =    0.0078;
+  const Double_t kSideAOutputCablesKapton=    0.0232;
+  const Double_t kSideAOutputCablesPOLYAX=    0.1302;
+
+  const Double_t kSideAPCBBoardsWide     =   12.50    *fgkcm;
+  const Double_t kSideAPCBBoardsHigh     =    6.32    *fgkcm;
+  const Double_t kSideAPCBBoardsLen      =   24.00    *fgkcm;
+  const Double_t kSideAPCBBoardsYTrans   =    0.75    *fgkcm;
+  const Double_t kSideAPCBBoardsCu       =    0.3864;
+  const Double_t kSideAPCBBoardsEpoxy    =    0.1486;
+  const Double_t kSideAPCBBoardsPlast    =    0.0578;
+  const Double_t kSideAPCBBoardsSteel    =    0.1521;
+  const Double_t kSideAPCBBoardsPPS      =    0.2551;
+
 
   // Local variables
   Double_t xprof[kForwardTrayNpoints], yprof[kForwardTrayNpoints];
-  Double_t xloc, yloc, zloc, alpharot;
+  Double_t xloc, yloc, zloc, alpharot, height;
 
 
   // The whole tray as an assembly
@@ -4507,7 +5068,7 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
   // First create all needed shapes
 
   // The forward tray is very complex and deserves a dedicated method
-  TGeoVolumeAssembly *forwardTray = CreateSDDForwardTraySideA(mgr);
+  CreateSDDForwardTraySideA(cableTrayA,mgr);
 
   // The forward cover: a Xtru
   TGeoXtru *forwardCover = new TGeoXtru(2);
@@ -4539,10 +5100,289 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
   // The external covers: a Composite Shape
   TGeoCompositeShape *externCover = CreateTrayAExternalCover(kExternCoverLen);
 
+  // Now the volumes inside it
+  // The cooling manifold: four boxes
+  TGeoBBox *coolManifPOM = new TGeoBBox(kSideACoolManifWide/2,
+		 kSideACoolManifPOMFrac*kSideACoolManifHigh/2,
+					kSideACoolManifLen/2);
+
+  TGeoBBox *coolManifSteel = new TGeoBBox(kSideACoolManifWide/2,
+		 kSideACoolManifSteelFrac*kSideACoolManifHigh/2,
+					  kSideACoolManifLen/2);
+
+  TGeoBBox *coolManifWater = new TGeoBBox(kSideACoolManifWide/2,
+		 kSideACoolManifWaterFrac*kSideACoolManifHigh/2,
+					  kSideACoolManifLen/2);
+
+  TGeoBBox *coolManifAl = new TGeoBBox(kSideACoolManifWide/2,
+		 kSideACoolManifAlFrac*kSideACoolManifHigh/2,
+				       kSideACoolManifLen/2);
+
+  // The cooling tubes: three Xtru's
+  TGeoXtru *coolTubesPUR = new TGeoXtru(2);
+
+  height = kSideACoolTubesHigh*kSideACoolTubesPURFrac;
+
+  xprof[0] = kSideACoolManifLen;
+  yprof[0] = kForwardTrayThick + kSideACoolTubesTrans;
+  xprof[2] = kExternTrayZTrans + kForwardTrayTotalHeight*SinD(kTrayAZRot) +
+	     kExternTrayTotalLen*CosD(kTrayAZRot) - xprof[0]/2;
+  yprof[2] = kForwardTrayTotalHeight*(1 - CosD(kTrayAZRot)) +
+	     kExternTrayYTrans - kExternTrayTotalHeight*CosD(kTrayAZRot) +
+	     kExternTrayTotalLen*SinD(kTrayAZRot) + yprof[0];
+  IntersectLines(              0 , xprof[0], yprof[0],
+		 TanD(kTrayAZRot), xprof[2], yprof[2],
+				   xprof[1], yprof[1]);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  coolTubesPUR->DefinePolygon(6, xprof, yprof);
+  coolTubesPUR->DefineSection(0,-kSideACoolTubesWide/2);
+  coolTubesPUR->DefineSection(1, kSideACoolTubesWide/2);
+
+  TGeoXtru *coolTubesWater = new TGeoXtru(2);
+
+  height = kSideACoolTubesHigh*kSideACoolTubesWaterFrac;
+
+  xprof[0] = coolTubesPUR->GetX(5);
+  yprof[0] = coolTubesPUR->GetY(5);
+  xprof[1] = coolTubesPUR->GetX(4);
+  yprof[1] = coolTubesPUR->GetY(4);
+  xprof[2] = coolTubesPUR->GetX(3);
+  yprof[2] = coolTubesPUR->GetY(3);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  coolTubesWater->DefinePolygon(6, xprof, yprof);
+  coolTubesWater->DefineSection(0,-kSideACoolTubesWide/2);
+  coolTubesWater->DefineSection(1, kSideACoolTubesWide/2);
+
+  TGeoXtru *coolTubesAir = new TGeoXtru(2);
+
+  height = kSideACoolTubesHigh*kSideACoolTubesAirFrac;
+
+  xprof[0] = coolTubesWater->GetX(5);
+  yprof[0] = coolTubesWater->GetY(5);
+  xprof[1] = coolTubesWater->GetX(4);
+  yprof[1] = coolTubesWater->GetY(4);
+  xprof[2] = coolTubesWater->GetX(3);
+  yprof[2] = coolTubesWater->GetY(3);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  coolTubesAir->DefinePolygon(6, xprof, yprof);
+  coolTubesAir->DefineSection(0,-kSideACoolTubesWide/2);
+  coolTubesAir->DefineSection(1, kSideACoolTubesWide/2);
+
+  // The optical fiber connectors: three boxes
+  TGeoBBox *optConnPBT = new TGeoBBox(kSideAOptConnWide/2,
+		 kSideAOptConnPBTFrac*kSideACoolManifHigh/2,
+				      kSideAOptConnLen/2);
+
+  TGeoBBox *optConnSteel = new TGeoBBox(kSideAOptConnWide/2,
+		 kSideAOptConnSteelFrac*kSideACoolManifHigh/2,
+					kSideAOptConnLen/2);
+
+  TGeoBBox *optConnAl = new TGeoBBox(kSideAOptConnWide/2,
+		 kSideAOptConnAlFrac*kSideACoolManifHigh/2,
+				     kSideAOptConnLen/2);
+
+  // The optical fibers: a Xtru
+  TGeoXtru *opticalFibs = new TGeoXtru(2);
+
+  xprof[0] = kSideAOptConnLen;
+  yprof[0] = coolTubesPUR->GetY(0);
+  xprof[1] = coolTubesPUR->GetX(1);
+  yprof[1] = coolTubesPUR->GetY(1);
+  xprof[2] = coolTubesPUR->GetX(2);
+  yprof[2] = coolTubesPUR->GetY(2);
+  xprof[3] = xprof[2] - kSideAOptFibsHigh*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + kSideAOptFibsHigh*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      kSideAOptFibsHigh, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kSideAOptFibsHigh;
+
+  opticalFibs->DefinePolygon(6, xprof, yprof);
+  opticalFibs->DefineSection(0,-kSideAOptFibsWide/2);
+  opticalFibs->DefineSection(1, kSideAOptFibsWide/2);
+
+  // The input cables: five boxes
+  TGeoBBox *inputCabsCu = new TGeoBBox(kSideAInputCablesWide/2,
+		   kSideAInputCablesCu*kSideAInputCablesHigh/2,
+				       kSideAInputCablesLen/2);
+
+  TGeoBBox *inputCabsPlast = new TGeoBBox(kSideAInputCablesWide/2,
+		   kSideAInputCablesPlast*kSideAInputCablesHigh/2,
+					  kSideAInputCablesLen/2);
+
+  TGeoBBox *inputCabsAl = new TGeoBBox(kSideAInputCablesWide/2,
+		   kSideAInputCablesAl*kSideAInputCablesHigh/2,
+				       kSideAInputCablesLen/2);
+
+  TGeoBBox *inputCabsKapton = new TGeoBBox(kSideAInputCablesWide/2,
+		   kSideAInputCablesKapton*kSideAInputCablesHigh/2,
+					   kSideAInputCablesLen/2);
+
+  TGeoBBox *inputCabsPOLYAX = new TGeoBBox(kSideAInputCablesWide/2,
+		   kSideAInputCablesPOLYAX*kSideAInputCablesHigh/2,
+					   kSideAInputCablesLen/2);
+
+  // The output cables: five Xtru
+  TGeoXtru *outputCabsCu = new TGeoXtru(2);
+
+  height = kSideAOutputCablesCu*kSideAOutputCablesHigh;
+
+  xprof[0] = kSideAInputCablesLen/2 + kSideAPCBBoardsLen/2;
+  yprof[0] = coolTubesAir->GetY(5);
+  xprof[1] = coolTubesAir->GetX(4);
+  yprof[1] = coolTubesAir->GetY(4);
+  xprof[2] = coolTubesAir->GetX(3);
+  yprof[2] = coolTubesAir->GetY(3);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsCu->DefinePolygon(6, xprof, yprof);
+  outputCabsCu->DefineSection(0,-kSideAOutputCablesWide/2);
+  outputCabsCu->DefineSection(1, kSideAOutputCablesWide/2);
+
+  TGeoXtru *outputCabsPlast = new TGeoXtru(2);
+
+  height = kSideAOutputCablesPlast*kSideAOutputCablesHigh;
+
+  xprof[0] = outputCabsCu->GetX(5);
+  yprof[0] = outputCabsCu->GetY(5);
+  xprof[1] = outputCabsCu->GetX(4);
+  yprof[1] = outputCabsCu->GetY(4);
+  xprof[2] = outputCabsCu->GetX(3);
+  yprof[2] = outputCabsCu->GetY(3);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsPlast->DefinePolygon(6, xprof, yprof);
+  outputCabsPlast->DefineSection(0,-kSideAOutputCablesWide/2);
+  outputCabsPlast->DefineSection(1, kSideAOutputCablesWide/2);
+
+  TGeoXtru *outputCabsAl = new TGeoXtru(2);
+
+  height = kSideAOutputCablesAl*kSideAOutputCablesHigh;
+
+  xprof[0] = outputCabsPlast->GetX(5);
+  yprof[0] = outputCabsPlast->GetY(5);
+  xprof[1] = outputCabsPlast->GetX(4);
+  yprof[1] = outputCabsPlast->GetY(4);
+  xprof[2] = outputCabsPlast->GetX(3);
+  yprof[2] = outputCabsPlast->GetY(3);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsAl->DefinePolygon(6, xprof, yprof);
+  outputCabsAl->DefineSection(0,-kSideAOutputCablesWide/2);
+  outputCabsAl->DefineSection(1, kSideAOutputCablesWide/2);
+
+  TGeoXtru *outputCabsKapton = new TGeoXtru(2);
+
+  height = kSideAOutputCablesKapton*kSideAOutputCablesHigh;
+
+  xprof[0] = outputCabsAl->GetX(5);
+  yprof[0] = outputCabsAl->GetY(5);
+  xprof[1] = outputCabsAl->GetX(4);
+  yprof[1] = outputCabsAl->GetY(4);
+  xprof[2] = outputCabsAl->GetX(3);
+  yprof[2] = outputCabsAl->GetY(3);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsKapton->DefinePolygon(6, xprof, yprof);
+  outputCabsKapton->DefineSection(0,-kSideAOutputCablesWide/2);
+  outputCabsKapton->DefineSection(1, kSideAOutputCablesWide/2);
+
+  TGeoXtru *outputCabsPOLYAX = new TGeoXtru(2);
+
+  height = kSideAOutputCablesPOLYAX*kSideAOutputCablesHigh;
+
+  xprof[0] = outputCabsKapton->GetX(5);
+  yprof[0] = outputCabsKapton->GetY(5);
+  xprof[1] = outputCabsKapton->GetX(4);
+  yprof[1] = outputCabsKapton->GetY(4);
+  xprof[2] = outputCabsKapton->GetX(3);
+  yprof[2] = outputCabsKapton->GetY(3);
+  xprof[3] = xprof[2] - height*SinD(kTrayAZRot);
+  yprof[3] = yprof[2] + height*CosD(kTrayAZRot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsPOLYAX->DefinePolygon(6, xprof, yprof);
+  outputCabsPOLYAX->DefineSection(0,-kSideAOutputCablesWide/2);
+  outputCabsPOLYAX->DefineSection(1, kSideAOutputCablesWide/2);
+
+  // The PCB boards: five boxes
+  TGeoBBox *pcbBoardsCu = new TGeoBBox(kSideAPCBBoardsWide/2,
+		     kSideAPCBBoardsCu*kSideAPCBBoardsHigh/2,
+				       kSideAPCBBoardsLen/2);
+
+  TGeoBBox *pcbBoardsEpoxy = new TGeoBBox(kSideAPCBBoardsWide/2,
+		     kSideAPCBBoardsEpoxy*kSideAPCBBoardsHigh/2,
+					  kSideAPCBBoardsLen/2);
+
+  TGeoBBox *pcbBoardsPlast = new TGeoBBox(kSideAPCBBoardsWide/2,
+		     kSideAPCBBoardsPlast*kSideAPCBBoardsHigh/2,
+					  kSideAPCBBoardsLen/2);
+
+  TGeoBBox *pcbBoardsSteel = new TGeoBBox(kSideAPCBBoardsWide/2,
+		     kSideAPCBBoardsSteel*kSideAPCBBoardsHigh/2,
+					  kSideAPCBBoardsLen/2);
+
+  TGeoBBox *pcbBoardsPPS = new TGeoBBox(kSideAPCBBoardsWide/2,
+		     kSideAPCBBoardsPPS*kSideAPCBBoardsHigh/2,
+					kSideAPCBBoardsLen/2);
+
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALUMINUM$");
-  TGeoMedium *medAntic = mgr->GetMedium("ITS_ANTICORODAL$");
+  TGeoMedium *medAl     = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium *medAntic  = mgr->GetMedium("ITS_ANTICORODAL$");
+  TGeoMedium *medPOM    = mgr->GetMedium("ITS_POLYOXYMETHYLENE$");
+  TGeoMedium *medSteel  = mgr->GetMedium("ITS_INOX$");
+  TGeoMedium *medWater  = mgr->GetMedium("ITS_WATER$");
+  TGeoMedium *medPUR    = mgr->GetMedium("ITS_POLYURETHANE$");
+  TGeoMedium *medAir    = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium *medPBT    = mgr->GetMedium("ITS_PBT$");
+  TGeoMedium *medOptFib = mgr->GetMedium("ITS_SDD OPTICFIB$");
+  TGeoMedium *medCu     = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medKapton = mgr->GetMedium("ITS_SDDKAPTON (POLYCH2)$");
+  TGeoMedium *medPOLYAX = mgr->GetMedium("ITS_POLYAX$");
+  TGeoMedium *medPPS    = mgr->GetMedium("ITS_PPS$");
+  TGeoMedium *medEpoxy  = mgr->GetMedium("ITS_EPOXY$");
 
   TGeoVolume *forwardTrayCover = new TGeoVolume("ITSsuppSDDSideAForwTrayCover",
 						forwardCover, medAl);
@@ -4571,66 +5411,381 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
   externTrayCover->SetFillColor(externTrayCover->GetLineColor());
   externTrayCover->SetFillStyle(4000); // 0% transparent
 
+  TGeoVolume *pomCoolManif = new TGeoVolume("ITSsuppSDDSideACoolManifPOM",
+					    coolManifPOM, medPOM);
+
+  pomCoolManif->SetVisibility(kTRUE);
+  pomCoolManif->SetLineColor(kRed); // Red
+  pomCoolManif->SetLineWidth(1);
+  pomCoolManif->SetFillColor(pomCoolManif->GetLineColor());
+  pomCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *steelCoolManif = new TGeoVolume("ITSsuppSDDSideACoolManifSteel",
+					      coolManifSteel, medSteel);
+
+  steelCoolManif->SetVisibility(kTRUE);
+  steelCoolManif->SetLineColor(kBlue); // Blue
+  steelCoolManif->SetLineWidth(1);
+  steelCoolManif->SetFillColor(steelCoolManif->GetLineColor());
+  steelCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *waterCoolManif = new TGeoVolume("ITSsuppSDDSideACoolManifWater",
+					      coolManifWater, medWater);
+
+  waterCoolManif->SetVisibility(kTRUE);
+  waterCoolManif->SetLineColor(33); // Light Blue
+  waterCoolManif->SetLineWidth(1);
+  waterCoolManif->SetFillColor(waterCoolManif->GetLineColor());
+  waterCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alCoolManif = new TGeoVolume("ITSsuppSDDSideACoolManifAl",
+					   coolManifAl, medAl);
+
+  alCoolManif->SetVisibility(kTRUE);
+  alCoolManif->SetLineColor(6); // Purple
+  alCoolManif->SetLineWidth(1);
+  alCoolManif->SetFillColor(alCoolManif->GetLineColor());
+  alCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *purCoolTubes = new TGeoVolume("ITSsuppSDDSideACoolTubesPUR",
+					    coolTubesPUR, medPUR);
+
+  purCoolTubes->SetVisibility(kTRUE);
+  purCoolTubes->SetLineColor(kRed); // Red
+  purCoolTubes->SetLineWidth(1);
+  purCoolTubes->SetFillColor(purCoolTubes->GetLineColor());
+  purCoolTubes->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *waterCoolTubes = new TGeoVolume("ITSsuppSDDSideACoolTubesWater",
+					      coolTubesWater, medWater);
+
+  waterCoolTubes->SetVisibility(kTRUE);
+  waterCoolTubes->SetLineColor(33); // Light Blue
+  waterCoolTubes->SetLineWidth(1);
+  waterCoolTubes->SetFillColor(waterCoolTubes->GetLineColor());
+  waterCoolTubes->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *airCoolTubes = new TGeoVolume("ITSsuppSDDSideACoolTubesAir",
+					    coolTubesAir, medAir);
+
+  airCoolTubes->SetVisibility(kTRUE);
+  airCoolTubes->SetLineColor(41);
+  airCoolTubes->SetLineWidth(1);
+  airCoolTubes->SetFillColor(airCoolTubes->GetLineColor());
+  airCoolTubes->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *pbtOptConn = new TGeoVolume("ITSsuppSDDSideAOptConnPBT",
+					  optConnPBT, medPBT);
+
+  pbtOptConn->SetVisibility(kTRUE);
+  pbtOptConn->SetLineColor(kRed); // Red
+  pbtOptConn->SetLineWidth(1);
+  pbtOptConn->SetFillColor(pbtOptConn->GetLineColor());
+  pbtOptConn->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *steelOptConn = new TGeoVolume("ITSsuppSDDSideAOptConnSteel",
+					    optConnSteel, medSteel);
+
+  steelOptConn->SetVisibility(kTRUE);
+  steelOptConn->SetLineColor(kBlue); // Blue
+  steelOptConn->SetLineWidth(1);
+  steelOptConn->SetFillColor(steelOptConn->GetLineColor());
+  steelOptConn->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alOptConn = new TGeoVolume("ITSsuppSDDSideAOptConnAl",
+					 optConnAl, medAl);
+
+  alOptConn->SetVisibility(kTRUE);
+  alOptConn->SetLineColor(6); // Purple
+  alOptConn->SetLineWidth(1);
+  alOptConn->SetFillColor(alOptConn->GetLineColor());
+  alOptConn->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *optFibs = new TGeoVolume("ITSsuppSDDSideAOptFibs",
+				       opticalFibs, medOptFib);
+
+  optFibs->SetVisibility(kTRUE);
+  optFibs->SetLineColor(kOrange+2); // Orange
+  optFibs->SetLineWidth(1);
+  optFibs->SetFillColor(optFibs->GetLineColor());
+  optFibs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *cuInputCabs = new TGeoVolume("ITSsuppSDDSideAInputCabsCu",
+					   inputCabsCu, medCu);
+
+  cuInputCabs->SetVisibility(kTRUE);
+  cuInputCabs->SetLineColor(kBlack); // Black
+  cuInputCabs->SetLineWidth(1);
+  cuInputCabs->SetFillColor(cuInputCabs->GetLineColor());
+  cuInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *plastInputCabs = new TGeoVolume("ITSsuppSDDSideAInputCabsPlast",
+					      inputCabsPlast, medPUR);
+
+  plastInputCabs->SetVisibility(kTRUE);
+  plastInputCabs->SetLineColor(kRed); // Red
+  plastInputCabs->SetLineWidth(1);
+  plastInputCabs->SetFillColor(plastInputCabs->GetLineColor());
+  plastInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alInputCabs = new TGeoVolume("ITSsuppSDDSideAInputCabsAl",
+					   inputCabsAl, medAl);
+
+  alInputCabs->SetVisibility(kTRUE);
+  alInputCabs->SetLineColor(6); // Purple
+  alInputCabs->SetLineWidth(1);
+  alInputCabs->SetFillColor(alInputCabs->GetLineColor());
+  alInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *kaptonInputCabs = new TGeoVolume("ITSsuppSDDSideAInputCabsKapton",
+					       inputCabsKapton, medKapton);
+
+  kaptonInputCabs->SetVisibility(kTRUE);
+  kaptonInputCabs->SetLineColor(14); // 
+  kaptonInputCabs->SetLineWidth(1);
+  kaptonInputCabs->SetFillColor(kaptonInputCabs->GetLineColor());
+  kaptonInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *polyaxInputCabs = new TGeoVolume("ITSsuppSDDSideAInputCabsPOLYAX",
+					       inputCabsPOLYAX, medPOLYAX);
+
+  polyaxInputCabs->SetVisibility(kTRUE);
+  polyaxInputCabs->SetLineColor(34); // 
+  polyaxInputCabs->SetLineWidth(1);
+  polyaxInputCabs->SetFillColor(polyaxInputCabs->GetLineColor());
+  polyaxInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *cuOutputCabs = new TGeoVolume("ITSsuppSDDSideAOutputCabsCu",
+					    outputCabsCu, medCu);
+
+  cuOutputCabs->SetVisibility(kTRUE);
+  cuOutputCabs->SetLineColor(kBlack); // Black
+  cuOutputCabs->SetLineWidth(1);
+  cuOutputCabs->SetFillColor(cuOutputCabs->GetLineColor());
+  cuOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *plastOutputCabs = new TGeoVolume("ITSsuppSDDSideAOutputCabsPlast",
+					       outputCabsPlast, medPUR);
+
+  plastOutputCabs->SetVisibility(kTRUE);
+  plastOutputCabs->SetLineColor(kRed); // Red
+  plastOutputCabs->SetLineWidth(1);
+  plastOutputCabs->SetFillColor(plastOutputCabs->GetLineColor());
+  plastOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alOutputCabs = new TGeoVolume("ITSsuppSDDSideAOutputCabsAl",
+					    outputCabsAl, medAl);
+
+  alOutputCabs->SetVisibility(kTRUE);
+  alOutputCabs->SetLineColor(6); // Purple
+  alOutputCabs->SetLineWidth(1);
+  alOutputCabs->SetFillColor(alOutputCabs->GetLineColor());
+  alOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *kaptonOutputCabs = new TGeoVolume("ITSsuppSDDSideAOutputCabsKapton",
+						outputCabsKapton, medKapton);
+
+  kaptonOutputCabs->SetVisibility(kTRUE);
+  kaptonOutputCabs->SetLineColor(14); // 
+  kaptonOutputCabs->SetLineWidth(1);
+  kaptonOutputCabs->SetFillColor(kaptonOutputCabs->GetLineColor());
+  kaptonOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *polyaxOutputCabs = new TGeoVolume("ITSsuppSDDSideAOutputCabsPOLYAX",
+						outputCabsPOLYAX, medPOLYAX);
+
+  polyaxOutputCabs->SetVisibility(kTRUE);
+  polyaxOutputCabs->SetLineColor(34); // 
+  polyaxOutputCabs->SetLineWidth(1);
+  polyaxOutputCabs->SetFillColor(polyaxOutputCabs->GetLineColor());
+  polyaxOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *cuPCBBoards = new TGeoVolume("ITSsuppSDDSideAPCBBoardsCu",
+					   pcbBoardsCu, medCu);
+
+  cuPCBBoards->SetVisibility(kTRUE);
+  cuPCBBoards->SetLineColor(kBlack); // Black
+  cuPCBBoards->SetLineWidth(1);
+  cuPCBBoards->SetFillColor(cuPCBBoards->GetLineColor());
+  cuPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *epoxyPCBBoards = new TGeoVolume("ITSsuppSDDSideAPCBBoardsEpoxy",
+					      pcbBoardsEpoxy, medEpoxy);
+
+  epoxyPCBBoards->SetVisibility(kTRUE);
+  epoxyPCBBoards->SetLineColor(22); //
+  epoxyPCBBoards->SetLineWidth(1);
+  epoxyPCBBoards->SetFillColor(epoxyPCBBoards->GetLineColor());
+  epoxyPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *plastPCBBoards = new TGeoVolume("ITSsuppSDDSideAPCBBoardsPlast",
+					      pcbBoardsPlast, medPUR);
+
+  plastPCBBoards->SetVisibility(kTRUE);
+  plastPCBBoards->SetLineColor(kRed); // Red
+  plastPCBBoards->SetLineWidth(1);
+  plastPCBBoards->SetFillColor(plastPCBBoards->GetLineColor());
+  plastPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *steelPCBBoards = new TGeoVolume("ITSsuppSDDSideAPCBBoardsSteel",
+					      pcbBoardsSteel, medSteel);
+
+  steelPCBBoards->SetVisibility(kTRUE);
+  steelPCBBoards->SetLineColor(kBlue); // Blue
+  steelPCBBoards->SetLineWidth(1);
+  steelPCBBoards->SetFillColor(steelPCBBoards->GetLineColor());
+  steelPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *ppsPCBBoards = new TGeoVolume("ITSsuppSDDSideAPCBBoardsPPS",
+					    pcbBoardsPPS, medPPS);
+
+  ppsPCBBoards->SetVisibility(kTRUE);
+  ppsPCBBoards->SetLineColor(kGreen); // Green
+  ppsPCBBoards->SetLineWidth(1);
+  ppsPCBBoards->SetFillColor(ppsPCBBoards->GetLineColor());
+  ppsPCBBoards->SetFillStyle(4000); // 0% transparent
+
 
   // Now build up the tray
-  yloc = kForwardTrayTotalHeight - forwardCover->GetY(3) +
-	 kExternTrayTotalHeight +
-	 kExternCoverSideThick - kForwardTrayTailHeight;
-  zloc = kTrayAZToSupportRing - kForwardCoverLength;
+  yloc = kForwardTrayTotalHeight - forwardCover->GetY(3);
+  zloc = kForwardTrayUpperLength - kForwardCoverLength;
   cableTrayA->AddNode(forwardTrayCover, 1,
 		      new TGeoTranslation( 0, yloc, zloc) );
 
   Double_t totalhi = kExternTrayTotalHeight + kExternCoverThick
 		   - kExternCoverYTrans;
 
-  yloc = totalhi*(1 - CosD(kTrayAZRot));
+  yloc = totalhi*(1 - CosD(kTrayAZRot)) + kExternTrayYTrans -
+	 kExternTrayTotalHeight*CosD(kTrayAZRot);
   zloc = kExternTrayZTrans + totalhi*SinD(kTrayAZRot);
   cableTrayA->AddNode(externalTraySDD, 1,
 		      new TGeoCombiTrans( 0, yloc, zloc,
 		      new TGeoRotation("", 0,-kTrayAZRot, 0)        ) );
 
-  yloc = kExternTrayTotalHeight - kExternCoverYTrans;
-  zloc = kExternTrayZTrans - yloc*SinD(kTrayAZRot);
-  yloc *= CosD(kTrayAZRot);
-  zloc += totalhi*SinD(kTrayAZRot);
-  yloc += totalhi*(1 - CosD(kTrayAZRot));
+  yloc = kExternCoverThick*(1 - CosD(kTrayAZRot)) + kExternTrayYTrans -
+	 kExternCoverYTrans*CosD(kTrayAZRot)/2-0.01;
+  zloc = kExternTrayZTrans + kExternCoverThick*SinD(kTrayAZRot);
   cableTrayA->AddNode(externTrayCover,1,
 		      new TGeoCombiTrans( 0, yloc, zloc,
 		      new TGeoRotation("", 0,-kTrayAZRot, 0)        ) );
 
+  yloc = kForwardTrayThick + coolManifPOM->GetDY();
+  zloc = coolManifPOM->GetDZ();
+  cableTrayA->AddNode(pomCoolManif, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc += coolManifPOM->GetDY() + coolManifSteel->GetDY();
+  cableTrayA->AddNode(steelCoolManif, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc += coolManifSteel->GetDY() + coolManifWater->GetDY();
+  cableTrayA->AddNode(waterCoolManif, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc += coolManifWater->GetDY() + coolManifAl->GetDY();
+  cableTrayA->AddNode(alCoolManif, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  cableTrayA->AddNode(purCoolTubes,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+  cableTrayA->AddNode(waterCoolTubes,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+  cableTrayA->AddNode(airCoolTubes,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+
+  xloc = coolManifPOM->GetDX() + optConnPBT->GetDX();
+  yloc = kForwardTrayThick + optConnPBT->GetDY();
+  zloc = optConnPBT->GetDZ();
+  cableTrayA->AddNode(pbtOptConn, 1,
+		      new TGeoTranslation( xloc, yloc, zloc) );
+  cableTrayA->AddNode(pbtOptConn, 2,
+		      new TGeoTranslation(-xloc, yloc, zloc) );
+
+  yloc += optConnPBT->GetDY() + optConnSteel->GetDY();
+  cableTrayA->AddNode(steelOptConn, 1,
+		      new TGeoTranslation( xloc, yloc, zloc) );
+  cableTrayA->AddNode(steelOptConn, 2,
+		      new TGeoTranslation(-xloc, yloc, zloc) );
+
+  yloc += optConnSteel->GetDY() + optConnAl->GetDY();
+  cableTrayA->AddNode(alOptConn, 1,
+		      new TGeoTranslation( xloc, yloc, zloc) );
+  cableTrayA->AddNode(alOptConn, 2,
+		      new TGeoTranslation(-xloc, yloc, zloc) );
+
+
+  xloc = kSideACoolTubesWide/2 + kSideAOptFibsWide/2;
+  cableTrayA->AddNode(optFibs,1,
+		      new TGeoCombiTrans( xloc, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+  cableTrayA->AddNode(optFibs,2,
+		      new TGeoCombiTrans(-xloc, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+
+  yloc = kForwardTrayTotalHeight - forwardCover->GetY(3) -
+	 kSideAInputCablesYTrans - inputCabsPOLYAX->GetDY();
+  zloc = inputCabsPOLYAX->GetDZ();
+  cableTrayA->AddNode(polyaxInputCabs, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (inputCabsPOLYAX->GetDY() + inputCabsKapton->GetDY());
+  cableTrayA->AddNode(kaptonInputCabs, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (inputCabsKapton->GetDY() + inputCabsAl->GetDY());
+  cableTrayA->AddNode(alInputCabs, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (inputCabsAl->GetDY() + inputCabsPlast->GetDY());
+  cableTrayA->AddNode(plastInputCabs, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (inputCabsPlast->GetDY() + inputCabsCu->GetDY());
+  cableTrayA->AddNode(cuInputCabs, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (inputCabsCu->GetDY()+pcbBoardsPPS->GetDY()+kSideAPCBBoardsYTrans);
+  zloc += pcbBoardsPPS->GetDZ();
+  cableTrayA->AddNode(ppsPCBBoards, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (pcbBoardsPPS->GetDY()+pcbBoardsSteel->GetDY());
+  cableTrayA->AddNode(steelPCBBoards, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (pcbBoardsSteel->GetDY()+pcbBoardsPlast->GetDY());
+  cableTrayA->AddNode(plastPCBBoards, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (pcbBoardsPlast->GetDY()+pcbBoardsEpoxy->GetDY());
+  cableTrayA->AddNode(epoxyPCBBoards, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  yloc -= (pcbBoardsEpoxy->GetDY()+pcbBoardsCu->GetDY());
+  cableTrayA->AddNode(cuPCBBoards, 1,
+		      new TGeoTranslation( 0, yloc, zloc) );
+
+  cableTrayA->AddNode(cuOutputCabs,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+  cableTrayA->AddNode(plastOutputCabs,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+  cableTrayA->AddNode(alOutputCabs,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+  cableTrayA->AddNode(kaptonOutputCabs,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+  cableTrayA->AddNode(polyaxOutputCabs,1,
+		      new TGeoCombiTrans( 0, 0, 0,
+		      new TGeoRotation("",-90, 90, 90)        ) );
+
 
   // Finally put everything in the mother volume
-  alpharot = -kTrayAFirstRotAng;
-  xloc = kTrayARTrans*SinD(alpharot);
-  yloc = kTrayARTrans*CosD(alpharot);
-  zloc = kTrayAZTrans;
-  moth->AddNode(cableTrayA,1,
-			    new TGeoCombiTrans( xloc, yloc, zloc,
-			    new TGeoRotation("",-alpharot,0,0)   )   );
-
-  alpharot += 180;
-  xloc = kTrayARTrans*SinD(alpharot);
-  yloc = kTrayARTrans*CosD(alpharot);
-  moth->AddNode(cableTrayA,2,
-			    new TGeoCombiTrans( xloc, yloc, zloc,
-			    new TGeoRotation("",-alpharot,0,0)   )   );
-
-  alpharot = kTrayAFirstRotAng + 2*kTrayASecondRotAng;
-  xloc = kTrayARTrans*SinD(alpharot);
-  yloc = kTrayARTrans*CosD(alpharot);
-  moth->AddNode(cableTrayA,3,
-			    new TGeoCombiTrans( xloc, yloc, zloc,
-			    new TGeoRotation("",-alpharot,0,0)   )   );
-
-  alpharot += 180;
-  xloc = kTrayARTrans*SinD(alpharot);
-  yloc = kTrayARTrans*CosD(alpharot);
-  moth->AddNode(cableTrayA,4,
-			    new TGeoCombiTrans( xloc, yloc, zloc,
-			    new TGeoRotation("",-alpharot,0,0)   )   );
-
-  // To avoid putting an assembly inside another assembly,
-  // the forwardTray is put directly in the mother volume
   Double_t rforw = kTrayARTrans + kExternTrayTotalHeight +
 		   kExternCoverSideThick -
 		   kForwardTrayTailHeight;
@@ -4640,28 +5795,28 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
   yloc = rforw*CosD(alpharot);
   zloc = kTrayAZTrans + kTrayAZToSupportRing - kForwardTrayUpperLength;
 
-  moth->AddNode(forwardTray,1,
+  moth->AddNode(cableTrayA,1,
 			    new TGeoCombiTrans( xloc, yloc, zloc,
 			    new TGeoRotation("",-alpharot,0,0)   )   );
 
   alpharot += 180;
   xloc = rforw*SinD(alpharot);
   yloc = rforw*CosD(alpharot);
-  moth->AddNode(forwardTray,2,
+  moth->AddNode(cableTrayA,2,
 			    new TGeoCombiTrans( xloc, yloc, zloc,
 			    new TGeoRotation("",-alpharot,0,0)   )   );
 
   alpharot = kTrayAFirstRotAng + 2*kTrayASecondRotAng;
   xloc = rforw*SinD(alpharot);
   yloc = rforw*CosD(alpharot);
-  moth->AddNode(forwardTray,3,
+  moth->AddNode(cableTrayA,3,
 			    new TGeoCombiTrans( xloc, yloc, zloc,
 			    new TGeoRotation("",-alpharot,0,0)   )   );
 
   alpharot += 180;
   xloc = rforw*SinD(alpharot);
   yloc = rforw*CosD(alpharot);
-  moth->AddNode(forwardTray,4,
+  moth->AddNode(cableTrayA,4,
 			    new TGeoCombiTrans( xloc, yloc, zloc,
 			    new TGeoRotation("",-alpharot,0,0)   )   );
 
@@ -4690,10 +5845,70 @@ void AliITSv11GeometrySupport::SDDCableTraysSideC(TGeoVolume *moth,
 // information given by F.Tosello
 //
 
-  // Dimensions and positions of the C-Side Cable Tray elements
+  // Dimensions and positions of the C-Side Cable Tray
+  // (Change accordingly to CreateSDDSSDTraysSideC !)
   const Int_t    kNumTraySideC           =    4;
 
+  const Double_t kSideCHalfThick         =    0.100   *fgkcm;
+  const Double_t kSideCLength1           =  172.800   *fgkcm;
+  const Double_t kSideCLength2           =  189.300   *fgkcm;
+  const Double_t kBarCoolRmax            =    0.4     *fgkcm;
+  const Double_t kXShiftBarCool          =   13.00    *fgkcm;
+
   const Double_t kSideCFoldAngle         =    5.00 *fgkDegree;
+
+  // Dimensions and positions of the Cable Tray elements
+  const Double_t kSideCCoolManifHalfX    =    4.25    *fgkcm;
+  const Double_t kSideCCoolManifHalfY    =    4.03    *fgkcm;
+  const Double_t kSideCCoolManifHalfZ    =    2.17    *fgkcm;
+  const Double_t kSideCCoolManifPOMFrac  =    0.0051;
+  const Double_t kSideCCoolManifSteelFrac=    0.8502;
+  const Double_t kSideCCoolManifWaterFrac=    0.0868;
+  const Double_t kSideCCoolManifAlFrac   =    0.0579;
+
+  const Double_t kSideCCoolTubesHigh     =    1.88    *fgkcm;
+  const Double_t kSideCCoolTubesTrans    =    0.85    *fgkcm;
+  const Double_t kSideCCoolTubesPURFrac  =    0.5884;
+  const Double_t kSideCCoolTubesWaterFrac=    0.4114;
+  const Double_t kSideCCoolTubesAirFrac  =    0.0002;
+
+  const Double_t kSideCOptConnHalfX      =    0.90    *fgkcm;
+  const Double_t kSideCOptConnHalfZ      =    1.37    *fgkcm;
+  const Double_t kSideCOptConnPBTFrac    =    0.6798;
+  const Double_t kSideCOptConnSteelFrac  =    0.2421;
+  const Double_t kSideCOptConnAlFrac     =    0.0781;
+
+  const Double_t kSideCOptFibsWide       =    0.71    *fgkcm;
+  const Double_t kSideCOptFibsHigh       =    3.20    *fgkcm;
+  const Double_t kSideCOptFibsTrans      =    0.20    *fgkcm;
+
+  const Double_t kSideCInputCablesLen    =   31.45    *fgkcm;
+  const Double_t kSideCInputCablesWide   =   12.50    *fgkcm;
+  const Double_t kSideCInputCablesHigh   =    0.95    *fgkcm;
+  const Double_t kSideCInputCablesTrans  =    1.15    *fgkcm;
+  const Double_t kSideCInputCablesCu     =    0.7405;
+  const Double_t kSideCInputCablesPlast  =    0.1268;
+  const Double_t kSideCInputCablesAl     =    0.0057;
+  const Double_t kSideCInputCablesKapton =    0.0172;
+  const Double_t kSideCInputCablesPOLYAX =    0.1098;
+
+  const Double_t kSideCOutputCablesX0    =   27.40    *fgkcm;
+  const Double_t kSideCOutputCablesWide  =    8.30    *fgkcm;
+  const Double_t kSideCOutputCablesHigh  =    1.18    *fgkcm;
+  const Double_t kSideCOutputCablesCu    =    0.6775;
+  const Double_t kSideCOutputCablesPlast =    0.1613;
+  const Double_t kSideCOutputCablesAl    =    0.0078;
+  const Double_t kSideCOutputCablesKapton=    0.0234;
+  const Double_t kSideCOutputCablesPOLYAX=    0.1300;
+
+  const Double_t kSideCPCBBoardsHalfX    =    6.30    *fgkcm;
+  const Double_t kSideCPCBBoardsHalfY    =    2.00    *fgkcm;
+  const Double_t kSideCPCBBoardsHalfZ    =   21.93    *fgkcm;
+  const Double_t kSideCPCBBoardsCu       =    0.3864;
+  const Double_t kSideCPCBBoardsEpoxy    =    0.1491;
+  const Double_t kSideCPCBBoardsPlast    =    0.0579;
+  const Double_t kSideCPCBBoardsSteel    =    0.1517;
+  const Double_t kSideCPCBBoardsPPS      =    0.2549;
 
   // Overall position and rotation of the C-Side Cable Trays
   const Double_t kTraySideCRPos          =   45.30    *fgkcm;
@@ -4703,23 +5918,629 @@ void AliITSv11GeometrySupport::SDDCableTraysSideC(TGeoVolume *moth,
 
 
   // Local variables
-//  Double_t xprof[12], yprof[12];
-  Double_t xloc, yloc, alpharot, alphafold;
+  Double_t xprof[6], yprof[6];
+  Double_t height, xloc, yloc, zloc, alpharot, alphafold;
 
 
   // The assembly holding the metallic structure
-  // We need four of them because the content is different
-  TGeoVolumeAssembly *trayStructure[kNumTraySideC];
-  for (Int_t jt = 0; jt < kNumTraySideC; jt++) {
-    char name[20];
-    sprintf(name,"ITSsupportSDDTrayC%d",jt);
-    trayStructure[jt] = CreateSDDSSDTraysSideC(name);
-  }
+  TGeoVolumeAssembly *trayStructure = CreateSDDSSDTraysSideC("ITSsupportSDDTrayC");
+
+  // Now the volumes inside it
+  // The cooling manifold: four boxes
+  // (X and Z are inverted on tray reference system)
+  TGeoBBox *coolManifPOM = new TGeoBBox(kSideCCoolManifHalfZ,
+		 kSideCCoolManifPOMFrac*kSideCCoolManifHalfY,
+					kSideCCoolManifHalfX);
+
+  TGeoBBox *coolManifSteel = new TGeoBBox(kSideCCoolManifHalfZ,
+		 kSideCCoolManifSteelFrac*kSideCCoolManifHalfY,
+					  kSideCCoolManifHalfX);
+
+  TGeoBBox *coolManifWater = new TGeoBBox(kSideCCoolManifHalfZ,
+		 kSideCCoolManifWaterFrac*kSideCCoolManifHalfY,
+					  kSideCCoolManifHalfX);
+
+  TGeoBBox *coolManifAl = new TGeoBBox(kSideCCoolManifHalfZ,
+		 kSideCCoolManifAlFrac*kSideCCoolManifHalfY,
+				       kSideCCoolManifHalfX);
+
+  // The cooling tubes: three Xtru's
+  alpharot = kSideCFoldAngle*TMath::DegToRad();
+
+  TGeoXtru *coolTubesPUR = new TGeoXtru(2);
+
+  height = kSideCCoolTubesHigh*kSideCCoolTubesPURFrac;
+
+  xprof[0] = 2*kSideCCoolManifHalfZ;
+  yprof[0] = 2*kSideCHalfThick + kSideCCoolTubesTrans;
+  xprof[1] = kSideCLength1;
+  yprof[1] = yprof[0];
+  xprof[2] = xprof[1] + kSideCLength2*TMath::Cos(alpharot);
+  yprof[2] = yprof[1] + kSideCLength2*TMath::Sin(alpharot);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  coolTubesPUR->DefinePolygon(6, xprof, yprof);
+  coolTubesPUR->DefineSection(0,-kSideCCoolManifHalfX);
+  coolTubesPUR->DefineSection(1, kSideCCoolManifHalfX);
+
+  TGeoXtru *coolTubesWater = new TGeoXtru(2);
+
+  height = kSideCCoolTubesHigh*kSideCCoolTubesWaterFrac;
+
+  xprof[0] = coolTubesPUR->GetX(5);
+  yprof[0] = coolTubesPUR->GetY(5);
+  xprof[1] = coolTubesPUR->GetX(4);
+  yprof[1] = coolTubesPUR->GetY(4);
+  xprof[2] = coolTubesPUR->GetX(3);
+  yprof[2] = coolTubesPUR->GetY(3);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  coolTubesWater->DefinePolygon(6, xprof, yprof);
+  coolTubesWater->DefineSection(0,-kSideCCoolManifHalfX);
+  coolTubesWater->DefineSection(1, kSideCCoolManifHalfX);
+
+  TGeoXtru *coolTubesAir = new TGeoXtru(2);
+
+  height = kSideCCoolTubesHigh*kSideCCoolTubesAirFrac;
+
+  xprof[0] = coolTubesWater->GetX(5);
+  yprof[0] = coolTubesWater->GetY(5);
+  xprof[1] = coolTubesWater->GetX(4);
+  yprof[1] = coolTubesWater->GetY(4);
+  xprof[2] = coolTubesWater->GetX(3);
+  yprof[2] = coolTubesWater->GetY(3);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  coolTubesAir->DefinePolygon(6, xprof, yprof);
+  coolTubesAir->DefineSection(0,-kSideCCoolManifHalfX);
+  coolTubesAir->DefineSection(1, kSideCCoolManifHalfX);
+
+  // The optical fiber connectors: three boxes
+  // (X and Z are inverted on tray reference system)
+  TGeoBBox *optConnPBT = new TGeoBBox(kSideCOptConnHalfZ,
+		 kSideCOptConnPBTFrac*kSideCCoolManifHalfY,
+				      kSideCOptConnHalfX);
+
+  TGeoBBox *optConnSteel = new TGeoBBox(kSideCOptConnHalfZ,
+		 kSideCOptConnSteelFrac*kSideCCoolManifHalfY,
+					kSideCOptConnHalfX);
+
+  TGeoBBox *optConnAl = new TGeoBBox(kSideCOptConnHalfZ,
+		 kSideCOptConnAlFrac*kSideCCoolManifHalfY,
+				     kSideCOptConnHalfX);
+
+  // The optical fibers: a Xtru
+  TGeoXtru *opticalFibs = new TGeoXtru(2);
+
+  xprof[0] = 2*kSideCOptConnHalfZ;
+  yprof[0] = 2*kSideCHalfThick + kSideCOptFibsTrans;
+  xprof[1] = kSideCLength1;
+  yprof[1] = yprof[0];
+  xprof[2] = xprof[1] + kSideCLength2*TMath::Cos(alpharot);
+  yprof[2] = yprof[1] + kSideCLength2*TMath::Sin(alpharot);
+  xprof[3] = xprof[2] - kSideCOptFibsHigh*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + kSideCOptFibsHigh*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      kSideCOptFibsHigh, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + kSideCOptFibsHigh;
+
+  opticalFibs->DefinePolygon(6, xprof, yprof);
+  opticalFibs->DefineSection(0,-kSideCOptFibsWide/2);
+  opticalFibs->DefineSection(1, kSideCOptFibsWide/2);
+
+  // The input cables: five boxes
+  // (X and Z are inverted on tray reference system)
+  TGeoBBox *inputCabsCu = new TGeoBBox(kSideCInputCablesLen/2,
+		   kSideCInputCablesCu*kSideCInputCablesHigh/2,
+				       kSideCInputCablesWide/2);
+
+  TGeoBBox *inputCabsPlast = new TGeoBBox(kSideCInputCablesLen/2,
+		   kSideCInputCablesPlast*kSideCInputCablesHigh/2,
+					  kSideCInputCablesWide/2);
+
+  TGeoBBox *inputCabsAl = new TGeoBBox(kSideCInputCablesLen/2,
+		   kSideCInputCablesAl*kSideCInputCablesHigh/2,
+				       kSideCInputCablesWide/2);
+
+  TGeoBBox *inputCabsKapton = new TGeoBBox(kSideCInputCablesLen/2,
+		   kSideCInputCablesKapton*kSideCInputCablesHigh/2,
+					   kSideCInputCablesWide/2);
+
+  TGeoBBox *inputCabsPOLYAX = new TGeoBBox(kSideCInputCablesLen/2,
+		   kSideCInputCablesPOLYAX*kSideCInputCablesHigh/2,
+					   kSideCInputCablesWide/2);
+
+  // The output cables: five Xtru
+  TGeoXtru *outputCabsCu = new TGeoXtru(2);
+
+  height = kSideCOutputCablesCu*kSideCOutputCablesHigh;
+
+  xprof[0] = coolTubesAir->GetX(5) + kSideCOutputCablesX0;
+  yprof[0] = coolTubesAir->GetY(5);
+  xprof[1] = coolTubesAir->GetX(4);
+  yprof[1] = coolTubesAir->GetY(4);
+  xprof[2] = coolTubesAir->GetX(3);
+  yprof[2] = coolTubesAir->GetY(3);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsCu->DefinePolygon(6, xprof, yprof);
+  outputCabsCu->DefineSection(0,-kSideCOutputCablesWide/2);
+  outputCabsCu->DefineSection(1, kSideCOutputCablesWide/2);
+
+  TGeoXtru *outputCabsPlast = new TGeoXtru(2);
+
+  height = kSideCOutputCablesPlast*kSideCOutputCablesHigh;
+
+  xprof[0] = outputCabsCu->GetX(5);
+  yprof[0] = outputCabsCu->GetY(5);
+  xprof[1] = outputCabsCu->GetX(4);
+  yprof[1] = outputCabsCu->GetY(4);
+  xprof[2] = outputCabsCu->GetX(3);
+  yprof[2] = outputCabsCu->GetY(3);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsPlast->DefinePolygon(6, xprof, yprof);
+  outputCabsPlast->DefineSection(0,-kSideCOutputCablesWide/2);
+  outputCabsPlast->DefineSection(1, kSideCOutputCablesWide/2);
+
+  TGeoXtru *outputCabsAl = new TGeoXtru(2);
+
+  height = kSideCOutputCablesAl*kSideCOutputCablesHigh;
+
+  xprof[0] = outputCabsPlast->GetX(5);
+  yprof[0] = outputCabsPlast->GetY(5);
+  xprof[1] = outputCabsPlast->GetX(4);
+  yprof[1] = outputCabsPlast->GetY(4);
+  xprof[2] = outputCabsPlast->GetX(3);
+  yprof[2] = outputCabsPlast->GetY(3);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsAl->DefinePolygon(6, xprof, yprof);
+  outputCabsAl->DefineSection(0,-kSideCOutputCablesWide/2);
+  outputCabsAl->DefineSection(1, kSideCOutputCablesWide/2);
+
+  TGeoXtru *outputCabsKapton = new TGeoXtru(2);
+
+  height = kSideCOutputCablesKapton*kSideCOutputCablesHigh;
+
+  xprof[0] = outputCabsAl->GetX(5);
+  yprof[0] = outputCabsAl->GetY(5);
+  xprof[1] = outputCabsAl->GetX(4);
+  yprof[1] = outputCabsAl->GetY(4);
+  xprof[2] = outputCabsAl->GetX(3);
+  yprof[2] = outputCabsAl->GetY(3);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsKapton->DefinePolygon(6, xprof, yprof);
+  outputCabsKapton->DefineSection(0,-kSideCOutputCablesWide/2);
+  outputCabsKapton->DefineSection(1, kSideCOutputCablesWide/2);
+
+  TGeoXtru *outputCabsPOLYAX = new TGeoXtru(2);
+
+  height = kSideCOutputCablesPOLYAX*kSideCOutputCablesHigh;
+
+  xprof[0] = outputCabsKapton->GetX(5);
+  yprof[0] = outputCabsKapton->GetY(5);
+  xprof[1] = outputCabsKapton->GetX(4);
+  yprof[1] = outputCabsKapton->GetY(4);
+  xprof[2] = outputCabsKapton->GetX(3);
+  yprof[2] = outputCabsKapton->GetY(3);
+  xprof[3] = xprof[2] - height*TMath::Sin(alpharot);
+  yprof[3] = yprof[2] + height*TMath::Cos(alpharot);
+  InsidePoint(xprof[0], yprof[0], xprof[1], yprof[1], xprof[2], yprof[2],
+	      height, xprof[4], yprof[4]);
+  xprof[5] = xprof[0];
+  yprof[5] = yprof[0] + height;
+
+  outputCabsPOLYAX->DefinePolygon(6, xprof, yprof);
+  outputCabsPOLYAX->DefineSection(0,-kSideCOutputCablesWide/2);
+  outputCabsPOLYAX->DefineSection(1, kSideCOutputCablesWide/2);
+
+  // The PCB boards: five boxes
+  // (X and Z are inverted on tray reference system)
+  TGeoBBox *pcbBoardsCu = new TGeoBBox(kSideCPCBBoardsHalfZ,
+		     kSideCPCBBoardsCu*kSideCPCBBoardsHalfY,
+				       kSideCPCBBoardsHalfX);
+
+  TGeoBBox *pcbBoardsEpoxy = new TGeoBBox(kSideCPCBBoardsHalfZ,
+		     kSideCPCBBoardsEpoxy*kSideCPCBBoardsHalfY,
+					  kSideCPCBBoardsHalfX);
+
+  TGeoBBox *pcbBoardsPlast = new TGeoBBox(kSideCPCBBoardsHalfZ,
+		     kSideCPCBBoardsPlast*kSideCPCBBoardsHalfY,
+					  kSideCPCBBoardsHalfX);
+
+  TGeoBBox *pcbBoardsSteel = new TGeoBBox(kSideCPCBBoardsHalfZ,
+		     kSideCPCBBoardsSteel*kSideCPCBBoardsHalfY,
+					  kSideCPCBBoardsHalfX);
+
+  TGeoBBox *pcbBoardsPPS = new TGeoBBox(kSideCPCBBoardsHalfZ,
+		     kSideCPCBBoardsPPS*kSideCPCBBoardsHalfY,
+					kSideCPCBBoardsHalfX);
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALUMINUM$");
-  if (0==1) medAl->Print();
+  TGeoMedium *medPOM    = mgr->GetMedium("ITS_POLYOXYMETHYLENE$");
+  TGeoMedium *medSteel  = mgr->GetMedium("ITS_INOX$");
+  TGeoMedium *medWater  = mgr->GetMedium("ITS_WATER$");
+  TGeoMedium *medAl     = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium *medCu     = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medPUR    = mgr->GetMedium("ITS_POLYURETHANE$");
+  TGeoMedium *medPOLYAX = mgr->GetMedium("ITS_POLYAX$");
+  TGeoMedium *medKapton = mgr->GetMedium("ITS_SDDKAPTON (POLYCH2)$");
+  TGeoMedium *medAir    = mgr->GetMedium("ITS_AIR$");
+  TGeoMedium *medPBT    = mgr->GetMedium("ITS_PBT$");
+  TGeoMedium *medOptFib = mgr->GetMedium("ITS_SDD OPTICFIB$");
+  TGeoMedium *medPPS    = mgr->GetMedium("ITS_PPS$");
+  TGeoMedium *medEpoxy  = mgr->GetMedium("ITS_EPOXY$");
+
+  TGeoVolume *pomCoolManif = new TGeoVolume("ITSsuppSDDSideCCoolManifPOM",
+					    coolManifPOM, medPOM);
+
+  pomCoolManif->SetVisibility(kTRUE);
+  pomCoolManif->SetLineColor(kRed); // Red
+  pomCoolManif->SetLineWidth(1);
+  pomCoolManif->SetFillColor(pomCoolManif->GetLineColor());
+  pomCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *steelCoolManif = new TGeoVolume("ITSsuppSDDSideCCoolManifSteel",
+					      coolManifSteel, medSteel);
+
+  steelCoolManif->SetVisibility(kTRUE);
+  steelCoolManif->SetLineColor(kBlue); // Blue
+  steelCoolManif->SetLineWidth(1);
+  steelCoolManif->SetFillColor(steelCoolManif->GetLineColor());
+  steelCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *waterCoolManif = new TGeoVolume("ITSsuppSDDSideCCoolManifWater",
+					      coolManifWater, medWater);
+
+  waterCoolManif->SetVisibility(kTRUE);
+  waterCoolManif->SetLineColor(33); // Light Blue
+  waterCoolManif->SetLineWidth(1);
+  waterCoolManif->SetFillColor(waterCoolManif->GetLineColor());
+  waterCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alCoolManif = new TGeoVolume("ITSsuppSDDSideCCoolManifAl",
+					   coolManifAl, medAl);
+
+  alCoolManif->SetVisibility(kTRUE);
+  alCoolManif->SetLineColor(6); // Purple
+  alCoolManif->SetLineWidth(1);
+  alCoolManif->SetFillColor(alCoolManif->GetLineColor());
+  alCoolManif->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *purCoolTubes = new TGeoVolume("ITSsuppSDDSideCCoolTubesPUR",
+					    coolTubesPUR, medPUR);
+
+  purCoolTubes->SetVisibility(kTRUE);
+  purCoolTubes->SetLineColor(kRed); // Red
+  purCoolTubes->SetLineWidth(1);
+  purCoolTubes->SetFillColor(purCoolTubes->GetLineColor());
+  purCoolTubes->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *waterCoolTubes = new TGeoVolume("ITSsuppSDDSideCCoolTubesWater",
+					      coolTubesWater, medWater);
+
+  waterCoolTubes->SetVisibility(kTRUE);
+  waterCoolTubes->SetLineColor(33); // Light Blue
+  waterCoolTubes->SetLineWidth(1);
+  waterCoolTubes->SetFillColor(waterCoolTubes->GetLineColor());
+  waterCoolTubes->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *airCoolTubes = new TGeoVolume("ITSsuppSDDSideCCoolTubesAir",
+					    coolTubesAir, medAir);
+
+  airCoolTubes->SetVisibility(kTRUE);
+  airCoolTubes->SetLineColor(41);
+  airCoolTubes->SetLineWidth(1);
+  airCoolTubes->SetFillColor(airCoolTubes->GetLineColor());
+  airCoolTubes->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *pbtOptConn = new TGeoVolume("ITSsuppSDDSideCOptConnPBT",
+					  optConnPBT, medPBT);
+
+  pbtOptConn->SetVisibility(kTRUE);
+  pbtOptConn->SetLineColor(kRed); // Red
+  pbtOptConn->SetLineWidth(1);
+  pbtOptConn->SetFillColor(pbtOptConn->GetLineColor());
+  pbtOptConn->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *steelOptConn = new TGeoVolume("ITSsuppSDDSideCOptConnSteel",
+					    optConnSteel, medSteel);
+
+  steelOptConn->SetVisibility(kTRUE);
+  steelOptConn->SetLineColor(kBlue); // Blue
+  steelOptConn->SetLineWidth(1);
+  steelOptConn->SetFillColor(steelOptConn->GetLineColor());
+  steelOptConn->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alOptConn = new TGeoVolume("ITSsuppSDDSideCOptConnAl",
+					 optConnAl, medAl);
+
+  alOptConn->SetVisibility(kTRUE);
+  alOptConn->SetLineColor(6); // Purple
+  alOptConn->SetLineWidth(1);
+  alOptConn->SetFillColor(alOptConn->GetLineColor());
+  alOptConn->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *optFibs = new TGeoVolume("ITSsuppSDDSideCOptFibs",
+				       opticalFibs, medOptFib);
+
+  optFibs->SetVisibility(kTRUE);
+  optFibs->SetLineColor(kOrange+2); // Orange
+  optFibs->SetLineWidth(1);
+  optFibs->SetFillColor(optFibs->GetLineColor());
+  optFibs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *cuInputCabs = new TGeoVolume("ITSsuppSDDSideCInputCabsCu",
+					   inputCabsCu, medCu);
+
+  cuInputCabs->SetVisibility(kTRUE);
+  cuInputCabs->SetLineColor(kBlack); // Black
+  cuInputCabs->SetLineWidth(1);
+  cuInputCabs->SetFillColor(cuInputCabs->GetLineColor());
+  cuInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *plastInputCabs = new TGeoVolume("ITSsuppSDDSideCInputCabsPlast",
+					      inputCabsPlast, medPUR);
+
+  plastInputCabs->SetVisibility(kTRUE);
+  plastInputCabs->SetLineColor(kRed); // Red
+  plastInputCabs->SetLineWidth(1);
+  plastInputCabs->SetFillColor(plastInputCabs->GetLineColor());
+  plastInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alInputCabs = new TGeoVolume("ITSsuppSDDSideCInputCabsAl",
+					   inputCabsAl, medAl);
+
+  alInputCabs->SetVisibility(kTRUE);
+  alInputCabs->SetLineColor(6); // Purple
+  alInputCabs->SetLineWidth(1);
+  alInputCabs->SetFillColor(alInputCabs->GetLineColor());
+  alInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *kaptonInputCabs = new TGeoVolume("ITSsuppSDDSideCInputCabsKapton",
+					       inputCabsKapton, medKapton);
+
+  kaptonInputCabs->SetVisibility(kTRUE);
+  kaptonInputCabs->SetLineColor(14); // 
+  kaptonInputCabs->SetLineWidth(1);
+  kaptonInputCabs->SetFillColor(kaptonInputCabs->GetLineColor());
+  kaptonInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *polyaxInputCabs = new TGeoVolume("ITSsuppSDDSideCInputCabsPOLYAX",
+					       inputCabsPOLYAX, medPOLYAX);
+
+  polyaxInputCabs->SetVisibility(kTRUE);
+  polyaxInputCabs->SetLineColor(34); // 
+  polyaxInputCabs->SetLineWidth(1);
+  polyaxInputCabs->SetFillColor(polyaxInputCabs->GetLineColor());
+  polyaxInputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *cuOutputCabs = new TGeoVolume("ITSsuppSDDSideCOutputCabsCu",
+					    outputCabsCu, medCu);
+
+  cuOutputCabs->SetVisibility(kTRUE);
+  cuOutputCabs->SetLineColor(kBlack); // Black
+  cuOutputCabs->SetLineWidth(1);
+  cuOutputCabs->SetFillColor(cuOutputCabs->GetLineColor());
+  cuOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *plastOutputCabs = new TGeoVolume("ITSsuppSDDSideCOutputCabsPlast",
+					       outputCabsPlast, medPUR);
+
+  plastOutputCabs->SetVisibility(kTRUE);
+  plastOutputCabs->SetLineColor(kRed); // Red
+  plastOutputCabs->SetLineWidth(1);
+  plastOutputCabs->SetFillColor(plastOutputCabs->GetLineColor());
+  plastOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *alOutputCabs = new TGeoVolume("ITSsuppSDDSideCOutputCabsAl",
+					    outputCabsAl, medAl);
+
+  alOutputCabs->SetVisibility(kTRUE);
+  alOutputCabs->SetLineColor(6); // Purple
+  alOutputCabs->SetLineWidth(1);
+  alOutputCabs->SetFillColor(alOutputCabs->GetLineColor());
+  alOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *kaptonOutputCabs = new TGeoVolume("ITSsuppSDDSideCOutputCabsKapton",
+						outputCabsKapton, medKapton);
+
+  kaptonOutputCabs->SetVisibility(kTRUE);
+  kaptonOutputCabs->SetLineColor(14); // 
+  kaptonOutputCabs->SetLineWidth(1);
+  kaptonOutputCabs->SetFillColor(kaptonOutputCabs->GetLineColor());
+  kaptonOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *polyaxOutputCabs = new TGeoVolume("ITSsuppSDDSideCOutputCabsPOLYAX",
+						outputCabsPOLYAX, medPOLYAX);
+
+  polyaxOutputCabs->SetVisibility(kTRUE);
+  polyaxOutputCabs->SetLineColor(34); // 
+  polyaxOutputCabs->SetLineWidth(1);
+  polyaxOutputCabs->SetFillColor(polyaxOutputCabs->GetLineColor());
+  polyaxOutputCabs->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *cuPCBBoards = new TGeoVolume("ITSsuppSDDSideCPCBBoardsCu",
+					   pcbBoardsCu, medCu);
+
+  cuPCBBoards->SetVisibility(kTRUE);
+  cuPCBBoards->SetLineColor(kBlack); // Black
+  cuPCBBoards->SetLineWidth(1);
+  cuPCBBoards->SetFillColor(cuPCBBoards->GetLineColor());
+  cuPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *epoxyPCBBoards = new TGeoVolume("ITSsuppSDDSideCPCBBoardsEpoxy",
+					      pcbBoardsEpoxy, medEpoxy);
+
+  epoxyPCBBoards->SetVisibility(kTRUE);
+  epoxyPCBBoards->SetLineColor(22); //
+  epoxyPCBBoards->SetLineWidth(1);
+  epoxyPCBBoards->SetFillColor(epoxyPCBBoards->GetLineColor());
+  epoxyPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *plastPCBBoards = new TGeoVolume("ITSsuppSDDSideCPCBBoardsPlast",
+					      pcbBoardsPlast, medPUR);
+
+  plastPCBBoards->SetVisibility(kTRUE);
+  plastPCBBoards->SetLineColor(kRed); // Red
+  plastPCBBoards->SetLineWidth(1);
+  plastPCBBoards->SetFillColor(plastPCBBoards->GetLineColor());
+  plastPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *steelPCBBoards = new TGeoVolume("ITSsuppSDDSideCPCBBoardsSteel",
+					      pcbBoardsSteel, medSteel);
+
+  steelPCBBoards->SetVisibility(kTRUE);
+  steelPCBBoards->SetLineColor(kBlue); // Blue
+  steelPCBBoards->SetLineWidth(1);
+  steelPCBBoards->SetFillColor(steelPCBBoards->GetLineColor());
+  steelPCBBoards->SetFillStyle(4000); // 0% transparent
+
+  TGeoVolume *ppsPCBBoards = new TGeoVolume("ITSsuppSDDSideCPCBBoardsPPS",
+					    pcbBoardsPPS, medPPS);
+
+  ppsPCBBoards->SetVisibility(kTRUE);
+  ppsPCBBoards->SetLineColor(kGreen); // Green
+  ppsPCBBoards->SetLineWidth(1);
+  ppsPCBBoards->SetFillColor(ppsPCBBoards->GetLineColor());
+  ppsPCBBoards->SetFillStyle(4000); // 0% transparent
+
+
+  // Now fill the tray
+  xloc = coolManifPOM->GetDX();
+  yloc = 2*kSideCHalfThick + coolManifPOM->GetDY();
+  trayStructure->AddNode(pomCoolManif, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  yloc += coolManifPOM->GetDY() + coolManifSteel->GetDY();
+  trayStructure->AddNode(steelCoolManif, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  yloc += coolManifSteel->GetDY() + coolManifWater->GetDY();
+  trayStructure->AddNode(waterCoolManif, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  yloc += coolManifWater->GetDY() + coolManifAl->GetDY();
+  trayStructure->AddNode(alCoolManif, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  xloc = inputCabsCu->GetDX();
+  yloc += coolManifWater->GetDY() + inputCabsCu->GetDY()
+        + kSideCInputCablesTrans;
+  trayStructure->AddNode(cuInputCabs, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  yloc += inputCabsCu->GetDY() + inputCabsPlast->GetDY();
+  trayStructure->AddNode(plastInputCabs, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  yloc += inputCabsPlast->GetDY() + inputCabsAl->GetDY();
+  trayStructure->AddNode(alInputCabs, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  yloc += inputCabsAl->GetDY() + inputCabsKapton->GetDY();
+  trayStructure->AddNode(kaptonInputCabs, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  yloc += inputCabsKapton->GetDY() + inputCabsPOLYAX->GetDY();
+  trayStructure->AddNode(polyaxInputCabs, 1,
+			 new TGeoTranslation( xloc, yloc, 0) );
+
+  trayStructure->AddNode(purCoolTubes  , 1, 0);
+  trayStructure->AddNode(waterCoolTubes, 1, 0);
+  trayStructure->AddNode(airCoolTubes  , 1, 0);
+
+  xloc = optConnPBT->GetDX();
+  yloc = 2*kSideCHalfThick + optConnPBT->GetDY();
+  zloc = coolManifPOM->GetDZ() + optConnPBT->GetDZ();
+  trayStructure->AddNode(pbtOptConn, 1,
+			 new TGeoTranslation( xloc, yloc, zloc) );
+  trayStructure->AddNode(pbtOptConn, 2,
+			 new TGeoTranslation( xloc, yloc,-zloc) );
+
+  yloc += optConnPBT->GetDY() + optConnSteel->GetDY();
+  trayStructure->AddNode(steelOptConn, 1,
+			 new TGeoTranslation( xloc, yloc, zloc) );
+  trayStructure->AddNode(steelOptConn, 2,
+			 new TGeoTranslation( xloc, yloc,-zloc) );
+
+  yloc += optConnSteel->GetDY() + optConnAl->GetDY();
+  trayStructure->AddNode(alOptConn, 1,
+			 new TGeoTranslation( xloc, yloc, zloc) );
+  trayStructure->AddNode(alOptConn, 2,
+			 new TGeoTranslation( xloc, yloc,-zloc) );
+
+  trayStructure->AddNode(optFibs, 1,
+			 new TGeoTranslation( 0, 0, zloc) );
+  trayStructure->AddNode(optFibs, 2,
+			 new TGeoTranslation( 0, 0,-zloc) );
+
+  trayStructure->AddNode(cuOutputCabs    , 1, 0);
+  trayStructure->AddNode(plastOutputCabs , 1, 0);
+  trayStructure->AddNode(alOutputCabs    , 1, 0);
+  trayStructure->AddNode(kaptonOutputCabs, 1, 0);
+  trayStructure->AddNode(polyaxOutputCabs, 1, 0);
+
+  xloc = kXShiftBarCool + kBarCoolRmax + pcbBoardsCu->GetDX();
+  yloc = outputCabsPOLYAX->GetY(5) + pcbBoardsCu->GetDY();
+  trayStructure->AddNode(cuPCBBoards, 1,
+			 new TGeoTranslation( xloc, yloc , 0) );
+
+  yloc += pcbBoardsCu->GetDY() + pcbBoardsEpoxy->GetDY();
+  trayStructure->AddNode(epoxyPCBBoards, 1,
+			 new TGeoTranslation( xloc, yloc , 0) );
+
+  yloc += pcbBoardsEpoxy->GetDY() + pcbBoardsPlast->GetDY();
+  trayStructure->AddNode(plastPCBBoards, 1,
+			 new TGeoTranslation( xloc, yloc , 0) );
+
+  yloc += pcbBoardsPlast->GetDY() + pcbBoardsSteel->GetDY();
+  trayStructure->AddNode(steelPCBBoards, 1,
+			 new TGeoTranslation( xloc, yloc , 0) );
+
+  yloc += pcbBoardsSteel->GetDY() + pcbBoardsPPS->GetDY();
+  trayStructure->AddNode(ppsPCBBoards, 1,
+			 new TGeoTranslation( xloc, yloc , 0) );
+
 
   // Finally put everything in the mother volume
   alphafold = kSideCFoldAngle;
@@ -4728,7 +6549,7 @@ void AliITSv11GeometrySupport::SDDCableTraysSideC(TGeoVolume *moth,
     alpharot = kTraySideCAlphaRot[jt];
     xloc = kTraySideCRPos*SinD(alpharot);
     yloc = kTraySideCRPos*CosD(alpharot);
-    moth->AddNode(trayStructure[jt],1,
+    moth->AddNode(trayStructure,jt+1,
 		       new TGeoCombiTrans(-xloc, yloc, kTraySideCZPos,
 		       new TGeoRotation("",-90.+alpharot,-90.,90.+alphafold)));
   }
@@ -5392,9 +7213,8 @@ void AliITSv11GeometrySupport::SSDCableTraysSideC(TGeoVolume *moth,
   water->DefineSection(1,  kServicesWidth/2);
 
   // The poliurethane inside the tray: a Xtru
-  TGeoXtru *PUR = new TGeoXtru(2);
-  PUR->SetName("ITSsuppSSDTrayCPUR");
-
+  TGeoXtru *pur = new TGeoXtru(2);
+  pur->SetName("ITSsuppSSDTrayCPUR");
   xprof[0] = water->GetX(5);
   yprof[0] = water->GetY(5);
   xprof[1] = water->GetX(4);
@@ -5408,9 +7228,9 @@ void AliITSv11GeometrySupport::SSDCableTraysSideC(TGeoVolume *moth,
   xprof[5] = xprof[0];
   yprof[5] = yprof[0] + kPoliUrethaneHeight;
 
-  PUR->DefinePolygon(6, xprof, yprof);
-  PUR->DefineSection(0, -kServicesWidth/2);
-  PUR->DefineSection(1,  kServicesWidth/2);
+  pur->DefinePolygon(6, xprof, yprof);
+  pur->DefineSection(0, -kServicesWidth/2);
+  pur->DefineSection(1,  kServicesWidth/2);
 
 
   // We have all shapes: now create the real volumes
@@ -5447,7 +7267,7 @@ void AliITSv11GeometrySupport::SSDCableTraysSideC(TGeoVolume *moth,
   trayWater->SetFillStyle(4000); // 0% transparent
 
   TGeoVolume *trayPolyUr = new TGeoVolume("ITSsuppSSDSideCPolyUr",
-					  PUR, medPUR);
+					  pur, medPUR);
 
   trayPolyUr->SetVisibility(kTRUE);
   trayPolyUr->SetLineColor(kGray); // Gray
@@ -5480,18 +7300,21 @@ void AliITSv11GeometrySupport::SSDCableTraysSideC(TGeoVolume *moth,
 }
 
 //______________________________________________________________________
-TGeoVolumeAssembly* AliITSv11GeometrySupport::CreateSDDForwardTraySideA(TGeoManager *mgr){
+void AliITSv11GeometrySupport::CreateSDDForwardTraySideA(TGeoVolumeAssembly *tray,
+							 TGeoManager *mgr){
 //
 // Creates the forward SDD tray on Side A (0872/G/D/01)
 //
 // Input:
+//         tray : the TGeoVolumeAssembly to put the elements in
 //         mgr  : the GeoManager (used only to get the proper material)
 //
 // Output:
 //
-// Return:     a TGeoVolumeAssembly for the tray
+// Return:
 //
 // Created:      08 Jan 2010  Mario Sitta
+// Updated:      07 Sep 2010  Mario Sitta
 //
 // Technical data are taken from AutoCAD drawings, L.Simonetti technical
 // drawings and other (oral) information given by F.Tosello
@@ -5525,9 +7348,7 @@ TGeoVolumeAssembly* AliITSv11GeometrySupport::CreateSDDForwardTraySideA(TGeoMana
 
 
   // The tray has a very complex shape, so it is made by assembling
-  // different elements (with some small simplifications): the result
-  // is a TGeoAssembly returned to the caller
-  TGeoVolumeAssembly *forwardTray = new TGeoVolumeAssembly("ITSsuppSDDForwardTray");
+  // different elements (with some small simplifications)
 
   // The tray base: a BBox
   zlen = (kForwardTraySideLength-kForwardTrayTailLength)/2;
@@ -5664,53 +7485,53 @@ TGeoVolumeAssembly* AliITSv11GeometrySupport::CreateSDDForwardTraySideA(TGeoMana
   // Now build up the tray
   yloc = kForwardTrayThick/2;
   zloc = zlen;
-  forwardTray->AddNode(forwTrayBase, 1,
-		       new TGeoTranslation(0, yloc, zloc) );
+  tray->AddNode(forwTrayBase, 1,
+		new TGeoTranslation(0, yloc, zloc) );
 
   xloc = kForwardTrayBaseHalfWide;
-  forwardTray->AddNode(forwTraySide1, 1,
-		       new TGeoCombiTrans(xloc, 0, 0,
+  tray->AddNode(forwTraySide1, 1,
+		new TGeoCombiTrans(xloc, 0, 0,
 				   new TGeoRotation("",90,-90,-90)));
   xloc = -xloc + kForwardTrayThick;
-  forwardTray->AddNode(forwTraySide1, 2,
-		       new TGeoCombiTrans(xloc, 0, 0,
+  tray->AddNode(forwTraySide1, 2,
+		new TGeoCombiTrans(xloc, 0, 0,
 				   new TGeoRotation("",90,-90,-90)));
 
-  forwardTray->AddNode(forwTraySide2, 1, 0);
+  tray->AddNode(forwTraySide2, 1, 0);
   zloc = kForwardTraySideLength;
-  forwardTray->AddNode(forwTraySide2, 2,
-		       new TGeoCombiTrans(0, 0, zloc,
+  tray->AddNode(forwTraySide2, 2,
+		new TGeoCombiTrans(0, 0, zloc,
 				   new TGeoRotation("",90,-180,-90)));
 
   xloc = kForwardTrayBaseHalfWide + kForwardTraySide2Expand;
-  forwardTray->AddNode(forwTraySide3, 1,
-		       new TGeoCombiTrans(xloc, 0, 0,
+  tray->AddNode(forwTraySide3, 1,
+		new TGeoCombiTrans(xloc, 0, 0,
 				   new TGeoRotation("",90,-90,-90)));
   xloc = -xloc + kForwardTrayThick;
-  forwardTray->AddNode(forwTraySide3, 2,
-		       new TGeoCombiTrans(xloc, 0, 0,
+  tray->AddNode(forwTraySide3, 2,
+		new TGeoCombiTrans(xloc, 0, 0,
 				   new TGeoRotation("",90,-90,-90)));
 
   xloc = kForwardTrayBaseHalfWide + kForwardTraySide2Expand
        - kForwardTrayHorWingWide/2;
   yloc = traySide3->GetY(2) + kForwardTrayThick/2;
   zloc = kForwardTraySideLength - trayHorWing->GetDZ();
-  forwardTray->AddNode(forwTrayHWing, 1,
-		       new TGeoTranslation( xloc, yloc, zloc) );
-  forwardTray->AddNode(forwTrayHWing, 2,
-		       new TGeoTranslation(-xloc, yloc, zloc) );
+  tray->AddNode(forwTrayHWing, 1,
+		new TGeoTranslation( xloc, yloc, zloc) );
+  tray->AddNode(forwTrayHWing, 2,
+		new TGeoTranslation(-xloc, yloc, zloc) );
 
   xloc = kForwardTrayBaseHalfWide + kForwardTraySide2Expand
        - kForwardTrayVertWingWide/2;
   yloc = traySide3->GetY(2) + trayVertWing->GetDY();
   zloc = traySide3->GetX(3) + kForwardTrayThick/2;
-  forwardTray->AddNode(forwTrayVWing, 1,
-		       new TGeoTranslation( xloc, yloc, zloc) );
-  forwardTray->AddNode(forwTrayVWing, 2,
-		       new TGeoTranslation(-xloc, yloc, zloc) );
+  tray->AddNode(forwTrayVWing, 1,
+		new TGeoTranslation( xloc, yloc, zloc) );
+  tray->AddNode(forwTrayVWing, 2,
+		new TGeoTranslation(-xloc, yloc, zloc) );
 
 
-  return forwardTray;
+  return;
 }
 
 //______________________________________________________________________

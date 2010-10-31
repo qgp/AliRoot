@@ -92,7 +92,6 @@ AliFlowAnalysisWithCumulants::AliFlowAnalysisWithCumulants():
  fMinMult(0.),   
  fMaxMult(10000.),
  fGEBE(NULL), 
- fReferenceMultiplicityEBE(0.),
  fReferenceFlowGenFun(NULL),
  fQvectorComponents(NULL),
  fAverageOfSquaredWeight(NULL),
@@ -202,7 +201,6 @@ void AliFlowAnalysisWithCumulants::Make(AliFlowEventSimple* anEvent)
  if(fTuneParameters) {this->FillGeneratingFunctionsForDifferentTuningParameters(anEvent);} 
  Int_t nRP = anEvent->GetEventNSelTracksRP(); // number of RPs (i.e. number of particles used to determine the reaction plane)
  if(nRP<10) {return;} // generating function formalism make sense only for nRPs >= 10 for default settings 
- fReferenceMultiplicityEBE = anEvent->GetReferenceMultiplicity(); // reference multiplicity for current event
  fCommonHists->FillControlHistograms(anEvent);                                                               
  this->FillGeneratingFunctionForReferenceFlow(anEvent);
  this->FillQvectorComponents(anEvent);
@@ -217,20 +215,22 @@ void AliFlowAnalysisWithCumulants::Finish()
  // Calculate the final results.
  
  // a) Check all pointers used in this method;
- // b) Access settings for analysis with Generating Function Cumulants;
- // c) From relevant common control histogram get average multiplicity of RPs and number of events;
- // d) Calculate cumulants for reference flow;
- // e) Calculate from isotropic cumulants reference flow;
- // f) Calculate error for reference flow estimates;
- // g) Store the final results for reference flow in common hist results;
- // h) Print on the screen the final results for reference flow;
- // i) Calculate cumulants for differential flow;
- // j) Calculate differential flow for RPs/POIs vs pt/eta from cumulants;
- // k) Calculate integrated flow of RPs and POIs;
- // l) Print on the screen the final results for integrated flow of RPs and POIs;
- // m) If tuning enabled, calculate results for different tuning parameters.
+ // b) Access all common constants;
+ // c) Access settings for analysis with Generating Function Cumulants;
+ // d) From relevant common control histogram get average multiplicity of RPs and number of events;
+ // e) Calculate cumulants for reference flow;
+ // f) Calculate from isotropic cumulants reference flow;
+ // g) Calculate error for reference flow estimates;
+ // h) Store the final results for reference flow in common hist results;
+ // i) Print on the screen the final results for reference flow;
+ // j) Calculate cumulants for differential flow;
+ // k) Calculate differential flow for RPs/POIs vs pt/eta from cumulants;
+ // l) Calculate integrated flow of RPs and POIs;
+ // m) Print on the screen the final results for integrated flow of RPs and POIs;
+ // n) If tuning enabled, calculate results for different tuning parameters.
  
  this->CheckPointersUsedInFinish();
+ this->AccessConstants(); 
  this->AccessSettings();
  this->GetAvMultAndNoOfEvts();
  this->CalculateCumulantsForReferenceFlow(); 
@@ -523,7 +523,7 @@ void AliFlowAnalysisWithCumulants::FillGeneratingFunctionForReferenceFlow(AliFlo
                                           // nPOI  = # of particles of interest for a detailed flow analysis.
  
  Int_t nRP = anEvent->GetEventNSelTracksRP(); // nRP = # of particles used to determine the reaction plane;
- if(fCalculateVsMultiplicity){fAvMVsM->Fill(fReferenceMultiplicityEBE+0.5,nRP,1.);}
+ if(fCalculateVsMultiplicity){fAvMVsM->Fill(nRP+0.5,nRP,1.);}
  
  // Initializing the generating function G[p][q] for reference flow for current event: 
  Int_t pMax = fGEBE->GetNrows();
@@ -601,7 +601,7 @@ void AliFlowAnalysisWithCumulants::FillGeneratingFunctionForReferenceFlow(AliFlo
   for(Int_t q=0;q<qMax;q++)
   {
    fReferenceFlowGenFun->Fill((Double_t)p,(Double_t)q,(*fGEBE)(p,q),eventWeight); 
-   if(fCalculateVsMultiplicity){fReferenceFlowGenFunVsM->Fill(fReferenceMultiplicityEBE+0.5,(Double_t)p,(Double_t)q,(*fGEBE)(p,q),eventWeight);}
+   if(fCalculateVsMultiplicity){fReferenceFlowGenFunVsM->Fill(nRP+0.5,(Double_t)p,(Double_t)q,(*fGEBE)(p,q),eventWeight);}
   }
  } 
  
@@ -1569,7 +1569,7 @@ void AliFlowAnalysisWithCumulants::FillCommonHistResultsForDifferentialFlow(TStr
    {
     rp = 1;
    } 
-  
+   
  // pt:
  for(Int_t p=1;p<=fnBinsPt;p++)
  {

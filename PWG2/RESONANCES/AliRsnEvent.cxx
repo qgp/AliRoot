@@ -95,7 +95,6 @@ Bool_t AliRsnEvent::SetDaughter(AliRsnDaughter &out, Int_t i, AliRsnDaughter::ER
       return kFALSE;
     }
     AliVTrack *track = (AliVTrack*)fRef->GetTrack(i);
-    label = TMath::Abs(track->GetLabel());
     if (!track)
     {
       out.SetBad();
@@ -103,6 +102,7 @@ Bool_t AliRsnEvent::SetDaughter(AliRsnDaughter &out, Int_t i, AliRsnDaughter::ER
     }
     else
     {
+      label = TMath::Abs(track->GetLabel());
       out.SetRef(track);
       out.SetLabel(label);
       if (fRefMC)
@@ -198,6 +198,60 @@ Bool_t AliRsnEvent::SetDaughter(AliRsnDaughter &out, Int_t i, AliRsnDaughter::ER
 }
 
 //_____________________________________________________________________________
+Bool_t AliRsnEvent::SetDaughterMC(AliRsnDaughter &out, Int_t i)
+{
+//
+// Using the second argument, retrieves the i-th object in the
+// appropriate sample and sets the firs reference object
+// in order to point to that.
+// If a MonteCarlo information is provided, sets the useful informations from there,
+// and in case of a V0, sets the 'label' data member only when the two daughters
+// of the V0 point to the same mother.
+// Returns kFALSE whenever the operation fails (out of range, NULL references).
+//
+
+  if (!fRefMC)
+  {
+    out.SetBad();
+    return kFALSE;
+  }
+
+  if (i >= fRefMC->GetNumberOfTracks())
+  {
+    out.SetBad();
+    return kFALSE;
+  }
+  
+  AliMCParticle *track = (AliMCParticle*)fRef->GetTrack(i);
+  if (!track)
+  {
+    out.SetBad();
+    return kFALSE;
+  }
+  else
+  {
+    out.SetRef(track);
+    out.SetRefMC(track);
+    out.SetLabel(i);
+    out.SetGood();
+  }
+  
+  AliStack  *stack = fRefMC->Stack();
+  TParticle *part  = track->Particle();
+  if (part)
+  {
+    Int_t imum = part->GetFirstMother();
+    if (imum >= 0 && imum <= stack->GetNtrack())
+    {
+      TParticle *mum = stack->Particle(imum);
+      if (mum) out.SetMotherPDG(TMath::Abs(mum->GetPdgCode()));
+    }
+  }
+  
+  return kTRUE;
+}
+
+//_____________________________________________________________________________
 AliRsnDaughter AliRsnEvent::GetDaughter(Int_t i, AliRsnDaughter::ERefType type)
 {
 //
@@ -207,6 +261,20 @@ AliRsnDaughter AliRsnEvent::GetDaughter(Int_t i, AliRsnDaughter::ERefType type)
 
   AliRsnDaughter out;
   SetDaughter(out, i, type);
+
+  return out;
+}
+
+//_____________________________________________________________________________
+AliRsnDaughter AliRsnEvent::GetDaughterMC(Int_t i)
+{
+//
+// Return an AliRsnDaughter taken from this event,
+// with all additional data members well set.
+//
+
+  AliRsnDaughter out;
+  SetDaughterMC(out, i);
 
   return out;
 }
@@ -256,14 +324,17 @@ Int_t AliRsnEvent::SelectLeadingParticle
   for (i = 0; i < nTracks; i++) {
     AliRsnDaughter track = GetDaughter(i);
     if (cutPID) if (!cutPID->IsSelected(&track)) continue;
-    if (track.P().Perp() < ptMin) continue;
-    if (!leading.IsOK() || track.P().Perp() > leading.P().Perp())
+    AliVParticle *ref = track.GetRef();
+    if (ref->Pt() < ptMin) continue;
+    //double pt = track.P().Perp();
+    //Printf("track %d %g", i, pt);
+    if (!leading.IsOK() || ref->Pt() > ptMin)
     {
       fLeading = i;
-      leading = track;
+      //leading = track;
+      ptMin = ref->Pt();
     }
   }
-
   return fLeading;
 }
 

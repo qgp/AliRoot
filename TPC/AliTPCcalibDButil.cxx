@@ -478,6 +478,90 @@ void AliTPCcalibDButil::ProcessNoiseData(TVectorD &vNoiseMean, TVectorD &vNoiseM
 }
 
 //_____________________________________________________________________________________
+void AliTPCcalibDButil::ProcessQAData(TVectorD &vQaOcc, TVectorD &vQaQtot, 
+				      TVectorD &vQaQmax)
+{
+  //
+  // process QA data
+  //
+  // vQaOcc/Qtot/Qmax contains the Mean occupancy/Qtot/Qmax for each sector
+  //
+
+
+  const UInt_t infoSize = 72;
+  //reset counters to error number
+  vQaOcc.ResizeTo(infoSize);
+  vQaOcc.Zero();
+  vQaQtot.ResizeTo(infoSize);
+  vQaQtot.Zero();
+  vQaQmax.ResizeTo(infoSize);
+  vQaQmax.Zero();
+  //counter
+  //retrieve pulser and ALTRO data
+  
+  if (!fDataQA) {
+    
+    AliInfo("No QA data");
+    return;
+  }
+  if (fDataQA->GetEventCounter()<=0) {
+
+    AliInfo("No QA data");
+    return; // no data processed
+  }
+  //
+  fDataQA->Analyse();
+
+  TVectorD normOcc(infoSize);
+  TVectorD normQ(infoSize);
+
+  for (UInt_t isec=0;isec<AliTPCCalPad::kNsec;++isec){
+
+    printf("Sector %d\n", isec);
+
+    AliTPCCalROC* occupancyROC = fDataQA->GetNoThreshold()->GetCalROC(isec); 
+    AliTPCCalROC* nclusterROC = fDataQA->GetNLocalMaxima()->GetCalROC(isec); 
+    AliTPCCalROC* qROC = fDataQA->GetMeanCharge()->GetCalROC(isec); 
+    AliTPCCalROC* qmaxROC = fDataQA->GetMaxCharge()->GetCalROC(isec); 
+    if (!occupancyROC) continue;
+    if (!nclusterROC) continue;
+    if (!qROC) continue;
+    if (!qmaxROC) continue;
+    
+    const UInt_t nchannels=occupancyROC->GetNchannels();
+
+    printf("Nchannels %d\n", nchannels);
+
+    for (UInt_t ichannel=0;ichannel<nchannels;++ichannel){
+
+      vQaOcc[isec] += occupancyROC->GetValue(ichannel);
+      ++normOcc[isec];
+
+      Float_t nClusters = nclusterROC->GetValue(ichannel);
+      normQ[isec] += nClusters;
+      vQaQtot[isec]+=nClusters*qROC->GetValue(ichannel);
+      vQaQmax[isec]+=nClusters*qmaxROC->GetValue(ichannel);
+    }
+  }
+
+  //calculate mean values
+  for (UInt_t isec=0;isec<AliTPCCalPad::kNsec;++isec){
+    
+    if (normOcc[isec]>0) vQaOcc[isec] /= normOcc[isec];
+    else vQaOcc[isec] = 0;
+
+    if (normQ[isec]>0) {
+      vQaQtot[isec] /= normQ[isec];
+      vQaQmax[isec] /= normQ[isec];
+    }else {
+
+      vQaQtot[isec] = 0;
+      vQaQmax[isec] = 0;
+    }
+  }
+}
+
+//_____________________________________________________________________________________
 void AliTPCcalibDButil::ProcessPulser(TVectorD &vMeanTime)
 {
   //
@@ -1140,8 +1224,8 @@ void AliTPCcalibDButil::UpdateRefDataFromOCDB()
     entry=GetRefEntry(cdbPath.Data());
     if (entry){
       entry->SetOwner(kTRUE);
-      fDataQA=dynamic_cast<AliTPCdataQA*>(entry->GetObject());
-      if (!fDataQA){
+      fRefDataQA=dynamic_cast<AliTPCdataQA*>(entry->GetObject());
+      if (!fRefDataQA){
         AliError(Form("Could not get object from entry '%s'\nPlease check!!!",entry->GetId().GetPath().Data()));
       } else {
         fRefDataQA=(AliTPCdataQA*)fDataQA->Clone();
@@ -1607,16 +1691,26 @@ Int_t AliTPCcalibDButil::GetNearest(TGraph *graph, Double_t xref, Double_t &dx, 
   //
   // find the closest point to xref  in x  direction
   // return dx and value 
+  dx = 0;
+  y = 0;
+
+  if(!graph) return 0;
+  if(graph->GetN() < 1) return 0;
+
   Int_t index=0;
   index = TMath::BinarySearch(graph->GetN(), graph->GetX(),xref);
   if (index<0) index=0;
-  if (index>=graph->GetN()-1) index=graph->GetN()-2;
-  if (xref-graph->GetX()[index]>graph->GetX()[index]-xref) index++;
-  dx = xref-graph->GetX()[index];
+  if(graph->GetN()==1) {
+    dx = xref-graph->GetX()[index];
+  }
+  else {
+    if (index>=graph->GetN()-1) index=graph->GetN()-2;
+    if (xref-graph->GetX()[index]>graph->GetX()[index]-xref) index++;
+    dx = xref-graph->GetX()[index];
+  }
   y  = graph->GetY()[index];
   return index;
 }
-
 
 Double_t  AliTPCcalibDButil::GetTriggerOffsetTPC(Int_t run, Int_t timeStamp, Double_t deltaT, Double_t deltaTLaser, Int_t valType){
   //
@@ -1685,7 +1779,7 @@ Double_t  AliTPCcalibDButil::GetTriggerOffsetTPC(Int_t run, Int_t timeStamp, Dou
   }
   Double_t median = TMath::Median(nused,tdelta);
   Double_t mean  = TMath::Mean(nused,tdelta);
-  delete tdelta;
+  delete [] tdelta;
   return (valType==0) ? median:mean;
 }
 
@@ -1721,7 +1815,7 @@ Double_t  AliTPCcalibDButil::GetVDriftTPC(Double_t &dist, Int_t run, Int_t timeS
   AliTPCcalibDButil::GetNearest(cosmicAll,timeStamp,dist,grY);
 
   Double_t t0= AliTPCcalibDButil::GetTriggerOffsetTPC(run,timeStamp, deltaT, deltaTLaser,valType);
-  Double_t vcosmic=  AliTPCcalibDButil::EvalGraphConst(cosmicAll, timeStamp);
+  Double_t vcosmic =  AliTPCcalibDButil::EvalGraphConst(cosmicAll, timeStamp);
   if (timeStamp>cosmicAll->GetX()[cosmicAll->GetN()-1])  vcosmic=cosmicAll->GetY()[cosmicAll->GetN()-1];
   if (timeStamp<cosmicAll->GetX()[0])  vcosmic=cosmicAll->GetY()[0];
   return  vcosmic-t0;
@@ -1816,7 +1910,7 @@ Bool_t AliTPCcalibDButil::CreateGUIRefTree(const char* filename)
 
 Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracks(Double_t &dist, Int_t run, Int_t timeStamp, Double_t deltaT, Int_t side){
   //
-  // Get the correction of the drift velocity using the laser tracks calbration
+  // Get the correction of the drift velocity using the offline laser tracks calbration
   //
   // run       - run number
   // timeStamp - tim stamp in seconds
@@ -1824,6 +1918,56 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracks(Double_t &dist, Int_t run, 
   // side      - 0 - A side,  1 - C side, 2 - mean from both sides
   // Note in case no data form both A and C side - the value from active side used
   TObjArray *array =AliTPCcalibDB::Instance()->GetTimeVdriftSplineRun(run);
+
+  return GetVDriftTPCLaserTracksCommon(dist, timeStamp, deltaT, side, array);
+}
+
+Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracksOnline(Double_t &dist, Int_t /*run*/, Int_t timeStamp, Double_t deltaT, Int_t side){
+  //
+  // Get the correction of the drift velocity using the online laser tracks calbration
+  //
+  // run       - run number
+  // timeStamp - tim stamp in seconds
+  // deltaT    - integration period to calculate time0 offset
+  // side      - 0 - A side,  1 - C side, 2 - mean from both sides
+  // Note in case no data form both A and C side - the value from active side used
+  TObjArray *array =AliTPCcalibDB::Instance()->GetCEfitsDrift();
+
+  Double_t dv = GetVDriftTPCLaserTracksCommon(dist, timeStamp, deltaT, side, array);
+  AliTPCParam *param  =AliTPCcalibDB::Instance()->GetParameters();
+  if (!param) return 0;
+
+  //the drift velocity is hard wired in the AliTPCCalibCE class, since online there is no access to OCDB
+  dv*=param->GetDriftV()/2.61301900000000000e+06;
+  if (dv>1e-20) dv=1/dv-1;
+  else return 0;
+  // T/P correction
+  TObjArray*  cearray =AliTPCcalibDB::Instance()->GetCEData();
+  
+  AliTPCSensorTempArray *temp = (AliTPCSensorTempArray*)cearray->FindObject("TempMap");
+  AliDCSSensor *press         = (AliDCSSensor*)cearray->FindObject("CavernAtmosPressure");
+  
+  Double_t corrPTA=0;
+  Double_t corrPTC=0;
+  
+  if (temp&&press) {
+    AliTPCCalibVdrift corr(temp,press,0);
+    corrPTA=corr.GetPTRelative(timeStamp,0);
+    corrPTC=corr.GetPTRelative(timeStamp,1);
+  }
+  
+  if (side==0) dv -=  corrPTA;
+  if (side==1) dv -=  corrPTC;
+  if (side==2) dv -=  (corrPTA+corrPTC)/2;
+  
+  return dv;
+}
+
+Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracksCommon(Double_t &dist, Int_t timeStamp, Double_t deltaT,
+  Int_t side, TObjArray * const array){
+  //
+  // common drift velocity retrieval for online and offline method
+  //
   TGraphErrors *grlaserA=0;
   TGraphErrors *grlaserC=0;
   Double_t vlaserA=0, vlaserC=0;
@@ -1831,12 +1975,12 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCLaserTracks(Double_t &dist, Int_t run, 
   grlaserA=(TGraphErrors*)array->FindObject("GRAPH_MEAN_DRIFT_LASER_ALL_A");
   grlaserC=(TGraphErrors*)array->FindObject("GRAPH_MEAN_DRIFT_LASER_ALL_C");
   Double_t deltaY;
-  if (grlaserA) {
+  if (grlaserA && grlaserA->GetN()>0) {
     AliTPCcalibDButil::GetNearest(grlaserA,timeStamp,dist,deltaY);
     if (TMath::Abs(dist)>deltaT)  vlaserA= deltaY;
     else  vlaserA = AliTPCcalibDButil::EvalGraphConst(grlaserA,timeStamp);
   }
-  if (grlaserC) {
+  if (grlaserC && grlaserC->GetN()>0) {
     AliTPCcalibDButil::GetNearest(grlaserC,timeStamp,dist,deltaY);
     if (TMath::Abs(dist)>deltaT)  vlaserC= deltaY;
     else  vlaserC = AliTPCcalibDButil::EvalGraphConst(grlaserC,timeStamp);
@@ -1872,6 +2016,7 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCCE(Double_t &dist,Int_t run, Int_t time
   Double_t gry=0;
   Double_t corrA=0, corrC=0;
   Double_t timeA=0, timeC=0;
+  const Double_t kEpsilon = 0.00001;
   TGraph *graphA = (TGraph*)arrT->At(72);
   TGraph *graphC = (TGraph*)arrT->At(73);
   if (!graphA && !graphC) return 0.;
@@ -1880,6 +2025,7 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCCE(Double_t &dist,Int_t run, Int_t time
     timeA   = AliTPCcalibDButil::EvalGraphConst(graphA,timeStamp);
     Int_t mtime   =TMath::Nint((graphA->GetX()[0]+graphA->GetX()[graphA->GetN()-1])*0.5);
     ltime0A       = GetLaserTime0(run,mtime,TMath::Nint(deltaT),0);
+    if(ltime0A < kEpsilon) return 0;
     if (driftCalib) corrPTA =  driftCalib->GetPTRelative(timeStamp,0);
     corrA = (param->GetZLength(36)/(timeA*param->GetTSample()*(1.-ltime0A)-param->GetL1Delay()-0*param->GetZSigma()/param->GetDriftV()))/param->GetDriftV()-1;
     corrA-=corrPTA;
@@ -1889,7 +2035,8 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCCE(Double_t &dist,Int_t run, Int_t time
     timeC=AliTPCcalibDButil::EvalGraphConst(graphC,timeStamp);
     Int_t mtime=TMath::Nint((graphC->GetX()[0]+graphC->GetX()[graphC->GetN()-1])*0.5);
     ltime0C       = GetLaserTime0(run,mtime,TMath::Nint(deltaT),0);
-    if (driftCalib) corrPTC =  driftCalib->GetPTRelative(timeStamp,0);
+    if(ltime0C < kEpsilon) return 0;   
+if (driftCalib) corrPTC =  driftCalib->GetPTRelative(timeStamp,0);
     corrC = (param->GetZLength(54)/(timeC*param->GetTSample()*(1.-ltime0C)-param->GetL1Delay()-0*param->GetZSigma()/param->GetDriftV()))/param->GetDriftV()-1;
     corrC-=corrPTC;
   }
@@ -1911,6 +2058,7 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCITS(Double_t &dist, Int_t run, Int_t ti
   TGraphErrors *graph=0;
   dist=0;
   if (!array) return 0;
+  //array->ls();
   graph = (TGraphErrors*)array->FindObject("ALIGN_ITSB_TPC_DRIFTVD");
   if (!graph) return 0;
   Double_t deltaY;
@@ -2031,11 +2179,12 @@ TGraph* AliTPCcalibDButil::FilterGraphMedian(TGraph * graph, Float_t sigmaCut,Do
   Int_t npoints0 = graph->GetN();
   Int_t npoints=0;
   Float_t  rmsY=0;
-  Double_t *outx=new Double_t[npoints0];
-  Double_t *outy=new Double_t[npoints0];
   //
   //
   if (npoints0<kMinPoints) return 0;
+
+  Double_t *outx=new Double_t[npoints0];
+  Double_t *outy=new Double_t[npoints0];
   for (Int_t iter=0; iter<3; iter++){
     npoints=0;
     for (Int_t ipoint=0; ipoint<npoints0; ipoint++){
@@ -2051,6 +2200,8 @@ TGraph* AliTPCcalibDButil::FilterGraphMedian(TGraph * graph, Float_t sigmaCut,Do
   }
   TGraph *graphOut=0;
   if (npoints>1) graphOut= new TGraph(npoints,outx,outy); 
+  delete [] outx;
+  delete [] outy;
   return graphOut;
 }
 
@@ -2064,11 +2215,12 @@ TGraph* AliTPCcalibDButil::FilterGraphMedianAbs(TGraph * graph, Float_t cut,Doub
   Int_t npoints0 = graph->GetN();
   Int_t npoints=0;
   Float_t  rmsY=0;
-  Double_t *outx=new Double_t[npoints0];
-  Double_t *outy=new Double_t[npoints0];
   //
   //
   if (npoints0<kMinPoints) return 0;
+
+  Double_t *outx=new Double_t[npoints0];
+  Double_t *outy=new Double_t[npoints0];
   for (Int_t iter=0; iter<3; iter++){
     npoints=0;
     for (Int_t ipoint=0; ipoint<npoints0; ipoint++){
@@ -2084,6 +2236,8 @@ TGraph* AliTPCcalibDButil::FilterGraphMedianAbs(TGraph * graph, Float_t cut,Doub
   }
   TGraph *graphOut=0;
   if (npoints>1) graphOut= new TGraph(npoints,outx,outy); 
+  delete [] outx;
+  delete [] outy;
   return graphOut;
 }
 
@@ -2098,14 +2252,16 @@ TGraphErrors* AliTPCcalibDButil::FilterGraphMedianErr(TGraphErrors * const graph
   Int_t npoints0 = graph->GetN();
   Int_t npoints=0;
   Float_t  medianErr=0, rmsErr=0;
+  //
+  //
+  if (npoints0<kMinPoints) return 0;
+
   Double_t *outx=new Double_t[npoints0];
   Double_t *outy=new Double_t[npoints0];
   Double_t *erry=new Double_t[npoints0];
   Double_t *nerry=new Double_t[npoints0];
   Double_t *errx=new Double_t[npoints0];
-  //
-  //
-  if (npoints0<kMinPoints) return 0;
+
   for (Int_t iter=0; iter<3; iter++){
     npoints=0;
     for (Int_t ipoint=0; ipoint<npoints0; ipoint++){
@@ -2126,8 +2282,9 @@ TGraphErrors* AliTPCcalibDButil::FilterGraphMedianErr(TGraphErrors * const graph
   if (npoints>1) graphOut= new TGraphErrors(npoints,outx,outy,errx,erry); 
   delete []outx;
   delete []outy;
-  delete []errx;
   delete []erry;
+  delete []nerry;
+  delete []errx;
   return graphOut;
 }
 
@@ -2146,6 +2303,9 @@ void AliTPCcalibDButil::Sort(TGraph *graph){
   for (Int_t i=0;i<npoints;i++) graph->GetX()[i]=outx[i];
   for (Int_t i=0;i<npoints;i++) graph->GetY()[i]=outy[i];
  
+  delete [] indexes;
+  delete [] outx;
+  delete [] outy;
 }
 void AliTPCcalibDButil::SmoothGraph(TGraph *graph, Double_t delta){
   //
@@ -2199,13 +2359,23 @@ Double_t AliTPCcalibDButil::EvalGraphConst(TGraph * const graph, Double_t xref){
     printf("AliTPCcalibDButil::EvalGraphConst: 0 pointer\n");
     return 0;
   }
+
   if (graph->GetN()<1){
-    printf("AliTPCcalibDButil::EvalGraphConst: Empty graph");
+    printf("AliTPCcalibDButil::EvalGraphConst: Empty graph \n");
     return 0;
   }
+ 
+
   if (xref<graph->GetX()[0]) return graph->GetY()[0];
   if (xref>graph->GetX()[graph->GetN()-1]) return graph->GetY()[graph->GetN()-1]; 
-  return graph->Eval( xref);
+
+  //  printf("graph->Eval(graph->GetX()[0]) %f, graph->Eval(xref) %f \n",graph->Eval(graph->GetX()[0]), graph->Eval(xref));
+
+  if(graph->GetN()==1)
+    return graph->Eval(graph->GetX()[0]);
+
+
+  return graph->Eval(xref);
 }
 
 Float_t AliTPCcalibDButil::FilterSensor(AliDCSSensor * sensor, Double_t ymin, Double_t ymax, Double_t maxdy,  Double_t sigmaCut){
@@ -2247,6 +2417,8 @@ Float_t AliTPCcalibDButil::FilterSensor(AliDCSSensor * sensor, Double_t ymin, Do
   if (naccept<1) {
     delete fit;
     sensor->SetFit(0);
+    delete [] yin0;
+    delete [] yin1;
     return 0.;
   }
 
@@ -2360,7 +2532,8 @@ void AliTPCcalibDButil::FilterCE(Double_t deltaT, Double_t cutAbs, Double_t cutS
 
   for (Int_t i=0; i<72;i++){
     TGraph *graph= (TGraph*)arrT->At(i);
-    if (!graph) continue;
+    if (!graph) continue; 
+    graph->Sort();
     if (graph->GetN()<kMinPoints){
       arrT->AddAt(0,i);
       delete graph;  // delete empty graph
@@ -2408,7 +2581,8 @@ void AliTPCcalibDButil::FilterCE(Double_t deltaT, Double_t cutAbs, Double_t cutS
     Double_t median = (isec%36<18) ? medianA: medianC;
     Double_t rms    = (isec%36<18) ? rmsA:    rmsC;
     Int_t naccept=0;
-    for (Int_t ipoint=kMinPoints-1; ipoint<graph->GetN();ipoint++){
+    //    for (Int_t ipoint=kMinPoints-1; ipoint<graph->GetN();ipoint++){ //not neccessary to remove first points
+    for (Int_t ipoint=0; ipoint<graph->GetN();ipoint++){
       if (TMath::Abs(graph->GetY()[ipoint]-median)>cutAbs) continue;
       if (TMath::Abs(graph->GetY()[ipoint]-median)>cutSigma*rms) continue;
       vecX[naccept]= graph->GetX()[ipoint];
@@ -2530,9 +2704,18 @@ void AliTPCcalibDButil::FilterTracks(Int_t run, Double_t cutSigma, TTreeSRedirec
       arrT->AddAt(0,i);
       continue;
     }
-    TGraphErrors *graph2= FilterGraphMedianErr(graph,cutSigma,medianY);
-    if (!graph2) {
-      delete graph; arrT->AddAt(0,i); continue;
+    TGraphErrors *graph2 = NULL;
+    if(graph->GetN()<10) {
+      graph2 = new TGraphErrors(graph->GetN(),graph->GetX(),graph->GetY(),graph->GetEX(),graph->GetEY()); 
+      if (!graph2) {
+        delete graph; arrT->AddAt(0,i); continue;
+      }
+    } 
+    else {
+      graph2= FilterGraphMedianErr(graph,cutSigma,medianY);
+      if (!graph2) {
+        delete graph; arrT->AddAt(0,i); continue;
+      }
     }
     if (graph2->GetN()<1) {
       delete graph; arrT->AddAt(0,i); continue;
@@ -2811,7 +2994,8 @@ TMatrixD* AliTPCcalibDButil::MakeStatRelKalman(TObjArray * const array, Float_t 
       (*valArray[ipar])[naccept]=state[ipar];
     naccept++;
   }
-  if (naccept<2) return 0;
+  //if (naccept<2) return 0;
+  if (naccept<1) return 0;
   TMatrixD *pstat=new TMatrixD(9,3);
   TMatrixD &stat=*pstat;
   for (Int_t ipar=0; ipar<9; ipar++){
@@ -2892,16 +3076,32 @@ TObjArray *AliTPCcalibDButil::SmoothRelKalman(TObjArray * const arrayP, TObjArra
   if (arrayP->GetEntries()<=0) return 0;
   if (!arrayM) return 0;
   if (arrayM->GetEntries()<=0) return 0;
+
   Int_t entries = arrayP->GetEntriesFast();
   TObjArray *array = new TObjArray(arrayP->GetEntriesFast()); 
+
   for (Int_t i=0; i<entries; i++){
      AliRelAlignerKalman * kalmanP = (AliRelAlignerKalman *) arrayP->UncheckedAt(i);
      AliRelAlignerKalman * kalmanM = (AliRelAlignerKalman *) arrayM->UncheckedAt(i);
      if (!kalmanP) continue;
      if (!kalmanM) continue;
-     AliRelAlignerKalman *kalman = new AliRelAlignerKalman(*kalmanP);
-     kalman->Merge(kalmanM);
+  
+     AliRelAlignerKalman *kalman = NULL;
+     if(kalmanP->GetRunNumber() != 0 && kalmanM->GetRunNumber() != 0) {
+       kalman = new AliRelAlignerKalman(*kalmanP);
+       kalman->Merge(kalmanM);
+     }
+     else if (kalmanP->GetRunNumber() == 0) {
+       kalman = new AliRelAlignerKalman(*kalmanM);
+     }
+     else if (kalmanM->GetRunNumber() == 0) {
+       kalman = new AliRelAlignerKalman(*kalmanP);
+     }
+     else 
+       continue;
+
      array->AddAt(kalman,i);
   }
+
   return array;
 }

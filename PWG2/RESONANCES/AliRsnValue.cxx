@@ -18,11 +18,10 @@ ClassImp(AliRsnValue)
 
 //_____________________________________________________________________________
 AliRsnValue::AliRsnValue() :
+  TNamed(),
+  fValue(0.0),
   fType(kValueTypes),
-  fNBins(0),
-  fMin(0.0),
-  fMax(0.0),
-  fValue(0.0)
+  fArray(0)
 {
 //
 // Main constructor (version 1)
@@ -32,12 +31,11 @@ AliRsnValue::AliRsnValue() :
 
 //_____________________________________________________________________________
 AliRsnValue::AliRsnValue
-(EValueType type, Int_t nbins, Double_t min, Double_t max) :
+(const char *name, EValueType type, Int_t nbins, Double_t min, Double_t max) :
+  TNamed(name, ""),
+  fValue(0.0),
   fType(type),
-  fNBins(0),
-  fMin(0.0),
-  fMax(0.0),
-  fValue(0.0)
+  fArray(0)
 {
 //
 // Main constructor (version 1)
@@ -49,12 +47,11 @@ AliRsnValue::AliRsnValue
 
 //_____________________________________________________________________________
 AliRsnValue::AliRsnValue
-(EValueType type, Double_t min, Double_t max, Double_t step) :
+(const char *name, EValueType type, Double_t min, Double_t max, Double_t step) :
+  TNamed(name, ""),
+  fValue(0.0),
   fType(type),
-  fNBins(0),
-  fMin(0.0),
-  fMax(0.0),
-  fValue(0.0)
+  fArray(0)
 {
 //
 // Main constructor (version 2)
@@ -64,91 +61,69 @@ AliRsnValue::AliRsnValue
 }
 
 //_____________________________________________________________________________
-const char* AliRsnValue::GetName() const
+AliRsnValue::AliRsnValue
+(const char *name, EValueType type, Int_t nbins, Double_t *array) :
+  TNamed(name, ""),
+  fValue(0.0),
+  fType(type),
+  fArray(0)
 {
 //
-// Return the name of this object defined by the type
+// Main constructor (version 2)
 //
 
-  switch (fType)
-  {
-    case kTrack1P:        return "P1";
-    case kTrack2P:        return "P2";
-    case kTrack1Pt:       return "PT1";
-    case kTrack2Pt:       return "PT2";
-    case kPairInvMass:    return "IM";
-    case kPairInvMassMC:  return "IMMC";
-    case kPairInvMassRes: return "IMRES";
-    case kPairPt:         return "PT";
-    case kPairEta:        return "ETA";
-    case kPairMt:         return "MT";
-    case kPairY:          return "Y";
-    case kEventMult:      return "MULT";
-    default:              return "UNDEF";
-  }
+  SetBins(nbins, array);
 }
 
 //_____________________________________________________________________________
-TArrayD AliRsnValue::GetArray() const
+void AliRsnValue::SetBins(Int_t nbins, Double_t min, Double_t max)
 {
 //
-// Creates an array with all bin edges
+// Set binning for the axis in equally spaced bins
+// where the number of bins, minimum and maximum are given.
 //
 
-  TArrayD out(fNBins + 1);
-
-  Int_t i;
-  Double_t step = (fMax - fMin) / (Double_t)fNBins;
-
-  for (i = 0; i <= fNBins; i++) out[i] = fMin + step * (Double_t)i;
-
-  return out;
-}
-
-//_____________________________________________________________________________
-void AliRsnValue::SetBins(Int_t n, Double_t min, Double_t max)
-{
-//
-// Set binning for histogram.
-//
-
-  fNBins = n;
-
-  if (min < max) 
-  {
-    fMin = min;
-    fMax = max;
-  } 
-  else 
-  {
-    fMin = max;
-    fMax = min;
-  }
+  fArray.Set(nbins + 1);
+  
+  Double_t mymax = TMath::Max(min, max);
+  Double_t mymin = TMath::Min(min, max);
+  
+  Int_t    k = 0;
+  Double_t binSize = (mymax - mymin) / ((Double_t)nbins);
+  
+  fArray[0] = mymin;
+  for (k = 1; k <= nbins; k++) fArray[k] = fArray[k-1] + binSize;
+  for (k = 0; k < fArray.GetSize() - 1; k++) AliDebug(AliLog::kDebug + 3, Form("Bin #%d: %f - %f", k, fArray[k], fArray[k+1]));
 }
 
 //_____________________________________________________________________________
 void AliRsnValue::SetBins(Double_t min, Double_t max, Double_t step)
 {
 //
-// Binning for histogram.
+// Set binning for the axis in equally spaced bins
+// where the bin size, minimum and maximum are given.
 //
 
-  if (min < max) 
-  {
-    fMin = min;
-    fMax = max;
-  } 
-  else 
-  {
-    fMin = max;
-    fMax = min;
-  }
-
-  fNBins = (Int_t)((fMax - fMin) / (step)) + 1;
+  Double_t dblNbins = TMath::Abs(max - min) / step;
+  Int_t    intNbins = ((Int_t)dblNbins) + 1;
+  
+  SetBins(intNbins, min, max);
 }
 
 //_____________________________________________________________________________
-Bool_t AliRsnValue::Eval(AliRsnMother *mother, const AliRsnPairDef *pairDef, AliRsnEvent *event)
+void AliRsnValue::SetBins(Int_t nbins, Double_t *array)
+{
+//
+// Set binning for the axis in unequally spaced bins
+// using the same way it is done in TAxis
+//
+
+  fArray.Adopt(nbins, array);
+  for (Int_t k = 0; k < fArray.GetSize() - 1; k++) AliDebug(AliLog::kDebug + 3, Form("Bin #%d: %f - %f", k, fArray[k], fArray[k+1]));
+}
+
+//_____________________________________________________________________________
+Bool_t AliRsnValue::Eval(AliRsnMother * const mother, AliRsnPairDef * const pairDef, AliRsnEvent * const event)
 {
 //
 // Evaluation of the required value.
@@ -178,6 +153,24 @@ Bool_t AliRsnValue::Eval(AliRsnMother *mother, const AliRsnPairDef *pairDef, Ali
     case kTrack2Pt:
       fValue = mother->GetDaughter(1)->P().Perp();
       break;
+    case kTrack1Px:
+      fValue = mother->GetDaughter(0)->P().X();
+      break;
+    case kTrack1Py:
+      fValue = mother->GetDaughter(0)->P().Y();
+      break;
+    case kTrack1Pz:
+      fValue = mother->GetDaughter(0)->P().Z();
+      break;
+    case kTrack2Px:
+      fValue = mother->GetDaughter(1)->P().X();
+      break;
+    case kTrack2Py:
+      fValue = mother->GetDaughter(1)->P().Y();
+      break;
+    case kTrack2Pz:
+      fValue = mother->GetDaughter(1)->P().Z();
+      break;
     case kPairInvMass:
       fValue = mother->Sum().M();
       break;
@@ -202,9 +195,81 @@ Bool_t AliRsnValue::Eval(AliRsnMother *mother, const AliRsnPairDef *pairDef, Ali
       mother->SetDefaultMass(mass);
       fValue = mother->Ref().Rapidity();
       break;
+    case kPairPhi:
+      fValue = mother->Sum().Phi();
+      break;
+    case kPairPhiMC:
+      fValue = mother->SumMC().Phi();
+      break;
+    case kPairPtRatio:
+      fValue  = TMath::Abs(mother->GetDaughter(0)->P().Perp() - mother->GetDaughter(1)->P().Perp());
+      fValue /= TMath::Abs(mother->GetDaughter(0)->P().Perp() + mother->GetDaughter(1)->P().Perp());
+      break;
+    case kPairDipAngle:
+      fValue = mother->GetDaughter(0)->P().Angle(mother->GetDaughter(1)->P().Vect());
+      fValue = TMath::Abs(TMath::ACos(fValue));
+      break;
+    case kPairCosThetaStar:
+      fValue = mother->CosThetaStar();
+      break;
+    case kPairCosThetaStar1:
+      //fValue = TMath::Cos(mother->ThetaStar(kTRUE, kFALSE));
+      break;
+    case kPairCosThetaStar2:
+      //fValue = TMath::Cos(mother->ThetaStar(kFALSE, kFALSE));
+      break;
+    case kPairCosThetaStarMC1:
+      //fValue = TMath::Cos(mother->ThetaStar(kTRUE, kTRUE));
+      break;
+    case kPairCosThetaStarMC2:
+      //fValue = TMath::Cos(mother->ThetaStar(kFALSE, kTRUE));
+      break;
+    case kAngleToLeading:
+      {
+    	  int ID1 = (mother->GetDaughter(0))->GetID();
+    	  int ID2 = (mother->GetDaughter(1))->GetID();
+    	  int leadingID = event->SelectLeadingParticle(0);
+    	  if(leadingID == ID1 || leadingID == ID2) return kFALSE;
+    	  AliRsnDaughter  leadingPart = event->GetDaughter(leadingID);
+    	  AliVParticle *ref = leadingPart.GetRef();
+
+    	  fValue = ref->Phi() - mother->Sum().Phi();
+    	  //return angle w.r.t. leading particle in the range -pi/2, 3/2pi
+    	  while(fValue >= TMath::Pi()) fValue -= 2*TMath::Pi();
+    	  while(fValue < -0.5*TMath::Pi()) fValue += 2*TMath::Pi();
+    	  //Printf("%g", fValue);
+      }
+      break;
     case kEventMult:
-      if (!event) fValue = 0.0;
-      fValue = (Double_t)event->GetMultiplicity();
+      if (!event) 
+      {
+        fValue = 0.0;
+        return kFALSE;
+      }
+      else fValue = (Double_t)event->GetMultiplicity();
+      break;
+    case kLeadingPt:
+      if (!event) 
+      {
+        fValue = 0.0;
+        return kFALSE;
+      }
+      else
+      {
+    	  int leadingID = event->SelectLeadingParticle(0);
+    	  if(leadingID >= 0) {
+    		  AliRsnDaughter leadingPart = event->GetDaughter(leadingID);
+    		  AliVParticle *ref = leadingPart.GetRef();
+    		  fValue = ref->Pt();
+    	  }
+    	  else fValue = 0;
+      }
+      break;
+    case kQInv:
+      {
+        TLorentzVector diff = mother->GetDaughter(0)->P() - mother->GetDaughter(1)->P();
+        fValue = diff.M();
+      }
       break;
     default:
       AliWarning("Invalid value type");
@@ -212,4 +277,69 @@ Bool_t AliRsnValue::Eval(AliRsnMother *mother, const AliRsnPairDef *pairDef, Ali
   }
   
   return kTRUE;
+}
+
+//_____________________________________________________________________________
+Bool_t AliRsnValue::Eval(AliRsnDaughter * const daughter, AliRsnEvent * const event)
+{
+//
+// Evaluation of the required value.
+// Checks that the passed object is of the right type
+// and if this check is successful, returns the required value.
+// The output of the function tells if it was successful,
+// and the values must be taken with GetValue().
+//
+
+  // avoid segfaults
+  if (!daughter) return kFALSE;
+
+  switch (fType)
+  {
+    case kEventMult:
+      if (!event) 
+      {
+        fValue = 0.0;
+        return kFALSE;
+      }
+      else fValue = (Double_t)event->GetMultiplicity();
+      break;
+    case kLeadingPt:
+      if (!event) 
+      {
+        fValue = 0.0;
+        return kFALSE;
+      }
+      else
+      {
+    	  int leadingID = event->SelectLeadingParticle(0);
+    	  if(leadingID >= 0) {
+    		  AliRsnDaughter leadingPart = event->GetDaughter(leadingID);
+    		  AliVParticle *ref = leadingPart.GetRef();
+    		  fValue = ref->Pt();
+    	  }
+    	  else fValue = 0;
+      }
+      break;
+    default:
+      AliWarning("Invalid value type");
+      return kFALSE;
+  }
+  
+  return kTRUE;
+}
+
+//_____________________________________________________________________________
+void AliRsnValue::Print(Option_t *) const
+{
+//
+// Print all bins
+//
+
+  Int_t   i, n = fArray.GetSize();
+  TString msg("Array values: ");
+  
+  for (i = 0; i < n; i++) msg += Form("%f, ", fArray[i]);
+  
+  AliInfo(Form("Axis name: %s", GetName()));
+  AliInfo(msg.Data());
 }

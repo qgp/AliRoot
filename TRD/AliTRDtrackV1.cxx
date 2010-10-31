@@ -214,8 +214,8 @@ AliTRDtrackV1::AliTRDtrackV1(AliTRDseedV1 * const trklts, const Double_t p[5], c
 //_______________________________________________________________
 AliTRDtrackV1::~AliTRDtrackV1()
 {
-  //AliInfo("");
-  //printf("I-AliTRDtrackV1::~AliTRDtrackV1() : Owner[%s]\n", TestBit(kOwner)?"YES":"NO");
+  // Clean up all objects allocated by the track during its lifetime.
+  AliDebug(2, Form("Deleting track[%d]\n   fBackupTrack[%p] fTrackLow[%p] fTrackHigh[%p] Owner[%c].", fESDid, (void*)fBackupTrack, (void*)fTrackLow, (void*)fTrackHigh, TestBit(kOwner)?'y':'n'));
 
   if(fBackupTrack) delete fBackupTrack; fBackupTrack = NULL;
 
@@ -229,6 +229,56 @@ AliTRDtrackV1::~AliTRDtrackV1()
   }
 }
 	
+//_______________________________________________________________
+AliTRDtrackV1 &AliTRDtrackV1::operator=(const AliTRDtrackV1 &t)
+{
+  //
+  // Assignment operator
+  //
+
+  if (this != &t) {
+    ((AliTRDtrackV1 &) t).Copy(*this);
+  }
+
+  return *this;
+
+}
+
+//_____________________________________________________________________________
+void AliTRDtrackV1::Copy(TObject &t) const
+{
+  //
+  // Copy function
+  //
+
+  ((AliTRDtrackV1 &) t).fStatus         = fStatus;
+  ((AliTRDtrackV1 &) t).fESDid          = fESDid;
+  ((AliTRDtrackV1 &) t).fDE             = fDE;
+  ((AliTRDtrackV1 &) t).fkReconstructor = fkReconstructor;
+  ((AliTRDtrackV1 &) t).fBackupTrack    = 0x0;
+  ((AliTRDtrackV1 &) t).fTrackLow       = 0x0;
+  ((AliTRDtrackV1 &) t).fTrackHigh      = 0x0;
+
+  for(Int_t ip = 0; ip < kNplane; ip++) { 
+    ((AliTRDtrackV1 &) t).fTrackletIndex[ip] = fTrackletIndex[ip];
+    ((AliTRDtrackV1 &) t).fTracklet[ip]      = fTracklet[ip];
+  }
+  if (fTrackLow) {
+    ((AliTRDtrackV1 &) t).fTrackLow  = new AliExternalTrackParam(*fTrackLow);
+  }
+  if (fTrackHigh){
+    ((AliTRDtrackV1 &) t).fTrackHigh = new AliExternalTrackParam(*fTrackHigh);
+  }
+ 
+  for (Int_t i = 0; i < 3; i++) {
+    ((AliTRDtrackV1 &) t).fBudget[i] = fBudget[i];
+  }
+  for (Int_t is = 0; is < AliPID::kSPECIES; is++) {
+    ((AliTRDtrackV1 &) t).fPID[is] = fPID[is];
+  }  
+
+}
+
 //_______________________________________________________________
 Bool_t AliTRDtrackV1::CookLabel(Float_t wrong)
 {
@@ -407,10 +457,8 @@ Int_t  AliTRDtrackV1::GetClusterIndex(Int_t id) const
       n+=fTracklet[ip]->GetN();
       continue;
     }
-    AliTRDcluster *c = NULL;
     for(Int_t ic=AliTRDseedV1::kNclusters; ic--;){
-      if(!(c = fTracklet[ip]->GetClusters(ic))) continue;
-
+      if(!(fTracklet[ip]->GetClusters(ic))) continue;
       if(n<id){n++; continue;}
       return fTracklet[ip]->GetIndexes(ic);
     }
@@ -452,33 +500,23 @@ Bool_t AliTRDtrackV1::IsEqual(const TObject *o) const
   
   //if ( fPIDquality != inTrack->GetPIDquality() ) return kFALSE;
   
-  for(Int_t i = 0; i < AliPID::kSPECIES; i++){
-    if ( fPID[i] != inTrack->GetPID(i) ) return kFALSE;
-  }
-  
-  for (Int_t i = 0; i < 3; i++){
-    if ( fBudget[i] != inTrack->GetBudget(i) ) return kFALSE;
-  }
-  if ( fDE != inTrack->GetEdep() ) return kFALSE;
-  if ( fFakeRatio != inTrack->GetFakeRatio() ) return kFALSE;
-  if ( fChi2 != inTrack->GetChi2() ) return kFALSE;
-  if ( fMass != inTrack->GetMass() ) return kFALSE;
-  if ( fLab != inTrack->GetLabel() ) return kFALSE;
-  if ( fN != inTrack->GetNumberOfClusters() ) return kFALSE;
-  if ( AliKalmanTrack::GetIntegratedLength() != inTrack->GetIntegratedLength() ) return kFALSE;
-  
-  if ( GetX() != inTrack->GetX() ) return kFALSE;
-  if ( GetAlpha() != inTrack->GetAlpha() ) return kFALSE;
-  const Double_t *inP = inTrack->GetParameter();
-  const Double_t *curP = GetParameter();
-  for (Int_t i = 0; i < 5; i++){
-    if ( curP[i] != inP[i]) return kFALSE;
-  }
-  const Double_t *inC = inTrack->GetCovariance();
-  const Double_t *curC = GetCovariance();
-  for (Int_t i = 0; i < 15; i++){
-    if ( curC[i] != inC[i]) return kFALSE;
-  }
+  if(memcmp(fPID, inTrack->fPID, AliPID::kSPECIES*sizeof(Double32_t))) return kFALSE;
+  if(memcmp(fBudget, inTrack->fBudget, 3*sizeof(Double32_t))) return kFALSE;
+  if(memcmp(&fDE, &inTrack->fDE, sizeof(Double32_t))) return kFALSE;
+  if(memcmp(&fFakeRatio, &inTrack->fFakeRatio, sizeof(Double32_t))) return kFALSE;
+  if(memcmp(&fChi2, &inTrack->fChi2, sizeof(Double32_t))) return kFALSE;
+  if(memcmp(&fMass, &inTrack->fMass, sizeof(Double32_t))) return kFALSE;
+  if( fLab != inTrack->fLab ) return kFALSE;
+  if( fN != inTrack->fN ) return kFALSE;
+  Double32_t l(0.), in(0.);
+  l = GetIntegratedLength(); in = inTrack->GetIntegratedLength();
+  if(memcmp(&l, &in, sizeof(Double32_t))) return kFALSE;
+  l=GetX(); in=inTrack->GetX();
+  if(memcmp(&l, &in, sizeof(Double32_t))) return kFALSE;
+  l = GetAlpha(); in = inTrack->GetAlpha();
+  if(memcmp(&l, &in, sizeof(Double32_t))) return kFALSE;
+  if(memcmp(GetParameter(), inTrack->GetParameter(), 5*sizeof(Double32_t))) return kFALSE;
+  if(memcmp(GetCovariance(), inTrack->GetCovariance(), 15*sizeof(Double32_t))) return kFALSE;
   
   for (Int_t iTracklet = 0; iTracklet < kNplane; iTracklet++){
     AliTRDseedV1 *curTracklet = fTracklet[iTracklet];
@@ -562,7 +600,7 @@ Int_t AliTRDtrackV1::MakeBackupTrack()
 }
 
 //_____________________________________________________________________________
-Int_t AliTRDtrackV1::GetProlongation(Double_t xk, Double_t &y, Double_t &z)
+Int_t AliTRDtrackV1::GetProlongation(Double_t xk, Double_t &y, Double_t &z) const
 {
   //
   // Find a prolongation at given x
@@ -588,7 +626,7 @@ Bool_t AliTRDtrackV1::PropagateTo(Double_t xk, Double_t xx0, Double_t xrho)
   // "xrho" - thickness*density    [g/cm^2] 
   // 
 
-  if (xk == GetX()) return kTRUE;
+  if (TMath::Abs(xk - GetX())<1.e-2) return kTRUE; // 100mum limit
 
   Double_t xyz0[3] = {GetX(), GetY(), GetZ()}, // track position BEFORE propagation 
            b[3];    // magnetic field 
@@ -803,21 +841,35 @@ void AliTRDtrackV1::SetTracklet(AliTRDseedV1 *const trklt, Int_t index)
 //_______________________________________________________________
 void AliTRDtrackV1::SetTrackIn()
 {
+//  Save location of birth for the TRD track
+//  If the pointer is not valid allocate memory
+//
   const AliExternalTrackParam *op = dynamic_cast<const AliExternalTrackParam*>(this);
-  fTrackLow = fTrackLow ? new(fTrackLow) AliExternalTrackParam(*op) : new AliExternalTrackParam(*op);
+
+  //printf("SetTrackIn() : fTrackLow[%p]\n", (void*)fTrackLow);
+  if(fTrackLow){
+    fTrackLow->~AliExternalTrackParam();
+    new(fTrackLow) AliExternalTrackParam(*op);
+  } else fTrackLow = new AliExternalTrackParam(*op);
 }
 
 //_______________________________________________________________
 void AliTRDtrackV1::SetTrackOut(const AliExternalTrackParam *op)
 {
+//  Save location of death for the TRD track
+//  If the pointer is not valid allocate memory
+//
   if(!op) op = dynamic_cast<const AliExternalTrackParam*>(this);
-  fTrackHigh = fTrackHigh ? new(fTrackHigh) AliExternalTrackParam(*op) : new AliExternalTrackParam(*op);
+  if(fTrackHigh){
+    fTrackHigh->~AliExternalTrackParam();
+    new(fTrackHigh) AliExternalTrackParam(*op);
+  } else fTrackHigh = new AliExternalTrackParam(*op);
 }
 
 //_______________________________________________________________
 void AliTRDtrackV1::UnsetTracklet(Int_t plane)
 {
-  if(plane<0 && plane >= kNplane) return;
+  if(plane<0) return;
   fTrackletIndex[plane] = -1;
   fTracklet[plane] = NULL;
 }

@@ -75,13 +75,6 @@ AliTRDtrackerDebug::~AliTRDtrackerDebug()
 
 
 //____________________________________________________
-void AliTRDtrackerDebug::Draw(Option_t *) 
-{
-// steer draw function
-}
-
-
-//____________________________________________________
 Bool_t AliTRDtrackerDebug::Init()
 {
 // steer linking data for various debug streams	
@@ -146,7 +139,7 @@ void AliTRDtrackerDebug::ResidualsClustersTrack(const AliTRDseedV1 *tracklet)
     Double_t xc = c->GetX(), yc = c->GetY(), zc = c->GetZ();
 
     // propagate track to cluster 
-    PropagateToX(*fTrack, xc, 2.); 
+    if(!PropagateToX(*fTrack, xc, 2.)) continue; 
     fTrack->GetXYZ(x);
     
     // transform to local tracking coordinates
@@ -279,7 +272,9 @@ void AliTRDtrackerDebug::ResidualsTrackletsTrack() const
       dzdx = tracklet[ip].GetZref(1);
 
     // restore tracklet
-    tracklet[ip] = (*fTrack->GetTracklet(ip)); 
+    AliTRDseedV1 *ptr(NULL);
+    if(!(ptr = fTrack->GetTracklet(ip))) continue;
+    tracklet[ip] = (*ptr);
 // 		for(int ic=0; ic<AliTRDseedV1:knTimebins; ic++){
 // 			if(!(c = tracklet[ip].GetClusters(ic))) continue;
 // 			Double_t xc = c->GetX(), yc = c->GetY(), zc = c->GetZ();
@@ -675,9 +670,11 @@ TCanvas* AliTRDtrackerDebug::PlotFullTrackFit(Int_t event, Int_t candidate, Int_
       else
         refP[nLayers] = tracklet[iLayer]->GetZref(0);
       nLayers++;
+      AliTRDcluster *cl(NULL);
       for(Int_t itb = 0; itb < 30; itb++){
         if(!tracklet[iLayer]->IsUsable(itb)) continue;
-        AliTRDcluster *cl = tracklet[iLayer]->GetClusters(itb);
+        if(!(cl = tracklet[iLayer]->GetClusters(itb))) continue;
+        
         if(!strcmp(direction, "y"))
           clp[ncls] = cl->GetY();
         else

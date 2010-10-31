@@ -19,8 +19,6 @@
 // TOF tender: reapply TOF pid on the fly                                    //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-
-
 #include <AliLog.h>
 #include <AliESDEvent.h>
 #include <AliESDInputHandler.h>
@@ -28,8 +26,8 @@
 #include <AliESDpid.h>
 #include <AliTender.h>
 
-#include "AliTOFcalibESD.h"
-#include "AliTOFT0makerANA.h"
+#include "AliTOFcalib.h"
+#include "AliTOFT0maker.h"
 
 #include "AliTOFTenderSupply.h"
 
@@ -37,9 +35,10 @@
 AliTOFTenderSupply::AliTOFTenderSupply() :
   AliTenderSupply(),
   fESDpid(0x0),
-  fTOFesdCalib(0x0),
+  fTOFCalib(0x0),
   fTOFT0maker(0x0),
-  fTOFres(130.)
+  fTOFres(100.),
+  fIsMC(kFALSE)
 {
   //
   // default ctor
@@ -50,9 +49,10 @@ AliTOFTenderSupply::AliTOFTenderSupply() :
 AliTOFTenderSupply::AliTOFTenderSupply(const char *name, const AliTender *tender) :
   AliTenderSupply(name,tender),
   fESDpid(0x0),
-  fTOFesdCalib(0x0),
+  fTOFCalib(0x0),
   fTOFT0maker(0x0),
-  fTOFres(130.)
+  fTOFres(100.),
+  fIsMC(kFALSE)
 {
   //
   // named ctor
@@ -81,16 +81,21 @@ void AliTOFTenderSupply::Init()
 
   //Set proper resolution in case of MC
   AliAnalysisManager *mgr=AliAnalysisManager::GetAnalysisManager();
-  if (mgr->GetMCtruthEventHandler())   fESDpid->GetTOFResponse().SetTimeResolution(80.);
-  
-  
+  if (mgr->GetMCtruthEventHandler()) fIsMC=kTRUE;
+
+
   //
   // Create TOF calibration classes
   //
-  if (!fTOFesdCalib) fTOFesdCalib=new AliTOFcalibESD;
+  if (!fTOFCalib){
+      fTOFCalib=new AliTOFcalib();
+      fTOFCalib->SetCorrectTExp(kTRUE); // apply a fine tuning on the expected times at low momenta
+      if(fIsMC) fTOFCalib->SetCalibrateTOFsignal(kFALSE); // no new calibration
+      fTOFCalib->Init();
+  }
   if (!fTOFT0maker) {
-    fTOFT0maker = new AliTOFT0makerANA(fESDpid);
-    fTOFT0maker->SetTimeResolution(fTOFres); // set TOF resolution for the PID 
+      fTOFT0maker = new AliTOFT0maker(fESDpid,fTOFCalib);
+      fTOFT0maker->SetTimeResolution(fTOFres); // set TOF resolution for the PID
   }
 }
 
@@ -110,23 +115,27 @@ void AliTOFTenderSupply::ProcessEvent()
 
   //recalculate TOF signal
   if (fTender->RunChanged()){
-    fTOFesdCalib->Init(fTender->GetRun());
+    fTOFCalib->Init();
   }
-  fTOFesdCalib->CalibrateESD(event);
-  
+  fTOFCalib->CalibrateESD(event);
+
+  if(fIsMC) fTOFT0maker->TuneForMC(event);
+
   //Calculate event time zero
-  Double_t* calcolot0;
-  calcolot0=fTOFT0maker->RemakePID(event); // calculate T0-TOF(T0-FILL) and
-  Double_t t0best=calcolot0[0];  // T0-Event = (T0-TOF .OR. T0-FILL) <- This is what you asked me
-  event->SetT0(t0best);
-  
+  fTOFT0maker->ComputeT0TOF(event);
+  fTOFT0maker->ApplyT0TOF(event);
+
+  event->SetT0(0.0);
+
   //
   // recalculate PID probabilities
   //
-  
+
   Int_t ntracks=event->GetNumberOfTracks();
   for(Int_t itrack = 0; itrack < ntracks; itrack++){
     fESDpid->MakeTOFPID(event->GetTrack(itrack),0);
   }
-  
+
 }
+
+

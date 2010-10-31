@@ -108,7 +108,7 @@ public:
   Int_t           LoadClusters(TClonesArray *const clusters);
   Int_t           PropagateBack(AliESDEvent *event);
   static Int_t    PropagateToX(AliTRDtrackV1 &t, Double_t xToGo, Double_t maxStep);
-  Int_t           ReadClusters(TClonesArray* &array, TTree *in) const;
+  Bool_t          ReadClusters(TTree *in);
   Int_t           RefitInward(AliESDEvent *event);
   static void     SetNTimeBins(Int_t nTimeBins){fgNTimeBins = nTimeBins; }
   void            SetReconstructor(const AliTRDReconstructor *rec) {fkReconstructor = rec;}
@@ -176,7 +176,7 @@ protected:
   static Bool_t  AdjustSector(AliTRDtrackV1 *const track); 
   Double_t       BuildSeedingConfigs(AliTRDtrackingChamber **stack, Int_t *configs);
   Int_t          BuildTrackingContainers();
-  static Float_t CalculateChi2Z(AliTRDseedV1 *tracklets, Double_t offset, Double_t slope, Double_t xref);
+  static Float_t CalculateChi2Z(const AliTRDseedV1 *tracklets, Double_t offset, Double_t slope, Double_t xref);
   Int_t          Clusters2TracksSM(Int_t sector, AliESDEvent *esd);
   Int_t          Clusters2TracksStack(AliTRDtrackingChamber **stack, TClonesArray * const esdTrackList);
   AliTRDseedV1*  GetTracklet(AliTRDtrackV1 *const trk, Int_t plane, Int_t &idx);

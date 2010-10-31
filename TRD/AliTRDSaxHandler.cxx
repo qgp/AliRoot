@@ -422,9 +422,13 @@ void AliTRDSaxHandler::OnEndElement(const char *name)
     if (fLevel1Tag == kInsideGainTable) {
       if (CompareString(tagName, "name"))   fDCSFEEObj->SetGainTableName(fContent);
       if (CompareString(tagName, "desc"))   fDCSFEEObj->SetGainTableDesc(fContent);
-      if (CompareString(tagName, "adcdac")) fDCSFEEObj->SetGainTableAdcdac(fCurrentROB, fCurrentMCM, fContent.Atoi());
-      if (CompareString(tagName, "fgfn"))   fDCSFEEObj->SetGainTableFgfn(fCurrentROB, fCurrentMCM, fCurrentADC, fContent.Atoi());
-      if (CompareString(tagName, "fgan"))   fDCSFEEObj->SetGainTableFgan(fCurrentROB, fCurrentMCM, fCurrentADC, fContent.Atoi());
+      if (fCurrentROB>=0 && fCurrentMCM>=0) {
+	if (CompareString(tagName, "adcdac")) fDCSFEEObj->SetGainTableAdcdac(fCurrentROB, fCurrentMCM, fContent.Atoi());
+	if (fCurrentADC>=0) {
+	  if (CompareString(tagName, "fgfn"))   fDCSFEEObj->SetGainTableFgfn(fCurrentROB, fCurrentMCM, fCurrentADC, fContent.Atoi());
+	  if (CompareString(tagName, "fgan"))   fDCSFEEObj->SetGainTableFgan(fCurrentROB, fCurrentMCM, fCurrentADC, fContent.Atoi());
+	}
+      }
     }
     if (fInsideRstate == 1) {
       if (fCurrentROB>=0 && fCurrentMCM>=0) {

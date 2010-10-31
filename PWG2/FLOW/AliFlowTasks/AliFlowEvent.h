@@ -11,15 +11,15 @@
 #ifndef ALIFLOWEVENT_H
 #define ALIFLOWEVENT_H
 
-class TTree;
-class AliFlowTrackSimpleCuts;
+class AliFlowTrackCuts;
 class AliFlowTrack;
 class AliCFManager;
+class AliVEvent;
 class AliMCEvent;
 class AliESDEvent;
-class AliMCEvent;
 class AliAODEvent;
 class AliMultiplicity;
+class AliESDPmdTrack;
 class TH2F;
 
 #include "AliFlowEventSimple.h"
@@ -43,6 +43,9 @@ public:
   AliFlowEvent( const AliAODEvent* anInput, 
                 const AliCFManager* rpCFManager=NULL, 
                 const AliCFManager* poiCFManager=NULL );  //use CF(2x)
+  AliFlowEvent( const AliESDEvent* anInput,
+                const AliCFManager* poiCFManager,
+                Bool_t hybrid);
   AliFlowEvent( const AliESDEvent* anInput, 
                 const AliMCEvent* anInputMc, 
                 KineSource anOption=kNoKine,
@@ -54,9 +57,16 @@ public:
   AliFlowEvent( const AliESDEvent* anInput,
                 const TH2F* anInputFMDhist,
                 const AliCFManager* poiCFManager );
-
+  AliFlowEvent( AliFlowTrackCuts* rpCuts,
+                AliFlowTrackCuts* poiCuts );
+  //pmd
+  AliFlowEvent( const AliESDEvent* anInput,
+                const AliESDPmdTrack *pmdtracks,
+                const AliCFManager* poiCFManager );
+  //pmd
 
   void SetMCReactionPlaneAngle(const AliMCEvent* mcEvent);
+  using AliFlowEventSimple::SetMCReactionPlaneAngle;
 
   AliFlowTrack* GetTrack( Int_t i );
 

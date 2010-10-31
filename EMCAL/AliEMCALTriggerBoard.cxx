@@ -54,34 +54,38 @@ fSubRegionSize( new TVector2() ),
 fPatchSize(     new TVector2() ),
 fPatches( new TClonesArray("AliEMCALTriggerPatch",10) )
 {
-   fRegion = (int**)malloc( (int)fRegionSize->X() * sizeof( int* ) );  
-
-   if (!fRegion) printf("Error: malloc could not allocate %d bytes for fRegion\n",
-                        int(fRegionSize->X() * sizeof( int* )));
-
-      fMap = (int**)malloc( (int)fRegionSize->X() * sizeof( int* ) );
-
-      if (!fMap) printf("Error: malloc could not allocate %d bytes for fMap\n",
-                        int(fRegionSize->X() * sizeof( int* )));
-
-   for (Int_t i=0;i<fRegionSize->X();i++)
-   {
+  fRegion = (int**)malloc( (int)fRegionSize->X() * sizeof( int* ) );  
+  
+  if (!fRegion) printf("Error: malloc could not allocate %d bytes for fRegion\n",
+                       int(fRegionSize->X() * sizeof( int* )));
+  
+  fMap = (int**)malloc( (int)fRegionSize->X() * sizeof( int* ) );
+  
+  if (!fMap) printf("Error: malloc could not allocate %d bytes for fMap\n",
+                    int(fRegionSize->X() * sizeof( int* )));
+  
+  for (Int_t i=0;i<fRegionSize->X();i++)
+  {
+    if(fRegion){
       fRegion[i] = (int*)malloc( (int)fRegionSize->Y() * sizeof( int ) );
-      
+    
       if (!fRegion[i]) printf("Error: malloc could not allocate %d bytes for fRegion[%d]\n",
-                              i,int(fRegionSize->Y() * sizeof( int )));
-
-         fMap[i] = (int*)malloc( (int)fRegionSize->Y() * sizeof( int ) );
-
-            if (!fMap[i]) printf("Error: malloc could not allocate %d bytes for fMap[%d]\n",
-                              i,int(fRegionSize->Y() * sizeof( int )));
-   }
-
+                            i,int(fRegionSize->Y() * sizeof( int )));
+    }
+    if(fMap){
+      fMap[i] = (int*)malloc( (int)fRegionSize->Y() * sizeof( int ) );
+    
+      if (!fMap[i]) printf("Error: malloc could not allocate %d bytes for fMap[%d]\n",
+                           i,int(fRegionSize->Y() * sizeof( int )));
+    }
+  }
+  
 	// Initialize region matrix
 	ZeroRegion();
-	
+	if(fMap){
 	for (int i=0; i<fRegionSize->X(); ++i)
 		for (int j=0; j<fRegionSize->Y(); ++j) fMap[i][j] = 0;
+  }
 }
 
 //_______________
@@ -89,14 +93,15 @@ AliEMCALTriggerBoard::~AliEMCALTriggerBoard()
 {
    for (Int_t i=0;i<fRegionSize->X();i++) 
    {
-      if (fRegion[i]) {delete fRegion[i]; fRegion[i] = 0;}
-      if (   fMap[i]) {delete    fMap[i];    fMap[i] = 0;}
+      if (fRegion[i]) {free(fRegion[i]); fRegion[i] = 0;}
+      if (   fMap[i]) {free(fMap[i]);    fMap[i] = 0;}
    }
    
-   delete [] fRegion; fRegion = 0x0;
-   delete []    fMap;    fMap = 0x0;
+   free(fRegion); fRegion = 0x0;
+   free(fMap);    fMap = 0x0;
    
    if(fPatches)fPatches->Delete();
+   
    delete fPatches;
 }
 
@@ -108,7 +113,7 @@ void AliEMCALTriggerBoard::ZeroRegion()
 }
 
 //_______________
-void AliEMCALTriggerBoard::SlidingWindow( L1TriggerType_t /*type*/, Int_t thres )
+void AliEMCALTriggerBoard::SlidingWindow(TriggerType_t /*type*/, Int_t thres, Int_t time)
 {
 	//
 	Int_t ipatch = 0;
@@ -134,7 +139,7 @@ void AliEMCALTriggerBoard::SlidingWindow( L1TriggerType_t /*type*/, Int_t thres 
 				//if ( type == kJet ) sum /= 4; // truncate patch sum for jet case
 				
 				new((*fPatches)[fPatches->GetLast()+1]) 
-						AliEMCALTriggerPatch( int(i/fSubRegionSize->X()), int(j/fSubRegionSize->Y()), int(sum) );
+						AliEMCALTriggerPatch(int(i/fSubRegionSize->X()), int(j/fSubRegionSize->Y()), int(sum), time);
 			}
 		}
 	}

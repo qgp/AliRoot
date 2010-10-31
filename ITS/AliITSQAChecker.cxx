@@ -24,6 +24,7 @@
 // --- ROOT system ---
 #include "TH1.h"
 #include <Riostream.h>
+#include "TStyle.h"
 
 // --- AliRoot header files ---
 #include "AliITSQAChecker.h"
@@ -131,7 +132,7 @@ void AliITSQAChecker::Check(Double_t * rv, AliQAv1::ALITASK_t index, TObjArray *
         rv[specie] = 0.; // nothing to check
       }
       else {
-	Double_t *stepbit=new Double_t[AliQAv1::kNBIT];
+	Double_t stepbit[AliQAv1::kNBIT];
 	Double_t histonumb= list[specie]->GetEntries();
 	CreateStepForBit(histonumb,stepbit); 
         TIter next1(list[specie]);
@@ -140,16 +141,17 @@ void AliITSQAChecker::Check(Double_t * rv, AliQAv1::ALITASK_t index, TObjArray *
         Bool_t skipped[6]={kFALSE,kFALSE,kFALSE,kFALSE,kFALSE,kFALSE};
         // look for layers that we wanted to skip
         while ( (hdata = dynamic_cast<TH1 *>(next1())) ) {
-          if(!hdata) continue;
-          TString hname = hdata->GetName();
-          if(!hname.Contains("hESDSkippedLayers")) continue;
-          for(Int_t k=1; k<7; k++) {
-            if(hdata->GetBinContent(k)>0) { 
-              nskipped++; 
-              skipped[k-1]=kTRUE; 
-            } 
-          } 
-        }
+          if(hdata){
+	    TString hname = hdata->GetName();
+	    if(!hname.Contains("hESDSkippedLayers")) continue;
+	    for(Int_t k=1; k<7; k++) {
+	      if(hdata->GetBinContent(k)>0) { 
+		nskipped++; 
+		skipped[k-1]=kTRUE; 
+	      } 
+	    } 
+	  }
+	}
         TIter next(list[specie]);
         while ( (hdata = dynamic_cast<TH1 *>(next())) ) {
           if(hdata){
@@ -171,8 +173,8 @@ void AliITSQAChecker::Check(Double_t * rv, AliQAv1::ALITASK_t index, TObjArray *
                   AliDebug(AliQAv1::GetQADebugLevel(),Form("SA tracks have few points on layer %d - look at histogram hESDClustersSA",k));
                 }
               }  
-            }
-
+            }//end clustermapsa 
+	    
             else if(hname.Contains("hESDClusterMapMI") && entries>0.){
               // Check if there are layers with anomalously low 
               // contributing points to MI reconstructed tracks
@@ -186,8 +188,8 @@ void AliITSQAChecker::Check(Double_t * rv, AliQAv1::ALITASK_t index, TObjArray *
                   AliDebug(AliQAv1::GetQADebugLevel(),Form("MI tracks have few points on layer %d - look at histogram hESDClustersMI",k));
                 }
               }  
-            }
-
+            }//end clustermapmi
+	    
             else if(hname.Contains("hESDClustersMI") && entries>0.){
               // Check if 6 clusters MI tracks are the majority
               AliDebug(AliQAv1::GetQADebugLevel(),Form("Processing histogram %s",hname.Data()));
@@ -199,8 +201,8 @@ void AliITSQAChecker::Check(Double_t * rv, AliQAv1::ALITASK_t index, TObjArray *
                   AliDebug(AliQAv1::GetQADebugLevel(),Form("MI Tracks with %d clusters are more than tracks with %d clusters. Look at histogram hESDClustersMI",k-1,6-nskipped));
                 }
               }
-            }
-
+            }//end clustersmi
+	    
             else if(hname.Contains("hESDClustersSA") && entries>0.){
               // Check if 6 clusters SA tracks are the majority
               AliDebug(AliQAv1::GetQADebugLevel(),Form("Processing histogram %s",hname.Data()));
@@ -212,8 +214,8 @@ void AliITSQAChecker::Check(Double_t * rv, AliQAv1::ALITASK_t index, TObjArray *
                   AliDebug(AliQAv1::GetQADebugLevel(), Form("SA Tracks with %d clusters are more than tracks with %d clusters. Look at histogram hESDClustersSA",k-1,6-nskipped));
                 }
               }
-            }
-
+            }//end clusterssa
+	    
             else if(hname.Contains("hSPDVertexZ") && entries>0.){
               // Check if average Z vertex coordinate is -5 < z < 5 cm
               AliDebug(AliQAv1::GetQADebugLevel(),Form("Processing histogram %s",hname.Data()));
@@ -222,32 +224,32 @@ void AliITSQAChecker::Check(Double_t * rv, AliQAv1::ALITASK_t index, TObjArray *
                 verSPDZ = kFALSE;
                 AliDebug(AliQAv1::GetQADebugLevel(),Form("Average z vertex coordinate is at z= %10.4g cm",hdata->GetMean()));
               }
-            }
-          }
-          else{
-            AliError("ESD Checker - invalid data type");
-          }
-	}
-	rv[specie] = 0.;
-	if(tested>0){
-	  if(tested == empty){
-	    rv[specie] = 2500.; // set to error
-	    AliWarning(Form("All ESD histograms are empty - specie=%d",specie));
-	  }
-	  else {
-	    rv[specie] = 2500.-1500.*(static_cast<Double_t>(tested-empty)/static_cast<Double_t>(tested)); // INFO if all histos are filled
-	    if(cluMapSA)rv[specie]-=200.;
-	    if(cluMapMI)rv[specie]-=200.;
-	    if(cluMI)rv[specie]-=200.;
-	    if(cluSA)rv[specie]-=200.;
-	    if(verSPDZ)rv[specie]-=199.;  // down to 1 if everything is OK
-	  }
-	}
+            }//end spdvertexz
+	    
+	    else{ AliError("ESD Checker - invalid data type");}//end else
+	    
+	    rv[specie] = 0.;
+	    if(tested>0){
+	      if(tested == empty){
+		rv[specie] = 2500.; // set to error
+		AliWarning(Form("All ESD histograms are empty - specie=%d",specie));
+	      }
+	      else {
+		rv[specie] = 2500.-1500.*(static_cast<Double_t>(tested-empty)/static_cast<Double_t>(tested)); // INFO if all histos are filled
+		if(cluMapSA)rv[specie]-=200.;
+		if(cluMapMI)rv[specie]-=200.;
+		if(cluMI)rv[specie]-=200.;
+		if(cluSA)rv[specie]-=200.;
+		if(verSPDZ)rv[specie]-=199.;  // down to 1 if everything is OK
+	      }
+	    }//end tested
+	  }//end hdata
+	}//end while
+	//     AliDebug(AliQAv1::GetQADebugLevel(), Form("ESD - Tested %d histograms, Return value %f \n",tested,rv[specie]));
+	AliInfo(Form("ESD - Tested %d histograms, Return value %f \n",tested,rv[specie]));
       }
-      //     AliDebug(AliQAv1::GetQADebugLevel(), Form("ESD - Tested %d histograms, Return value %f \n",tested,rv[specie]));
-      AliInfo(Form("ESD - Tested %d histograms, Return value %f \n",tested,rv[specie]));
     }
-  }  // end of ESD QA
+  } // end of ESD QA
   else{
     
     //____________________________________________________________________________
@@ -470,4 +472,45 @@ void AliITSQAChecker::SetQA(AliQAv1::ALITASK_t index, Double_t * value) const
 
 }
 
+
+//__________________________________________________________________
+void  AliITSQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, AliQAv1::MODE_t mode)
+{
+
+  //gStyle->SetPalette(1);
+
+  //Int_t nImages = 0 ;
+  //Int_t imageindex=0;
+  for (Int_t esIndex = 0 ; esIndex < AliRecoParam::kNSpecies ; esIndex++) {
+    if (! AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::ConvertIndex(esIndex)) ) 
+      continue ;
+    //else imageindex=esIndex;
+
+    TIter next(list[esIndex]) ;  
+    TH1 * hdata = NULL ; 
+    while ( (hdata=static_cast<TH1 *>(next())) ) {
+      TString cln(hdata->ClassName()) ; 
+      if ( ! cln.Contains("TH") )
+        continue ; 
+      if(cln.Contains("TH2")) hdata->SetOption("colz");
+    }
+    break ; 
+  }
+
+  Bool_t retvalue=kFALSE;
+
+  if(GetSubDet()==0) MakeITSImage(list,task, mode);
+  else if(GetSubDet()==1) 
+    {
+      retvalue=fSPDChecker->MakeSPDImage(list,task, mode) ; 
+      if(retvalue==kFALSE)AliQACheckerBase::MakeImage(list,task, mode);
+    }
+  else if(GetSubDet()==2){ retvalue=fSDDChecker->MakeSDDImage(list,task, mode) ;if(retvalue==kFALSE)AliQACheckerBase::MakeImage(list,task,mode); }
+  else if(GetSubDet()==3) 
+    {
+      retvalue=fSSDChecker->MakeSSDImage(list,task, mode) ;
+      if(retvalue==kFALSE)AliQACheckerBase::MakeImage(list,task, mode); 
+    }
+
+}
 

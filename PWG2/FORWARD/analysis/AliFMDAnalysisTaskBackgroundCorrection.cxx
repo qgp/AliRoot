@@ -79,11 +79,13 @@ void AliFMDAnalysisTaskBackgroundCorrection::CreateOutputObjects()
   
   
   
-  TH2F* hMult = 0;
-  TH2F* hMultTrVtx = 0;
-  TH2F* hHits = 0;
-  TH2F* hSPDMult = 0;
+  TH2F* hMult         = 0;
+  TH2F* hMultTrVtx    = 0;
+  TH2F* hMultNSD      = 0;
+  TH2F* hHits         = 0;
+  TH2F* hSPDMult      = 0;
   TH2F* hSPDMultTrVtx = 0;
+  TH2F* hSPDMultNSD   = 0;
   // TH2F* hHitsNoCuts = 0;
   Int_t nVtxbins = pars->GetNvtxBins();
   for(Int_t i = 0; i< nVtxbins; i++) {
@@ -104,7 +106,7 @@ void AliFMDAnalysisTaskBackgroundCorrection::CreateOutputObjects()
 			      nSec, 0, 2*TMath::Pi());
 	    hMult->Sumw2();
 	    fOutputList->Add(hMult);
-	    hMultTrVtx  = new TH2F(Form("multTrVtx_FMD%d%c_vtxbin%d",det,ringChar,i),Form("mult_FMD%d%c_vtxbin%d",det,ringChar,i),
+	    hMultTrVtx  = new TH2F(Form("multTrVtx_FMD%d%c_vtxbin%d",det,ringChar,i),Form("multTrVtx_FMD%d%c_vtxbin%d",det,ringChar,i),
 				   hBg->GetNbinsX(),
 				   hBg->GetXaxis()->GetXmin(),
 				   hBg->GetXaxis()->GetXmax(),
@@ -112,6 +114,16 @@ void AliFMDAnalysisTaskBackgroundCorrection::CreateOutputObjects()
 	    hMultTrVtx->Sumw2();
 
 	    fOutputList->Add(hMultTrVtx);
+	    
+	    hMultNSD  = new TH2F(Form("multNSD_FMD%d%c_vtxbin%d",det,ringChar,i),Form("multNSD_FMD%d%c_vtxbin%d",det,ringChar,i),
+				   hBg->GetNbinsX(),
+				   hBg->GetXaxis()->GetXmin(),
+				   hBg->GetXaxis()->GetXmax(),
+				   nSec, 0, 2*TMath::Pi());
+	    hMultNSD->Sumw2();
+
+	    fOutputList->Add(hMultNSD);
+	    
 	    hHits  = new TH2F(Form("hits_FMD%d%c_vtxbin%d",det,ringChar,i),Form("hits_FMD%d%c_vtxbin%d",det,ringChar,i),
 			      hBg->GetNbinsX(),
 			      hBg->GetXaxis()->GetXmin(),
@@ -146,11 +158,19 @@ void AliFMDAnalysisTaskBackgroundCorrection::CreateOutputObjects()
 			 20, 0, 2*TMath::Pi());
     hSPDMultTrVtx->Sumw2();
     fOutputList->Add(hSPDMultTrVtx);
+    hSPDMultNSD  = new TH2F(Form("multNSD_SPD_vtxbin%d",i),Form("multNSD_SPD_vtxbin%d",i),
+			 hBg->GetNbinsX(),
+			 hBg->GetXaxis()->GetXmin(),
+			 hBg->GetXaxis()->GetXmax(),
+			 20, 0, 2*TMath::Pi());
+    hSPDMultNSD->Sumw2();
+    fOutputList->Add(hSPDMultNSD);
+    
     
   }
-  
-  TH2F* dNdetadphiHistogram = new TH2F("dNdetadphiHistogramTrVtx","dNdetadphiHistogramTrVtx;#eta;#Phi",pars->GetNetaBins(),-6,6,20,0,2*TMath::Pi());
-  TH2F* dNdetadphiHistogramSPD = new TH2F("dNdetadphiHistogramSPDTrVtx","dNdetadphiHistogramSPDTrVtx;#eta;#Phi",pars->GetNetaBins(),-6,6,20,0,2*TMath::Pi());
+  TH2F* hBg = pars->GetBackgroundCorrection(1, 'I', 5);
+  TH2F* dNdetadphiHistogram = new TH2F("dNdetadphiHistogramTrVtx","dNdetadphiHistogramTrVtx;#eta;#Phi",pars->GetNetaBins(),hBg->GetXaxis()->GetXmin(),hBg->GetXaxis()->GetXmax(),20,0,2*TMath::Pi());
+  TH2F* dNdetadphiHistogramSPD = new TH2F("dNdetadphiHistogramSPDTrVtx","dNdetadphiHistogramSPDTrVtx;#eta;#Phi",pars->GetNetaBins(),hBg->GetXaxis()->GetXmin(),hBg->GetXaxis()->GetXmax(),20,0,2*TMath::Pi());
   //dNdetadphiHistogram->SetErrorOption("g");
   
   fHitList->Add(dNdetadphiHistogram);
@@ -188,17 +208,21 @@ void AliFMDAnalysisTaskBackgroundCorrection::Exec(Option_t */*option*/)
       hMult->Reset();
       TH2F* hMultTrVtx = (TH2F*)fOutputList->FindObject(Form("multTrVtx_FMD%d%c_vtxbin%d",det,ringChar,vtxbin));
       hMultTrVtx->Reset();
+      TH2F* hMultNSD = (TH2F*)fOutputList->FindObject(Form("multNSD_FMD%d%c_vtxbin%d",det,ringChar,vtxbin));
+      hMultNSD->Reset();
     
       TH2F* hSPDMult      = (TH2F*)fOutputList->FindObject(Form("mult_SPD_vtxbin%d",vtxbin));
       hSPDMult->Reset();
       TH2F* hSPDMultTrVtx = (TH2F*)fOutputList->FindObject(Form("multTrVtx_SPD_vtxbin%d",vtxbin));
       hSPDMultTrVtx->Reset();
+      TH2F* hSPDMultNSD = (TH2F*)fOutputList->FindObject(Form("multNSD_SPD_vtxbin%d",vtxbin));
+      hSPDMultNSD->Reset();
     }
     
   }
   
-  
-  
+ 
+  Bool_t nsd = pars->IsEventTriggered(AliFMDAnaParameters::kNSD);
   for(UShort_t det=1;det<=3;det++) {
     
     Int_t nRings = (det==1 ? 1 : 2);
@@ -207,6 +231,7 @@ void AliFMDAnalysisTaskBackgroundCorrection::Exec(Option_t */*option*/)
       
       TH2F* hMult      = (TH2F*)fOutputList->FindObject(Form("mult_FMD%d%c_vtxbin%d",det,ringChar,vtxbin));
       TH2F* hMultTrVtx = (TH2F*)fOutputList->FindObject(Form("multTrVtx_FMD%d%c_vtxbin%d",det,ringChar,vtxbin));
+      TH2F* hMultNSD   = (TH2F*)fOutputList->FindObject(Form("multNSD_FMD%d%c_vtxbin%d",det,ringChar,vtxbin));
       TH2F* hMultInput = (TH2F*)fInputList->FindObject(Form("FMD%d%c_vtxbin%d",det,ringChar,vtxbin));
       TH2F* hHits      = (TH2F*)fHitList->FindObject(Form("hits_FMD%d%c_vtxbin%d",det,ringChar,vtxbin));
       
@@ -214,22 +239,30 @@ void AliFMDAnalysisTaskBackgroundCorrection::Exec(Option_t */*option*/)
       hHits->Add(hMultInput);
       
       TH2F* hBg        = pars->GetBackgroundCorrection(det, ringChar, vtxbin);
-      
+      TH2F* hBgNSD     = pars->GetBackgroundCorrectionNSD(det, ringChar, vtxbin);
       hMult->Add(hMultInput);
       hMultTrVtx->Add(hMultInput);
+      
       hMult->Divide(hBg);//,"B");
       hMultTrVtx->Divide(hBg);//,"B");
-
+      
+      if(nsd) {
+	hMultNSD->Add(hMultInput);
+	hMultNSD->Divide(hBgNSD);
+      }
+      
       //sharing efficiency correction ?
       if(pars->SharingEffPresent()) {
 	TH1F* hSharingEff = pars->GetSharingEfficiencyTrVtx(det,ringChar,vtxbin); 
 	TH1F* hSharingEffTrVtx = pars->GetSharingEfficiencyTrVtx(det,ringChar,vtxbin);	
       
-	for(Int_t nx=1; nx<hMult->GetNbinsX(); nx++) {
-	  Float_t correction = hSharingEff->GetBinContent(nx);
+	for(Int_t nx=1; nx<=hMult->GetNbinsX(); nx++) {
+	  Float_t correction      = hSharingEff->GetBinContent(nx);
 	  Float_t correctionTrVtx = hSharingEffTrVtx->GetBinContent(nx);
+	  //FIXME : This should be for NSD events
+	  Float_t correctionNSD   = hSharingEff->GetBinContent(nx);
 	  
-	  for(Int_t ny=1; ny<hMult->GetNbinsY(); ny++) {
+	  for(Int_t ny=1; ny<=hMult->GetNbinsY(); ny++) {
 	    
 	    if(correction != 0){
 	      hMult->SetBinContent(nx,ny,hMult->GetBinContent(nx,ny)/correction);
@@ -241,16 +274,24 @@ void AliFMDAnalysisTaskBackgroundCorrection::Exec(Option_t */*option*/)
 	      Float_t error = TMath::Sqrt(TMath::Power(hMultTrVtx->GetBinError(nx,ny),2) + TMath::Power(hMultTrVtx->GetBinContent(nx,ny)*hSharingEffTrVtx->GetBinError(nx),2)) / correctionTrVtx;
 	      hMultTrVtx->SetBinError(nx,ny,error);
 	    }
+	    if(correctionNSD != 0 && nsd) {
+	      hMultNSD->SetBinContent(nx,ny,hMultNSD->GetBinContent(nx,ny)/correctionNSD);
+	      Float_t error = TMath::Sqrt(TMath::Power(hMultNSD->GetBinError(nx,ny),2) + TMath::Power(hMultNSD->GetBinContent(nx,ny)*hSharingEff->GetBinError(nx),2)) / correctionNSD;
+	      hMultNSD->SetBinError(nx,ny,error);
+	    }
+	    
+	    
 	  }
 	  
 	}
       }
       
-      //if(pars->GetEventSelectionEfficiency(vtxbin) > 0)
+      // if(pars->GetEventSelectionEfficiency(vtxbin) > 0)
       //	hMult->Scale(1/pars->GetEventSelectionEfficiency(vtxbin));
-	//else
-	//hMult->Scale(0);
-      hMult->Divide(pars->GetEventSelectionEfficiency(vtxbin,ringChar));
+      //else
+      //	hMult->Scale(0);
+      hMult->Divide(pars->GetEventSelectionEfficiency("INEL",vtxbin,ringChar));
+      hMultNSD->Divide(pars->GetEventSelectionEfficiency("NSD",vtxbin,ringChar));
       
       
       }
@@ -260,53 +301,66 @@ void AliFMDAnalysisTaskBackgroundCorrection::Exec(Option_t */*option*/)
   
   TH2F* hSPDMult      = (TH2F*)fOutputList->FindObject(Form("mult_SPD_vtxbin%d",vtxbin));
   TH2F* hSPDMultTrVtx = (TH2F*)fOutputList->FindObject(Form("multTrVtx_SPD_vtxbin%d",vtxbin));
+  TH2F* hSPDMultNSD   = (TH2F*)fOutputList->FindObject(Form("multNSD_SPD_vtxbin%d",vtxbin));
   
-  AliESDInputHandler *esdH = dynamic_cast<AliESDInputHandler*> (AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler());
-  AliESDEvent* esd = esdH->GetEvent();
+  AliESDInputHandler* eventHandler = dynamic_cast<AliESDInputHandler*> (AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler());
+  AliESDEvent* esd = eventHandler->GetEvent();
+  
   const AliMultiplicity* spdmult = esd->GetMultiplicity();
   for(Int_t j = 0; j< spdmult->GetNumberOfTracklets();j++) {
     hSPDMult->Fill(spdmult->GetEta(j),spdmult->GetPhi(j));
     hSPDMultTrVtx->Fill(spdmult->GetEta(j),spdmult->GetPhi(j));
+    hSPDMultNSD->Fill(spdmult->GetEta(j),spdmult->GetPhi(j));
   }
   for(Int_t j = 0; j< spdmult->GetNumberOfSingleClusters();j++) {
     hSPDMult->Fill(-TMath::Log(TMath::Tan(spdmult->GetThetaSingle(j)/2.)),spdmult->GetPhiSingle(j));
     hSPDMultTrVtx->Fill(-TMath::Log(TMath::Tan(spdmult->GetThetaSingle(j)/2.)),spdmult->GetPhiSingle(j));
-    
+    hSPDMultNSD->Fill(-TMath::Log(TMath::Tan(spdmult->GetThetaSingle(j)/2.)),spdmult->GetPhiSingle(j));
   }
   
   TH2F* hBgSPD        = pars->GetBackgroundCorrection(0, 'Q', vtxbin);
   if(hBgSPD) { 
-  TH1F* hDead      = pars->GetSPDDeadCorrection(vtxbin);
-  for(Int_t i=1; i<=hSPDMult->GetNbinsX(); i++) {
-    for(Int_t j=1; j<=hSPDMult->GetNbinsY(); j++) {
-      Float_t mult = hSPDMult->GetBinContent(i,j);
-      Float_t correction = hBgSPD->GetBinContent(i,j);
-      Float_t correctedMult = 0;
-      Float_t correctedError = 0;
-      if(correction > 0 && mult > 0) {
-	correctedMult = mult/correction;
-	if(hDead->GetBinContent(i) > 0)
-	  correctedMult = correctedMult/hDead->GetBinContent(i);
-	correctedError = correctedMult*TMath::Sqrt( TMath::Power(hSPDMult->GetBinError(i,j)/hSPDMult->GetBinContent(i,j),2) + 
-						    TMath::Power(hBgSPD->GetBinError(i,j)/hBgSPD->GetBinContent(i,j),2));
-	
-      }
+    
+    hSPDMult->Divide(hBgSPD);
+    hSPDMultTrVtx->Divide(hBgSPD);
+    hSPDMultNSD->Divide(hBgSPD);
       
-      if(correctedMult != 0) {
-	hSPDMult->SetBinContent(i,j,correctedMult);
-	hSPDMultTrVtx->SetBinContent(i,j,correctedMult);
-	hSPDMult->SetBinError(i,j,correctedError);
-	hSPDMultTrVtx->SetBinError(i,j,correctedError);
+    TH1F* hDead      = pars->GetSPDDeadCorrection(vtxbin);
+    for(Int_t i=1; i<=hSPDMult->GetNbinsX(); i++) {
+      for(Int_t j=1; j<=hSPDMult->GetNbinsY(); j++) {
+	Float_t mult = hSPDMult->GetBinContent(i,j);
+	Float_t correction = hBgSPD->GetBinContent(i,j);
+	Float_t correctedMult = 0;
+	Float_t correctedError = 0;
+	
+	
+	if( mult > 0 && correction > 0.) {
+	correctedMult = mult;///correction;
+	  //std::cout<<correction<<"   "<<hSPDMult->GetXaxis()->GetBinCenter(i)<<std::endl;
+	//  correctedMult = mult/correction;
+	  
+	  if(hDead->GetBinContent(i) > 0)
+	    correctedMult = correctedMult/hDead->GetBinContent(i);
+	  correctedError = correctedMult*TMath::Sqrt( TMath::Power(hSPDMult->GetBinError(i,j)/hSPDMult->GetBinContent(i,j),2) + 
+						      TMath::Power(hBgSPD->GetBinError(i,j)/hBgSPD->GetBinContent(i,j),2)); 
+	  
+	}
+	
+	if(correctedMult > 0) {
+	  hSPDMult->SetBinContent(i,j,correctedMult);
+	  hSPDMultTrVtx->SetBinContent(i,j,correctedMult);
+	  hSPDMult->SetBinError(i,j,correctedError);
+	  hSPDMultTrVtx->SetBinError(i,j,correctedError);
+	  if(nsd) {
+	    hSPDMultNSD->SetBinContent(i,j,correctedMult);
+	    hSPDMultNSD->SetBinError(i,j,correctedError);
+	  }
+	  
+	}
       }
     }
-  }
-  hSPDMult->Divide(pars->GetEventSelectionEfficiency(vtxbin,'I'));
-  
-  //if(pars->GetEventSelectionEfficiency(vtxbin) > 0)
-     // hSPDMult->Scale(1/pars->GetEventSelectionEfficiency(vtxbin));
-  //else
-  //  hSPDMult->Scale(0);
-  
+    hSPDMult->Divide(pars->GetEventSelectionEfficiency("INEL",vtxbin,'I'));
+    hSPDMultNSD->Divide(pars->GetEventSelectionEfficiency("NSD",vtxbin,'I'));
   }
   else
     AliWarning("No SPD background map found");

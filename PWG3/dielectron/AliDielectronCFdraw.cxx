@@ -119,9 +119,10 @@ void AliDielectronCFdraw::SetCFContainers(const TSeqCollection *arr)
   Int_t nstep=0;
   while ( (o=next()) ){
     AliCFContainer *cf=dynamic_cast<AliCFContainer*>(o);
-    if (!o) continue;
+    if (!cf) continue;
     nstep+=cf->GetNStep();
   }
+  if (nstep==0) return;
   Int_t nbins[1]={1};
   fCfContainer=new AliCFContainer(GetName(), GetTitle(), nstep, 1, nbins);
 
@@ -152,19 +153,18 @@ void AliDielectronCFdraw::SetCFContainers(const char* filename)
 
   TFile f(filename);
   TList *l=f.GetListOfKeys();
-  Int_t entries=l->GetEntries();
-  if (entries==0) return;
-  
-  TKey *k=(TKey*)l->At(0);
-  if (!k) return;
-  TObject *o=k->ReadObj();
-  if (o->IsA()->InheritsFrom(TSeqCollection::Class())){
-    TSeqCollection *arr=static_cast<TSeqCollection*>(o);
-    SetCFContainers(arr);
-  } else if (o->IsA()==AliCFContainer::Class()){
-    fCfContainer=static_cast<AliCFContainer*>(o);
-    if (fEffGrid) delete fEffGrid;
-    fEffGrid=new AliCFEffGrid("eff","eff",*fCfContainer);
+  TIter nextKey(l);
+  TKey *k=0x0;
+  while ( (k=static_cast<TKey*>(nextKey())) ){
+    TObject *o=k->ReadObj();
+    if (o->IsA()->InheritsFrom(TSeqCollection::Class())){
+      TSeqCollection *arr=static_cast<TSeqCollection*>(o);
+      SetCFContainers(arr);
+    } else if (o->IsA()==AliCFContainer::Class()){
+      fCfContainer=static_cast<AliCFContainer*>(o);
+      if (fEffGrid) delete fEffGrid;
+      fEffGrid=new AliCFEffGrid("eff","eff",*fCfContainer);
+    }
   }
 }
 
@@ -521,7 +521,7 @@ TObjArray* AliDielectronCFdraw::CollectHistosEff(Int_t dim, Int_t *vars, const c
         Float_t eff=0;
         if (entriesDen>0) eff=hproj->GetEffectiveEntries()/entriesDen;
         fVdata(istep)=eff;
-        hproj->Divide(hDen);
+        hproj->Divide(hproj,hDen,1,1,"B");
         hproj->SetName(Form("eff_%02d/%02d",istep,denominator));
         hproj->SetTitle(Form("%s (%.3f)",fCfContainer->GetStepTitle(istep),eff));
         arrHists->Add(hproj);
@@ -539,7 +539,7 @@ TObjArray* AliDielectronCFdraw::CollectHistosEff(Int_t dim, Int_t *vars, const c
         Float_t eff=0;
         if (entriesDen>0) eff=hproj->GetEffectiveEntries()/entriesDen;
         fVdata(count++)=eff;
-        hproj->Divide(hDen);
+        hproj->Divide(hproj,hDen,1,1,"B");
         hproj->SetName(Form("eff_%02d/%02d",istep,denominator));
         hproj->SetTitle(Form("%s (%.3f)",fCfContainer->GetStepTitle(istep),eff));
         arrHists->Add(hproj);

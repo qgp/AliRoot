@@ -12,13 +12,13 @@
 #define ALITRDRAWSTREAM_H
 
 #include "TObject.h"
+#include "TClonesArray.h"
+#include "TTree.h"
 
 #include "AliTRDrawStreamBase.h"
-//#include "AliRawReader.h"
 
 class TObjArray;
 class TString;
-class TTree;
 class TBranch;
 
 class AliRawReader;
@@ -36,6 +36,16 @@ class AliTRDrawStream : public AliTRDrawStreamBase
 
   Bool_t SetReader(AliRawReader *rawReader) { fRawReader = rawReader; return kTRUE; }
   void SetDigitsManager(AliTRDdigitsManager *digMgr) { fDigitsManager = digMgr; }
+  void SetTrackletArray(TClonesArray *ar) { fTracklets = ar; }
+  void SetTrackArray(TClonesArray *ar) { fTracks = ar; }
+  void SetMarkerArray(TClonesArray *ar) { fMarkers = ar; }
+
+  TClonesArray* GetTrackletArray() const { return fTracklets; }
+  TClonesArray* GetTrackArray() const { return fTracks; }
+  TClonesArray* GetMarkerArray() const { return fMarkers; }
+
+  AliTRDdigitsManager* GetDigitsManager() const { return fDigitsManager; }
+  TTree *GetTrackletTree() const { return fTrackletTree; }
 
   Bool_t ReadEvent(TTree *trackletTree = 0x0);
 
@@ -44,6 +54,11 @@ class AliTRDrawStream : public AliTRDrawStreamBase
 		    UInt_t ** /* trackletContainer */, UShort_t ** /* errorContainer */);
 
   Bool_t ConnectTracklets(TTree *trklTree);
+
+  void StoreErrorsInTree()   { fStoreError = &AliTRDrawStream::StoreErrorTree; }
+  void StoreErrorsInArray()  { fStoreError = &AliTRDrawStream::StoreErrorArray; }
+  void EnableErrorStorage()  { fStoreError = &AliTRDrawStream::StoreErrorTree; }
+  void DisableErrorStorage() { fStoreError = &AliTRDrawStream::ForgetError; }
 
   // legacy code, to be removed
   Bool_t SetRawVersion(Int_t) { return kTRUE; }
@@ -78,6 +93,10 @@ class AliTRDrawStream : public AliTRDrawStreamBase
     kAbort = 1, 
     kDiscardMCM = 2,
     kDiscardHC = 4
+  };
+
+  enum MarkerCode_t {
+    kHCactive = 1
   };
 
   TTree* GetErrorTree() const { return fErrors; }
@@ -115,7 +134,6 @@ class AliTRDrawStream : public AliTRDrawStreamBase
       AliTRDrawStatsHC fStatsHC[60]; //[60] HC-wise statistics
       ClassDef(AliTRDrawStatsSector, 1);
     };
-
 
     AliTRDrawStatsSector fStatsSector[18]; //[18] sector-wise statistics
     Int_t fBytesRead;			   // number of bytes read
@@ -176,6 +194,10 @@ class AliTRDrawStream : public AliTRDrawStreamBase
   void LinkError     (ErrorCode_t err = kUnknown, const char *const msg = "", ...); 
   void ROBError      (ErrorCode_t err = kUnknown, const char *const msg = "", ...); 
   void MCMError      (ErrorCode_t err = kUnknown, const char *const msg = "", ...); 
+  void StoreErrorTree() { fErrors->Fill(); }
+  void StoreErrorArray() { new ((*fMarkers)[fMarkers->GetEntriesFast()]) AliTRDrawStreamError(fLastError); }
+  void ForgetError() { return; }
+  void (AliTRDrawStream::*fStoreError)();       //! function pointer to method used for storing the error
 
   static const char* fgErrorMessages[kLastErrorCode];     // error messages corresponding to the error codes
   static const Int_t fgErrorDebugLevel[kLastErrorCode];   // error debug level
@@ -187,8 +209,18 @@ class AliTRDrawStream : public AliTRDrawStreamBase
   AliTRDdigitsParam   *fDigitsParam;            // pointer to the parameters belonging to the digits
 
   TTree *fErrors;                               // tree containing the occured error codes
-  struct { Int_t fSector; Int_t fStack; Int_t fLink; Int_t fError; Int_t fRob; Int_t fMcm; } 
-  fLastError;                                   // last error which occured
+  class AliTRDrawStreamError { 
+  public: 
+    AliTRDrawStreamError(Int_t error = 0, Int_t sector = -1, Int_t stack = -1, Int_t link = -1, Int_t rob = -1, Int_t mcm = -1); 
+    virtual ~AliTRDrawStreamError() {}
+    Int_t fError;                               // error code
+    Int_t fSector;				// sector
+    Int_t fStack;				// stack
+    Int_t fLink;				// link
+    Int_t fRob;					// ROB no
+    Int_t fMcm;					// MCM no
+    ClassDef(AliTRDrawStreamError, 1);
+  } fLastError;                                 // last error which occured
   UInt_t fErrorFlags;                           // error flags used to steer subsequent reading
   char   fErrorBuffer[100];                     // buffer for error message
 
@@ -264,6 +296,9 @@ class AliTRDrawStream : public AliTRDrawStreamBase
   AliTRDarrayADC *fAdcArray;			// pointer to ADC array
   AliTRDSignalIndex *fSignalIndex;		// pointer to the signal index
   TTree *fTrackletTree; 			// pointer to the tree for tracklet storage
+  TClonesArray *fTracklets;			// pointer to array of tracklets
+  TClonesArray *fTracks;			// pointer to array of GTU tracks
+  TClonesArray *fMarkers;			// pointer to array of markers (data present, errors, ...)
 
   AliTRDrawStream(const AliTRDrawStream&);           // not implemented
   AliTRDrawStream& operator=(const AliTRDrawStream&); // not implemented

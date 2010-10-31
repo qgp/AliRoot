@@ -44,9 +44,12 @@ AliEMCALSensorTempArray::AliEMCALSensorTempArray(Int_t run) : AliDCSSensorArray(
   
   AliCDBEntry *entry =
     AliCDBManager::Instance()->Get("EMCAL/Config/Temperature",run); 
-  TTree *tree = (TTree*) entry->GetObject();
-  fSensors = AliEMCALSensorTemp::ReadTree(tree);
-  fSensors->BypassStreamer(kFALSE);
+  if(entry){
+    TTree *tree = (TTree*) entry->GetObject();
+    fSensors = AliEMCALSensorTemp::ReadTree(tree);
+    fSensors->BypassStreamer(kFALSE);
+  }
+  else AliFatal("CDB entry null!");
 }
 //_____________________________________________________________________________
 AliEMCALSensorTempArray::AliEMCALSensorTempArray(UInt_t startTime, UInt_t endTime,
@@ -113,8 +116,11 @@ void AliEMCALSensorTempArray::ReadSensors(const char *dbEntry)
   // Read list of temperature sensors from text file
   //
   AliCDBEntry *entry = AliCDBManager::Instance()->Get(dbEntry);
-  TTree *tree = (TTree*) entry->GetObject();
-  fSensors = AliEMCALSensorTemp::ReadTree(tree);
+  if(entry){
+    TTree *tree = (TTree*) entry->GetObject();
+    fSensors = AliEMCALSensorTemp::ReadTree(tree);
+  }
+  else AliFatal("NULL CDB entry!");
 }  
 
 //_____________________________________________________________________________

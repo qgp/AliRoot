@@ -1,13 +1,34 @@
-/***********************************************************************************************************
- *                                                                                                         *
- * Helper class for TRD PID efficiency calculation Calculation of the hadron efficiency depenedent on      *
- * momentum and of the errors implemented in function CalculatePionEff. The pion efficiency is based on a  * 
- * predefined electron efficiency. The default is 90%. To change the, one has to call the function         *
- * SetElectronEfficiency.                                                                                  *
- * Other Helper functions decide based on 90% electron efficiency whether a certain track is accepted      *
- * as Electron Track. The reference data is stored in the TRD OCDB.                                        *
- *                                                                                                         *
- ***********************************************************************************************************/
+/**************************************************************************
+ * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ *                                                                        *
+ * Author: The ALICE Off-line Project.                                    *
+ * Contributors are mentioned in the code where appropriate.              *
+ *                                                                        *
+ * Permission to use, copy, modify and distribute this software and its   *
+ * documentation strictly for non-commercial purposes is hereby granted   *
+ * without fee, provided that the above copyright notice appears in all   *
+ * copies and that both the copyright notice and this permission notice   *
+ * appear in the supporting documentation. The authors make no claims     *
+ * about the suitability of this software for any purpose. It is          *
+ * provided "as is" without express or implied warranty.                  *
+ **************************************************************************/
+
+/* $Id: AliTRDdigitizer.cxx 44182 2010-10-10 16:23:39Z cblume $ */
+
+////////////////////////////////////////////////////////////////////////////
+//                                                                        //
+// Helper class for TRD PID efficiency calculation.                       //
+// Calculation of the hadron efficiency dependent on momentum and of      //
+// the errors implemented in function CalculatePionEff. The pion          //
+// efficiency is based on a predefined electron efficiency.               //
+// The default is 90%. To change the, one has to call the function        //
+// SetElectronEfficiency.                                                 //
+// Other Helper functions decide based on 90% electron efficiency         //
+// whether a certain track is accepted as Electron Track.                 //
+// The reference data is stored in the TRD OCDB.                          //
+//                                                                        //
+////////////////////////////////////////////////////////////////////////////
+
 #include "TObject.h"
 #include "TObjArray.h"
 #include "TMath.h"
@@ -26,7 +47,6 @@
 #include "AliTRDpidUtil.h"
 
 ClassImp(AliTRDpidUtil)
-
 
 Float_t AliTRDpidUtil::fgEleEffi = 0.9;
 
@@ -53,51 +73,48 @@ Bool_t  AliTRDpidUtil::CalculatePionEffi(TH1* histo1, TH1* histo2)
 
   histo1 -> SetLineColor(kRed);
   histo2 -> SetLineColor(kBlue); 
-  if(!histo1 -> GetEntries() || !histo2 -> GetEntries()){
-    AliWarning("Histo with no entries !");
+  if(!histo1->GetEntries() || !histo2 -> GetEntries()){
+    AliError("Probability histos empty !");
+    return kFALSE;
+  }
+  if(histo1->GetNbinsX() != histo2->GetNbinsX()){
+    AliError(Form("Electron probability discretized differently from pions [%d %d] !", histo1->GetNbinsX(), histo2->GetNbinsX()));
     return kFALSE;
   }
   histo1 -> Scale(1./histo1->GetEntries());
   histo2 -> Scale(1./histo2->GetEntries());
 
-  Int_t abinE, bbinE, cbinE = -1;                    
-  Double_t aBinSumE, bBinSumE;                  // content of a single bin
-  Bool_t bFirst = 1;                            // checks if threshold is crossed for the first time
-  Double_t sumElecE[kBins+2], sumPionsE[kBins+2];  // array of the integrated sum in each bin
+  // array of the integrated sum in each bin
+  Double_t sumElecE[kBins+2], sumPionsE[kBins+2];  
   memset(sumElecE, 0, (kBins+2)*sizeof(Double_t));
   memset(sumPionsE, 0, (kBins+2)*sizeof(Double_t));
 
-
-  // calculate electron efficiency of each bin
-  for (abinE = (histo1 -> GetNbinsX()); abinE >= 0; abinE--){  
-   aBinSumE = 0;
-    aBinSumE = histo1 -> GetBinContent(abinE);
-    
-    sumElecE[abinE] = sumElecE[abinE+1] + aBinSumE;
-
-    if((sumElecE[abinE] >= fgEleEffi) && (bFirst == 1)){
-      bFirst = 0;
+  Int_t nbinE(histo1->GetNbinsX()),
+        abinE(nbinE),
+        bbinE(nbinE),
+        cbinE(-1);
+  // calculate electron efficiency for each bin
+  // and also integral distribution
+  for(Bool_t bFirst(kTRUE); abinE--;){
+    sumElecE[abinE] = sumElecE[abinE+1] + histo1->GetBinContent(abinE+1);
+    if((sumElecE[abinE] >= fgEleEffi) && bFirst){
       cbinE = abinE;
-      fCalcEleEffi = (sumElecE[cbinE]); 
+      fCalcEleEffi = sumElecE[cbinE];
+      bFirst = kFALSE;
     }
   }
-  
-  fThreshold = histo1 -> GetBinCenter(cbinE);
+  fThreshold = histo1->GetBinCenter(cbinE);
 
   // calculate pion efficiency of each bin
-  for (bbinE = (histo2 -> GetNbinsX()); bbinE >= abinE; bbinE--){	
-    bBinSumE = 0;
-    bBinSumE = histo2 -> GetBinContent(bbinE);
-
-    sumPionsE[bbinE] = sumPionsE[bbinE+1] + bBinSumE;
-    if(bbinE == cbinE){
-      fPionEffi = (sumPionsE[cbinE]);
-    }
+  // and also integral distribution
+  for (;bbinE--;){
+    sumPionsE[bbinE] = sumPionsE[bbinE+1] + histo2->GetBinContent(bbinE+1);
+    if(bbinE == cbinE) fPionEffi = sumPionsE[cbinE];
   }
   
 
   // pion efficiency vs electron efficiency
-  TGraph gEffis(kBins, sumElecE, sumPionsE);
+  TGraph gEffis(nbinE, sumElecE, sumPionsE);
 
   // use fit function to get derivate of the TGraph for error calculation
   TF1 f1("f1","[0]*x*x+[1]*x+[2]", fgEleEffi-.05, fgEleEffi+.05);
@@ -105,13 +122,13 @@ Bool_t  AliTRDpidUtil::CalculatePionEffi(TH1* histo1, TH1* histo2)
   
   // return the error of the pion efficiency
   if(((1.-fPionEffi) < 0) || ((1.-fCalcEleEffi) < 0)){
-    AliWarning(" EleEffi or PioEffi > 1. Error can not be calculated. Please increase statistics or check your simulation!");
+    AliError(" EleEffi or PioEffi > 1. Error can not be calculated. Please increase statistics or check your simulation!");
     return kFALSE;
   }
   fError = sqrt(((1/histo2 -> GetEntries())*fPionEffi*(1-fPionEffi))+((f1.Derivative(fgEleEffi))*(f1.Derivative(fgEleEffi))*(1/histo1 -> GetEntries())*fCalcEleEffi*(1-fCalcEleEffi)));
 
-//   AliInfo(Form("Pion Effi at [%f] : [%f +/- %f], Threshold[%f]", fCalcEleEffi, fPionEffi, fError, fThreshold));
-//   AliInfo(Form("Derivative at %4.2f : %f\n", fgEleEffi, f1.Derivative(fgEleEffi)));
+  AliDebug(2, Form("Pion Effi at [%f] : [%f +/- %f], Threshold[%f]", fCalcEleEffi, fPionEffi, fError, fThreshold));
+  AliDebug(2, Form("Derivative at %4.2f : %f\n", fgEleEffi, f1.Derivative(fgEleEffi)));
   return kTRUE;
 }
 
@@ -163,14 +180,17 @@ Bool_t AliTRDpidUtil::IsElectron(const AliESDtrack *track, ETRDPIDMethod method)
   TString histname[2] = {"fHistThreshLQ", "fHistThreshNN"};
   AliCDBManager *cdb = AliCDBManager::Instance(); 
   AliCDBEntry *cdbThresholds = cdb->Get("TRD/Calib/PIDThresholds");
+  if (!cdbThresholds) return kFALSE;
   TObjArray *histos = dynamic_cast<TObjArray *>(cdbThresholds->GetObject());
-  TH1 * thresholdHist = dynamic_cast<TH1F *>(histos->FindObject(histname[method].Data()));
+  if (!histos) return kFALSE;
+  TH1 *thresholdHist = dynamic_cast<TH1F *>(histos->FindObject(histname[method].Data()));
+  if (!thresholdHist) return kFALSE;
   Double_t threshold = thresholdHist->GetBinContent(GetMomentumBin(track->P()) + 1);
   
   // Do Decision
-  Double_t pid_probs[5];
-  track->GetTRDpid(pid_probs);
-  if(pid_probs[AliPID::kElectron] >= threshold) return kTRUE;
+  Double_t pidProbs[5];
+  track->GetTRDpid(pidProbs);
+  if(pidProbs[AliPID::kElectron] >= threshold) return kTRUE;
   return kFALSE; 
 }
 
@@ -185,8 +205,11 @@ Double_t AliTRDpidUtil::GetSystematicError(const AliESDtrack *track, ETRDPIDMeth
   TString histname[2] = {"fHistPionEffLQ", "fHistPionEffNN"};
   AliCDBManager *cdb = AliCDBManager::Instance(); 
   AliCDBEntry *cdbThresholds = cdb->Get("TRD/Calib/PIDThresholds");
+  if (!cdbThresholds) return kFALSE;
   TObjArray *histos = dynamic_cast<TObjArray *>(cdbThresholds->GetObject());
-  TH1 * thresholdHist = dynamic_cast<TH1F *>(histos->FindObject(histname[method].Data()));
+  if (!histos) return kFALSE;
+  TH1 *thresholdHist = dynamic_cast<TH1F *>(histos->FindObject(histname[method].Data()));
+  if (!thresholdHist) return kFALSE;
   return thresholdHist->GetBinContent(GetMomentumBin(track->P()) + 1);
 }
 

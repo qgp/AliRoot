@@ -82,6 +82,7 @@ class AliHLTComponentHandler;
 class TObjArray;
 class TMap;
 class TStopwatch;
+class TUUID;
 class AliRawDataHeader;
 class AliHLTComponent;
 class AliHLTMemoryFile;
@@ -316,7 +317,8 @@ typedef vector<AliHLTMemoryFile*>         AliHLTMemoryFilePList;
  *
  * The base class provides two functions regarding OCDB objects: 
  * - LoadAndExtractOCDBObject() loads the OCDB entry for the specified path and extracts
- *                              the TObject from it.
+ *                              the TObject from it. An optional key allows to access
+ *                              a TObject within a TMap
  * - ConfigureFromCDBTObjString() can load a number of OCDB objects and calls the
  *                              argument parsing ConfigureFromArgumentString
  *
@@ -331,9 +333,13 @@ typedef vector<AliHLTMemoryFile*>         AliHLTMemoryFilePList;
  * ConfigureFromArgumentString() can treat both arrays of arguments and arguments in
  * one single string separated by blanks. The two options can be mixed.
  *
- * A second bas class function ConfigureFromCDBTObjString() allows to configure
+ * A second base class function ConfigureFromCDBTObjString() allows to configure
  * directly from a number of OCDB objects. This requires the entries to be of
  * type TObjString and the child implementation of ScanConfigurationArgument().
+ * The object can also be of type TMap with TObjStrings as key-value pairs. The
+ * key identifier can be chosen by the component implementation. Normally it will
+ * be the run type ("p","A-A", "p-A", ...) or e.g. the trigger code secified by
+ * ECS.
  *
  * @section alihltcomponent-handling Component handling 
  * The handling of HLT analysis components is carried out by the AliHLTComponentHandler.
@@ -633,7 +639,8 @@ class AliHLTComponent : public AliHLTLogging {
    * @param type        data type structure
    * @param mode        0 print string origin:type          <br>
    *                    1 print chars                       <br>
-   *                    2 print numbers
+   *                    2 print numbers                     <br>
+   *                    3 print 'type' 'origin' 
    */
   static string DataType2Text( const AliHLTComponentDataType& type, int mode=0);
 
@@ -721,7 +728,14 @@ class AliHLTComponent : public AliHLTLogging {
    */
   static int ExtractComponentTableEntry(const AliHLTUInt8_t* pBuffer, AliHLTUInt32_t size,
 					string& chainId, string& compId, string& compParam,
-					vector<AliHLTUInt32_t>& parents);
+					vector<AliHLTUInt32_t>& parents) {
+    int dummy=0;
+    return ExtractComponentTableEntry(pBuffer, size, chainId, compId, compParam, parents, dummy);
+  }
+
+  static int ExtractComponentTableEntry(const AliHLTUInt8_t* pBuffer, AliHLTUInt32_t size,
+					string& chainId, string& compId, string& compParam,
+					vector<AliHLTUInt32_t>& parents, int& level);
 
   /**
    * Extracts the different data parts from the trigger data structure.
@@ -739,7 +753,7 @@ class AliHLTComponent : public AliHLTLogging {
    *     AliRawDataHeader* cdh;
    *     ExtractTriggerData(trigData, NULL, NULL, &cdh, NULL);
    *   \endcode
-   * @return the zero on success and one of the following error codes on failure.
+   * @return zero on success or one of the following error codes on failure.
    *   if a non-zero error code is returned then none of the output parameters are
    *   modified.
    *    \li -ENOENT  The <i>trigData</i> structure size is wrong.
@@ -764,7 +778,7 @@ class AliHLTComponent : public AliHLTLogging {
    * [out] @param list  The output readout list to fill.
    * [in] @param printErrors  If true then error messages are generated as necessary
    *                          and suppressed otherwise.
-   * @return the zero on success or one of the error codes returned by ExtractTriggerData.
+   * @return zero on success or one of the error codes returned by ExtractTriggerData.
    */
   static int GetReadoutList(
       const AliHLTComponentTriggerData& trigData, AliHLTReadoutList& list,
@@ -773,6 +787,13 @@ class AliHLTComponent : public AliHLTLogging {
   {
     return ExtractTriggerData(trigData, NULL, NULL, NULL, &list, printErrors);
   }
+
+  /**
+   * Extracts the event type from the given Common Data Header.
+   * [in] @param cdh  The Common Data Header to extract the event type from.
+   * @return the event type code from the CDH.
+   */
+  static AliHLTUInt32_t ExtractEventTypeFromCDH(const AliRawDataHeader* cdh);
   
   /**
    * Stopwatch type for benchmarking.
@@ -875,6 +896,15 @@ class AliHLTComponent : public AliHLTLogging {
    * small output buffer.
    */
   int GetLastObjectSize() const {return fLastObjectSize;}
+
+  /**
+   * This method generates a V4 Globally Unique Identifier (GUID) using the
+   * ROOT TRandom3 pseudo-random number generator with the process' UID, GID
+   * PID and host address as seeds. For good measure MD5 sum hashing is also
+   * applied.
+   * @return the newly generated GUID structure.
+   */
+  static TUUID GenerateGUID();
 
  protected:
 
@@ -1064,19 +1094,26 @@ class AliHLTComponent : public AliHLTLogging {
    * Read configuration objects from OCDB and configure from
    * the content of TObjString entries.
    * @param entries   blank separated list of OCDB paths
+   * @param key       if the entry is a TMap, search for the corresponding object
    * @return neg. error code if failed
    */
-  int ConfigureFromCDBTObjString(const char* entries);
+  int ConfigureFromCDBTObjString(const char* entries, const char* key=NULL);
 
   /**
    * Load specified entry from the OCDB and extract the object.
    * The entry is explicitely unloaded from the cache before it is loaded.
+   * If parameter key is specified the OCDB object is treated as TMap
+   * and the TObject associated with 'key' is loaded.
    * @param path      path of the entry under to root of the OCDB
    * @param version   version of the entry
    * @param subVersion  subversion of the entry
+   * @param key       key of the object within TMap
    */
-  TObject* LoadAndExtractOCDBObject(const char* path, int version = -1, int subVersion = -1);
+  TObject* LoadAndExtractOCDBObject(const char* path, int version = -1, int subVersion = -1, const char* key=NULL);
 
+  TObject* LoadAndExtractOCDBObject(const char* path, const char* key) {
+    return LoadAndExtractOCDBObject(path, -1, -1, key);
+  }
 
   /**
    * Get event number.
@@ -1663,7 +1700,8 @@ class AliHLTComponent : public AliHLTLogging {
 			      AliHLTUInt8_t* buffer,
 			      AliHLTUInt32_t bufferSize,
 			      AliHLTUInt32_t offset,
-			      const vector<AliHLTUInt32_t>& parents) const;
+			      const vector<AliHLTUInt32_t>& parents,
+			      int processingLevel) const;
 
   /**
    * Scan the ECS parameter string.
@@ -1783,6 +1821,6 @@ class AliHLTComponent : public AliHLTLogging {
   /// time of last executed PushBack
   int fLastPushBackTime;                                           //! transient
 
-  ClassDef(AliHLTComponent, 14)
+  ClassDef(AliHLTComponent, 0)
 };
 #endif

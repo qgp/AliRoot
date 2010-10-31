@@ -629,6 +629,8 @@ Bool_t AliTRDdigitizer::MakeDigits()
   // Sort all hits according to detector number
   if (!SortHits(hits,nhit)) {
     AliError("Sorting hits failed");
+    delete [] hits;
+    delete [] nhit;
     return kFALSE;
   }
 
@@ -646,11 +648,19 @@ Bool_t AliTRDdigitizer::MakeDigits()
       // Convert the hits of the current detector to detector signals
       if (!ConvertHits(det,hits[det],nhit[det],signals)) {
 	AliError(Form("Conversion of hits failed for detector=%d",det));
+        delete [] hits;
+        delete [] nhit;
+        delete signals;
+        signals = 0x0;
         return kFALSE;
       }
       // Convert the detector signals to digits or s-digits
       if (!ConvertSignals(det,signals)) {
 	AliError(Form("Conversion of signals failed for detector=%d",det));
+        delete [] hits;
+        delete [] nhit;
+        delete signals;
+        signals = 0x0;
 	return kFALSE;
       }
 
@@ -714,6 +724,7 @@ Bool_t AliTRDdigitizer::SortHits(Float_t **hits, Int_t *nhit)
   TTree *hitTree = gimme->TreeH();
   if (hitTree == 0x0) {
     AliError("Can not get TreeH");
+    delete [] lhit;
     return kFALSE;
   }
   fTRD->SetTreeAddress();

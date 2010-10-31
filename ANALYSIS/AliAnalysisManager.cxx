@@ -81,7 +81,10 @@ AliAnalysisManager::AliAnalysisManager(const char *name, const char *title)
                     fCommonOutput(NULL),
                     fSelector(NULL),
                     fGridHandler(NULL),
-                    fExtraFiles("")
+                    fExtraFiles(""),
+                    fAutoBranchHandling(kTRUE), 
+                    fTable(),
+                    fRunFromPath(0)
 {
 // Default constructor.
    fgAnalysisManager = this;
@@ -123,7 +126,10 @@ AliAnalysisManager::AliAnalysisManager(const AliAnalysisManager& other)
                     fCommonOutput(NULL),
                     fSelector(NULL),
                     fGridHandler(NULL),
-                    fExtraFiles()
+                    fExtraFiles(),
+                    fAutoBranchHandling(other.fAutoBranchHandling), 
+                    fTable(),
+                    fRunFromPath(0)
 {
 // Copy constructor.
    fTasks      = new TObjArray(*other.fTasks);
@@ -169,6 +175,9 @@ AliAnalysisManager& AliAnalysisManager::operator=(const AliAnalysisManager& othe
       fExtraFiles = other.fExtraFiles;
       fgCommonFileName = "AnalysisResults.root";
       fgAnalysisManager = this;
+      fAutoBranchHandling = other.fAutoBranchHandling;
+      fTable.Clear("nodelete");
+      fRunFromPath = other.fRunFromPath;
    }
    return *this;
 }
@@ -198,9 +207,42 @@ Int_t AliAnalysisManager::GetEntry(Long64_t entry, Int_t getall)
 {
 // Read one entry of the tree or a whole branch.
    fCurrentEntry = entry;
+   if (!fAutoBranchHandling)
+     return entry;
    return fTree ? fTree->GetTree()->GetEntry(entry, getall) : 0;
 }
-   
+
+//______________________________________________________________________________
+Int_t AliAnalysisManager::GetRunFromAlienPath(const char *path)
+{
+// Attempt to extract run number from input data path. Works only for paths to
+// alice data in alien.
+//    sim:  /alice/sim/<production>/run_no/...
+//    data: /alice/data/year/period/000run_no/... (ESD or AOD)
+   TString s(path);
+   TString srun;
+   Int_t run = 0;
+   Int_t index = s.Index("/alice/sim");
+   if (index >= 0) {
+      for (Int_t i=0; i<3; i++) {
+         index = s.Index("/", index+1);
+         if (index<0) return 0;
+      }
+      srun = s(index+1,6);
+      run = atoi(srun);
+   }
+   index = s.Index("/alice/data");
+   if (index >= 0) {
+      for (Int_t i=0; i<4; i++) {
+         index = s.Index("/", index+1);
+         if (index<0) return 0;
+      }
+      srun = s(index+1,9);
+      run = atoi(srun);
+   }
+   return run;
+}   
+
 //______________________________________________________________________________
 Bool_t AliAnalysisManager::Init(TTree *tree)
 {
@@ -264,6 +306,7 @@ Bool_t AliAnalysisManager::Init(TTree *tree)
    if (!fInitOK) InitAnalysis();
    if (!fInitOK) return kFALSE;
    fTree = tree;
+   fTable.Rehash(100);
    AliAnalysisDataContainer *top = fCommonInput;
    if (!top) top = (AliAnalysisDataContainer*)fInputs->At(0);
    if (!top) {
@@ -291,6 +334,7 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
    TDirectory *curdir = gDirectory;
    // Call SlaveBegin only once in case of mixing
    if (isCalled && fMode==kMixingAnalysis) return;
+   gROOT->cd();
    // Call Init of EventHandler
    if (fOutputEventHandler) {
       if (fMode == kProofAnalysis) {
@@ -306,7 +350,7 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
       if (!fSelector) Error("SlaveBegin", "Selector not set");
       else if (!init) {fSelector->Abort(msg); fSelector->SetStatus(-1);}
    }
-
+   gROOT->cd();
    if (fInputEventHandler) {
       fInputEventHandler->SetInputTree(tree);
       if (fMode == kProofAnalysis) {
@@ -320,7 +364,7 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
       if (!fSelector) Error("SlaveBegin", "Selector not set");      
       else if (!init) {fSelector->Abort(msg); fSelector->SetStatus(-1);}
    }
-
+   gROOT->cd();
    if (fMCtruthEventHandler) {
       if (fMode == kProofAnalysis) {
          init = fMCtruthEventHandler->Init("proof");
@@ -340,14 +384,18 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
    AliAnalysisTask *task;
    // Call CreateOutputObjects for all tasks
    Bool_t getsysInfo = ((fNSysInfo>0) && (fMode==kLocalAnalysis))?kTRUE:kFALSE;
+   Bool_t dirStatus = TH1::AddDirectoryStatus();
    Int_t itask = 0;
    while ((task=(AliAnalysisTask*)next())) {
-      curdir = gDirectory;
+      gROOT->cd();
+      // Start with memory as current dir and make sure by default histograms do not get attached to files.
+      TH1::AddDirectory(kFALSE);
       task->CreateOutputObjects();
       if (getsysInfo) AliSysInfo::AddStamp(Form("%s_CREATEOUTOBJ",task->ClassName()), 0, itask, 0);
       itask++;
-      if (curdir) curdir->cd();
    }
+   TH1::AddDirectory(dirStatus);
+   if (curdir) curdir->cd();
    if (fDebug > 1) printf("<-AliAnalysisManager::SlaveBegin()\n");
 }
 
@@ -360,6 +408,8 @@ Bool_t AliAnalysisManager::Notify()
    // to the generated code, but the routine can be extended by the
    // user if needed. The return value is currently not used.
    if (!fTree) return kFALSE;
+
+   fTable.Clear("nodelete"); // clearing the hash table may not be needed -> C.L.
    if (fMode == kProofAnalysis) fIsRemote = kTRUE;
 
    TFile *curfile = fTree->GetCurrentFile();
@@ -369,11 +419,11 @@ Bool_t AliAnalysisManager::Notify()
    }   
    
    if (fDebug > 1) printf("->AliAnalysisManager::Notify() file: %s\n", curfile->GetName());
+   Int_t run = AliAnalysisManager::GetRunFromAlienPath(curfile->GetName());
+   if (run) SetRunFromPath(run);
+   if (fDebug > 1) printf("   ### run found from path: %d\n", run); 
    TIter next(fTasks);
    AliAnalysisTask *task;
-   // Call Notify for all tasks
-   while ((task=(AliAnalysisTask*)next())) 
-      task->Notify();
 	
    // Call Notify of the event handlers
    if (fInputEventHandler) {
@@ -387,6 +437,11 @@ Bool_t AliAnalysisManager::Notify()
    if (fMCtruthEventHandler) {
        fMCtruthEventHandler->Notify(curfile->GetName());
    }
+
+   // Call Notify for all tasks
+   while ((task=(AliAnalysisTask*)next())) 
+      task->Notify();
+
    if (fDebug > 1) printf("<-AliAnalysisManager::Notify()\n");
    return kTRUE;
 }    
@@ -418,6 +473,9 @@ Bool_t AliAnalysisManager::Process(Long64_t entry)
    if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent(entry);
    
    GetEntry(entry);
+
+   if (fInputEventHandler)   fInputEventHandler  ->GetEntry();
+
    ExecAnalysis();
    if (fDebug > 1) printf("<-AliAnalysisManager::Process()\n");
    return kTRUE;
@@ -457,10 +515,12 @@ void AliAnalysisManager::PackOutput(TList *target)
       TIter next(fOutputs);
       AliAnalysisDataContainer *output;
       Bool_t isManagedByHandler = kFALSE;
+      TList filestmp;
+      filestmp.SetOwner();
       while ((output=(AliAnalysisDataContainer*)next())) {
          // Do not consider outputs of post event loop tasks
          isManagedByHandler = kFALSE;
-         if (output->GetProducer()->IsPostEventLoop()) continue;
+         if (output->GetProducer() && output->GetProducer()->IsPostEventLoop()) continue;
          const char *filename = output->GetFileName();
          if (!(strcmp(filename, "default")) && fOutputEventHandler) {
             isManagedByHandler = kTRUE;
@@ -480,33 +540,42 @@ void AliAnalysisManager::PackOutput(TList *target)
                // File resident outputs. 
                // Check first if the file exists.
                TString openoption = "RECREATE";
-               if (!gSystem->AccessPathName(output->GetFileName())) openoption = "UPDATE";
-               TFile *file = AliAnalysisManager::OpenFile(output, openoption, kTRUE);
+               Bool_t firsttime = kTRUE;
+               if (filestmp.FindObject(output->GetFileName())) {
+                  firsttime = kFALSE;
+               } else {   
+                  filestmp.Add(new TNamed(output->GetFileName(),""));
+               }   
+               if (!gSystem->AccessPathName(output->GetFileName()) && !firsttime) openoption = "UPDATE";
+//               TFile *file = AliAnalysisManager::OpenFile(output, openoption, kTRUE);
                // Save data to file, then close.
                if (output->GetData()->InheritsFrom(TCollection::Class())) {
                   // If data is a collection, we set the name of the collection 
                   // as the one of the container and we save as a single key.
                   TCollection *coll = (TCollection*)output->GetData();
                   coll->SetName(output->GetName());
-                  coll->Write(output->GetName(), TObject::kSingleKey);
+//                  coll->Write(output->GetName(), TObject::kSingleKey);
                } else {
                   if (output->GetData()->InheritsFrom(TTree::Class())) {
+                     TFile *file = AliAnalysisManager::OpenFile(output, openoption, kTRUE);
+                     // Save data to file, then close.
                      TTree *tree = (TTree*)output->GetData();
                      // Check if tree is in memory
                      if (tree->GetDirectory()==gROOT) tree->SetDirectory(gDirectory);
                      tree->AutoSave();
+                     file->Close();
                   } else {
-                     output->GetData()->Write();
+//                     output->GetData()->Write();
                   }   
                }      
                if (fDebug > 1) printf("PackOutput %s: memory merge, file resident output\n", output->GetName());
-               if (fDebug > 2) {
-                  printf("   file %s listing content:\n", filename);
-                  file->ls();
-               }   
+//               if (fDebug > 2) {
+//                  printf("   file %s listing content:\n", filename);
+//                  file->ls();
+//               }   
                // Clear file list to release object ownership to user.
 //               file->Clear();
-               file->Close();
+//               file->Close();
                output->SetFile(NULL);
                // Restore current directory
                if (opwd) opwd->cd();
@@ -579,8 +648,8 @@ void AliAnalysisManager::PackOutput(TList *target)
                TString remote = fSpecialOutputLocation;
                remote += "/";
                Int_t gid = gROOT->ProcessLine("gProofServ->GetGroupId();");
-               if (remote.BeginsWith("alien://")) {
-                  gROOT->ProcessLine("TGrid::Connect(\"alien://pcapiserv01.cern.ch:10000\", gProofServ->GetUser());");
+               if (remote.BeginsWith("alien:")) {
+                  gROOT->ProcessLine("TGrid::Connect(\"alien:\", gProofServ->GetUser());");
                   remote += outFilename;
                   remote.ReplaceAll(".root", Form("_%d.root", gid));
                } else {   
@@ -795,10 +864,13 @@ void AliAnalysisManager::Terminate()
       for (icont=0; icont<fParamCont->GetEntriesFast(); icont++) allOutputs->Add(fParamCont->At(icont));
    TIter next1(allOutputs);
    TString handlerFile = "";
+   TString extraOutputs = "";
    if (fOutputEventHandler) {
       handlerFile = fOutputEventHandler->GetOutputFileName();
+      extraOutputs = fOutputEventHandler->GetExtraOutputs();
    }
    icont = 0;
+   TList filestmp;
    while ((output=(AliAnalysisDataContainer*)next1())) {
       // Special outputs or grid files have the files already closed and written.
       icont++;
@@ -816,7 +888,13 @@ void AliAnalysisManager::Terminate()
       if (!file) file = (TFile*)gROOT->GetListOfFiles()->FindObject(filename);
       if (!file) {
 	      //if (handlerFile == filename && !gSystem->AccessPathName(filename)) openoption = "UPDATE";
-         if (!gSystem->AccessPathName(filename)) openoption = "UPDATE";
+         Bool_t firsttime = kTRUE;
+         if (filestmp.FindObject(filename) || extraOutputs.Contains(filename)) {
+            firsttime = kFALSE;
+         } else {   
+            filestmp.Add(new TNamed(filename,""));
+         }   
+         if (!gSystem->AccessPathName(filename) && !firsttime) openoption = "UPDATE";
 	      if (fDebug>1) printf("Opening file: %s  option=%s\n",filename, openoption.Data());
          file = new TFile(filename, openoption);
       } else {
@@ -1291,6 +1369,19 @@ void AliAnalysisManager::ResetAnalysis()
 }
 
 //______________________________________________________________________________
+Long64_t AliAnalysisManager::StartAnalysis(const char *type, Long64_t nentries, Long64_t firstentry)
+{
+// Start analysis having a grid handler.
+   if (!fGridHandler) {
+      Error("StartAnalysis", "Cannot start analysis providing just the analysis type without a grid handler.");
+      Info("===", "Add an AliAnalysisAlien object as plugin for this manager and configure it.");
+      return -1;
+   }
+   TTree *tree = NULL;
+   return StartAnalysis(type, tree, nentries, firstentry);
+}
+
+//______________________________________________________________________________
 Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree, Long64_t nentries, Long64_t firstentry)
 {
 // Start analysis for this manager. Analysis task can be: LOCAL, PROOF, GRID or
@@ -1359,10 +1450,10 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree,
       cdir->cd();
       return 0;
    }
-   char line[256];
+   TString line;
    SetEventLoop(kFALSE);
    // Enable event loop mode if a tree was provided
-   if (tree || fMode==kMixingAnalysis) SetEventLoop(kTRUE);
+   if (tree || fGridHandler || fMode==kMixingAnalysis) SetEventLoop(kTRUE);
 
    TChain *chain = 0;
    TString ttype = "TTree";
@@ -1391,16 +1482,19 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree,
    
    switch (fMode) {
       case kLocalAnalysis:
-         if (!tree) {
+         if (!tree && !fGridHandler) {
             TIter nextT(fTasks);
             // Call CreateOutputObjects for all tasks
             Int_t itask = 0;
+            Bool_t dirStatus = TH1::AddDirectoryStatus();
             while ((task=(AliAnalysisTask*)nextT())) {
+               TH1::AddDirectory(kFALSE);
                task->CreateOutputObjects();
                if (getsysInfo) AliSysInfo::AddStamp(Form("%s_CREATEOUTOBJ",task->ClassName()), 0, itask, 0);
                gROOT->cd();
                itask++;
             }   
+            TH1::AddDirectory(dirStatus);
             if (IsExternalLoop()) {
                Info("StartAnalysis", "Initialization done. Event loop is controlled externally.\
                      \nSetData for top container, call ExecAnalysis in a loop and then Terminate manually");
@@ -1410,19 +1504,41 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree,
             Terminate();
             return 0;
          } 
+         fSelector = new AliAnalysisSelector(this);
+         // Check if a plugin handler is used
+         if (fGridHandler) {
+            // Get the chain from the plugin
+            TString dataType = "esdTree";
+            if (fInputEventHandler) {
+               dataType = fInputEventHandler->GetDataType();
+               dataType.ToLower();
+               dataType += "Tree";
+            }   
+            chain = fGridHandler->GetChainForTestMode(dataType);
+            if (!chain) {
+               Error("StartAnalysis", "No chain for test mode. Aborting.");
+               return -1;
+            }
+            cout << "===== RUNNING LOCAL ANALYSIS" << GetName() << " ON CHAIN " << chain->GetName() << endl;
+            retv = chain->Process(fSelector, "", nentries, firstentry);
+            break;
+         }
          // Run tree-based analysis via AliAnalysisSelector  
          cout << "===== RUNNING LOCAL ANALYSIS " << GetName() << " ON TREE " << tree->GetName() << endl;
-         fSelector = new AliAnalysisSelector(this);
          retv = tree->Process(fSelector, "", nentries, firstentry);
          break;
       case kProofAnalysis:
          fIsRemote = kTRUE;
+         // Check if the plugin is used
+         if (fGridHandler) {
+            return StartAnalysis(type, fGridHandler->GetProofDataSet(), nentries, firstentry);
+         }
          if (!gROOT->GetListOfProofs() || !gROOT->GetListOfProofs()->GetEntries()) {
             Error("StartAnalysis", "No PROOF!!! Exiting.");
             cdir->cd();
             return -1;
          }   
-         sprintf(line, "gProof->AddInput((TObject*)0x%lx);", (ULong_t)this);
+         line = Form("gProof->AddInput((TObject*)0x%lx);", (ULong_t)this);
          gROOT->ProcessLine(line);
          if (chain) {
             chain->SetProof();
@@ -1435,8 +1551,39 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree,
          }      
          break;
       case kGridAnalysis:
-         Warning("StartAnalysis", "GRID analysis mode not implemented. Running local.");
-         break;
+         fIsRemote = kTRUE;
+         if (!anaType.Contains("terminate")) {
+            if (!fGridHandler) {
+               Error("StartAnalysis", "Cannot start grid analysis without a grid handler.");
+               Info("===", "Add an AliAnalysisAlien object as plugin for this manager and configure it.");
+               cdir->cd();
+               return -1;
+            }
+            // Write analysis manager in the analysis file
+            cout << "===== RUNNING GRID ANALYSIS: " << GetName() << endl;
+            // Start the analysis via the handler
+            if (!fGridHandler->StartAnalysis(nentries, firstentry)) {
+               Info("StartAnalysis", "Grid analysis was stopped and cannot be terminated");
+               cdir->cd();
+               return -1;
+            }   
+
+            // Terminate grid analysis
+            if (fSelector && fSelector->GetStatus() == -1) {cdir->cd(); return -1;}
+            if (fGridHandler->GetRunMode() == AliAnalysisGrid::kOffline) {cdir->cd(); return 0;}
+            cout << "===== MERGING OUTPUTS REGISTERED BY YOUR ANALYSIS JOB: " << GetName() << endl;
+            if (!fGridHandler->MergeOutputs()) {
+               // Return if outputs could not be merged or if it alien handler
+               // was configured for offline mode or local testing.
+               cdir->cd();
+               return 0;
+            }
+         }   
+         cout << "===== TERMINATING GRID ANALYSIS JOB: " << GetName() << endl;
+         ImportWrappers(NULL);
+         Terminate();
+         cdir->cd();
+         return 0;
       case kMixingAnalysis:   
          // Run event mixing analysis
          if (!fEventPool) {
@@ -1483,11 +1630,30 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, const char *dataset
       return -1;
    }   
    fMode = kProofAnalysis;
-   char line[256];
+   TString line;
    SetEventLoop(kTRUE);
    // Set the dataset flag
    TObject::SetBit(kUseDataSet);
    fTree = 0;
+   TChain *chain = 0;
+   if (fGridHandler) {
+      // Start proof analysis using the grid handler
+      if (!fGridHandler->StartAnalysis(nentries, firstentry)) {
+         Error("StartAnalysis", "The grid plugin could not start PROOF analysis");
+         return -1;
+      }
+      // Check if the plugin is in test mode
+      if (fGridHandler->GetRunMode() == AliAnalysisGrid::kTest) {
+         dataset = "test_collection";
+      } else {
+         dataset = fGridHandler->GetProofDataSet();
+      }
+   }   
+
+   if (!gROOT->GetListOfProofs() || !gROOT->GetListOfProofs()->GetEntries()) {
+      Error("StartAnalysis", "No PROOF!!! Exiting.");
+      return -1;
+   }   
 
    // Initialize locally all tasks
    TIter next(fTasks);
@@ -1496,21 +1662,19 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, const char *dataset
       task->LocalInit();
    }
    
-   if (!gROOT->GetListOfProofs() || !gROOT->GetListOfProofs()->GetEntries()) {
-      Error("StartAnalysis", "No PROOF!!! Exiting.");
-      return -1;
-   }   
-   sprintf(line, "gProof->AddInput((TObject*)0x%lx);", (ULong_t)this);
+   line = Form("gProof->AddInput((TObject*)0x%lx);", (ULong_t)this);
    gROOT->ProcessLine(line);
-//   sprintf(line, "gProof->GetDataSet(\"%s\");", dataset);
-//   if (!gROOT->ProcessLine(line)) {
-//      Error("StartAnalysis", "Dataset %s not found", dataset);
-//      return -1;
-//   }   
-   sprintf(line, "gProof->Process(\"%s\", \"AliAnalysisSelector\", \"\", %lld, %lld);",
-           dataset, nentries, firstentry);
-   cout << "===== RUNNING PROOF ANALYSIS " << GetName() << " ON DATASET " << dataset << endl;
-   Long_t retv = (Long_t)gROOT->ProcessLine(line);
+   Long_t retv;
+   if (chain) {
+//      chain->SetProof();
+      cout << "===== RUNNING PROOF ANALYSIS " << GetName() << " ON TEST CHAIN " << chain->GetName() << endl;
+      retv = chain->Process("AliAnalysisSelector", "", nentries, firstentry);
+   } else {   
+      line = Form("gProof->Process(\"%s\", \"AliAnalysisSelector\", \"\", %lld, %lld);",
+                  dataset, nentries, firstentry);
+      cout << "===== RUNNING PROOF ANALYSIS " << GetName() << " ON DATASET " << dataset << endl;
+      retv = (Long_t)gROOT->ProcessLine(line);
+   }   
    return retv;
 }   
 
@@ -1613,7 +1777,10 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
       printf("File: %s already booked via TProofOutputFile\n", filename.Data());
     }  
     f = (TFile*)gROOT->GetListOfFiles()->FindObject(filename);
-    if (!f) Fatal("OpenProofFile", "Proof output file found but no file opened for %s", filename.Data());
+    if (!f) {
+       Fatal("OpenProofFile", "Proof output file found but no file opened for %s", filename.Data());
+       return NULL;
+    }   
     // Check if option "UPDATE" was preserved 
     TString opt(option);
     opt.ToUpper();
@@ -1676,7 +1843,7 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
          lastTree = fTree;
       }   
       if (!ncalls) timer->Start();
-      if (!fIsRemote) ProgressBar("Processing event", ncalls, nentries, timer, kFALSE);
+      if (!fIsRemote && TObject::TestBit(kUseProgressBar)) ProgressBar("Processing event", ncalls, nentries, timer, kFALSE);
    }
    gROOT->cd();
    TDirectory *cdir = gDirectory;
@@ -1976,4 +2143,26 @@ void AliAnalysisManager::ProgressBar(const char *opname, Long64_t current, Long6
       nrefresh = 0;
       fprintf(stderr, "\n");
    }   
+}
+
+//______________________________________________________________________________
+void AliAnalysisManager::DoLoadBranch(const char *name) 
+{
+  // Get tree and load branch if needed.
+
+  if (!fTree)
+    return;
+
+  TBranch *br = dynamic_cast<TBranch*>(fTable.FindObject(name));
+  if (!br) {
+    br = fTree->GetBranch(name);
+    if (!br) {
+      Error("DoLoadBranch", "Could not find branch %s",name);
+      return;
+    }
+    fTable.Add(br);
+  }
+  if (br->GetReadEntry()==GetCurrentEntry())
+    return;
+  br->GetEntry(GetCurrentEntry());
 }

@@ -42,11 +42,16 @@ AliAnalysisTaskSE(name),
 fEvent(NULL),
 fMH(NULL), 
 fListHistos(NULL),
-fCorrelatorInteger(1),
-fNoOfMultipicityBins(10),
-fMultipicityBinWidth(2.),
+fHarmonic(1),
+fNoOfMultipicityBins(100),
+fMultipicityBinWidth(1.),
 fMinMultiplicity(3.),
-fCorrectForDetectorEffects(kTRUE),
+fOppositeChargesPOI(kFALSE),
+fEvaluateDifferential3pCorrelator(kFALSE),
+fCorrectForDetectorEffects(kFALSE),
+fPrintOnTheScreen(kTRUE),
+fCalculateVsM(kFALSE),
+fShowBinLabelsVsM(kFALSE),
 fUseParticleWeights(useParticleWeights),
 fUsePhiWeights(kFALSE),
 fUsePtWeights(kFALSE),
@@ -74,11 +79,16 @@ AliAnalysisTaskSE(),
 fEvent(NULL),
 fMH(NULL),
 fListHistos(NULL),
-fCorrelatorInteger(0),
+fHarmonic(0),
 fNoOfMultipicityBins(0),
 fMultipicityBinWidth(0),
 fMinMultiplicity(0),
+fOppositeChargesPOI(kFALSE),
+fEvaluateDifferential3pCorrelator(kFALSE),
 fCorrectForDetectorEffects(kFALSE),
+fPrintOnTheScreen(kFALSE),
+fCalculateVsM(kFALSE),
+fShowBinLabelsVsM(kFALSE),
 fUseParticleWeights(kFALSE),
 fUsePhiWeights(kFALSE),
 fUsePtWeights(kFALSE),
@@ -100,11 +110,16 @@ void AliAnalysisTaskMixedHarmonics::UserCreateOutputObjects()
  fMH = new AliFlowAnalysisWithMixedHarmonics();
   
  // Common:
- fMH->SetCorrelatorInteger(fCorrelatorInteger);
+ fMH->SetHarmonic(fHarmonic);
  fMH->SetNoOfMultipicityBins(fNoOfMultipicityBins);
  fMH->SetMultipicityBinWidth(fMultipicityBinWidth);
  fMH->SetMinMultiplicity(fMinMultiplicity);
+ fMH->SetOppositeChargesPOI(fOppositeChargesPOI);
+ fMH->SetEvaluateDifferential3pCorrelator(fEvaluateDifferential3pCorrelator); 
  fMH->SetCorrectForDetectorEffects(fCorrectForDetectorEffects);
+ fMH->SetPrintOnTheScreen(fPrintOnTheScreen); 
+ fMH->SetCalculateVsM(fCalculateVsM); 
+ fMH->SetShowBinLabelsVsM(fShowBinLabelsVsM);
  if(fUseParticleWeights)
  {
   // Pass the flags to class:

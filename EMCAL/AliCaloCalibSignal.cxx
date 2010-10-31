@@ -48,11 +48,11 @@ ClassImp(AliCaloCalibSignal)
 using namespace std;
 
 // variables for TTree filling; not sure if they should be static or not
-static int fChannelNum; // for regular towers
-static int fRefNum; // for LED
-static double fAmp;
-static double fAvgAmp;
-static double fRMS;
+static int fChannelNum = 0; // for regular towers
+static int fRefNum = 0; // for LED
+static double fAmp = 0;
+static double fAvgAmp = 0;
+static double fRMS = 0;
 
 // ctor; initialize everything in order to avoid compiler warnings
 // put some reasonable defaults
@@ -141,7 +141,7 @@ AliCaloCalibSignal::AliCaloCalibSignal(const AliCaloCalibSignal &sig) :
   fLEDRefs(sig.GetLEDRefs()),
   fModules(sig.GetModules()),
   fCaloString(sig.GetCaloString()),
-  fMapping(NULL), //! note that we are not copying the map info
+  fMapping(), //! note that we are not copying the map info
   fRunNumber(sig.GetRunNumber()),
   fStartTime(sig.GetStartTime()),
   fAmpCut(sig.GetAmpCut()),
@@ -155,13 +155,23 @@ AliCaloCalibSignal::AliCaloCalibSignal(const AliCaloCalibSignal &sig) :
   fSecInAverage(sig.GetSecInAverage()),
   fNEvents(sig.GetNEvents()),
   fNAcceptedEvents(sig.GetNAcceptedEvents()),
-  fTreeAmpVsTime(NULL),
-  fTreeAvgAmpVsTime(NULL),
-  fTreeLEDAmpVsTime(NULL),
-  fTreeLEDAvgAmpVsTime(NULL)
+  fTreeAmpVsTime(),
+  fTreeAvgAmpVsTime(),
+  fTreeLEDAmpVsTime(),
+  fTreeLEDAvgAmpVsTime()
 {
   // also the TTree contents
   AddInfo(&sig);
+  for (Int_t i = 0; i<2*fgkMaxTowers; i++) {
+    if(i < fgkMaxTowers){
+      fNHighGain[i] = sig.fNHighGain[i];
+      fNLowGain[i]  = sig.fNLowGain[i]; 
+    }
+    fNRef[i] = sig.fNRef[i]; 
+  }
+  
+  
+  
 }
 
 // assignment operator; use copy ctor to make life easy..
@@ -334,7 +344,7 @@ void AliCaloCalibSignal::SetParametersFromFile(const char *parameterFile)
       s >> keyValue;
       
       // check stream status
-      if( s.rdstate() & ios::failbit ) break;
+      if( ( s.rdstate() & ios::failbit ) == ios::failbit ) break;
 			
       // skip rest of line if comments found
       if( keyValue.substr( 0, 2 ) == "//" ) break;
@@ -494,7 +504,7 @@ Bool_t AliCaloCalibSignal::ProcessEvent(AliCaloRawStreamV3 *in, UInt_t Timestamp
   int iLEDAmpVal[fgkMaxRefs * 2]; // factor 2 is for the two gain values
   memset(iLEDAmpVal, 0, sizeof(iLEDAmpVal));
 
-  int sample; // temporary value
+  int sample = 0; // temporary value
   int gain = 0; // high or low gain
   
   // Number of Low and High gain, and LED Ref, channels for this event:
@@ -724,8 +734,8 @@ Bool_t AliCaloCalibSignal::Analyze()
   //1: set up TProfiles for the towers that had data
   TProfile * profile[fgkMaxTowers*2]; // *2 is since we include both high and low gains
   memset(profile, 0, sizeof(profile));
-
-  char name[200]; // for profile id and title
+  const Int_t buffersize = 200;
+  char name[buffersize]; // for profile id and title
   int iTowerNum = 0;
 
   for (int i = 0; i<fModules; i++) {
@@ -736,14 +746,14 @@ Bool_t AliCaloCalibSignal::Analyze()
 	// high gain
 	if (fNHighGain[iTowerNum] > 0) {
 	  fChannelNum = GetChannelNum(i, ic, ir, 1); 
-	  sprintf(name, "profileChan%d", fChannelNum);
+	  snprintf(name,buffersize,"profileChan%d", fChannelNum);
 	  profile[fChannelNum] = new TProfile(name, name, numProfBins, timeMin, timeMax, "s");
 	}
 
 	// same for low gain
 	if (fNLowGain[iTowerNum] > 0) {
 	  fChannelNum = GetChannelNum(i, ic, ir, 0); 
-	  sprintf(name, "profileChan%d", fChannelNum);
+	  snprintf(name,buffersize,"profileChan%d", fChannelNum);
 	  profile[fChannelNum] = new TProfile(name, name, numProfBins, timeMin, timeMax, "s");
 	}
 

@@ -48,11 +48,7 @@
 #include "AliLog.h"
 //#include "AliAnalysisHelperJetTasks.h"
 
-#include "AliStack.h"
-#include "TParticle.h"
 #include "TH1I.h"
-#include "AliMCEvent.h"
-#include "AliMCEventHandler.h"
 
 using namespace std; //required for resolving the 'cout' symbol
 
@@ -61,10 +57,10 @@ ClassImp(AliPWG4HighPtQATPConly)
 AliPWG4HighPtQATPConly::AliPWG4HighPtQATPConly(): AliAnalysisTask("AliPWG4HighPtQATPConly", ""), 
   fESD(0), 
   fESDfriend(0), 
-  fMC(0),
   fCutType(1),
   fTrackCuts(0), 
   fTrackCutsITS(0),
+  fPtMax(100.),
   fNEventAll(0),
   fNEventSel(0),
   fPtAll(0),
@@ -151,10 +147,10 @@ AliPWG4HighPtQATPConly::AliPWG4HighPtQATPConly(const char *name):
   AliAnalysisTask(name, ""), 
   fESD(0),
   fESDfriend(0), 
-  fMC(0),
   fCutType(1),  
   fTrackCuts(),
   fTrackCutsITS(),
+  fPtMax(100.),
   fNEventAll(0),
   fNEventSel(0),
   fPtAll(0),
@@ -278,16 +274,7 @@ void AliPWG4HighPtQATPConly::ConnectInputData(Option_t *)
     return;
   } else
     fESD = esdH->GetEvent();
-  
- AliMCEventHandler *eventHandler = dynamic_cast<AliMCEventHandler*> (AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler());
- // AliMCEventHandler* mcH = dynamic_cast<AliMCEventHandler*>
- //                        (AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler());
-  if (!eventHandler) {
-    AliDebug(2,Form( "ERROR: Could not retrieve MC event handler \n"));
-  }
-  else
-    fMC = eventHandler->MCEvent();
-
+ 
   fESDfriend = esdH->GetESDfriend();
 
 }
@@ -302,10 +289,13 @@ void AliPWG4HighPtQATPConly::CreateOutputObjects() {
 
   OpenFile(0);
   fHistList = new TList();
+  fHistList->SetOwner(kTRUE);
   OpenFile(1);
   fHistListTPC = new TList();
+  fHistListTPC->SetOwner(kTRUE);
   OpenFile(2);
   fHistListITS = new TList();
+  fHistListITS->SetOwner(kTRUE);
 
   Int_t fgkNPhiBins=18;
   Float_t kMinPhi = 0.;
@@ -314,17 +304,31 @@ void AliPWG4HighPtQATPConly::CreateOutputObjects() {
   for(Int_t i=0; i<=fgkNPhiBins; i++) binsPhi[i]=(Double_t)kMinPhi + (kMaxPhi-kMinPhi)/fgkNPhiBins*(Double_t)i ;
   
   Float_t fgkPtMin=0.;
-  Float_t fgkPtMax=100.;
+  Float_t fgkPtMax=fPtMax;
+
+  Float_t ptBinEdges[2][2];
+  ptBinEdges[0][0] = 10.;
+  ptBinEdges[0][1] = 1.;
+  ptBinEdges[1][0] = 20.;
+  ptBinEdges[1][1] = 2.;
+  Float_t binWidth3 = 5.;
+  if(fPtMax>100.) {
+    ptBinEdges[0][0] = 100.;
+    ptBinEdges[0][1] = 5.;
+    ptBinEdges[1][0] = 300.;
+    ptBinEdges[1][1] = 10.;
+    binWidth3 = 20.;
+  }
 
   const Float_t ptmin1 =  fgkPtMin;
-  const Float_t ptmax1 =  10.0 ;
+  const Float_t ptmax1 =  ptBinEdges[0][0];
   const Float_t ptmin2 =  ptmax1 ;
-  const Float_t ptmax2 =  20.0 ;
+  const Float_t ptmax2 =  ptBinEdges[1][0];
   const Float_t ptmin3 =  ptmax2 ;
   const Float_t ptmax3 =  fgkPtMax;
-  const Int_t nbin11 = (int)(ptmax1-ptmin1);
-  const Int_t nbin12 = (int)((ptmax2-ptmin2)/2.)+nbin11;
-  const Int_t nbin13 = (int)((ptmax3-ptmin3)/5.)+nbin12;
+  const Int_t nbin11 = (int)((ptmax1-ptmin1)/ptBinEdges[0][1]);
+  const Int_t nbin12 = (int)((ptmax2-ptmin2)/ptBinEdges[1][1])+nbin11;
+  const Int_t nbin13 = (int)((ptmax3-ptmin3)/binWidth3)+nbin12;
   Int_t fgkNPtBins=nbin13;
   //Create array with low edges of each bin
   Double_t *binsPt=new Double_t[fgkNPtBins+1];
@@ -398,9 +402,9 @@ void AliPWG4HighPtQATPConly::CreateOutputObjects() {
   fHistList->Add(fNEventAll);
   fNEventSel = new TH1F("fNEventSel","NEvent Selected for analysis",1,-0.5,0.5);
   fHistList->Add(fNEventSel);
-  fPtAll = new TH1F("fPtAll","PtAll",fgkNPtBins, binsPt);//fgkPtMin, fgkPtMax);
+  fPtAll = new TH1F("fPtAll","PtAll",fgkNPtBins, binsPt);
   fHistList->Add(fPtAll);
-  fPtSel = new TH1F("fPtSel","PtSel",fgkNPtBins, binsPt);//fgkPtMin, fgkPtMax);
+  fPtSel = new TH1F("fPtSel","PtSel",fgkNPtBins, binsPt);
   fHistList->Add(fPtSel);
  
   fPtAllminPtTPCvsPtAll = new TH2F("fPtAllminPtTPCvsPtAll","PtAllminPtTPCvsPtAll",fgkNPtBins, binsPt,fgkNResPtBins,binsResPt);
@@ -838,27 +842,6 @@ void AliPWG4HighPtQATPConly::Exec(Option_t *) {
      PostData(2, fHistListITS);
     return;
   }
-
-  AliStack* stack = 0x0;
-  AliMCEvent* mcEvent = 0x0;
-  
-  if(fMC) {
-    mcEvent = fMC;
-    if (!mcEvent) {
-      AliDebug(2,Form("ERROR: Could not retrieve MC event"));
-      PostData(0, fHistList);
-      PostData(1, fHistListTPC);
-      PostData(2, fHistListITS);
-      return;
-    }
-    
-    AliDebug(2,Form("MC particles: %d", mcEvent->GetNumberOfTracks()));
-    
-    stack = mcEvent->Stack();                //Particles Stack
-    
-    AliDebug(2,Form("MC particles stack: %d", stack->GetNtrack()));
-  }
-  
 
   const AliESDVertex *vtx = fESD->GetPrimaryVertexTracks();
   // Need vertex cut

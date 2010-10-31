@@ -18,10 +18,9 @@ class AliFlowTrackSimple: public TObject {
 
 public:
   AliFlowTrackSimple();
-  AliFlowTrackSimple(const TParticle* p);
+  AliFlowTrackSimple(TParticle* p);
   AliFlowTrackSimple(const AliFlowTrackSimple& aTrack);
-  AliFlowTrackSimple(Double_t phi, Double_t eta, Double_t pt, Double_t weight);
-  virtual AliFlowTrackSimple& operator=(const AliFlowTrackSimple& aTrack);
+  AliFlowTrackSimple& operator=(const AliFlowTrackSimple& aTrack);
   virtual  ~AliFlowTrackSimple();
   virtual AliFlowTrackSimple* Clone(const char* option="") const;
   
@@ -33,6 +32,9 @@ public:
   Double_t Pt()  const; 
   Double_t Phi() const;
   Double_t Weight() const; 
+  Int_t Charge() const;
+  Int_t PID() const {return 0;}
+  
 
   Bool_t InRPSelection() const; 
   Bool_t InPOISelection() const; 
@@ -43,8 +45,11 @@ public:
   void SetPt(Double_t pt); 
   void SetPhi(Double_t phi);
   void SetWeight(Double_t weight);
+  void SetCharge(Int_t charge);
   void SetForRPSelection(Bool_t b=kTRUE); 
   void SetForPOISelection(Bool_t b=kTRUE); 
+  void TagRP(Bool_t b=kTRUE) {SetForRPSelection(b);} 
+  void TagPOI(Bool_t b=kTRUE) {SetForPOISelection(b);} 
   void SetForSubevent(Int_t i); 
   void ResetFlowTags() {fFlowBits.ResetAllBits();}
   void ResetSubEventTags() {fSubEventBits.ResetAllBits();}
@@ -59,12 +64,17 @@ public:
               Double_t reactionPlaneAngle,
               Double_t precision,
               Int_t maxNumberOfIterations=100 );
+  void AddV3( Double_t v3,
+              Double_t reactionPlaneAngle,
+              Double_t precision,
+              Int_t maxNumberOfIterations=100 );
   void AddV4( Double_t v4,
               Double_t reactionPlaneAngle,
               Double_t precision,
               Int_t maxNumberOfIterations=100 );
   void AddFlow( Double_t v1,
                 Double_t v2,
+                Double_t v3,
                 Double_t v4,
                 Double_t reactionPlaneAngle,
                 Double_t precision,
@@ -73,10 +83,12 @@ public:
   const TBits* GetFlowBits() const {return &fFlowBits;}
 
  private:
+  AliFlowTrackSimple(Double_t phi, Double_t eta, Double_t pt, Double_t weight, Int_t charge);
   Double_t fEta;         // eta
   Double_t fPt;          // pt
   Double_t fPhi;         // phi
   Double_t fTrackWeight; // weight
+  Int_t fCharge;         //charge
   TBits    fFlowBits;    // bits to set if track is selected
   TBits    fSubEventBits;// bits to set if track is selected for a subevent
 
@@ -84,7 +96,7 @@ public:
 
 };
 
-//Setters
+//Getters
 inline Double_t AliFlowTrackSimple::Eta() const { 
   return this->fEta; }
 inline Double_t AliFlowTrackSimple::Pt() const {  
@@ -93,6 +105,8 @@ inline Double_t AliFlowTrackSimple::Phi() const {
   return this->fPhi; }
 inline Double_t AliFlowTrackSimple::Weight() const { 
   return this->fTrackWeight; }
+inline Int_t AliFlowTrackSimple::Charge() const { 
+  return this->fCharge; }
 //TBits
 inline Bool_t AliFlowTrackSimple::InRPSelection() const { 
   return this->fFlowBits.TestBitNumber(0); }
@@ -101,7 +115,7 @@ inline Bool_t AliFlowTrackSimple::InPOISelection() const {
 inline Bool_t AliFlowTrackSimple::InSubevent(Int_t i) const { 
   return this->fSubEventBits.TestBitNumber(i); }
 
-//Getters
+//Setters
 inline void AliFlowTrackSimple::SetEta(Double_t val) {
   fEta = val; }
 inline void AliFlowTrackSimple::SetPt(Double_t val) {
@@ -110,6 +124,8 @@ inline void AliFlowTrackSimple::SetPhi(Double_t val) {
   fPhi = val; }
 inline void AliFlowTrackSimple::SetWeight(Double_t val) {
   fTrackWeight = val; }
+inline void AliFlowTrackSimple::SetCharge(Int_t val) {
+  fCharge = val; }
 //TBits
 inline void AliFlowTrackSimple::SetForRPSelection(Bool_t val) {
   fFlowBits.SetBitNumber(0,val); }

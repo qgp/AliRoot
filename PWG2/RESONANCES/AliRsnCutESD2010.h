@@ -23,19 +23,22 @@ class AliRsnCutESD2010 : public AliRsnCut
 {
   public:
 
-    AliRsnCutESD2010();
-    AliRsnCutESD2010(const char *name);
+    AliRsnCutESD2010(const char *name = "cutESD2010", Bool_t isMC = kFALSE);
+    AliRsnCutESD2010(const AliRsnCutESD2010& copy);
+    AliRsnCutESD2010& operator=(const AliRsnCutESD2010& copy);
     virtual ~AliRsnCutESD2010() {;};
 
-    void             Initialize();
     AliESDtrackCuts* GetCutsTPC() {return &fESDtrackCutsTPC;}
     AliESDtrackCuts* GetCutsITS() {return &fESDtrackCutsITS;}
     virtual Bool_t   IsSelected(TObject *obj1, TObject *obj2 = 0x0);
     
-    void             SetMC      (Bool_t yn = kTRUE) {fIsMC = yn;}
-    void             SetCheckITS(Bool_t yn = kTRUE) {fCheckITS = yn;}
-    void             SetCheckTPC(Bool_t yn = kTRUE) {fCheckTPC = yn;}
-    void             SetCheckTOF(Bool_t yn = kTRUE) {fCheckTOF = yn;}
+    void             SetMC       (Bool_t yn = kTRUE);
+    void             SetCheckITS (Bool_t yn = kTRUE) {fCheckITS = yn;}
+    void             SetCheckTPC (Bool_t yn = kTRUE) {fCheckTPC = yn;}
+    void             SetCheckTOF (Bool_t yn = kTRUE) {fCheckTOF = yn;}
+    void             SetUseGlobal(Bool_t yn = kTRUE) {fUseGlobal = yn;}
+    void             SetUseITSSA (Bool_t yn = kTRUE) {fUseITSSA = yn;}
+    void             SetMaxEta   (Double_t v)        {fMaxEta = v;}
     
     void             SetITSband(Double_t v) {fMaxITSband = v;}
     
@@ -49,18 +52,20 @@ class AliRsnCutESD2010 : public AliRsnCut
     void             SetTOFuseT0       (Bool_t yn = kTRUE)  {fTOFuseT0 = yn;}
     void             SetTOFtuneMC      (Bool_t yn = kTRUE)  {fTOFtuneMC = yn;}
     void             SetTOFresolution  (Double_t v = 100.0) {fTOFresolution = v;}
+    void             SetTOFrange       (Double_t v1, Double_t v2) {fMinTOF = v1; fMaxTOF = v2;}
     
     virtual void     SetEvent(AliRsnEvent *event);
 
   protected:
   
-    AliRsnCutESD2010(const AliRsnCutESD2010& copy);
-    AliRsnCutESD2010& operator=(const AliRsnCutESD2010& /*copy*/) {return (*this);}
-  
-    Bool_t           fIsMC;             // swithc for MC analysis
+    Bool_t           fIsMC;             //  switch for MC analysis
     Bool_t           fCheckITS;         //  switch for ITS dE/dx check
     Bool_t           fCheckTPC;         //  switch for TPC dE/dx check
     Bool_t           fCheckTOF;         //  switch for TOF time check
+    Bool_t           fUseGlobal;        //  switch to use TPC global tracks
+    Bool_t           fUseITSSA;         //  switch to use ITS standalone tracks
+    
+    Double_t         fMaxEta;           //  cut in eta
 
     Double_t         fMaxITSband;       //  range for ITS de/dx band
 
@@ -79,6 +84,8 @@ class AliRsnCutESD2010 : public AliRsnCut
     Bool_t           fTOFuseT0;         //  TOF settings
     Bool_t           fTOFtuneMC;        //  TOF settings
     Double_t         fTOFresolution;    //  TOF settings
+    Double_t         fMinTOF;           //  range for TOF PID (min)
+    Double_t         fMaxTOF;           //  range for TOF PID (max)
     Int_t            fLastRun;          //  last run number
 
     ClassDef(AliRsnCutESD2010, 1)

@@ -51,8 +51,8 @@ AliESDpidCuts::AliESDpidCuts(const Char_t *name, const Char_t *title):
   //
   
   fESDpid = new AliESDpid;
-  memset(fCutTPCnSigma, 0, sizeof(Float_t) * 2);
-  memset(fCutTOFnSigma, 0, sizeof(Float_t) * 2);
+  memset(fCutTPCnSigma, 0, sizeof(Float_t)* AliPID::kSPECIES * 2);
+  memset(fCutTOFnSigma, 0, sizeof(Float_t)* AliPID::kSPECIES * 2);
 
   memset(fHclusterRatio, 0, sizeof(TH1F *) * 2);
   memset(fHnSigmaTPC, 0, sizeof(TH1F *) * AliPID::kSPECIES * 2);
@@ -160,7 +160,7 @@ void AliESDpidCuts::Copy(TObject &c) const {
   }
  
   memcpy(target.fCutTPCnSigma, fCutTPCnSigma, sizeof(Float_t) * AliPID::kSPECIES * 2);
-  memcpy(target.fCutTOFnSigma, fCutTOFnSigma, sizeof(Float_t) * AliPID::kSPECIES);
+  memcpy(target.fCutTOFnSigma, fCutTOFnSigma, sizeof(Float_t) * AliPID::kSPECIES * 2);
  
   AliESDpidCuts::Copy(c);
 }
@@ -170,8 +170,8 @@ Long64_t AliESDpidCuts::Merge(TCollection *coll){
   //
   // Merge Cut objects
   //
-  if(coll) return 0;
-  if(coll->IsEmpty()) return 1;
+  if(!coll) return 0;
+  if(coll->IsEmpty())   return 1;
   if(!HasHistograms())  return 0;
   
   TIterator *iter = coll->MakeIterator();
@@ -239,8 +239,10 @@ Bool_t AliESDpidCuts::AcceptTrack(const AliESDtrack *track, const AliESDEvent *e
     kCutNsigmaTOF
   };
   Long64_t cutRequired=0, cutFullfiled = 0;
-  if(fTOFsigmaCutRequired && event == 0) 
+  if(fTOFsigmaCutRequired && event == 0)  {
     AliError("No event pointer. Need event pointer for T0 for TOF cut");
+    return (0);
+  }
   Double_t clusterRatio = track->GetTPCNclsF() ? static_cast<Float_t>(track->GetTPCNcls())/static_cast<Float_t>(track->GetTPCNclsF()) : 1.;
   if(fCutTPCclusterRatio > 0.){
     SETBIT(cutRequired, kCutClusterRatioTPC);
@@ -262,7 +264,7 @@ Bool_t AliESDpidCuts::AcceptTrack(const AliESDtrack *track, const AliESDEvent *e
   track->GetIntegratedTimes(times);
   for(Int_t ispec = 0; ispec < AliPID::kSPECIES; ispec++){
     
-    if(hasTOFpid) nsigmaTOF[ispec] = nsigma = fESDpid->NumberOfSigmasTOF(track,(AliPID::EParticleType)ispec, event->GetT0());
+    if(hasTOFpid && event) nsigmaTOF[ispec] = nsigma = fESDpid->NumberOfSigmasTOF(track,(AliPID::EParticleType)ispec, event->GetT0());
     if(!(fTOFsigmaCutRequired && 1 << ispec)) continue;
     SETBIT(cutRequired, kCutNsigmaTOF);
     if(track->GetOuterParam()->P() >= fMinMomentumTOF){

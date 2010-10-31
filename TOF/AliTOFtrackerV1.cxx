@@ -271,7 +271,7 @@ Int_t AliTOFtrackerV1::PropagateBack(AliESDEvent * const event) {
 			covB[13],covA[13],
 			covB[14],covA[14]
 			));
-	AliDebug(3,Form(" %6d  %f %f %f %f % %6d %3d %f  %f %f %f %f %f",
+	AliDebug(3,Form(" %6d  %f %f %f %f %f %6d %3d %f  %f %f %f %f %f",
 			i,
 			t->GetTOFsignalRaw(),
 			t->GetTOFsignal(),
@@ -362,7 +362,7 @@ void AliTOFtrackerV1::MatchTracks( ){
   Float_t dY=AliTOFGeometry::XPad(); 
   Float_t dZ=AliTOFGeometry::ZPad(); 
 
-  const Float_t kTimeOffset = 32.; // time offset for tracking algorithm [ps]
+  const Float_t kTimeOffset = 0.; // time offset for tracking algorithm [ps]
 
   const Int_t kncmax = 100;
   Float_t sensRadius = fkRecoParam->GetSensRadius();

@@ -131,6 +131,7 @@ AliMpMotifType* AliMpMotifReader::BuildMotifType(const TString& motifTypeId)
   // Station1 & 2 Bergstak connectors have 80 pins, while for stations
   // 3, 4 and 5 they have 100 pins.
   Int_t gassiChannel[100];
+  for (Int_t i=0; i<100; ++i) gassiChannel[i] = 0;
   while(1) {
     Int_t bergNum;
     TString gcStr;
@@ -141,6 +142,10 @@ AliMpMotifType* AliMpMotifReader::BuildMotifType(const TString& motifTypeId)
         Fatal("BuildMotifType","Berg number > 80 ...");
         continue;
     }
+    if ( bergNum <= 0 || bergNum >= 101 ) {
+      AliErrorStream() << "Wrong bergNum: " << bergNum << endl;
+      return 0;
+    }  
     gassiChannel[bergNum-1]= atoi(gcStr);
   }
   

@@ -20,20 +20,21 @@
  * A trigger menu item is used to store the information for a single entry in the
  * HLT global trigger menu AliHLTTriggerMenu.
  * It stores information about the trigger condition, trigger domain merging
- * expression, trigger priority and the prescalar to apply.
+ * expression, trigger priority, trigger scale-down and the prescalar to apply.
  * The trigger condition is an expression which indicates what must be true
  * for the trigger menu entry to be fired. A fired item will then use the trigger
  * domain merging expression for the computation of the final global trigger domain.
  * All expressions must be valid C++.
  *
  * The symbols used in the trigger condition expressions are assumed to be AliHLTTrigger
- * names, unless they are predefined in the trigger menu symbols table. All symbols should
- * be valid C++ symbol names. However, the '-' character is allowed as a special extention.
- * The '-' character must not be the first character of the symbol and there cannot be
- * any spaces between it and the alphanumeric characters. If there are any spaces then
- * the '-' character is treated as the normal C++ minus operator. For example,
- * "abc-xyz" is a single whole symbol, while "abc - xyz" are two symbols, abc and xyz,
- * separated by a minus operator.
+ * names, unless they are predefined in the trigger menu symbols table. All symbols
+ * should be valid C++ symbol names. However, the '-' and '.' characters are allowed
+ * as a special extention. Neither the '-', nor '.' characters can be the first
+ * character of the symbol and there cannot be any spaces between it and the
+ * alphanumeric characters. If there are any spaces then the '-' or '.' character is
+ * treated as the normal C++ minus or dereferencing operator respectively.
+ * For example, "abc-xyz" is a single whole symbol, while "abc - xyz" are two symbols,
+ * abc and xyz, separated by a minus operator.
  *
  * Merging expressions can use all the symbols defined in the trigger menu symbols table
  * including all the implicit symbols used in the trigger conditions which are assumed
@@ -54,6 +55,7 @@
  *
  * \note The following symbol names are reserved and should not be used in either
  * the trigger condition or merging expressions:
+ *   _trigger_result_
  *   _domain_
  *   _description_
  *   _item_result_
@@ -125,6 +127,13 @@ class AliHLTTriggerMenuItem : public TObject
   
   /**
    * Set the pre-scalar value. A value of zero turns off the prescalar.
+   * \param value Indicates that only every n'th trigger should be passed.
+   *     HLT triggers will be scaled down by the amount 1/value.
+   * \note If both the prescalar and the scale-down factors are set then the
+   *     trigger rate reduction r will be higher and can be calculated by:
+   *        r = 1/n * s
+   *     where n is the prescalar value (an integer) and s is the scale down
+   *     factor, which is a floating point number in the range [0..1].
    */
   void PreScalar(UInt_t value) { fPrescalar = value; }
   
@@ -137,6 +146,33 @@ class AliHLTTriggerMenuItem : public TObject
    * Set the priority value. Higher values give a higher priority.
    */
   void Priority(UInt_t value) { fPriority = value; }
+  
+  /**
+   * Returns the scale down factor in the range [0..1].
+   */
+  Double_t ScaleDown() const { return fScaleDown; }
+  
+  /**
+   * Set the scale down factor.
+   * \param value The scale down to set. Valid values are in the range [0..1].
+   *     If <i>value</i> is outside the valid range it will be truncated the
+   *     nearest valid value in the range.
+   * \note A scale-down of 0 indicates no triggers are passes through, 1 indicates
+   *     all triggers are passed through and all values between this range will
+   *     cause the triggers to be vetoed randomally so as to reproduce:
+   *       triggers passed / triggers dropped = scale-down
+   */
+  void ScaleDown(Double_t value) { fScaleDown = (value < 0 ? 0 : (value > 1 ? 1 : value)); }
+  
+  /**
+   * Returns the default result for the global trigger if this item is matched.
+   */
+  bool DefaultResult() const { return TestBit(BIT(15)) == 1; }
+  
+  /**
+   * Set the default result for the global trigger if this item is matched.
+   */
+  void DefaultResult(bool value) { SetBit(BIT(15), value); }
 
  private:
   
@@ -145,8 +181,9 @@ class AliHLTTriggerMenuItem : public TObject
   TString fDomainExpr;  /// Trigger domain merging expression.
   UInt_t fPrescalar;  /// Pre-scalar value used to optionally reduce the trigger rate. Every modulus n'th event is triggered, where n equals the pre-scalar value.
   UInt_t fPriority;  /// Priority of the trigger menu item. Higher values have higher priority.
+  Double_t fScaleDown;  /// Trigger scale-down factor to apply to this item. Valid values are in the range [0..1].
   
-  ClassDef(AliHLTTriggerMenuItem, 3) // Trigger menu item for global HLT trigger.
+  ClassDef(AliHLTTriggerMenuItem, 4) // Trigger menu item for global HLT trigger.
 };
 
 #endif // ALIHLTTRIGGERMENUITEM_H

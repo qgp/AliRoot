@@ -46,6 +46,7 @@
 
 #include "AliDielectronPair.h"
 #include "AliDielectronMC.h"
+#include "AliDielectronPID.h"
 
 class AliVEvent;
 
@@ -76,6 +77,8 @@ public:
     kNclsTPC,                // number of clusters assigned in the TPC
     kNFclsTPC,               // number of findable clusters in the TPC
     kTPCsignalN,             // number of points used for dEdx
+    kTPCchi2Cl,              // chi2/cl in TPC
+    kTrackStatus,            // track status bits
     
     kNclsTRD,                // number of clusters assigned in the TRD
     kTRDntracklets,          // number of TRD tracklets used for tracking/PID TODO: correct getter
@@ -97,6 +100,7 @@ public:
     kITSsignalSSD2,	     // SSD2 dE/dx signal
     kITSsignalSDD1,	     // SDD1 dE/dx signal
     kITSsignalSDD2,	     // SDD2 dE/dx signal
+    kITSclusterMap,      // ITS cluster map
     kITSnSigmaEle,           // number of sigmas to the dE/dx electron line in the ITS
     kITSnSigmaPio,           // number of sigmas to the dE/dx pion line in the ITS
     kITSnSigmaMuo,           // number of sigmas to the dE/dx muon line in the ITS
@@ -134,6 +138,8 @@ public:
     kPhiCS,                  // phi in mother's rest frame in Collins-Soper picture
     kLegDist,                // distance of the legs
     kLegDistXY,              // distance of the legs in XY
+    kDeltaEta,         // Absolute value of Delta Eta for the legs
+    kDeltaPhi,           // Absolute value of Delta Phi for the legs
     kMerr,                   // error of mass calculation
     kDCA,                    // distance of closest approach TODO: not implemented yet
     kPairType,               // type of the pair, like like sign ++ unlikesign ...
@@ -251,14 +257,19 @@ inline void AliDielectronVarManager::FillVarESDtrack(const AliESDtrack *particle
 
   Double_t pidProbs[AliPID::kSPECIES];
   // Fill AliESDtrack interface specific information
+  Double_t tpcNcls=particle->GetTPCNcls();
   values[AliDielectronVarManager::kNclsITS]       = particle->GetNcls(0); // TODO: get rid of the plain numbers
-  values[AliDielectronVarManager::kNclsTPC]       = particle->GetNcls(1); // TODO: get rid of the plain numbers
+  values[AliDielectronVarManager::kNclsTPC]       = tpcNcls; // TODO: get rid of the plain numbers
   values[AliDielectronVarManager::kNFclsTPC]      = particle->GetTPCNclsF();
   values[AliDielectronVarManager::kTPCsignalN]    = particle->GetTPCsignalN();
   values[AliDielectronVarManager::kNclsTRD]       = particle->GetNcls(2); // TODO: get rid of the plain numbers
   values[AliDielectronVarManager::kTRDntracklets] = particle->GetTRDntracklets(); // TODO: GetTRDtracklets/GetTRDntracklets?
   values[AliDielectronVarManager::kTRDpidQuality] = particle->GetTRDpidQuality();
-
+  values[AliDielectronVarManager::kTrackStatus]   = (Double_t)particle->GetStatus();
+  
+  
+  values[AliDielectronVarManager::kTPCchi2Cl] = -1;
+  if (tpcNcls>0) values[AliDielectronVarManager::kTPCchi2Cl] = particle->GetTPCchi2() / tpcNcls;
   //TRD pidProbs
   particle->GetTRDpid(pidProbs);
   values[AliDielectronVarManager::kTRDprobEle]    = pidProbs[AliPID::kElectron];
@@ -300,7 +311,8 @@ inline void AliDielectronVarManager::FillVarESDtrack(const AliESDtrack *particle
   values[AliDielectronVarManager::kITSsignalSSD2]   =   itsdEdx[1];
   values[AliDielectronVarManager::kITSsignalSDD1]   =   itsdEdx[2];
   values[AliDielectronVarManager::kITSsignalSDD2]   =   itsdEdx[3];
-
+  values[AliDielectronVarManager::kITSclusterMap]   =   particle->GetITSClusterMap();
+  
   values[AliDielectronVarManager::kTrackLength]   = particle->GetIntegratedLength();
   //dEdx information
   Double_t mom = particle->GetP();
@@ -311,7 +323,9 @@ inline void AliDielectronVarManager::FillVarESDtrack(const AliESDtrack *particle
   // nsigma to Electron band
   // TODO: for the moment we set the bethe bloch parameters manually
   //       this should be changed in future!
+  
   values[AliDielectronVarManager::kTPCnSigmaEle]=fgESDpid->NumberOfSigmasTPC(particle,AliPID::kElectron);
+    //-AliDielectronPID::GetCorrVal();
   values[AliDielectronVarManager::kTPCnSigmaPio]=fgESDpid->NumberOfSigmasTPC(particle,AliPID::kPion);
   values[AliDielectronVarManager::kTPCnSigmaMuo]=fgESDpid->NumberOfSigmasTPC(particle,AliPID::kMuon);
   values[AliDielectronVarManager::kTPCnSigmaKao]=fgESDpid->NumberOfSigmasTPC(particle,AliPID::kKaon);
@@ -342,19 +356,22 @@ inline void AliDielectronVarManager::FillVarAODTrack(const AliAODTrack *particle
   
   // Reset AliESDtrack interface specific information
   values[AliDielectronVarManager::kNclsITS]       = 0;
-  values[AliDielectronVarManager::kNclsTPC]       = 0;
+  values[AliDielectronVarManager::kNclsTPC]       = particle->GetTPCNcls();
   values[AliDielectronVarManager::kNFclsTPC]      = 0;
   values[AliDielectronVarManager::kNclsTRD]       = 0;
   values[AliDielectronVarManager::kTRDntracklets] = 0;
   values[AliDielectronVarManager::kTRDpidQuality] = 0;
-
+  
+  values[AliDielectronVarManager::kTPCchi2Cl] = -1;
+  values[AliDielectronVarManager::kTrackStatus]   = (Double_t)particle->GetStatus();
+  
   //TRD pidProbs
   //TODO: set correctly
   values[AliDielectronVarManager::kTRDprobEle]    = 0;
   values[AliDielectronVarManager::kTRDprobPio]    = 0;
   
   //TODO: This is only an approximation!!!
-  values[AliDielectronVarManager::kTPCsignalN]    = particle->GetTPCClusterMap().CountBits();
+  values[AliDielectronVarManager::kTPCsignalN]    = values[AliDielectronVarManager::kNclsTPC];
   
 // Fill AliAODTrack interface information
   // ...
@@ -370,6 +387,7 @@ inline void AliDielectronVarManager::FillVarAODTrack(const AliAODTrack *particle
   values[AliDielectronVarManager::kTPCnSigmaKao]=0;
   values[AliDielectronVarManager::kTPCnSigmaPro]=0;
 
+  values[AliDielectronVarManager::kITSclusterMap]   =   particle->GetITSClusterMap();
   
   AliAODPid *pid=particle->GetDetPid();
   if (pid){
@@ -387,7 +405,7 @@ inline void AliDielectronVarManager::FillVarAODTrack(const AliAODTrack *particle
     Double_t tpcNsigmaPro=fgESDpid->GetTPCResponse().GetNumberOfSigmas(mom,pid->GetTPCsignal(),
       TMath::Nint(values[AliDielectronVarManager::kTPCsignalN]),AliPID::kProton);
     
-    values[AliDielectronVarManager::kPIn]=pid->GetTPCmomentum();
+    values[AliDielectronVarManager::kPIn]=mom;
     values[AliDielectronVarManager::kTPCsignal]=pid->GetTPCsignal();
 
     values[AliDielectronVarManager::kTPCnSigmaEle]=tpcNsigmaEle;
@@ -463,17 +481,26 @@ inline void AliDielectronVarManager::FillVarDielectronPair(const AliDielectronPa
 
   // Fill AliDielectronPair specific information
   const AliKFParticle &kfPair = pair->GetKFParticle();
-  
+
+  Double_t thetaHE=0;
+  Double_t phiHE=0;
+  Double_t thetaCS=0;
+  Double_t phiCS=0;
+
+  pair->GetThetaPhiCM(thetaHE,phiHE,thetaCS,phiCS);
+    
   values[AliDielectronVarManager::kChi2NDF]      = kfPair.GetChi2()/kfPair.GetNDF();
   values[AliDielectronVarManager::kDecayLength]  = kfPair.GetDecayLength();
   values[AliDielectronVarManager::kR]            = kfPair.GetR();
   values[AliDielectronVarManager::kOpeningAngle] = pair->OpeningAngle();
-  values[AliDielectronVarManager::kThetaHE]      = pair->ThetaPhiCM(kTRUE, kTRUE);
-  values[AliDielectronVarManager::kPhiHE]        = pair->ThetaPhiCM(kTRUE, kFALSE); 
-  values[AliDielectronVarManager::kThetaCS]      = pair->ThetaPhiCM(kFALSE, kTRUE);
-  values[AliDielectronVarManager::kPhiCS]        = pair->ThetaPhiCM(kFALSE, kFALSE);
+  values[AliDielectronVarManager::kThetaHE]      = thetaHE;
+  values[AliDielectronVarManager::kPhiHE]        = phiHE;
+  values[AliDielectronVarManager::kThetaCS]      = thetaCS;
+  values[AliDielectronVarManager::kPhiCS]        = phiCS;
   values[AliDielectronVarManager::kLegDist]      = pair->DistanceDaughters();
   values[AliDielectronVarManager::kLegDistXY]    = pair->DistanceDaughtersXY();
+  values[AliDielectronVarManager::kDeltaEta]     = pair->DeltaEta();
+  values[AliDielectronVarManager::kDeltaPhi]     = pair->DeltaPhi();
   values[AliDielectronVarManager::kMerr]         = kfPair.GetErrMass()>1e-30&&kfPair.GetMass()>1e-30?kfPair.GetErrMass()/kfPair.GetMass():1000000;
   values[AliDielectronVarManager::kPairType]     = pair->GetType();
 

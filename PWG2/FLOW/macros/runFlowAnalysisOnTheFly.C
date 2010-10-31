@@ -259,7 +259,7 @@ int runFlowAnalysisOnTheFly(Int_t nEvts=1000, Int_t mode=mLocal)
  AliFlowAnalysisWithMixedHarmonics *mh = NULL;
  AliFlowAnalysisWithNestedLoops *nl = NULL;
  AliFlowAnalysisWithMCEventPlane *mcep = NULL;   
- AliFlowAnalysisWithMCEventPlane *mcep_AH = NULL;   
+ AliFlowAnalysisWithMCEventPlane *mcep_ah = NULL;   
 
  // MCEP = monte carlo event plane
  if (MCEP) {
@@ -281,7 +281,7 @@ int runFlowAnalysisOnTheFly(Int_t nEvts=1000, Int_t mode=mLocal)
  if(MH) 
  {
   AliFlowAnalysisWithMixedHarmonics *mh = new AliFlowAnalysisWithMixedHarmonics();
-  mh->SetCorrelatorInteger(1); // integer n in expression cos[n(2phi1-phi2-phi3)] = v2n*vn^2
+  mh->SetHarmonic(1); // integer n in expression cos[n(2phi1-phi2-phi3)] = v2n*vn^2
   mh->SetMinMultiplicity(100); 
   mh->SetNoOfMultipicityBins(5);  
   mh->SetMultipicityBinWidth(200);   

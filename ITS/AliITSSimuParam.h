@@ -67,6 +67,10 @@ class AliITSSimuParam : public TObject {
   void   SetSPDSigmaDiffusionAsymmetry(Double_t ecc) {fSPDEccDiff=ecc;}   
   void   GetSPDSigmaDiffusionAsymmetry(Double_t &ecc) const {ecc=fSPDEccDiff;}
 
+  void    SetSPDLorentzDrift(Bool_t ison) {fSPDLorentzDrift=ison;}
+  Bool_t  GetSPDLorentzDrift() const {return fSPDLorentzDrift;}
+  void    SetSPDLorentzHoleWeight(Float_t weight) {fSPDLorentzHoleWeight=weight;}
+  Float_t GetSPDLorentzHoleWeight() const {return fSPDLorentzHoleWeight;}
   
   void   SetSPDAddNoisyFlag(Bool_t value) {fSPDAddNoisyFlag = value;}
   Bool_t GetSPDAddNoisyFlag() {return fSPDAddNoisyFlag;}
@@ -92,6 +96,9 @@ class AliITSSimuParam : public TObject {
 
   void    SetSDDChargeLoss(Double_t p1) {fSDDChargeLoss=p1;}
   Float_t GetSDDChargeLoss() const {return fSDDChargeLoss;}
+
+  void    SetSDDTrigDelay(Double_t p1) {fSDDTrigDelay=p1;}
+  Float_t GetSDDTrigDelay() const {return fSDDTrigDelay;}
 
   void    SetSDDRawDataFormatCarlos() {fSDDRawFormat=7;}
   void    SetSDDRawDataFormatFixLen8bitEncoded() {fSDDRawFormat=0;}
@@ -183,12 +190,14 @@ class AliITSSimuParam : public TObject {
   static const Double_t fgkSPDCouplColDefault; //default for fSPDCouplCol
   static const Double_t fgkSPDCouplRowDefault; //default for fSPDCouplRow
   static const Float_t fgkSPDEccDiffDefault;//default for fSPDEccDiff
+  static const Float_t fgkSPDLorentzHoleWeightDefault;//default for fSPDLorentzHoleWeight
   static const Float_t fgkSDDDiffCoeffDefault; // default for fSDDDiffCoeff
   static const Float_t fgkSDDDiffCoeff1Default; // default for fSDDDiffCoeff1 
   static const Float_t fgkSDDJitterErrorDefault; // default for fSDDJitterError
   static const Float_t fgkSDDDynamicRangeDefault; // default for fSDDDynamicRange
   static const Int_t fgkSDDMaxAdcDefault; // default for fSDDMaxAdc
   static const Float_t fgkSDDChargeLossDefault; // default for fSDDChargeLoss
+  static const Float_t fgkSDDTrigDelayDefault; // default for fSDDTrigDelay
 
   static const Double_t fgkSSDCouplingPRDefault;  // default values
   static const Double_t fgkSSDCouplingPLDefault;  // for the
@@ -215,6 +224,9 @@ class AliITSSimuParam : public TObject {
   Double_t fSPDCouplRow;    // SPD Coupling parameter along the rows
   Float_t  fSPDEccDiff;     // Eccentricity (i.e. asymmetry parameter) in the 
                             // Gaussian diffusion for SPD  
+  Bool_t   fSPDLorentzDrift;     // Flag to decide whether to simulate the Lorentz Drift or not in SPD
+  Float_t  fSPDLorentzHoleWeight;// Lorentz Angle is computed for SPD as average of Hole and Electron
+                                 // this parameter gives the relative weights between the two
   Bool_t   fSPDAddNoisyFlag;     // Flag saying whether noisy pixels should be added to digits
   Bool_t   fSPDRemoveDeadFlag;   // Flag saying whether dead pixels should be removed from digits
 
@@ -225,6 +237,7 @@ class AliITSSimuParam : public TObject {
   Float_t  fSDDDynamicRange; // SDD Dynamic Range 
   Float_t  fSDDMaxAdc;       // SDD ADC saturation value
   Float_t  fSDDChargeLoss;   // Set Linear Coefficient for Charge Loss 
+  Float_t  fSDDTrigDelay;    // SDD time-zero
   Char_t   fSDDRawFormat;    // Index for SDD RawFormat
   
   Double_t fSSDCouplingPR;  // SSD couplings
@@ -241,6 +254,6 @@ class AliITSSimuParam : public TObject {
   Double_t fN;  // the impurity concentration of the material in #/cm^3  (NOT USED!)
   Float_t fT;   // The temperature of the Si in Degree K.
 
-  ClassDef(AliITSSimuParam,4);
+  ClassDef(AliITSSimuParam,5);
 };
 #endif

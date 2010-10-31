@@ -133,10 +133,16 @@ void AliITSQASPDDataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObj
   ((TH2I*)list->At(5+shift))->Reset(); // clean up MEB histo (needed at the first cycle for small statistics)
   
    ((TH1F*)list->At(7+shift))->Divide(((TH1F*)list->At(1+shift)),((TH1F*)list->At(0+shift)));
-   ((TH1F*)list->At(8+shift))->Divide(((TH1F*)list->At(2+shift)),((TH1F*)list->At(0+shift)));
-   ((TH1F*)list->At(9+shift))->Divide(((TH1F*)list->At(3+shift)),((TH1F*)list->At(4+shift)));
+   ((TH1F*)list->At(8+shift))->Divide(((TH1F*)list->At(2+shift)),((TH1F*)list->At(0+shift)));// missing FO ratio (per event)
+   ((TH1F*)list->At(9+shift))->Divide(((TH1F*)list->At(3+shift)),((TH1F*)list->At(4+shift)));// noisy FO ratio   (per event)
  
   for(Int_t i=0; i<1200; i++){
+  // threshold for protection in case of technical runs (->few entries per chip)
+   Short_t thre=20; // 20 is ok in run 104792 (where the problem occured).
+   if((((TH1F*)list->At(0+shift)))->GetBinContent(i+1)<thre) continue; // expected FO yield
+   if((((TH1F*)list->At(4+shift)))->GetBinContent(i+1)<thre) continue; // the total FO yield.
+
+    
   if(((TH1F*)list->At(8+shift))->GetBinContent(i+1)>0.5 && ((TH1F*)list->At(9+shift))->GetBinContent(i+1)>0.5){
    Int_t eq=i/60;
    Int_t hs=(i%60)/10;
@@ -207,12 +213,12 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
 // 5
   
    TH2I *hSPDChipsMEB = new TH2I("SPDChipsMEB_OnlineSPD","Chips with MEB problem - SPD",60,-0.5,59.5,20,-0.2,19.5);
-   hSPDChipsMEB->GetXaxis()->SetTitle("Stave");
+  // hSPDChipsMEB->GetXaxis()->SetTitle("Stave");
    hSPDChipsMEB->GetXaxis()->SetNdivisions(60,kFALSE);
    hSPDChipsMEB->GetYaxis()->SetTitle("SIDE C   ->   SIDE A           Chip");
    hSPDChipsMEB->GetYaxis()->SetNdivisions(20,kFALSE);
-   hSPDChipsMEB->SetMarkerStyle(21);
-   hSPDChipsMEB->SetMarkerColor(kRed);
+   hSPDChipsMEB->SetOption("COLZ");
+   hSPDChipsMEB->UseCurrentStyle();
    for(Int_t ibinx =0; ibinx< hSPDChipsMEB->GetNbinsX(); ibinx++){
    if(ibinx%6==0) hSPDChipsMEB->GetXaxis()->SetBinLabel(ibinx+1,Form("Sector %i__%i",ibinx/6,ibinx%6));
    else hSPDChipsMEB->GetXaxis()->SetBinLabel(ibinx+1,Form("%i",ibinx%6));
@@ -227,6 +233,8 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   TH2F *hFastOrCorrelation = new TH2F("SPDFastOrCorrelation_OnlineSPD","Fast Or multiplicity correlation - SPD",100,0.,100.,100,0,100);
   hFastOrCorrelation->GetXaxis()->SetTitle("Layer 1");
   hFastOrCorrelation->GetYaxis()->SetTitle("Layer 2");
+  hFastOrCorrelation->SetOption("COLZ");
+  hFastOrCorrelation->UseCurrentStyle();
   rv = fAliITSQADataMakerRec->Add2RawsList(hFastOrCorrelation, 6+shift, !expert, image, !saveCorr);
   fSPDhRawsTask++;
 // 7
@@ -259,10 +267,12 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   TH2F *herrorsAll = new TH2F("SPDErrorsAll_OnlineSPD","Error codes - SPD",20,-0.5,19.5,22,-0.5,21.5);
   herrorsAll->GetXaxis()->SetTitle("DDL");
   herrorsAll->GetYaxis()->SetTitle("Error Type");
+  herrorsAll->SetOption("COLZ");
+  herrorsAll->UseCurrentStyle();
   rv = fAliITSQADataMakerRec->Add2RawsList(herrorsAll, kAmoreFoOffset+shift, !expert, image, !saveCorr);
   fSPDhRawsTask++;
 //11-30
-  TH1F **herrors = new TH1F*[20];
+  TH1F * herrors[20];
   for (Int_t iEq=0; iEq<20; iEq++) {
     sprintf(name,"SPDErrors_Eq%d_OnlineSPD",iEq+1);
     sprintf(title,"Error codes - SPD Eq %d",iEq+1);
@@ -285,8 +295,8 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   rv = fAliITSQADataMakerRec->Add2RawsList(hlayer, 0+offset, expert, !image, !saveCorr);
   fSPDhRawsTask++;
 
-  TH1F **hmod = new TH1F*[2];
-  TH2F **hhitMap = new TH2F*[20];
+  TH1F * hmod[2];
+  TH2F * hhitMap[20];
 
   
 // 1-2
@@ -324,7 +334,7 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
     fSPDhRawsTask++;
     }
 // 25-26
-  TH1F** hMultSPDhits = new TH1F*[2];
+  TH1F * hMultSPDhits[2];
   for (Int_t iLay=0; iLay<2; iLay++) {
     sprintf(name,"SPDHitsMultiplicity_SPD%d",iLay+1);
     sprintf(title,"Hit multiplicity - SPD Layer %d",iLay+1);
@@ -344,7 +354,7 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
 // 28
   TH2F *hFastOrMapStaveChip 
          = new TH2F("SPDFastOrMapStaveChip_SPD","FastOr map per Stave per Chip - SPD",60,-0.5,59.5,20,-0.5,19.5);
-  hFastOrMapStaveChip->GetXaxis()->SetTitle("Stave");
+//  hFastOrMapStaveChip->GetXaxis()->SetTitle("Stave");
   hFastOrMapStaveChip->GetYaxis()->SetTitle("SIDE C   ->   SIDE A           Chip");
   for(Int_t ibinx =0; ibinx< hFastOrMapStaveChip->GetNbinsX(); ibinx++){
   if(ibinx%6==0) hFastOrMapStaveChip->GetXaxis()->SetBinLabel(ibinx+1,Form("Sector %i__%i",ibinx/6,ibinx%6));
@@ -354,7 +364,8 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   if(ibiny < 10) hFastOrMapStaveChip->GetYaxis()->SetBinLabel(ibiny+1,Form("%i",ibiny));
   else hFastOrMapStaveChip->GetYaxis()->SetBinLabel(ibiny+1,Form("%i",19-ibiny));
   }
-  hFastOrMapStaveChip->SetDrawOption("colz");
+  hFastOrMapStaveChip->SetOption("COLZ");
+  hFastOrMapStaveChip->UseCurrentStyle();
   rv = fAliITSQADataMakerRec->Add2RawsList(hFastOrMapStaveChip, 28+offset, !expert, image, !saveCorr);
   fSPDhRawsTask++;
 // 29
@@ -367,7 +378,7 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   TH2F *hHitMapHalfStaveChipInner 
      = new TH2F("SPDHitMapStaveChipInner_SPD","Hit map per Stave per Chip Inner Layer- SPD",20,0.,20.,20,0.,20.);
   hHitMapHalfStaveChipInner->GetXaxis()->SetTitle("SIDE C                                 SIDE A                   Chip");
-  hHitMapHalfStaveChipInner->GetYaxis()->SetTitle("Stave in Sector S");
+  //hHitMapHalfStaveChipInner->GetYaxis()->SetTitle("Stave in Sector S");
   for(Int_t ibinx =0; ibinx< hHitMapHalfStaveChipInner->GetNbinsX(); ibinx++){
   if(ibinx < 10) hHitMapHalfStaveChipInner->GetXaxis()->SetBinLabel(ibinx+1,Form("%i",ibinx));
   else hHitMapHalfStaveChipInner->GetXaxis()->SetBinLabel(ibinx+1,Form("%i",20-(ibinx+1)));
@@ -377,13 +388,15 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   else hHitMapHalfStaveChipInner->GetYaxis()->SetBinLabel(ibiny+1,Form("%i",ibiny%2));
   hHitMapHalfStaveChipInner->GetYaxis()->SetTitleOffset(1.4);
   }
+  hHitMapHalfStaveChipInner->SetOption("COLZ");
+  hHitMapHalfStaveChipInner->UseCurrentStyle();
   rv = fAliITSQADataMakerRec->Add2RawsList(hHitMapHalfStaveChipInner, 30+offset, !expert, image, !saveCorr);
   fSPDhRawsTask++;
 // 31
   TH2F *hHitMapHalfStaveChipOuter 
      = new TH2F("SPDHitMapStaveChipOuter_SPD","Hit map per Stave per Chip Outer Layer - SPD",20,0.,20.,40,0.,40.);
   hHitMapHalfStaveChipOuter->GetXaxis()->SetTitle("SIDE C                                 SIDE A                   Chip");
-  hHitMapHalfStaveChipOuter->GetYaxis()->SetTitle("Stave in Sector S");
+  //hHitMapHalfStaveChipOuter->GetYaxis()->SetTitle("Stave in Sector S");
   for(Int_t ibinx =0; ibinx< hHitMapHalfStaveChipOuter->GetNbinsX(); ibinx++){
   if(ibinx < 10) hHitMapHalfStaveChipOuter->GetXaxis()->SetBinLabel(ibinx+1,Form("%i",ibinx));
   else hHitMapHalfStaveChipOuter->GetXaxis()->SetBinLabel(ibinx+1,Form("%i",20-(ibinx+1)));
@@ -393,6 +406,8 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   else hHitMapHalfStaveChipOuter->GetYaxis()->SetBinLabel(ibiny+1,Form("%i",ibiny%4+2));
   hHitMapHalfStaveChipOuter->GetYaxis()->SetTitleOffset(1.4);
   }
+  hHitMapHalfStaveChipOuter->SetOption("COLZ");
+  hHitMapHalfStaveChipOuter->UseCurrentStyle();
   rv = fAliITSQADataMakerRec->Add2RawsList(hHitMapHalfStaveChipOuter, 31+offset, !expert, image, !saveCorr);
   fSPDhRawsTask++;
 // 32
@@ -409,7 +424,7 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   fSPDhRawsTask++;
 // 34
   TH1F *hHitMapStaveInnerPhi = new TH1F("SPDHitMapChipInnerPhi_SPD","Hit map per Stave in Phi Inner - SPD",20,0.,20.);
-  hHitMapStaveInnerPhi->GetXaxis()->SetTitle("Stave");
+  //hHitMapStaveInnerPhi->GetXaxis()->SetTitle("Stave");
   hHitMapStaveInnerPhi->GetYaxis()->SetTitle("Entries");
   for(Int_t ibinx =0; ibinx< hHitMapStaveInnerPhi->GetNbinsX(); ibinx++){
   if(ibinx%2==0) hHitMapStaveInnerPhi->GetXaxis()->SetBinLabel(ibinx+1,Form("%i___Sector %i",ibinx%2,ibinx/2));
@@ -419,7 +434,7 @@ Int_t AliITSQASPDDataMakerRec::InitRaws()
   fSPDhRawsTask++;
 // 35
   TH1F *hHitMapStaveOuterPhi = new TH1F("SPDHitMapChipOuterPhi_SPD","Hit map per Stave in Phi Outer - SPD",40,0.,40.);
-  hHitMapStaveOuterPhi->GetXaxis()->SetTitle("Stave");
+  //hHitMapStaveOuterPhi->GetXaxis()->SetTitle("Stave");
   hHitMapStaveOuterPhi->GetYaxis()->SetTitle("Entries");
   for(Int_t ibinx =0; ibinx< hHitMapStaveOuterPhi->GetNbinsX(); ibinx++){
   if(ibinx%4==0) hHitMapStaveOuterPhi->GetXaxis()->SetBinLabel(ibinx+1,Form("%i___Sector %i ",ibinx%4+2,ibinx/4));
@@ -597,7 +612,7 @@ Int_t AliITSQASPDDataMakerRec::InitDigits()
   rv = fAliITSQADataMakerRec->Add2DigitsList(hlayer,fGenDigitsOffset[fAliITSQADataMakerRec->GetEventSpecie()], expert, !image);
   fSPDhDigitsTask++;
   
-  TH1F **hmod = new TH1F*[2];
+  TH1F * hmod[2];
   for (Int_t iLay=0; iLay<2; iLay++) {
     sprintf(name,"SPDModPattern_SPD%d",iLay+1);
     sprintf(title,"Module map - SPD Layer %d",iLay+1);
@@ -620,7 +635,7 @@ Int_t AliITSQASPDDataMakerRec::InitDigits()
   rv = fAliITSQADataMakerRec->Add2DigitsList(hrows,4+fGenDigitsOffset[fAliITSQADataMakerRec->GetEventSpecie()], expert, !image);
   fSPDhDigitsTask++;
   
-  TH1F** hMultSPDdigits = new TH1F*[2];
+  TH1F * hMultSPDdigits[2];
   for (Int_t iLay=0; iLay<2; ++iLay) {
     sprintf(name,"SPDDigitMultiplicity_SPD%d",iLay+1);
     sprintf(title,"Digit multiplicity - SPD Layer %d",iLay+1);
@@ -705,19 +720,19 @@ Int_t AliITSQASPDDataMakerRec::InitRecPoints()
   rv = fAliITSQADataMakerRec->Add2RecPointsList(hlayer, 0+fGenRecPointsOffset[fAliITSQADataMakerRec->GetEventSpecie()], expert, !image); 
   fSPDhRecPointsTask++;
 
-  TH1F** hmod = new TH1F*[2];
-  TH1F** hxl  = new TH1F*[2];
-  TH1F** hzl  = new TH1F*[2];
-  TH1F** hxg  = new TH1F*[2];
-  TH1F** hyg  = new TH1F*[2];
-  TH1F** hzg  = new TH1F*[2];
-  TH1F** hr   = new TH1F*[2];
-  TH1F** hphi = new TH1F*[2];
-  TH1F** hMultSPDcl = new TH1F*[2];
-  TH2F** hNyNz    = new TH2F*[2];  // y and z cluster length
-  TH1F** hNpixels = new TH1F*[2];  // cluster size in number of pixels
-  TH1F** hType    = new TH1F*[2];  // cluster type according to conventional table
-  TH2F** hPhiZ    = new TH2F*[2];
+  TH1F * hmod[2];
+  TH1F * hxl[2];
+  TH1F * hzl[2];
+  TH1F * hxg[2];
+  TH1F * hyg[2];
+  TH1F * hzg[2];
+  TH1F * hr[2];
+  TH1F * hphi[2];
+  TH1F * hMultSPDcl[2];
+  TH2F * hNyNz[2];  // y and z cluster length
+  TH1F * hNpixels[2];  // cluster size in number of pixels
+  TH1F * hType[2];  // cluster type according to conventional table
+  TH2F * hPhiZ[2];
 
   Float_t xlim[2]={4.5,8.};
   Float_t zlim[2]={15.,15.};

@@ -66,9 +66,8 @@ ClassImp(AliEveTRDmcm)
 AliEveTRDDigits::AliEveTRDDigits(AliEveTRDChamber *p) 
   :TEveQuadSet("digits", "")
   ,fParent(p)
-  /*, fBoxes(), fData()*/
 {
-  // Constructor.   
+  // Constructor.
   SetOwnIds(kTRUE);
   gStyle->SetPalette(1, 0);
   SetPalette(new TEveRGBAPalette(0, 512));
@@ -99,7 +98,7 @@ void AliEveTRDDigits::SetData(AliTRDdigitsManager *digits)
         stk   = AliTRDgeometry::GetStack(det),
         sec   = AliTRDgeometry::GetSector(det),
         vid   = AliGeomManager::LayerToVolUID(AliGeomManager::kTRD1 + ly, stk + AliTRDgeometry::Nstack() * sec);
-//  Float_t threshold = fParent->GetDigitsThreshold();
+  SetNameTitle(Form("digits%03d", det), Form("D-%03d [%02d_%d_%d]", det, sec, stk, ly));
   Short_t sig[7]={0,0,0,10,0,0,0};
 
   AliTRDtransform transform(det);
@@ -121,7 +120,7 @@ void AliEveTRDDigits::SetData(AliTRDdigitsManager *digits)
       scale = adc[time] < 512 ? adc[time]/512. : 1.;
       AddQuad(c.GetY()-0.5*dy, c.GetZ()-0.5*dz*scale, c.GetX(), dy*0.95, dz*scale);
       QuadValue(Float_t(adc[time]));
-      QuadId(new TNamed(Form("ADC %d", adc[time]), Form("det[%3d] col[%3d] row[%2d] tb[%2d]", det, col, row, time)));
+      QuadId(new TNamed(Form("ADC %d", adc[time]), Form("det[%3d(%02d_%d_%d)] col[%3d] row[%2d] tb[%2d]", det, sec, stk, ly, col, row, time)));
     } 
   }
 
@@ -573,7 +572,7 @@ void AliEveTRDTrack::SetStatus(UChar_t s)
     1.E2*trk->GetPID(2), 1.E2*trk->GetPID(3), 1.E2*trk->GetPID(4), trk->GetLabel()));
 
   if(GetName()){
-    char id[6]; strncpy(id, GetName(), 6); 
+    char id[6]; snprintf(id, 6, "%s", GetName());
     SetName(Form("%s %s", id, AliPID::ParticleName(species)));
   }
 
@@ -584,14 +583,17 @@ void AliEveTRDTrack::SetStatus(UChar_t s)
 //______________________________________________________________________________
 void AliEveTRDTrack::Load(Char_t *what) const
 {
-  TEveElement::List_ci	itrklt=BeginChildren();
+// Spread downwards to tracklets the command "what"
+
+  const AliEveTRDTracklet* trklt(NULL);
+  TEveElement::List_ci itrklt=BeginChildren();
   while(itrklt!=EndChildren()){
-    dynamic_cast<const AliEveTRDTracklet*>(*itrklt)->Load(what);
+    if((trklt = dynamic_cast<const AliEveTRDTracklet*>(*itrklt))) trklt->Load(what);
     itrklt++;
   }
 }
 
-
+//______________________________________________________________________________
 AliEveTRDTrackletOnline::AliEveTRDTrackletOnline(AliTRDtrackletMCM *tracklet) :
   TEveLine(),
   fDetector(-1),

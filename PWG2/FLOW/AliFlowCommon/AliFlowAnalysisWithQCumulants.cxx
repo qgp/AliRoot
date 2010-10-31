@@ -63,9 +63,7 @@ class TROOT;
 class AliFlowVector;
 class TVector;
 
-
 //================================================================================================================
-
 
 ClassImp(AliFlowAnalysisWithQCumulants)
 
@@ -112,11 +110,14 @@ AliFlowAnalysisWithQCumulants::AliFlowAnalysisWithQCumulants():
  fIntFlowProfiles(NULL),
  fIntFlowResults(NULL),
  fIntFlowFlags(NULL),
- fApplyCorrectionForNUA(kTRUE),  
+ fApplyCorrectionForNUA(kFALSE),  
  fApplyCorrectionForNUAVsM(kFALSE),
  fnBinsMult(10000),
  fMinMult(0.),  
  fMaxMult(10000.), 
+ fPropagateErrorAlsoFromNIT(kFALSE), 
+ fCalculateCumulantsVsM(kTRUE), 
+ fMinimumBiasReferenceFlow(kTRUE), 
  fReQ(NULL),
  fImQ(NULL),
  fSMpk(NULL),
@@ -136,7 +137,10 @@ AliFlowAnalysisWithQCumulants::AliFlowAnalysisWithQCumulants():
  fIntFlowCovariancesNUA(NULL),
  fIntFlowSumOfProductOfEventWeightsNUA(NULL),
  fIntFlowQcumulants(NULL),
+ fIntFlowQcumulantsRebinnedInM(NULL), 
+ fIntFlowQcumulantsErrorSquaredRatio(NULL), 
  fIntFlow(NULL),
+ fIntFlowRebinnedInM(NULL),
  fIntFlowDetectorBias(NULL),
  // 4.) differential flow:
  fDiffFlowList(NULL),
@@ -246,27 +250,33 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
 {
  // Running over data only in this method.
  
- //  a) Fill the common control histograms and call the method to fill fAvMultiplicity;
- //  b) Loop over data and calculate e-b-e quantities;
- //  c) Call all the methods;
- //  d) Debugging and cross-checking (evaluate nested loops);
- //  e) Reset all event by event quantities. 
+ // a) Check all pointers used in this method;
+ // b) Define local variables;
+ // c) Fill the common control histograms and call the method to fill fAvMultiplicity;
+ // d) Loop over data and calculate e-b-e quantities;
+ // e) Call all the methods which calculate correlations for reference flow;
+ // f) Call all the methods which calculate correlations for differential flow;
+ // g) Distributions of correlations;
+ // h) Debugging and cross-checking (evaluate nested loops);
+ // i) Reset all event-by-event quantities. 
  
+ // a) Check all pointers used in this method:
+ this->CheckPointersUsedInMake();
+ 
+ // b) Define local variables:
  Double_t dPhi = 0.; // azimuthal angle in the laboratory frame
  Double_t dPt  = 0.; // transverse momentum
  Double_t dEta = 0.; // pseudorapidity
-
  Double_t wPhi = 1.; // phi weight
  Double_t wPt  = 1.; // pt weight
  Double_t wEta = 1.; // eta weight
- 
  Int_t nRP = anEvent->GetEventNSelTracksRP(); // number of RPs (i.e. number of particles used to determine the reaction plane)
   
- // a) Fill the common control histograms and call the method to fill fAvMultiplicity:
+ // c) Fill the common control histograms and call the method to fill fAvMultiplicity:
  this->FillCommonControlHistograms(anEvent);                                                               
  this->FillAverageMultiplicities(nRP);                                                                  
                                                                                                                                                                                                                                                                                         
- // b) Loop over data and calculate e-b-e quantities:
+ // d) Loop over data and calculate e-b-e quantities:
  Int_t nPrim = anEvent->NumberOfTracks();  // nPrim = total number of primary tracks, i.e. nPrim = nRP + nPOI where:
                                            // nRP   = # of particles used to determine the reaction plane;
                                            // nPOI  = # of particles of interest for a detailed flow analysis;
@@ -352,10 +362,6 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
     {
      fs1dEBE[0][1][k]->Fill(dEta,pow(wPhi*wPt*wEta,k),1.);
     }
-    
-    
-    
-    /*
     // 2D (pt,eta):
     if(fCalculate2DFlow)
     {
@@ -375,9 +381,6 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
       fs2dEBE[0][k]->Fill(dPt,dEta,pow(wPhi*wPt*wEta,k),1.);
      }
     } // end of if(fCalculate2DFlow)  
-    */ 
-    
-      
      
     if(aftsTrack->InPOISelection())
     {
@@ -412,9 +415,7 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
      for(Int_t k=0;k<9;k++)
      {
       fs1dEBE[2][1][k]->Fill(dEta,pow(wPhi*wPt*wEta,k),1.);
-     }
-     
-     /*
+     }  
      // 2D (pt,eta) 
      if(fCalculate2DFlow)
      {
@@ -434,16 +435,10 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
        fs2dEBE[2][k]->Fill(dPt,dEta,pow(wPhi*wPt*wEta,k),1.);
       }
      } // end of if(fCalculate2DFlow) 
-     */
       
-    } // end of if(aftsTrack->InPOISelection())
-    
-
-     
+    } // end of if(aftsTrack->InPOISelection())  
    } // end of if(pTrack->InRPSelection())
 
-  
-  
    if(aftsTrack->InPOISelection())
    {
     dPhi = aftsTrack->Phi();
@@ -464,9 +459,6 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
      fReRPQ1dEBE[1][1][m][0]->Fill(dEta,TMath::Cos((m+1.)*n*dPhi),1.);
      fImRPQ1dEBE[1][1][m][0]->Fill(dEta,TMath::Sin((m+1.)*n*dPhi),1.);
     }
-    
-    
-    /*
     // 2D (pt,eta):
     if(fCalculate2DFlow)
     {      
@@ -477,12 +469,8 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
       fImRPQ2dEBE[1][m][0]->Fill(dPt,dEta,TMath::Sin((m+1.)*n*dPhi),1.);
      }
     } // end of if(fCalculate2DFlow)  
-    */
-    
-    
-   } // end of if(pTrack->InPOISelection() )   
- 
-  
+   } // end of if(pTrack->InPOISelection())    
+   
   } else // to if(aftsTrack)
     {
      cout<<endl;
@@ -500,10 +488,7 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
   }  
  } 
  
- // *****************************
- // **** CALL THE METHODS *******
- // *****************************
- // integrated flow:
+ // e) Call all the methods which calculate correlations for reference flow:
  if(!fEvaluateIntFlowNestedLoops)
  {
   if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
@@ -517,25 +502,24 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
   if(nRP>3) this->CalculateIntFlowProductOfCorrelations();
   if(nRP>1) this->CalculateIntFlowSumOfEventWeights();
   if(nRP>1) this->CalculateIntFlowSumOfProductOfEventWeights();
-  if(fApplyCorrectionForNUA)
+  
+  // non-isotropic terms:
+  if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
   {
-   if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
-   {
-    if(nRP>0) this->CalculateIntFlowCorrectionsForNUASinTerms();
-    if(nRP>0) this->CalculateIntFlowCorrectionsForNUACosTerms();
-   } else // to if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
-     {
-      if(nRP>0) this->CalculateIntFlowCorrectionsForNUASinTermsUsingParticleWeights();
-      if(nRP>0) this->CalculateIntFlowCorrectionsForNUACosTermsUsingParticleWeights();     
-     }  
+   if(nRP>0) this->CalculateIntFlowCorrectionsForNUASinTerms();
+   if(nRP>0) this->CalculateIntFlowCorrectionsForNUACosTerms();
+  } else // to if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
+    {
+     if(nRP>0) this->CalculateIntFlowCorrectionsForNUASinTermsUsingParticleWeights();
+     if(nRP>0) this->CalculateIntFlowCorrectionsForNUACosTermsUsingParticleWeights();     
+    }  
      
-   if(nRP>0) this->CalculateIntFlowProductOfCorrectionTermsForNUA();     
-   if(nRP>0) this->CalculateIntFlowSumOfEventWeightsNUA();     
-   if(nRP>0) this->CalculateIntFlowSumOfProductOfEventWeightsNUA();     
-  } // end of if(fApplyCorrectionForNUA)
+  if(nRP>0) this->CalculateIntFlowProductOfCorrectionTermsForNUA();     
+  if(nRP>0) this->CalculateIntFlowSumOfEventWeightsNUA();     
+  if(nRP>0) this->CalculateIntFlowSumOfProductOfEventWeightsNUA();     
  } // end of if(!fEvaluateIntFlowNestedLoops)
 
- // differential flow:
+ // f) Call all the methods which calculate correlations for differential flow:
  if(!fEvaluateDiffFlowNestedLoops)
  {
   if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
@@ -545,17 +529,15 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
    this->CalculateDiffFlowCorrelations("RP","Eta");
    this->CalculateDiffFlowCorrelations("POI","Pt");
    this->CalculateDiffFlowCorrelations("POI","Eta");
-   if(fApplyCorrectionForNUA)
-   {
-    this->CalculateDiffFlowCorrectionsForNUASinTerms("RP","Pt");
-    this->CalculateDiffFlowCorrectionsForNUASinTerms("RP","Eta");
-    this->CalculateDiffFlowCorrectionsForNUASinTerms("POI","Pt");
-    this->CalculateDiffFlowCorrectionsForNUASinTerms("POI","Eta");
-    this->CalculateDiffFlowCorrectionsForNUACosTerms("RP","Pt");
-    this->CalculateDiffFlowCorrectionsForNUACosTerms("RP","Eta");
-    this->CalculateDiffFlowCorrectionsForNUACosTerms("POI","Pt");
-    this->CalculateDiffFlowCorrectionsForNUACosTerms("POI","Eta");   
-   } // end of if(fApplyCorrectionForNUA)  
+   // non-isotropic terms:
+   this->CalculateDiffFlowCorrectionsForNUASinTerms("RP","Pt");
+   this->CalculateDiffFlowCorrectionsForNUASinTerms("RP","Eta");
+   this->CalculateDiffFlowCorrectionsForNUASinTerms("POI","Pt");
+   this->CalculateDiffFlowCorrectionsForNUASinTerms("POI","Eta");
+   this->CalculateDiffFlowCorrectionsForNUACosTerms("RP","Pt");
+   this->CalculateDiffFlowCorrectionsForNUACosTerms("RP","Eta");
+   this->CalculateDiffFlowCorrectionsForNUACosTerms("POI","Pt");
+   this->CalculateDiffFlowCorrectionsForNUACosTerms("POI","Eta");   
   } else // to if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
     {
      // with using particle weights:   
@@ -563,17 +545,15 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
      this->CalculateDiffFlowCorrelationsUsingParticleWeights("RP","Eta"); 
      this->CalculateDiffFlowCorrelationsUsingParticleWeights("POI","Pt"); 
      this->CalculateDiffFlowCorrelationsUsingParticleWeights("POI","Eta"); 
-     if(fApplyCorrectionForNUA)
-     {
-      this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("RP","Pt");
-      this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("RP","Eta");
-      this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("POI","Pt");
-      this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("POI","Eta");
-      this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("RP","Pt");
-      this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("RP","Eta");
-      this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("POI","Pt");
-      this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("POI","Eta");   
-     } // end of if(fApplyCorrectionForNUA)  
+     // non-isotropic terms:
+     this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("RP","Pt");
+     this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("RP","Eta");
+     this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("POI","Pt");
+     this->CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights("POI","Eta");
+     this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("RP","Pt");
+     this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("RP","Eta");
+     this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("POI","Pt");
+     this->CalculateDiffFlowCorrectionsForNUACosTermsUsingParticleWeights("POI","Eta");   
     } 
     
   // whether or not using particle weights the following is calculated in the same way:  
@@ -613,14 +593,14 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
   } // end of if(fCalculate2DFlow)
   */
   
- // distributions of correlations:
+ // g) Distributions of correlations;
  if(fStoreDistributions)
  {
   this->StoreDistributionsOfCorrelations();
  }
   
- // d) Debugging and cross-checking (evaluate nested loops):
- //  d1) cross-checking results for integrated flow:
+ // h) Debugging and cross-checking (evaluate nested loops):
+ //  h1) cross-checking results for integrated flow:
  if(fEvaluateIntFlowNestedLoops)
  {
   if(nPrim>0 && nPrim<=fMaxAllowedMultiplicity) // by default fMaxAllowedMultiplicity = 10 
@@ -658,7 +638,7 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
       } 
  } // end of if(fEvaluateIntFlowNestedLoops) 
  
- //  d2) cross-checking results for differential flow:
+ //  h2) cross-checking results for differential flow:
  if(fEvaluateDiffFlowNestedLoops)
  {
   if(nPrim>0 && nPrim<=fMaxAllowedMultiplicity) // by default fMaxAllowedMultiplicity = 10
@@ -720,86 +700,90 @@ void AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
   } // end of if(nPrim>0 && nPrim<=fMaxAllowedMultiplicity) // by default fMaxAllowedMultiplicity = 10
  } // end of if(fEvaluateDiffFlowNestedLoops) 
  
- // e) Reset all event by event quantities: 
+ // i) Reset all event-by-event quantities. 
  this->ResetEventByEventQuantities();
  
 } // end of AliFlowAnalysisWithQCumulants::Make(AliFlowEventSimple* anEvent)
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::Finish()
 {
  // Calculate the final results.
- //  a) acces the constants;
- //  b) access the flags;
- //  c) calculate the final results for integrated flow (without and with weights);
- //  d) store in AliFlowCommonHistResults and print the final results for integrated flow;
- //  e) calculate the final results for differential flow (without and with weights);
- //  f) print the final results for integrated flow obtained from differential flow (to be improved (terminology));
- //  g) cross-check the results: results from Q-vectors vs results from nested loops
  
- // ******************************
- // **** ACCESS THE CONSTANTS ****
- // ******************************
+ // a) Check all pointers used in this method;
+ // b) Acces the constants;
+ // c) Access the flags;
+ // d) Calculate reference cumulants (not corrected for detector effects);
+ // e) Correct reference cumulants for detector effects;
+ // f) Calculate reference flow;
+ // g) Store results for reference flow in AliFlowCommonHistResults and print them on the screen;
  
+ 
+ 
+ // h) Calculate the final results for differential flow (without/with weights);
+ // i) Correct the results for differential flow (without/with weights) for effects of non-uniform acceptance (NUA);
+ // j) Calculate the final results for integrated flow (RP/POI) and store in AliFlowCommonHistResults;
+ // k) Store results for differential flow in AliFlowCommonHistResults;
+ // l) Print the final results for integrated flow (RP/POI) on the screen; 
+ // m) Cross-checking: Results from Q-vectors vs results from nested loops.
+ 
+ // a) Check all pointers used in this method:
+ this->CheckPointersUsedInFinish();
+  
+ // b) Acces the constants:
  this->AccessConstants();          
  
- if(fCommonHists && fCommonHists->GetHarmonic())
+ if(fCommonHists && fCommonHists->GetHarmonic()) // to be improved (moved somewhere else)
  {
-  fHarmonic = (Int_t)(fCommonHists->GetHarmonic())->GetBinContent(1); // to be improved (moved somewhere else)
+  fHarmonic = (Int_t)(fCommonHists->GetHarmonic())->GetBinContent(1);
  } 
-
- // **************************
- // **** ACCESS THE FLAGS **** // to be improved (moved somewhere else)
- // **************************    
- fUsePhiWeights = (Int_t)fUseParticleWeights->GetBinContent(1); 
- fUsePtWeights = (Int_t)fUseParticleWeights->GetBinContent(2); 
- fUseEtaWeights = (Int_t)fUseParticleWeights->GetBinContent(3);  
- fApplyCorrectionForNUA = (Int_t)fIntFlowFlags->GetBinContent(3); 
- fPrintFinalResults[0] = (Int_t)fIntFlowFlags->GetBinContent(4);
- fPrintFinalResults[1] = (Int_t)fIntFlowFlags->GetBinContent(5);
- fPrintFinalResults[2] = (Int_t)fIntFlowFlags->GetBinContent(6);
- fApplyCorrectionForNUAVsM = (Int_t)fIntFlowFlags->GetBinContent(7);  
- fEvaluateIntFlowNestedLoops = (Int_t)fEvaluateNestedLoops->GetBinContent(1);
- fEvaluateDiffFlowNestedLoops = (Int_t)fEvaluateNestedLoops->GetBinContent(2); 
+ 
+ // c) Access the flags: // to be improved (implement a method for this)
+ fUsePhiWeights = (Bool_t)fUseParticleWeights->GetBinContent(1); 
+ fUsePtWeights = (Bool_t)fUseParticleWeights->GetBinContent(2); 
+ fUseEtaWeights = (Bool_t)fUseParticleWeights->GetBinContent(3);  
+ fApplyCorrectionForNUA = (Bool_t)fIntFlowFlags->GetBinContent(3); 
+ fPrintFinalResults[0] = (Bool_t)fIntFlowFlags->GetBinContent(4);
+ fPrintFinalResults[1] = (Bool_t)fIntFlowFlags->GetBinContent(5);
+ fPrintFinalResults[2] = (Bool_t)fIntFlowFlags->GetBinContent(6);
+ fPrintFinalResults[3] = (Bool_t)fIntFlowFlags->GetBinContent(7);
+ fApplyCorrectionForNUAVsM = (Bool_t)fIntFlowFlags->GetBinContent(8);  
+ fPropagateErrorAlsoFromNIT = (Bool_t)fIntFlowFlags->GetBinContent(9);  
+ fCalculateCumulantsVsM = (Bool_t)fIntFlowFlags->GetBinContent(10); 
+ fMinimumBiasReferenceFlow = (Bool_t)fIntFlowFlags->GetBinContent(11); 
+ fEvaluateIntFlowNestedLoops = (Bool_t)fEvaluateNestedLoops->GetBinContent(1);
+ fEvaluateDiffFlowNestedLoops = (Bool_t)fEvaluateNestedLoops->GetBinContent(2); 
  fCrossCheckInPtBinNo = (Int_t)fEvaluateNestedLoops->GetBinContent(3);
  fCrossCheckInEtaBinNo = (Int_t)fEvaluateNestedLoops->GetBinContent(4); 
     
- // *********************************************************
- // **** CALCULATE THE FINAL RESULTS FOR INTEGRATED FLOW ****
- // *********************************************************     
- 
+ // d) Calculate reference cumulants (not corrected for detector effects):
  this->FinalizeCorrelationsIntFlow();
  this->CalculateCovariancesIntFlow();
  this->CalculateCumulantsIntFlow();
- this->CalculateIntFlow(); 
 
- if(fApplyCorrectionForNUA) // to be improved (reorganized, etc)
- {
-  this->FinalizeCorrectionTermsForNUAIntFlow();
-  // this->CalculateCovariancesNUAIntFlow(); // to be improved (enabled eventually)
-  this->CalculateQcumulantsCorrectedForNUAIntFlow();   
-  this->CalculateIntFlowCorrectedForNUA(); 
-  this->CalculateDetectorEffectsForTrueCorrelations();
- }
+ // e) Correct reference cumulants for detector effects:
+ this->FinalizeCorrectionTermsForNUAIntFlow();
+ this->CalculateCovariancesNUAIntFlow(); 
+ this->CalculateQcumulantsCorrectedForNUAIntFlow();  
+
+ // f) Calculate reference flow:
+ this->CalculateReferenceFlow(); 
   
- // ***************************************************************
- // **** STORE AND PRINT THE FINAL RESULTS FOR INTEGRATED FLOW ****
- // ***************************************************************
- 
+ // g) Store results for reference flow in AliFlowCommonHistResults and print them on the screen:
  this->FillCommonHistResultsIntFlow();  
-  
- if(fPrintFinalResults[0])
- {
-  this->PrintFinalResultsForIntegratedFlow("RF");
- }
+ if(fPrintFinalResults[0]){this->PrintFinalResultsForIntegratedFlow("RF");}
+ if(fPrintFinalResults[3] && fCalculateCumulantsVsM){this->PrintFinalResultsForIntegratedFlow("RF, rebinned in M");}
  
- // ***********************************************************
- // **** CALCULATE THE FINAL RESULTS FOR DIFFERENTIAL FLOW ****
- // ***********************************************************    
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ // g) Calculate the final results for differential flow (without/with weights):
  this->FinalizeReducedCorrelations("RP","Pt"); 
  this->FinalizeReducedCorrelations("RP","Eta"); 
  this->FinalizeReducedCorrelations("POI","Pt"); 
@@ -817,7 +801,8 @@ void AliFlowAnalysisWithQCumulants::Finish()
  this->CalculateDiffFlow("POI","Pt");
  this->CalculateDiffFlow("POI","Eta");
  
- if(fApplyCorrectionForNUA) // to be improved (reorganized, etc)
+ // h) Correct the results for differential flow (without/with weights) for effects of non-uniform acceptance (NUA):
+ if(fApplyCorrectionForNUA)
  {
   this->FinalizeCorrectionTermsForNUADiffFlow("RP","Pt");
   this->FinalizeCorrectionTermsForNUADiffFlow("RP","Eta");
@@ -833,26 +818,20 @@ void AliFlowAnalysisWithQCumulants::Finish()
   this->CalculateDiffFlowCorrectedForNUA("POI","Eta"); 
  }
  
+ // i) Calculate the final results for integrated flow (RP/POI) and store in AliFlowCommonHistResults:
  this->CalculateFinalResultsForRPandPOIIntegratedFlow("RP");
  this->CalculateFinalResultsForRPandPOIIntegratedFlow("POI");
 
- // *****************************************************************
- // **** STORE AND PRINT THE FINAL RESULTS FOR DIFFERENTIAL FLOW ****
- // *****************************************************************
+ // j) Store results for differential flow in AliFlowCommonHistResults:
  this->FillCommonHistResultsDiffFlow("RP");
  this->FillCommonHistResultsDiffFlow("POI");
 
- if(fPrintFinalResults[1])
- {
-  this->PrintFinalResultsForIntegratedFlow("RP"); 
- } 
- if(fPrintFinalResults[2])
- {
-  this->PrintFinalResultsForIntegratedFlow("POI"); 
- } 
- // g) cross-check the results: results from Q-vectors vs results from nested loops
- 
- //  g1) integrated flow:
+ // k) Print the final results for integrated flow (RP/POI) on the screen:
+ if(fPrintFinalResults[1]){this->PrintFinalResultsForIntegratedFlow("RP");} 
+ if(fPrintFinalResults[2]){this->PrintFinalResultsForIntegratedFlow("POI");}
+  
+ // l) Cross-checking: Results from Q-vectors vs results from nested loops:
+ //  l1) Reference flow:
  if(fEvaluateIntFlowNestedLoops)
  {
   this->CrossCheckIntFlowCorrelations();
@@ -860,16 +839,16 @@ void AliFlowAnalysisWithQCumulants::Finish()
   if(fUsePhiWeights||fUsePtWeights||fUseEtaWeights) this->CrossCheckIntFlowExtraCorrelations();     
  } // end of if(fEvaluateIntFlowNestedLoops)  
  
- //  g2) differential flow: 
+ //  l2) Differential flow: 
  if(fEvaluateDiffFlowNestedLoops) 
  {
-  // correlations:
+  // Correlations:
   this->PrintNumberOfParticlesInSelectedBin();
   this->CrossCheckDiffFlowCorrelations("RP","Pt");  
   this->CrossCheckDiffFlowCorrelations("RP","Eta"); 
   this->CrossCheckDiffFlowCorrelations("POI","Pt");  
   this->CrossCheckDiffFlowCorrelations("POI","Eta");
-  // correction terms for non-uniform acceptance:
+  // Correction terms for non-uniform acceptance:
   this->CrossCheckDiffFlowCorrectionTermsForNUA("RP","Pt");      
   this->CrossCheckDiffFlowCorrectionTermsForNUA("RP","Eta");       
   this->CrossCheckDiffFlowCorrectionTermsForNUA("POI","Pt");      
@@ -878,13 +857,11 @@ void AliFlowAnalysisWithQCumulants::Finish()
                                                                                                                                                                                                                                                                                                                                    
 } // end of AliFlowAnalysisWithQCumulants::Finish()
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUACosTerms()
 {
- // calculate corrections for non-uniform acceptance of the detector for no-name integrated flow (cos terms)
+ // Calculate correction terms for non-uniform acceptance of the detector for reference flow (cos terms).
  
  // multiplicity:
  Double_t dMult = (*fSMpk)(0,0);
@@ -927,7 +904,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUACosTerms()
   
   // final average non-weighted 1-particle correction (cos terms) for non-uniform acceptance for all events:
   fIntFlowCorrectionTermsForNUAPro[1]->Fill(0.5,cosP1n,dMult);  
-  fIntFlowCorrectionTermsForNUAVsMPro[1][0]->Fill(dMult+0.5,cosP1n,dMult);    
+  if(fCalculateCumulantsVsM){fIntFlowCorrectionTermsForNUAVsMPro[1][0]->Fill(dMult+0.5,cosP1n,dMult);}    
  } 
  
  // 2-particle:
@@ -949,8 +926,11 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUACosTerms()
   // final average non-weighted 2-particle correction (cos terms) for non-uniform acceptance for all events:
   fIntFlowCorrectionTermsForNUAPro[1]->Fill(1.5,cosP1nP1n,dMult*(dMult-1));  
   fIntFlowCorrectionTermsForNUAPro[1]->Fill(3.5,cosP2nM1n,dMult*(dMult-1));
-  fIntFlowCorrectionTermsForNUAVsMPro[1][1]->Fill(dMult+0.5,cosP1nP1n,dMult*(dMult-1));  
-  fIntFlowCorrectionTermsForNUAVsMPro[1][3]->Fill(dMult+0.5,cosP2nM1n,dMult*(dMult-1));
+  if(fCalculateCumulantsVsM)
+  {
+   fIntFlowCorrectionTermsForNUAVsMPro[1][1]->Fill(dMult+0.5,cosP1nP1n,dMult*(dMult-1));  
+   fIntFlowCorrectionTermsForNUAVsMPro[1][3]->Fill(dMult+0.5,cosP2nM1n,dMult*(dMult-1));
+  }
  } 
  
  // 3-particle:
@@ -968,7 +948,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUACosTerms()
   
   // final average non-weighted 3-particle correction (cos terms) for non-uniform acceptance for all events:
   fIntFlowCorrectionTermsForNUAPro[1]->Fill(2.5,cosP1nM1nM1n,dMult*(dMult-1)*(dMult-2));
-  fIntFlowCorrectionTermsForNUAVsMPro[1][2]->Fill(dMult+0.5,cosP1nM1nM1n,dMult*(dMult-1)*(dMult-2));  
+  if(fCalculateCumulantsVsM){fIntFlowCorrectionTermsForNUAVsMPro[1][2]->Fill(dMult+0.5,cosP1nM1nM1n,dMult*(dMult-1)*(dMult-2));}  
  } 
  
 } // end of AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUACosTerms()
@@ -1022,7 +1002,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUASinTerms()
   
   // final average non-weighted 1-particle correction (sin terms) for non-uniform acceptance for all events:   
   fIntFlowCorrectionTermsForNUAPro[0]->Fill(0.5,sinP1n,dMult);  
-  fIntFlowCorrectionTermsForNUAVsMPro[0][0]->Fill(dMult+0.5,sinP1n,dMult); 
+  if(fCalculateCumulantsVsM){fIntFlowCorrectionTermsForNUAVsMPro[0][0]->Fill(dMult+0.5,sinP1n,dMult);} 
  } 
  
  // 2-particle:
@@ -1043,8 +1023,11 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUASinTerms()
   // final average non-weighted 1-particle correction (sin terms) for non-uniform acceptance for all events:      
   fIntFlowCorrectionTermsForNUAPro[0]->Fill(1.5,sinP1nP1n,dMult*(dMult-1));  
   fIntFlowCorrectionTermsForNUAPro[0]->Fill(3.5,sinP2nM1n,dMult*(dMult-1));  
-  fIntFlowCorrectionTermsForNUAVsMPro[0][1]->Fill(dMult+0.5,sinP1nP1n,dMult*(dMult-1));  
-  fIntFlowCorrectionTermsForNUAVsMPro[0][3]->Fill(dMult+0.5,sinP2nM1n,dMult*(dMult-1));    
+  if(fCalculateCumulantsVsM)
+  {
+   fIntFlowCorrectionTermsForNUAVsMPro[0][1]->Fill(dMult+0.5,sinP1nP1n,dMult*(dMult-1));  
+   fIntFlowCorrectionTermsForNUAVsMPro[0][3]->Fill(dMult+0.5,sinP2nM1n,dMult*(dMult-1));    
+  }
  } 
  
  // 3-particle:
@@ -1062,7 +1045,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUASinTerms()
   
   // final average non-weighted 3-particle correction (sin terms) for non-uniform acceptance for all events:  
   fIntFlowCorrectionTermsForNUAPro[0]->Fill(2.5,sinP1nM1nM1n,dMult*(dMult-1)*(dMult-2));
-  fIntFlowCorrectionTermsForNUAVsMPro[0][2]->Fill(dMult+0.5,sinP1nM1nM1n,dMult*(dMult-1)*(dMult-2));  
+  if(fCalculateCumulantsVsM){fIntFlowCorrectionTermsForNUAVsMPro[0][2]->Fill(dMult+0.5,sinP1nM1nM1n,dMult*(dMult-1)*(dMult-2));}  
  } 
  
 } // end of AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectionsForNUASinTerms()
@@ -1199,32 +1182,22 @@ void AliFlowAnalysisWithQCumulants::PrintFinalResultsForIntegratedFlow(TString t
  
  Int_t n = fHarmonic; 
  
- if(type == "RF" || type == "RP" || type == "POI")
- {
-  if(!(fCommonHists && fCommonHistsResults2nd && fCommonHistsResults4th && fCommonHistsResults6th && fCommonHistsResults8th))
-  {
-   cout<<"WARNING: fCommonHistsResults && fCommonHistsResults2nd && fCommonHistsResults4th && fCommonHistsResults6th && fCommonHistsResults8th"<<endl;
-   cout<<"         is NULL in AFAWQC::PFRFIF() !!!!"<<endl;
-  }
- } else
-   {
-    cout<<"WARNING: type is not from {RF, RP, POI} in AFAWQC::PFRFIF() !!!!"<<endl;
-    exit(0);
-   }
- 
  Double_t dVn[4] = {0.}; // array to hold Vn{2}, Vn{4}, Vn{6} and Vn{8}   
  Double_t dVnErr[4] = {0.}; // array to hold errors of Vn{2}, Vn{4}, Vn{6} and Vn{8}   
  
  if(type == "RF")
  {
-  dVn[0] = (fCommonHistsResults2nd->GetHistIntFlow())->GetBinContent(1); 
-  dVnErr[0] = (fCommonHistsResults2nd->GetHistIntFlow())->GetBinError(1); 
-  dVn[1] = (fCommonHistsResults4th->GetHistIntFlow())->GetBinContent(1); 
-  dVnErr[1] = (fCommonHistsResults4th->GetHistIntFlow())->GetBinError(1); 
-  dVn[2] = (fCommonHistsResults6th->GetHistIntFlow())->GetBinContent(1); 
-  dVnErr[2] = (fCommonHistsResults6th->GetHistIntFlow())->GetBinError(1); 
-  dVn[3] = (fCommonHistsResults8th->GetHistIntFlow())->GetBinContent(1); 
-  dVnErr[3] = (fCommonHistsResults8th->GetHistIntFlow())->GetBinError(1); 
+  for(Int_t b=0;b<4;b++)
+  {
+   dVn[0] = (fCommonHistsResults2nd->GetHistIntFlow())->GetBinContent(1); 
+   dVnErr[0] = (fCommonHistsResults2nd->GetHistIntFlow())->GetBinError(1); 
+   dVn[1] = (fCommonHistsResults4th->GetHistIntFlow())->GetBinContent(1); 
+   dVnErr[1] = (fCommonHistsResults4th->GetHistIntFlow())->GetBinError(1); 
+   dVn[2] = (fCommonHistsResults6th->GetHistIntFlow())->GetBinContent(1); 
+   dVnErr[2] = (fCommonHistsResults6th->GetHistIntFlow())->GetBinError(1); 
+   dVn[3] = (fCommonHistsResults8th->GetHistIntFlow())->GetBinContent(1); 
+   dVnErr[3] = (fCommonHistsResults8th->GetHistIntFlow())->GetBinError(1);    
+  }  
  } else if(type == "RP")
    {
     dVn[0] = (fCommonHistsResults2nd->GetHistIntFlowRP())->GetBinContent(1); 
@@ -1245,26 +1218,49 @@ void AliFlowAnalysisWithQCumulants::PrintFinalResultsForIntegratedFlow(TString t
       dVnErr[2] = (fCommonHistsResults6th->GetHistIntFlowPOI())->GetBinError(1); 
       dVn[3] = (fCommonHistsResults8th->GetHistIntFlowPOI())->GetBinContent(1); 
       dVnErr[3] = (fCommonHistsResults8th->GetHistIntFlowPOI())->GetBinError(1); 
-     }
+     } else if(type == "RF, rebinned in M" && fCalculateCumulantsVsM)
+       {
+        for(Int_t b=0;b<4;b++)
+        {
+         dVn[b] = fIntFlowRebinnedInM->GetBinContent(b+1); 
+         dVnErr[b] = fIntFlowRebinnedInM->GetBinError(b+1);
+        }  
+       }
  
  TString title = " flow estimates from Q-cumulants"; 
  TString subtitle = "    ("; 
+ TString subtitle2 = "       (rebinned in M)"; 
  
- if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
+ if(type != "RF, rebinned in M")
  {
-  subtitle.Append(type);
-  subtitle.Append(", without weights)");
- } else  
+  if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
+  {
+   subtitle.Append(type);
+   subtitle.Append(", without weights)");
+  } else  
+    {
+     subtitle.Append(type);
+     subtitle.Append(", with weights)");
+    }
+ } else
    {
-    subtitle.Append(type);
-    subtitle.Append(", with weights)");
-   }
-  
+    if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights))
+    {
+     subtitle.Append("RF");
+     subtitle.Append(", without weights)");
+    } else  
+      {
+       subtitle.Append("RF");
+       subtitle.Append(", with weights)");      
+      }
+   } 
+   
  cout<<endl;
  cout<<"*************************************"<<endl;
  cout<<"*************************************"<<endl;
  cout<<title.Data()<<endl; 
  cout<<subtitle.Data()<<endl; 
+ if(type == "RF, rebinned in M"){cout<<subtitle2.Data()<<endl;}
  cout<<endl;
   
  for(Int_t i=0;i<4;i++)
@@ -1273,8 +1269,20 @@ void AliFlowAnalysisWithQCumulants::PrintFinalResultsForIntegratedFlow(TString t
  }
  
  cout<<endl;
- 
  if(type == "RF")
+ {
+  if(fApplyCorrectionForNUA)
+  {
+   cout<<" detector bias (corrected for): "<<endl;
+  } else
+    {
+     cout<<" detector bias (not corrected for):"<<endl;  
+    }
+  cout<<"  to QC{2}: "<<fIntFlowDetectorBias->GetBinContent(1)<<" +/- "<<fIntFlowDetectorBias->GetBinError(1)<<endl;
+  cout<<"  to QC{4}: "<<fIntFlowDetectorBias->GetBinContent(2)<<" +/- "<<fIntFlowDetectorBias->GetBinError(2)<<endl;
+  cout<<endl;
+ }
+ if(type == "RF" || type == "RF, rebinned in M")
  {
   cout<<"     nEvts = "<<(Int_t)fCommonHists->GetHistMultRP()->GetEntries()<<", <M> = "<<(Double_t)fCommonHists->GetHistMultRP()->GetMean()<<endl; 
  }
@@ -1475,7 +1483,7 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  // a) Book profile to hold all flags for integrated flow:
  TString intFlowFlagsName = "fIntFlowFlags";
  intFlowFlagsName += fAnalysisLabel->Data();
- fIntFlowFlags = new TProfile(intFlowFlagsName.Data(),"Flags for Integrated Flow",7,0,7);
+ fIntFlowFlags = new TProfile(intFlowFlagsName.Data(),"Flags for Integrated Flow",11,0,11);
  fIntFlowFlags->SetTickLength(-0.01,"Y");
  fIntFlowFlags->SetMarkerStyle(25);
  fIntFlowFlags->SetLabelSize(0.05);
@@ -1483,10 +1491,14 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  fIntFlowFlags->GetXaxis()->SetBinLabel(1,"Particle Weights");
  fIntFlowFlags->GetXaxis()->SetBinLabel(2,"Event Weights");
  fIntFlowFlags->GetXaxis()->SetBinLabel(3,"Corrected for NUA?");
- fIntFlowFlags->GetXaxis()->SetBinLabel(4,"Print NONAME results");
+ fIntFlowFlags->GetXaxis()->SetBinLabel(4,"Print RF results");
  fIntFlowFlags->GetXaxis()->SetBinLabel(5,"Print RP results");
  fIntFlowFlags->GetXaxis()->SetBinLabel(6,"Print POI results");
- fIntFlowFlags->GetXaxis()->SetBinLabel(7,"Corrected for NUA vs M?");
+ fIntFlowFlags->GetXaxis()->SetBinLabel(7,"Print RF (rebinned in M) results");
+ fIntFlowFlags->GetXaxis()->SetBinLabel(8,"Corrected for NUA vs M?");
+ fIntFlowFlags->GetXaxis()->SetBinLabel(9,"Propagate errors to v_{n} from correlations?");
+ fIntFlowFlags->GetXaxis()->SetBinLabel(10,"Calculate cumulants vs M");
+ fIntFlowFlags->GetXaxis()->SetBinLabel(11,"fMinimumBiasReferenceFlow");
  fIntFlowList->Add(fIntFlowFlags);
 
  // b) Book event-by-event quantities:
@@ -1512,14 +1524,14 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  fIntFlowCorrectionTermsForNUAEBEName += fAnalysisLabel->Data();
  for(Int_t sc=0;sc<2;sc++) // sin or cos terms
  {
-  fIntFlowCorrectionTermsForNUAEBE[sc] = new TH1D(Form("%s: %s terms",fIntFlowCorrectionTermsForNUAEBEName.Data(),sinCosFlag[sc].Data()),Form("Correction terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),10,0,10);  
+  fIntFlowCorrectionTermsForNUAEBE[sc] = new TH1D(Form("%s: %s terms",fIntFlowCorrectionTermsForNUAEBEName.Data(),sinCosFlag[sc].Data()),Form("Correction terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),4,0,4);  
  }
  // event weights for terms for non-uniform acceptance: 
  TString fIntFlowEventWeightForCorrectionTermsForNUAEBEName = "fIntFlowEventWeightForCorrectionTermsForNUAEBE";
  fIntFlowEventWeightForCorrectionTermsForNUAEBEName += fAnalysisLabel->Data();
  for(Int_t sc=0;sc<2;sc++) // sin or cos terms
  {
-  fIntFlowEventWeightForCorrectionTermsForNUAEBE[sc] = new TH1D(Form("%s: %s terms",fIntFlowEventWeightForCorrectionTermsForNUAEBEName.Data(),sinCosFlag[sc].Data()),Form("Event weights for terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),10,0,10);  
+  fIntFlowEventWeightForCorrectionTermsForNUAEBE[sc] = new TH1D(Form("%s: %s terms",fIntFlowEventWeightForCorrectionTermsForNUAEBEName.Data(),sinCosFlag[sc].Data()),Form("Event weights for terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),4,0,4); // to be improved - 4  
  }
  // c) Book profiles: // to be improved (comment)
  // profile to hold average multiplicities and number of events for events with nRP>=0, nRP>=1, ... , and nRP>=8:
@@ -1542,6 +1554,7 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  (fAvMultiplicity->GetXaxis())->SetBinLabel(9,"n_{RP} #geq 8");
  fIntFlowProfiles->Add(fAvMultiplicity);
  // average correlations <<2>>, <<4>>, <<6>> and <<8>> for all events (with wrong errors!):
+ TString correlationFlag[4] = {"<<2>>","<<4>>","<<6>>","<<8>>"};
  TString intFlowCorrelationsProName = "fIntFlowCorrelationsPro";
  intFlowCorrelationsProName += fAnalysisLabel->Data();
  fIntFlowCorrelationsPro = new TProfile(intFlowCorrelationsProName.Data(),"Average correlations for all events",4,0,4,"s");
@@ -1549,24 +1562,26 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  fIntFlowCorrelationsPro->SetMarkerStyle(25);
  fIntFlowCorrelationsPro->SetLabelSize(0.06);
  fIntFlowCorrelationsPro->SetLabelOffset(0.01,"Y");
- (fIntFlowCorrelationsPro->GetXaxis())->SetBinLabel(1,"<<2>>");
- (fIntFlowCorrelationsPro->GetXaxis())->SetBinLabel(2,"<<4>>");
- (fIntFlowCorrelationsPro->GetXaxis())->SetBinLabel(3,"<<6>>");
- (fIntFlowCorrelationsPro->GetXaxis())->SetBinLabel(4,"<<8>>");
- fIntFlowProfiles->Add(fIntFlowCorrelationsPro);
- // average correlations <<2>>, <<4>>, <<6>> and <<8>> versus multiplicity for all events (error is biased estimator):
- TString correlationFlag[4] = {"<<2>>","<<4>>","<<6>>","<<8>>"};
- for(Int_t ci=0;ci<4;ci++) // correlation index
+ for(Int_t b=0;b<4;b++)
  {
-  TString intFlowCorrelationsVsMProName = "fIntFlowCorrelationsVsMPro";
-  intFlowCorrelationsVsMProName += fAnalysisLabel->Data();
-  fIntFlowCorrelationsVsMPro[ci] = new TProfile(Form("%s, %s",intFlowCorrelationsVsMProName.Data(),correlationFlag[ci].Data()),
-                                                Form("%s vs multiplicity",correlationFlag[ci].Data()),
-                                                fnBinsMult,fMinMult,fMaxMult,"s");                                            
-  fIntFlowCorrelationsVsMPro[ci]->GetYaxis()->SetTitle(correlationFlag[ci].Data());
-  fIntFlowCorrelationsVsMPro[ci]->GetXaxis()->SetTitle("M");
-  fIntFlowProfiles->Add(fIntFlowCorrelationsVsMPro[ci]);
- } // end of for(Int_t ci=0;ci<4;ci++) // correlation index  
+  (fIntFlowCorrelationsPro->GetXaxis())->SetBinLabel(b+1,correlationFlag[b].Data());
+ }
+ fIntFlowProfiles->Add(fIntFlowCorrelationsPro);
+ // average correlations <<2>>, <<4>>, <<6>> and <<8>> versus multiplicity for all events (with wrong errors):
+ if(fCalculateCumulantsVsM)
+ {
+  for(Int_t ci=0;ci<4;ci++) // correlation index
+  {
+   TString intFlowCorrelationsVsMProName = "fIntFlowCorrelationsVsMPro";
+   intFlowCorrelationsVsMProName += fAnalysisLabel->Data();
+   fIntFlowCorrelationsVsMPro[ci] = new TProfile(Form("%s, %s",intFlowCorrelationsVsMProName.Data(),correlationFlag[ci].Data()),
+                                                 Form("%s vs multiplicity",correlationFlag[ci].Data()),
+                                                 fnBinsMult,fMinMult,fMaxMult,"s");                                            
+   fIntFlowCorrelationsVsMPro[ci]->GetYaxis()->SetTitle(correlationFlag[ci].Data());
+   fIntFlowCorrelationsVsMPro[ci]->GetXaxis()->SetTitle("M");
+   fIntFlowProfiles->Add(fIntFlowCorrelationsVsMPro[ci]);
+  } // end of for(Int_t ci=0;ci<4;ci++) // correlation index  
+ } // end of if(fCalculateCumulantsVsM)
  // averaged all correlations for all events (with wrong errors!):
  TString intFlowCorrelationsAllProName = "fIntFlowCorrelationsAllPro";
  intFlowCorrelationsAllProName += fAnalysisLabel->Data();
@@ -1624,6 +1639,7 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
   fIntFlowProfiles->Add(fIntFlowExtraCorrelationsPro);
  } // end of if(fUsePhiWeights||fUsePtWeights||fUseEtaWeights)
  // average product of correlations <2>, <4>, <6> and <8>:  
+ TString productFlag[6] = {"<<2><4>>","<<2><6>>","<<2><8>>","<<4><6>>","<<4><8>>","<<6><8>>"};
  TString intFlowProductOfCorrelationsProName = "fIntFlowProductOfCorrelationsPro";
  intFlowProductOfCorrelationsProName += fAnalysisLabel->Data();
  fIntFlowProductOfCorrelationsPro = new TProfile(intFlowProductOfCorrelationsProName.Data(),"Average products of correlations",6,0,6);
@@ -1631,26 +1647,26 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  fIntFlowProductOfCorrelationsPro->SetMarkerStyle(25); 
  fIntFlowProductOfCorrelationsPro->SetLabelSize(0.05);
  fIntFlowProductOfCorrelationsPro->SetLabelOffset(0.01,"Y");
- (fIntFlowProductOfCorrelationsPro->GetXaxis())->SetBinLabel(1,"<<2><4>>");
- (fIntFlowProductOfCorrelationsPro->GetXaxis())->SetBinLabel(2,"<<2><6>>");
- (fIntFlowProductOfCorrelationsPro->GetXaxis())->SetBinLabel(3,"<<2><8>>");
- (fIntFlowProductOfCorrelationsPro->GetXaxis())->SetBinLabel(4,"<<4><6>>");
- (fIntFlowProductOfCorrelationsPro->GetXaxis())->SetBinLabel(5,"<<4><8>>");
- (fIntFlowProductOfCorrelationsPro->GetXaxis())->SetBinLabel(6,"<<6><8>>");
- fIntFlowProfiles->Add(fIntFlowProductOfCorrelationsPro);
+ for(Int_t b=0;b<6;b++)
+ {
+  (fIntFlowProductOfCorrelationsPro->GetXaxis())->SetBinLabel(b+1,productFlag[b].Data());
+ }
+ fIntFlowProfiles->Add(fIntFlowProductOfCorrelationsPro); 
  // average product of correlations <2>, <4>, <6> and <8> versus multiplicity
  // [0=<<2><4>>,1=<<2><6>>,2=<<2><8>>,3=<<4><6>>,4=<<4><8>>,5=<<6><8>>]  
- TString intFlowProductOfCorrelationsVsMProName = "fIntFlowProductOfCorrelationsVsMPro";
- intFlowProductOfCorrelationsVsMProName += fAnalysisLabel->Data();
- TString productFlag[6] = {"<<2><4>>","<<2><6>>","<<2><8>>","<<4><6>>","<<4><8>>","<<6><8>>"};
- for(Int_t pi=0;pi<6;pi++)
- { 
-  fIntFlowProductOfCorrelationsVsMPro[pi] = new TProfile(Form("%s, %s",intFlowProductOfCorrelationsVsMProName.Data(),productFlag[pi].Data()),
-                                                     Form("%s versus multiplicity",productFlag[pi].Data()),
-                                                     fnBinsMult,fMinMult,fMaxMult);             
-  fIntFlowProductOfCorrelationsVsMPro[pi]->GetXaxis()->SetTitle("M");
-  fIntFlowProfiles->Add(fIntFlowProductOfCorrelationsVsMPro[pi]);
- } // end of for(Int_t pi=0;pi<6;pi++)
+ if(fCalculateCumulantsVsM)
+ {
+  TString intFlowProductOfCorrelationsVsMProName = "fIntFlowProductOfCorrelationsVsMPro";
+  intFlowProductOfCorrelationsVsMProName += fAnalysisLabel->Data();
+  for(Int_t pi=0;pi<6;pi++)
+  { 
+   fIntFlowProductOfCorrelationsVsMPro[pi] = new TProfile(Form("%s, %s",intFlowProductOfCorrelationsVsMProName.Data(),productFlag[pi].Data()),
+                                                          Form("%s versus multiplicity",productFlag[pi].Data()),
+                                                          fnBinsMult,fMinMult,fMaxMult);             
+   fIntFlowProductOfCorrelationsVsMPro[pi]->GetXaxis()->SetTitle("M");
+   fIntFlowProfiles->Add(fIntFlowProductOfCorrelationsVsMPro[pi]);
+  } // end of for(Int_t pi=0;pi<6;pi++)
+ } // end of if(fCalculateCumulantsVsM) 
  // average product of correction terms for NUA:  
  TString intFlowProductOfCorrectionTermsForNUAProName = "fIntFlowProductOfCorrectionTermsForNUAPro";
  intFlowProductOfCorrectionTermsForNUAProName += fAnalysisLabel->Data();
@@ -1692,26 +1708,28 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  {
   TString intFlowCorrectionTermsForNUAProName = "fIntFlowCorrectionTermsForNUAPro";
   intFlowCorrectionTermsForNUAProName += fAnalysisLabel->Data();
-  fIntFlowCorrectionTermsForNUAPro[sc] = new TProfile(Form("%s: %s terms",intFlowCorrectionTermsForNUAProName.Data(),sinCosFlag[sc].Data()),Form("Correction terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),10,0,10,"s");
+  fIntFlowCorrectionTermsForNUAPro[sc] = new TProfile(Form("%s: %s terms",intFlowCorrectionTermsForNUAProName.Data(),sinCosFlag[sc].Data()),Form("Correction terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),4,0,4,"s");
   fIntFlowCorrectionTermsForNUAPro[sc]->SetTickLength(-0.01,"Y");
   fIntFlowCorrectionTermsForNUAPro[sc]->SetMarkerStyle(25);
   fIntFlowCorrectionTermsForNUAPro[sc]->SetLabelSize(0.03);
   fIntFlowCorrectionTermsForNUAPro[sc]->SetLabelOffset(0.01,"Y");
-  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(1,Form("<<%s(n(phi1))>>",sinCosFlag[sc].Data()));
-  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(2,Form("<<%s(n(phi1+phi2))>>",sinCosFlag[sc].Data()));  
-  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(3,Form("<<%s(n(phi1-phi2-phi3))>>",sinCosFlag[sc].Data()));  
-  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(4,Form("<<%s(n(2phi1-phi2))>>",sinCosFlag[sc].Data()));  
+  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(1,Form("#LT#LT%s(n(phi1))#GT#GT",sinCosFlag[sc].Data()));
+  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(2,Form("#LT#LT%s(n(phi1+phi2))#GT#GT",sinCosFlag[sc].Data()));  
+  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(3,Form("#LT#LT%s(n(phi1-phi2-phi3))#GT#GT",sinCosFlag[sc].Data()));  
+  (fIntFlowCorrectionTermsForNUAPro[sc]->GetXaxis())->SetBinLabel(4,Form("#LT#LT%s(n(2phi1-phi2))#GT#GT",sinCosFlag[sc].Data()));  
   fIntFlowProfiles->Add(fIntFlowCorrectionTermsForNUAPro[sc]);
   // versus multiplicity:
-  TString correctionTermFlag[4] = {"(n(phi1))","(n(phi1+phi2))","(n(phi1-phi2-phi3))","(n(2phi1-phi2))"}; // to be improved - hardwired 4
-  for(Int_t ci=0;ci<4;ci++) // correction term index (to be improved - hardwired 4)
+  if(fCalculateCumulantsVsM)
   {
-   TString intFlowCorrectionTermsForNUAVsMProName = "fIntFlowCorrectionTermsForNUAVsMPro";
-   intFlowCorrectionTermsForNUAVsMProName += fAnalysisLabel->Data();
-   fIntFlowCorrectionTermsForNUAVsMPro[sc][ci] = new TProfile(Form("%s: #LT#LT%s%s#GT#GT",intFlowCorrectionTermsForNUAVsMProName.Data(),sinCosFlag[sc].Data(),correctionTermFlag[ci].Data()),Form("#LT#LT%s%s#GT#GT vs M",sinCosFlag[sc].Data(),correctionTermFlag[ci].Data()),fnBinsMult,fMinMult,fMaxMult); // to be improved - added on purpose option "" instead of "s" only here
-   fIntFlowCorrectionTermsForNUAVsMPro[sc][ci]->SetDefaultSumw2();
-   fIntFlowProfiles->Add(fIntFlowCorrectionTermsForNUAVsMPro[sc][ci]);
-  }
+   TString correctionTermFlag[4] = {"(n(phi1))","(n(phi1+phi2))","(n(phi1-phi2-phi3))","(n(2phi1-phi2))"}; // to be improved - hardwired 4
+   for(Int_t ci=0;ci<4;ci++) // correction term index (to be improved - hardwired 4)
+   {
+    TString intFlowCorrectionTermsForNUAVsMProName = "fIntFlowCorrectionTermsForNUAVsMPro";
+    intFlowCorrectionTermsForNUAVsMProName += fAnalysisLabel->Data();
+    fIntFlowCorrectionTermsForNUAVsMPro[sc][ci] = new TProfile(Form("%s: #LT#LT%s%s#GT#GT",intFlowCorrectionTermsForNUAVsMProName.Data(),sinCosFlag[sc].Data(),correctionTermFlag[ci].Data()),Form("#LT#LT%s%s#GT#GT vs M",sinCosFlag[sc].Data(),correctionTermFlag[ci].Data()),fnBinsMult,fMinMult,fMaxMult,"s");
+    fIntFlowProfiles->Add(fIntFlowCorrectionTermsForNUAVsMPro[sc][ci]);
+   }
+  } // end of if(fCalculateCumulantsVsM)
  } // end of for(Int_t sc=0;sc<2;sc++) 
  
  // d) Book histograms holding the final results:
@@ -1729,17 +1747,20 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  (fIntFlowCorrelationsHist->GetXaxis())->SetBinLabel(4,"<<8>>");
  fIntFlowResults->Add(fIntFlowCorrelationsHist);
  // average correlations <<2>>, <<4>>, <<6>> and <<8>> for all events (with correct errors!) vs M:
- for(Int_t ci=0;ci<4;ci++) // correlation index
+ if(fCalculateCumulantsVsM)
  {
-  TString intFlowCorrelationsVsMHistName = "fIntFlowCorrelationsVsMHist";
-  intFlowCorrelationsVsMHistName += fAnalysisLabel->Data();
-  fIntFlowCorrelationsVsMHist[ci] = new TH1D(Form("%s, %s",intFlowCorrelationsVsMHistName.Data(),correlationFlag[ci].Data()),
-                                             Form("%s vs multiplicity",correlationFlag[ci].Data()),
-                                             fnBinsMult,fMinMult,fMaxMult);                                            
-  fIntFlowCorrelationsVsMHist[ci]->GetYaxis()->SetTitle(correlationFlag[ci].Data());
-  fIntFlowCorrelationsVsMHist[ci]->GetXaxis()->SetTitle("M");
-  fIntFlowResults->Add(fIntFlowCorrelationsVsMHist[ci]);
- } // end of for(Int_t ci=0;ci<4;ci++) // correlation index   
+  for(Int_t ci=0;ci<4;ci++) // correlation index
+  {
+   TString intFlowCorrelationsVsMHistName = "fIntFlowCorrelationsVsMHist";
+   intFlowCorrelationsVsMHistName += fAnalysisLabel->Data();
+   fIntFlowCorrelationsVsMHist[ci] = new TH1D(Form("%s, %s",intFlowCorrelationsVsMHistName.Data(),correlationFlag[ci].Data()),
+                                              Form("%s vs multiplicity",correlationFlag[ci].Data()),
+                                              fnBinsMult,fMinMult,fMaxMult);                                            
+   fIntFlowCorrelationsVsMHist[ci]->GetYaxis()->SetTitle(correlationFlag[ci].Data());
+   fIntFlowCorrelationsVsMHist[ci]->GetXaxis()->SetTitle("M");
+   fIntFlowResults->Add(fIntFlowCorrelationsVsMHist[ci]);
+  } // end of for(Int_t ci=0;ci<4;ci++) // correlation index   
+ } // end of if(fCalculateCumulantsVsM) 
  // average all correlations for all events (with correct errors!):
  TString intFlowCorrelationsAllHistName = "fIntFlowCorrelationsAllHist";
  intFlowCorrelationsAllHistName += fAnalysisLabel->Data();
@@ -1786,18 +1807,15 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  {
   TString intFlowCorrectionTermsForNUAHistName = "fIntFlowCorrectionTermsForNUAHist";
   intFlowCorrectionTermsForNUAHistName += fAnalysisLabel->Data();
-  fIntFlowCorrectionTermsForNUAHist[sc] = new TH1D(Form("%s: %s terms",intFlowCorrectionTermsForNUAHistName.Data(),sinCosFlag[sc].Data()),Form("Correction terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),10,0,10);
+  fIntFlowCorrectionTermsForNUAHist[sc] = new TH1D(Form("%s: %s terms",intFlowCorrectionTermsForNUAHistName.Data(),sinCosFlag[sc].Data()),Form("Correction terms for non-uniform acceptance (%s terms)",sinCosFlag[sc].Data()),4,0,4);
   fIntFlowCorrectionTermsForNUAHist[sc]->SetTickLength(-0.01,"Y");
   fIntFlowCorrectionTermsForNUAHist[sc]->SetMarkerStyle(25);
   fIntFlowCorrectionTermsForNUAHist[sc]->SetLabelSize(0.03);
   fIntFlowCorrectionTermsForNUAHist[sc]->SetLabelOffset(0.01,"Y");
-  // ......................................................................... 
-  // 1-p terms:
-  (fIntFlowCorrectionTermsForNUAHist[sc]->GetXaxis())->SetBinLabel(1,Form("%s(n(#phi_{1}))>",sinCosFlag[sc].Data()));
-  // 2-p terms:
-  // 3-p terms:
-  // ...
-  // ......................................................................... 
+  (fIntFlowCorrectionTermsForNUAHist[sc]->GetXaxis())->SetBinLabel(1,Form("#LT#LT%s(n(#phi_{1}))#GT#GT",sinCosFlag[sc].Data()));
+  (fIntFlowCorrectionTermsForNUAHist[sc]->GetXaxis())->SetBinLabel(2,Form("#LT#LT%s(n(phi1+phi2))#GT#GT",sinCosFlag[sc].Data()));  
+  (fIntFlowCorrectionTermsForNUAHist[sc]->GetXaxis())->SetBinLabel(3,Form("#LT#LT%s(n(phi1-phi2-phi3))#GT#GT",sinCosFlag[sc].Data()));  
+  (fIntFlowCorrectionTermsForNUAHist[sc]->GetXaxis())->SetBinLabel(4,Form("#LT#LT%s(n(2phi1-phi2))#GT#GT",sinCosFlag[sc].Data()));   
   fIntFlowResults->Add(fIntFlowCorrectionTermsForNUAHist[sc]);
  } // end of for(Int_t sc=0;sc<2;sc++) 
  // covariances (multiplied with weight dependent prefactor):
@@ -1851,52 +1869,61 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  fIntFlowResults->Add(fIntFlowSumOfProductOfEventWeights);
  // final result for covariances of correlations (multiplied with weight dependent prefactor) versus M
  // [0=Cov(2,4),1=Cov(2,6),2=Cov(2,8),3=Cov(4,6),4=Cov(4,8),5=Cov(6,8)]:
- TString intFlowCovariancesVsMName = "fIntFlowCovariancesVsM";
- intFlowCovariancesVsMName += fAnalysisLabel->Data();
- TString covarianceFlag[6] = {"Cov(<2>,<4>)","Cov(<2>,<6>)","Cov(<2>,<8>)","Cov(<4>,<6>)","Cov(<4>,<8>)","Cov(<6>,<8>)"};
- for(Int_t ci=0;ci<6;ci++)
+ if(fCalculateCumulantsVsM)
  {
-  fIntFlowCovariancesVsM[ci] = new TH1D(Form("%s, %s",intFlowCovariancesVsMName.Data(),covarianceFlag[ci].Data()),
-                                        Form("%s vs multiplicity",covarianceFlag[ci].Data()),
-                                        fnBinsMult,fMinMult,fMaxMult);
-  fIntFlowCovariancesVsM[ci]->GetYaxis()->SetTitle(covarianceFlag[ci].Data());
-  fIntFlowCovariancesVsM[ci]->GetXaxis()->SetTitle("M");
-  fIntFlowResults->Add(fIntFlowCovariancesVsM[ci]);
- }
+  TString intFlowCovariancesVsMName = "fIntFlowCovariancesVsM";
+  intFlowCovariancesVsMName += fAnalysisLabel->Data();
+  TString covarianceFlag[6] = {"Cov(<2>,<4>)","Cov(<2>,<6>)","Cov(<2>,<8>)","Cov(<4>,<6>)","Cov(<4>,<8>)","Cov(<6>,<8>)"};
+  for(Int_t ci=0;ci<6;ci++)
+  {
+   fIntFlowCovariancesVsM[ci] = new TH1D(Form("%s, %s",intFlowCovariancesVsMName.Data(),covarianceFlag[ci].Data()),
+                                         Form("%s vs multiplicity",covarianceFlag[ci].Data()),
+                                         fnBinsMult,fMinMult,fMaxMult);
+   fIntFlowCovariancesVsM[ci]->GetYaxis()->SetTitle(covarianceFlag[ci].Data());
+   fIntFlowCovariancesVsM[ci]->GetXaxis()->SetTitle("M");
+   fIntFlowResults->Add(fIntFlowCovariancesVsM[ci]);
+  }
+ } // end of if(fCalculateCumulantsVsM) 
  // sum of linear and quadratic event weights for <2>, <4>, <6> and <8> versus multiplicity
  // [0=sum{w_{<2>}},1=sum{w_{<4>}},2=sum{w_{<6>}},3=sum{w_{<8>}}][0=linear 1,1=quadratic]:
- TString intFlowSumOfEventWeightsVsMName = "fIntFlowSumOfEventWeightsVsM";
- intFlowSumOfEventWeightsVsMName += fAnalysisLabel->Data();
- TString sumFlag[2][4] = {{"#sum_{i=1}^{N} w_{<2>}","#sum_{i=1}^{N} w_{<4>}","#sum_{i=1}^{N} w_{<6>}","#sum_{i=1}^{N} w_{<8>}"},
-                          {"#sum_{i=1}^{N} w_{<2>}^{2}","#sum_{i=1}^{N} w_{<4>}^{2}","#sum_{i=1}^{N} w_{<6>}^{2}","#sum_{i=1}^{N} w_{<8>}^{2}"}};
- for(Int_t si=0;si<4;si++)
+ if(fCalculateCumulantsVsM)
  {
-  for(Int_t power=0;power<2;power++)
+  TString intFlowSumOfEventWeightsVsMName = "fIntFlowSumOfEventWeightsVsM";
+  intFlowSumOfEventWeightsVsMName += fAnalysisLabel->Data();
+  TString sumFlag[2][4] = {{"#sum_{i=1}^{N} w_{<2>}","#sum_{i=1}^{N} w_{<4>}","#sum_{i=1}^{N} w_{<6>}","#sum_{i=1}^{N} w_{<8>}"},
+                           {"#sum_{i=1}^{N} w_{<2>}^{2}","#sum_{i=1}^{N} w_{<4>}^{2}","#sum_{i=1}^{N} w_{<6>}^{2}","#sum_{i=1}^{N} w_{<8>}^{2}"}};
+  for(Int_t si=0;si<4;si++)
   {
-   fIntFlowSumOfEventWeightsVsM[si][power] = new TH1D(Form("%s, %s",intFlowSumOfEventWeightsVsMName.Data(),sumFlag[power][si].Data()),
-                          Form("%s vs multiplicity",sumFlag[power][si].Data()),
-                          fnBinsMult,fMinMult,fMaxMult);    
-   fIntFlowSumOfEventWeightsVsM[si][power]->GetYaxis()->SetTitle(sumFlag[power][si].Data());  
-   fIntFlowSumOfEventWeightsVsM[si][power]->GetXaxis()->SetTitle("M");  
-   fIntFlowResults->Add(fIntFlowSumOfEventWeightsVsM[si][power]);
-  } // end of for(Int_t power=0;power<2;power++)
- } // end of for(Int_t si=0;si<4;si++)   
+   for(Int_t power=0;power<2;power++)
+   {
+    fIntFlowSumOfEventWeightsVsM[si][power] = new TH1D(Form("%s, %s",intFlowSumOfEventWeightsVsMName.Data(),sumFlag[power][si].Data()),
+                                                       Form("%s vs multiplicity",sumFlag[power][si].Data()),
+                                                       fnBinsMult,fMinMult,fMaxMult);    
+    fIntFlowSumOfEventWeightsVsM[si][power]->GetYaxis()->SetTitle(sumFlag[power][si].Data());  
+    fIntFlowSumOfEventWeightsVsM[si][power]->GetXaxis()->SetTitle("M");  
+    fIntFlowResults->Add(fIntFlowSumOfEventWeightsVsM[si][power]);
+   } // end of for(Int_t power=0;power<2;power++)
+  } // end of for(Int_t si=0;si<4;si++)   
+ } // end of if(fCalculateCumulantsVsM)
  // sum of products of event weights for correlations <2>, <4>, <6> and <8> vs M
  // [0=sum{w_{<2>}w_{<4>}},1=sum{w_{<2>}w_{<6>}},2=sum{w_{<2>}w_{<8>}},
  //  3=sum{w_{<4>}w_{<6>}},4=sum{w_{<4>}w_{<8>}},5=sum{w_{<6>}w_{<8>}}]:  
- TString intFlowSumOfProductOfEventWeightsVsMName = "fIntFlowSumOfProductOfEventWeightsVsM";
- intFlowSumOfProductOfEventWeightsVsMName += fAnalysisLabel->Data();
- TString sopowFlag[6] = {"#sum_{i=1}^{N} w_{<2>} w_{<4>}","#sum_{i=1}^{N} w_{<2>} w_{<6>}","#sum_{i=1}^{N} w_{<2>} w_{<8>}",
-                         "#sum_{i=1}^{N} w_{<4>} w_{<6>}","#sum_{i=1}^{N} w_{<4>} w_{<8>}","#sum_{i=1}^{N} w_{<6>} w_{<8>}"}; 
- for(Int_t pi=0;pi<6;pi++)
+ if(fCalculateCumulantsVsM)
  {
-  fIntFlowSumOfProductOfEventWeightsVsM[pi] = new TH1D(Form("%s, %s",intFlowSumOfProductOfEventWeightsVsMName.Data(),sopowFlag[pi].Data()),
-                  Form("%s versus multiplicity",sopowFlag[pi].Data()),
-                  fnBinsMult,fMinMult,fMaxMult); 
-  fIntFlowSumOfProductOfEventWeightsVsM[pi]->GetXaxis()->SetTitle("M");
-  fIntFlowSumOfProductOfEventWeightsVsM[pi]->GetYaxis()->SetTitle(sopowFlag[pi].Data()); 
-  fIntFlowResults->Add(fIntFlowSumOfProductOfEventWeightsVsM[pi]);
- } // end of for(Int_t pi=0;pi<6;pi++) 
+  TString intFlowSumOfProductOfEventWeightsVsMName = "fIntFlowSumOfProductOfEventWeightsVsM";
+  intFlowSumOfProductOfEventWeightsVsMName += fAnalysisLabel->Data();
+  TString sopowFlag[6] = {"#sum_{i=1}^{N} w_{<2>} w_{<4>}","#sum_{i=1}^{N} w_{<2>} w_{<6>}","#sum_{i=1}^{N} w_{<2>} w_{<8>}",
+                          "#sum_{i=1}^{N} w_{<4>} w_{<6>}","#sum_{i=1}^{N} w_{<4>} w_{<8>}","#sum_{i=1}^{N} w_{<6>} w_{<8>}"}; 
+  for(Int_t pi=0;pi<6;pi++)
+  {
+   fIntFlowSumOfProductOfEventWeightsVsM[pi] = new TH1D(Form("%s, %s",intFlowSumOfProductOfEventWeightsVsMName.Data(),sopowFlag[pi].Data()),
+                                                        Form("%s versus multiplicity",sopowFlag[pi].Data()),
+                                                        fnBinsMult,fMinMult,fMaxMult); 
+   fIntFlowSumOfProductOfEventWeightsVsM[pi]->GetXaxis()->SetTitle("M");
+   fIntFlowSumOfProductOfEventWeightsVsM[pi]->GetYaxis()->SetTitle(sopowFlag[pi].Data()); 
+   fIntFlowResults->Add(fIntFlowSumOfProductOfEventWeightsVsM[pi]);
+  } // end of for(Int_t pi=0;pi<6;pi++) 
+ } // end of if(fCalculateCumulantsVsM)
  // covariances of NUA terms (multiplied with weight dependent prefactor):
  TString intFlowCovariancesNUAName = "fIntFlowCovariancesNUA";
  intFlowCovariancesNUAName += fAnalysisLabel->Data();
@@ -1939,19 +1966,21 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  {
   for(Int_t power=0;power<2;power++)
   {
-   fIntFlowSumOfEventWeightsNUA[sc][power] = new TH1D(Form("%s: %s, %s",intFlowSumOfEventWeightsNUAName.Data(),powerFlag[power].Data(),sinCosFlag[sc].Data()),Form("Sum of %s event weights for NUA %s terms",powerFlag[power].Data(),sinCosFlag[sc].Data()),3,0,3);
+   fIntFlowSumOfEventWeightsNUA[sc][power] = new TH1D(Form("%s: %s, %s",intFlowSumOfEventWeightsNUAName.Data(),powerFlag[power].Data(),sinCosFlag[sc].Data()),Form("Sum of %s event weights for NUA %s terms",powerFlag[power].Data(),sinCosFlag[sc].Data()),4,0,4); // to be improved - 4
    fIntFlowSumOfEventWeightsNUA[sc][power]->SetLabelSize(0.05);
    fIntFlowSumOfEventWeightsNUA[sc][power]->SetMarkerStyle(25);
    if(power == 0)
    {
     (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(1,Form("#sum_{i=1}^{N} w_{<%s(#phi)>}",sinCosFlag[sc].Data()));
     (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(2,Form("#sum_{i=1}^{N} w_{<%s(#phi_{1}+#phi_{2})>}",sinCosFlag[sc].Data()));
-    (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(3,Form("#sum_{i=1}^{N} w_{<%s(#phi_{1}-#phi_{2}-#phi_{3})>}",sinCosFlag[sc].Data()));
+    (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(3,Form("#sum_{i=1}^{N} w_{<%s(#phi_{1}-#phi_{2}-#phi_{3})>}",sinCosFlag[sc].Data()));   
+    (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(4,Form("#sum_{i=1}^{N} w_{<%s(2#phi_{1}-#phi_{2})>}",sinCosFlag[sc].Data()));
    } else if(power == 1) 
      {
       (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(1,Form("#sum_{i=1}^{N} w_{<%s(#phi)>}^{2}",sinCosFlag[sc].Data()));
       (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(2,Form("#sum_{i=1}^{N} w_{<%s(#phi_{1}+#phi_{2})>}^{2}",sinCosFlag[sc].Data()));
       (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(3,Form("#sum_{i=1}^{N} w_{<%s(#phi_{1}-#phi_{2}-#phi_{3})>}^{2}",sinCosFlag[sc].Data()));
+      (fIntFlowSumOfEventWeightsNUA[sc][power]->GetXaxis())->SetBinLabel(4,Form("#sum_{i=1}^{N} w_{<%s(2#phi_{1}-#phi_{2})>}^{2}",sinCosFlag[sc].Data()));
      }
    fIntFlowResults->Add(fIntFlowSumOfEventWeightsNUA[sc][power]);
   }
@@ -1969,55 +1998,104 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  // to be improved - add labels for remaining bins
  // ....
  fIntFlowResults->Add(fIntFlowSumOfProductOfEventWeightsNUA);
- // final results for integrated Q-cumulants:
+ // Final results for reference Q-cumulants:
+ TString cumulantFlag[4] = {"QC{2}","QC{4}","QC{6}","QC{8}"};
  TString intFlowQcumulantsName = "fIntFlowQcumulants";
  intFlowQcumulantsName += fAnalysisLabel->Data();
- fIntFlowQcumulants = new TH1D(intFlowQcumulantsName.Data(),"Integrated Q-cumulants",4,0,4);
+ fIntFlowQcumulants = new TH1D(intFlowQcumulantsName.Data(),"Reference Q-cumulants",4,0,4);
+ if(fPropagateErrorAlsoFromNIT)
+ {
+  fIntFlowQcumulants->SetTitle("Reference Q-cumulants (error from non-isotropic terms also propagated)");
+ }
  fIntFlowQcumulants->SetLabelSize(0.05);
  fIntFlowQcumulants->SetMarkerStyle(25);
- (fIntFlowQcumulants->GetXaxis())->SetBinLabel(1,"QC{2}");
- (fIntFlowQcumulants->GetXaxis())->SetBinLabel(2,"QC{4}");
- (fIntFlowQcumulants->GetXaxis())->SetBinLabel(3,"QC{6}");
- (fIntFlowQcumulants->GetXaxis())->SetBinLabel(4,"QC{8}");
- fIntFlowResults->Add(fIntFlowQcumulants);
- // final results for integrated Q-cumulants versus multiplicity:
- TString intFlowQcumulantsVsMName = "fIntFlowQcumulantsVsM";
- intFlowQcumulantsVsMName += fAnalysisLabel->Data();
- TString cumulantFlag[4] = {"QC{2}","QC{4}","QC{6}","QC{8}"};
- for(Int_t co=0;co<4;co++) // cumulant order
+ for(Int_t b=0;b<4;b++)
  {
-  fIntFlowQcumulantsVsM[co] = new TH1D(Form("%s, %s",intFlowQcumulantsVsMName.Data(),cumulantFlag[co].Data()),
-                                       Form("%s vs multipicity",cumulantFlag[co].Data()),
-                                       fnBinsMult,fMinMult,fMaxMult);
-  fIntFlowQcumulantsVsM[co]->GetXaxis()->SetTitle("M");                                     
-  fIntFlowQcumulantsVsM[co]->GetYaxis()->SetTitle(cumulantFlag[co].Data());  
-  fIntFlowResults->Add(fIntFlowQcumulantsVsM[co]);                                    
- } // end of for(Int_t co=0;co<4;co++) // cumulant order
+  (fIntFlowQcumulants->GetXaxis())->SetBinLabel(b+1,cumulantFlag[b].Data());
+ } 
+ fIntFlowResults->Add(fIntFlowQcumulants);
+ // Final results for reference Q-cumulants rebinned in M: 
+ if(fCalculateCumulantsVsM)
+ {
+  TString intFlowQcumulantsRebinnedInMName = "fIntFlowQcumulantsRebinnedInM";
+  intFlowQcumulantsRebinnedInMName += fAnalysisLabel->Data();
+  fIntFlowQcumulantsRebinnedInM = new TH1D(intFlowQcumulantsRebinnedInMName.Data(),"Reference Q-cumulants rebinned in M",4,0,4);
+  fIntFlowQcumulantsRebinnedInM->SetLabelSize(0.05);
+  fIntFlowQcumulantsRebinnedInM->SetMarkerStyle(25);
+  for(Int_t b=0;b<4;b++)
+  {
+   (fIntFlowQcumulantsRebinnedInM->GetXaxis())->SetBinLabel(b+1,cumulantFlag[b].Data());
+  } 
+  fIntFlowResults->Add(fIntFlowQcumulantsRebinnedInM);
+ } // end of if(fCalculateCumulantsVsM) 
+ // Ratio between error squared: with/without non-isotropic terms:
+ TString intFlowQcumulantsErrorSquaredRatioName = "fIntFlowQcumulantsErrorSquaredRatio";
+ intFlowQcumulantsErrorSquaredRatioName += fAnalysisLabel->Data();
+ fIntFlowQcumulantsErrorSquaredRatio = new TH1D(intFlowQcumulantsErrorSquaredRatioName.Data(),"Error squared of reference Q-cumulants: #frac{with NUA terms}{without NUA terms}",4,0,4);
+ fIntFlowQcumulantsErrorSquaredRatio->SetLabelSize(0.05);
+ fIntFlowQcumulantsErrorSquaredRatio->SetMarkerStyle(25);
+ for(Int_t b=0;b<4;b++)
+ {
+  (fIntFlowQcumulantsErrorSquaredRatio->GetXaxis())->SetBinLabel(b+1,cumulantFlag[b].Data());
+ } 
+ fIntFlowResults->Add(fIntFlowQcumulantsErrorSquaredRatio);
+ // final results for integrated Q-cumulants versus multiplicity:
+ if(fCalculateCumulantsVsM)
+ {
+  TString intFlowQcumulantsVsMName = "fIntFlowQcumulantsVsM";
+  intFlowQcumulantsVsMName += fAnalysisLabel->Data();
+  for(Int_t co=0;co<4;co++) // cumulant order
+  {
+   fIntFlowQcumulantsVsM[co] = new TH1D(Form("%s, %s",intFlowQcumulantsVsMName.Data(),cumulantFlag[co].Data()),
+                                        Form("%s vs multipicity",cumulantFlag[co].Data()),
+                                        fnBinsMult,fMinMult,fMaxMult);
+   fIntFlowQcumulantsVsM[co]->GetXaxis()->SetTitle("M");                                     
+   fIntFlowQcumulantsVsM[co]->GetYaxis()->SetTitle(cumulantFlag[co].Data());  
+   fIntFlowResults->Add(fIntFlowQcumulantsVsM[co]);                                    
+  } // end of for(Int_t co=0;co<4;co++) // cumulant order
+ } // end of if(fCalculateCumulantsVsM)
  // final integrated flow estimates from Q-cumulants:
+ TString flowFlag[4] = {Form("v_{%d}{2,QC}",fHarmonic),Form("v_{%d}{4,QC}",fHarmonic),Form("v_{%d}{6,QC}",fHarmonic),Form("v_{%d}{8,QC}",fHarmonic)};
  TString intFlowName = "fIntFlow";
  intFlowName += fAnalysisLabel->Data();  
  // integrated flow from Q-cumulants:
- fIntFlow = new TH1D(intFlowName.Data(),"Integrated flow estimates from Q-cumulants",4,0,4);
+ fIntFlow = new TH1D(intFlowName.Data(),"Reference flow estimates from Q-cumulants",4,0,4);
  fIntFlow->SetLabelSize(0.05);
  fIntFlow->SetMarkerStyle(25);
- (fIntFlow->GetXaxis())->SetBinLabel(1,"v_{2}{2,QC}"); // to be improved (harwired harmonic)
- (fIntFlow->GetXaxis())->SetBinLabel(2,"v_{2}{4,QC}"); // to be improved (harwired harmonic)
- (fIntFlow->GetXaxis())->SetBinLabel(3,"v_{2}{6,QC}"); // to be improved (harwired harmonic)
- (fIntFlow->GetXaxis())->SetBinLabel(4,"v_{2}{8,QC}"); // to be improved (harwired harmonic)
- fIntFlowResults->Add(fIntFlow); 
- // integrated flow from Q-cumulants: versus multiplicity:
- TString intFlowVsMName = "fIntFlowVsM";
- intFlowVsMName += fAnalysisLabel->Data();
- TString flowFlag[4] = {"v_{2}{2,QC}","v_{2}{4,QC}","v_{2}{6,QC}","v_{2}{8,QC}"}; // to be improved (harwired harmonic)
- for(Int_t co=0;co<4;co++) // cumulant order
+ for(Int_t b=0;b<4;b++)
  {
-  fIntFlowVsM[co] = new TH1D(Form("%s, %s",intFlowVsMName.Data(),flowFlag[co].Data()),
-                                       Form("%s vs multipicity",flowFlag[co].Data()),
-                                       fnBinsMult,fMinMult,fMaxMult);
-  fIntFlowVsM[co]->GetXaxis()->SetTitle("M");                                     
-  fIntFlowVsM[co]->GetYaxis()->SetTitle(flowFlag[co].Data());  
-  fIntFlowResults->Add(fIntFlowVsM[co]);                                    
- } // end of for(Int_t co=0;co<4;co++) // cumulant order
+  (fIntFlow->GetXaxis())->SetBinLabel(b+1,flowFlag[b].Data()); 
+ }
+ fIntFlowResults->Add(fIntFlow); 
+ // Reference flow vs M rebinned in one huge bin:
+ if(fCalculateCumulantsVsM)
+ { 
+  TString intFlowRebinnedInMName = "fIntFlowRebinnedInM";
+  intFlowRebinnedInMName += fAnalysisLabel->Data();  
+  fIntFlowRebinnedInM = new TH1D(intFlowRebinnedInMName.Data(),"Reference flow estimates from Q-cumulants (rebinned in M)",4,0,4);
+  fIntFlowRebinnedInM->SetLabelSize(0.05);
+  fIntFlowRebinnedInM->SetMarkerStyle(25);
+  for(Int_t b=0;b<4;b++)
+  {
+   (fIntFlowRebinnedInM->GetXaxis())->SetBinLabel(b+1,flowFlag[b].Data()); 
+  }
+  fIntFlowResults->Add(fIntFlowRebinnedInM); 
+ } 
+ // integrated flow from Q-cumulants: versus multiplicity:
+ if(fCalculateCumulantsVsM)
+ {
+  TString intFlowVsMName = "fIntFlowVsM";
+  intFlowVsMName += fAnalysisLabel->Data();
+  for(Int_t co=0;co<4;co++) // cumulant order
+  {
+   fIntFlowVsM[co] = new TH1D(Form("%s, %s",intFlowVsMName.Data(),flowFlag[co].Data()),
+                              Form("%s vs multipicity",flowFlag[co].Data()),
+                              fnBinsMult,fMinMult,fMaxMult);
+   fIntFlowVsM[co]->GetXaxis()->SetTitle("M");                                     
+   fIntFlowVsM[co]->GetYaxis()->SetTitle(flowFlag[co].Data());  
+   fIntFlowResults->Add(fIntFlowVsM[co]);                                    
+  } // end of for(Int_t co=0;co<4;co++) // cumulant order
+ } // end of if(fCalculateCumulantsVsM)
  // quantifying detector effects effects to correlations:
  TString intFlowDetectorBiasName = "fIntFlowDetectorBias";
  intFlowDetectorBiasName += fAnalysisLabel->Data();  
@@ -2030,18 +2108,21 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForIntegratedFlow()
  }
  fIntFlowResults->Add(fIntFlowDetectorBias); 
  // quantifying detector effects to correlations versus multiplicity:
- TString intFlowDetectorBiasVsMName = "fIntFlowDetectorBiasVsM";
- intFlowDetectorBiasVsMName += fAnalysisLabel->Data();
- for(Int_t ci=0;ci<4;ci++) // correlation index
+ if(fCalculateCumulantsVsM)
  {
-  fIntFlowDetectorBiasVsM[ci] = new TH1D(Form("%s for %s",intFlowDetectorBiasVsMName.Data(),cumulantFlag[ci].Data()),
-                                         Form("Quantifying detector bias for %s vs multipicity",cumulantFlag[ci].Data()),
-                                         fnBinsMult,fMinMult,fMaxMult);
-  fIntFlowDetectorBiasVsM[ci]->GetXaxis()->SetTitle("M");                                     
-  fIntFlowDetectorBiasVsM[ci]->GetYaxis()->SetTitle("#frac{corrected}{measured}");  
-  if(fApplyCorrectionForNUAVsM){fIntFlowResults->Add(fIntFlowDetectorBiasVsM[ci]);}                                    
- } // end of for(Int_t co=0;co<4;co++) // cumulant order
-
+  TString intFlowDetectorBiasVsMName = "fIntFlowDetectorBiasVsM";
+  intFlowDetectorBiasVsMName += fAnalysisLabel->Data();
+  for(Int_t ci=0;ci<4;ci++) // correlation index
+  {
+   fIntFlowDetectorBiasVsM[ci] = new TH1D(Form("%s for %s",intFlowDetectorBiasVsMName.Data(),cumulantFlag[ci].Data()),
+                                          Form("Quantifying detector bias for %s vs multipicity",cumulantFlag[ci].Data()),
+                                          fnBinsMult,fMinMult,fMaxMult);
+   fIntFlowDetectorBiasVsM[ci]->GetXaxis()->SetTitle("M");                                     
+   fIntFlowDetectorBiasVsM[ci]->GetYaxis()->SetTitle("#frac{corrected}{measured}");  
+   fIntFlowResults->Add(fIntFlowDetectorBiasVsM[ci]);                                    
+  } // end of for(Int_t co=0;co<4;co++) // cumulant order
+ } // end of if(fCalculateCumulantsVsM)
+ 
  /* // to be improved (removed):
   // final average weighted multi-particle correlations for all events calculated from Q-vectors
   fQCorrelations[1] = new TProfile("Weighted correlations","final average multi-particle correlations from weighted Q-vectors",200,0,200,"s");
@@ -2453,7 +2534,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
             
   fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(1,mWeight2p); // eW_<2>
   fIntFlowCorrelationsPro->Fill(0.5,two1n1n,mWeight2p);
-  fIntFlowCorrelationsVsMPro[0]->Fill(dMult+0.5,two1n1n,mWeight2p); 
+  if(fCalculateCumulantsVsM){fIntFlowCorrelationsVsMPro[0]->Fill(dMult+0.5,two1n1n,mWeight2p);} 
     
   // distribution of <cos(n*(phi1-phi2))>:
   //f2pDistribution->Fill(two1n1n,dMult*(dMult-1.)); 
@@ -2579,7 +2660,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
       
   fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(2,mWeight4p); // eW_<4>
   fIntFlowCorrelationsPro->Fill(1.5,four1n1n1n1n,mWeight4p);
-  fIntFlowCorrelationsVsMPro[1]->Fill(dMult+0.5,four1n1n1n1n,mWeight4p); 
+  if(fCalculateCumulantsVsM){fIntFlowCorrelationsVsMPro[1]->Fill(dMult+0.5,four1n1n1n1n,mWeight4p);} 
   
   // distribution of <cos(n*(phi1+phi2-phi3-phi4))>
   //f4pDistribution->Fill(four1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.));
@@ -2740,7 +2821,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
       
   fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(3,mWeight6p); // eW_<6>
   fIntFlowCorrelationsPro->Fill(2.5,six1n1n1n1n1n1n,mWeight6p);
-  fIntFlowCorrelationsVsMPro[2]->Fill(dMult+0.5,six1n1n1n1n1n1n,mWeight6p);   
+  if(fCalculateCumulantsVsM){fIntFlowCorrelationsVsMPro[2]->Fill(dMult+0.5,six1n1n1n1n1n1n,mWeight6p);}   
  
   // distribution of <cos(n*(phi1+phi2+phi3-phi4-phi5-phi6))>
   //f6pDistribution->Fill(six1n1n1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)); 
@@ -2817,7 +2898,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelations()
         
   fIntFlowEventWeightsForCorrelationsEBE->SetBinContent(4,mWeight8p); // eW_<8>
   fIntFlowCorrelationsPro->Fill(3.5,eight1n1n1n1n1n1n1n1n,mWeight8p);  
-  fIntFlowCorrelationsVsMPro[3]->Fill(dMult+0.5,eight1n1n1n1n1n1n1n1n,mWeight8p);    
+  if(fCalculateCumulantsVsM){fIntFlowCorrelationsVsMPro[3]->Fill(dMult+0.5,eight1n1n1n1n1n1n1n1n,mWeight8p);}    
   
   // distribution of <cos(n*(phi1+phi2+phi3+phi4-phi5-phi6-phi7-phi8))>
   //f8pDistribution->Fill(eight1n1n1n1n1n1n1n1n,dMult*(dMult-1.)*(dMult-2.)*(dMult-3.)*(dMult-4.)*(dMult-5.)*(dMult-6.)*(dMult-7.));
@@ -2848,11 +2929,14 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowProductOfCorrelations()
                                           fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci1)*
                                           fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci2));
    // products versus multiplicity:  // [0=<<2><4>>,1=<<2><6>>,2=<<2><8>>,3=<<4><6>>,4=<<4><8>>,5=<<6><8>>]
-   fIntFlowProductOfCorrelationsVsMPro[counter]->Fill(dMult+0.5,
-                                                      fIntFlowCorrelationsEBE->GetBinContent(ci1)*
-                                                      fIntFlowCorrelationsEBE->GetBinContent(ci2),
-                                                      fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci1)*
-                                                      fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci2));
+   if(fCalculateCumulantsVsM)
+   {
+    fIntFlowProductOfCorrelationsVsMPro[counter]->Fill(dMult+0.5, // to be improved: dMult => sum of weights ?
+                                                       fIntFlowCorrelationsEBE->GetBinContent(ci1)*
+                                                       fIntFlowCorrelationsEBE->GetBinContent(ci2),
+                                                       fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci1)*
+                                                       fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci2));
+   } // end of if(fCalculateCumulantsVsM)
    counter++;                                                                                                                        
   }
  }
@@ -3034,9 +3118,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowProductOfCorrectionTermsForN
 
 } // end of AliFlowAnalysisWithQCumulants::CalculateIntFlowProductOfCorrectionTermsForNUA()
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::CalculateCovariancesIntFlow()
 {
@@ -3055,34 +3137,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesIntFlow()
  //     4th bin: Cov(<4>,<6>) * (sum_{i=1}^{N} w_{<4>}_i w_{<6>}_i )/[(sum_{i=1}^{N} w_{<4>}_i) * (sum_{j=1}^{N} w_{<6>}_j)]
  //     5th bin: Cov(<4>,<8>) * (sum_{i=1}^{N} w_{<4>}_i w_{<8>}_i )/[(sum_{i=1}^{N} w_{<4>}_i) * (sum_{j=1}^{N} w_{<8>}_j)]
  //     6th bin: Cov(<6>,<8>) * (sum_{i=1}^{N} w_{<6>}_i w_{<8>}_i )/[(sum_{i=1}^{N} w_{<6>}_i) * (sum_{j=1}^{N} w_{<8>}_j)]
+ //
     
- for(Int_t power=0;power<2;power++)
- { 
-  if(!(fIntFlowCorrelationsPro && fIntFlowProductOfCorrelationsPro 
-       && fIntFlowSumOfEventWeights[power] && fIntFlowSumOfProductOfEventWeights
-       && fIntFlowCovariances)) 
-  {
-   cout<<"WARNING: fIntFlowCorrelationsPro && fIntFlowProductOfCorrelationsPro "<<endl;
-   cout<<"         && fIntFlowSumOfEventWeights[power] && fIntFlowSumOfProductOfEventWeights"<<endl;
-   cout<<"         && fIntFlowCovariances is NULL in AFAWQC::FCIF() !!!!"<<endl;
-   cout<<"power = "<<power<<endl;
-   exit(0);
-  }
- }
-   
- // average 2-, 4-, 6- and 8-particle correlations for all events:
+ // Average 2-, 4-, 6- and 8-particle correlations for all events:
  Double_t correlation[4] = {0.};
  for(Int_t ci=0;ci<4;ci++)
  {
   correlation[ci] = fIntFlowCorrelationsPro->GetBinContent(ci+1);
  } 
- // average products of 2-, 4-, 6- and 8-particle correlations: 
+ // Average products of 2-, 4-, 6- and 8-particle correlations: 
  Double_t productOfCorrelations[4][4] = {{0.}};
  Int_t productOfCorrelationsLabel = 1;
- // denominators in the expressions for the unbiased estimator for covariance:
+ // Denominators in the expressions for the unbiased estimator for covariance:
  Double_t denominator[4][4] = {{0.}};
  Int_t sumOfProductOfEventWeightsLabel1 = 1;
- // weight dependent prefactor which multiply unbiased estimators for covariances:
+ // Weight dependent prefactor which multiply unbiased estimators for covariances:
  Double_t wPrefactor[4][4] = {{0.}}; 
  Int_t sumOfProductOfEventWeightsLabel2 = 1;
  for(Int_t c1=0;c1<4;c1++)
@@ -3090,59 +3159,56 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesIntFlow()
   for(Int_t c2=c1+1;c2<4;c2++)
   {
    productOfCorrelations[c1][c2] = fIntFlowProductOfCorrelationsPro->GetBinContent(productOfCorrelationsLabel);
-   if(fIntFlowSumOfEventWeights[0]->GetBinContent(c1+1) && fIntFlowSumOfEventWeights[0]->GetBinContent(c2+1))
+   if(TMath::Abs(fIntFlowSumOfEventWeights[0]->GetBinContent(c1+1)) > 1.e-44 && TMath::Abs(fIntFlowSumOfEventWeights[0]->GetBinContent(c2+1)) > 1.e-44)
    {
-    denominator[c1][c2] = 1.-(fIntFlowSumOfProductOfEventWeights->GetBinContent(sumOfProductOfEventWeightsLabel1))/
-                             (fIntFlowSumOfEventWeights[0]->GetBinContent(c1+1) 
-                              * fIntFlowSumOfEventWeights[0]->GetBinContent(c2+1));
-                              
-    wPrefactor[c1][c2] =  fIntFlowSumOfProductOfEventWeights->GetBinContent(sumOfProductOfEventWeightsLabel2)/ 
-                          (fIntFlowSumOfEventWeights[0]->GetBinContent(c1+1)
-                            * fIntFlowSumOfEventWeights[0]->GetBinContent(c2+1));
-                          
-                              
+    denominator[c1][c2] = 1.-(fIntFlowSumOfProductOfEventWeights->GetBinContent(sumOfProductOfEventWeightsLabel1))
+                        / (fIntFlowSumOfEventWeights[0]->GetBinContent(c1+1) 
+                        * fIntFlowSumOfEventWeights[0]->GetBinContent(c2+1));                              
+    wPrefactor[c1][c2] = fIntFlowSumOfProductOfEventWeights->GetBinContent(sumOfProductOfEventWeightsLabel2)
+                       / (fIntFlowSumOfEventWeights[0]->GetBinContent(c1+1)
+                       * fIntFlowSumOfEventWeights[0]->GetBinContent(c2+1));                                                       
    }
-   productOfCorrelationsLabel++;
+   productOfCorrelationsLabel++; // to be improved - do I need here all 3 counters?
    sumOfProductOfEventWeightsLabel1++;
    sumOfProductOfEventWeightsLabel2++;  
-  }
- }
+  } // end of for(Int_t c2=c1+1;c2<4;c2++)
+ } // end of for(Int_t c1=0;c1<4;c1++)
  
- // covariance label:
  Int_t covarianceLabel = 1;
  for(Int_t c1=0;c1<4;c1++)
  {
   for(Int_t c2=c1+1;c2<4;c2++)
   {
-   if(denominator[c1][c2])
+   if(TMath::Abs(denominator[c1][c2]) > 1.e-44)
    {
-    // covariances:
+    // Covariances:
     Double_t cov = (productOfCorrelations[c1][c2]-correlation[c1]*correlation[c2])/denominator[c1][c2]; 
-    // covarianced multiplied with weight dependent prefactor:
+    // Covariances multiplied with weight dependent prefactor:
     Double_t wCov = cov * wPrefactor[c1][c2];
     fIntFlowCovariances->SetBinContent(covarianceLabel,wCov);
    }
    covarianceLabel++;
-  }
- }
+  } // end of for(Int_t c2=c1+1;c2<4;c2++) 
+ } // end of for(Int_t c1=0;c1<4;c1++)
  
- // versus multiplicity: 
+ // Versus multiplicity: 
+ if(!fCalculateCumulantsVsM){return;}
  Int_t nBins = fIntFlowCorrelationsVsMPro[0]->GetNbinsX(); // to be improved (hardwired 0) 
  for(Int_t b=1;b<=nBins;b++)
  {
-  // average 2-, 4-, 6- and 8-particle correlations for all events:
+  // Average 2-, 4-, 6- and 8-particle correlations for all events:
   Double_t correlationVsM[4] = {0.};
   for(Int_t ci=0;ci<4;ci++)
   {
    correlationVsM[ci] = fIntFlowCorrelationsVsMPro[ci]->GetBinContent(b);
   } // end of for(Int_t ci=0;ci<4;ci++)
-  // average products of 2-, 4-, 6- and 8-particle correlations: 
+  // Average products of 2-, 4-, 6- and 8-particle correlations: 
   Double_t productOfCorrelationsVsM[4][4] = {{0.}};
   Int_t productOfCorrelationsLabelVsM = 1;
-  // denominators in the expressions for the unbiased estimator for covariance:
+  // Denominators in the expressions for the unbiased estimator for covariance:
   Double_t denominatorVsM[4][4] = {{0.}};
   Int_t sumOfProductOfEventWeightsLabel1VsM = 1;
-  // weight dependent prefactor which multiply unbiased estimators for covariances:
+  // Weight dependent prefactor which multiply unbiased estimators for covariances:
   Double_t wPrefactorVsM[4][4] = {{0.}}; 
   Int_t sumOfProductOfEventWeightsLabel2VsM = 1;
   for(Int_t c1=0;c1<4;c1++)
@@ -3150,40 +3216,37 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesIntFlow()
    for(Int_t c2=c1+1;c2<4;c2++)
    {
     productOfCorrelationsVsM[c1][c2] = fIntFlowProductOfCorrelationsVsMPro[productOfCorrelationsLabelVsM-1]->GetBinContent(b);
-    if(fIntFlowSumOfEventWeightsVsM[c1][0]->GetBinContent(b) && fIntFlowSumOfEventWeightsVsM[c2][0]->GetBinContent(b))
+    if(TMath::Abs(fIntFlowSumOfEventWeightsVsM[c1][0]->GetBinContent(b)) > 1.e-44 && TMath::Abs(fIntFlowSumOfEventWeightsVsM[c2][0]->GetBinContent(b)) > 1.e-44)
     {
-     denominatorVsM[c1][c2] = 1.-(fIntFlowSumOfProductOfEventWeightsVsM[sumOfProductOfEventWeightsLabel1VsM-1]->GetBinContent(b))/
-                              (fIntFlowSumOfEventWeightsVsM[c1][0]->GetBinContent(b) 
-                               * fIntFlowSumOfEventWeightsVsM[c2][0]->GetBinContent(b));
-                              
-     wPrefactorVsM[c1][c2] = fIntFlowSumOfProductOfEventWeightsVsM[sumOfProductOfEventWeightsLabel2VsM-1]->GetBinContent(b)/ 
-                             (fIntFlowSumOfEventWeightsVsM[c1][0]->GetBinContent(b)
-                              * fIntFlowSumOfEventWeightsVsM[c2][0]->GetBinContent(b));
-                          
-                              
+     denominatorVsM[c1][c2] = 1.-(fIntFlowSumOfProductOfEventWeightsVsM[sumOfProductOfEventWeightsLabel1VsM-1]->GetBinContent(b))
+                            / (fIntFlowSumOfEventWeightsVsM[c1][0]->GetBinContent(b) 
+                            * fIntFlowSumOfEventWeightsVsM[c2][0]->GetBinContent(b));                              
+     wPrefactorVsM[c1][c2] = fIntFlowSumOfProductOfEventWeightsVsM[sumOfProductOfEventWeightsLabel2VsM-1]->GetBinContent(b)
+                           / (fIntFlowSumOfEventWeightsVsM[c1][0]->GetBinContent(b)
+                           * fIntFlowSumOfEventWeightsVsM[c2][0]->GetBinContent(b));                                                       
     }
     productOfCorrelationsLabelVsM++;
     sumOfProductOfEventWeightsLabel1VsM++;
     sumOfProductOfEventWeightsLabel2VsM++;  
    } // end of for(Int_t c1=0;c1<4;c1++) 
   } // end of for(Int_t c2=c1+1;c2<4;c2++)
-  // covariance label:
+ 
   Int_t covarianceLabelVsM = 1;
   for(Int_t c1=0;c1<4;c1++)
   {
    for(Int_t c2=c1+1;c2<4;c2++)
    {
-    if(denominatorVsM[c1][c2])
+    if(TMath::Abs(denominatorVsM[c1][c2]) > 1.e-44)
     {
-     // covariances:
+     // Covariances:
      Double_t covVsM = (productOfCorrelationsVsM[c1][c2]-correlationVsM[c1]*correlationVsM[c2])/denominatorVsM[c1][c2]; 
-     // covarianced multiplied with weight dependent prefactor:
+     // Covariances multiplied with weight dependent prefactor:
      Double_t wCovVsM = covVsM * wPrefactorVsM[c1][c2];
      fIntFlowCovariancesVsM[covarianceLabelVsM-1]->SetBinContent(b,wCovVsM);
     }
     covarianceLabelVsM++;
-   }
-  }
+   } // end of for(Int_t c2=c1+1;c2<4;c2++)
+  } // end of for(Int_t c1=0;c1<4;c1++)
  } // end of for(Int_t b=1;b<=nBins;b++)
   
 } // end of AliFlowAnalysisWithQCumulants::CalculateCovariancesIntFlow()
@@ -3215,14 +3278,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator1 = product1 - term1st1*term2nd1; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator1 = 1.-sumOfWW1/(sumOfW1st1*sumOfW2nd1);
- // covariance:
- Double_t covariance1 = numerator1/denominator1;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor1 = sumOfWW1/(sumOfW1st1*sumOfW2nd1);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(1,wPrefactor1*covariance1);
-  
+ Double_t denominator1 = 0.;
+ if(TMath::Abs(sumOfW1st1*sumOfW2nd1)>0.)
+ {
+  denominator1 = 1.-sumOfWW1/(sumOfW1st1*sumOfW2nd1);
+  if(TMath::Abs(denominator1)>0.)
+  {
+   // covariance:
+   Double_t covariance1 = numerator1/denominator1;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor1 = sumOfWW1/(sumOfW1st1*sumOfW2nd1);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(1,wPrefactor1*covariance1);
+  } // end of if(TMath::Abs(denominator)>0.)
+ } // end of if(TMath::Abs(sumOfW1st1*sumOfW2nd1)>0.)
+ 
  // Cov(<2>,<sin(phi)>):
  Double_t product2 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(2); // <<2><sin(phi)>> 
  Double_t term1st2 = fIntFlowCorrelationsPro->GetBinContent(1); // <<2>>
@@ -3231,15 +3301,22 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  Double_t sumOfW2nd2 = fIntFlowSumOfEventWeightsNUA[0][0]->GetBinContent(1); // W_{<sin(phi)>}
  Double_t sumOfWW2 = fIntFlowSumOfProductOfEventWeightsNUA->GetBinContent(2); // W_{<2>} * W_{<sin(phi)>}
  // numerator in the expression for the the unbiased estimator for covariance:
- Double_t numerator2 = product2 - term1st2*term2nd2; 
+ Double_t numerator2 = product2 - term1st2*term2nd2;
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator2 = 1.-sumOfWW2/(sumOfW1st2*sumOfW2nd2);
- // covariance:
- Double_t covariance2 = numerator2/denominator2;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor2 = sumOfWW2/(sumOfW1st2*sumOfW2nd2);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(2,wPrefactor2*covariance2);
+ Double_t denominator2 = 0.;
+ if(TMath::Abs(sumOfW1st2*sumOfW2nd2)>0.)
+ {  
+  denominator2 = 1.-sumOfWW2/(sumOfW1st2*sumOfW2nd2);
+  if(TMath::Abs(denominator2)>0.)
+  {
+   // covariance:
+   Double_t covariance2 = numerator2/denominator2;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor2 = sumOfWW2/(sumOfW1st2*sumOfW2nd2);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(2,wPrefactor2*covariance2);
+  } // end of if(TMath::Abs(denominator2)>0.)
+ } // end of if(TMath::Abs(sumOfW1st2*sumOfW2nd2)>0.)
  
  // Cov(<cos(phi)>,<sin(phi)>):
  Double_t product3 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(3); // <<cos(phi)><sin(phi)>> 
@@ -3251,13 +3328,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator3 = product3 - term1st3*term2nd3; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator3 = 1.-sumOfWW3/(sumOfW1st3*sumOfW2nd3);
- // covariance:
- Double_t covariance3 = numerator3/denominator3;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor3 = sumOfWW3/(sumOfW1st3*sumOfW2nd3);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(3,wPrefactor3*covariance3);
+ Double_t denominator3 = 0;
+ if(TMath::Abs(sumOfW1st3*sumOfW2nd3)>0.)
+ { 
+  denominator3 = 1.-sumOfWW3/(sumOfW1st3*sumOfW2nd3);
+  if(TMath::Abs(denominator3)>0.)
+  {
+   // covariance:
+   Double_t covariance3 = numerator3/denominator3;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor3 = sumOfWW3/(sumOfW1st3*sumOfW2nd3);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(3,wPrefactor3*covariance3);
+  } // end of if(TMath::Abs(denominator3)>0.)
+ } // end of if(TMath::Abs(sumOfW1st3*sumOfW2nd3)>0.)
  
  // Cov(<2>,<cos(phi1+phi2)>):
  Double_t product4 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(4); // <<2><cos(phi1+phi2)>> 
@@ -3269,14 +3353,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator4 = product4 - term1st4*term2nd4; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator4 = 1.-sumOfWW4/(sumOfW1st4*sumOfW2nd4);
- // covariance:
- Double_t covariance4 = numerator4/denominator4;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor4 = sumOfWW4/(sumOfW1st4*sumOfW2nd4);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(4,wPrefactor4*covariance4);
-
+ Double_t denominator4 = 0.;
+ if(TMath::Abs(sumOfW1st4*sumOfW2nd4)>0.)
+ { 
+  denominator4 = 1.-sumOfWW4/(sumOfW1st4*sumOfW2nd4);
+  if(TMath::Abs(denominator4)>0.)
+  {  
+   // covariance:
+   Double_t covariance4 = numerator4/denominator4;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor4 = sumOfWW4/(sumOfW1st4*sumOfW2nd4);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(4,wPrefactor4*covariance4);
+  } // end of if(TMath::Abs(denominator4)>0.)
+ } // end of if(TMath::Abs(sumOfW1st4*sumOfW2nd4)>0.)
+ 
  // Cov(<2>,<sin(phi1+phi2)>):
  Double_t product5 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(5); // <<2><sin(phi1+phi2)>> 
  Double_t term1st5 = fIntFlowCorrelationsPro->GetBinContent(1); // <<2>>
@@ -3287,14 +3378,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator5 = product5 - term1st5*term2nd5; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator5 = 1.-sumOfWW5/(sumOfW1st5*sumOfW2nd5);
- // covariance:
- Double_t covariance5 = numerator5/denominator5;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor5 = sumOfWW5/(sumOfW1st5*sumOfW2nd5);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(5,wPrefactor5*covariance5);
-
+ Double_t denominator5 = 0.;
+ if(TMath::Abs(sumOfW1st5*sumOfW2nd5)>0.)
+ {  
+  denominator5 = 1.-sumOfWW5/(sumOfW1st5*sumOfW2nd5);
+  if(TMath::Abs(denominator5)>0.)
+  {  
+   // covariance:
+   Double_t covariance5 = numerator5/denominator5;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor5 = sumOfWW5/(sumOfW1st5*sumOfW2nd5);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(5,wPrefactor5*covariance5);
+  } // end of if(TMath::Abs(denominator5)>0.)
+ } // end of if(TMath::Abs(sumOfW1st5*sumOfW2nd5)>0.)
+ 
  // Cov(<2>,<cos(phi1-phi2-phi3)>):
  Double_t product6 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(6); // <<2><cos(phi1-phi2-phi3)>> 
  Double_t term1st6 = fIntFlowCorrelationsPro->GetBinContent(1); // <<2>>
@@ -3305,14 +3403,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator6 = product6 - term1st6*term2nd6; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator6 = 1.-sumOfWW6/(sumOfW1st6*sumOfW2nd6);
- // covariance:
- Double_t covariance6 = numerator6/denominator6;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor6 = sumOfWW6/(sumOfW1st6*sumOfW2nd6);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(6,wPrefactor6*covariance6);
-
+ Double_t denominator6 = 0.;
+ if(TMath::Abs(sumOfW1st6*sumOfW2nd6)>0.)
+ {  
+  denominator6 = 1.-sumOfWW6/(sumOfW1st6*sumOfW2nd6);
+  if(TMath::Abs(denominator6)>0.)
+  {  
+   // covariance:
+   Double_t covariance6 = numerator6/denominator6;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor6 = sumOfWW6/(sumOfW1st6*sumOfW2nd6);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(6,wPrefactor6*covariance6);
+  } // end of if(TMath::Abs(denominator6)>0.)
+ } // end of if(TMath::Abs(sumOfW1st6*sumOfW2nd6)>0.)
+ 
  // Cov(<2>,<sin(phi1-phi2-phi3)>):
  Double_t product7 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(7); // <<2><sin(phi1-phi2-phi3)>> 
  Double_t term1st7 = fIntFlowCorrelationsPro->GetBinContent(1); // <<2>>
@@ -3323,14 +3428,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator7 = product7 - term1st7*term2nd7; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator7 = 1.-sumOfWW7/(sumOfW1st7*sumOfW2nd7);
- // covariance:
- Double_t covariance7 = numerator7/denominator7;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor7 = sumOfWW7/(sumOfW1st7*sumOfW2nd7);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(7,wPrefactor7*covariance7);
-
+ Double_t denominator7 = 0.;
+ if(TMath::Abs(sumOfW1st7*sumOfW2nd7)>0.)
+ {  
+  denominator7 = 1.-sumOfWW7/(sumOfW1st7*sumOfW2nd7);
+  if(TMath::Abs(denominator7)>0.)
+  {   
+   // covariance:
+   Double_t covariance7 = numerator7/denominator7;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor7 = sumOfWW7/(sumOfW1st7*sumOfW2nd7);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(7,wPrefactor7*covariance7);
+  } // end of if(TMath::Abs(denominator7)>0.)
+ } // end of if(TMath::Abs(sumOfW1st7*sumOfW2nd7)>0.)
+ 
  // Cov(<4>,<cos(phi1>):
  Double_t product8 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(8); // <<4><cos(phi1)>> 
  Double_t term1st8 = fIntFlowCorrelationsPro->GetBinContent(2); // <<4>>
@@ -3341,14 +3453,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator8 = product8 - term1st8*term2nd8; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator8 = 1.-sumOfWW8/(sumOfW1st8*sumOfW2nd8);
- // covariance:
- Double_t covariance8 = numerator8/denominator8;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor8 = sumOfWW8/(sumOfW1st8*sumOfW2nd8);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(8,wPrefactor8*covariance8);
-
+ Double_t denominator8 = 0.;
+ if(TMath::Abs(sumOfW1st8*sumOfW2nd8)>0.)
+ { 
+  denominator8 = 1.-sumOfWW8/(sumOfW1st8*sumOfW2nd8);
+  if(TMath::Abs(denominator8)>0.)
+  {     
+   // covariance:
+   Double_t covariance8 = numerator8/denominator8;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor8 = sumOfWW8/(sumOfW1st8*sumOfW2nd8);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(8,wPrefactor8*covariance8);
+  } // end of if(TMath::Abs(denominator8)>0.)
+ } // end of if(TMath::Abs(sumOfW1st8*sumOfW2nd8)>0.)
+ 
  // Cov(<4>,<sin(phi1)>):
  Double_t product9 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(9); // <<4><sin(phi1)>> 
  Double_t term1st9 = fIntFlowCorrelationsPro->GetBinContent(2); // <<4>>
@@ -3359,14 +3478,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator9 = product9 - term1st9*term2nd9; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator9 = 1.-sumOfWW9/(sumOfW1st9*sumOfW2nd9);
- // covariance:
- Double_t covariance9 = numerator9/denominator9;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor9 = sumOfWW9/(sumOfW1st9*sumOfW2nd9);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(9,wPrefactor9*covariance9);
-
+ Double_t denominator9 = 0.;
+ if(TMath::Abs(sumOfW1st9*sumOfW2nd9)>0.) 
+ {
+  denominator9 = 1.-sumOfWW9/(sumOfW1st9*sumOfW2nd9);
+  if(TMath::Abs(denominator9)>0.)
+  {     
+   // covariance:
+   Double_t covariance9 = numerator9/denominator9;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor9 = sumOfWW9/(sumOfW1st9*sumOfW2nd9);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(9,wPrefactor9*covariance9); 
+  }
+ } // end of if(TMath::Abs(sumOfW1st9*sumOfW2nd9)>0.) 
+ 
  // Cov(<4>,<cos(phi1+phi2)>):
  Double_t product10 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(10); // <<4><cos(phi1+phi2)>> 
  Double_t term1st10 = fIntFlowCorrelationsPro->GetBinContent(2); // <<4>>
@@ -3377,14 +3503,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator10 = product10 - term1st10*term2nd10; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator10 = 1.-sumOfWW10/(sumOfW1st10*sumOfW2nd10);
- // covariance:
- Double_t covariance10 = numerator10/denominator10;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor10 = sumOfWW10/(sumOfW1st10*sumOfW2nd10);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(10,wPrefactor10*covariance10);
-
+ Double_t denominator10 = 0.;
+ if(TMath::Abs(sumOfW1st10*sumOfW2nd10)>0.) 
+ { 
+  denominator10 = 1.-sumOfWW10/(sumOfW1st10*sumOfW2nd10);
+  if(TMath::Abs(denominator10)>0.) 
+  { 
+   // covariance:
+   Double_t covariance10 = numerator10/denominator10;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor10 = sumOfWW10/(sumOfW1st10*sumOfW2nd10);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(10,wPrefactor10*covariance10);
+  } // end of if(TMath::Abs(denominator10)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st10*sumOfW2nd10)>0.) 
+ 
  // Cov(<4>,<sin(phi1+phi2)>):
  Double_t product11 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(11); // <<4><sin(phi1+phi2)>> 
  Double_t term1st11 = fIntFlowCorrelationsPro->GetBinContent(2); // <<4>>
@@ -3395,13 +3528,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator11 = product11 - term1st11*term2nd11; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator11 = 1.-sumOfWW11/(sumOfW1st11*sumOfW2nd11);
- // covariance:
- Double_t covariance11 = numerator11/denominator11;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor11 = sumOfWW11/(sumOfW1st11*sumOfW2nd11);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(11,wPrefactor11*covariance11);
+ Double_t denominator11 = 0.;
+ if(TMath::Abs(sumOfW1st11*sumOfW2nd11)>0.) 
+ {  
+  denominator11 = 1.-sumOfWW11/(sumOfW1st11*sumOfW2nd11);
+  if(TMath::Abs(denominator11)>0.) 
+  { 
+   // covariance:
+   Double_t covariance11 = numerator11/denominator11;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor11 = sumOfWW11/(sumOfW1st11*sumOfW2nd11);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(11,wPrefactor11*covariance11);
+  } // end of if(TMath::Abs(denominator11)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st11*sumOfW2nd11)>0.) 
 
  // Cov(<4>,<cos(phi1-phi2-phi3)>):
  Double_t product12 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(12); // <<4><cos(phi1-phi2-phi3)>> 
@@ -3413,13 +3553,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator12 = product12 - term1st12*term2nd12; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator12 = 1.-sumOfWW12/(sumOfW1st12*sumOfW2nd12);
- // covariance:
- Double_t covariance12 = numerator12/denominator12;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor12 = sumOfWW12/(sumOfW1st12*sumOfW2nd12);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(12,wPrefactor12*covariance12);
+ Double_t denominator12 = 0.;
+ if(TMath::Abs(sumOfW1st12*sumOfW2nd12)>0.) 
+ {   
+  denominator12 = 1.-sumOfWW12/(sumOfW1st12*sumOfW2nd12);
+  if(TMath::Abs(denominator12)>0.) 
+  { 
+   // covariance:
+   Double_t covariance12 = numerator12/denominator12;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor12 = sumOfWW12/(sumOfW1st12*sumOfW2nd12);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(12,wPrefactor12*covariance12);
+  } // end of if(TMath::Abs(denominator12)>0.)
+ } // end of if(TMath::Abs(sumOfW1st12*sumOfW2nd12)>0.)  
 
  // Cov(<4>,<sin(phi1-phi2-phi3)>):
  Double_t product13 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(13); // <<4><sin(phi1-phi2-phi3)>> 
@@ -3431,13 +3578,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator13 = product13 - term1st13*term2nd13; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator13 = 1.-sumOfWW13/(sumOfW1st13*sumOfW2nd13);
- // covariance:
- Double_t covariance13 = numerator13/denominator13;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor13 = sumOfWW13/(sumOfW1st13*sumOfW2nd13);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(13,wPrefactor13*covariance13);
+ Double_t denominator13 = 0.;
+ if(TMath::Abs(sumOfW1st13*sumOfW2nd13)>0.) 
+ {   
+  denominator13 = 1.-sumOfWW13/(sumOfW1st13*sumOfW2nd13);
+  if(TMath::Abs(denominator13)>0.) 
+  { 
+   // covariance:
+   Double_t covariance13 = numerator13/denominator13;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor13 = sumOfWW13/(sumOfW1st13*sumOfW2nd13);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(13,wPrefactor13*covariance13);
+  } // end of if(TMath::Abs(denominator13)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st13*sumOfW2nd13)>0.) 
 
  // Cov(<cos(phi1)>,<cos(phi1+phi2)>):
  Double_t product14 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(14); // <<cos(phi1)><cos(phi1+phi2)>> 
@@ -3449,13 +3603,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator14 = product14 - term1st14*term2nd14; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator14 = 1.-sumOfWW14/(sumOfW1st14*sumOfW2nd14);
- // covariance:
- Double_t covariance14 = numerator14/denominator14;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor14 = sumOfWW14/(sumOfW1st14*sumOfW2nd14);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(14,wPrefactor14*covariance14);
+ Double_t denominator14 = 0.;
+ if(TMath::Abs(sumOfW1st14*sumOfW2nd14)>0.) 
+ {  
+  denominator14 = 1.-sumOfWW14/(sumOfW1st14*sumOfW2nd14);
+  if(TMath::Abs(denominator14)>0.) 
+  { 
+   // covariance:
+   Double_t covariance14 = numerator14/denominator14;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor14 = sumOfWW14/(sumOfW1st14*sumOfW2nd14);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(14,wPrefactor14*covariance14);
+  } // end of if(TMath::Abs(denominator14)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st14*sumOfW2nd14)>0.) 
 
  // Cov(<cos(phi1)>,<sin(phi1+phi2)>):
  Double_t product15 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(15); // <<cos(phi1)><sin(phi1+phi2)>> 
@@ -3467,14 +3628,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator15 = product15 - term1st15*term2nd15; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator15 = 1.-sumOfWW15/(sumOfW1st15*sumOfW2nd15);
- // covariance:
- Double_t covariance15 = numerator15/denominator15;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor15 = sumOfWW15/(sumOfW1st15*sumOfW2nd15);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(15,wPrefactor15*covariance15);
-
+ Double_t denominator15 = 0.;
+ if(TMath::Abs(sumOfW1st15*sumOfW2nd15)>0.) 
+ {  
+  denominator15 = 1.-sumOfWW15/(sumOfW1st15*sumOfW2nd15);
+  if(TMath::Abs(denominator15)>0.) 
+  { 
+   // covariance:
+   Double_t covariance15 = numerator15/denominator15;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor15 = sumOfWW15/(sumOfW1st15*sumOfW2nd15);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(15,wPrefactor15*covariance15);
+  } // end of if(TMath::Abs(denominator15)>0.)  
+ } // end of if(TMath::Abs(sumOfW1st15*sumOfW2nd15)>0.)  
+ 
  // Cov(<cos(phi1)>,<cos(phi1-phi2-phi3)>):
  Double_t product16 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(16); // <<cos(phi1)><cos(phi1-phi2-phi3)>> 
  Double_t term1st16 = fIntFlowCorrectionTermsForNUAPro[1]->GetBinContent(1); // <<cos(phi1)>>
@@ -3485,14 +3653,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator16 = product16 - term1st16*term2nd16; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator16 = 1.-sumOfWW16/(sumOfW1st16*sumOfW2nd16);
- // covariance:
- Double_t covariance16 = numerator16/denominator16;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor16 = sumOfWW16/(sumOfW1st16*sumOfW2nd16);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(16,wPrefactor16*covariance16);
-
+ Double_t denominator16 = 0.;
+ if(TMath::Abs(sumOfW1st16*sumOfW2nd16)>0.) 
+ {   
+  denominator16 = 1.-sumOfWW16/(sumOfW1st16*sumOfW2nd16);
+  if(TMath::Abs(denominator16)>0.) 
+  {   
+   // covariance:
+   Double_t covariance16 = numerator16/denominator16;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor16 = sumOfWW16/(sumOfW1st16*sumOfW2nd16);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(16,wPrefactor16*covariance16);
+  } // end of if(TMath::Abs(denominator16)>0.)
+ } // end ofif(TMath::Abs(sumOfW1st16*sumOfW2nd16)>0.)  
+ 
  // Cov(<cos(phi1)>,<sin(phi1-phi2-phi3)>):
  Double_t product17 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(17); // <<cos(phi1)><sin(phi1-phi2-phi3)>> 
  Double_t term1st17 = fIntFlowCorrectionTermsForNUAPro[1]->GetBinContent(1); // <<cos(phi1)>>
@@ -3503,13 +3678,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator17 = product17 - term1st17*term2nd17; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator17 = 1.-sumOfWW17/(sumOfW1st17*sumOfW2nd17);
- // covariance:
- Double_t covariance17 = numerator17/denominator17;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor17 = sumOfWW17/(sumOfW1st17*sumOfW2nd17);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(17,wPrefactor17*covariance17);
+ Double_t denominator17 = 0.;
+ if(TMath::Abs(sumOfW1st17*sumOfW2nd17)>0.) 
+ {
+  denominator17 = 1.-sumOfWW17/(sumOfW1st17*sumOfW2nd17);
+  if(TMath::Abs(denominator17)>0.) 
+  {   
+   // covariance:
+   Double_t covariance17 = numerator17/denominator17;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor17 = sumOfWW17/(sumOfW1st17*sumOfW2nd17);
+    // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(17,wPrefactor17*covariance17);
+  } // end of if(TMath::Abs(denominator17)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st17*sumOfW2nd17)>0.) 
 
  // Cov(<sin(phi1)>,<cos(phi1+phi2)>):
  Double_t product18 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(18); // <<sin(phi1)><cos(phi1+phi2)>> 
@@ -3521,13 +3703,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator18 = product18 - term1st18*term2nd18; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator18 = 1.-sumOfWW18/(sumOfW1st18*sumOfW2nd18);
- // covariance:
- Double_t covariance18 = numerator18/denominator18;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor18 = sumOfWW18/(sumOfW1st18*sumOfW2nd18);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(18,wPrefactor18*covariance18);
+ Double_t denominator18 = 0.;
+ if(TMath::Abs(sumOfW1st18*sumOfW2nd18)>0.) 
+ { 
+  denominator18 = 1.-sumOfWW18/(sumOfW1st18*sumOfW2nd18);
+  if(TMath::Abs(denominator18)>0.) 
+  {   
+   // covariance:
+   Double_t covariance18 = numerator18/denominator18;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor18 = sumOfWW18/(sumOfW1st18*sumOfW2nd18);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(18,wPrefactor18*covariance18); 
+  } // end of if(TMath::Abs(denominator18)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st18*sumOfW2nd18)>0.) 
 
  // Cov(<sin(phi1)>,<sin(phi1+phi2)>):
  Double_t product19 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(19); // <<sin(phi1)><sin(phi1+phi2)>> 
@@ -3539,14 +3728,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator19 = product19 - term1st19*term2nd19; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator19 = 1.-sumOfWW19/(sumOfW1st19*sumOfW2nd19);
- // covariance:
- Double_t covariance19 = numerator19/denominator19;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor19 = sumOfWW19/(sumOfW1st19*sumOfW2nd19);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(19,wPrefactor19*covariance19);
-
+ Double_t denominator19 = 0.;
+ if(TMath::Abs(sumOfW1st19*sumOfW2nd19)>0.) 
+ { 
+  denominator19 = 1.-sumOfWW19/(sumOfW1st19*sumOfW2nd19);
+  if(TMath::Abs(denominator19)>0.) 
+  {   
+   // covariance:
+   Double_t covariance19 = numerator19/denominator19;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor19 = sumOfWW19/(sumOfW1st19*sumOfW2nd19);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(19,wPrefactor19*covariance19);
+  } // end of if(TMath::Abs(denominator19)>0.)
+ } // end of if(TMath::Abs(sumOfW1st19*sumOfW2nd19)>0.)
+ 
  // Cov(<sin(phi1)>,<cos(phi1-phi2-phi3)>):
  Double_t product20 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(20); // <<sin(phi1)><cos(phi1-phi2-phi3)>> 
  Double_t term1st20 = fIntFlowCorrectionTermsForNUAPro[0]->GetBinContent(1); // <<sin(phi1)>>
@@ -3557,13 +3753,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator20 = product20 - term1st20*term2nd20; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator20 = 1.-sumOfWW20/(sumOfW1st20*sumOfW2nd20);
- // covariance:
- Double_t covariance20 = numerator20/denominator20;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor20 = sumOfWW20/(sumOfW1st20*sumOfW2nd20);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(20,wPrefactor20*covariance20);
+ Double_t denominator20 = 0.;
+ if(TMath::Abs(sumOfW1st20*sumOfW2nd20)>0.)
+ { 
+  denominator20 = 1.-sumOfWW20/(sumOfW1st20*sumOfW2nd20);
+  if(TMath::Abs(denominator20)>0.) 
+  { 
+   // covariance:
+   Double_t covariance20 = numerator20/denominator20;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor20 = sumOfWW20/(sumOfW1st20*sumOfW2nd20);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(20,wPrefactor20*covariance20);
+  } // end of if(TMath::Abs(denominator20)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st20*sumOfW2nd20)>0.)
 
  // Cov(<sin(phi1)>,<sin(phi1-phi2-phi3)>):
  Double_t product21 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(21); // <<sin(phi1)><sin(phi1-phi2-phi3)>> 
@@ -3575,13 +3778,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator21 = product21 - term1st21*term2nd21; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator21 = 1.-sumOfWW21/(sumOfW1st21*sumOfW2nd21);
- // covariance:
- Double_t covariance21 = numerator21/denominator21;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor21 = sumOfWW21/(sumOfW1st21*sumOfW2nd21);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(21,wPrefactor21*covariance21);
+ Double_t denominator21 = 0.;
+ if(TMath::Abs(sumOfW1st21*sumOfW2nd21)>0.)
+ { 
+  denominator21 = 1.-sumOfWW21/(sumOfW1st21*sumOfW2nd21);
+  if(TMath::Abs(denominator21)>0.) 
+  {   
+   // covariance:
+   Double_t covariance21 = numerator21/denominator21;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor21 = sumOfWW21/(sumOfW1st21*sumOfW2nd21);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(21,wPrefactor21*covariance21);
+  } // end of if(TMath::Abs(denominator21)>0.)
+ } // end of if(TMath::Abs(sumOfW1st21*sumOfW2nd21)>0.)
 
  // Cov(<cos(phi1+phi2)>,<sin(phi1+phi2)>):
  Double_t product22 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(22); // <<cos(phi1+phi2)><sin(phi1+phi2)>> 
@@ -3593,13 +3803,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator22 = product22 - term1st22*term2nd22; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator22 = 1.-sumOfWW22/(sumOfW1st22*sumOfW2nd22);
- // covariance:
- Double_t covariance22 = numerator22/denominator22;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor22 = sumOfWW22/(sumOfW1st22*sumOfW2nd22);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(22,wPrefactor22*covariance22);
+ Double_t denominator22 = 0.;
+ if(TMath::Abs(sumOfW1st22*sumOfW2nd22)>0.)
+ { 
+  denominator22 = 1.-sumOfWW22/(sumOfW1st22*sumOfW2nd22);
+  if(TMath::Abs(denominator22)>0.) 
+  {   
+   // covariance:
+   Double_t covariance22 = numerator22/denominator22;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor22 = sumOfWW22/(sumOfW1st22*sumOfW2nd22);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(22,wPrefactor22*covariance22);
+  } // end of if(TMath::Abs(denominator22)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st22*sumOfW2nd22)>0.) 
 
  // Cov(<cos(phi1+phi2)>,<cos(phi1-phi2-phi3)>):
  Double_t product23 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(23); // <<cos(phi1+phi2)><cos(phi1-phi2-phi3)>> 
@@ -3611,14 +3828,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator23 = product23 - term1st23*term2nd23; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator23 = 1.-sumOfWW23/(sumOfW1st23*sumOfW2nd23);
- // covariance:
- Double_t covariance23 = numerator23/denominator23;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor23 = sumOfWW23/(sumOfW1st23*sumOfW2nd23);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(23,wPrefactor23*covariance23);
-
+ Double_t denominator23 = 0.;
+ if(TMath::Abs(sumOfW1st23*sumOfW2nd23)>0.)
+ {  
+  denominator23 = 1.-sumOfWW23/(sumOfW1st23*sumOfW2nd23);
+  if(TMath::Abs(denominator23)>0.) 
+  {   
+   // covariance:
+   Double_t covariance23 = numerator23/denominator23;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor23 = sumOfWW23/(sumOfW1st23*sumOfW2nd23);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(23,wPrefactor23*covariance23);
+  } // end of if(TMath::Abs(denominator23)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st23*sumOfW2nd23)>0.)
+ 
  // Cov(<cos(phi1+phi2)>,<sin(phi1-phi2-phi3)>):
  Double_t product24 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(24); // <<cos(phi1+phi2)><sin(phi1-phi2-phi3)>> 
  Double_t term1st24 = fIntFlowCorrectionTermsForNUAPro[1]->GetBinContent(2); // <<cos(phi1+phi2)>>
@@ -3629,13 +3853,20 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator24 = product24 - term1st24*term2nd24; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator24 = 1.-sumOfWW24/(sumOfW1st24*sumOfW2nd24);
- // covariance:
- Double_t covariance24 = numerator24/denominator24;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor24 = sumOfWW24/(sumOfW1st24*sumOfW2nd24);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(24,wPrefactor24*covariance24);
+ Double_t denominator24 = 0.;
+ if(TMath::Abs(sumOfW1st24*sumOfW2nd24)>0.)
+ {   
+  denominator24 = 1.-sumOfWW24/(sumOfW1st24*sumOfW2nd24);
+  if(TMath::Abs(denominator24)>0.) 
+  {   
+   // covariance:
+   Double_t covariance24 = numerator24/denominator24;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor24 = sumOfWW24/(sumOfW1st24*sumOfW2nd24);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(24,wPrefactor24*covariance24);
+  } // end of if(TMath::Abs(denominator24)>0.)  
+ } // end of if(TMath::Abs(sumOfW1st24*sumOfW2nd24)>0.)
 
  // Cov(<sin(phi1+phi2)>,<cos(phi1-phi2-phi3)>):
  Double_t product25 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(25); // <<sin(phi1+phi2)><cos(phi1-phi2-phi3)>> 
@@ -3647,14 +3878,21 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator25 = product25 - term1st25*term2nd25; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator25 = 1.-sumOfWW25/(sumOfW1st25*sumOfW2nd25);
- // covariance:
- Double_t covariance25 = numerator25/denominator25;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor25 = sumOfWW25/(sumOfW1st25*sumOfW2nd25);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(25,wPrefactor25*covariance25);
-
+ Double_t denominator25 = 0.;
+ if(TMath::Abs(sumOfW1st25*sumOfW2nd25)>0.)
+ { 
+  denominator25 = 1.-sumOfWW25/(sumOfW1st25*sumOfW2nd25);
+  if(TMath::Abs(denominator25)>0.) 
+  { 
+   // covariance:
+   Double_t covariance25 = numerator25/denominator25;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor25 = sumOfWW25/(sumOfW1st25*sumOfW2nd25);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(25,wPrefactor25*covariance25);
+  } // end of if(TMath::Abs(denominator25)>0.)
+ } // end of if(TMath::Abs(sumOfW1st25*sumOfW2nd25)>0.)
+ 
  // Cov(<sin(phi1+phi2)>,<sin(phi1-phi2-phi3)>):
  Double_t product26 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(26); // <<sin(phi1+phi2)><sin(phi1-phi2-phi3)>> 
  Double_t term1st26 = fIntFlowCorrectionTermsForNUAPro[0]->GetBinContent(2); // <<sin(phi1+phi2)>>
@@ -3665,37 +3903,49 @@ void AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator26 = product26 - term1st26*term2nd26; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator26 = 1.-sumOfWW26/(sumOfW1st26*sumOfW2nd26);
- // covariance:
- Double_t covariance26 = numerator26/denominator26;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor26 = sumOfWW26/(sumOfW1st26*sumOfW2nd26);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(26,wPrefactor26*covariance26);
-
+ Double_t denominator26 = 0.;
+ if(TMath::Abs(sumOfW1st26*sumOfW2nd26)>0.)
+ { 
+  denominator26 = 1.-sumOfWW26/(sumOfW1st26*sumOfW2nd26);
+  if(TMath::Abs(denominator26)>0.) 
+  { 
+   // covariance:
+   Double_t covariance26 = numerator26/denominator26;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor26 = sumOfWW26/(sumOfW1st26*sumOfW2nd26);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(26,wPrefactor26*covariance26);
+  } // end of if(TMath::Abs(denominator26)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st26*sumOfW2nd26)>0.)
+ 
  // Cov(<cos(phi1-phi2-phi3)>,<sin(phi1-phi2-phi3)>):
  Double_t product27 = fIntFlowProductOfCorrectionTermsForNUAPro->GetBinContent(27); // <<cos(phi1-phi2-phi3)><sin(phi1-phi2-phi3)>> 
- Double_t term1st27 = fIntFlowCorrectionTermsForNUAPro[1]->GetBinContent(2); // <<cos(phi1-phi2-phi3)>>
+ Double_t term1st27 = fIntFlowCorrectionTermsForNUAPro[1]->GetBinContent(3); // <<cos(phi1-phi2-phi3)>>
  Double_t term2nd27 = fIntFlowCorrectionTermsForNUAPro[0]->GetBinContent(3); // <<sin(phi1-phi2-phi3)>>
- Double_t sumOfW1st27 = fIntFlowSumOfEventWeightsNUA[1][0]->GetBinContent(2); // W_{<cos(phi1-phi2-phi3)>}
+ Double_t sumOfW1st27 = fIntFlowSumOfEventWeightsNUA[1][0]->GetBinContent(3); // W_{<cos(phi1-phi2-phi3)>}
  Double_t sumOfW2nd27 = fIntFlowSumOfEventWeightsNUA[0][0]->GetBinContent(3); // W_{<sin(phi1-phi2-phi3)>}
  Double_t sumOfWW27 = fIntFlowSumOfProductOfEventWeightsNUA->GetBinContent(27); // W_{<cos(phi1-phi2-phi3)>} * W_{<sin(phi1-phi2-phi3)>}
  // numerator in the expression for the the unbiased estimator for covariance:
  Double_t numerator27 = product27 - term1st27*term2nd27; 
  // denominator in the expression for the the unbiased estimator for covariance:
- Double_t denominator27 = 1.-sumOfWW27/(sumOfW1st27*sumOfW2nd27);
- // covariance:
- Double_t covariance27 = numerator27/denominator27;
- // weight dependent prefactor for covariance:
- Double_t wPrefactor27 = sumOfWW27/(sumOfW1st27*sumOfW2nd27);
- // finally, store "weighted" covariance:
- fIntFlowCovariancesNUA->SetBinContent(27,wPrefactor27*covariance27);
-
+ Double_t denominator27 = 0.;
+ if(TMath::Abs(sumOfW1st27*sumOfW2nd27)>0.)
+ { 
+  denominator27 = 1.-sumOfWW27/(sumOfW1st27*sumOfW2nd27);
+  if(TMath::Abs(denominator27)>0.) 
+  { 
+   // covariance:
+   Double_t covariance27 = numerator27/denominator27;
+   // weight dependent prefactor for covariance:
+   Double_t wPrefactor27 = sumOfWW27/(sumOfW1st27*sumOfW2nd27);
+   // finally, store "weighted" covariance:
+   fIntFlowCovariancesNUA->SetBinContent(27,wPrefactor27*covariance27);
+  } // end of if(TMath::Abs(denominator27)>0.) 
+ } // end of if(TMath::Abs(sumOfW1st27*sumOfW2nd27)>0.)
+ 
 } // end of AliFlowAnalysisWithQCumulants::CalculateCovariancesNUAIntFlow()
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::FinalizeCorrelationsIntFlow() 
 {
@@ -3708,17 +3958,8 @@ void AliFlowAnalysisWithQCumulants::FinalizeCorrelationsIntFlow()
  //          statistical error = termA * spread * termB:
  //          termA = sqrt{sum_{i=1}^{N} w^2}/(sum_{i=1}^{N} w)
  //          termB = 1/sqrt(1-termA^2)   
- 
- for(Int_t power=0;power<2;power++)
- { 
-  if(!(fIntFlowCorrelationsHist && fIntFlowCorrelationsPro && fIntFlowSumOfEventWeights[power])) 
-  {
-   cout<<"WARNING: fIntFlowCorrelationsHist && fIntFlowCorrelationsPro && fIntFlowSumOfEventWeights[power] is NULL in AFAWQC::FCIF() !!!!"<<endl;
-   cout<<"power = "<<power<<endl;
-   exit(0);
-  }
- }
-  
+ //
+   
  for(Int_t ci=1;ci<=4;ci++) // correlation index
  {
   Double_t correlation = fIntFlowCorrelationsPro->GetBinContent(ci);
@@ -3727,28 +3968,33 @@ void AliFlowAnalysisWithQCumulants::FinalizeCorrelationsIntFlow()
   Double_t sumOfQuadraticEventWeights = fIntFlowSumOfEventWeights[1]->GetBinContent(ci);
   Double_t termA = 0.;
   Double_t termB = 0.;
-  if(sumOfLinearEventWeights)
+  if(TMath::Abs(sumOfLinearEventWeights) > 0.) // to be improved - shall I omitt here Abs() ?
   {
    termA = pow(sumOfQuadraticEventWeights,0.5)/sumOfLinearEventWeights;
   } else
     {
-     cout<<"WARNING: sumOfLinearEventWeights == 0 in AFAWQC::FCIF() !!!!"<<endl;
-     cout<<"         (for "<<2*ci<<"-particle correlation)"<<endl;
+     cout<<endl;
+     cout<<" WARNING (QC): sumOfLinearEventWeights == 0 in method FinalizeCorrelationsIntFlow() !!!!"<<endl;
+     cout<<"               (for "<<2*ci<<"-particle correlation)"<<endl;
+     cout<<endl;
     }
   if(1.-pow(termA,2.) > 0.)
   {
    termB = 1./pow(1-pow(termA,2.),0.5);
   } else
     {
-     cout<<"WARNING: 1.-pow(termA,2.) <= 0 in AFAWQC::FCIF() !!!!"<<endl;   
-     cout<<"         (for "<<2*ci<<"-particle correlation)"<<endl;
+     cout<<endl;
+     cout<<" WARNING (QC): 1.-pow(termA,2.) <= 0 in method FinalizeCorrelationsIntFlow() !!!!"<<endl;   
+     cout<<"               (for "<<2*ci<<"-particle correlation)"<<endl;
+     cout<<endl;
     }     
   Double_t statisticalError = termA * spread * termB;
   fIntFlowCorrelationsHist->SetBinContent(ci,correlation);
   fIntFlowCorrelationsHist->SetBinError(ci,statisticalError);
  } // end of for(Int_t ci=1;ci<=4;ci++) // correlation index     
  
- // versus multiplicity: 
+ // Versus multiplicity: 
+ if(!fCalculateCumulantsVsM){return;}
  for(Int_t ci=0;ci<=3;ci++) // correlation index
  {
   Int_t nBins = fIntFlowCorrelationsVsMPro[ci]->GetNbinsX(); 
@@ -3760,22 +4006,14 @@ void AliFlowAnalysisWithQCumulants::FinalizeCorrelationsIntFlow()
    Double_t sumOfQuadraticEventWeightsVsM = fIntFlowSumOfEventWeightsVsM[ci][1]->GetBinContent(b);
    Double_t termAVsM = 0.;
    Double_t termBVsM = 0.;
-   if(sumOfLinearEventWeightsVsM)
+   if(TMath::Abs(sumOfLinearEventWeightsVsM) > 0.) // to be improved - shall I omitt here Abs() ?
    {
     termAVsM = pow(sumOfQuadraticEventWeightsVsM,0.5)/sumOfLinearEventWeightsVsM;
-   } else
-     {
-      //cout<<"WARNING: sumOfLinearEventWeightsVsM == 0 in AFAWQC::FCIF() !!!!"<<endl;
-      //cout<<"         (for "<<2*(ci+1)<<"-particle correlation versus multiplicity)"<<endl;
-     }
+   }
    if(1.-pow(termAVsM,2.) > 0.)
    {
     termBVsM = 1./pow(1-pow(termAVsM,2.),0.5);
-   } else
-     {
-      //cout<<"WARNING: 1.-pow(termAVsM,2.) <= 0 in AFAWQC::FCIF() !!!!"<<endl;   
-      //cout<<"         (for "<<2*(ci+1)<<"-particle correlation versus multiplicity)"<<endl;
-     }     
+   }     
    Double_t statisticalErrorVsM = termAVsM * spreadVsM * termBVsM;
    fIntFlowCorrelationsVsMHist[ci]->SetBinContent(b,correlationVsM);
    fIntFlowCorrelationsVsMHist[ci]->SetBinError(b,statisticalErrorVsM);  
@@ -3788,7 +4026,8 @@ void AliFlowAnalysisWithQCumulants::FinalizeCorrelationsIntFlow()
 
 void AliFlowAnalysisWithQCumulants::FillAverageMultiplicities(Int_t nRP)
 {
- // Fill profile fAverageMultiplicity to hold average multiplicities and number of events for events with nRP>=0, nRP>=1, ... , and nRP>=8
+ // Fill profile fAverageMultiplicity to hold average multiplicities and 
+ // number of events for events with nRP>=0, nRP>=1, ... , and nRP>=8
  
  // Binning of fAverageMultiplicity is organized as follows:
  //  1st bin: all events (including the empty ones)
@@ -3801,96 +4040,77 @@ void AliFlowAnalysisWithQCumulants::FillAverageMultiplicities(Int_t nRP)
  //  8th bin: event with # of RPs greater or equal to 7
  //  9th bin: event with # of RPs greater or equal to 8
  
- if(!fAvMultiplicity)
- {
-  cout<<"WARNING: fAvMultiplicity is NULL in AFAWQC::FAM() !!!!"<<endl;
-  exit(0);
- }
- 
  if(nRP<0)
  {
-  cout<<"WARNING: nRP<0 in in AFAWQC::FAM() !!!!"<<endl;
+  cout<<endl;
+  cout<<" WARNING (QC): nRP<0 in in AFAWQC::FAM() !!!!"<<endl;
+  cout<<endl;
   exit(0);
  }
  
  for(Int_t i=0;i<9;i++)
  {
-  if(nRP>=i) fAvMultiplicity->Fill(i+0.5,nRP,1);
+  if(nRP>=i){fAvMultiplicity->Fill(i+0.5,nRP,1);}
  }
  
 } // end of AliFlowAnalysisWithQCumulants::FillAverageMultiplicities(nRP)
 
-
 //================================================================================================================================
 
-
 void AliFlowAnalysisWithQCumulants::CalculateCumulantsIntFlow()
-{
- // a) Calculate Q-cumulants from the measured multiparticle correlations.
- // b) Propagate the statistical errors of measured multiparticle correlations to statistical errors of Q-cumulants.  
- // c) REMARK: Q-cumulants calculated in this method are biased by non-uniform acceptance of detector !!!! 
- //            Method ApplyCorrectionForNonUniformAcceptance* (to be improved: finalize the name here)
- //            is called afterwards to correct for this bias.   
- // d) Store the results and statistical error of Q-cumulants in histogram fCumulants.
- //    Binning of fCumulants is organized as follows:
+{ 
+ // a) Calculate Q-cumulants from the measured multiparticle correlations;
+ // b) Propagate the statistical errors from measured multiparticle correlations to statistical errors of Q-cumulants;  
+ // c) Remark: Q-cumulants calculated in this method are biased by non-uniform acceptance of detector !!!! 
+ //            Method CalculateQcumulantsCorrectedForNUAIntFlow() is called afterwards to correct for this bias;
+ // d) Store the results and statistical error of Q-cumulants in histogram fIntFlowQcumulants.
+ //    Binning of fIntFlowQcumulants is organized as follows:
  //
- //     1st bin: QC{2}
- //     2nd bin: QC{4}
- //     3rd bin: QC{6}
- //     4th bin: QC{8}
+ //            1st bin: QC{2}
+ //            2nd bin: QC{4}
+ //            3rd bin: QC{6}
+ //            4th bin: QC{8}
+ //
  
- if(!(fIntFlowCorrelationsHist && fIntFlowCovariances && fIntFlowQcumulants))
- {
-  cout<<"WARNING: fIntFlowCorrelationsHist && fIntFlowCovariances && fIntFlowQcumulants is NULL in AFAWQC::CCIF() !!!!"<<endl;
-  exit(0);
- }
- 
- // correlations:
+ // Correlations:
  Double_t two = fIntFlowCorrelationsHist->GetBinContent(1); // <<2>> 
  Double_t four = fIntFlowCorrelationsHist->GetBinContent(2); // <<4>>  
  Double_t six = fIntFlowCorrelationsHist->GetBinContent(3); // <<6>> 
  Double_t eight = fIntFlowCorrelationsHist->GetBinContent(4); // <<8>>  
- 
- // statistical errors of average 2-, 4-, 6- and 8-particle azimuthal correlations:
+ // Statistical errors of average 2-, 4-, 6- and 8-particle azimuthal correlations:
  Double_t twoError = fIntFlowCorrelationsHist->GetBinError(1); // statistical error of <2>  
  Double_t fourError = fIntFlowCorrelationsHist->GetBinError(2); // statistical error of <4>   
  Double_t sixError = fIntFlowCorrelationsHist->GetBinError(3); // statistical error of <6> 
  Double_t eightError = fIntFlowCorrelationsHist->GetBinError(4); // statistical error of <8> 
- 
- // covariances (multiplied by prefactor depending on weights - see comments in CalculateCovariancesIntFlow()):
+ // Covariances (multiplied by prefactor depending on weights - see comments in CalculateCovariancesIntFlow()):
  Double_t wCov24 = fIntFlowCovariances->GetBinContent(1); // Cov(<2>,<4>) * prefactor(w_<2>,w_<4>)
  Double_t wCov26 = fIntFlowCovariances->GetBinContent(2); // Cov(<2>,<6>) * prefactor(w_<2>,w_<6>)
  Double_t wCov28 = fIntFlowCovariances->GetBinContent(3); // Cov(<2>,<8>) * prefactor(w_<2>,w_<8>)
  Double_t wCov46 = fIntFlowCovariances->GetBinContent(4); // Cov(<4>,<6>) * prefactor(w_<4>,w_<6>)
  Double_t wCov48 = fIntFlowCovariances->GetBinContent(5); // Cov(<4>,<8>) * prefactor(w_<4>,w_<8>)
- Double_t wCov68 = fIntFlowCovariances->GetBinContent(6); // Cov(<6>,<8>) * prefactor(w_<6>,w_<8>)
- 
+ Double_t wCov68 = fIntFlowCovariances->GetBinContent(6); // Cov(<6>,<8>) * prefactor(w_<6>,w_<8>) 
  // Q-cumulants: 
  Double_t qc2 = 0.; // QC{2}
  Double_t qc4 = 0.; // QC{4}
  Double_t qc6 = 0.; // QC{6}
  Double_t qc8 = 0.; // QC{8}
- if(two) qc2 = two; 
- if(four) qc4 = four-2.*pow(two,2.); 
- if(six) qc6 = six-9.*two*four+12.*pow(two,3.); 
- if(eight) qc8 = eight-16.*two*six-18.*pow(four,2.)+144.*pow(two,2.)*four-144.*pow(two,4.); 
- 
- // statistical errors of Q-cumulants:       
+ if(TMath::Abs(two) > 0.){qc2 = two;} 
+ if(TMath::Abs(four) > 0.){qc4 = four-2.*pow(two,2.);} 
+ if(TMath::Abs(six) > 0.){qc6 = six-9.*two*four+12.*pow(two,3.);} 
+ if(TMath::Abs(eight) > 0.){qc8 = eight-16.*two*six-18.*pow(four,2.)+144.*pow(two,2.)*four-144.*pow(two,4.);} 
+ // Statistical errors of Q-cumulants:       
  Double_t qc2Error = 0.;
  Double_t qc4Error = 0.;
  Double_t qc6Error = 0.;
- Double_t qc8Error = 0.;
- 
- // squared statistical errors of Q-cumulants:       
+ Double_t qc8Error = 0.; 
+ // Squared statistical errors of Q-cumulants:       
  //Double_t qc2ErrorSquared = 0.;
  Double_t qc4ErrorSquared = 0.;
  Double_t qc6ErrorSquared = 0.;
- Double_t qc8ErrorSquared = 0.;
-        
- // statistical error of QC{2}:              
- qc2Error = twoError;                     
-                             
- // statistical error of QC{4}:              
+ Double_t qc8ErrorSquared = 0.;        
+ // Statistical error of QC{2}:              
+ qc2Error = twoError;                                                 
+ // Statistical error of QC{4}:              
  qc4ErrorSquared = 16.*pow(two,2.)*pow(twoError,2)+pow(fourError,2.)
                  - 8.*two*wCov24;                     
  if(qc4ErrorSquared>0.)
@@ -3898,26 +4118,23 @@ void AliFlowAnalysisWithQCumulants::CalculateCumulantsIntFlow()
   qc4Error = pow(qc4ErrorSquared,0.5);
  } else 
    {
-    cout<<"WARNING: Statistical error of QC{4} is imaginary !!!!"<<endl;
-   }
-                                           
- // statistical error of QC{6}:              
+    cout<<" WARNING (QC): Statistical error of QC{4} is imaginary !!!!"<<endl;
+   }                                           
+ // Statistical error of QC{6}:              
  qc6ErrorSquared = 81.*pow(4.*pow(two,2.)-four,2.)*pow(twoError,2.)
                  + 81.*pow(two,2.)*pow(fourError,2.)
                  + pow(sixError,2.)
                  - 162.*two*(4.*pow(two,2.)-four)*wCov24
                  + 18.*(4.*pow(two,2.)-four)*wCov26
-                 - 18.*two*wCov46; 
-                    
+                 - 18.*two*wCov46;                     
  if(qc6ErrorSquared>0.)
  {
   qc6Error = pow(qc6ErrorSquared,0.5);
  } else 
    {
-    cout<<"WARNING: Statistical error of QC{6} is imaginary !!!!"<<endl;
-   }
-                            
- // statistical error of QC{8}:              
+    cout<<" WARNING (QC): Statistical error of QC{6} is imaginary !!!!"<<endl;
+   }                       
+ // Statistical error of QC{8}:              
  qc8ErrorSquared = 256.*pow(36.*pow(two,3.)-18.*four*two+six,2.)*pow(twoError,2.)
                  + 1296.*pow(4.*pow(two,2.)-four,2.)*pow(fourError,2.)
                  + 256.*pow(two,2.)*pow(sixError,2.)
@@ -3933,69 +4150,78 @@ void AliFlowAnalysisWithQCumulants::CalculateCumulantsIntFlow()
   qc8Error = pow(qc8ErrorSquared,0.5);
  } else 
    {
-    cout<<"WARNING: Statistical error of QC{8} is imaginary !!!!"<<endl;
+    cout<<"WARNING (QC): Statistical error of QC{8} is imaginary !!!!"<<endl;
    }
-
- // store the results and statistical errors for Q-cumulants:
- fIntFlowQcumulants->SetBinContent(1,qc2);
- if(TMath::Abs(qc2)>1.e-44){fIntFlowQcumulants->SetBinError(1,qc2Error);}
- fIntFlowQcumulants->SetBinContent(2,qc4);
- if(TMath::Abs(qc4)>1.e-44){fIntFlowQcumulants->SetBinError(2,qc4Error);}
- fIntFlowQcumulants->SetBinContent(3,qc6);
- if(TMath::Abs(qc6)>1.e-44){fIntFlowQcumulants->SetBinError(3,qc6Error);}
- fIntFlowQcumulants->SetBinContent(4,qc8); 
- if(TMath::Abs(qc8)>1.e-44){fIntFlowQcumulants->SetBinError(4,qc8Error);} 
+ // Store the results and statistical errors for Q-cumulants:
+ if(TMath::Abs(qc2)>0.)
+ {
+  fIntFlowQcumulants->SetBinContent(1,qc2);
+  fIntFlowQcumulants->SetBinError(1,qc2Error);
+ }
+ if(TMath::Abs(qc4)>0.)
+ {
+  fIntFlowQcumulants->SetBinContent(2,qc4);
+  fIntFlowQcumulants->SetBinError(2,qc4Error);
+ }
+ if(TMath::Abs(qc6)>0.)
+ {
+  fIntFlowQcumulants->SetBinContent(3,qc6);
+  fIntFlowQcumulants->SetBinError(3,qc6Error);
+ }
+ if(TMath::Abs(qc8)>0.)
+ {
+  fIntFlowQcumulants->SetBinContent(4,qc8); 
+  fIntFlowQcumulants->SetBinError(4,qc8Error);
+ } 
  
- // versus multiplicity: 
+ // Versus multiplicity: 
+ if(!fCalculateCumulantsVsM){return;}
  Int_t nBins = fIntFlowCorrelationsVsMPro[0]->GetNbinsX(); // to be improved (hardwired 0) 
+ Double_t value[4] = {0.}; // QCs vs M
+ Double_t error[4] = {0.}; // error of QCs vs M
+ Double_t dSum1[4] = {0.}; // sum value_i/(error_i)^2
+ Double_t dSum2[4] = {0.}; // sum 1/(error_i)^2
  for(Int_t b=1;b<=nBins;b++)
  {
-  // correlations:
+  // Correlations:
   two = fIntFlowCorrelationsVsMHist[0]->GetBinContent(b); // <<2>> 
   four = fIntFlowCorrelationsVsMHist[1]->GetBinContent(b); // <<4>>  
   six = fIntFlowCorrelationsVsMHist[2]->GetBinContent(b); // <<6>> 
   eight = fIntFlowCorrelationsVsMHist[3]->GetBinContent(b); // <<8>>  
- 
-  // statistical errors of average 2-, 4-, 6- and 8-particle azimuthal correlations:
+  // Statistical errors of average 2-, 4-, 6- and 8-particle azimuthal correlations:
   twoError = fIntFlowCorrelationsVsMHist[0]->GetBinError(b); // statistical error of <2>  
   fourError = fIntFlowCorrelationsVsMHist[1]->GetBinError(b); // statistical error of <4>   
   sixError = fIntFlowCorrelationsVsMHist[2]->GetBinError(b); // statistical error of <6> 
   eightError = fIntFlowCorrelationsVsMHist[3]->GetBinError(b); // statistical error of <8> 
- 
-  // covariances (multiplied by prefactor depending on weights - see comments in CalculateCovariancesIntFlow()):
+  // Covariances (multiplied by prefactor depending on weights - see comments in CalculateCovariancesIntFlow()):
   wCov24 = fIntFlowCovariancesVsM[0]->GetBinContent(b); // Cov(<2>,<4>) * prefactor(w_<2>,w_<4>)
   wCov26 = fIntFlowCovariancesVsM[1]->GetBinContent(b); // Cov(<2>,<6>) * prefactor(w_<2>,w_<6>)
   wCov28 = fIntFlowCovariancesVsM[2]->GetBinContent(b); // Cov(<2>,<8>) * prefactor(w_<2>,w_<8>)
   wCov46 = fIntFlowCovariancesVsM[3]->GetBinContent(b); // Cov(<4>,<6>) * prefactor(w_<4>,w_<6>)
   wCov48 = fIntFlowCovariancesVsM[4]->GetBinContent(b); // Cov(<4>,<8>) * prefactor(w_<4>,w_<8>)
-  wCov68 = fIntFlowCovariancesVsM[5]->GetBinContent(b); // Cov(<6>,<8>) * prefactor(w_<6>,w_<8>)
- 
+  wCov68 = fIntFlowCovariancesVsM[5]->GetBinContent(b); // Cov(<6>,<8>) * prefactor(w_<6>,w_<8>) 
   // Q-cumulants: 
   qc2 = 0.; // QC{2}
   qc4 = 0.; // QC{4}
   qc6 = 0.; // QC{6}
   qc8 = 0.; // QC{8}
-  if(two) qc2 = two; 
-  if(four) qc4 = four-2.*pow(two,2.); 
-  if(six) qc6 = six-9.*two*four+12.*pow(two,3.); 
-  if(eight) qc8 = eight-16.*two*six-18.*pow(four,2.)+144.*pow(two,2.)*four-144.*pow(two,4.); 
- 
-  // statistical errors of Q-cumulants:       
+  if(TMath::Abs(two) > 0.){qc2 = two;} 
+  if(TMath::Abs(four) > 0.){qc4 = four-2.*pow(two,2.);} 
+  if(TMath::Abs(six) > 0.){qc6 = six-9.*two*four+12.*pow(two,3.);} 
+  if(TMath::Abs(eight) > 0.){qc8 = eight-16.*two*six-18.*pow(four,2.)+144.*pow(two,2.)*four-144.*pow(two,4.);}  
+  // Statistical errors of Q-cumulants:       
   qc2Error = 0.;
   qc4Error = 0.;
   qc6Error = 0.;
-  qc8Error = 0.;
- 
-  // squared statistical errors of Q-cumulants:       
+  qc8Error = 0.; 
+  // Squared statistical errors of Q-cumulants:       
   //Double_t qc2ErrorSquared = 0.;
   qc4ErrorSquared = 0.;
   qc6ErrorSquared = 0.;
-  qc8ErrorSquared = 0.;
-        
-  // statistical error of QC{2}:              
-  qc2Error = twoError;                     
-                             
-  // statistical error of QC{4}:              
+  qc8ErrorSquared = 0.;    
+  // Statistical error of QC{2}:              
+  qc2Error = twoError;                                             
+  // Statistical error of QC{4}:              
   qc4ErrorSquared = 16.*pow(two,2.)*pow(twoError,2)+pow(fourError,2.)
                   - 8.*two*wCov24;                     
   if(qc4ErrorSquared>0.)
@@ -4004,25 +4230,22 @@ void AliFlowAnalysisWithQCumulants::CalculateCumulantsIntFlow()
   } else 
     {
      // cout<<"WARNING: Statistical error of QC{4} is imaginary in multiplicity bin "<<b<<" !!!!"<<endl;
-    }
-                                           
-  // statistical error of QC{6}:              
+    }                                       
+  // Statistical error of QC{6}:              
   qc6ErrorSquared = 81.*pow(4.*pow(two,2.)-four,2.)*pow(twoError,2.)
                   + 81.*pow(two,2.)*pow(fourError,2.)
                   + pow(sixError,2.)
                   - 162.*two*(4.*pow(two,2.)-four)*wCov24
                   + 18.*(4.*pow(two,2.)-four)*wCov26
-                  - 18.*two*wCov46; 
-                    
+                  - 18.*two*wCov46;                     
   if(qc6ErrorSquared>0.)
   {
    qc6Error = pow(qc6ErrorSquared,0.5);
   } else 
     {
      // cout<<"WARNING: Statistical error of QC{6} is imaginary in multiplicity bin "<<b<<" !!!!"<<endl;
-    }
-                            
-  // statistical error of QC{8}:              
+    }                            
+  // Statistical error of QC{8}:              
   qc8ErrorSquared = 256.*pow(36.*pow(two,3.)-18.*four*two+six,2.)*pow(twoError,2.)
                   + 1296.*pow(4.*pow(two,2.)-four,2.)*pow(fourError,2.)
                   + 256.*pow(two,2.)*pow(sixError,2.)
@@ -4040,153 +4263,115 @@ void AliFlowAnalysisWithQCumulants::CalculateCumulantsIntFlow()
     {
      // cout<<"WARNING: Statistical error of QC{8} is imaginary in multiplicity bin "<<b<<" !!!!"<<endl;
     }
-
-  // store the results and statistical errors for Q-cumulants:
-  fIntFlowQcumulantsVsM[0]->SetBinContent(b,qc2);
-  if(TMath::Abs(qc2)>1.e-44){fIntFlowQcumulantsVsM[0]->SetBinError(b,qc2Error);}
-  fIntFlowQcumulantsVsM[1]->SetBinContent(b,qc4);
-  if(TMath::Abs(qc4)>1.e-44){fIntFlowQcumulantsVsM[1]->SetBinError(b,qc4Error);}
-  fIntFlowQcumulantsVsM[2]->SetBinContent(b,qc6);
-  if(TMath::Abs(qc6)>1.e-44){fIntFlowQcumulantsVsM[2]->SetBinError(b,qc6Error);}
-  fIntFlowQcumulantsVsM[3]->SetBinContent(b,qc8); 
-  if(TMath::Abs(qc8)>1.e-44){fIntFlowQcumulantsVsM[3]->SetBinError(b,qc8Error);}  
+  // Store the results and statistical errors for Q-cumulants:
+  if(TMath::Abs(qc2)>0.)
+  {
+   fIntFlowQcumulantsVsM[0]->SetBinContent(b,qc2);
+   fIntFlowQcumulantsVsM[0]->SetBinError(b,qc2Error);  
+  }
+  if(TMath::Abs(qc4)>0.)
+  {
+   fIntFlowQcumulantsVsM[1]->SetBinContent(b,qc4);  
+   fIntFlowQcumulantsVsM[1]->SetBinError(b,qc4Error);
+  }
+  if(TMath::Abs(qc6)>0.)
+  {
+   fIntFlowQcumulantsVsM[2]->SetBinContent(b,qc6); 
+   fIntFlowQcumulantsVsM[2]->SetBinError(b,qc6Error);
+  }
+  if(TMath::Abs(qc8)>0.)
+  {  
+   fIntFlowQcumulantsVsM[3]->SetBinContent(b,qc8);
+   fIntFlowQcumulantsVsM[3]->SetBinError(b,qc8Error);
+  } 
+  // Rebin in M:
+  for(Int_t co=0;co<4;co++)
+  {
+   value[co] = fIntFlowQcumulantsVsM[co]->GetBinContent(b);
+   error[co] = fIntFlowQcumulantsVsM[co]->GetBinError(b);
+   if(error[co]>0.)
+   {
+    dSum1[co]+=value[co]/(error[co]*error[co]);
+    dSum2[co]+=1./(error[co]*error[co]);
+   }
+  } // end of for(Int_t co=0;co<4;co++) 
  } // end of for(Int_t b=1;b<=nBins;b++)
-  
+ // Store rebinned Q-cumulants:
+ for(Int_t co=0;co<4;co++)
+ {
+  if(dSum2[co]>0.)
+  {
+   fIntFlowQcumulantsRebinnedInM->SetBinContent(co+1,dSum1[co]/dSum2[co]);
+   fIntFlowQcumulantsRebinnedInM->SetBinError(co+1,pow(1./dSum2[co],0.5));
+  }
+ } // end of for(Int_t co=0;co<4;co++)
+ 
 } // end of AliFlowAnalysisWithQCumulants::CalculateCumulantsIntFlow()
 
 //================================================================================================================================ 
 
-void AliFlowAnalysisWithQCumulants::CalculateIntFlow()
+void AliFlowAnalysisWithQCumulants::CalculateReferenceFlow()
 {
- // a) Calculate the final results for reference flow estimates from Q-cumulants.
- // b) Propagate the statistical errors of measured multiparticle correlations to statistical errors of reference flow estimates.  
+ // a) Calculate the final results for reference flow estimates from Q-cumulants;
+ // b) Propagate the statistical errors to reference flow estimates from statistical error of Q-cumulants; 
  // c) Store the results and statistical errors of reference flow estimates in histogram fIntFlow.
  //    Binning of fIntFlow is organized as follows:
  //
- //     1st bin: v{2,QC}
- //     2nd bin: v{4,QC}
- //     3rd bin: v{6,QC}
- //     4th bin: v{8,QC}
+ //            1st bin: v{2,QC}
+ //            2nd bin: v{4,QC}
+ //            3rd bin: v{6,QC}
+ //            4th bin: v{8,QC}
+ //
  
- if(!(fIntFlowCorrelationsHist && fIntFlowCovariances && fIntFlowQcumulants && fIntFlow))
- {
-  cout<<"WARNING: fIntFlowCorrelationsHist && fIntFlowCovariances && fIntFlowQcumulants && fIntFlow is NULL in AFAWQC::CCIF() !!!!"<<endl;
-  exit(0);
- }
-   
+ // Reference flow estimates:
+ Double_t v2 = 0.; // v{2,QC}  
+ Double_t v4 = 0.; // v{4,QC}  
+ Double_t v6 = 0.; // v{6,QC}  
+ Double_t v8 = 0.; // v{8,QC}
+ // Reference flow's statistical errors:
+ Double_t v2Error = 0.; // v{2,QC} stat. error 
+ Double_t v4Error = 0.; // v{4,QC} stat. error
+ Double_t v6Error = 0.; // v{6,QC} stat. error
+ Double_t v8Error = 0.; // v{8,QC} stat. error
+  
  // Q-cumulants:
  Double_t qc2 = fIntFlowQcumulants->GetBinContent(1); // QC{2}  
  Double_t qc4 = fIntFlowQcumulants->GetBinContent(2); // QC{4}  
  Double_t qc6 = fIntFlowQcumulants->GetBinContent(3); // QC{6}  
  Double_t qc8 = fIntFlowQcumulants->GetBinContent(4); // QC{8}
-  
- // correlations:
- Double_t two = fIntFlowCorrelationsHist->GetBinContent(1); // <<2>> 
- Double_t four = fIntFlowCorrelationsHist->GetBinContent(2); // <<4>>  
- Double_t six = fIntFlowCorrelationsHist->GetBinContent(3); // <<6>> 
- Double_t eight = fIntFlowCorrelationsHist->GetBinContent(4); // <<8>>  
- 
- // statistical errors of average 2-, 4-, 6- and 8-particle azimuthal correlations:
- Double_t twoError = fIntFlowCorrelationsHist->GetBinError(1); // statistical error of <2>  
- Double_t fourError = fIntFlowCorrelationsHist->GetBinError(2); // statistical error of <4>   
- Double_t sixError = fIntFlowCorrelationsHist->GetBinError(3); // statistical error of <6> 
- Double_t eightError = fIntFlowCorrelationsHist->GetBinError(4); // statistical error of <8> 
- 
- // covariances (multiplied by prefactor depending on weights - see comments in CalculateCovariancesIntFlow()):
- Double_t wCov24 = fIntFlowCovariances->GetBinContent(1); // Cov(<2>,<4>) * prefactor(w_<2>,w_<4>)
- Double_t wCov26 = fIntFlowCovariances->GetBinContent(2); // Cov(<2>,<6>) * prefactor(w_<2>,w_<6>)
- Double_t wCov28 = fIntFlowCovariances->GetBinContent(3); // Cov(<2>,<8>) * prefactor(w_<2>,w_<8>)
- Double_t wCov46 = fIntFlowCovariances->GetBinContent(4); // Cov(<4>,<6>) * prefactor(w_<4>,w_<6>)
- Double_t wCov48 = fIntFlowCovariances->GetBinContent(5); // Cov(<4>,<8>) * prefactor(w_<4>,w_<8>)
- Double_t wCov68 = fIntFlowCovariances->GetBinContent(6); // Cov(<6>,<8>) * prefactor(w_<6>,w_<8>)
-  
- // integrated flow estimates:
- Double_t v2 = 0.; // v{2,QC}  
- Double_t v4 = 0.; // v{4,QC}  
- Double_t v6 = 0.; // v{6,QC}  
- Double_t v8 = 0.; // v{8,QC}
- 
- // calculate integrated flow estimates from Q-cumulants: 
- if(qc2>=0.) v2 = pow(qc2,1./2.); 
- if(qc4<=0.) v4 = pow(-1.*qc4,1./4.); 
- if(qc6>=0.) v6 = pow((1./4.)*qc6,1./6.); 
- if(qc8<=0.) v8 = pow((-1./33.)*qc8,1./8.); 
-   
- // statistical errors of integrated flow estimates:
- Double_t v2Error = 0.; // statistical error of v{2,QC}  
- Double_t v4Error = 0.; // statistical error of v{4,QC}  
- Double_t v6Error = 0.; // statistical error of v{6,QC}  
- Double_t v8Error = 0.; // statistical error of v{8,QC}
-   
- // squares of statistical errors of integrated flow estimates:
- Double_t v2ErrorSquared = 0.; // squared statistical error of v{2,QC} 
- Double_t v4ErrorSquared = 0.; // squared statistical error of v{4,QC}   
- Double_t v6ErrorSquared = 0.; // squared statistical error of v{6,QC}   
- Double_t v8ErrorSquared = 0.; // squared statistical error of v{8,QC} 
- 
- // calculate squared statistical errors of integrated flow estimates:
- if(two > 0.) 
- { 
-  v2ErrorSquared = (1./(4.*two))*pow(twoError,2.);
- } 
- if(2.*pow(two,2.)-four > 0.)
+ // Q-cumulants's statistical errors: 
+ Double_t qc2Error = fIntFlowQcumulants->GetBinError(1); // QC{2} stat. error  
+ Double_t qc4Error = fIntFlowQcumulants->GetBinError(2); // QC{4} stat. error  
+ Double_t qc6Error = fIntFlowQcumulants->GetBinError(3); // QC{6} stat. error  
+ Double_t qc8Error = fIntFlowQcumulants->GetBinError(4); // QC{8} stat. error
+ // Calculate reference flow estimates from Q-cumulants: 
+ if(qc2>=0.){v2 = pow(qc2,1./2.);} 
+ if(qc4<=0.){v4 = pow(-1.*qc4,1./4.);} 
+ if(qc6>=0.){v6 = pow((1./4.)*qc6,1./6.);}
+ if(qc8<=0.){v8 = pow((-1./33.)*qc8,1./8.);}  
+ // Calculate stat. error for reference flow estimates from stat. error of Q-cumulants:  
+ if(qc2>0.){v2Error = (1./2.)*pow(qc2,-1./2.)*qc2Error;} 
+ if(qc4<0.){v4Error = (1./4.)*pow(-qc4,-3./4.)*qc4Error;} 
+ if(qc6>0.){v6Error = (1./6.)*pow(2.,-1./3.)*pow(qc6,-5./6.)*qc6Error;}   
+ if(qc8<0.){v8Error = (1./8.)*pow(33.,-1./8.)*pow(-qc8,-7./8.)*qc8Error;}   
+ // Print warnings for the 'wrong sign' cumulants: 
+ if(TMath::Abs(v2) < 1.e-44)
  {
-  v4ErrorSquared = (1./pow(2.*pow(two,2.)-four,3./2.))*
-                   (pow(two,2.)*pow(twoError,2.)+(1./16.)*pow(fourError,2.)-(1./2.)*two*wCov24);
+  cout<<" WARNING: Wrong sign QC{2}, couldn't calculate v{2,QC} !!!!"<<endl;
  }
- if(six-9.*four*two+12.*pow(two,3.) > 0.) 
+ if(TMath::Abs(v4) < 1.e-44)
  {
-  v6ErrorSquared = ((1./2.)*(1./pow(2.,2./3.))*(1./pow(six-9.*four*two+12.*pow(two,3.),5./3.)))*
-                   ((9./2.)*pow(4.*pow(two,2.)-four,2.)*pow(twoError,2.) 
-                    + (9./2.)*pow(two,2.)*pow(fourError,2.)+(1./18.)*pow(sixError,2.)
-                    - 9.*two*(4.*pow(two,2.)-four)*wCov24+(4.*pow(two,2.)-four)*wCov26-two*wCov46); 
- }
- if(-1.*eight+16.*six*two+18.*pow(four,2.)-144.*four*pow(two,2.)+144.*pow(two,4.) > 0.) 
- {
-  v8ErrorSquared = (4./pow(33,1./4.))*(1./pow(-1.*eight+16.*six*two+18.*pow(four,2.)-144.*four*pow(two,2.)+144.*pow(two,4.),7./4.))*
-                   (pow(36.*pow(two,3.)-18.*four*two+six,2.)*pow(twoError,2.)
-                    + (81./16.)*pow(4.*pow(two,2.)-four,2.)*pow(fourError,2.)
-                    + pow(two,2.)*pow(sixError,2.)
-                    + (1./256.)*pow(eightError,2.)
-                    - (9./2.)*(36.*pow(two,3.)-18.*four*two+six)*(4.*pow(two,2.)-four)*wCov24
-                    + 2.*two*(36.*pow(two,3.)-18.*four*two+six)*wCov26
-                    - (1./8.)*(36.*pow(two,3.)-18.*four*two+six)*wCov28                    
-                    - (9./2.)*two*(4.*pow(two,2.)-four)*wCov46                   
-                    + (9./32.)*(4.*pow(two,2.)-four)*wCov48                    
-                    - (1./8.)*two*wCov68);
+  cout<<" WARNING: Wrong sign QC{4}, couldn't calculate v{4,QC} !!!!"<<endl;
  } 
-
- // calculate statistical errors of integrated flow estimates: 
- if(v2ErrorSquared > 0.)
+ if(TMath::Abs(v6) < 1.e-44)
  {
-  v2Error = pow(v2ErrorSquared,0.5);
- } else
-   {
-    cout<<"WARNING: Statistical error of v{2,QC} is imaginary !!!!"<<endl;
-   }    
- if(v4ErrorSquared > 0.)
+  cout<<" WARNING: Wrong sign QC{6}, couldn't calculate v{6,QC} !!!!"<<endl; 
+ }
+ if(TMath::Abs(v8) < 1.e-44)
  {
-  v4Error = pow(v4ErrorSquared,0.5);
- } else
-   {
-    cout<<"WARNING: Statistical error of v{4,QC} is imaginary !!!!"<<endl;
-   }     
- if(v6ErrorSquared > 0.)
- {
-  v6Error = pow(v6ErrorSquared,0.5);
- } else
-   {
-    cout<<"WARNING: Statistical error of v{6,QC} is imaginary !!!!"<<endl;
-   }     
- if(v8ErrorSquared > 0.)
- {
-  v8Error = pow(v8ErrorSquared,0.5);
- } else
-   {
-    cout<<"WARNING: Statistical error of v{8,QC} is imaginary !!!!"<<endl;
-   }    
-                     
- // store the results and statistical errors of integrated flow estimates:
+  cout<<" WARNING: Wrong sign QC{8}, couldn't calculate v{8,QC} !!!!"<<endl;
+ }                       
+ // Store the results and statistical errors of integrated flow estimates:
  fIntFlow->SetBinContent(1,v2);
  fIntFlow->SetBinError(1,v2Error);
  fIntFlow->SetBinContent(2,v4);
@@ -4194,289 +4379,158 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlow()
  fIntFlow->SetBinContent(3,v6);
  fIntFlow->SetBinError(3,v6Error);
  fIntFlow->SetBinContent(4,v8);
- fIntFlow->SetBinError(4,v8Error);
- 
- // versus multiplicity: 
+ fIntFlow->SetBinError(4,v8Error);  
+  
+ // Versus multiplicity: 
+ if(!fCalculateCumulantsVsM){return;} 
  Int_t nBins = fIntFlowCorrelationsVsMPro[0]->GetNbinsX(); // to be improved (hardwired 0) 
  for(Int_t b=1;b<=nBins;b++)
  {
   // Q-cumulants:
-  qc2 = fIntFlowQcumulantsVsM[0]->GetBinContent(b); // QC{2}  
-  qc4 = fIntFlowQcumulantsVsM[1]->GetBinContent(b); // QC{4}  
-  qc6 = fIntFlowQcumulantsVsM[2]->GetBinContent(b); // QC{6}  
-  qc8 = fIntFlowQcumulantsVsM[3]->GetBinContent(b); // QC{8}
+  Double_t qc2VsM = fIntFlowQcumulantsVsM[0]->GetBinContent(b); // QC{2}  
+  Double_t qc4VsM = fIntFlowQcumulantsVsM[1]->GetBinContent(b); // QC{4}  
+  Double_t qc6VsM = fIntFlowQcumulantsVsM[2]->GetBinContent(b); // QC{6}  
+  Double_t qc8VsM = fIntFlowQcumulantsVsM[3]->GetBinContent(b); // QC{8}
+  // Q-cumulants's statistical errors: 
+  Double_t qc2ErrorVsM = fIntFlowQcumulantsVsM[0]->GetBinError(b); // QC{2} stat. error  
+  Double_t qc4ErrorVsM = fIntFlowQcumulantsVsM[1]->GetBinError(b); // QC{4} stat. error  
+  Double_t qc6ErrorVsM = fIntFlowQcumulantsVsM[2]->GetBinError(b); // QC{6} stat. error  
+  Double_t qc8ErrorVsM = fIntFlowQcumulantsVsM[3]->GetBinError(b); // QC{8} stat. error
+  // Reference flow estimates:
+  Double_t v2VsM = 0.; // v{2,QC}  
+  Double_t v4VsM = 0.; // v{4,QC}  
+  Double_t v6VsM = 0.; // v{6,QC}  
+  Double_t v8VsM = 0.; // v{8,QC}
+  // Reference flow estimates errors:
+  Double_t v2ErrorVsM = 0.; // v{2,QC} stat. error  
+  Double_t v4ErrorVsM = 0.; // v{4,QC} stat. error
+  Double_t v6ErrorVsM = 0.; // v{6,QC} stat. error  
+  Double_t v8ErrorVsM = 0.; // v{8,QC} stat. error
+  // Calculate reference flow estimates from Q-cumulants: 
+  if(qc2VsM>=0.){v2VsM = pow(qc2VsM,1./2.);} 
+  if(qc4VsM<=0.){v4VsM = pow(-1.*qc4VsM,1./4.);} 
+  if(qc6VsM>=0.){v6VsM = pow((1./4.)*qc6VsM,1./6.);}
+  if(qc8VsM<=0.){v8VsM = pow((-1./33.)*qc8VsM,1./8.);}  
+  // Calculate stat. error for reference flow estimates from stat. error of Q-cumulants: 
+  if(qc2VsM>0.){v2ErrorVsM = (1./2.)*pow(qc2VsM,-1./2.)*qc2ErrorVsM;} 
+  if(qc4VsM<0.){v4ErrorVsM = (1./4.)*pow(-qc4VsM,-3./4.)*qc4ErrorVsM;} 
+  if(qc6VsM>0.){v6ErrorVsM = (1./6.)*pow(2.,-1./3.)*pow(qc6VsM,-5./6.)*qc6ErrorVsM;}   
+  if(qc8VsM<0.){v8ErrorVsM = (1./8.)*pow(33.,-1./8.)*pow(-qc8VsM,-7./8.)*qc8ErrorVsM;}                       
+  // Store the results and statistical errors of integrated flow estimates:
+  fIntFlowVsM[0]->SetBinContent(b,v2VsM);
+  fIntFlowVsM[0]->SetBinError(b,v2ErrorVsM);
+  fIntFlowVsM[1]->SetBinContent(b,v4VsM);
+  fIntFlowVsM[1]->SetBinError(b,v4ErrorVsM);
+  fIntFlowVsM[2]->SetBinContent(b,v6VsM);
+  fIntFlowVsM[2]->SetBinError(b,v6ErrorVsM);
+  fIntFlowVsM[3]->SetBinContent(b,v8VsM);
+  fIntFlowVsM[3]->SetBinError(b,v8ErrorVsM);
+ } // end of for(Int_t b=1;b<=nBins;b++)
+ 
+ // 'Rebinned in M' calculation: // to be improved - this can be implemented better:   
+ // Reference flow estimates:
+ Double_t v2RebinnedInM = 0.; // v{2,QC}  
+ Double_t v4RebinnedInM = 0.; // v{4,QC}  
+ Double_t v6RebinnedInM = 0.; // v{6,QC}  
+ Double_t v8RebinnedInM = 0.; // v{8,QC}
+ // Reference flow's statistical errors:
+ Double_t v2ErrorRebinnedInM = 0.; // v{2,QC} stat. error 
+ Double_t v4ErrorRebinnedInM = 0.; // v{4,QC} stat. error
+ Double_t v6ErrorRebinnedInM = 0.; // v{6,QC} stat. error
+ Double_t v8ErrorRebinnedInM = 0.; // v{8,QC} stat. error
+ // Q-cumulants:
+ Double_t qc2RebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinContent(1); // QC{2}  
+ Double_t qc4RebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinContent(2); // QC{4}  
+ Double_t qc6RebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinContent(3); // QC{6}  
+ Double_t qc8RebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinContent(4); // QC{8}
+ // Q-cumulants's statistical errors: 
+ Double_t qc2ErrorRebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinError(1); // QC{2} stat. error  
+ Double_t qc4ErrorRebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinError(2); // QC{4} stat. error  
+ Double_t qc6ErrorRebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinError(3); // QC{6} stat. error  
+ Double_t qc8ErrorRebinnedInM = fIntFlowQcumulantsRebinnedInM->GetBinError(4); // QC{8} stat. error
+ // Calculate reference flow estimates from Q-cumulants: 
+ if(qc2RebinnedInM>=0.){v2RebinnedInM = pow(qc2RebinnedInM,1./2.);} 
+ if(qc4RebinnedInM<=0.){v4RebinnedInM = pow(-1.*qc4RebinnedInM,1./4.);} 
+ if(qc6RebinnedInM>=0.){v6RebinnedInM = pow((1./4.)*qc6RebinnedInM,1./6.);}
+ if(qc8RebinnedInM<=0.){v8RebinnedInM = pow((-1./33.)*qc8RebinnedInM,1./8.);}  
+ // Calculate stat. error for reference flow estimates from stat. error of Q-cumulants: 
+ if(qc2RebinnedInM>0.){v2ErrorRebinnedInM = (1./2.)*pow(qc2RebinnedInM,-1./2.)*qc2ErrorRebinnedInM;} 
+ if(qc4RebinnedInM<0.){v4ErrorRebinnedInM = (1./4.)*pow(-qc4RebinnedInM,-3./4.)*qc4ErrorRebinnedInM;} 
+ if(qc6RebinnedInM>0.){v6ErrorRebinnedInM = (1./6.)*pow(2.,-1./3.)*pow(qc6RebinnedInM,-5./6.)*qc6ErrorRebinnedInM;}   
+ if(qc8RebinnedInM<0.){v8ErrorRebinnedInM = (1./8.)*pow(33.,-1./8.)*pow(-qc8RebinnedInM,-7./8.)*qc8ErrorRebinnedInM;}   
+ // Print warnings for the 'wrong sign' cumulants: 
+ if(TMath::Abs(v2RebinnedInM) < 1.e-44)
+ {
+  cout<<" WARNING: Wrong sign QC{2} rebinned in M, couldn't calculate v{2,QC} !!!!"<<endl;
+ }
+ if(TMath::Abs(v4RebinnedInM) < 1.e-44)
+ {
+  cout<<" WARNING: Wrong sign QC{4} rebinned in M, couldn't calculate v{4,QC} !!!!"<<endl;
+ }
+ if(TMath::Abs(v6RebinnedInM) < 1.e-44)
+ {
+  cout<<" WARNING: Wrong sign QC{6} rebinned in M, couldn't calculate v{6,QC} !!!!"<<endl;
+ }
+ if(TMath::Abs(v8RebinnedInM) < 1.e-44)
+ {
+  cout<<" WARNING: Wrong sign QC{8} rebinned in M, couldn't calculate v{8,QC} !!!!"<<endl;
+ }                       
+ // Store the results and statistical errors of integrated flow estimates:
+ fIntFlowRebinnedInM->SetBinContent(1,v2RebinnedInM);
+ fIntFlowRebinnedInM->SetBinError(1,v2ErrorRebinnedInM);
+ fIntFlowRebinnedInM->SetBinContent(2,v4RebinnedInM);
+ fIntFlowRebinnedInM->SetBinError(2,v4ErrorRebinnedInM);
+ fIntFlowRebinnedInM->SetBinContent(3,v6RebinnedInM);
+ fIntFlowRebinnedInM->SetBinError(3,v6ErrorRebinnedInM);
+ fIntFlowRebinnedInM->SetBinContent(4,v8RebinnedInM);
+ fIntFlowRebinnedInM->SetBinError(4,v8ErrorRebinnedInM);    
   
-  // correlations:
-  two = fIntFlowCorrelationsVsMHist[0]->GetBinContent(b); // <<2>> 
-  four = fIntFlowCorrelationsVsMHist[1]->GetBinContent(b); // <<4>>  
-  six = fIntFlowCorrelationsVsMHist[2]->GetBinContent(b); // <<6>> 
-  eight = fIntFlowCorrelationsVsMHist[3]->GetBinContent(b); // <<8>>  
- 
-  // statistical errors of average 2-, 4-, 6- and 8-particle azimuthal correlations:
-  twoError = fIntFlowCorrelationsVsMHist[0]->GetBinError(b); // statistical error of <2>  
-  fourError = fIntFlowCorrelationsVsMHist[1]->GetBinError(b); // statistical error of <4>   
-  sixError = fIntFlowCorrelationsVsMHist[2]->GetBinError(b); // statistical error of <6> 
-  eightError = fIntFlowCorrelationsVsMHist[3]->GetBinError(b); // statistical error of <8> 
- 
-  // covariances (multiplied by prefactor depending on weights - see comments in CalculateCovariancesIntFlow()):
-  wCov24 = fIntFlowCovariancesVsM[0]->GetBinContent(b); // Cov(<2>,<4>) * prefactor(w_<2>,w_<4>)
-  wCov26 = fIntFlowCovariancesVsM[1]->GetBinContent(b); // Cov(<2>,<6>) * prefactor(w_<2>,w_<6>)
-  wCov28 = fIntFlowCovariancesVsM[2]->GetBinContent(b); // Cov(<2>,<8>) * prefactor(w_<2>,w_<8>)
-  wCov46 = fIntFlowCovariancesVsM[3]->GetBinContent(b); // Cov(<4>,<6>) * prefactor(w_<4>,w_<6>)
-  wCov48 = fIntFlowCovariancesVsM[4]->GetBinContent(b); // Cov(<4>,<8>) * prefactor(w_<4>,w_<8>)
-  wCov68 = fIntFlowCovariancesVsM[5]->GetBinContent(b); // Cov(<6>,<8>) * prefactor(w_<6>,w_<8>)
-  
-  // integrated flow estimates:
-  v2 = 0.; // v{2,QC}  
-  v4 = 0.; // v{4,QC}  
-  v6 = 0.; // v{6,QC}  
-  v8 = 0.; // v{8,QC}
- 
-  // calculate integrated flow estimates from Q-cumulants: 
-  if(qc2>=0.) v2 = pow(qc2,1./2.); 
-  if(qc4<=0.) v4 = pow(-1.*qc4,1./4.); 
-  if(qc6>=0.) v6 = pow((1./4.)*qc6,1./6.); 
-  if(qc8<=0.) v8 = pow((-1./33.)*qc8,1./8.); 
-   
-  // statistical errors of integrated flow estimates:
-  v2Error = 0.; // statistical error of v{2,QC}  
-  v4Error = 0.; // statistical error of v{4,QC}  
-  v6Error = 0.; // statistical error of v{6,QC}  
-  v8Error = 0.; // statistical error of v{8,QC}
-   
-  // squares of statistical errors of integrated flow estimates:
-  v2ErrorSquared = 0.; // squared statistical error of v{2,QC} 
-  v4ErrorSquared = 0.; // squared statistical error of v{4,QC}   
-  v6ErrorSquared = 0.; // squared statistical error of v{6,QC}   
-  v8ErrorSquared = 0.; // squared statistical error of v{8,QC} 
- 
-  // calculate squared statistical errors of integrated flow estimates:
-  if(two > 0.) 
-  { 
-   v2ErrorSquared = (1./(4.*two))*pow(twoError,2.);
-  } 
-  if(2.*pow(two,2.)-four > 0.)
-  {
-   v4ErrorSquared = (1./pow(2.*pow(two,2.)-four,3./2.))*
-                    (pow(two,2.)*pow(twoError,2.)+(1./16.)*pow(fourError,2.)-(1./2.)*two*wCov24);
-  }
-  if(six-9.*four*two+12.*pow(two,3.) > 0.) 
-  {
-   v6ErrorSquared = ((1./2.)*(1./pow(2.,2./3.))*(1./pow(six-9.*four*two+12.*pow(two,3.),5./3.)))*
-                    ((9./2.)*pow(4.*pow(two,2.)-four,2.)*pow(twoError,2.) 
-                     + (9./2.)*pow(two,2.)*pow(fourError,2.)+(1./18.)*pow(sixError,2.)
-                     - 9.*two*(4.*pow(two,2.)-four)*wCov24+(4.*pow(two,2.)-four)*wCov26-two*wCov46); 
-  }
-  if(-1.*eight+16.*six*two+18.*pow(four,2.)-144.*four*pow(two,2.)+144.*pow(two,4.) > 0.) 
-  {
-   v8ErrorSquared = (4./pow(33,1./4.))*(1./pow(-1.*eight+16.*six*two+18.*pow(four,2.)-144.*four*pow(two,2.)+144.*pow(two,4.),7./4.))*
-                    (pow(36.*pow(two,3.)-18.*four*two+six,2.)*pow(twoError,2.)
-                     + (81./16.)*pow(4.*pow(two,2.)-four,2.)*pow(fourError,2.)
-                     + pow(two,2.)*pow(sixError,2.)
-                     + (1./256.)*pow(eightError,2.)
-                     - (9./2.)*(36.*pow(two,3.)-18.*four*two+six)*(4.*pow(two,2.)-four)*wCov24
-                     + 2.*two*(36.*pow(two,3.)-18.*four*two+six)*wCov26
-                     - (1./8.)*(36.*pow(two,3.)-18.*four*two+six)*wCov28                    
-                     - (9./2.)*two*(4.*pow(two,2.)-four)*wCov46                   
-                      + (9./32.)*(4.*pow(two,2.)-four)*wCov48                    
-                     - (1./8.)*two*wCov68);
-  } 
-
-  // calculate statistical errors of integrated flow estimates: 
-  if(v2ErrorSquared > 0.)
-  {
-   v2Error = pow(v2ErrorSquared,0.5);
-  } else
-    {
-     // cout<<"WARNING: Statistical error of v{2,QC} is imaginary !!!!"<<endl;
-    }     
-  if(v4ErrorSquared > 0.)
-  {
-   v4Error = pow(v4ErrorSquared,0.5);
-  } else
-    {
-     // cout<<"WARNING: Statistical error of v{4,QC} is imaginary !!!!"<<endl;
-    }     
-  if(v6ErrorSquared > 0.)
-  {
-   v6Error = pow(v6ErrorSquared,0.5);
-  } else
-    {
-     // cout<<"WARNING: Statistical error of v{6,QC} is imaginary !!!!"<<endl;
-    }     
-  if(v8ErrorSquared > 0.)
-  {
-   v8Error = pow(v8ErrorSquared,0.5);
-  } else
-    {
-     // cout<<"WARNING: Statistical error of v{8,QC} is imaginary !!!!"<<endl;
-    }    
-                     
-  // store the results and statistical errors of integrated flow estimates:
-  fIntFlowVsM[0]->SetBinContent(b,v2);
-  fIntFlowVsM[0]->SetBinError(b,v2Error);
-  fIntFlowVsM[1]->SetBinContent(b,v4);
-  fIntFlowVsM[1]->SetBinError(b,v4Error);
-  fIntFlowVsM[2]->SetBinContent(b,v6);
-  fIntFlowVsM[2]->SetBinError(b,v6Error);
-  fIntFlowVsM[3]->SetBinContent(b,v8);
-  fIntFlowVsM[3]->SetBinError(b,v8Error);
-  } // end of for(Int_t b=1;b<=nBins;b++) 
-       
-} // end of AliFlowAnalysisWithQCumulants::CalculateIntFlow()
+} // end of AliFlowAnalysisWithQCumulants::CalculateReferenceFlow()
 
 //================================================================================================================================ 
 
 void AliFlowAnalysisWithQCumulants::FillCommonHistResultsIntFlow()
 {
- // Fill in AliFlowCommonHistResults histograms relevant for 'NONAME' integrated flow (to be improved (name))
+ // Fill in AliFlowCommonHistResults histograms relevant for reference flow.
  
- if(!fIntFlow)
- {
-  cout<<"WARNING: fIntFlow is NULL in AFAWQC::FCHRIF() !!!!"<<endl;
-  exit(0); 
- }  
-    
- if(!(fCommonHistsResults2nd && fCommonHistsResults4th && fCommonHistsResults6th && fCommonHistsResults8th))
- {
-  cout<<"WARNING: fCommonHistsResults2nd && fCommonHistsResults4th && fCommonHistsResults6th && fCommonHistsResults8th"<<endl; 
-  cout<<"         is NULL in AFAWQC::FCHRIF() !!!!"<<endl;
-  exit(0);
- }
+ // There are two possibilities here:
+ // a) Store minimum bias reference flow - use SetMinimumBiasReferenceFlow(kTRUE). This result is 
+ //    biased by the interplay between nonflow correlations and multiplicity fluctuations and is 
+ //    also stored in local histogram fIntFlow; 
+ // b) Store reference flow obtained from flow analysis performed at fixed multiplicity and 
+ //    rebinned only at the end of the day - use SetMinimumBiasReferenceFlow(kFALSE). This result
+ //    is also stored in local histogram fIntFlowRebinnedInM.
  
- Double_t v2 = fIntFlow->GetBinContent(1);
- Double_t v4 = fIntFlow->GetBinContent(2);
- Double_t v6 = fIntFlow->GetBinContent(3);
- Double_t v8 = fIntFlow->GetBinContent(4);
+ // Reference flow estimates:
+ Double_t v[4] = {0.};
+ // Statistical errors of reference flow estimates:
+ Double_t vError[4] = {0.};
   
- Double_t v2Error = fIntFlow->GetBinError(1);
- Double_t v4Error = fIntFlow->GetBinError(2);
- Double_t v6Error = fIntFlow->GetBinError(3);
- Double_t v8Error = fIntFlow->GetBinError(4);
- 
- fCommonHistsResults2nd->FillIntegratedFlow(v2,v2Error); // to be improved (hardwired 2nd in the name)  
- fCommonHistsResults4th->FillIntegratedFlow(v4,v4Error); // to be improved (hardwired 4th in the name)
+ for(Int_t b=0;b<4;b++)
+ {
+  if(fMinimumBiasReferenceFlow)
+  { 
+   v[b] = fIntFlow->GetBinContent(b+1);
+   vError[b] = fIntFlow->GetBinError(b+1);
+  } else
+    {
+     v[b] = fIntFlowRebinnedInM->GetBinContent(b+1);
+     vError[b] = fIntFlowRebinnedInM->GetBinError(b+1);
+    }
+ } // end of for(Int_t b=0;b<4;b++)
+  
+ // Fill AliFlowCommonHistResults histogram:
+ fCommonHistsResults2nd->FillIntegratedFlow(v[0],vError[0]); // to be improved (hardwired 2nd in the name)  
+ fCommonHistsResults4th->FillIntegratedFlow(v[1],vError[1]); // to be improved (hardwired 4th in the name)
  if(!(fUsePhiWeights||fUsePtWeights||fUseEtaWeights)) // to be improved (calculate also 6th and 8th order)
  {
-  fCommonHistsResults6th->FillIntegratedFlow(v6,v6Error); // to be improved (hardwired 6th in the name)
-  fCommonHistsResults8th->FillIntegratedFlow(v8,v8Error); // to be improved (hardwired 8th in the name) 
+  fCommonHistsResults6th->FillIntegratedFlow(v[2],vError[2]); // to be improved (hardwired 6th in the name)
+  fCommonHistsResults8th->FillIntegratedFlow(v[3],vError[3]); // to be improved (hardwired 8th in the name) 
  }
  
 } // end of AliFlowAnalysisWithQCumulants::FillCommonHistResultsIntFlow()
 
-
 //================================================================================================================================ 
-
-
-/*
-void AliFlowAnalysisWithQCumulants::ApplyCorrectionForNonUniformAcceptanceToCumulantsForIntFlow(Bool_t useParticleWeights, TString eventWeights)
-{
- // apply correction for non-uniform acceptance to cumulants for integrated flow 
- // (Remark: non-corrected cumulants are accessed from fCumulants[pW][0], corrected cumulants are stored in fCumulants[pW][1])
- 
- // shortcuts for the flags:
- Int_t pW = (Int_t)(useParticleWeights); // 0=pWeights not used, 1=pWeights used
- Int_t eW = -1;
- 
- if(eventWeights == "exact")
- {
-  eW = 0;
- }
- 
- if(!(fCumulants[pW][eW][0] && fCumulants[pW][eW][1] && fCorrections[pW][eW]))
- {
-  cout<<"WARNING: fCumulants[pW][eW][0] && fCumulants[pW][eW][1] && fCorrections[pW][eW] is NULL in AFAWQC::ACFNUATCFIF() !!!!"<<endl;
-  cout<<"pW = "<<pW<<endl;
-  cout<<"eW = "<<eW<<endl;
-  exit(0);
- } 
-  
- // non-corrected cumulants:
- Double_t qc2 = fCumulants[pW][eW][0]->GetBinContent(1); 
- Double_t qc4 = fCumulants[pW][eW][0]->GetBinContent(2); 
- Double_t qc6 = fCumulants[pW][eW][0]->GetBinContent(3); 
- Double_t qc8 = fCumulants[pW][eW][0]->GetBinContent(4); 
- // statistical error of non-corrected cumulants:  
- Double_t qc2Error = fCumulants[pW][eW][0]->GetBinError(1); 
- Double_t qc4Error = fCumulants[pW][eW][0]->GetBinError(2); 
- Double_t qc6Error = fCumulants[pW][eW][0]->GetBinError(3); 
- Double_t qc8Error = fCumulants[pW][eW][0]->GetBinError(4); 
- // corrections for non-uniform acceptance:
- Double_t qc2Correction = fCorrections[pW][eW]->GetBinContent(1); 
- Double_t qc4Correction = fCorrections[pW][eW]->GetBinContent(2); 
- Double_t qc6Correction = fCorrections[pW][eW]->GetBinContent(3); 
- Double_t qc8Correction = fCorrections[pW][eW]->GetBinContent(4); 
- // corrected cumulants:
- Double_t qc2Corrected = qc2 + qc2Correction;
- Double_t qc4Corrected = qc4 + qc4Correction;
- Double_t qc6Corrected = qc6 + qc6Correction;
- Double_t qc8Corrected = qc8 + qc8Correction;
-  
- // ... to be improved (I need here also to correct error of QCs for NUA. 
- // For simplicity sake I assume at the moment that this correction is negliglible, but it will be added eventually...)
- 
- // store corrected results and statistical errors for cumulants:   
- fCumulants[pW][eW][1]->SetBinContent(1,qc2Corrected);
- fCumulants[pW][eW][1]->SetBinContent(2,qc4Corrected);
- fCumulants[pW][eW][1]->SetBinContent(3,qc6Corrected);
- fCumulants[pW][eW][1]->SetBinContent(4,qc8Corrected);
- fCumulants[pW][eW][1]->SetBinError(1,qc2Error); // to be improved (correct also qc2Error for NUA)
- fCumulants[pW][eW][1]->SetBinError(2,qc4Error); // to be improved (correct also qc4Error for NUA)
- fCumulants[pW][eW][1]->SetBinError(3,qc6Error); // to be improved (correct also qc6Error for NUA)
- fCumulants[pW][eW][1]->SetBinError(4,qc8Error); // to be improved (correct also qc8Error for NUA)  
-  
-} // end of AliFlowAnalysisWithQCumulants::ApplyCorrectionForNonUniformAcceptanceToCumulantsForIntFlow(Bool_t useParticleWeights, TString eventWeights)
-*/
-
-
-//================================================================================================================================
-
-
-/*  
-void AliFlowAnalysisWithQCumulants::PrintQuantifyingCorrectionsForNonUniformAcceptance(Bool_t useParticleWeights, TString eventWeights)
-{
- // print on the screen QC{n,biased}/QC{n,corrected}
- 
- // shortcuts for the flags:
- Int_t pW = (Int_t)(useParticleWeights); // 0=pWeights not used, 1=pWeights used
- 
- Int_t eW = -1;
- 
- if(eventWeights == "exact")
- {
-  eW = 0;
- } 
- 
- if(!(fCumulants[pW][eW][0] && fCumulants[pW][eW][1]))
- {
-  cout<<"WARNING: fCumulants[pW][eW][0] && fCumulants[pW][eW][1] is NULL in AFAWQC::PQCFNUA() !!!!"<<endl;
-  cout<<"pW = "<<pW<<endl;
-  cout<<"eW = "<<eW<<endl;
-  exit(0);
- }
-   
- cout<<endl;
- cout<<" Quantifying the bias to Q-cumulants from"<<endl;
- cout<<"  non-uniform acceptance of the detector:"<<endl;
- cout<<endl;
-  
- if(fCumulants[pW][eW][1]->GetBinContent(1)) 
- { 
-  cout<<"  QC{2,biased}/QC{2,corrected} = "<<(fCumulants[pW][eW][0]->GetBinContent(1))/(fCumulants[pW][eW][1]->GetBinContent(1))<<endl;   
- }
- if(fCumulants[pW][eW][1]->GetBinContent(2)) 
- { 
-  cout<<"  QC{4,biased}/QC{4,corrected} = "<<fCumulants[pW][eW][0]->GetBinContent(2)/fCumulants[pW][eW][1]->GetBinContent(2)<<endl;   
- }
- 
- cout<<endl;
-            
-} // end of AliFlowAnalysisWithQCumulants::PrintQuantifyingCorrectionsForNonUniformAcceptance(Bool_t useParticleWeights, TString eventWeights)
-*/
-
-
-//================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelationsUsingParticleWeights()
 {
@@ -4654,52 +4708,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelationsUsingParticleWei
  
 } // end of AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrelationsUsingParticleWeights()
 
-
 //================================================================================================================================
-
-
-void AliFlowAnalysisWithQCumulants::CalculateWeightedQProductsForIntFlow() // to be improved (completed)
-{
- // calculate averages like <<2><4>>, <<2><6>>, <<4><6>>, etc. which are needed to calculate covariances 
- // Remark: here we take weighted correlations!
- 
- /*
- 
- // binning of fQProductsW is organized as follows:
- // 
- // 1st bin: <2><4> 
- // 2nd bin: <2><6>
- // 3rd bin: <2><8>
- // 4th bin: <4><6>
- // 5th bin: <4><8>
- // 6th bin: <6><8>
- 
- Double_t dMult = (*fSMpk)(0,0); // multiplicity (number of particles used to determine the reaction plane)
-
- Double_t dM11 = (*fSMpk)(1,1)-(*fSMpk)(0,2); // dM11 = sum_{i,j=1,i!=j}^M w_i w_j
- Double_t dM1111 = (*fSMpk)(3,1)-6.*(*fSMpk)(0,2)*(*fSMpk)(1,1)  
-                 + 8.*(*fSMpk)(0,3)*(*fSMpk)(0,1)
-                 + 3.*(*fSMpk)(1,2)-6.*(*fSMpk)(0,4); // dM1111 = sum_{i,j,k,l=1,i!=j!=k!=l}^M w_i w_j w_k w_l
-
- Double_t twoEBEW = 0.; // <2>
- Double_t fourEBEW = 0.; // <4>
- 
- twoEBEW = fQCorrelationsEBE[1]->GetBinContent(1);
- fourEBEW = fQCorrelationsEBE[1]->GetBinContent(11);
- 
- // <2><4>
- if(dMult>3)
- {
-  fQProducts[1][0]->Fill(0.5,twoEBEW*fourEBEW,dM11*dM1111);
- }
- 
- */
- 
-} // end of AliFlowAnalysisWithQCumulants::CalculateWeightedQProductsForIntFlow()  
-
-
-//================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::InitializeArraysForIntFlow()
 {
@@ -4711,7 +4720,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForIntFlow()
   fIntFlowEventWeightForCorrectionTermsForNUAEBE[sc] = NULL;
   fIntFlowCorrectionTermsForNUAPro[sc] = NULL;
   fIntFlowCorrectionTermsForNUAHist[sc] = NULL;
-  for(Int_t ci=0;ci<4;ci++) // correction term index
+  for(Int_t ci=0;ci<4;ci++) // correction term index (to be improved - hardwired 4)
   {
    fIntFlowCorrectionTermsForNUAVsMPro[sc][ci] = NULL;
   }
@@ -4724,7 +4733,7 @@ void AliFlowAnalysisWithQCumulants::InitializeArraysForIntFlow()
  {
   fIntFlowSumOfEventWeights[power] = NULL;    
  }
- for(Int_t i=0;i<3;i++) // print on the screen the final results (0=NONAME, 1=RP, 2=POI)
+ for(Int_t i=0;i<4;i++) // print on the screen the final results (0=RF, 1=RP, 2=POI, 3=RF (rebbined in M))
  {
   fPrintFinalResults[i] = kTRUE;
  }
@@ -6051,13 +6060,11 @@ void AliFlowAnalysisWithQCumulants::FillCommonHistResultsDiffFlow(TString type)
  
 } // end of void AliFlowAnalysisWithQCumulants::FillCommonHistResultsDiffFlow(TString type, Bool_t useParticleWeights, TString eventWeights, Bool_t correctedForNUA)
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::AccessConstants()
 {
- // Access needed common constants from AliFlowCommonConstants
+ // Access needed common constants from AliFlowCommonConstants.
  
  fnBinsPhi = AliFlowCommonConstants::GetMaster()->GetNbinsPhi();
  fPhiMin = AliFlowCommonConstants::GetMaster()->GetPhiMin();	     
@@ -6074,9 +6081,7 @@ void AliFlowAnalysisWithQCumulants::AccessConstants()
  
 } // end of void AliFlowAnalysisWithQCumulants::AccessConstants()
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::CrossCheckSettings()
 {
@@ -6108,7 +6113,10 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowSumOfEventWeights()
   for(Int_t ci=0;ci<4;ci++) // correlation index
   { 
    fIntFlowSumOfEventWeights[p]->Fill(ci+0.5,pow(fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci+1),p+1)); 
-   fIntFlowSumOfEventWeightsVsM[ci][p]->Fill(dMult+0.5,pow(fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci+1),p+1));
+   if(fCalculateCumulantsVsM)
+   {
+    fIntFlowSumOfEventWeightsVsM[ci][p]->Fill(dMult+0.5,pow(fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci+1),p+1)); // to be improved: dMult => sum of weights?
+   }
   }
  }
   
@@ -6124,7 +6132,7 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowSumOfEventWeightsNUA()
  {
   for(Int_t p=0;p<2;p++) // power-1
   {
-   for(Int_t ci=0;ci<3;ci++) // nua term index
+   for(Int_t ci=0;ci<4;ci++) // nua term index
    { 
     fIntFlowSumOfEventWeightsNUA[sc][p]->Fill(ci+0.5,pow(fIntFlowEventWeightForCorrectionTermsForNUAEBE[sc]->GetBinContent(ci+1),p+1)); 
    }
@@ -6150,10 +6158,13 @@ void AliFlowAnalysisWithQCumulants::CalculateIntFlowSumOfProductOfEventWeights()
   {
    fIntFlowSumOfProductOfEventWeights->Fill(0.5+counter,
                                             fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci1)*
-                                            fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci2));                                           
-   fIntFlowSumOfProductOfEventWeightsVsM[counter]->Fill(dMult+0.5,
-                                                        fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci1)*
-                                                        fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci2));
+                                            fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci2));
+   if(fCalculateCumulantsVsM)
+   {                                                                                    
+    fIntFlowSumOfProductOfEventWeightsVsM[counter]->Fill(dMult+0.5, // to be improved: dMult => sum of weights?
+                                                         fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci1)*
+                                                         fIntFlowEventWeightsForCorrelationsEBE->GetBinContent(ci2));
+   } // end of if(fCalculateCumulantsVsM)
    counter++;                                         
   }
  }
@@ -7298,9 +7309,7 @@ void AliFlowAnalysisWithQCumulants::CalculateDiffFlow(TString type, TString ptOr
 
 } // end of AliFlowAnalysisWithQCumulants::CalculateDiffFlow(TString type, Bool_t useParticleWeights)
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::StoreIntFlowFlags()
 {
@@ -7330,13 +7339,15 @@ void AliFlowAnalysisWithQCumulants::StoreIntFlowFlags()
  fIntFlowFlags->Fill(3.5,(Int_t)fPrintFinalResults[0]);
  fIntFlowFlags->Fill(4.5,(Int_t)fPrintFinalResults[1]);
  fIntFlowFlags->Fill(5.5,(Int_t)fPrintFinalResults[2]);
- fIntFlowFlags->Fill(6.5,(Int_t)fApplyCorrectionForNUAVsM);
+ fIntFlowFlags->Fill(6.5,(Int_t)fPrintFinalResults[3]);
+ fIntFlowFlags->Fill(7.5,(Int_t)fApplyCorrectionForNUAVsM);
+ fIntFlowFlags->Fill(8.5,(Int_t)fPropagateErrorAlsoFromNIT);
+ fIntFlowFlags->Fill(9.5,(Int_t)fCalculateCumulantsVsM);
+ fIntFlowFlags->Fill(10.5,(Int_t)fMinimumBiasReferenceFlow);
  
 } // end of void AliFlowAnalysisWithQCumulants::StoreIntFlowFlags()
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::StoreDiffFlowFlags()
 {
@@ -7366,7 +7377,14 @@ void AliFlowAnalysisWithQCumulants::GetPointersForCommonHistograms()
  TString commonHistsName = "AliFlowCommonHistQC";
  commonHistsName += fAnalysisLabel->Data();
  AliFlowCommonHist *commonHist = dynamic_cast<AliFlowCommonHist*>(fHistList->FindObject(commonHistsName.Data()));
- if(commonHist) this->SetCommonHists(commonHist); 
+ if(commonHist) 
+ {
+  this->SetCommonHists(commonHist); 
+  if(fCommonHists->GetHarmonic())
+  {
+   fHarmonic = (Int_t)(fCommonHists->GetHarmonic())->GetBinContent(1);
+  } 
+ } // end of if(commonHist) 
  TString commonHists2ndOrderName = "AliFlowCommonHist2ndOrderQC";
  commonHists2ndOrderName += fAnalysisLabel->Data();
  AliFlowCommonHist *commonHist2nd = dynamic_cast<AliFlowCommonHist*>(fHistList->FindObject(commonHists2ndOrderName.Data()));
@@ -7385,7 +7403,8 @@ void AliFlowAnalysisWithQCumulants::GetPointersForCommonHistograms()
  if(commonHist8th) this->SetCommonHists8th(commonHist8th);  
  TString commonHistResults2ndOrderName = "AliFlowCommonHistResults2ndOrderQC"; 
  commonHistResults2ndOrderName += fAnalysisLabel->Data(); 
- AliFlowCommonHistResults *commonHistRes2nd = dynamic_cast<AliFlowCommonHistResults*>                                              (fHistList->FindObject(commonHistResults2ndOrderName.Data()));
+ AliFlowCommonHistResults *commonHistRes2nd = dynamic_cast<AliFlowCommonHistResults*>
+                                              (fHistList->FindObject(commonHistResults2ndOrderName.Data()));
  if(commonHistRes2nd) this->SetCommonHistsResults2nd(commonHistRes2nd);   
  TString commonHistResults4thOrderName = "AliFlowCommonHistResults4thOrderQC";
  commonHistResults4thOrderName += fAnalysisLabel->Data();
@@ -7452,20 +7471,20 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
   exit(0); 
  }  
   
-  // b) Get pointer to profile fIntFlowFlags holding all flags for integrated flow:
-  TString intFlowFlagsName = "fIntFlowFlags";
-  intFlowFlagsName += fAnalysisLabel->Data();
-  TProfile *intFlowFlags = dynamic_cast<TProfile*>(intFlowList->FindObject(intFlowFlagsName.Data()));
-  Bool_t bApplyCorrectionForNUA = kFALSE;
-  if(intFlowFlags)
-  {
-   this->SetIntFlowFlags(intFlowFlags);  
-   bApplyCorrectionForNUA = (Int_t)intFlowFlags->GetBinContent(3); 
-   this->SetApplyCorrectionForNUA(bApplyCorrectionForNUA);      
-  } else 
-    {
-     cout<<"WARNING: intFlowFlags is NULL in FAWQC::GPFIFH() !!!!"<<endl;
-    }
+ // b) Get pointer to profile fIntFlowFlags holding all flags for integrated flow:
+ TString intFlowFlagsName = "fIntFlowFlags";
+ intFlowFlagsName += fAnalysisLabel->Data();
+ TProfile *intFlowFlags = dynamic_cast<TProfile*>(intFlowList->FindObject(intFlowFlagsName.Data()));
+ if(intFlowFlags)
+ {
+  this->SetIntFlowFlags(intFlowFlags);  
+  fApplyCorrectionForNUA = (Bool_t)intFlowFlags->GetBinContent(3); 
+  fApplyCorrectionForNUAVsM = (Bool_t)intFlowFlags->GetBinContent(8); 
+  fCalculateCumulantsVsM = (Bool_t)intFlowFlags->GetBinContent(10);  
+ } else 
+   {
+    cout<<"WARNING: intFlowFlags is NULL in FAWQC::GPFIFH() !!!!"<<endl;
+   }
   
   // c) Get pointer to list fIntFlowProfiles and pointers to all objects that she holds:
   TList *intFlowProfiles = NULL;
@@ -7495,20 +7514,23 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
       cout<<"WARNING: intFlowCorrelationsPro is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
      }      
    // average correlations <<2>>, <<4>>, <<6>> and <<8>> versus multiplicity for all events (error is wrong here):
-   TString intFlowCorrelationsVsMProName = "fIntFlowCorrelationsVsMPro";
-   intFlowCorrelationsVsMProName += fAnalysisLabel->Data();
-   for(Int_t ci=0;ci<4;ci++) // correlation index
+   if(fCalculateCumulantsVsM)
    {
-    TProfile *intFlowCorrelationsVsMPro = dynamic_cast<TProfile*>
-                                       (intFlowProfiles->FindObject(Form("%s, %s",intFlowCorrelationsVsMProName.Data(),correlationFlag[ci].Data())));
-    if(intFlowCorrelationsVsMPro)
+    TString intFlowCorrelationsVsMProName = "fIntFlowCorrelationsVsMPro";
+    intFlowCorrelationsVsMProName += fAnalysisLabel->Data();
+    for(Int_t ci=0;ci<4;ci++) // correlation index
     {
-     this->SetIntFlowCorrelationsVsMPro(intFlowCorrelationsVsMPro,ci);
-    } else
-      {
-       cout<<"WARNING: "<<Form("intFlowCorrelationsVsMPro[%d]",ci)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
-      }   
-   } // end of for(Int_t ci=0;ci<4;ci++) // correlation index 
+     TProfile *intFlowCorrelationsVsMPro = dynamic_cast<TProfile*>
+                                        (intFlowProfiles->FindObject(Form("%s, %s",intFlowCorrelationsVsMProName.Data(),correlationFlag[ci].Data())));
+     if(intFlowCorrelationsVsMPro)
+     {
+      this->SetIntFlowCorrelationsVsMPro(intFlowCorrelationsVsMPro,ci);
+     } else
+       {
+        cout<<"WARNING: "<<Form("intFlowCorrelationsVsMPro[%d]",ci)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+       }   
+    } // end of for(Int_t ci=0;ci<4;ci++) // correlation index 
+   } // end of if(fCalculateCumulantsVsM)
    // average all correlations for integrated flow (with wrong errors!):
    TString intFlowCorrelationsAllProName = "fIntFlowCorrelationsAllPro";
    intFlowCorrelationsAllProName += fAnalysisLabel->Data();
@@ -7548,20 +7570,23 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
      }               
    // average product of correlations <2>, <4>, <6> and <8> versus multiplicity  
    // [0=<<2><4>>,1=<<2><6>>,2=<<2><8>>,3=<<4><6>>,4=<<4><8>>,5=<<6><8>>]  
-   TString intFlowProductOfCorrelationsVsMProName = "fIntFlowProductOfCorrelationsVsMPro";
-   intFlowProductOfCorrelationsVsMProName += fAnalysisLabel->Data();
-   TString productFlag[6] = {"<<2><4>>","<<2><6>>","<<2><8>>","<<4><6>>","<<4><8>>","<<6><8>>"};
-   for(Int_t pi=0;pi<6;pi++)
-   { 
-    TProfile *intFlowProductOfCorrelationsVsMPro = dynamic_cast<TProfile*>(intFlowProfiles->FindObject(Form("%s, %s",intFlowProductOfCorrelationsVsMProName.Data(),productFlag[pi].Data())));
-    if(intFlowProductOfCorrelationsVsMPro)
-    {
-     this->SetIntFlowProductOfCorrelationsVsMPro(intFlowProductOfCorrelationsVsMPro,pi);
-    } else
-      {
-       cout<<"WARNING: "<<Form("intFlowProductOfCorrelationsVsMPro[%d]",pi)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
-      }
-   } // end of for(Int_t pi=0;pi<6;pi++)
+   if(fCalculateCumulantsVsM)
+   {
+    TString intFlowProductOfCorrelationsVsMProName = "fIntFlowProductOfCorrelationsVsMPro";
+    intFlowProductOfCorrelationsVsMProName += fAnalysisLabel->Data();
+    TString productFlag[6] = {"<<2><4>>","<<2><6>>","<<2><8>>","<<4><6>>","<<4><8>>","<<6><8>>"};
+    for(Int_t pi=0;pi<6;pi++)
+    { 
+     TProfile *intFlowProductOfCorrelationsVsMPro = dynamic_cast<TProfile*>(intFlowProfiles->FindObject(Form("%s, %s",intFlowProductOfCorrelationsVsMProName.Data(),productFlag[pi].Data())));
+     if(intFlowProductOfCorrelationsVsMPro)
+     {
+      this->SetIntFlowProductOfCorrelationsVsMPro(intFlowProductOfCorrelationsVsMPro,pi);
+     } else
+       {
+        cout<<"WARNING: "<<Form("intFlowProductOfCorrelationsVsMPro[%d]",pi)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+       }
+    } // end of for(Int_t pi=0;pi<6;pi++)
+   } // end of if(fCalculateCumulantsVsM)
    // average correction terms for non-uniform acceptance (with wrong errors!):
    for(Int_t sc=0;sc<2;sc++)
    {
@@ -7577,22 +7602,25 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
        cout<<"sc = "<<sc<<endl;
       } 
     // versus multiplicity:
-    TString correctionTermFlag[4] = {"(n(phi1))","(n(phi1+phi2))","(n(phi1-phi2-phi3))","(n(2phi1-phi2))"}; // to be improved - hardwired 4
-    TString intFlowCorrectionTermsForNUAVsMProName = "fIntFlowCorrectionTermsForNUAVsMPro";
-    intFlowCorrectionTermsForNUAVsMProName += fAnalysisLabel->Data();
-    for(Int_t ci=0;ci<4;ci++) // correction term index (to be improved - hardwired 4)
+    if(fCalculateCumulantsVsM)
     {
-     TProfile *intFlowCorrectionTermsForNUAVsMPro = dynamic_cast<TProfile*>(intFlowProfiles->FindObject(Form("%s: #LT#LT%s%s#GT#GT",intFlowCorrectionTermsForNUAVsMProName.Data(),sinCosFlag[sc].Data(),correctionTermFlag[ci].Data())));
-     if(intFlowCorrectionTermsForNUAVsMPro) 
+     TString correctionTermFlag[4] = {"(n(phi1))","(n(phi1+phi2))","(n(phi1-phi2-phi3))","(n(2phi1-phi2))"}; // to be improved - hardwired 4
+     TString intFlowCorrectionTermsForNUAVsMProName = "fIntFlowCorrectionTermsForNUAVsMPro";
+     intFlowCorrectionTermsForNUAVsMProName += fAnalysisLabel->Data();
+     for(Int_t ci=0;ci<4;ci++) // correction term index (to be improved - hardwired 4)
      {
-      this->SetIntFlowCorrectionTermsForNUAVsMPro(intFlowCorrectionTermsForNUAVsMPro,sc,ci);
-     } else 
-       {
-        cout<<"WARNING: intFlowCorrectionTermsForNUAVsMPro is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
-        cout<<"sc = "<<sc<<endl;
-        cout<<"ci = "<<ci<<endl;
-       }       
-    } // end of for(Int_t ci=0;ci<4;ci++) // correction term index (to be improved - hardwired 4)
+      TProfile *intFlowCorrectionTermsForNUAVsMPro = dynamic_cast<TProfile*>(intFlowProfiles->FindObject(Form("%s: #LT#LT%s%s#GT#GT",intFlowCorrectionTermsForNUAVsMProName.Data(),sinCosFlag[sc].Data(),correctionTermFlag[ci].Data())));
+      if(intFlowCorrectionTermsForNUAVsMPro) 
+      {
+       this->SetIntFlowCorrectionTermsForNUAVsMPro(intFlowCorrectionTermsForNUAVsMPro,sc,ci);
+      } else 
+        {
+         cout<<"WARNING: intFlowCorrectionTermsForNUAVsMPro is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+         cout<<"sc = "<<sc<<endl;
+         cout<<"ci = "<<ci<<endl;
+        }       
+     } // end of for(Int_t ci=0;ci<4;ci++) // correction term index (to be improved - hardwired 4)
+    } // end of if(fCalculateCumulantsVsM)
    } // end of for(Int_t sc=0;sc<2;sc++)           
    // average products of correction terms for NUA:  
    TString intFlowProductOfCorrectionTermsForNUAProName = "fIntFlowProductOfCorrectionTermsForNUAPro";
@@ -7627,20 +7655,23 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
       cout<<"WARNING: intFlowCorrelationsHist is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
      } 
    // average correlations <<2>>, <<4>>, <<6>> and <<8>> (with correct errors!) vs M:    
-   TString intFlowCorrelationsVsMHistName = "fIntFlowCorrelationsVsMHist";
-   intFlowCorrelationsVsMHistName += fAnalysisLabel->Data();
-   for(Int_t ci=0;ci<4;ci++) // correlation index
+   if(fCalculateCumulantsVsM)
    {
-    TH1D *intFlowCorrelationsVsMHist = dynamic_cast<TH1D*>
-                                       (intFlowResults->FindObject(Form("%s, %s",intFlowCorrelationsVsMHistName.Data(),correlationFlag[ci].Data())));
-    if(intFlowCorrelationsVsMHist)
+    TString intFlowCorrelationsVsMHistName = "fIntFlowCorrelationsVsMHist";
+    intFlowCorrelationsVsMHistName += fAnalysisLabel->Data();
+    for(Int_t ci=0;ci<4;ci++) // correlation index
     {
-     this->SetIntFlowCorrelationsVsMHist(intFlowCorrelationsVsMHist,ci);
-    } else
-      {
-       cout<<"WARNING: "<<Form("intFlowCorrelationsVsMHist[%d]",ci)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
-      }   
-   } // end of for(Int_t ci=0;ci<4;ci++) // correlation index   
+     TH1D *intFlowCorrelationsVsMHist = dynamic_cast<TH1D*>
+                                        (intFlowResults->FindObject(Form("%s, %s",intFlowCorrelationsVsMHistName.Data(),correlationFlag[ci].Data())));
+     if(intFlowCorrelationsVsMHist)
+     {
+      this->SetIntFlowCorrelationsVsMHist(intFlowCorrelationsVsMHist,ci);
+     } else
+       {
+        cout<<"WARNING: "<<Form("intFlowCorrelationsVsMHist[%d]",ci)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+       }   
+    } // end of for(Int_t ci=0;ci<4;ci++) // correlation index   
+   } // end of if(fCalculateCumulantsVsM)
    // average all correlations for integrated flow (with correct errors!):
    TString intFlowCorrelationsAllHistName = "fIntFlowCorrelationsAllHist";
    intFlowCorrelationsAllHistName += fAnalysisLabel->Data();
@@ -7706,58 +7737,67 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
      } 
    // final result for covariances of correlations (multiplied with weight dependent prefactor) versus M
    // [0=Cov(2,4),1=Cov(2,6),2=Cov(2,8),3=Cov(4,6),4=Cov(4,8),5=Cov(6,8)]:
-   TString intFlowCovariancesVsMName = "fIntFlowCovariancesVsM";
-   intFlowCovariancesVsMName += fAnalysisLabel->Data();
-   TString covarianceFlag[6] = {"Cov(<2>,<4>)","Cov(<2>,<6>)","Cov(<2>,<8>)","Cov(<4>,<6>)","Cov(<4>,<8>)","Cov(<6>,<8>)"};
-   for(Int_t ci=0;ci<6;ci++)
-   { 
-    TH1D *intFlowCovariancesVsM = dynamic_cast<TH1D*>(intFlowResults->FindObject(Form("%s, %s",intFlowCovariancesVsMName.Data(),covarianceFlag[ci].Data())));
-    if(intFlowCovariancesVsM)
-    {
-     this->SetIntFlowCovariancesVsM(intFlowCovariancesVsM,ci);
-    } else
-      {
-       cout<<"WARNING: "<<Form("intFlowCovariancesVsM[%d]",ci)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
-      }    
-   } // end of for(Int_t ci=0;ci<6;ci++)
-   // sum of linear and quadratic event weights for <2>, <4>, <6> and <8> versus multiplicity
-   // [0=sum{w_{<2>}},1=sum{w_{<4>}},2=sum{w_{<6>}},3=sum{w_{<8>}}][0=linear 1,1=quadratic]:
-   TString intFlowSumOfEventWeightsVsMName = "fIntFlowSumOfEventWeightsVsM";
-   intFlowSumOfEventWeightsVsMName += fAnalysisLabel->Data();
-   TString sumFlag[2][4] = {{"#sum_{i=1}^{N} w_{<2>}","#sum_{i=1}^{N} w_{<4>}","#sum_{i=1}^{N} w_{<6>}","#sum_{i=1}^{N} w_{<8>}"},
-                            {"#sum_{i=1}^{N} w_{<2>}^{2}","#sum_{i=1}^{N} w_{<4>}^{2}","#sum_{i=1}^{N} w_{<6>}^{2}","#sum_{i=1}^{N} w_{<8>}^{2}"}};
-   for(Int_t si=0;si<4;si++)
+   if(fCalculateCumulantsVsM)
    {
-    for(Int_t power=0;power<2;power++)
-    {
-     TH1D *intFlowSumOfEventWeightsVsM = dynamic_cast<TH1D*>(intFlowResults->FindObject(Form("%s, %s",intFlowSumOfEventWeightsVsMName.Data(),sumFlag[power][si].Data())));
-     if(intFlowSumOfEventWeightsVsM)
+    TString intFlowCovariancesVsMName = "fIntFlowCovariancesVsM";
+    intFlowCovariancesVsMName += fAnalysisLabel->Data();
+    TString covarianceFlag[6] = {"Cov(<2>,<4>)","Cov(<2>,<6>)","Cov(<2>,<8>)","Cov(<4>,<6>)","Cov(<4>,<8>)","Cov(<6>,<8>)"};
+    for(Int_t ci=0;ci<6;ci++)
+    { 
+     TH1D *intFlowCovariancesVsM = dynamic_cast<TH1D*>(intFlowResults->FindObject(Form("%s, %s",intFlowCovariancesVsMName.Data(),covarianceFlag[ci].Data())));
+     if(intFlowCovariancesVsM)
      {
-      this->SetIntFlowSumOfEventWeightsVsM(intFlowSumOfEventWeightsVsM,si,power);
+      this->SetIntFlowCovariancesVsM(intFlowCovariancesVsM,ci);
      } else
        {
-        cout<<"WARNING: "<<Form("intFlowSumOfEventWeightsVsM[%d][%d]",si,power)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+        cout<<"WARNING: "<<Form("intFlowCovariancesVsM[%d]",ci)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
        }    
-    } // end of for(Int_t power=0;power<2;power++)
-   } // end of for(Int_t si=0;si<4;si++)   
+    } // end of for(Int_t ci=0;ci<6;ci++)
+   } // end of if(fCalculateCumulantsVsM)
+   // sum of linear and quadratic event weights for <2>, <4>, <6> and <8> versus multiplicity
+   // [0=sum{w_{<2>}},1=sum{w_{<4>}},2=sum{w_{<6>}},3=sum{w_{<8>}}][0=linear 1,1=quadratic]:
+   if(fCalculateCumulantsVsM)
+   {
+    TString intFlowSumOfEventWeightsVsMName = "fIntFlowSumOfEventWeightsVsM";
+    intFlowSumOfEventWeightsVsMName += fAnalysisLabel->Data();
+    TString sumFlag[2][4] = {{"#sum_{i=1}^{N} w_{<2>}","#sum_{i=1}^{N} w_{<4>}","#sum_{i=1}^{N} w_{<6>}","#sum_{i=1}^{N} w_{<8>}"},
+                             {"#sum_{i=1}^{N} w_{<2>}^{2}","#sum_{i=1}^{N} w_{<4>}^{2}","#sum_{i=1}^{N} w_{<6>}^{2}","#sum_{i=1}^{N} w_{<8>}^{2}"}};
+    for(Int_t si=0;si<4;si++)
+    {
+     for(Int_t power=0;power<2;power++)
+     {
+      TH1D *intFlowSumOfEventWeightsVsM = dynamic_cast<TH1D*>(intFlowResults->FindObject(Form("%s, %s",intFlowSumOfEventWeightsVsMName.Data(),sumFlag[power][si].Data())));
+      if(intFlowSumOfEventWeightsVsM)
+      {
+       this->SetIntFlowSumOfEventWeightsVsM(intFlowSumOfEventWeightsVsM,si,power);
+      } else
+        {
+         cout<<"WARNING: "<<Form("intFlowSumOfEventWeightsVsM[%d][%d]",si,power)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+        }    
+     } // end of for(Int_t power=0;power<2;power++)
+    } // end of for(Int_t si=0;si<4;si++)   
+   } // end of if(fCalculateCumulantsVsM)
    // sum of products of event weights for correlations <2>, <4>, <6> and <8> vs M
    // [0=sum{w_{<2>}w_{<4>}},1=sum{w_{<2>}w_{<6>}},2=sum{w_{<2>}w_{<8>}},
    //  3=sum{w_{<4>}w_{<6>}},4=sum{w_{<4>}w_{<8>}},5=sum{w_{<6>}w_{<8>}}]:  
-   TString intFlowSumOfProductOfEventWeightsVsMName = "fIntFlowSumOfProductOfEventWeightsVsM";
-   intFlowSumOfProductOfEventWeightsVsMName += fAnalysisLabel->Data();
-   TString sopowFlag[6] = {"#sum_{i=1}^{N} w_{<2>} w_{<4>}","#sum_{i=1}^{N} w_{<2>} w_{<6>}","#sum_{i=1}^{N} w_{<2>} w_{<8>}",
-                           "#sum_{i=1}^{N} w_{<4>} w_{<6>}","#sum_{i=1}^{N} w_{<4>} w_{<8>}","#sum_{i=1}^{N} w_{<6>} w_{<8>}"}; 
-   for(Int_t pi=0;pi<6;pi++)
+   if(fCalculateCumulantsVsM)
    {
-    TH1D *intFlowSumOfProductOfEventWeightsVsM = dynamic_cast<TH1D*>(intFlowResults->FindObject(Form("%s, %s",intFlowSumOfProductOfEventWeightsVsMName.Data(),sopowFlag[pi].Data())));
-    if(intFlowSumOfProductOfEventWeightsVsM)
+    TString intFlowSumOfProductOfEventWeightsVsMName = "fIntFlowSumOfProductOfEventWeightsVsM";
+    intFlowSumOfProductOfEventWeightsVsMName += fAnalysisLabel->Data();
+    TString sopowFlag[6] = {"#sum_{i=1}^{N} w_{<2>} w_{<4>}","#sum_{i=1}^{N} w_{<2>} w_{<6>}","#sum_{i=1}^{N} w_{<2>} w_{<8>}",
+                            "#sum_{i=1}^{N} w_{<4>} w_{<6>}","#sum_{i=1}^{N} w_{<4>} w_{<8>}","#sum_{i=1}^{N} w_{<6>} w_{<8>}"}; 
+    for(Int_t pi=0;pi<6;pi++)
     {
-     this->SetIntFlowSumOfProductOfEventWeightsVsM(intFlowSumOfProductOfEventWeightsVsM,pi);
-    } else
-      {
-       cout<<"WARNING: "<<Form("intFlowSumOfProductOfEventWeightsVsM[%d]",pi)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
-      }
-   } // end of for(Int_t pi=0;pi<6;pi++)        
+     TH1D *intFlowSumOfProductOfEventWeightsVsM = dynamic_cast<TH1D*>(intFlowResults->FindObject(Form("%s, %s",intFlowSumOfProductOfEventWeightsVsMName.Data(),sopowFlag[pi].Data())));
+     if(intFlowSumOfProductOfEventWeightsVsM)
+     {
+      this->SetIntFlowSumOfProductOfEventWeightsVsM(intFlowSumOfProductOfEventWeightsVsM,pi);
+     } else
+       {
+        cout<<"WARNING: "<<Form("intFlowSumOfProductOfEventWeightsVsM[%d]",pi)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+       }
+    } // end of for(Int_t pi=0;pi<6;pi++)        
+   } // end of if(fCalculateCumulantsVsM)
    // covariances for NUA (multiplied with weight dependent prefactor):
    TString intFlowCovariancesNUAName = "fIntFlowCovariancesNUA";
    intFlowCovariancesNUAName += fAnalysisLabel->Data();
@@ -7799,7 +7839,7 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
      {
       cout<<"WARNING: intFlowSumOfProductOfEventWeightsNUA is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
      } 
-   // final results for integrated Q-cumulants:
+   // Final results for reference Q-cumulants:
    TString intFlowQcumulantsName = "fIntFlowQcumulants";
    intFlowQcumulantsName += fAnalysisLabel->Data();
    TH1D *intFlowQcumulants = dynamic_cast<TH1D*>(intFlowResults->FindObject(intFlowQcumulantsName.Data()));
@@ -7810,23 +7850,51 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
      {
       cout<<"WARNING: intFlowQcumulants is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
      }  
-   // final results for integrated Q-cumulants versus multiplicity:
-   TString intFlowQcumulantsVsMName = "fIntFlowQcumulantsVsM";
-   intFlowQcumulantsVsMName += fAnalysisLabel->Data();
-   TString cumulantFlag[4] = {"QC{2}","QC{4}","QC{6}","QC{8}"};
-   for(Int_t co=0;co<4;co++) // cumulant order
+   // Final results for reference Q-cumulants rebinned in M:
+   if(fCalculateCumulantsVsM)
    {
-    TH1D *intFlowQcumulantsVsM = dynamic_cast<TH1D*>
-                                 (intFlowResults->FindObject(Form("%s, %s",intFlowQcumulantsVsMName.Data(),cumulantFlag[co].Data())));
-    if(intFlowQcumulantsVsM)
+    TString intFlowQcumulantsRebinnedInMName = "fIntFlowQcumulantsRebinnedInM";
+    intFlowQcumulantsRebinnedInMName += fAnalysisLabel->Data();
+    TH1D *intFlowQcumulantsRebinnedInM = dynamic_cast<TH1D*>(intFlowResults->FindObject(intFlowQcumulantsRebinnedInMName.Data()));
+    if(intFlowQcumulantsRebinnedInM) 
     {
-     this->SetIntFlowQcumulantsVsM(intFlowQcumulantsVsM,co);
-    } else
+     this->SetIntFlowQcumulantsRebinnedInM(intFlowQcumulantsRebinnedInM);
+    } else 
       {
-       cout<<"WARNING: "<<Form("intFlowQcumulantsVsM[%d]",co)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
-      }
-   } // end of for(Int_t co=0;co<4;co++) // cumulant order
-   // final integrated flow estimates from Q-cumulants:
+       cout<<"WARNING: intFlowQcumulantsRebinnedInM is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+      }  
+   } // end of if(fCalculateCumulantsVsM)
+   // Ratio between error squared: with/without non-isotropic terms:
+   TString intFlowQcumulantsErrorSquaredRatioName = "fIntFlowQcumulantsErrorSquaredRatio";
+   intFlowQcumulantsErrorSquaredRatioName += fAnalysisLabel->Data();
+   TH1D *intFlowQcumulantsErrorSquaredRatio = dynamic_cast<TH1D*>(intFlowResults->FindObject(intFlowQcumulantsErrorSquaredRatioName.Data()));
+   if(intFlowQcumulantsErrorSquaredRatio) 
+   {
+    this->SetIntFlowQcumulantsErrorSquaredRatio(intFlowQcumulantsErrorSquaredRatio);
+   } else 
+     {
+      cout<<" WARNING: intntFlowQcumulantsErrorSquaredRatio is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+     }  
+   // final results for integrated Q-cumulants versus multiplicity:
+   TString cumulantFlag[4] = {"QC{2}","QC{4}","QC{6}","QC{8}"};
+   if(fCalculateCumulantsVsM)
+   {
+    TString intFlowQcumulantsVsMName = "fIntFlowQcumulantsVsM";
+    intFlowQcumulantsVsMName += fAnalysisLabel->Data();
+    for(Int_t co=0;co<4;co++) // cumulant order
+    {
+     TH1D *intFlowQcumulantsVsM = dynamic_cast<TH1D*>
+                                  (intFlowResults->FindObject(Form("%s, %s",intFlowQcumulantsVsMName.Data(),cumulantFlag[co].Data())));
+     if(intFlowQcumulantsVsM)
+     {
+      this->SetIntFlowQcumulantsVsM(intFlowQcumulantsVsM,co);
+     } else
+       {
+        cout<<"WARNING: "<<Form("intFlowQcumulantsVsM[%d]",co)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
+       }
+    } // end of for(Int_t co=0;co<4;co++) // cumulant order
+   } // end of if(fCalculateCumulantsVsM)
+   // Final reference flow estimates from Q-cumulants:
    TString intFlowName = "fIntFlow";
    intFlowName += fAnalysisLabel->Data();
    TH1D *intFlow = dynamic_cast<TH1D*>(intFlowResults->FindObject(intFlowName.Data()));
@@ -7837,22 +7905,39 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
      {
       cout<<"WARNING: intFlow is NULL in AFAWQC::GPFIFH() !!!!"<<endl; 
      } 
-   // integrated flow from Q-cumulants versus multiplicity:
-   TString intFlowVsMName = "fIntFlowVsM";
-   intFlowVsMName += fAnalysisLabel->Data();
-   TString flowFlag[4] = {"v_{2}{2,QC}","v_{2}{4,QC}","v_{2}{6,QC}","v_{2}{8,QC}"}; // to be improved (harwired harmonic)
-   for(Int_t co=0;co<4;co++) // cumulant order
+   // Final reference flow estimates from Q-cumulants vs M rebinned in M:
+   if(fCalculateCumulantsVsM)
    {
-    TH1D *intFlowVsM = dynamic_cast<TH1D*>
-                       (intFlowResults->FindObject(Form("%s, %s",intFlowVsMName.Data(),flowFlag[co].Data())));
-    if(intFlowVsM)
+    TString intFlowRebinnedInMName = "fIntFlowRebinnedInM";
+    intFlowRebinnedInMName += fAnalysisLabel->Data();
+    TH1D *intFlowRebinnedInM = dynamic_cast<TH1D*>(intFlowResults->FindObject(intFlowRebinnedInMName.Data()));
+    if(intFlowRebinnedInM) 
     {
-     this->SetIntFlowVsM(intFlowVsM,co);
-    } else
+     this->SetIntFlowRebinnedInM(intFlowRebinnedInM);
+    } else 
       {
-       cout<<"WARNING: "<<Form("intFlowVsM[%d]",co)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;      
-      }
-   } // end of for(Int_t co=0;co<4;co++) // cumulant order
+       cout<<"WARNING: intFlowRebinnedInM is NULL in AFAWQC::GPFIFH() !!!!"<<endl; 
+      } 
+   } // end of if(fCalculateCumulantsVsM)
+   // integrated flow from Q-cumulants versus multiplicity:
+   if(fCalculateCumulantsVsM)
+   {
+    TString intFlowVsMName = "fIntFlowVsM";
+    intFlowVsMName += fAnalysisLabel->Data();
+    TString flowFlag[4] = {Form("v_{%d}{2,QC}",fHarmonic),Form("v_{%d}{4,QC}",fHarmonic),Form("v_{%d}{6,QC}",fHarmonic),Form("v_{%d}{8,QC}",fHarmonic)};
+    for(Int_t co=0;co<4;co++) // cumulant order
+    {
+     TH1D *intFlowVsM = dynamic_cast<TH1D*>
+                        (intFlowResults->FindObject(Form("%s, %s",intFlowVsMName.Data(),flowFlag[co].Data())));            
+     if(intFlowVsM)
+     {
+      this->SetIntFlowVsM(intFlowVsM,co);
+     } else
+       {
+        cout<<"WARNING: "<<Form("intFlowVsM[%d]",co)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;      
+       }
+    } // end of for(Int_t co=0;co<4;co++) // cumulant order
+   } // end of if(fCalculateCumulantsVsM)
    // quantifying detector effects effects to correlations:
    TString intFlowDetectorBiasName = "fIntFlowDetectorBias";
    intFlowDetectorBiasName += fAnalysisLabel->Data();
@@ -7865,7 +7950,7 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
       cout<<"WARNING: intFlowDetectorBias is NULL in AFAWQC::GPFIFH() !!!!"<<endl; 
      } 
    // quantifying detector effects effects to correlations vs multiplicity:
-   if(fApplyCorrectionForNUAVsM)
+   if(fCalculateCumulantsVsM)
    {
     TString intFlowDetectorBiasVsMName = "fIntFlowDetectorBiasVsM";
     intFlowDetectorBiasVsMName += fAnalysisLabel->Data();
@@ -7881,7 +7966,7 @@ void AliFlowAnalysisWithQCumulants::GetPointersForIntFlowHistograms()
         cout<<"WARNING: "<<Form("intFlowDetectorBiasVsM[%d]",ci)<<" is NULL in AFAWQC::GPFIFH() !!!!"<<endl;      
        }
     } // end of for(Int_t ci=0;ci<4;ci++) // correlation index   
-   } // end of if(ApplyCorrectionForNUAVsM)
+   } // end of if(fCalculateCumulantsVsM)
   } else // to if(intFlowResults)
     {
      cout<<"WARNING: intFlowResults is NULL in AFAWQC::GPFIFH() !!!!"<<endl;
@@ -8385,27 +8470,30 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForDifferentialFlow()
   }
  } 
  // 2D:
- TProfile2D styleRe("typeMultiplePowerRe","typeMultiplePowerRe",fnBinsPt,fPtMin,fPtMax,fnBinsEta,fEtaMin,fEtaMax);
- TProfile2D styleIm("typeMultiplePowerIm","typeMultiplePowerIm",fnBinsPt,fPtMin,fPtMax,fnBinsEta,fEtaMin,fEtaMax);
- for(Int_t t=0;t<3;t++) // typeFlag (0 = RP, 1 = POI, 2 = RP&&POI )
- { 
-  for(Int_t m=0;m<4;m++)
-  {
+ if(fCalculate2DFlow)
+ {
+  TProfile2D styleRe("typeMultiplePowerRe","typeMultiplePowerRe",fnBinsPt,fPtMin,fPtMax,fnBinsEta,fEtaMin,fEtaMax);
+  TProfile2D styleIm("typeMultiplePowerIm","typeMultiplePowerIm",fnBinsPt,fPtMin,fPtMax,fnBinsEta,fEtaMin,fEtaMax);
+  for(Int_t t=0;t<3;t++) // typeFlag (0 = RP, 1 = POI, 2 = RP&&POI )
+  { 
+   for(Int_t m=0;m<4;m++)
+   {
+    for(Int_t k=0;k<9;k++)
+    {
+     fReRPQ2dEBE[t][m][k] = (TProfile2D*)styleRe.Clone(Form("typeFlag%dmultiple%dpower%dRe",t,m,k)); 
+     fImRPQ2dEBE[t][m][k] = (TProfile2D*)styleIm.Clone(Form("typeFlag%dmultiple%dpower%dIm",t,m,k));
+    }
+   } 
+  } 
+  TProfile2D styleS("typePower","typePower",fnBinsPt,fPtMin,fPtMax,fnBinsEta,fEtaMin,fEtaMax);
+  for(Int_t t=0;t<3;t++) // typeFlag (0 = RP, 1 = POI, 2 = RP&&POI )
+  { 
    for(Int_t k=0;k<9;k++)
    {
-    fReRPQ2dEBE[t][m][k] = (TProfile2D*)styleRe.Clone(Form("typeFlag%dmultiple%dpower%dRe",t,m,k)); 
-    fImRPQ2dEBE[t][m][k] = (TProfile2D*)styleIm.Clone(Form("typeFlag%dmultiple%dpower%dIm",t,m,k));
+    fs2dEBE[t][k] = (TProfile2D*)styleS.Clone(Form("typeFlag%dpower%d",t,k));
    }
-  } 
- } 
- TProfile2D styleS("typePower","typePower",fnBinsPt,fPtMin,fPtMax,fnBinsEta,fEtaMin,fEtaMax);
- for(Int_t t=0;t<3;t++) // typeFlag (0 = RP, 1 = POI, 2 = RP&&POI )
- { 
-  for(Int_t k=0;k<9;k++)
-  {
-   fs2dEBE[t][k] = (TProfile2D*)styleS.Clone(Form("typeFlag%dpower%d",t,k));
   }
- }
+ } // end of if(fCalculate2DFlow)
  // reduced correlations e-b-e:
  TString diffFlowCorrelationsEBEName = "fDiffFlowCorrelationsEBE";
  diffFlowCorrelationsEBEName += fAnalysisLabel->Data();
@@ -8580,324 +8668,253 @@ void AliFlowAnalysisWithQCumulants::BookEverythingForDifferentialFlow()
           
 } // end of AliFlowAnalysisWithQCumulants::BookEverythingForDifferentialFlow()
 
-
 //================================================================================================================================
-
-/*
-void AliFlowAnalysisWithQCumulants::CalculateCorrectionsForNUAForIntQcumulants() // to be improved (do I really need this method?)
-{
- // Calculate final corrections for non-uniform acceptance for Q-cumulants.
-  
- // Corrections for non-uniform acceptance are stored in histogram fCorrectionsForNUA,
- // binning of fCorrectionsForNUA is organized as follows:
- //
- // 1st bin: correction to QC{2}
- // 2nd bin: correction to QC{4}
- // 3rd bin: correction to QC{6}
- // 4th bin: correction to QC{8}
-  
- // shortcuts flags:
- Int_t pW = (Int_t)(useParticleWeights);
- 
- Int_t eW = -1;
- 
- if(eventWeights == "exact")
- {
-  eW = 0;
- }
-
- for(Int_t sc=0;sc<2;sc++) // sin or cos terms flag
- {
-  if(!(fQCorrelations[pW][eW] && fQCorrections[pW][eW][sc] && fCorrections[pW][eW]))
-  {
-   cout<<"WARNING: fQCorrelations[pW][eW] && fQCorrections[pW][eW][sc] && fCorrections[pW][eW] is NULL in AFAWQC::CFCFNUAFIF() !!!!"<<endl;
-   cout<<"pW = "<<pW<<endl;
-   cout<<"eW = "<<eW<<endl;
-   cout<<"sc = "<<sc<<endl;
-   exit(0);
-  }
- }  
-
- // measured 2-, 4-, 6- and 8-particle azimuthal correlations (biased with non-uniform acceptance!):
- Double_t two = fQCorrelations[pW][eW]->GetBinContent(1); // <<2>>
- //Double_t four = fQCorrelations[pW][eW]->GetBinContent(11); // <<4>>
- //Double_t six = fQCorrelations[pW][eW]->GetBinContent(24); // <<6>>
- //Double_t eight = fQCorrelations[pW][eW]->GetBinContent(31); // <<8>>
- 
- // correction terms to QC{2}:
- // <<cos(n*phi1)>>^2
- Double_t two1stTerm = pow(fQCorrections[pW][eW][1]->GetBinContent(1),2); 
- // <<sin(n*phi1)>>^2
- Double_t two2ndTerm = pow(fQCorrections[pW][eW][0]->GetBinContent(1),2); 
- // final corrections for non-uniform acceptance to QC{2}:
- Double_t correctionQC2 = -1.*two1stTerm-1.*two2ndTerm;
- fCorrections[pW][eW]->SetBinContent(1,correctionQC2); 
- 
- // correction terms to QC{4}:
- // <<cos(n*phi1)>> <<cos(n*(phi1-phi2-phi3))>>
- Double_t four1stTerm = fQCorrections[pW][eW][1]->GetBinContent(1)*fQCorrections[pW][eW][1]->GetBinContent(3);  
- // <<sin(n*phi1)>> <<sin(n*(phi1-phi2-phi3))>>
- Double_t four2ndTerm = fQCorrections[pW][eW][0]->GetBinContent(1)*fQCorrections[pW][eW][0]->GetBinContent(3);  
- // <<cos(n*(phi1+phi2))>>^2
- Double_t four3rdTerm = pow(fQCorrections[pW][eW][1]->GetBinContent(2),2); 
- // <<sin(n*(phi1+phi2))>>^2
- Double_t four4thTerm = pow(fQCorrections[pW][eW][0]->GetBinContent(2),2); 
- // <<cos(n*(phi1+phi2))>> (<<cos(n*phi1)>>^2 - <<sin(n*phi1)>>^2)
- Double_t four5thTerm = fQCorrections[pW][eW][1]->GetBinContent(2)
-                      * (pow(fQCorrections[pW][eW][1]->GetBinContent(1),2)-pow(fQCorrections[pW][eW][0]->GetBinContent(1),2));
- // <<sin(n*(phi1+phi2))>> <<cos(n*phi1)>> <<sin(n*phi1)>>
- Double_t four6thTerm = fQCorrections[pW][eW][0]->GetBinContent(2)
-                      * fQCorrections[pW][eW][1]->GetBinContent(1)
-                      * fQCorrections[pW][eW][0]->GetBinContent(1);         
- // <<cos(n*(phi1-phi2))>> (<<cos(n*phi1)>>^2 + <<sin(n*phi1)>>^2)
- Double_t four7thTerm = two*(pow(fQCorrections[pW][eW][1]->GetBinContent(1),2)+pow(fQCorrections[pW][eW][0]->GetBinContent(1),2));  
- // (<<cos(n*phi1)>>^2 + <<sin(n*phi1)>>^2)^2
- Double_t four8thTerm = pow(pow(fQCorrections[pW][eW][1]->GetBinContent(1),2)+pow(fQCorrections[pW][eW][0]->GetBinContent(1),2),2);      
- // final correction to QC{4}:
- Double_t correctionQC4 = -4.*four1stTerm+4.*four2ndTerm-four3rdTerm-four4thTerm
-                        + 4.*four5thTerm+8.*four6thTerm+8.*four7thTerm-6.*four8thTerm;                            
- fCorrections[pW][eW]->SetBinContent(2,correctionQC4);   
-
- // ... to be improved (continued for 6th and 8th order)                                                    
-
-
-} // end of AliFlowAnalysisWithQCumulants::CalculateCorrectionsForNUAForIntQcumulants()
-*/
-
-//================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::CalculateQcumulantsCorrectedForNUAIntFlow()
 {
  // Calculate generalized Q-cumulants (cumulants corrected for non-unifom acceptance).
  
- // measured 2-, 4-, 6- and 8-particle correlations (biased by non-uniform acceptance!):
+ // Isotropic cumulants:
+ Double_t QC2 = fIntFlowQcumulants->GetBinContent(1);
+ Double_t QC2Error = fIntFlowQcumulants->GetBinError(1);
+ Double_t QC4 = fIntFlowQcumulants->GetBinContent(2);
+ Double_t QC4Error = fIntFlowQcumulants->GetBinError(2);
+ //Double_t QC6 = fIntFlowQcumulants->GetBinContent(3);
+ //Double_t QC6Error = fIntFlowQcumulants->GetBinError(3);
+ //Double_t QC8 = fIntFlowQcumulants->GetBinContent(4);
+ //Double_t QC8Error = fIntFlowQcumulants->GetBinError(4);
+ 
+ // Measured 2-, 4-, 6- and 8-particle correlations:
  Double_t two = fIntFlowCorrelationsHist->GetBinContent(1); // <<2>>
+ Double_t twoError = fIntFlowCorrelationsHist->GetBinError(1); // statistical error of <<2>>
  Double_t four = fIntFlowCorrelationsHist->GetBinContent(2); // <<4>>
+ Double_t fourError = fIntFlowCorrelationsHist->GetBinError(2); // statistical error of <<4>>
  //Double_t six = fIntFlowCorrelationsHist->GetBinContent(3); // <<6>>
- //Double_t eight = fIntFlowCorrelationsHist->GetBinContent(4); // <<8>>
- 
- // statistical error of measured 2-, 4-, 6- and 8-particle correlations:
- //Double_t twoError = fIntFlowCorrelationsHist->GetBinError(1); // statistical error of <<2>>
- //Double_t fourError = fIntFlowCorrelationsHist->GetBinError(2); // statistical error of <<4>>
  //Double_t sixError = fIntFlowCorrelationsHist->GetBinError(3); // statistical error of <<6>>
+ //Double_t eight = fIntFlowCorrelationsHist->GetBinContent(4); // <<8>>
  //Double_t eightError = fIntFlowCorrelationsHist->GetBinError(4); // statistical error of <<8>>
-
- // QC{2}:
- // <<cos(n*phi1)>>^2
- Double_t two1stTerm = pow(fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1),2); 
- //Double_t two1stTermErrorSquared = pow(fIntFlowCorrectionTermsForNUAHist[1]->GetBinError(1),2); 
- // <<sin(n*phi1)>>^2
- Double_t two2ndTerm = pow(fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1),2); 
- //Double_t two2ndTermErrorSquared = pow(fIntFlowCorrectionTermsForNUAHist[0]->GetBinError(1),2); 
- // generalized QC{2}:
- Double_t gQC2 = two - two1stTerm - two2ndTerm; // to be improved (terminology, notation)
- fIntFlowQcumulants->SetBinContent(1,gQC2); 
- //fIntFlowQcumulants->SetBinError(1,0.); // to be improved (propagate error) 
+  
+ // Non-isotropic terms:
+ Double_t c1 = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1); // <<cos(n*phi1)>>
+ Double_t c1Error = fIntFlowCorrectionTermsForNUAHist[1]->GetBinError(1); // statistical error of <<cos(n*phi1)>>
+ Double_t c2 = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(2); // <<cos(n*(phi1+phi2))>>
+ Double_t c2Error = fIntFlowCorrectionTermsForNUAHist[1]->GetBinError(2); // statistical error of <<cos(n*(phi1+phi2))>>
+ Double_t c3 = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(3); // <<cos(n*(phi1-phi2-phi3))>>
+ Double_t c3Error = fIntFlowCorrectionTermsForNUAHist[1]->GetBinError(3); // statistical error of <<cos(n*(phi1-phi2-phi3))>>
+ Double_t s1 = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1); // <<sin(n*phi1)>>
+ Double_t s1Error = fIntFlowCorrectionTermsForNUAHist[0]->GetBinError(1); // statistical error of <<sin(n*phi1)>>
+ Double_t s2 = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(2); // <<sin(n*(phi1+phi2))>>
+ Double_t s2Error = fIntFlowCorrectionTermsForNUAHist[0]->GetBinError(2); // statistical error of <<sin(n*(phi1+phi2))>>
+ Double_t s3 = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(3); // <<sin(n*(phi1-phi2-phi3))>>
+ Double_t s3Error = fIntFlowCorrectionTermsForNUAHist[0]->GetBinError(3); // statistical error of <<sin(n*(phi1-phi2-phi3))>>
  
- // QC{4}:
- // <<cos(n*phi1)>> <<cos(n*(phi1-phi2-phi3))>>
- Double_t four1stTerm = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1)
-                      * fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(3);  
- // <<sin(n*phi1)>> <<sin(n*(phi1-phi2-phi3))>>
- Double_t four2ndTerm = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1)
-                      * fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(3);  
- // <<cos(n*(phi1+phi2))>>^2
- Double_t four3rdTerm = pow(fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(2),2); 
- // <<sin(n*(phi1+phi2))>>^2
- Double_t four4thTerm = pow(fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(2),2); 
- // <<cos(n*(phi1+phi2))>> (<<cos(n*phi1)>>^2 - <<sin(n*phi1)>>^2)
- Double_t four5thTerm = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(2)
-                      * (pow(fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1),2)
-                      - pow(fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1),2));
- // <<sin(n*(phi1+phi2))>> <<cos(n*phi1)>> <<sin(n*phi1)>>
- Double_t four6thTerm = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(2)
-                      * fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1)
-                      * fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1);         
- // <<cos(n*(phi1-phi2))>> (<<cos(n*phi1)>>^2 + <<sin(n*phi1)>>^2)
- Double_t four7thTerm = two*(pow(fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1),2)
-                      + pow(fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1),2));  
- // (<<cos(n*phi1)>>^2 + <<sin(n*phi1)>>^2)^2
- Double_t four8thTerm = pow(pow(fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1),2)
-                      + pow(fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1),2),2);      
- // generalized QC{4}:
- Double_t gQC4 = four-2.*pow(two,2.)-4.*four1stTerm+4.*four2ndTerm-four3rdTerm
-               - four4thTerm+4.*four5thTerm+8.*four6thTerm+8.*four7thTerm-6.*four8thTerm;                            
- fIntFlowQcumulants->SetBinContent(2,gQC4);   
- //fIntFlowQcumulants->SetBinError(2,0.); // to be improved (propagate error) 
+ // Shortcuts:
+ Double_t a1 = 2.*pow(c1,2.)+2.*pow(s1,2.)-two;
+ Double_t a2 = 6.*pow(c1,3.)-2.*c1*c2+c3+6.*c1*pow(s1,2.)-2.*s1*s2-4.*c1*two;
+ Double_t a3 = 2.*pow(s1,2.)-2.*pow(c1,2.)+c2;
+ Double_t a4 = 6.*pow(s1,3.)+6.*pow(c1,2.)*s1+2.*c2*s1-2.*c1*s2-s3-4.*s1*two;
+ Double_t a5 = 4.*c1*s1-s2;
+ 
+ // Covariances (including weight dependent prefactor):
+ Double_t wCov1 = fIntFlowCovariancesNUA->GetBinContent(1); // w*Cov(<2>,<cos(phi)) 
+ Double_t wCov2 = fIntFlowCovariancesNUA->GetBinContent(2); // w*Cov(<2>,<sin(phi))
+ Double_t wCov3 = fIntFlowCovariancesNUA->GetBinContent(3); // w*Cov(<cos(phi),<sin(phi))
+ Double_t wCov4 = fIntFlowCovariances->GetBinContent(1); // w*Cov(<2>,<4>) 
+ Double_t wCov5 = fIntFlowCovariancesNUA->GetBinContent(4); // w*Cov(<2>,<cos(#phi_{1}+#phi_{2})>)
+ Double_t wCov6 = fIntFlowCovariancesNUA->GetBinContent(6); // w*Cov(<2>,<cos(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov7 = fIntFlowCovariancesNUA->GetBinContent(5); // w*Cov(<2>,<sin(#phi_{1}+#phi_{2})>)
+ Double_t wCov8 = fIntFlowCovariancesNUA->GetBinContent(7); // w*Cov(<2>,<sin(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov9 = fIntFlowCovariancesNUA->GetBinContent(8); // w*Cov(<4>,<cos(#phi)>
+ Double_t wCov10 = fIntFlowCovariancesNUA->GetBinContent(10); // w*Cov(<4>,<cos(#phi_{1}+#phi_{2})>)
+ Double_t wCov11 = fIntFlowCovariancesNUA->GetBinContent(12); // w*Cov(<4>,<cos(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov12 = fIntFlowCovariancesNUA->GetBinContent(9); // w*Cov(<4>,<sin(#phi)>
+ Double_t wCov13 = fIntFlowCovariancesNUA->GetBinContent(11); // w*Cov(<4>,<sin(#phi_{1}+#phi_{2})>)
+ Double_t wCov14 = fIntFlowCovariancesNUA->GetBinContent(13); // w*Cov(<4>,<sin(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov15 = fIntFlowCovariancesNUA->GetBinContent(14); // w*Cov(<cos(#phi)>,<cos(#phi_{1}+#phi_{2})>)
+ Double_t wCov16 = fIntFlowCovariancesNUA->GetBinContent(16); // w*Cov(<cos(#phi)>,<cos(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov17 = fIntFlowCovariancesNUA->GetBinContent(15); // w*Cov(<cos(#phi)>,<sin(#phi_{1}+#phi_{2})>)
+ Double_t wCov18 = fIntFlowCovariancesNUA->GetBinContent(17); // w*Cov(<cos(#phi)>,<sin(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov19 = fIntFlowCovariancesNUA->GetBinContent(23); // w*Cov(<cos(#phi_{1}+#phi_{2})>,<cos(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov20 = fIntFlowCovariancesNUA->GetBinContent(18); // w*Cov(<sin(#phi)>,<cos(#phi_{1}+#phi_{2})>)
+ Double_t wCov21 = fIntFlowCovariancesNUA->GetBinContent(22); // w*Cov(<cos(#phi_{1}+#phi_{2})>,<sin(#phi_{1}+#phi_{2})>)
+ Double_t wCov22 = fIntFlowCovariancesNUA->GetBinContent(24); // w*Cov(<cos(#phi_{1}+#phi_{2})>,<sin(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov23 = fIntFlowCovariancesNUA->GetBinContent(20); // w*Cov(<sin(#phi)>,<cos(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov24 = fIntFlowCovariancesNUA->GetBinContent(25); // w*Cov(<sin(#phi_{1}+#phi_{2})>,<cos(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov25 = fIntFlowCovariancesNUA->GetBinContent(27); // w*Cov(<cos(#phi_{1}-#phi_{2}-#phi_{3}>,<sin(#phi_{1}-#phi_{2}-#phi_{3}>)
+ Double_t wCov26 = fIntFlowCovariancesNUA->GetBinContent(19); // w*Cov(<sin(#phi)>,<sin(#phi_{1}+#phi_{2})>)
+ Double_t wCov27 = fIntFlowCovariancesNUA->GetBinContent(21); // w*Cov(<sin(#phi)>,<sin(#phi_{1}-#phi_{2}-#phi_{3})>)
+ Double_t wCov28 = fIntFlowCovariancesNUA->GetBinContent(26); // w*Cov(<sin(#phi_{1}+#phi_{2})>,<sin(#phi_{1}-#phi_{2}-#phi_{3})>)
 
- // ... to be improved (continued for 6th and 8th order)                                                    
-    
+ // Calculating generalized QC{2}:
+ //  Generalized QC{2}:
+ Double_t gQC2 = two - pow(c1,2.) - pow(s1,2.);
+ if(fApplyCorrectionForNUA){fIntFlowQcumulants->SetBinContent(1,gQC2);} 
+ //  Statistical error of generalized QC{2}:
+ Double_t gQC2ErrorSquared = pow(twoError,2.)+4.*pow(c1,2.)*pow(c1Error,2.)
+                           + 4.*pow(s1,2.)*pow(s1Error,2.)
+                           - 4*c1*wCov1-4*s1*wCov2 
+                           + 8.*c1*s1*wCov3;
+ //  Store ratio of error squared - with/without NUA terms:
+ Double_t ratioErrorSquaredQC2 = 0.;
+ if(fIntFlowQcumulants->GetBinError(1)>0.)
+ { 
+  ratioErrorSquaredQC2 = (gQC2ErrorSquared/pow(fIntFlowQcumulants->GetBinError(1),2.));
+  fIntFlowQcumulantsErrorSquaredRatio->SetBinContent(1,ratioErrorSquaredQC2);
+ }
+ //  If enabled, store error by including non-isotropic terms:                         
+ if(fApplyCorrectionForNUA && fPropagateErrorAlsoFromNIT)
+ {
+  if(gQC2ErrorSquared>=0.)
+  {
+   fIntFlowQcumulants->SetBinError(1,pow(gQC2ErrorSquared,0.5));
+  } else
+    {
+     fIntFlowQcumulants->SetBinError(1,0.);
+     cout<<endl;
+     cout<<" WARNING (QC): Statistical error of generalized QC{2} is imaginary !!!!"<<endl;
+     cout<<endl;
+    }   
+ } // end of if(fApplyCorrectionForNUA && fPropagateErrorAlsoFromNIT)
+ // Quantify detector bias to QC{2}:
+ if(TMath::Abs(QC2)>0.)
+ {
+  fIntFlowDetectorBias->SetBinContent(1,gQC2/QC2); 
+  if(QC2Error>0.)
+  {
+   Double_t errorSquared = gQC2ErrorSquared/pow(QC2,2.)+pow(gQC2,2.)*pow(QC2Error,2.)/pow(QC2,4.);
+   if(errorSquared>0.)
+   {
+    fIntFlowDetectorBias->SetBinError(1,pow(errorSquared,0.5));  
+   }
+  }
+ } // end of if(TMath::Abs(QC2)>0.)
+
+ // Calculating generalized QC{4}:
+ //  Generalized QC{4}:
+ Double_t gQC4 = four-2.*pow(two,2.)
+               - 4.*c1*c3+4.*s1*s3-pow(c2,2.)-pow(s2,2.)
+               + 4.*c2*(pow(c1,2.)-pow(s1,2.))+8.*s2*s1*c1
+               + 8.*two*(pow(c1,2.)+pow(s1,2.))-6.*pow((pow(c1,2.)+pow(s1,2.)),2.);
+ if(fApplyCorrectionForNUA){fIntFlowQcumulants->SetBinContent(2,gQC4);}   
+ //  Statistical error of generalized QC{4}:
+ Double_t gQC4ErrorSquared = 16.*pow(a1,2.)*pow(twoError,2.)+pow(fourError,2.)+16.*pow(a2,2.)*pow(c1Error,2.)
+                           + 4.*pow(a3,2.)*pow(c2Error,2.)+16.*pow(c1,2.)*pow(c3Error,2.)
+                           + 16.*pow(a4,2.)*pow(s1Error,2.)+4.*pow(a5,2.)*pow(s2Error,2.)
+                           + 16.*pow(s1,2.)*pow(s3Error,2.)+8.*a1*wCov4-32.*a1*a2*wCov1
+                           - 16.*a3*a1*wCov5-32.*c1*a1*wCov6-32.*a1*a4*wCov2+16.*a5*a1*wCov7
+                           + 32.*s1*a1*wCov8-8.*a2*wCov9-4.*a3*wCov10-8.*c1*wCov11-8.*a4*wCov12
+                           + 4.*a5*wCov13+8.*s1*wCov14+16.*a3*a2*wCov15+32.*c1*a2*wCov16+32.*a2*a4*wCov3
+                           - 16.*a5*a2*wCov17-32.*s1*a2*wCov18+16.*c1*a3*wCov19+16.*a3*a4*wCov20
+                           - 8.*a3*a5*wCov21-16.*s1*a3*wCov22+32.*c1*a4*wCov23-16.*c1*a5*wCov24
+                           - 32.*c1*s1*wCov25-16.*a5*a4*wCov26-32.*s1*a4*wCov27+16.*s1*a5*wCov28;
+ //  Store ratio of error squared - with/without NUA terms:
+ Double_t ratioErrorSquaredQC4 = 0.;
+ if(fIntFlowQcumulants->GetBinError(2)>0.)
+ { 
+  ratioErrorSquaredQC4 = (gQC4ErrorSquared/pow(fIntFlowQcumulants->GetBinError(2),2.));
+  fIntFlowQcumulantsErrorSquaredRatio->SetBinContent(2,ratioErrorSquaredQC4);
+ }                          
+ if(fApplyCorrectionForNUA && fPropagateErrorAlsoFromNIT)
+ {
+  if(gQC4ErrorSquared>=0.)
+  {
+   fIntFlowQcumulants->SetBinError(2,pow(gQC4ErrorSquared,0.5));
+  } else
+    {
+     fIntFlowQcumulants->SetBinError(2,0.);
+     cout<<endl;
+     cout<<" WARNING (QC): Statistical error of generalized QC{4} is imaginary !!!!"<<endl;
+     cout<<endl;
+    }   
+ } // end of if(fApplyCorrectionForNUA && fPropagateErrorAlsoFromNIT)
+ // Quantify detector bias to QC{4}:
+ if(TMath::Abs(QC4)>0.)
+ {
+  fIntFlowDetectorBias->SetBinContent(2,gQC4/QC4); 
+  if(QC4Error>0.)
+  {
+   Double_t errorSquared = gQC4ErrorSquared/pow(QC4,2.)+pow(gQC4,2.)*pow(QC4Error,2.)/pow(QC4,4.);
+   if(errorSquared>0.)
+   {
+    fIntFlowDetectorBias->SetBinError(2,pow(errorSquared,0.5));  
+   }
+  }
+ } // end of if(TMath::Abs(QC4)>0.)
+
+
+ // .... to be improved (continued for 6th and 8th order) ....            
+ 
+     
  // versus multiplicity:
- if(fApplyCorrectionForNUAVsM) 
+ if(fCalculateCumulantsVsM) // to be improved - propagate error for nua terms vs M
  { 
   Int_t nBins = fIntFlowCorrelationsVsMPro[0]->GetNbinsX(); // to be improved (hardwired 0) 
+  Double_t value[4] = {0.}; // QCs vs M
+  Double_t error[4] = {0.}; // error of QCs vs M
+  Double_t dSum1[4] = {0.}; // sum value_i/(error_i)^2
+  Double_t dSum2[4] = {0.}; // sum 1/(error_i)^2
   for(Int_t b=1;b<=nBins;b++)
   {
+   // Measured correlations:
    two = fIntFlowCorrelationsVsMHist[0]->GetBinContent(b); // <<2>> vs M
    four = fIntFlowCorrelationsVsMHist[1]->GetBinContent(b); // <<4>> vs M
-   // generalized QC{2} vs M:
-   two1stTerm = pow(fIntFlowCorrectionTermsForNUAVsMPro[1][0]->GetBinContent(b),2); // <<cos(n*phi1)>>^2 vs M
-   two2ndTerm = pow(fIntFlowCorrectionTermsForNUAVsMPro[0][0]->GetBinContent(b),2); // <<sin(n*phi1)>>^2 vs M
-   gQC2 = two - two1stTerm - two2ndTerm; 
-   fIntFlowQcumulantsVsM[0]->SetBinContent(b,gQC2);   
-   // generalized QC{4} vs M:  
-   four1stTerm = fIntFlowCorrectionTermsForNUAVsMPro[1][0]->GetBinContent(b)
-               * fIntFlowCorrectionTermsForNUAVsMPro[1][2]->GetBinContent(b); // <<cos(n*phi1)>> <<cos(n*(phi1-phi2-phi3))>> vs M
-   four2ndTerm = fIntFlowCorrectionTermsForNUAVsMPro[0][0]->GetBinContent(b)
-               * fIntFlowCorrectionTermsForNUAVsMPro[0][2]->GetBinContent(b); // <<sin(n*phi1)>> <<sin(n*(phi1-phi2-phi3))>> vs M
-   four3rdTerm = pow(fIntFlowCorrectionTermsForNUAVsMPro[1][1]->GetBinContent(b),2); // <<cos(n*(phi1+phi2))>>^2 vs M
-   four4thTerm = pow(fIntFlowCorrectionTermsForNUAVsMPro[0][1]->GetBinContent(b),2); // <<sin(n*(phi1+phi2))>>^2 vs M
-   four5thTerm = fIntFlowCorrectionTermsForNUAVsMPro[1][1]->GetBinContent(b)
-               * (pow(fIntFlowCorrectionTermsForNUAVsMPro[1][0]->GetBinContent(b),2)
-               - pow(fIntFlowCorrectionTermsForNUAVsMPro[0][0]->GetBinContent(b),2)); //<<cos(n*(phi1+phi2))>> (<<cos(n*phi1)>>^2-<<sin(n*phi1)>>^2) vs M
-   four6thTerm = fIntFlowCorrectionTermsForNUAVsMPro[0][1]->GetBinContent(b)
-               * fIntFlowCorrectionTermsForNUAVsMPro[1][0]->GetBinContent(b)
-               * fIntFlowCorrectionTermsForNUAVsMPro[0][0]->GetBinContent(b); // <<sin(n*(phi1+phi2))>> <<cos(n*phi1)>> <<sin(n*phi1)>> vs M
-   four7thTerm = two*(pow(fIntFlowCorrectionTermsForNUAVsMPro[1][0]->GetBinContent(b),2)
-               + pow(fIntFlowCorrectionTermsForNUAVsMPro[0][0]->GetBinContent(b),2)); // <<cos(n*(phi1-phi2))>> (<<cos(n*phi1)>>^2 + <<sin(n*phi1)>>^2) vs M 
-   four8thTerm = pow(pow(fIntFlowCorrectionTermsForNUAVsMPro[1][0]->GetBinContent(b),2)
-               + pow(fIntFlowCorrectionTermsForNUAVsMPro[0][0]->GetBinContent(b),2),2); // (<<cos(n*phi1)>>^2 + <<sin(n*phi1)>>^2)^2
-   gQC4 = four-2.*pow(two,2.)-4.*four1stTerm+4.*four2ndTerm-four3rdTerm
-        - four4thTerm+4.*four5thTerm+8.*four6thTerm+8.*four7thTerm-6.*four8thTerm;                            
-   fIntFlowQcumulantsVsM[1]->SetBinContent(b,gQC4);   
-  } // end of for(Int_t b=1;b<=nBins;b++)    
- } // end of if(fApplyCorrectionForNUAVsM) 
+   // Isotropic cumulants:
+   QC2 = two;
+   QC4 = four-2.*pow(two,2.);
+   // Non-isotropic terms:
+   c1 = fIntFlowCorrectionTermsForNUAVsMPro[1][0]->GetBinContent(b); // <<cos(n*phi1)>>
+   c2 = fIntFlowCorrectionTermsForNUAVsMPro[1][1]->GetBinContent(b); // <<cos(n*(phi1+phi2))>>
+   c3 = fIntFlowCorrectionTermsForNUAVsMPro[1][2]->GetBinContent(b); // <<cos(n*(phi1-phi2-phi3))>>
+   s1 = fIntFlowCorrectionTermsForNUAVsMPro[0][0]->GetBinContent(b); // <<sin(n*phi1)>>
+   s2 = fIntFlowCorrectionTermsForNUAVsMPro[0][1]->GetBinContent(b); // <<sin(n*(phi1+phi2))>>
+   s3 = fIntFlowCorrectionTermsForNUAVsMPro[0][2]->GetBinContent(b); // <<sin(n*(phi1-phi2-phi3))>>
+   // Generalized QC{2} vs M:
+   gQC2 = two - pow(c1,2.) - pow(s1,2.); 
+   if(fApplyCorrectionForNUAVsM){fIntFlowQcumulantsVsM[0]->SetBinContent(b,gQC2);}   
+   // Generalized QC{4} vs M:  
+   gQC4 = four-2.*pow(two,2.)
+                 - 4.*c1*c3+4.*s1*s3-pow(c2,2.)-pow(s2,2.)
+                 + 4.*c2*(pow(c1,2.)-pow(s1,2.))+8.*s2*s1*c1
+                 + 8.*two*(pow(c1,2.)+pow(s1,2.))-6.*pow((pow(c1,2.)+pow(s1,2.)),2.);
+   if(fApplyCorrectionForNUAVsM){fIntFlowQcumulantsVsM[1]->SetBinContent(b,gQC4);}   
+   // Detector bias vs M:
+   if(TMath::Abs(QC2)>0.)
+   {
+    fIntFlowDetectorBiasVsM[0]->SetBinContent(b,gQC2/QC2); 
+   } // end of if(TMath::Abs(QC2)>0.)
+   if(TMath::Abs(QC4)>0.)
+   {
+    fIntFlowDetectorBiasVsM[1]->SetBinContent(b,gQC4/QC4); 
+   } // end of if(TMath::Abs(QC4)>0.)  
+   // Rebin in M:
+   for(Int_t co=0;co<4;co++)
+   {
+    value[co] = fIntFlowQcumulantsVsM[co]->GetBinContent(b);
+    error[co] = fIntFlowQcumulantsVsM[co]->GetBinError(b);
+    if(error[co]>0.)
+    {
+     dSum1[co]+=value[co]/(error[co]*error[co]);
+     dSum2[co]+=1./(error[co]*error[co]);
+    }
+   } // end of for(Int_t co=0;co<4;co++) 
+  } // end of for(Int_t b=1;b<=nBins;b++)
+  // Store rebinned Q-cumulants:
+  if(fApplyCorrectionForNUAVsM)
+  {
+   for(Int_t co=0;co<4;co++)
+   {
+    if(dSum2[co]>0.)
+    {
+     fIntFlowQcumulantsRebinnedInM->SetBinContent(co+1,dSum1[co]/dSum2[co]);
+     fIntFlowQcumulantsRebinnedInM->SetBinError(co+1,pow(1./dSum2[co],0.5));
+    }
+   } // end of for(Int_t co=0;co<4;co++)
+  } // end of if(fApplyCorrectionForNUAVsM)
+ } // end of if(fCalculateCumulantsVsM) 
      
 } // end of void AliFlowAnalysisWithQCumulants::CalculateQcumulantsCorrectedForNUAIntFlow()
-
+ 
 //================================================================================================================================
-
-void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectedForNUA()
-{
- // Calculate integrated flow from generalized Q-cumulants (corrected for non-uniform acceptance).
- 
- // to be improved: add protection for NULL pointers, propagate statistical errors from 
- // measured correlations and correction terms
- 
- // generalized Q-cumulants:
- Double_t qc2 = fIntFlowQcumulants->GetBinContent(1); // QC{2}  
- Double_t qc4 = fIntFlowQcumulants->GetBinContent(2); // QC{4}  
- //Double_t qc6 = fIntFlowQcumulants->GetBinContent(3); // QC{6}  
- //Double_t qc8 = fIntFlowQcumulants->GetBinContent(4); // QC{8}
- 
- // integrated flow estimates:
- Double_t v2 = 0.; // v{2,QC}  
- Double_t v4 = 0.; // v{4,QC}  
- //Double_t v6 = 0.; // v{6,QC}  
- //Double_t v8 = 0.; // v{8,QC}
-
- // calculate integrated flow estimates from generalized Q-cumulants: 
- if(qc2>=0.) v2 = pow(qc2,1./2.); 
- if(qc4<=0.) v4 = pow(-1.*qc4,1./4.); 
- //if(qc6>=0.) v6 = pow((1./4.)*qc6,1./6.); 
- //if(qc8<=0.) v8 = pow((-1./33.)*qc8,1./8.); 
-
- // store integrated flow estimates from generalized Q-cumulants:
- fIntFlow->SetBinContent(1,v2);
- fIntFlow->SetBinContent(2,v4);
- //fIntFlow->SetBinContent(3,v6);
- //fIntFlow->SetBinContent(4,v8);
- 
- /*
- // propagate correctly error by including non-isotropic terms (to be improved - moved somewhere else):
- // correlations:
- Double_t two = fIntFlowCorrelationsHist->GetBinContent(1); // <<2>> 
- //Double_t four = fIntFlowCorrelationsHist->GetBinContent(2); // <<4>>  
- //Double_t six = fIntFlowCorrelationsHist->GetBinContent(3); // <<6>> 
- //Double_t eight = fIntFlowCorrelationsHist->GetBinContent(4); // <<8>>  
- // statistical errors of average 2-, 4-, 6- and 8-particle azimuthal correlations:
- Double_t twoError = fIntFlowCorrelationsHist->GetBinError(1); // statistical error of <2>  
- Double_t fourError = fIntFlowCorrelationsHist->GetBinError(2); // statistical error of <4>   
- //Double_t sixError = fIntFlowCorrelationsHist->GetBinError(3); // statistical error of <6> 
- //Double_t eightError = fIntFlowCorrelationsHist->GetBinError(4); // statistical error of <8> 
- // nua terms: 
- Double_t c1 = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(1); // <<cos(phi1)>>
- Double_t c2 = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(2); // <<cos(phi1+phi2)>>
- Double_t c3 = fIntFlowCorrectionTermsForNUAHist[1]->GetBinContent(3); // <<cos(phi1-phi2-phi3)>>
- Double_t s1 = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(1); // <<sin(phi1)>>
- Double_t s2 = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(2); // <<sin(phi1+phi2)>>
- Double_t s3 = fIntFlowCorrectionTermsForNUAHist[0]->GetBinContent(3); // <<sin(phi1-phi2-phi3)>>
- // statistical errors of nua terms:
- Double_t c1Error = fIntFlowCorrectionTermsForNUAHist[1]->GetBinError(1); // statistical error of <cos(phi1)>
- Double_t c2Error = fIntFlowCorrectionTermsForNUAHist[1]->GetBinError(2); // statistical error of <cos(phi1+phi2)>
- Double_t c3Error = fIntFlowCorrectionTermsForNUAHist[1]->GetBinError(3); // statistical error of <cos(phi1-phi2-phi3)>
- Double_t s1Error = fIntFlowCorrectionTermsForNUAHist[0]->GetBinError(1); // statistical error of <sin(phi1)>
- Double_t s2Error = fIntFlowCorrectionTermsForNUAHist[0]->GetBinError(2); // statistical error of <sin(phi1+phi2)>
- Double_t s3Error = fIntFlowCorrectionTermsForNUAHist[0]->GetBinError(3); // statistical error of <sin(phi1-phi2-phi3)>
- 
- // covariances for nua:
- Double_t wCov24 = fIntFlowCovariances->GetBinContent(1); // Cov(<2>,<4>) * prefactor(w_<2>,w_<4>)
- Double_t wCov2c1 = fIntFlowCovariancesNUA->GetBinContent(1);
- Double_t wCov2s1 = fIntFlowCovariancesNUA->GetBinContent(2);
- Double_t wCovc1s1 = fIntFlowCovariancesNUA->GetBinContent(3);
- Double_t wCov2c2 = fIntFlowCovariancesNUA->GetBinContent(4);
- Double_t wCov2s2 = fIntFlowCovariancesNUA->GetBinContent(5); 
- Double_t wCov2c3 = fIntFlowCovariancesNUA->GetBinContent(6); 
- Double_t wCov2s3 = fIntFlowCovariancesNUA->GetBinContent(7); 
- Double_t wCov4c1 = fIntFlowCovariancesNUA->GetBinContent(8);  
- Double_t wCov4s1 = fIntFlowCovariancesNUA->GetBinContent(9); 
- Double_t wCov4c2 = fIntFlowCovariancesNUA->GetBinContent(10); 
- Double_t wCov4s2 = fIntFlowCovariancesNUA->GetBinContent(11); 
- Double_t wCov4c3 = fIntFlowCovariancesNUA->GetBinContent(12);
- Double_t wCov4s3 = fIntFlowCovariancesNUA->GetBinContent(13);
- Double_t wCovc1c2 = fIntFlowCovariancesNUA->GetBinContent(14);
- Double_t wCovc1s2 = fIntFlowCovariancesNUA->GetBinContent(15);
- Double_t wCovc1c3 = fIntFlowCovariancesNUA->GetBinContent(16);
- Double_t wCovc1s3 = fIntFlowCovariancesNUA->GetBinContent(17);
- Double_t wCovs1c2 = fIntFlowCovariancesNUA->GetBinContent(18);
- Double_t wCovs1s2 = fIntFlowCovariancesNUA->GetBinContent(19); 
- Double_t wCovs1c3 = fIntFlowCovariancesNUA->GetBinContent(20);
- Double_t wCovs1s3 = fIntFlowCovariancesNUA->GetBinContent(21); 
- Double_t wCovc2s2 = fIntFlowCovariancesNUA->GetBinContent(22);  
- Double_t wCovc2c3 = fIntFlowCovariancesNUA->GetBinContent(23);  
- Double_t wCovc2s3 = fIntFlowCovariancesNUA->GetBinContent(24); 
- Double_t wCovs2c3 = fIntFlowCovariancesNUA->GetBinContent(25); 
- Double_t wCovs2s3 = fIntFlowCovariancesNUA->GetBinContent(26);
- Double_t wCovc3s3 = fIntFlowCovariancesNUA->GetBinContent(27); 
- */
- 
- /*
- // 2nd order:
- Double_t err2ndSquared = (1./(4.*pow(v2,2.)))
-                        * (pow(twoError,2.)+4.*pow(s1*s1Error,2.)+4.*pow(c1*c1Error,2.)
-                        // to be improved (add eventually also covariance terms)
-                        //- 4.*c1*wCov2c1-4.*s1*wCov2s1+8.*c1*s1*wCovc1s1 
-                        );
- if(err2ndSquared>=0.) 
- {
-  fIntFlow->SetBinError(1,pow(err2ndSquared,0.5)); // to be improved (enabled eventually)
- } else
-   {
-    cout<<"WARNING: Statistical error of v{2,QC} (with non-isotropic terms included) is imaginary !!!! "<<endl;
-   }
- // 4th order:
- Double_t err4thSquared = (1./(16.*pow(v4,6.)))
-                        * (pow(4.*pow(two,2.)-8.*(pow(c1,2.)+pow(s1,2.)),2.)*pow(twoError,2.)
-                        + pow(fourError,2.)
-                        + 16.*pow(6.*pow(c1,3.)-2.*c1*c2+c3+6.*c1*pow(s1,2.)-2.*s1*s2-4.*c1*two,2.)*pow(c1Error,2.)
-                        + 16.*pow(6.*pow(c1,2.)*s1+2.*c2*s1+6.*pow(s1,3.)-2.*c1*s2-s3-4.*s1*two,2.)*pow(s1Error,2.)
-                        + 4.*pow(c2-2.*(pow(c1,2.)-pow(s1,2.)),2.)*pow(c2Error,2.)
-                        + 4.*pow(4*c1*s1-s2,2.)*pow(s2Error,2.)
-                        + 16.*pow(c1,2.)*pow(c3Error,2.)
-                        + 16.*pow(s1,2.)*pow(s3Error,2.)
-                        // to be improved (add eventually also covariance terms)
-                        // ...
-                        );
- if(err4thSquared>=0.) 
- {
-  fIntFlow->SetBinError(2,pow(err4thSquared,0.5)); // to be improved (enabled eventually)
- } else
-   {
-    cout<<"WARNING: Statistical error of v{4,QC} (with non-isotropic terms included) is imaginary !!!! "<<endl;
-   }
- */
- 
-} // end of void AliFlowAnalysisWithQCumulants::CalculateIntFlowCorrectedForNUA()
-
-   
-//================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::FinalizeCorrectionTermsForNUAIntFlow() 
 {
@@ -8911,9 +8928,12 @@ void AliFlowAnalysisWithQCumulants::FinalizeCorrectionTermsForNUAIntFlow()
  //          termA = sqrt{sum_{i=1}^{N} w^2}/(sum_{i=1}^{N} w)
  //          termB = 1/sqrt(1-termA^2)   
  
+ TString sinCosFlag[2] = {"sin","cos"}; // to be improved - promore this to data member?
+ TString nonisotropicTermFlag[4] = {"(n(phi1))","(n(phi1+phi2))","(n(phi1-phi2-phi3))","(n(2phi1-phi2))"}; // to be improved - hardwired 4
+    
  for(Int_t sc=0;sc<2;sc++) // sin or cos correction terms 
  {
-  for(Int_t ci=1;ci<=3;ci++) // correction term index
+  for(Int_t ci=1;ci<=4;ci++) // correction term index (to be improved - hardwired 4)
   {
    Double_t correction = fIntFlowCorrectionTermsForNUAPro[sc]->GetBinContent(ci);
    Double_t spread = fIntFlowCorrectionTermsForNUAPro[sc]->GetBinError(ci);
@@ -8921,33 +8941,31 @@ void AliFlowAnalysisWithQCumulants::FinalizeCorrectionTermsForNUAIntFlow()
    Double_t sumOfQuadraticEventWeights = fIntFlowSumOfEventWeightsNUA[sc][1]->GetBinContent(ci);
    Double_t termA = 0.;
    Double_t termB = 0.;
-   if(sumOfLinearEventWeights)
+   if(TMath::Abs(sumOfLinearEventWeights)>1.e-44)
    {
     termA = pow(sumOfQuadraticEventWeights,0.5)/sumOfLinearEventWeights;
    } else
      {
-      cout<<"WARNING: sumOfLinearEventWeights == 0 in AFAWQC::FCTFNIF() !!!!"<<endl;
-      cout<<"         (for "<<ci<<"-th correction term)"<<endl;
+      cout<<" WARNING (QC): sumOfLinearEventWeights == 0 in AFAWQC::FCTFNIF() !!!!"<<endl;
+      cout<<Form("               (for <<%s[%s]>> non-isotropic term)",sinCosFlag[sc].Data(),nonisotropicTermFlag[ci-1].Data())<<endl;
      }
    if(1.-pow(termA,2.) > 0.)
    {
     termB = 1./pow(1-pow(termA,2.),0.5);
    } else
      {
-      cout<<"WARNING: 1.-pow(termA,2.) <= 0 in AFAWQC::FCTFNIF() !!!!"<<endl;   
-      cout<<"         (for "<<ci<<"-th correction term)"<<endl;
+      cout<<" WARNING (QC): 1.-pow(termA,2.) <= 0 in AFAWQC::FCTFNIF() !!!!"<<endl;   
+      cout<<Form("               (for <<%s[%s]>> non-isotropic term)",sinCosFlag[sc].Data(),nonisotropicTermFlag[ci-1].Data())<<endl;
      }     
    Double_t statisticalError = termA * spread * termB;
    fIntFlowCorrectionTermsForNUAHist[sc]->SetBinContent(ci,correction);
    fIntFlowCorrectionTermsForNUAHist[sc]->SetBinError(ci,statisticalError);
-  } // end of for(Int_t ci=1;ci<=10;ci++) // correction term index
+  } // end of for(Int_t ci=1;ci<=4;ci++) // correction term index
  } // end of for(Int sc=0;sc<2;sc++) // sin or cos correction terms 
                                                                                                                                                                                                
 } // end of void AliFlowAnalysisWithQCumulants::FinalizeCorrectionTermsForNUAIntFlow()
 
-
 //================================================================================================================================
-
 
 void AliFlowAnalysisWithQCumulants::GetPointersForNestedLoopsHistograms()
 {
@@ -9342,13 +9360,10 @@ void AliFlowAnalysisWithQCumulants::ResetEventByEventQuantities()
  fIntFlowEventWeightsForCorrelationsEBE->Reset();
  fIntFlowCorrelationsAllEBE->Reset();
  
- if(fApplyCorrectionForNUA)  
+ for(Int_t sc=0;sc<2;sc++)
  {
-  for(Int_t sc=0;sc<2;sc++)
-  {
-   fIntFlowCorrectionTermsForNUAEBE[sc]->Reset();
-   fIntFlowEventWeightForCorrectionTermsForNUAEBE[sc]->Reset();
-  } 
+  fIntFlowCorrectionTermsForNUAEBE[sc]->Reset();
+  fIntFlowEventWeightForCorrectionTermsForNUAEBE[sc]->Reset(); 
  }
     
  // differential flow:
@@ -9416,8 +9431,8 @@ void AliFlowAnalysisWithQCumulants::ResetEventByEventQuantities()
    {
     for(Int_t k=0;k<9;k++) // power of weight
     {
-     if(fReRPQ2dEBE[t][m][k]) fReRPQ2dEBE[t][m][k]->Reset();
-     if(fImRPQ2dEBE[t][m][k]) fImRPQ2dEBE[t][m][k]->Reset();
+     if(fReRPQ2dEBE[t][m][k]){fReRPQ2dEBE[t][m][k]->Reset();}
+     if(fImRPQ2dEBE[t][m][k]){fImRPQ2dEBE[t][m][k]->Reset();}
     }   
    }
   }
@@ -9425,7 +9440,7 @@ void AliFlowAnalysisWithQCumulants::ResetEventByEventQuantities()
   { 
    for(Int_t k=0;k<9;k++)
    {
-    if(fs2dEBE[t][k]) fs2dEBE[t][k]->Reset();
+    if(fs2dEBE[t][k]){fs2dEBE[t][k]->Reset();}
    }
   }  
  } // end of if(fCalculate2DFlow) 
@@ -10429,7 +10444,7 @@ void AliFlowAnalysisWithQCumulants::CrossCheckIntFlowCorrectionTermsForNUA()
  cout<<endl;
  cout<<endl;
 
- for(Int_t ci=1;ci<=10;ci++) // correction term index
+ for(Int_t ci=1;ci<=4;ci++) // correction term index (to be improved - hardwired 4)
  {
   for(Int_t sc=0;sc<2;sc++) // sin or cos term
   {
@@ -12401,69 +12416,278 @@ void AliFlowAnalysisWithQCumulants::EvaluateDiffFlowCorrectionTermsForNUAWithNes
 
 //================================================================================================================================
 
-void AliFlowAnalysisWithQCumulants::CalculateDetectorEffectsForTrueCorrelations()
+void AliFlowAnalysisWithQCumulants::CheckPointersUsedInFinish()
 {
- // Quantify detector effects for true correlations.
+ // Check all pointers used in method Finish().
  
- // to be improved: add protection for the pointers used in this method
- 
- Double_t measured[4] = {0.}; // measured true correlation (a.k.a. cumulant)
- Double_t corrected[4] = {0.}; // true correlation corrected for detector effects (a.k.a. generalized cumulant)
- 
- // measured correlations:
- Double_t two = fIntFlowCorrelationsHist->GetBinContent(1); // <<2>> 
- Double_t four = fIntFlowCorrelationsHist->GetBinContent(2); // <<4>>  
- Double_t six = fIntFlowCorrelationsHist->GetBinContent(3); // <<6>> 
- Double_t eight = fIntFlowCorrelationsHist->GetBinContent(4); // <<8>>  
- // measured true correlations (a.k.a. cumulants):
- if(two) measured[0] = two; 
- if(four) measured[1] = four-2.*pow(two,2.); 
- if(six) measured[2] = six-9.*two*four+12.*pow(two,3.); 
- if(eight) measured[3] = eight-16.*two*six-18.*pow(four,2.)+144.*pow(two,2.)*four-144.*pow(two,4.); 
- 
- for(Int_t ci=0;ci<=1;ci++) // correlation index // to be improved (enabled also for QC{6} and QC{8} eventually)
+ if(!fAvMultiplicity)
  {
-  corrected[ci] = fIntFlowQcumulants->GetBinContent(ci+1);
-  if(TMath::Abs(measured[ci])>1.e-44)
+  cout<<endl;
+  cout<<" WARNING (QC): fAvMultiplicity is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0);
+ }
+ if(!fIntFlowCorrelationsPro)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowCorrelationsPro is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }
+ if(!fIntFlowCorrelationsHist)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowCorrelationsHist is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }
+ if((fUsePhiWeights||fUsePtWeights||fUseEtaWeights) && !fIntFlowExtraCorrelationsPro) 
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowExtraCorrelationsPro is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
+ for(Int_t power=0;power<2;power++)
+ { 
+  if(!fIntFlowSumOfEventWeights[power]) 
   {
-   fIntFlowDetectorBias->SetBinContent(ci+1,corrected[ci]/measured[ci]);
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowSumOfEventWeights[%d] is NULL in CheckPointersUsedInFinish() !!!!",power)<<endl;
+   cout<<endl;
+   exit(0);
   }
- } // end of for(Int_t ci=1;ci<=4;ci++) // correlation index 
- 
- // versus multiplicity:
- if(!fApplyCorrectionForNUAVsM) return;
- Int_t nBins = fIntFlowCorrelationsVsMPro[0]->GetNbinsX(); // to be improved (hardwired 0) 
- for(Int_t b=1;b<=nBins;b++)
+ } // end of for(Int_t power=0;power<2;power++)
+ if(!fIntFlowProductOfCorrelationsPro)
  {
-  // measured correlations vs M:
-  two = fIntFlowCorrelationsVsMHist[0]->GetBinContent(b); // <<2>> 
-  four = fIntFlowCorrelationsVsMHist[1]->GetBinContent(b); // <<4>>  
-  six = fIntFlowCorrelationsVsMHist[2]->GetBinContent(b); // <<6>> 
-  eight = fIntFlowCorrelationsVsMHist[3]->GetBinContent(b); // <<8>>  
-  // measured true correlations (a.k.a. cumulants) vs M: 
-  measured[0] = 0.; // QC{2} vs M
-  measured[1] = 0.; // QC{4} vs M
-  measured[2] = 0.; // QC{6} vs M
-  measured[3] = 0.; // QC{8} vs M
-  if(two) measured[0] = two; 
-  if(four) measured[1] = four-2.*pow(two,2.); 
-  if(six) measured[2] = six-9.*two*four+12.*pow(two,3.); 
-  if(eight) measured[3] = eight-16.*two*six-18.*pow(four,2.)+144.*pow(two,2.)*four-144.*pow(two,4.);
-  corrected[0] = 0.; // generalized QC{2} vs M
-  corrected[1] = 0.; // generalized QC{4} vs M
-  corrected[2] = 0.; // generalized QC{6} vs M
-  corrected[3] = 0.; // generalized QC{8} vs M 
-  for(Int_t ci=0;ci<=1;ci++) // correlation index // to be improved (enabled also for QC{6} and QC{8} eventually)
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowProductOfCorrelationsPro is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
+ if(!fIntFlowSumOfProductOfEventWeights)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowSumOfProductOfEventWeights is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }
+ if(!fIntFlowCovariances)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowCovariances is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }  
+ if(!fIntFlowQcumulants)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowQcumulants is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }  
+ if(!fIntFlow)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlow is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }
+ if(!fCommonHists)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fCommonHists is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }
+ if(!(fCommonHistsResults2nd && fCommonHistsResults4th && fCommonHistsResults6th && fCommonHistsResults8th))
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fCommonHistsResults2nd && fCommonHistsResults4th && fCommonHistsResults6th"<<endl; 
+  cout<<"               && fCommonHistsResults8th is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0);
+ } 
+ 
+ // NUA stuff:
+ for(Int_t sc=0;sc<2;sc++) // sin/cos
+ { 
+  if(!fIntFlowCorrectionTermsForNUAPro[sc]) 
   {
-   corrected[ci] = fIntFlowQcumulantsVsM[ci]->GetBinContent(b);
-   if(TMath::Abs(measured[ci])>1.e-44)
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowCorrectionTermsForNUAPro[%d] is NULL in CheckPointersUsedInFinish() !!!!",sc)<<endl;
+   cout<<endl;
+   exit(0);
+  }
+  if(!fIntFlowCorrectionTermsForNUAHist[sc]) 
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowCorrectionTermsForNUAHist[%d] is NULL in CheckPointersUsedInFinish() !!!!",sc)<<endl;
+   cout<<endl;
+   exit(0);
+  }
+  for(Int_t lq=0;lq<2;lq++) // linear/quadratic
+  {
+   if(!fIntFlowSumOfEventWeightsNUA[sc][lq]) 
    {
-    fIntFlowDetectorBiasVsM[ci]->SetBinContent(b,corrected[ci]/measured[ci]);
+    cout<<endl;
+    cout<<Form(" WARNING (QC): fIntFlowSumOfEventWeightsNUA[%d][%d] is NULL in CheckPointersUsedInFinish() !!!!",sc,lq)<<endl;
+    cout<<endl;
+    exit(0);
    }
-  } // end of for(Int_t ci=1;ci<=4;ci++) // correlation index    
- } // end of for(Int_t b=1;b<=nBins;b++)
+  } // end of for(Int_t lq=0;lq<2;lq++) // linear/quadratic
+ } // end of for(Int_t power=0;power<2;power++) 
+ if(!fIntFlowProductOfCorrectionTermsForNUAPro)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowProductOfCorrectionTermsForNUAPro is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
+ if(!fIntFlowSumOfProductOfEventWeightsNUA)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowSumOfProductOfEventWeightsNUA is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
+ if(!fIntFlowCovariancesNUA)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowCovariancesNUA is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
+ if(!fIntFlowQcumulantsErrorSquaredRatio)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowQcumulantsErrorSquaredRatio is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
+ if(!fIntFlowDetectorBias)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowDetectorBias is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }
+ 
+ // Versus multiplicity:
+ if(!fCalculateCumulantsVsM){return;}
+ for(Int_t co=0;co<=3;co++) // cumulant order
+ {
+  if(!fIntFlowQcumulantsVsM[co])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowQcumulantsVsM[%d] is NULL in CheckPointersUsedInFinish() !!!!",co)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+  if(!fIntFlowVsM[co])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowVsM[%d] is NULL in CheckPointersUsedInFinish() !!!!",co)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+  if(!fIntFlowDetectorBiasVsM[co])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowDetectorBiasVsM[%d] is NULL in CheckPointersUsedInFinish() !!!!",co)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+ } // end of for(Int_t c0=0;c0<=3;c0++) // cumulant order
+ for(Int_t ci=0;ci<=3;ci++) // correlation index
+ {
+  if(!fIntFlowCorrelationsVsMPro[ci])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowCorrelationsVsMPro[%d] is NULL in CheckPointersUsedInFinish() !!!!",ci)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+  if(!fIntFlowCorrelationsVsMHist[ci])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowCorrelationsVsMHist[%d] is NULL in CheckPointersUsedInFinish() !!!!",ci)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+  for(Int_t power=0;power<2;power++) 
+  {
+   if(!fIntFlowSumOfEventWeightsVsM[ci][power])
+   {
+    cout<<endl;
+    cout<<Form(" WARNING (QC): fIntFlowSumOfEventWeightsVsM[%d][%d] is NULL in CheckPointersUsedInFinish() !!!!",ci,power)<<endl;
+    cout<<endl;
+    exit(0);   
+   }
+  } // end of for(Int_t power=0;power<2;power++) 
+ } // end of for(Int_t ci=0;ci<=3;ci++) // correlation index
+ for(Int_t i=0;i<6;i++)
+ {
+  if(!fIntFlowProductOfCorrelationsVsMPro[i])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowProductOfCorrelationsVsMPro[%d] is NULL in CheckPointersUsedInFinish() !!!!",i)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+  if(!fIntFlowSumOfProductOfEventWeightsVsM[i])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowSumOfProductOfEventWeightsVsM[%d] is NULL in CheckPointersUsedInFinish() !!!!",i)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+  if(!fIntFlowCovariancesVsM[i])
+  {
+   cout<<endl;
+   cout<<Form(" WARNING (QC): fIntFlowCovariancesVsM[%d] is NULL in CheckPointersUsedInFinish() !!!!",i)<<endl;
+   cout<<endl;
+   exit(0); 
+  }
+ } // end of for(Int_t i=0;i<6;i++) 
+ if(!fIntFlowRebinnedInM)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowRebinnedInM is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }
+ if(!fIntFlowQcumulantsRebinnedInM)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowQcumulantsRebinnedInM is NULL in CheckPointersUsedInFinish() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ }  
+ 
+} // end of void AliFlowAnalysisWithQCumulants::CheckPointersUsedInFinish()
 
-} // end of AliFlowAnalysisWithQCumulants::CalculateDetectorEffectsForTrueCorrelations()
+//================================================================================================================================
 
+void AliFlowAnalysisWithQCumulants::CheckPointersUsedInMake()
+{
+ // Check all pointers used in method Make().
+ 
+ if(!fAvMultiplicity)
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fAvMultiplicity is NULL in CheckPointersUsedInMake() !!!!"<<endl;
+  cout<<endl;
+  exit(0);
+ }
+ if((fUsePhiWeights||fUsePtWeights||fUseEtaWeights) && !fIntFlowExtraCorrelationsPro) 
+ {
+  cout<<endl;
+  cout<<" WARNING (QC): fIntFlowExtraCorrelationsPro is NULL in CheckPointersUsedInMake() !!!!"<<endl;
+  cout<<endl;
+  exit(0); 
+ } 
 
+} // end of void AliFlowAnalysisWithQCumulants::CheckPointersUsedInMake()
+ 
 

@@ -53,6 +53,8 @@
 #include <TSystem.h>
 #include <TMath.h>
 
+#include <limits>
+
 #if !defined(__HP_aCC) && !defined(__alpha)
   #include <sstream>
 #endif
@@ -111,7 +113,7 @@ void  AliMpSectorReader::ReadSectorData(istream& in)
   AliDebugStream(2) << keyword << endl;
 
   if (keyword != fgkSectorKeyword) {
-     Fatal("ReadSectorData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }   
     
@@ -128,6 +130,12 @@ void  AliMpSectorReader::ReadSectorData(istream& in)
   direction = (directionStr == "Y") ? AliMp::kY  :  AliMp::kX;
 
   AliDebugStream(2) << nofZones << " " <<  nofRows << endl;
+  
+  if ( nofZones < 0 || nofZones >= std::numeric_limits<Int_t>::max() ||
+       nofRows < 0  || nofRows >= std::numeric_limits<Int_t>::max() ) {
+    AliErrorStream() << "Wrong nofZones/nofRows value." << endl;
+    return;
+  }         
 
   fSector = new AliMpSector("Not defined", nofZones, nofRows,direction,
                             offsetX, offsetY);
@@ -136,7 +144,7 @@ void  AliMpSectorReader::ReadSectorData(istream& in)
   in >> nextKeyword;
     
   if (nextKeyword != fgkZoneKeyword) {
-     Fatal("ReadSectorData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }      
   
@@ -165,7 +173,7 @@ void AliMpSectorReader::ReadZoneData(istream& in)
   in >> nextKeyword;
     
   if (nextKeyword != fgkSubZoneKeyword) {
-     Fatal("ReadZoneData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }  
     
@@ -188,7 +196,7 @@ void AliMpSectorReader::ReadSubZoneData(istream& in, AliMpZone* zone)
   in >> nextKeyword;
     
   if (nextKeyword != fgkRowKeyword) {
-     Fatal("ReadSubZoneData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }  
     
@@ -290,7 +298,7 @@ void AliMpSectorReader::ReadRowSegmentsData(istream& in,
     ReadSubZoneData(in, zone);
   }   
   else {
-    Fatal("ReadRowSegmentsData", "Wrong file format.");
+    AliErrorStream() << "Wrong file format." << endl;
   } 
 }   
 
@@ -306,7 +314,7 @@ void AliMpSectorReader::ReadSectorSpecialData(istream& in, AliMp::XDirection dir
   AliDebugStream(2) << keyword << endl;
 
   if (keyword != fgkSectorSpecialKeyword) {
-     Fatal("ReadSectorSpecialData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }   
 
@@ -316,7 +324,7 @@ void AliMpSectorReader::ReadSectorSpecialData(istream& in, AliMp::XDirection dir
   AliDebugStream(2) << keyword << endl;
     
   if (nextKeyword != fgkMotifKeyword) {
-    Fatal("ReadSectorSpecialData", "Wrong file format.");
+    AliErrorStream() << "Wrong file format." << endl;
     return;
   }  
 
@@ -346,7 +354,7 @@ void AliMpSectorReader::ReadMotifsSpecialData(istream& in)
   while (nextKeyword == fgkMotifKeyword);
     
   if (nextKeyword != fgkRowSpecialKeyword) {
-     Fatal("ReadMotifSpecialData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }      
 }  
@@ -390,7 +398,7 @@ void AliMpSectorReader::ReadRowSpecialData(istream& in, AliMp::XDirection direct
   AliDebugStream(2) << nextKeyword << endl;
     
   if (nextKeyword != fgkPadRowsKeyword) {
-     Fatal("ReadRowSpecialData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }  
     
@@ -425,13 +433,18 @@ void AliMpSectorReader::ReadRowSegmentSpecialData(istream& in,
   
   AliDebugStream(2) << nofPadRows << endl;
   
+  if ( nofPadRows < 0 ) {
+    AliErrorStream() << "Wrong nofPadRows value." << endl;
+    return;
+  }         
+
   TString keyword;
   in >> keyword;
 
   AliDebugStream(2) << keyword << endl;
     
   if (keyword != fgkPadRowSegmentKeyword) {
-     Fatal("ReadRowSegmentSpecialData", "Wrong file format.");
+     AliErrorStream() << "Wrong file format." << endl;
      return;
   }  
   
@@ -483,7 +496,7 @@ void AliMpSectorReader::ReadRowSegmentSpecialData(istream& in,
       AliMpVMotif* motif = fSector->GetMotifMap()->FindMotif(motifId);
       
       if (!motif) {
-        Fatal("ReadRowSegmentSpecialData", "Unknown motif.");
+        AliErrorStream() << "Unknown motif" << endl;
 	return;
       }
 
@@ -503,7 +516,7 @@ void AliMpSectorReader::ReadRowSegmentSpecialData(istream& in,
     ReadRowSpecialData(in, direction);
   }   
   else {
-    Fatal("ReadRowSegmentSpecialData", "Wrong file format.");
+    AliErrorStream() << "Wrong file format." << endl;
   } 
 }  
 

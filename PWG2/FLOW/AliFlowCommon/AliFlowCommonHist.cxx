@@ -61,12 +61,14 @@ AliFlowCommonHist::AliFlowCommonHist():
   fHistPhiEtaRP(NULL),
   fHistPhiEtaPOI(NULL),
   fHistProMeanPtperBin(NULL),
+  fHistWeightvsPhi(NULL),
   fHistQ(NULL),
   fHistAngleQ(NULL),
   fHistAngleQSub0(NULL),
   fHistAngleQSub1(NULL), 
   fHarmonic(NULL),
   fRefMultVsNoOfRPs(NULL),
+  fHistRefMult(NULL),
   fHistList(NULL)
 {
   
@@ -94,12 +96,14 @@ AliFlowCommonHist::AliFlowCommonHist(const AliFlowCommonHist& a):
   fHistPhiEtaRP(new TH2F(*a.fHistPhiEtaRP)),
   fHistPhiEtaPOI(new TH2F(*a.fHistPhiEtaPOI)),
   fHistProMeanPtperBin(new TProfile(*a.fHistProMeanPtperBin)),
+  fHistWeightvsPhi(new TH2F(*a.fHistWeightvsPhi)),
   fHistQ(new TH1F(*a.fHistQ)),
   fHistAngleQ(new TH1F(*a.fHistAngleQ)),
   fHistAngleQSub0(new TH1F(*a.fHistAngleQSub0)),
   fHistAngleQSub1(new TH1F(*a.fHistAngleQSub1)), 
   fHarmonic(new TProfile(*a.fHarmonic)),
   fRefMultVsNoOfRPs(new TProfile(*a.fRefMultVsNoOfRPs)),
+  fHistRefMult(new TH1F(*a.fHistRefMult)),  
   fHistList(NULL)
 {
   // copy constructor
@@ -122,9 +126,11 @@ AliFlowCommonHist::AliFlowCommonHist(const AliFlowCommonHist& a):
   fHistList-> Add(fHistEtaSub1);
   fHistList-> Add(fHistPhiEtaRP);
   fHistList-> Add(fHistPhiEtaPOI);
-  fHistList-> Add(fHistProMeanPtperBin); 
+  fHistList-> Add(fHistProMeanPtperBin);
+  fHistList-> Add(fHistWeightvsPhi);
   fHistList-> Add(fHarmonic);  
   fHistList-> Add(fRefMultVsNoOfRPs);
+  fHistList-> Add(fHistRefMult); 
   fHistList-> Add(fHistQ); 
   fHistList-> Add(fHistAngleQ);
   fHistList-> Add(fHistAngleQSub0);
@@ -156,12 +162,14 @@ AliFlowCommonHist::AliFlowCommonHist(const AliFlowCommonHist& a):
     fHistPhiEtaRP(NULL),
     fHistPhiEtaPOI(NULL),
     fHistProMeanPtperBin(NULL),
+    fHistWeightvsPhi(NULL),
     fHistQ(NULL),
     fHistAngleQ(NULL),
     fHistAngleQSub0(NULL),
     fHistAngleQSub1(NULL), 
     fHarmonic(NULL),
     fRefMultVsNoOfRPs(NULL),
+    fHistRefMult(NULL),
     fHistList(NULL)
 {
 
@@ -306,6 +314,13 @@ AliFlowCommonHist::AliFlowCommonHist(const AliFlowCommonHist& a):
   fHistProMeanPtperBin ->SetXTitle("P_{t} (GeV/c) ");
   fHistProMeanPtperBin ->SetYTitle("<P_{t}> (GeV/c) ");
 
+  //Particle weight
+  sName = "Control_Flow_WeightvsPhi_";
+  sName +=anInput;
+  fHistWeightvsPhi = new TH2F(sName.Data(), sName.Data(), iNbinsPhi, dPhiMin, dPhiMax, 300, 0., 3.); 
+  fHistWeightvsPhi ->SetXTitle("#phi");
+  fHistWeightvsPhi ->SetYTitle("weight");
+
   //Q vector
   sName = "Control_Flow_Q_";
   sName +=anInput;
@@ -345,6 +360,13 @@ AliFlowCommonHist::AliFlowCommonHist(const AliFlowCommonHist& a):
   fRefMultVsNoOfRPs->SetYTitle("<reference multiplicity>");
   fRefMultVsNoOfRPs->SetXTitle("# of RPs");
 
+  //reference multiplicity
+  sName = "Control_Flow_Ref_Mult_";
+  sName +=anInput;
+  fHistRefMult = new TH1F(sName.Data(), sName.Data(),iNbinsMult, dMultMin, dMultMax);
+  fHistRefMult->SetXTitle("Reference multiplicity");
+  fHistRefMult->SetYTitle("Counts");
+
   //list of histograms if added here also add in copy constructor
   fHistList = new TList();
   fHistList-> Add(fHistMultRP);        
@@ -365,8 +387,10 @@ AliFlowCommonHist::AliFlowCommonHist(const AliFlowCommonHist& a):
   fHistList-> Add(fHistPhiEtaRP);  
   fHistList-> Add(fHistPhiEtaPOI);
   fHistList-> Add(fHistProMeanPtperBin);
+  fHistList-> Add(fHistWeightvsPhi);
   fHistList-> Add(fHarmonic); 
   fHistList-> Add(fRefMultVsNoOfRPs); 
+  fHistList-> Add(fHistRefMult);   
   fHistList-> Add(fHistQ);           
   fHistList-> Add(fHistAngleQ);
   fHistList-> Add(fHistAngleQSub0);
@@ -398,19 +422,21 @@ AliFlowCommonHist::~AliFlowCommonHist()
   delete fHistPhiEtaRP;
   delete fHistPhiEtaPOI;
   delete fHistProMeanPtperBin;
+  delete fHistWeightvsPhi;
   delete fHistQ;
   delete fHistAngleQ;
   delete fHistAngleQSub0;
   delete fHistAngleQSub1;
   delete fHarmonic;
   delete fRefMultVsNoOfRPs;
+  delete fHistRefMult;  
   delete fHistList;
 }
 
 
 //----------------------------------------------------------------------- 
 
-Bool_t AliFlowCommonHist::FillControlHistograms(AliFlowEventSimple* anEvent)
+Bool_t AliFlowCommonHist::FillControlHistograms(AliFlowEventSimple* anEvent,TList *weightsList, Bool_t usePhiWeights, Bool_t usePtWeights, Bool_t useEtaWeights)
 {
   //Fills the control histograms
   if (!anEvent){
@@ -418,10 +444,66 @@ Bool_t AliFlowCommonHist::FillControlHistograms(AliFlowEventSimple* anEvent)
     return kFALSE;
   }
 
-  Double_t dPt, dPhi, dEta, dWeight;
+  //track datamembers
+  Double_t dPt     = 0.;
+  Double_t dPhi    = 0.;
+  Double_t dEta    = 0.;
+  Double_t dWeight = 1.;
 
+  //weights used for corrections
+  Double_t dWPhi = 1.;
+  Double_t dWPt  = 1.;
+  Double_t dWEta = 1.;
+
+  TH1F *phiWeights     = NULL;
+  TH1F *phiWeightsSub0 = NULL;
+  TH1F *phiWeightsSub1 = NULL;
+  TH1D *ptWeights      = NULL;
+  TH1D *etaWeights     = NULL;
+
+  Int_t nBinsPhi     = 0;
+  Int_t nBinsPhiSub0 = 0;
+  Int_t nBinsPhiSub1 = 0;
+  Double_t dBinWidthPt  = 0.;
+  Double_t dPtMin       = 0.;
+  Double_t dBinWidthEta = 0.;
+  Double_t dEtaMin      = 0.;
+
+  if(weightsList)
+    {
+      if(usePhiWeights)
+	{
+	  phiWeights = dynamic_cast<TH1F *>(weightsList->FindObject("phi_weights"));
+	  if(phiWeights) nBinsPhi = phiWeights->GetNbinsX();
+	  phiWeightsSub0 = dynamic_cast<TH1F *>(weightsList->FindObject("phi_weights_sub0"));
+	  if(phiWeightsSub0) nBinsPhiSub0 = phiWeightsSub0->GetNbinsX();
+	  phiWeightsSub1 = dynamic_cast<TH1F *>(weightsList->FindObject("phi_weights_sub1"));
+	  if(phiWeightsSub1) nBinsPhiSub1 = phiWeightsSub1->GetNbinsX();
+	}
+      if(usePtWeights)
+	{
+	  ptWeights = dynamic_cast<TH1D *>(weightsList->FindObject("pt_weights"));
+	  if(ptWeights)
+	    {
+	      dBinWidthPt = ptWeights->GetBinWidth(1); // assuming that all bins have the same width
+	      dPtMin = (ptWeights->GetXaxis())->GetXmin();
+	    }
+	}
+      if(useEtaWeights)
+	{
+	  etaWeights = dynamic_cast<TH1D *>(weightsList->FindObject("eta_weights"));
+	  if(etaWeights)
+	    {
+	      dBinWidthEta = etaWeights->GetBinWidth(1); // assuming that all bins have the same width
+	      dEtaMin = (etaWeights->GetXaxis())->GetXmin();
+	    }
+	}
+    } // end of if(weightsList)
+
+
+  
   //fill the histograms
-  AliFlowVector vQ = anEvent->GetQ(); 
+  AliFlowVector vQ = anEvent->GetQ(2, weightsList, usePhiWeights, usePtWeights, useEtaWeights); 
   //weight by the Multiplicity
   Double_t dQX = 0.;
   Double_t dQY = 0.;
@@ -434,7 +516,7 @@ Bool_t AliFlowCommonHist::FillControlHistograms(AliFlowEventSimple* anEvent)
   fHistAngleQ->Fill(vQ.Phi()/2);
 
   AliFlowVector* vQSub = new AliFlowVector[2];
-  anEvent->Get2Qsub(vQSub);
+  anEvent->Get2Qsub(vQSub, 2, weightsList, usePhiWeights, usePtWeights, useEtaWeights);
   AliFlowVector vQa = vQSub[0];
   AliFlowVector vQb = vQSub[1];
   fHistAngleQSub0->Fill(vQa.Phi()/2);
@@ -450,51 +532,106 @@ Bool_t AliFlowCommonHist::FillControlHistograms(AliFlowEventSimple* anEvent)
     pTrack = anEvent->GetTrack(i);
     if (pTrack ) {
       dWeight = pTrack->Weight();
+      dPt = pTrack->Pt();
+      dPhi = pTrack->Phi();
+      if (dPhi<0.) dPhi+=2*TMath::Pi();
+      dEta = pTrack->Eta();
+
+      //weights are only used for the RP selection
       if (pTrack->InRPSelection()){
+	// determine Phi weight:
+	if(phiWeights && nBinsPhi) {
+	  dWPhi = phiWeights->GetBinContent(1+(Int_t)(TMath::Floor(dPhi*nBinsPhi/TMath::TwoPi())));
+	}
+	// determine v'(pt) weight:
+	if(ptWeights && dBinWidthPt) {
+	  dWPt=ptWeights->GetBinContent(1+(Int_t)(TMath::Floor((dPt-dPtMin)/dBinWidthPt)));
+	}
+	// determine v'(eta) weight:
+	if(etaWeights && dBinWidthEta)  {
+	  dWEta=etaWeights->GetBinContent(1+(Int_t)(TMath::Floor((dEta-dEtaMin)/dBinWidthEta)));
+	}
+	
+	//the total weight is the product
+	Double_t dW = dWeight*dWPhi*dWPt*dWEta; 
+
 	//pt
-	dPt = pTrack->Pt();
-	fHistPtRP->Fill(dPt,dWeight);
+	fHistPtRP->Fill(dPt,dW);
 	//phi
-	dPhi = pTrack->Phi();
-	if (dPhi<0.) dPhi+=2*TMath::Pi();
-	fHistPhiRP->Fill(dPhi,dWeight);
+	fHistPhiRP->Fill(dPhi,dW);
 	//eta
-	dEta = pTrack->Eta();
-	fHistEtaRP->Fill(dEta,dWeight);
+	fHistEtaRP->Fill(dEta,dW);
 	//eta vs phi
-	fHistPhiEtaRP->Fill(dEta,dPhi,dWeight);
+	fHistPhiEtaRP->Fill(dEta,dPhi,dW);
+	//weight vs phi
+	fHistWeightvsPhi->Fill(dPhi,dW);
 	//count
-	dMultRP += dWeight;
-	if (pTrack->InSubevent(0)){
-	  //Fill distributions for the subevent
-	  fHistPtSub0 -> Fill(dPt,dWeight);
-	  fHistPhiSub0 -> Fill(dPhi,dWeight);
-	  fHistEtaSub0 -> Fill(dEta,dWeight);
-	} 
-	else if (pTrack->InSubevent(1)){
-	  //Fill distributions for the subevent
-	  fHistPtSub1 -> Fill(dPt,dWeight);
-	  fHistPhiSub1 -> Fill(dPhi,dWeight);
-	  fHistEtaSub1 -> Fill(dEta,dWeight);
-	} 
+	dMultRP += dW;
+      }
+      if (pTrack->InRPSelection() && pTrack->InSubevent(0)) {
+	// determine Phi weight:
+	if(phiWeightsSub0 && nBinsPhiSub0){
+	  dWPhi = phiWeightsSub0->GetBinContent(1+(Int_t)(TMath::Floor(dPhi*nBinsPhiSub0/TMath::TwoPi())));
+	}
+	// determine v'(pt) weight:
+	if(ptWeights && dBinWidthPt) {
+	  dWPt=ptWeights->GetBinContent(1+(Int_t)(TMath::Floor((dPt-dPtMin)/dBinWidthPt)));
+	}
+	// determine v'(eta) weight:
+	if(etaWeights && dBinWidthEta)  {
+	  dWEta=etaWeights->GetBinContent(1+(Int_t)(TMath::Floor((dEta-dEtaMin)/dBinWidthEta)));
+	}
+	
+	//the total weight is the product
+	Double_t dW = dWeight*dWPhi*dWPt*dWEta;  
+
+	//pt
+	fHistPtSub0 ->Fill(dPt,dW);
+	//phi
+	fHistPhiSub0 ->Fill(dPhi,dW);
+	//eta
+	fHistEtaSub0 ->Fill(dEta,dW);
+      }
+      if (pTrack->InRPSelection() && pTrack->InSubevent(1)) {
+	// determine Phi weight:
+	if(phiWeightsSub1 && nBinsPhiSub1){
+	  dWPhi = phiWeightsSub1->GetBinContent(1+(Int_t)(TMath::Floor(dPhi*nBinsPhiSub1/TMath::TwoPi())));
+	}
+	// determine v'(pt) weight:
+	if(ptWeights && dBinWidthPt) {
+	  dWPt=ptWeights->GetBinContent(1+(Int_t)(TMath::Floor((dPt-dPtMin)/dBinWidthPt)));
+	}
+	// determine v'(eta) weight:
+	if(etaWeights && dBinWidthEta)  {
+	  dWEta=etaWeights->GetBinContent(1+(Int_t)(TMath::Floor((dEta-dEtaMin)/dBinWidthEta)));
+	}
+	
+	//the total weight is the product
+	Double_t dW = dWeight*dWPhi*dWPt*dWEta;  
+
+	//pt
+	fHistPtSub1 -> Fill(dPt,dW);
+	//phi
+	fHistPhiSub1 -> Fill(dPhi,dW);
+	//eta
+	fHistEtaSub1 -> Fill(dEta,dW);
       }
       if (pTrack->InPOISelection()){
+
+	Double_t dW = dWeight; //no pt, phi or eta weights
+
 	//pt
-	dPt = pTrack->Pt();
-	fHistPtPOI->Fill(dPt,dWeight);
+	fHistPtPOI ->Fill(dPt,dW);
 	//phi
-	dPhi = pTrack->Phi();
-	if (dPhi<0.) dPhi+=2*TMath::Pi();
-	fHistPhiPOI->Fill(dPhi,dWeight);
+	fHistPhiPOI ->Fill(dPhi,dW);
 	//eta
-	dEta = pTrack->Eta();
-	fHistEtaPOI->Fill(dEta,dWeight);
+	fHistEtaPOI ->Fill(dEta,dW);
 	//eta vs phi
-	fHistPhiEtaPOI->Fill(dEta,dPhi,dWeight);
+	fHistPhiEtaPOI ->Fill(dEta,dPhi,dW);
 	//mean pt
-	fHistProMeanPtperBin->Fill(dPt,dPt,dWeight);
+	fHistProMeanPtperBin ->Fill(dPt,dPt,dW);
 	//count
-	dMultPOI += dWeight;
+	dMultPOI += dW;
       }
     } //track
   } //loop over tracks
@@ -505,6 +642,9 @@ Bool_t AliFlowCommonHist::FillControlHistograms(AliFlowEventSimple* anEvent)
   
   //<reference multiplicity> versus # of RPs:
   fRefMultVsNoOfRPs->Fill(dMultRP+0.5,anEvent->GetReferenceMultiplicity(),1.);
+  
+  //reference multiplicity:
+  fHistRefMult->Fill(anEvent->GetReferenceMultiplicity());
 
   return kTRUE; 
 }

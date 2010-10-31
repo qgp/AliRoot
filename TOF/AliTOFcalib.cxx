@@ -191,6 +191,18 @@ AliTOFcalib::AliTOFcalib(const AliTOFcalib & calib):
   fCalibrateTOFsignal(calib.fCalibrateTOFsignal),
   fCorrectTExp(calib.fCorrectTExp)
 {
+
+  fTOFCalOnline = new TObjArray(fNChannels);
+  fTOFCalOnlinePulser = new TObjArray(fNChannels);
+  fTOFCalOnlineNoise = new TObjArray(fNChannels);
+  fTOFCalOnlineHW = new TObjArray(fNChannels);
+  fTOFCalOffline = new TObjArray(fNChannels);
+  fTOFCalOnline->SetOwner();
+  fTOFCalOnlinePulser->SetOwner();
+  fTOFCalOnlineNoise->SetOwner();
+  fTOFCalOnlineHW->SetOwner();
+  fTOFCalOffline->SetOwner();
+
   //TOF Calibration Class copy ctor
   for (Int_t iarray = 0; iarray<fNChannels; iarray++){
     AliTOFChannelOnline * calChOnline = (AliTOFChannelOnline*)calib.fTOFCalOnline->At(iarray);
@@ -366,8 +378,7 @@ void AliTOFcalib::WriteConfigMapOnCDB(const Char_t *sel, Int_t minrun, Int_t max
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Config" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF configuration map for online calib on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -385,8 +396,7 @@ void AliTOFcalib::WriteConfigMapOnCDB(const Char_t *sel)
   //Write calibration parameters to the CDB with infinite validity
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Config" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF config map for online calib on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -406,8 +416,7 @@ void AliTOFcalib::WriteParOnlineDelayOnCDB(const Char_t *sel, Int_t minrun, Int_
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOnlineDelay" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF online calib obj on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -426,8 +435,7 @@ void AliTOFcalib::WriteParOnlineStatusOnCDB(const Char_t *sel, Int_t minrun, Int
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Status" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF online status calib obj on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -445,8 +453,7 @@ void AliTOFcalib::WriteParOnlineDelayOnCDB(const Char_t *sel)
   //Write calibration parameters to the CDB with infinite validity -------> new calib objs!!!!!
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOnlineDelay" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF online calib obj on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -465,8 +472,7 @@ void AliTOFcalib::WriteParOnlineStatusOnCDB(const Char_t *sel)
   //Write calibration parameters to the CDB with infinite validity -------> new calib objs!!!!!
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Status" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF online status calib obj on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -486,8 +492,7 @@ void AliTOFcalib::WriteParOnlineOnCDB(const Char_t *sel, Int_t minrun, Int_t max
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOnline" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF online calib obj on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -506,8 +511,7 @@ void AliTOFcalib::WriteParOnlinePulserOnCDB(const Char_t *sel, Int_t minrun, Int
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Pulser" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF online calib obj from pulser on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -526,8 +530,7 @@ void AliTOFcalib::WriteParOnlineNoiseOnCDB(const Char_t *sel, Int_t minrun, Int_
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Noise" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF online calib obj from noise on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -546,8 +549,7 @@ void AliTOFcalib::WriteParOnlineHWOnCDB(const Char_t *sel, Int_t minrun, Int_t m
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "HW" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF online calib obj from hardware on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -565,8 +567,7 @@ void AliTOFcalib::WriteParOnlineOnCDB(const Char_t *sel)
   //Write calibration parameters to the CDB with infinite validity
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOnline" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF online calib obj on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -585,8 +586,7 @@ void AliTOFcalib::WriteParOnlinePulserOnCDB(const Char_t *sel)
   //Write calibration parameters from pulser to the CDB with infinite validity
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Pulser" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF online calib obj from pulser on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -605,8 +605,7 @@ void AliTOFcalib::WriteParOnlineNoiseOnCDB(const Char_t *sel)
   //Write calibration parameters from noise to the CDB with infinite validity
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Noise" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF online calib obj from noise on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -625,8 +624,7 @@ void AliTOFcalib::WriteParOnlineHWOnCDB(const Char_t *sel)
   //Write calibration parameters from hardware to the CDB with infinite validity
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "HW" ;  // to be consistent with TOFPreprocessor
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF online calib obj from harware on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -647,8 +645,7 @@ void AliTOFcalib::WriteParOfflineOnCDB(const Char_t *sel, const Char_t *validity
   SetLastRun(maxrun);
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOffline" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliDebug(2,Form("Writing TOF offline calib obj on CDB with run range [%i, %i] ",fFirstRun,fLastRun));
   AliCDBId id(out,fFirstRun,fLastRun);
   AliCDBMetaData *md = new AliCDBMetaData();
@@ -664,8 +661,7 @@ void AliTOFcalib::WriteParOfflineOnCDB(const Char_t *sel, const Char_t *validity
   //Write calibration parameters to the CDB with infinite validity
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOffline" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBRunRange runrange(fFirstRun,fLastRun);
   AliDebug(2,Form("Writing TOF offline calib obj on CDB with run range [%i, %i] ",runrange.GetFirstRun(),runrange.GetLastRun()));
   AliCDBId id(out,runrange);
@@ -682,8 +678,7 @@ Bool_t AliTOFcalib::ReadConfigMapFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from the CDB
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Config" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (ConfigMap) found!!!");
@@ -706,8 +701,7 @@ Bool_t AliTOFcalib::ReadParOnlineDelayFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from the CDB -------> new calib objs!!!!!
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOnlineDelay" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (ParOnlineDelay) found!!!");
@@ -730,8 +724,7 @@ Bool_t AliTOFcalib::ReadParOnlineStatusFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from the CDB -------> new calib objs!!!!!
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Status" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (Status) found!!!");
@@ -754,8 +747,7 @@ Bool_t AliTOFcalib::ReadParOnlineFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from the CDB
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOnline" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (ParOnline) found!!!");
@@ -778,8 +770,7 @@ Bool_t AliTOFcalib::ReadParOnlinePulserFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from pulser from the CDB
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Pulser" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (Pulser) found!!!");
@@ -802,8 +793,7 @@ Bool_t AliTOFcalib::ReadParOnlineNoiseFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from noise from the CDB
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "Noise" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (Noise) found!!!");
@@ -826,8 +816,7 @@ Bool_t AliTOFcalib::ReadParOnlineHWFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from hardware from the CDB
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "HW" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (HW map) found!!!");
@@ -850,8 +839,7 @@ Bool_t AliTOFcalib::ReadParOfflineFromCDB(const Char_t *sel, Int_t nrun)
   //Read calibration parameters from the CDB
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "ParOffline" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (ParOffline) found!!!");
@@ -875,8 +863,7 @@ void AliTOFcalib::WriteSimHistoOnCDB(const Char_t *sel, Int_t minrun, Int_t maxr
   fTOFSimToT=histo;
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "SimHisto" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBMetaData *mdhisto = new AliCDBMetaData();
   mdhisto->SetResponsible("Chiara Zampolli");
   AliCDBId id(out,minrun,maxrun);
@@ -892,8 +879,7 @@ Bool_t AliTOFcalib::ReadSimHistoFromCDB(const Char_t *sel, Int_t nrun)
   // The Tot Histo
 
   const Char_t *sel1 = "SimHisto" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (SimHisto) found!!!");
@@ -915,20 +901,35 @@ void AliTOFcalib::WriteRecParOnCDB(const Char_t *sel, Int_t minrun, Int_t maxrun
   AliCDBMetaData *md = new AliCDBMetaData();
   md->SetResponsible("Silvia Arcelli");
   const Char_t *sel1 = "RecoParam" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBId id(out,minrun,maxrun);
-  man->Put(param,id,md);
+
+  TObjArray *arr=new TObjArray(1);
+  arr->AddLast(param);
+  man->Put(arr,id,md);
+  //man->Put(param,id,md);
   delete md;
 }
 //_____________________________________________________________________________
-AliTOFRecoParam * AliTOFcalib::ReadRecParFromCDB(const Char_t *sel, Int_t nrun)
+void AliTOFcalib::WriteRecParOnCDB(const Char_t *sel, Int_t minrun, Int_t maxrun, TObjArray *arr){
+  //Write reconstruction parameters to the CDB
+
+  AliCDBManager *man = AliCDBManager::Instance();
+  AliCDBMetaData *md = new AliCDBMetaData();
+  md->SetResponsible("Silvia Arcelli");
+  const Char_t *sel1 = "RecoParam" ;
+  TString out(Form("%s/%s",sel,sel1));
+  AliCDBId id(out,minrun,maxrun);
+  man->Put(arr,id,md);
+  delete md;
+}
+//_____________________________________________________________________________
+AliTOFRecoParam * AliTOFcalib::ReadRecParFromCDB(const Char_t *sel, Int_t nrun, Int_t eventType)
 {
   //Read reconstruction parameters from the CDB
   AliCDBManager *man = AliCDBManager::Instance();
   const Char_t *sel1 = "RecoParam" ;
-  Char_t  out[100];
-  sprintf(out,"%s/%s",sel,sel1); 
+  TString out(Form("%s/%s",sel,sel1));
   AliCDBEntry *entry = man->Get(out,nrun);
   if (!entry) { 
     AliFatal("Exiting, no CDB object (RecoParam) found!!!");
@@ -939,8 +940,12 @@ AliTOFRecoParam * AliTOFcalib::ReadRecParFromCDB(const Char_t *sel, Int_t nrun)
     exit(0);  
   }  
 
-  AliTOFRecoParam *param=(AliTOFRecoParam*)entry->GetObject();
+  TObjArray *array = (TObjArray*)entry->GetObject();
+  AliTOFRecoParam *param=0x0;
+  if (eventType>=0 || eventType<array->GetEntries())
+    param=(AliTOFRecoParam*)array->At(eventType);
   return param;
+
 }
 //-----------------------------------------------------------------------------
 // Calibration methods
@@ -964,12 +969,10 @@ void AliTOFcalib::CreateTreeFromCDB(Int_t minrun, Int_t maxrun){
       AliInfo(Form("No entry found for run %i",irun));
     }
     else{
-      TTree *tree = new TTree();
-      tree = (TTree*)entry->GetObject();
+      TTree *tree = (TTree*)entry->GetObject();
       tree->SetBranchAddress("nentries",&nentries);
       tree->SetBranchAddress("TOFentries",p);      
       fTree->CopyEntries(tree);
-      delete tree;
       fNruns++;
     }
   }
@@ -991,10 +994,10 @@ void AliTOFcalib::CreateTreeFromGrid(Int_t minrun, Int_t maxrun){
   AliInfo("connected to alien");
   TGrid::Connect("alien://");
   
-  Char_t filename[100];
+  TString filename;
   for (Int_t irun = minrun;irun<=maxrun;irun++){
-    sprintf(filename,"alien:///alice/cern.ch/user/c/czampolli/TOFCalibReference_%i.root",irun);
-    TFile *filegrid = TFile::Open(filename,"READ");
+    filename = Form("alien:///alice/cern.ch/user/c/czampolli/TOFCalibReference_%i.root",irun);
+    TFile *filegrid = TFile::Open(filename.Data(),"READ");
     TTree *tree = (TTree*)filegrid->Get("T");
     tree->SetBranchAddress("nentries",&nentries);
     tree->SetBranchAddress("TOFentries",p);      
@@ -1018,10 +1021,10 @@ void AliTOFcalib::CreateTreeFromFile(Int_t minrun, Int_t maxrun){
   fTree->SetDirectory(0);
   fTree->Branch("nentries",&nentries,"nentries/I");
   fTree->Branch("TOFentries",p,"TOFentries[nentries]/F");
-  Char_t filename[100];
+  TString filename;
   for (Int_t irun = minrun;irun<=maxrun;irun++){
-    sprintf(filename,"$ALICE_ROOT/TOF/RefData/TreeForCalib/fileout_%i.root",irun);
-    TFile *file = new TFile(filename,"READ");
+    filename = Form("$ALICE_ROOT/TOF/RefData/TreeForCalib/fileout_%i.root",irun);
+    TFile *file = new TFile(filename.Data(),"READ");
     TTree *tree = (TTree*)file->Get("T");
     tree->SetBranchAddress("nentries",&nentries);
     tree->SetBranchAddress("TOFentries",p);      
@@ -1045,10 +1048,10 @@ void AliTOFcalib::CreateChainFromGrid(Int_t minrun, Int_t maxrun){
   AliInfo("connected to alien");
   TGrid::Connect("alien://");
   
-  Char_t filename[100];
+  TString filename;
   for (Int_t irun = minrun;irun<=maxrun;irun++){
-    sprintf(filename,"alien:///alice/cern.ch/user/c/czampolli/TOFCalibReference_%i.root",irun);
-    fChain->Add(filename);
+    filename = Form("alien:///alice/cern.ch/user/c/czampolli/TOFCalibReference_%i.root",irun);
+    fChain->Add(filename.Data());
     fNruns++;    
   }
   
@@ -1406,7 +1409,7 @@ Int_t AliTOFcalib::Calibrate(Int_t nch, Int_t *ch, Option_t *optionSave, Option_
       ntracksTotal+=nentries/3;
     }
     if (ntracksTotal < MEANENTRIES) {
-      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %f), not calibrating channel and continuing.....",i,ntracksTotal));
+      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %d), not calibrating channel and continuing.....",i,ntracksTotal));
       continue;
     }
   
@@ -1522,12 +1525,11 @@ Int_t AliTOFcalib::CalibrateFromProfile(Int_t ich, Option_t *optionSave, Option_
   }
 
   if (ntracksTotal < MEANENTRIES) {  
-    AliInfo(Form(" Too small mean number of entires per channel (mean number = %f) not calibrating and exiting.....",ntracksTotal));
+    AliInfo(Form(" Too small mean number of entires per channel (mean number = %d) not calibrating and exiting.....",ntracksTotal));
     return 2;
   }
 
-  TH1F * hProf = new TH1F();
-  hProf = Profile(ich);
+  TH1F * hProf = Profile(ich);
   hProf->Fit("pol5",optionFit,"",0,4);
   TF1 * calibfunc = (TF1*)hProf->GetFunction("pol5");
   Float_t par[6];    
@@ -1621,7 +1623,7 @@ Int_t AliTOFcalib::Calibrate(Option_t *optionSave, Option_t *optionFit){
       ntracksTotal+=nentries/3;
     }
     if (ntracksTotal < MEANENTRIES) {
-      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %f), not calibrating channel and continuing.....",ii,ntracksTotal));
+      AliInfo(Form(" Too small mean number of entires in channel %i (number of tracks = %d), not calibrating channel and continuing.....",ii,ntracksTotal));
       continue;
     }
     Float_t meantime=0;

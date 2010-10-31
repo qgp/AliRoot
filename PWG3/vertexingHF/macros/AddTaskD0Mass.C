@@ -1,4 +1,4 @@
-AliAnalysisTaskSED0Mass *AddTaskD0Mass(TString finname="D0toKpiCuts.root",Int_t flag=0/*0 = D0,1 = LS*/,Bool_t readMC=kFALSE,Bool_t cutOnDistr=kFALSE)
+AliAnalysisTaskSED0Mass *AddTaskD0Mass(TString finname="D0toKpiCuts.root",Int_t flag=0/*0 = D0,1 = LS*/,Bool_t readMC=kFALSE,Bool_t cutOnDistr=kFALSE,Int_t flagD0D0bar=0)
 {
   //
   // AddTask for the AliAnalysisTaskSE for D0 candidates
@@ -16,52 +16,86 @@ AliAnalysisTaskSED0Mass *AddTaskD0Mass(TString finname="D0toKpiCuts.root",Int_t 
     return NULL;
   }   
 
-  TString filename="",out1name="",out2name="",out3name="",out4name="",out5name="",inname="";
+  TString filename="",out1name="",out2name="",out3name="",out4name="",out5name="",out6name="",inname="";
   filename = AliAnalysisManager::GetCommonFileName();
   filename += ":PWG3_D2H_";
   if(flag==0){
     filename+="D0InvMass";
     if(cutOnDistr) filename+="C"; 
+    if(flagD0D0bar==1)filename+="D0";
+    if(flagD0D0bar==2)filename+="D0bar";
     //list mass
     out1name="coutputmassD0Mass";
     if(cutOnDistr) out1name+="C"; 
+    if(flagD0D0bar==1)out1name+="D0";
+    if(flagD0D0bar==2)out1name+="D0bar";
     //list distr
     out2name="coutputmassD0distr";
     if(cutOnDistr) out2name+="C"; 
-    //hist entries
+    if(flagD0D0bar==1)out2name+="D0";
+    if(flagD0D0bar==2)out2name+="D0bar";
+   //hist entries
     out3name="nEntriesD0";
     if(cutOnDistr) out3name+="C"; 
+    if(flagD0D0bar==1)out3name+="D0";
+    if(flagD0D0bar==2)out3name+="D0bar";
     //list checks
     out4name="checksD0";
     if(cutOnDistr) out4name+="C"; 
-    //cuts object
+    if(flagD0D0bar==1)out4name+="D0";
+    if(flagD0D0bar==2)out4name+="D0bar";
+   //cuts object
     out5name="cutsD0";
     if(cutOnDistr) out5name+="C"; 
+    if(flagD0D0bar==1)out5name+="D0";
+    if(flagD0D0bar==2)out5name+="D0bar";
+
+    //AliNormalizationCounter
+    out6name="normalizationCounter";
+    if(cutOnDistr) out6name+="C"; 
+    if(flagD0D0bar==1)out6name+="D0";
+    if(flagD0D0bar==2)out6name+="D0bar";
 
     inname="cinputmassD0_0";
     if(cutOnDistr) inname+="C"; 
+    if(flagD0D0bar==1)inname+="D0";
+    if(flagD0D0bar==2)inname+="D0bar";
 
   } else {
     filename+="D0InvMassLikeSign";
     if(cutOnDistr) filename+="C"; 
+    if(flagD0D0bar==1)filename+="D0";
+    if(flagD0D0bar==2)filename+="D0bar";
     //list mass
     out1name="coutputmassLSMass";
     if(cutOnDistr) out1name+="C"; 
+    if(flagD0D0bar==1)out1name+="D0";
+    if(flagD0D0bar==2)out1name+="D0bar";
     //list distr
     out2name="coutputmassLSdistr";
     if(cutOnDistr) out2name+="C"; 
-    //hist entries
+    if(flagD0D0bar==1)out2name+="D0";
+    if(flagD0D0bar==2)out2name+="D0bar";
+   //hist entries
     out3name="nEntriesLS";
     if(cutOnDistr) out3name+="C"; 
+    if(flagD0D0bar==1)out3name+="D0";
+    if(flagD0D0bar==2)out3name+="D0bar";
     //list checks
     out4name="checksLS";
     if(cutOnDistr) out4name+="C"; 
-    //cuts object
+    if(flagD0D0bar==1)out4name+="D0";
+    if(flagD0D0bar==2)out4name+="D0bar";
+   //cuts object
     out5name="cutsLS";
     if(cutOnDistr) out5name+="C"; 
+    if(flagD0D0bar==1)out5name+="D0";
+    if(flagD0D0bar==2)out5name+="D0bar";
 
     inname="cinputmassD0_1";
     if(cutOnDistr) inname+="C"; 
+    if(flagD0D0bar==1)inname+="D0";
+    if(flagD0D0bar==2)inname+="D0bar";
   }
 
    //setting my cut values
@@ -102,6 +136,9 @@ AliAnalysisTaskSED0Mass *AddTaskD0Mass(TString finname="D0toKpiCuts.root",Int_t 
   massD0Task->SetArray(flag);
   massD0Task->SetReadMC(readMC);
   massD0Task->SetCutOnDistr(cutOnDistr);
+  massD0Task->SetUsePid4Distr(kFALSE);
+  massD0Task->SetFillOnlyD0D0bar(flagD0D0bar);
+
   mgr->AddTask(massD0Task);
   
   //
@@ -114,6 +151,7 @@ AliAnalysisTaskSED0Mass *AddTaskD0Mass(TString finname="D0toKpiCuts.root",Int_t 
   AliAnalysisDataContainer *coutputmassD03 = mgr->CreateContainer(out3name,TH1F::Class(),AliAnalysisManager::kOutputContainer, filename.Data()); //nev
   AliAnalysisDataContainer *coutputmassD04 = mgr->CreateContainer(out4name,TList::Class(),AliAnalysisManager::kOutputContainer, filename.Data()); //check
   AliAnalysisDataContainer *coutputmassD05 = mgr->CreateContainer(out5name,AliRDHFCutsD0toKpi::Class(),AliAnalysisManager::kOutputContainer, filename.Data()); //cuts
+  AliAnalysisDataContainer *coutputmassD06 = mgr->CreateContainer(out6name,AliNormalizationCounter::Class(),AliAnalysisManager::kOutputContainer, filename.Data()); //cuts
   
   mgr->ConnectInput(massD0Task,0,mgr->GetCommonInputContainer());
 
@@ -122,6 +160,7 @@ AliAnalysisTaskSED0Mass *AddTaskD0Mass(TString finname="D0toKpiCuts.root",Int_t 
   mgr->ConnectOutput(massD0Task,3,coutputmassD03);
   mgr->ConnectOutput(massD0Task,4,coutputmassD04);
   mgr->ConnectOutput(massD0Task,5,coutputmassD05);
+  mgr->ConnectOutput(massD0Task,6,coutputmassD06);
 
 
   return massD0Task;

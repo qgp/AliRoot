@@ -244,7 +244,12 @@ AliMUONSimpleClusterServer::Global2Local(Int_t detElemId, const AliMpArea& globa
   
   Double_t xl,yl,zl;
   
-  Double_t zg = AliMUONConstants::DefaultChamberZ(AliMpDEManager::GetChamberId(detElemId));
+  Int_t chamberId = AliMpDEManager::GetChamberId(detElemId);
+  if ( chamberId < 0 ) {
+    AliErrorStream() << "Cannot get chamberId from detElemId=" << detElemId << endl;
+    return;
+  }  
+  Double_t zg = AliMUONConstants::DefaultChamberZ(chamberId);
   
   fkTransformer.Global2Local(detElemId,
                              globalArea.GetPositionX(),globalArea.GetPositionY(),zg,
@@ -335,6 +340,7 @@ AliMUONSimpleClusterServer::UseDigits(TIter& next, AliMUONVDigitStore* digitStor
   while ( ( d = static_cast<AliMUONVDigit*>(next()) ) )
   {
     if ( ! d->Charge() > 0 ) continue; // skip void digits.
+    if ( ! d->IsTracker() ) continue; // skip trigger digits
     Int_t ix = d->PadX();
     Int_t iy = d->PadY();
     Int_t cathode = d->Cathode();

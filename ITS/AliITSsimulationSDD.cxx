@@ -35,6 +35,7 @@
 #include "AliITShit.h"
 #include "AliITSpList.h"
 #include "AliITSCalibrationSDD.h"
+#include "AliITSresponseSDD.h"
 #include "AliITSsimulationSDD.h"
 #include "AliLog.h"
 #include "AliRun.h"
@@ -398,7 +399,10 @@ void AliITSsimulationSDD::HitsToAnalogDigits( AliITSmodule *mod ) {
   Double_t  nsigma     = simpar->GetNSigmaIntegration(); //
   Int_t     nlookups   = simpar->GetGausNLookUp();       //
   Float_t   jitter     = simpar->GetSDDJitterError(); // 
-  
+  Float_t   trigDelay  = simpar->GetSDDTrigDelay(); // compensation for MC time zero
+  if(res->IsAMAt20MHz()) trigDelay+=12.5; // compensation for discretization step
+  Float_t   timeZero=fDetType->GetResponseSDD()->GetTimeZero(fModule);
+
   // Piergiorgio's part (apart for few variables which I made float
   // when i thought that can be done
   // Fill detector maps with GEANT hits
@@ -467,9 +471,11 @@ void AliITSsimulationSDD::HitsToAnalogDigits( AliITSmodule *mod ) {
      
     tof=0.;
     AliITShit* h=(AliITShit*)hits->At(ii);
-    if(h) tof=h->GetTOF()*1E9; 
-    AliDebug(1,Form("TOF for hit %d on mod %d (particle %d)=%g",ii,fModule,h->Track(),tof));
-   
+    if(h){ 
+      tof=h->GetTOF()*1E9; 
+      AliDebug(1,Form("TOF for hit %d on mod %d (particle %d)=%g",ii,fModule,h->Track(),tof));
+    }
+
     xL[0] += 0.0001*gRandom->Gaus( 0, jitter ); //
     pathInSDD = TMath::Sqrt(dxL[0]*dxL[0]+dxL[1]*dxL[1]+dxL[2]*dxL[2]);
     
@@ -516,6 +522,8 @@ void AliITSsimulationSDD::HitsToAnalogDigits( AliITSmodule *mod ) {
       sigT       = sigA/driftSpeed;
 
       drTime+=tof; // take into account Time Of Flight from production point
+      drTime-=trigDelay;
+      drTime+=timeZero;
       timeSample = (Int_t) (fScaleSize*drTime/timeStep + 1.001); // time bin in range 1-256 !!!
       if(zAnode>nofAnodes) zAnode-=nofAnodes;  // to have the anode number between 0. and 256.
       iAnode = (Int_t) (1.001+zAnode); // iAnode in range 1-256 !!!!
@@ -727,10 +735,6 @@ void AliITSsimulationSDD::ApplyCrosstalk(Int_t mod) {
   
     // create and inizialice crosstalk map
     Float_t* ctk = new Float_t[fNofMaps*fMaxNofSamples+1];
-    if( ctk == NULL ) {
-        Error( "ApplyCrosstalk", "no memory for temporal map: exit " );
-        return;
-    }
     memset( ctk, 0, sizeof(Float_t)*(fNofMaps*fMaxNofSamples+1) );
     AliITSCalibrationSDD* calibr = (AliITSCalibrationSDD*)GetCalibrationModel(mod);
     for( Int_t z=0; z<fNofMaps; z++ ) {
@@ -759,11 +763,6 @@ void AliITSsimulationSDD::ApplyCrosstalk(Int_t mod) {
                         // make smooth derivative
                         Float_t* dev = new Float_t[fMaxNofSamples+1];
                         memset( dev, 0, sizeof(Float_t)*(fMaxNofSamples+1) );
-                        if( ctk == NULL ) {
-                            Error( "ApplyCrosstalk", 
-                                   "no memory for temporal array: exit " );
-                            return;
-                        }
                         for( Int_t i=tstart; i<tstop; i++ ) {   
                             if( i > 2 && i < fMaxNofSamples-2 )
                                 dev[i] = -0.2*fHitMap2->GetSignal( z,i-2 ) 
@@ -898,18 +897,16 @@ void AliITSsimulationSDD::StoreAllDigits(){
 } 
 //______________________________________________________________________
 void AliITSsimulationSDD::CreateHistograms(Int_t scale){
-    // Creates histograms of maps for debugging
-    Int_t i;
-
-    fHis=new TObjArray(fNofMaps);
-    for (i=0;i<fNofMaps;i++) {
-        TString sddName("sdd_");
-        Char_t candNum[4];
-        sprintf(candNum,"%d",i+1);
-        sddName.Append(candNum);
-        fHis->AddAt(new TH1F(sddName.Data(),"SDD maps",scale*fMaxNofSamples,
-                             0.,(Float_t) scale*fMaxNofSamples), i);
-    } // end for i
+  // Creates histograms of maps for debugging
+  Int_t i;
+  
+  fHis=new TObjArray(fNofMaps);
+  for (i=0;i<fNofMaps;i++) {
+    TString sddName;
+    sddName.Form("sdd_%d",i+1);
+    fHis->AddAt(new TH1F(sddName.Data(),"SDD maps",scale*fMaxNofSamples,
+			 0.,(Float_t) scale*fMaxNofSamples), i);
+  } // end for i
 }
 //______________________________________________________________________
 void AliITSsimulationSDD::FillHistograms(){

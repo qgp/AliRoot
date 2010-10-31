@@ -1,5 +1,6 @@
-AliAnalysisTask *AddTaskTender(){
+AliAnalysisTask *AddTaskTender(Bool_t useV0=kFALSE){
   //get the current analysis manager
+  Bool_t checkEvtSelection = useV0;
   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
   if (!mgr) {
     Error("AddTask_tender_Tender", "No analysis manager found.");
@@ -14,9 +15,22 @@ AliAnalysisTask *AddTaskTender(){
   
   //========= Add tender to the ANALYSIS manager and set default storage =====
   AliTender *tender=new AliTender("AnalysisTender");
+  tender->SetCheckEventSelection(checkEvtSelection);
   tender->SetDefaultCDBStorage("raw://");
   mgr->AddTask(tender);
+  if (checkEvtSelection) {
+     if (mgr->GetTasks()->First() != (TObject*)tender) {
+        ::Error("When setting the tender to check the event selection, it has to be the first wagon ! Aborting.");
+        return NULL;
+     }
+  }   
   
+  //========= Attach VZERO supply ======
+  if (useV0) {
+     AliVZEROTenderSupply *vzeroSupply=new AliVZEROTenderSupply("VZEROtender");
+     vzeroSupply->SetDebug(kFALSE);
+     tender->AddSupply(vzeroSupply);
+  }   
   //========= Attach TPC supply ======
   AliTPCTenderSupply *tpcSupply=new AliTPCTenderSupply("TPCtender");
   tpcSupply->SetDebugLevel(2);
@@ -48,7 +62,7 @@ AliAnalysisTask *AddTaskTender(){
  
   //           connect containers
   mgr->ConnectInput  (tender,  0, mgr->GetCommonInputContainer() );
-  mgr->ConnectOutput (tender,  0, coutput1);
+  mgr->ConnectOutput (tender,  1, coutput1);
  
   return tender;
 }

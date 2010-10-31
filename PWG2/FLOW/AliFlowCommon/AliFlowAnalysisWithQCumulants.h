@@ -64,6 +64,7 @@ class AliFlowAnalysisWithQCumulants{
   // 2.) method Make() and methods called within Make():
   virtual void Make(AliFlowEventSimple *anEvent);
     // 2a.) common:
+    virtual void CheckPointersUsedInMake();     
     virtual void FillAverageMultiplicities(Int_t nRP);
     virtual void FillCommonControlHistograms(AliFlowEventSimple *anEvent);
     virtual void ResetEventByEventQuantities();
@@ -81,7 +82,6 @@ class AliFlowAnalysisWithQCumulants{
     virtual void CalculateIntFlowSumOfEventWeightsNUA();
     virtual void CalculateIntFlowSumOfProductOfEventWeightsNUA();
     // ...  
-    virtual void CalculateWeightedQProductsForIntFlow();
     virtual void EvaluateIntFlowCorrelationsWithNestedLoops(AliFlowEventSimple* const anEvent); 
     virtual void EvaluateIntFlowCorrelationsWithNestedLoopsUsingParticleWeights(AliFlowEventSimple* const anEvent); 
     virtual void EvaluateIntFlowCorrectionsForNUAWithNestedLoops(AliFlowEventSimple* const anEvent); 
@@ -98,8 +98,6 @@ class AliFlowAnalysisWithQCumulants{
     virtual void CalculateDiffFlowCorrectionsForNUASinTermsUsingParticleWeights(TString type, TString ptOrEta);  
     // ...
     //virtual void CalculateCorrelationsForDifferentialFlow2D(TString type); // type = RP or POI
-    //virtual void CalculateCorrectionsForNonUniformAcceptanceForDifferentialFlowCosTerms(TString type); // type = RP or POI  
-    //virtual void CalculateCorrectionsForNonUniformAcceptanceForDifferentialFlowSinTerms(TString type); // type = RP or POI
     virtual void EvaluateDiffFlowCorrelationsWithNestedLoops(AliFlowEventSimple* const anEvent, TString type, TString ptOrEta);
     virtual void EvaluateDiffFlowCorrelationsWithNestedLoopsUsingParticleWeights(AliFlowEventSimple* const anEvent, TString type, TString ptOrEta); 
     virtual void EvaluateDiffFlowCorrectionTermsForNUAWithNestedLoops(AliFlowEventSimple* const anEvent, TString type, TString ptOrEta);
@@ -108,21 +106,17 @@ class AliFlowAnalysisWithQCumulants{
     virtual void StoreDistributionsOfCorrelations();
   // 3.) method Finish() and methods called within Finish():
   virtual void Finish();
+    virtual void CheckPointersUsedInFinish();     
     // 3a.) integrated flow:
     virtual void FinalizeCorrelationsIntFlow();
     virtual void FinalizeCorrectionTermsForNUAIntFlow(); 
     virtual void CalculateCovariancesIntFlow();  
     virtual void CalculateCovariancesNUAIntFlow();  
     virtual void CalculateCumulantsIntFlow(); 
-    virtual void CalculateIntFlow(); 
+    virtual void CalculateReferenceFlow(); 
     virtual void FillCommonHistResultsIntFlow();
     // nua:   
-    //virtual void CalculateCorrectionsForNUAForIntQcumulants();
     virtual void CalculateQcumulantsCorrectedForNUAIntFlow(); 
-    virtual void CalculateIntFlowCorrectedForNUA(); 
-    virtual void CalculateDetectorEffectsForTrueCorrelations();
-    //virtual void ApplyCorrectionForNonUniformAcceptanceToCumulantsForIntFlow(Bool_t useParticleWeights, TString eventWeights); 
-    //virtual void PrintQuantifyingCorrectionsForNonUniformAcceptance(Bool_t useParticleWeights, TString eventWeights);
     virtual void PrintFinalResultsForIntegratedFlow(TString type);
     virtual void CrossCheckIntFlowCorrelations();
     virtual void CrossCheckIntFlowExtraCorrelations(); // extra correlations which appear only when particle weights are used
@@ -211,8 +205,8 @@ class AliFlowAnalysisWithQCumulants{
   // 2b.) event weights:
   void SetMultiplicityWeight(const char *multiplicityWeight) {*this->fMultiplicityWeight = multiplicityWeight;};
   
-  // 3.) integrated flow:
-  // flags:
+  // 3.) Reference flow:
+  // Flags:
   void SetIntFlowFlags(TProfile* const intFlowFlags) {this->fIntFlowFlags = intFlowFlags;};
   TProfile* GetIntFlowFlags() const {return this->fIntFlowFlags;};
   void SetApplyCorrectionForNUA(Bool_t const applyCorrectionForNUA) {this->fApplyCorrectionForNUA = applyCorrectionForNUA;};
@@ -225,7 +219,13 @@ class AliFlowAnalysisWithQCumulants{
   Double_t GetMinMult() const {return this->fMinMult;};
   void SetMaxMult(Double_t const maxm) {this->fMaxMult = maxm;};
   Double_t GetMaxMult() const {return this->fMaxMult;};
-  // integrated flow profiles:
+  void SetPropagateErrorAlsoFromNIT(Bool_t const peafNIT) {this->fPropagateErrorAlsoFromNIT = peafNIT;};
+  Bool_t GetPropagateErrorAlsoFromNIT() const {return this->fPropagateErrorAlsoFromNIT;};  
+  void SetCalculateCumulantsVsM(Bool_t const ccvm) {this->fCalculateCumulantsVsM = ccvm;};
+  Bool_t GetCalculateCumulantsVsM() const {return this->fCalculateCumulantsVsM;};   
+  void SetMinimumBiasReferenceFlow(Bool_t const mmrf) {this->fMinimumBiasReferenceFlow = mmrf;};
+  Bool_t GetMinimumBiasReferenceFlow() const {return this->fMinimumBiasReferenceFlow;};  
+  // Reference flow profiles:
   void SetAvMultiplicity(TProfile* const avMultiplicity) {this->fAvMultiplicity = avMultiplicity;};
   TProfile* GetAvMultiplicity() const {return this->fAvMultiplicity;};
   void SetIntFlowCorrelationsPro(TProfile* const intFlowCorrelationsPro) {this->fIntFlowCorrelationsPro = intFlowCorrelationsPro;};
@@ -253,9 +253,6 @@ class AliFlowAnalysisWithQCumulants{
   TH1D* GetIntFlowCorrelationsVsMHist(Int_t const ci) const {return this->fIntFlowCorrelationsVsMHist[ci];};    
   void SetIntFlowCorrelationsAllHist(TH1D* const intFlowCorrelationsAllHist) {this->fIntFlowCorrelationsAllHist = intFlowCorrelationsAllHist;};
   TH1D* GetIntFlowCorrelationsAllHist() const {return this->fIntFlowCorrelationsAllHist;};  
-  // to be improved (removed:)
-  //void SetIntFlowProductOfCorrelationsHist(TH1D* const intFlowProductOfCorrelationsHist) {this->fIntFlowProductOfCorrelationsHist = intFlowProductOfCorrelationsHist;};
-  //TH1D* GetIntFlowProductOfCorrelationsHist() const {return this->fIntFlowProductOfCorrelationsHist;};  
   void SetIntFlowCorrectionTermsForNUAHist(TH1D* const ifctfnh, Int_t const sc) {this->fIntFlowCorrectionTermsForNUAHist[sc] = ifctfnh;};
   TH1D* GetIntFlowCorrectionTermsForNUAHist(Int_t sc) const {return this->fIntFlowCorrectionTermsForNUAHist[sc];};  
   void SetIntFlowCovariances(TH1D* const intFlowCovariances) {this->fIntFlowCovariances = intFlowCovariances;};
@@ -279,11 +276,17 @@ class AliFlowAnalysisWithQCumulants{
   void SetIntFlowQcumulants(TH1D* const intFlowQcumulants) {this->fIntFlowQcumulants = intFlowQcumulants;};
   TH1D* GetIntFlowQcumulants() const {return this->fIntFlowQcumulants;}; 
   void SetIntFlowQcumulantsVsM(TH1D* const intFlowQcumulantsVsM, Int_t co) {this->fIntFlowQcumulantsVsM[co] = intFlowQcumulantsVsM;};
-  TH1D* GetIntFlowQcumulantsVsM(Int_t co) const {return this->fIntFlowQcumulantsVsM[co];}; 
+  TH1D* GetIntFlowQcumulantsVsM(Int_t co) const {return this->fIntFlowQcumulantsVsM[co];};  
+  void SetIntFlowQcumulantsRebinnedInM(TH1D* const ifqcrim) {this->fIntFlowQcumulantsRebinnedInM = ifqcrim;};
+  TH1D* GetIntFlowQcumulantsRebinnedInM() const {return this->fIntFlowQcumulantsRebinnedInM;};    
+  void SetIntFlowQcumulantsErrorSquaredRatio(TH1D* const ifqcesr) {this->fIntFlowQcumulantsErrorSquaredRatio = ifqcesr;};
+  TH1D* GetIntFlowQcumulantsErrorSquaredRatio() const {return this->fIntFlowQcumulantsErrorSquaredRatio;}; 
   void SetIntFlow(TH1D* const intFlow) {this->fIntFlow = intFlow;};
   TH1D* GetIntFlow() const {return this->fIntFlow;};
   void SetIntFlowVsM(TH1D* const intFlowVsM, Int_t co) {this->fIntFlowVsM[co] = intFlowVsM;};
-  TH1D* GetIntFlowVsM(Int_t co) const {return this->fIntFlowVsM[co];};   
+  TH1D* GetIntFlowVsM(Int_t co) const {return this->fIntFlowVsM[co];};     
+  void SetIntFlowRebinnedInM(TH1D* const ifrim) {this->fIntFlowRebinnedInM = ifrim;};
+  TH1D* GetIntFlowRebinnedInM() const {return this->fIntFlowRebinnedInM;};
   void SetIntFlowDetectorBias(TH1D* const ifdb) {this->fIntFlowDetectorBias = ifdb;};
   TH1D* GetIntFlowDetectorBias() const {return this->fIntFlowDetectorBias;};  
   void SetIntFlowDetectorBiasVsM(TH1D* const ifdbvm, Int_t ci) {this->fIntFlowDetectorBiasVsM[ci] = ifdbvm;};
@@ -401,7 +404,7 @@ class AliFlowAnalysisWithQCumulants{
   Double_t fEtaBinWidth; // bin width for eta histograms  
   Int_t fHarmonic; // harmonic 
   TString *fAnalysisLabel; // analysis label (all histograms and output file will have this label)
-  Bool_t fPrintFinalResults[3]; // print on the screen the final results (0=NONAME, 1=RP, 2=POI)
+  Bool_t fPrintFinalResults[4]; // print on the screen the final results (0=RF, 1=RP, 2=POI, 3=RF rebinned in M)
   
   // 2a.) particle weights:
   TList *fWeightsList; // list to hold all histograms with particle weights: fUseParticleWeights, fPhiWeights, fPtWeights and fEtaWeights
@@ -428,6 +431,9 @@ class AliFlowAnalysisWithQCumulants{
   Int_t fnBinsMult; // number of multiplicity bins for flow analysis versus multiplicity  
   Double_t fMinMult; // minimal multiplicity for flow analysis versus multiplicity  
   Double_t fMaxMult; // maximal multiplicity for flow analysis versus multiplicity  
+  Bool_t fPropagateErrorAlsoFromNIT; // propagate error by taking into account also non-isotropic terms (not sure if resulting error then is correct - to be improved)
+  Bool_t fCalculateCumulantsVsM; // calculate cumulants versus multiplicity  
+  Bool_t fMinimumBiasReferenceFlow; // store as reference flow in AliFlowCommonHistResults the minimum bias result (kFALSE by default)   
   //  3c.) event-by-event quantities:
   TMatrixD *fReQ; // fReQ[m][k] = sum_{i=1}^{M} w_{i}^{k} cos(m*phi_{i})
   TMatrixD *fImQ; // fImQ[m][k] = sum_{i=1}^{M} w_{i}^{k} sin(m*phi_{i})
@@ -469,8 +475,11 @@ class AliFlowAnalysisWithQCumulants{
   TH1D *fIntFlowSumOfProductOfEventWeightsNUA; // sum of products of event weights for NUA terms
   TH1D *fIntFlowQcumulants; // final results for integrated Q-cumulants QC{2}, QC{4}, QC{6} and QC{8}
   TH1D *fIntFlowQcumulantsVsM[4]; // final results for integrated Q-cumulants QC{2}, QC{4}, QC{6} and QC{8} versus multiplicity
+  TH1D *fIntFlowQcumulantsRebinnedInM; // final results for reference Q-cumulants QC{2}, QC{4}, QC{6} and QC{8} rebinned in M
+  TH1D *fIntFlowQcumulantsErrorSquaredRatio; // ratio between error squared: with/without non-isotropic terms
   TH1D *fIntFlow; // final results for integrated flow estimates v_n{2,QC}, v_n{4,QC}, v_n{6,QC} and v_n{8,QC}
   TH1D *fIntFlowVsM[4]; // final results for integrated flow estimates v_n{2,QC}, v_n{4,QC}, v_n{6,QC} and v_n{8,QC} versus multiplicity 
+  TH1D *fIntFlowRebinnedInM; // final results for ref. flow estimates v_n{2,QC}, v_n{4,QC}, v_n{6,QC} and v_n{8,QC} rebinned in M
   TH1D *fIntFlowDetectorBias; // bias coming from detector inefficiencies to <<2>>, <<4>>, <<6>> and <<8>> (corrected/measured)  
   TH1D *fIntFlowDetectorBiasVsM[4]; // bias coming from detector inefficiencies to <<2>>, <<4>>, <<6>> and <<8>> vs M (corrected/measured)  
   // 4.) differential flow

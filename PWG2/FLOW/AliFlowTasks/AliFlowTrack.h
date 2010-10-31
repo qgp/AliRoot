@@ -19,11 +19,12 @@ public:
                      kFromMC=1,
                      kFromAOD=2,
                      kFromTracklet=3,
-                     kFromFMD=4 };
+                     kFromFMD=4,
+                     kFromPMD=5 };
   AliFlowTrack();
-  AliFlowTrack(AliVParticle* p);
+  AliFlowTrack(const AliVParticle* p);
   AliFlowTrack& operator=(const AliFlowTrack& aTrack);
-  virtual AliFlowTrackSimple& operator=(const AliFlowTrackSimple& aTrack);
+  //virtual AliFlowTrackSimple& operator=(const AliFlowTrackSimple& aTrack);
   AliFlowTrack(const AliFlowTrack& aTrack);
   virtual  ~AliFlowTrack();
   virtual AliFlowTrack* Clone(const char* option="") const;

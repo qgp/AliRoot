@@ -37,9 +37,13 @@ public:
   // setters and getters for conical
   void SetBoundariesA(Float_t boundariesA[8]);
   void SetBoundariesC(Float_t boundariesC[6]); // CE settings from the A side
+  Float_t GetBoundariesA(Int_t i) const {return fBoundariesA[i]; }
+  Float_t GetBoundariesC(Int_t i) const {return fBoundariesC[i]; }
 
-  Float_t GetBoundariesA(Int_t i) const {return fBoundariesA[i];}
-  Float_t GetBoundariesC(Int_t i) const {return fBoundariesC[i];}
+  void SetROCDisplacement(Bool_t flag) { 
+    if (flag!=fROCdisplacement) { fROCdisplacement = flag; fInitLookUp=kFALSE; }
+  }
+  Bool_t GetROCDisplacement() const { return fROCdisplacement; }
 
   void InitBoundaryVoltErrorDistortion();
 
@@ -54,9 +58,11 @@ private:
   Float_t  fBoundariesA[8];            // Boundary values on the A side (see Setter function)
   Float_t  fBoundariesC[8];            // Boundary values on the C side (see Setter function)
 
-  Bool_t fInitLookUp;                  // flag to check it the Look Up table was created
+  Bool_t fROCdisplacement;      // flag for ROC displacement (important for z distortions)
+  Bool_t fInitLookUp;           // flag to check it the Look Up table was created
 
   Double_t fLookUpErOverEz[kNZ][kNR];  // Array to store electric field integral (int Er/Ez)
+  Double_t fLookUpDeltaEz[kNZ][kNR];   // Array to store electric field integral (int Delta Ez)
 
   // basic numbers for the poisson relaxation //can be set individually in each class
   enum {kRows   =257}; // grid size in r direction used in the poisson relaxation // ( 2**n + 1 ) eg. 65, 129, 257 etc.

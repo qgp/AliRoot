@@ -42,6 +42,7 @@
 #include "AliTRDtransform.h"
 #include "AliTRDSignalIndex.h"
 #include "AliTRDrawStreamBase.h"
+#include "AliTRDrawStream.h"
 #include "AliTRDfeeParam.h"
 #include "AliTRDtrackletWord.h"
 
@@ -96,11 +97,6 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDReconstructor *const rec)
   SetBit(kLabels, kTRUE);
   SetBit(knewDM, kFALSE);
 
-  AliTRDcalibDB *trd = 0x0;
-  if (!(trd = AliTRDcalibDB::Instance())) {
-    AliFatal("Could not get calibration object");
-  }
-
   fRawVersion = AliTRDfeeParam::Instance()->GetRAWversion();
 
   // Initialize debug stream
@@ -115,7 +111,9 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDReconstructor *const rec)
 }
 
 //_____________________________________________________________________________
-AliTRDclusterizer::AliTRDclusterizer(const Text_t *name, const Text_t *title, const AliTRDReconstructor *const rec)
+AliTRDclusterizer::AliTRDclusterizer(const Text_t *name
+                                   , const Text_t *title
+                                   , const AliTRDReconstructor *const rec)
   :TNamed(name,title)
   ,fReconstructor(rec)
   ,fRunLoader(NULL)
@@ -156,11 +154,6 @@ AliTRDclusterizer::AliTRDclusterizer(const Text_t *name, const Text_t *title, co
 
   SetBit(kLabels, kTRUE);
   SetBit(knewDM, kFALSE);
-
-  AliTRDcalibDB *trd = 0x0;
-  if (!(trd = AliTRDcalibDB::Instance())) {
-    AliFatal("Could not get calibration object");
-  }
 
   fDigitsManager->CreateArrays();
 
@@ -407,7 +400,7 @@ Bool_t AliTRDclusterizer::WriteClusters(Int_t det)
   TObjArray *ioArray = new TObjArray(400);
   TBranch *branch = fClusterTree->GetBranch("TRDcluster");
   if (!branch) {
-    branch = fClusterTree->Branch("TRDcluster","TObjArray",&ioArray,32000,0);
+    fClusterTree->Branch("TRDcluster","TObjArray",&ioArray,32000,0);
   } else branch->SetAddress(&ioArray);
   
   Int_t nRecPoints = RecPoints()->GetEntriesFast();
@@ -648,22 +641,24 @@ Bool_t AliTRDclusterizer::Raw2ClustersChamber(AliRawReader *rawReader)
   else
     fRawStream->SetReader(rawReader);
 
-  SetBit(kHLT, fReconstructor->IsHLT());
-
-  if(TestBit(kHLT)){
-    fRawStream->SetSharedPadReadout(kFALSE);
-    fRawStream->SetNoErrorWarning();
+  if(fReconstructor->IsHLT()){
+    if(fRawStream->InheritsFrom(AliTRDrawStream::Class()))
+      ((AliTRDrawStream*)fRawStream)->DisableErrorStorage();
+    else{
+      fRawStream->SetSharedPadReadout(kFALSE);
+      fRawStream->SetNoErrorWarning();
+    }
   }
 
   AliDebug(1,Form("Stream version: %s", fRawStream->IsA()->GetName()));
   
-  Int_t det    = 0;
-  while ((det = fRawStream->NextChamber(fDigitsManager,fTrackletContainer)) >= 0){
-    if (fDigitsManager->GetIndexes(det)->HasEntry())
+  UInt_t det = 0;
+  while ((det = fRawStream->NextChamber(fDigitsManager,fTrackletContainer)) < AliTRDgeometry::kNdet){
+    if (fDigitsManager->GetIndexes(det)->HasEntry()){
       MakeClusters(det);
-
-    fDigitsManager->ClearArrays(det);
-
+      fDigitsManager->ClearArrays(det);
+    }
+    
     if (!fReconstructor->IsWritingTracklets()) continue;
     if (*(fTrackletContainer[0]) > 0 || *(fTrackletContainer[1]) > 0) WriteTracklets(det);
   }
@@ -814,7 +809,7 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
 
   // Check consistency between OCDB and raw data
   Int_t nTimeOCDB = calibration->GetNumberOfTimeBinsDCS();
-  if(TestBit(kHLT)){
+  if(fReconstructor->IsHLT()){
     if((nTimeOCDB > -1) && (fTimeTotal != nTimeOCDB)){
       AliWarning(Form("Number of timebins does not match OCDB value (RAW[%d] OCDB[%d]), using raw value"
 		      ,fTimeTotal,nTimeOCDB));
@@ -918,10 +913,15 @@ Bool_t AliTRDclusterizer::IsMaximum(const MaxStruct &Max, UChar_t &padStatus, Sh
    ,fCalPadStatusROC->GetStatus(Max.col+1, Max.row)
   };
 
-  gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col-1,Max.row);
-  Signals[0] = (Short_t)((fDigits->GetData(Max.row, Max.col-1, Max.time) - fBaseline) / gain + 0.5f);
-  gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col+1,Max.row);
-  Signals[2] = (Short_t)((fDigits->GetData(Max.row, Max.col+1, Max.time) - fBaseline) / gain + 0.5f);
+  Short_t signal(0);
+  if((signal = fDigits->GetData(Max.row, Max.col-1, Max.time))){
+    gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col-1,Max.row);
+    Signals[0] = (Short_t)((signal - fBaseline) / gain + 0.5f);
+  } else Signals[0] = 0;
+  if((signal = fDigits->GetData(Max.row, Max.col+1, Max.time))){
+    gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col+1,Max.row);
+    Signals[2] = (Short_t)((signal - fBaseline) / gain + 0.5f);
+  } else Signals[2] = 0;
 
   if(!(status[0] | status[1] | status[2])) {//all pads are good
     if ((Signals[2] <= Signals[1]) && (Signals[0] <  Signals[1])) {
@@ -1002,7 +1002,7 @@ void AliTRDclusterizer::CreateCluster(const MaxStruct &Max)
 
   Int_t nPadCount = 1;
   Short_t signals[7] = { 0, 0, Max.signals[0], Max.signals[1], Max.signals[2], 0, 0 };
-  if(!TestBit(kHLT)) CalcAdditionalInfo(Max, signals, nPadCount);
+  if(!fReconstructor->IsHLT()) CalcAdditionalInfo(Max, signals, nPadCount);
 
   AliTRDcluster cluster(fDet, ((UChar_t) Max.col), ((UChar_t) Max.row), ((UChar_t) Max.time), signals, fVolid);
   cluster.SetNPads(nPadCount);
@@ -1022,7 +1022,7 @@ void AliTRDclusterizer::CreateCluster(const MaxStruct &Max)
   // Transform the local cluster coordinates into calibrated 
   // space point positions defined in the local tracking system.
   // Here the calibration for T0, Vdrift and ExB is applied as well.
-  if(!TestBit(kHLT)) if(!fTransform->Transform(&cluster)) return;
+  if(!TestBit(kSkipTrafo)) if(!fTransform->Transform(&cluster)) return;
 
   // Temporarily store the Max.Row, column and time bin of the center pad
   // Used to later on assign the track indices
@@ -1043,42 +1043,38 @@ void AliTRDclusterizer::CreateCluster(const MaxStruct &Max)
 //_____________________________________________________________________________
 void AliTRDclusterizer::CalcAdditionalInfo(const MaxStruct &Max, Short_t *const signals, Int_t &nPadCount)
 {
-  // Look to the right
-  Int_t ii = 1;
-  while (fDigits->GetData(Max.row, Max.col-ii, Max.time) >= fSigThresh) {
-    nPadCount++;
-    ii++;
-    if (Max.col < ii) break;
-  }
-  // Look to the left
-  ii = 1;
-  while (fDigits->GetData(Max.row, Max.col+ii, Max.time) >= fSigThresh) {
-    nPadCount++;
-    ii++;
-    if (Max.col+ii >= fColMax) break;
-  }
+// Calculate number of pads/cluster and
+// ADC signals at position 0, 1, 5 and 6
 
+  Float_t gain(1.); Short_t signal(0.);
   // Store the amplitudes of the pads in the cluster for later analysis
   // and check whether one of these pads is masked in the database
-  signals[2]=Max.signals[0];
   signals[3]=Max.signals[1];
-  signals[4]=Max.signals[2];
-  Float_t gain;
-  for(Int_t i = 0; i<2; i++)
-    {
-      if(Max.col+i >= 3){
-	gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col-3+i,Max.row);
-	signals[i] = (Short_t)((fDigits->GetData(Max.row, Max.col-3+i, Max.time) - fBaseline) / gain + 0.5f);
-      }
-      if(Max.col+3-i < fColMax){
-	gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col+3-i,Max.row);
-	signals[6-i] = (Short_t)((fDigits->GetData(Max.row, Max.col+3-i, Max.time) - fBaseline) / gain + 0.5f);
-      }
-    }
-  /*for (Int_t jPad = Max.Col-3; jPad <= Max.Col+3; jPad++) {
-    if ((jPad >= 0) && (jPad < fColMax))
-      signals[jPad-Max.Col+3] = TMath::Nint(fDigits->GetData(Max.Row,jPad,Max.Time));
-      }*/
+  Int_t ipad(1), jpad(0);
+  // Look to the right
+  while((jpad = Max.col-ipad)){
+    if(!(signal = fDigits->GetData(Max.row, jpad, Max.time))) break; // empty digit !
+    gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(jpad, Max.row);
+    signal = (Short_t)((signal - fBaseline) / gain + 0.5f);
+    if(signal<fSigThresh) break; // signal under threshold
+    nPadCount++;
+    if(ipad<=3) signals[3 - ipad] = signal;
+    ipad++;
+  }
+  ipad=1;
+  // Look to the left
+  while((jpad = Max.col+ipad)<fColMax){
+    if(!(signal = fDigits->GetData(Max.row, jpad, Max.time))) break; // empty digit !
+    gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(jpad, Max.row);
+    signal = (Short_t)((signal - fBaseline) / gain + 0.5f);
+    if(signal<fSigThresh) break; // signal under threshold
+    nPadCount++;
+    if(ipad<=3) signals[3 + ipad] = signal;
+    ipad++;
+  }
+
+  AliDebug(4, Form("Signals[%3d %3d %3d %3d %3d %3d %3d] Npads[%d]."
+    , signals[0], signals[1], signals[2], signals[3], signals[4], signals[5], signals[6], nPadCount));
 }
 
 //_____________________________________________________________________________

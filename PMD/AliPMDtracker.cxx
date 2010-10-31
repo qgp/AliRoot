@@ -32,6 +32,10 @@
 #include <TNtuple.h>
 #include <TParticle.h>
 
+#include <TGeoMatrix.h>
+
+#include "AliGeomManager.h"
+
 #include "AliPMDcluster.h"
 #include "AliPMDclupid.h"
 #include "AliPMDrecpoint1.h"
@@ -142,10 +146,10 @@ void AliPMDtracker::Clusters2Tracks(AliESDEvent *event)
   // algorithm on CPV plane and PREshower plane
   //
 
-  Int_t   idet;
-  Int_t   ismn;
-  Int_t   trackno, trackpid;
-  Float_t clusdata[6];
+  Int_t   idet = 0;
+  Int_t   ismn = 0;
+  Int_t   trackno = 1, trackpid = 0;
+  Float_t clusdata[6] = {0.,0.,0.,0.,0.,0.};
   
   Int_t *irow;
   Int_t *icol;
@@ -208,6 +212,14 @@ void AliPMDtracker::Clusters2Tracks(AliESDEvent *event)
 	      
 	      for (Int_t ient1 = 0; ient1 < nenbr1; ient1++)
 		{
+		  irow[ient1] = -99;
+		  icol[ient1] = -99;
+		  itra[ient1] = -99;
+		  ipid[ient1] = -99;
+		  cadc[ient1] = 0.;
+		}
+	      for (Int_t ient1 = 0; ient1 < nenbr1; ient1++)
+		{
 		  rechit = (AliPMDrechit*)fRechits->UncheckedAt(ient1);
 		  //irow[ient1] = rechit->GetCellX();
 		  //icol[ient1] = rechit->GetCellY();
@@ -243,16 +255,39 @@ void AliPMDtracker::Clusters2Tracks(AliESDEvent *event)
   AliPMDEmpDiscriminator pmddiscriminator;
   pmddiscriminator.Discrimination(fPMDcontin,fPMDcontout);
 
+  // alignment implemention
+
+  Double_t sectr[4][3] = { {0.,0.,0.},{0.,0.,0.},{0.,0.,0.},{0.,0.,0.}};
+  TString snsector="PMD/Sector";
+  TString symname;
+  TGeoHMatrix gpmdor;
+  
+  for(Int_t isector=1; isector<=4; isector++)
+    {
+      symname = snsector;
+      symname += isector;
+      TGeoHMatrix *gpmdal = AliGeomManager::GetMatrix(symname);
+      Double_t *tral = gpmdal->GetTranslation();
+
+      AliGeomManager::GetOrigGlobalMatrix(symname, gpmdor);
+      Double_t *tror = gpmdor.GetTranslation();
+      
+      for(Int_t ixyz=0; ixyz<3; ixyz++)
+	{
+	  sectr[isector-1][ixyz] = tral[ixyz] - tror[ixyz];
+	}
+    }
+
   const Float_t kzpos = 361.5;    // middle of the PMD
 
   Int_t   ix = -1, iy = -1;
-  Int_t   det,smn,trno,trpid,mstat;
-  Float_t xpos,ypos;
-  Float_t adc, ncell, radx, rady;
+  Int_t   det = 0, smn = 0, trno = 1, trpid = 0, mstat = 0;
+  Float_t xpos = 0., ypos = 0.;
+  Float_t adc = 0., ncell = 0., radx = 0., rady = 0.;
   Float_t xglobal = 0., yglobal = 0., zglobal = 0;
-  Float_t pid;
+  Float_t pid = 0.;
 
-  fPMDutil->ApplyAlignment();
+  fPMDutil->ApplyAlignment(sectr);
 
   Int_t nentries2 = fPMDcontout->GetEntries();
   AliDebug(1,Form("Number of clusters coming after discrimination = %d"
@@ -398,7 +433,8 @@ void AliPMDtracker::AssignTrPidToCluster(Int_t nentry, Int_t *itra,
 
       trenergy  = new Int_t [nghadtrack];
       trpid     = new Int_t [nghadtrack];
-      sortcoord = new Int_t [nghadtrack];
+      // the dimension of sortcoord is doubled
+      sortcoord = new Int_t [2*nghadtrack];
       for (Int_t i = 0; i < ngtrack; i++)
 	{
 	  trenergy[i] = 0.;
@@ -446,6 +482,9 @@ void AliPMDtracker::AssignTrPidToCluster(Int_t nentry, Int_t *itra,
       delete [] sortcoord;
       
     }   // end of ngtrack >= 1
+
+  delete [] phentry;
+  delete [] hadentry;
   
 }
 //--------------------------------------------------------------------//

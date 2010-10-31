@@ -33,6 +33,8 @@
 
 #pragma link C++ class AliCollisionNormalization+;
 #pragma link C++ class AliCollisionNormalizationTask+;
+#pragma link C++ class AliAnalysisTaskAODCentralityMaker+;
+#pragma link C++ class AliCentralitySelectionTask+;
 
 #ifdef WITHXML
 #pragma link C++ class AliTagAnalysis+;

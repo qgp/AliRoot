@@ -38,6 +38,7 @@ class AliRsnPair : public TNamed
     ~AliRsnPair();
 
     void    SetOnlyTrue(Bool_t onlyTrue = kTRUE) {fOnlyTrue = onlyTrue;}
+    void    SetCheckDecay(Bool_t check = kTRUE)  {fCheckDecay = check;}
 
     void    Print(Option_t *option = "") const;
     void    SetMixed(Bool_t doit = kTRUE) {fIsMixed = doit;}
@@ -53,12 +54,13 @@ class AliRsnPair : public TNamed
   protected:
 
     Bool_t            fOnlyTrue;        //  select true pairs only?
+    Bool_t            fCheckDecay;      //  is the decay channel correct in a true pair?
     Bool_t            fIsMixed;         //  is this an event-mixing?
 
     AliRsnPairDef    *fPairDef;         //  pair definition (particles, charges)
     AliRsnCutManager  fCutManager;      //  collection of all cuts
     AliRsnMother      fMother;          //  mother candidate (to avoid creating it continuously)
-    AliRsnEvent      *fEvent;           //  pointer to current event
+    AliRsnEvent      *fEvent;           //! pointer to current event
     
   private:
 

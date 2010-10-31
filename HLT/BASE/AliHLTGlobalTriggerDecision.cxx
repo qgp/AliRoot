@@ -308,7 +308,10 @@ void AliHLTGlobalTriggerDecision::Clear(Option_t* option)
   // Clears the trigger domain and resets the decision result.
   
   AliHLTTriggerDecision::Clear(option);
-  fContributingTriggers.Clear(option);
+  // because of TClonesArray members in AliHLTTriggerDecision it is not
+  // enough to call Clear. Delete will also invoke the destructor of the
+  // elements which is necessary to do the proper internal cleanup
+  fContributingTriggers.Delete();
   DeleteInputObjects();
   fCounters.Set(0);
 }
@@ -333,6 +336,44 @@ void AliHLTGlobalTriggerDecision::DeleteInputObjects()
 }
 
 
+void AliHLTGlobalTriggerDecision::MarkInputObjectsAsOwned()
+{
+  // Marks all input objects as owned.
+
+  // We must mark all the objects that were read into fInputObjects as owned.
+  // Otherwise we will have a memory leak in DeleteInputObjects.
+  bool loggedWarning = false;
+  for (Int_t i = 0; i < fInputObjects.GetEntriesFast(); ++i)
+  {
+    TObject* obj = fInputObjects.UncheckedAt(i);
+    // We must check if the object pointer is NULL. This could happen because the
+    // class dictionary has not been loaded, so the ReadClassBuffer streamer just
+    // silently skips the object but fills the fInputObjects array with a NULL pointer.
+    if (obj == NULL)
+    {
+      fInputObjects.RemoveAt(i);
+      if (not loggedWarning)
+      {
+        AliHLTLogging log;
+        log.LoggingVarargs(kHLTLogWarning, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__,
+          "The global trigger decision contains NULL pointers in the input object array."
+          " This is probably due to the fact that some class dictionaries have not been loaded."
+          " Will just remove the NULL pointer and continue."
+        );
+        loggedWarning = true;  // Prevent multiple warnings, one is enough.
+      }
+    }
+    else
+    {
+      obj->SetBit(kCanDelete);
+    }
+  }
+  // Compress the input object array to prevent any seg-faults due to access of
+  // NULL pointers if the objects were not loaded due to missing dictionaries.
+  fInputObjects.Compress();
+}
+
+#if ROOT_VERSION_CODE < ROOT_VERSION(5,26,0)
 void AliHLTGlobalTriggerDecision::Streamer(TBuffer &b)
 {
    // Stream an object of class AliHLTGlobalTriggerDecision.
@@ -340,38 +381,11 @@ void AliHLTGlobalTriggerDecision::Streamer(TBuffer &b)
    if (b.IsReading())
    {
      b.ReadClassBuffer(AliHLTGlobalTriggerDecision::Class(), this);
-     // We must mark all the objects that were read into fInputObjects as owned.
-     // Otherwise we will have a memory leak in DeleteInputObjects.
-     bool loggedWarning = false;
-     for (Int_t i = 0; i < fInputObjects.GetEntriesFast(); ++i)
-     {
-       TObject* obj = fInputObjects.UncheckedAt(i);
-       // We must check if the object pointer is NULL. This could happen because the
-       // class dictionary has not been loaded, so the ReadClassBuffer streamer just
-       // silently skips the object but fills the fInputObjects array with a NULL pointer.
-       if (obj == NULL)
-       {
-         fInputObjects.RemoveAt(i);
-         if (not loggedWarning)
-         {
-           AliHLTLogging log;
-           log.LoggingVarargs(kHLTLogWarning, this->ClassName(), FUNCTIONNAME(), __FILE__, __LINE__,
-             "The global trigger decision contains NULL pointers in the input object array."
-             " This is probably due to the fact that some class dictionaries have not been loaded."
-             " Will just remove the NULL pointer and continue."
-           );
-           loggedWarning = true;  // Prevent multiple warnings, one is enough.
-         }
-       }
-       else
-       {
-         obj->SetBit(kCanDelete);
-       }
-     }
-     fInputObjects.Compress();
+     MarkInputObjectsAsOwned();
    }
    else
    {
      b.WriteClassBuffer(AliHLTGlobalTriggerDecision::Class(), this);
    }
 }
+#endif // ROOT version check.
