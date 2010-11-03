@@ -88,7 +88,8 @@ AliHLTGlobalTriggerComponent::AliHLTGlobalTriggerComponent() :
 	fMonitorPeriod(-1),
 	fUniqueID(0),
 	fSoftwareTrigger(true, "SOFTWARE"),
-	fTotalEventCounter(0)
+	fTotalEventCounter(0),
+	fCDH(NULL)
 {
   // Default constructor.
   
@@ -142,6 +143,7 @@ Int_t AliHLTGlobalTriggerComponent::DoInit(int argc, const char** argv)
   fDataEventsOnly = true;
   UInt_t randomSeed = 0;
   bool randomSeedSet = false;
+  fCDH = NULL;
   
   for (int i = 0; i < argc; i++)
   {
@@ -445,6 +447,7 @@ Int_t AliHLTGlobalTriggerComponent::DoDeinit()
     delete fCTPDecisions;
   }
   fCTPDecisions=NULL;
+  fCDH = NULL;
   
   Int_t result = UnloadTriggerClass(fCodeFileName);
   if (result != 0) return result;
@@ -490,13 +493,15 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
 
   AliHLTUInt32_t eventType=0;
   if (!IsDataEvent(&eventType)) {
-    if (eventType==gkAliEventTypeEndOfRun) PrintStatistics(fTrigger, kHLTLogImportant, 0);
     if (fDataEventsOnly)
     {
       IgnoreEvent();  // dont generate any trigger decision.
       return 0;
     }
   }
+  
+  fCDH = NULL;  // have to reset this in case ExtractTriggerData fails.
+  ExtractTriggerData(*GetTriggerData(), NULL, NULL, &fCDH, NULL);
 
   // Copy the trigger counters in case we need to set them back to their original
   // value because the PushBack method fails with ENOSPC.
@@ -603,11 +608,16 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
   
   static UInt_t lastTime=0;
   TDatime time;
-  if (time.Get()-lastTime>60) {
+  if (time.Get()-lastTime>60)
+  {
     lastTime=time.Get();
     PrintStatistics(fTrigger, kHLTLogImportant);
   }
-
+  else if (eventType==gkAliEventTypeEndOfRun)
+  {
+    PrintStatistics(fTrigger, kHLTLogImportant);
+  }
+  
   // add readout filter to event done data
   CreateEventDoneReadoutFilter(decision.TriggerDomain(), 3);
 
@@ -630,6 +640,29 @@ int AliHLTGlobalTriggerComponent::DoTrigger()
     }
     // add monitoring filter list
     CreateEventDoneReadoutFilter(monitoringFilter, 4);
+  }
+  
+  // Mask the readout list according to the CTP trigger
+  // if the classes have been initialized (mask non-zero).
+  // If we are dealing with a software trigger on the other hand then
+  // mask with the participating detector list.
+  // In both cases we must make sure that HLT is part of the readout mask.
+  if (CTPData() != NULL and CTPData()->Mask() != 0x0)
+  {
+    AliHLTReadoutList readoutlist = decision.ReadoutList();
+    AliHLTReadoutList ctpreadout = CTPData()->ReadoutList(*GetTriggerData());
+    ctpreadout.Enable(AliHLTReadoutList::kHLT);
+    readoutlist.AndEq(ctpreadout);
+    decision.ReadoutList(readoutlist); // override the readout list with the masked one.
+  }
+  else if (softwareTriggerIsValid)
+  {
+    assert(fCDH != NULL);
+    AliHLTReadoutList readoutlist = decision.ReadoutList();
+    UInt_t detectors = fCDH->GetSubDetectors();
+    AliHLTReadoutList softwareReadout(Int_t(detectors | AliHLTReadoutList::kHLT));
+    readoutlist.AndEq(softwareReadout);
+    decision.ReadoutList(readoutlist); // override the readout list with the masked one.
   }
 
   if (TriggerEvent(&decision, kAliHLTDataTypeGlobalTrigger) == -ENOSPC)
@@ -1826,9 +1859,9 @@ bool AliHLTGlobalTriggerComponent::ExtractedOperator(TString& expr, TString& op)
 bool AliHLTGlobalTriggerComponent::FillSoftwareTrigger()
 {
   // Fills the fSoftwareTrigger structure.
-  const AliRawDataHeader* cdh;
-  if (ExtractTriggerData(*GetTriggerData(), NULL, NULL, &cdh, NULL) != 0) return false;
-  UChar_t l1msg = cdh->GetL1TriggerMessage();
+  
+  if (fCDH == NULL) return false;
+  UChar_t l1msg = fCDH->GetL1TriggerMessage();
   if ((l1msg & 0x1) == 0x0) return false;  // skip physics events.
   // From here on everything must be a software trigger.
   if (((l1msg >> 2) & 0xF) == 0xE)
@@ -1851,7 +1884,7 @@ bool AliHLTGlobalTriggerComponent::FillSoftwareTrigger()
     fSoftwareTrigger.Name("SOFTWARE");
     fSoftwareTrigger.Description("Generated internal software trigger.");
   }
-  UInt_t detectors = cdh->GetSubDetectors();
+  UInt_t detectors = fCDH->GetSubDetectors();
   fSoftwareTrigger.ReadoutList( AliHLTReadoutList(Int_t(detectors)) );
   return true;
 }
@@ -1860,7 +1893,7 @@ bool AliHLTGlobalTriggerComponent::FillSoftwareTrigger()
 int AliHLTGlobalTriggerComponent::PrintStatistics(const AliHLTGlobalTrigger* pTrigger, AliHLTComponentLogSeverity level, int offset) const
 {
   // print some statistics
-  int totalEvents=GetEventCount()+offset;
+  int totalEvents=fTotalEventCounter+offset;
   const TArrayL64& counters = pTrigger->GetCounters();
   if (pTrigger->CallFailed()) return -EPROTO;
   for (int i = 0; i < counters.GetSize(); i++) {
