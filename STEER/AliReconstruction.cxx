@@ -2091,8 +2091,6 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     if (fRawReader && fRawReader->UseAutoSaveESD()) {
       ftree->AutoSave("SaveSelf");
       if (fWriteESDfriend) ftreeF->AutoSave("SaveSelf");
-      TFile *friendfile = (TFile *)(gROOT->GetListOfFiles()->FindObject("AliESDfriends.root"));
-      if (friendfile) friendfile->Save();
     }
 
     // write HLT ESD
@@ -3450,15 +3448,13 @@ Bool_t AliReconstruction::InitAliEVE()
   // The return flag shows whenever the
   // AliEVE initialization was successful or not.
 
-  TString macroPath;
-  macroPath.Form(".:%s:%s/EVE/macros/",
-		 gROOT->GetMacroPath(),
-		 gSystem->ExpandPathName("$ALICE_ROOT"));
-  gROOT->SetMacroPath(macroPath.Data());
+  TString macroStr(gSystem->Getenv("ALIEVE_ONLINE_MACRO"));
 
-  TString macroStr("alieve_online.C");
-  AliInfo(Form("Loading AliEVE macro: %s (%s)",macroStr.Data(), 
-	       gSystem->Which(gROOT->GetMacroPath(), macroStr.Data())));
+  if (macroStr.IsNull())
+    macroStr.Form("%s/EVE/macros/alieve_online.C",gSystem->ExpandPathName("$ALICE_ROOT"));
+
+  AliInfo(Form("Loading AliEVE macro: %s",macroStr.Data()));
+
   if (gROOT->LoadMacro(macroStr.Data()) != 0) return kFALSE;
 
   gROOT->ProcessLine("if (!AliEveEventManager::GetMaster()){new AliEveEventManager();AliEveEventManager::GetMaster()->AddNewEventCommand(\"alieve_online_on_new_event()\");gEve->AddEvent(AliEveEventManager::GetMaster());};");
