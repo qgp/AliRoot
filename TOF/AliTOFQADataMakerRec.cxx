@@ -22,6 +22,10 @@
 ///////////////////////////////////////////////////////////////////////
 
 /*
+   Modified by bvonhall on 03/11/2010
+   - modified declaration of hTrmChannels035 and hTrmChannels3671 in EndOfDetectorCycle()
+     to prevent memory corruption
+   
    Modified by adecaro on 18/10/2010
    - fTOFRawStream object set as private member
  
@@ -75,6 +79,7 @@
 #include "AliTOFrawData.h"
 #include "AliTOFGeometry.h"
 #include "AliTOFChannelOnlineStatusArray.h"
+
 
 
 ClassImp(AliTOFQADataMakerRec)
@@ -154,7 +159,7 @@ AliTOFQADataMakerRec::~AliTOFQADataMakerRec()
   for (Int_t sm=0;sm<10;sm++){
     delete fLineSMid035[sm];
     delete fLineSMid3671[sm];
-  }
+    }
 
 }
 //----------------------------------------------------------------------------
@@ -294,15 +299,15 @@ void AliTOFQADataMakerRec::InitRaws()
   }
 
   Add2RawsList(h0,   0, !expert,  image, !saveCorr) ;
-  Add2RawsList(h1,   1,  expert,  image, !saveCorr) ;
-  Add2RawsList(h2,   2,  expert,  image, !saveCorr) ;
-  Add2RawsList(h3,   3,  expert,  image, !saveCorr) ;
-  Add2RawsList(h4,   4,  expert,  image, !saveCorr) ;
+  Add2RawsList(h1,   1,  expert,  !image, !saveCorr) ;
+  Add2RawsList(h2,   2,  expert,  !image, !saveCorr) ;
+  Add2RawsList(h3,   3,  expert,  !image, !saveCorr) ;
+  Add2RawsList(h4,   4,  expert,  !image, !saveCorr) ;
   Add2RawsList(h5,   5, !expert,  image, !saveCorr) ;
-  Add2RawsList(h6,   6,  expert,  image, !saveCorr) ;
-  Add2RawsList(h7,   7,  expert,  image, !saveCorr) ;
-  Add2RawsList(h8,   8,  expert,  image, !saveCorr) ;
-  Add2RawsList(h9,   9,  expert,  image, !saveCorr) ;
+  Add2RawsList(h6,   6,  expert,  !image, !saveCorr) ;
+  Add2RawsList(h7,   7,  expert,  !image, !saveCorr) ;
+  Add2RawsList(h8,   8,  expert,  !image, !saveCorr) ;
+  Add2RawsList(h9,   9,  expert,  !image, !saveCorr) ;
   Add2RawsList(h10, 10, !expert,  image, !saveCorr) ;
   Add2RawsList(h11, 11,  expert, !image, !saveCorr) ;
   Add2RawsList(h12, 12,  expert, !image, !saveCorr) ;
@@ -783,10 +788,8 @@ void AliTOFQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
   //Detector specific actions at end of cycle
   // do the QA checking
 
-  TH1F * hTrmChannels035 = new TH1F("hTrmchannels035", "Active channels per TRM - crates 0 to 35;TRM index = SMid(crate*10)+TRM(0-9);Active channels",  361, 0., 361.) ;
-  TH1F * hTrmChannels3671 = new TH1F("hTrmChannels3671","Active channels per TRM - crates 36 to 71 ;TRM index = SMid(crate*10)+TRM(0-9);Active channels", 361, 360., 721.) ;
-
-
+  TH1F hTrmChannels035("hTrmchannels035", "Active channels per TRM - crates 0 to 35;TRM index = SMid(crate*10)+TRM(0-9);Active channels",  361, 0., 361.) ;
+  TH1F hTrmChannels3671("hTrmChannels3671","Active channels per TRM - crates 36 to 71 ;TRM index = SMid(crate*10)+TRM(0-9);Active channels", 361, 360., 721.) ;
 
     for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
 	if ( !AliQAv1::Instance()->IsEventSpecieSet(specie) ) 
@@ -806,8 +809,8 @@ void AliTOFQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 		//normalize TRM hits plots to the number of enabled channels from OCDB object
 		//TH1F * hTrmChannels035 = new TH1F("hTrmchannels035", "Active channels per TRM - crates 0 to 35;TRM index = SMid(crate*10)+TRM(0-9);Active channels",  361, 0., 361.) ;
 		//TH1F * hTrmChannels3671 = new TH1F("hTrmChannels3671","Active channels per TRM - crates 36 to 71 ;TRM index = SMid(crate*10)+TRM(0-9);Active channels", 361, 360., 721.) ;
-	      hTrmChannels035->Clear();
-	      hTrmChannels3671->Clear();
+	      hTrmChannels035.Clear();
+	      hTrmChannels3671.Clear();
 		for (Int_t ch = 0; ch <  fCalibData->GetSize(); ch++) {
 		    if (!(fCalibData->GetNoiseStatus(ch)==AliTOFChannelOnlineStatusArray::kTOFNoiseBad)
 			&& (fCalibData->GetHWStatus(ch) == AliTOFChannelOnlineStatusArray::kTOFHWOk)){
@@ -815,14 +818,14 @@ void AliTOFQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 			Int_t detId[5];
 			AliTOFGeometry::GetVolumeIndices(ch,geoId);
 			AliTOFRawStream::Geant2EquipmentId(geoId,detId); //detID=(ddl,trm,tdc, chain,channel)
-			if (detId[0]<36) hTrmChannels035->Fill((detId[1]-3)+detId[0]*10);
-			else hTrmChannels3671->Fill((detId[1]-3)+detId[0]*10);
+			if (detId[0]<36) hTrmChannels035.Fill((detId[1]-3)+detId[0]*10);
+			else hTrmChannels3671.Fill((detId[1]-3)+detId[0]*10);
 		    }
 		}
-		GetRawsData(16)->Divide(hTrmChannels035);
+		GetRawsData(16)->Divide(&hTrmChannels035);
 		GetRawsData(16)->SetTitle("TRMs average hit number per active channel - crates 0-35");
 		GetRawsData(16)->GetYaxis()->SetTitle("hits/active channels");
-		GetRawsData(17)->Divide(hTrmChannels3671);
+		GetRawsData(17)->Divide(&hTrmChannels3671);
 		GetRawsData(17)->SetTitle("TRMs average hit number per active channel - crates 36-71");
 		GetRawsData(17)->GetYaxis()->SetTitle("hits/active channels");
 	    }
@@ -877,9 +880,6 @@ void AliTOFQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 	    
 	}
     }
-
-    delete hTrmChannels035;
-    delete hTrmChannels3671;
 
     AliQAChecker::Instance()->Run(AliQAv1::kTOF, task, list) ;  
 }
