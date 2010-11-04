@@ -33,8 +33,8 @@ SRCS = AliVParticle.cxx \
        AliITSPidParams.cxx \
        AliITSPIDResponse.cxx AliTPCPIDResponse.cxx AliTOFPIDResponse.cxx \
        AliTRDPIDResponse.cxx \
-       AliDAQ.cxx
-
+       AliDAQ.cxx \
+       AliRefArray.cxx
 
 HDRS:= $(SRCS:.cxx=.h) 
 
