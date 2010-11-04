@@ -396,7 +396,7 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, 
 	bunchlist.push_back( AliCaloBunchInfo(in.GetStartTimeBin(), in.GetBunchLength(), in.GetSignals() ) );
       } // loop over bunches
 
-   
+      if (bunchlist.size() == 0) continue;
       if ( caloFlag < 2 ){ // ALTRO
 		
 	Float_t time = 0; 
