@@ -270,7 +270,6 @@ Int_t AliITStrackerSA::Clusters2Tracks(AliESDEvent *event){
 // is done in the ITS only. In the standard reconstruction chain this option
 // can be set via AliReconstruction::SetOption("ITS","onlyITS")
   Int_t rc=0;
-
   if(!fITSStandAlone){
     rc=AliITStrackerMI::Clusters2Tracks(event);
   }
@@ -279,14 +278,11 @@ Int_t AliITStrackerSA::Clusters2Tracks(AliESDEvent *event){
   }
   if(!rc){ 
     rc=FindTracks(event,kFALSE);
-    Int_t nSPDcontr=0;
-    const AliESDVertex *spdv = event->GetPrimaryVertexSPD();
-    if(spdv) nSPDcontr = spdv->GetNContributors();
-    if(AliITSReconstructor::GetRecoParam()->GetSAUseAllClusters()==kTRUE && 
-       nSPDcontr<=AliITSReconstructor::GetRecoParam()->GetMaxSPDcontrForSAToUseAllClusters()) {
+    if(AliITSReconstructor::GetRecoParam()->GetSAUseAllClusters()==kTRUE) {
       rc=FindTracks(event,kTRUE);
     }
   }
+
   return rc;
 }
 

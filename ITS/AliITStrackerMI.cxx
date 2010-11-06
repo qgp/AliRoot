@@ -733,9 +733,6 @@ Int_t AliITStrackerMI::RefitInward(AliESDEvent *event) {
 
   if(AliITSReconstructor::GetRecoParam()->GetFindV0s()) AliITSV0Finder::RefitV02(event,this);
 
-  Bool_t doExtra=AliITSReconstructor::GetRecoParam()->GetSearchForExtraClusters();
-  if(!doExtra) AliDebug(2,"Do not search for extra clusters");
-
   Int_t nentr=event->GetNumberOfTracks();
   //  Info("RefitInward", "Number of ESD tracks: %d\n", nentr);
 
@@ -773,7 +770,7 @@ Int_t AliITStrackerMI::RefitInward(AliESDEvent *event) {
                AliITSReconstructor::GetRecoParam()->GetIPlanePlaneEff()>=0);
 
     AliDebug(2,Form("Refit LABEL %d  %d",t->GetLabel(),t->GetNumberOfClusters()));
-    if (RefitAt(AliITSRecoParam::GetrInsideSPD1(),&fTrackToFollow,t,doExtra,pe)) {
+    if (RefitAt(AliITSRecoParam::GetrInsideSPD1(),&fTrackToFollow,t,kTRUE,pe)) {
        AliDebug(2,"  refit OK");
        fTrackToFollow.SetLabel(t->GetLabel());
        //       fTrackToFollow.CookdEdx();
