@@ -91,6 +91,7 @@ fMaxChi2(0),
 fMaxRoad(0),
 fMaxChi2In(0),
 fChi2PerCluster(0),
+fSearchForExtras(kTRUE),			     
 fXV(0), 
 fYV(0),
 fZV(0),
@@ -154,6 +155,7 @@ fMaxLambdaSA(0.008),
 fMinClusterChargeSA(0.),
 fSAOnePointTracks(kFALSE),
 fSAUseAllClusters(kFALSE),
+fMaxSPDcontrForSAToUseAllClusters(1e6),
 fFindV0s(kTRUE),
 fStoreLikeSignV0s(kFALSE),
 fUseUnfoldingInClusterFinderSPD(kFALSE),
@@ -171,6 +173,8 @@ fTrackleterRemoveClustersFromOverlaps(kFALSE),
 fTrackleterPhiOverlapCut(0.005),
 fTrackleterZetaOverlapCut(0.05),
 fTrackleterPhiRotationAngle(0.0),
+fTrackleterNStdDev(1.),
+fScaleDTBySin2T(kFALSE),
 fUseCosmicRunShiftsSSD(kFALSE),
 fSPDRemoveNoisyFlag(kTRUE),
 fSPDRemoveDeadFlag(kTRUE),
@@ -210,6 +214,12 @@ fMultCutChi2cK0(2.),
 fMultCutGammaSFromDecay(-10.),
 fMultCutK0SFromDecay(-10.),
 fMultCutMaxDCA(1.),
+//
+fCorrectLorentzAngleSPD(kTRUE),
+fTanLorentzAngleHolesSPD(0.017455), // tan(1 degree)
+fCorrectLorentzAngleSSD(kTRUE),
+fTanLorentzAngleHolesSSD(0.016),  // tan(0.94 degrees)
+fTanLorentzAngleElectronsSSD(0.068), // tan(3.98 degrees)
 //
 fESDV0Params(NULL)
 {
@@ -308,7 +318,7 @@ AliITSRecoParam *AliITSRecoParam::GetHighFluxParam()
   // make default reconstruction  parameters for hig  flux env.
   //
   AliITSRecoParam *param = new AliITSRecoParam();
-  param->SetVertexerZ();
+  param->SetVertexer3DDefaults();
 
   // use of bads from OCDB
   param->SetUseBadZonesFromOCDB(kTRUE);
@@ -377,8 +387,10 @@ AliITSRecoParam *AliITSRecoParam::GetHighFluxParam()
   param->fMaxChi2sR[4] = 30.;   
   param->fMaxChi2sR[5] = 40.;   
 
+
   param->fChi2PerCluster = 9.;
   // not used
+  param->fSearchForExtras = kFALSE;
 
   param->fXV = 0.;
   param->fYV = 0.;
@@ -424,6 +436,11 @@ AliITSRecoParam *AliITSRecoParam::GetHighFluxParam()
   param->fMultCutK0SFromDecay = -10.;
   param->fMultCutMaxDCA = 1.;  
   //
+  // trackleter
+  param->fTrackleterPhiWindow = 0.06;
+  param->fTrackleterNStdDev = 25.;
+  param->fScaleDTBySin2T = kTRUE;
+
   return param;
 }
 //_____________________________________________________________________________

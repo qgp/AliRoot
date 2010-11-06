@@ -161,6 +161,9 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Double_t GetMaxRoad() const { return fMaxRoad; }
   Double_t GetMaxNormChi2ForGolden(Int_t i) const { return 3.+0.5*i; }
 
+  void     SetSearchForExtraClusters(Bool_t opt=kTRUE){ fSearchForExtras=opt; }
+  Double_t GetSearchForExtraClusters() const { return fSearchForExtras; }
+
   Double_t GetXVdef() const { return fXV; }
   Double_t GetYVdef() const { return fYV; }
   Double_t GetZVdef() const { return fZV; }
@@ -302,6 +305,9 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void   SetSAUseAllClusters(Bool_t opt=kTRUE) { fSAUseAllClusters=opt; return; }
   Bool_t GetSAUseAllClusters() const { return fSAUseAllClusters; }
 
+  void SetMaxSPDcontrForSAToUseAllClusters(Int_t contr=50) { fMaxSPDcontrForSAToUseAllClusters=contr; return; }
+  Int_t GetMaxSPDcontrForSAToUseAllClusters() const { return fMaxSPDcontrForSAToUseAllClusters; }
+
   void   SetFindV0s(Bool_t find=kTRUE) { fFindV0s=find; return; }
   Bool_t GetFindV0s() const { return fFindV0s; }
 
@@ -351,7 +357,11 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Float_t GetTrackleterZetaOverlapCut() const {return fTrackleterZetaOverlapCut;}
   void    SetTrackleterPhiRotationAngle(Float_t w=0.0) {fTrackleterPhiRotationAngle=w;}
   Float_t GetTrackleterPhiRotationAngle() const {return fTrackleterPhiRotationAngle;}
-
+  //
+  void    SetTrackleterNStdDevCut(Float_t f=1.)          {fTrackleterNStdDev = f<0.01 ? 0.01 : f;}
+  Float_t GetTrackleterNStdDevCut()               const  {return fTrackleterNStdDev;}
+  void    SetTrackleterScaleDThetaBySin2T(Bool_t v=kFALSE)  {fScaleDTBySin2T = v;}
+  Bool_t  GetTrackleterScaleDThetaBySin2T()       const  {return fScaleDTBySin2T;}
   //
   void   SetSPDRemoveNoisyFlag(Bool_t value) {fSPDRemoveNoisyFlag = value;}
   Bool_t GetSPDRemoveNoisyFlag() const {return fSPDRemoveNoisyFlag;}
@@ -430,6 +440,20 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void    SetMultCutMaxDCA(Float_t v=1.)                 { fMultCutMaxDCA = v;}
   //
   AliESDV0Params *GetESDV0Params() const {return fESDV0Params;}
+  //
+  // Lorentz angle
+  Bool_t  GetCorrectLorentzAngleSPD() const {return fCorrectLorentzAngleSPD;}
+  Float_t GetTanLorentzAngleHolesSPD() const {return fTanLorentzAngleHolesSPD;}
+  Bool_t  GetCorrectLorentzAngleSSD() const {return fCorrectLorentzAngleSSD;}
+  Float_t GetTanLorentzAngleHolesSSD() const {return fTanLorentzAngleHolesSSD;}
+  Float_t GetTanLorentzAngleElectronsSSD() const {return fTanLorentzAngleElectronsSSD;}
+
+  void SetCorrectLorentzAngleSPD(Bool_t flag) {fCorrectLorentzAngleSPD=flag;}
+  void SetTanLorentzAngleHolesSPD(Float_t la) {fTanLorentzAngleHolesSPD=la;}
+  void SetCorrectLorentzAngleSSD(Bool_t flag) {fCorrectLorentzAngleSSD=flag;}
+  void SetTanLorentzAngleHolesSSD(Float_t la) {fTanLorentzAngleHolesSSD=la;}
+  void SetTanLorentzAngleElectronsSSD(Float_t la) {fTanLorentzAngleElectronsSSD=la;}
+
   //
   enum {fgkMaxClusterPerLayer=70000}; //7000*10;   // max clusters per layer
   enum {fgkMaxClusterPerLayer5=28000};//7000*10*2/5;  // max clusters per layer
@@ -521,6 +545,8 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Double_t fMaxChi2In; // (NOT USED)
   Double_t fMaxChi2sR[AliITSgeomTGeo::kNLayers];  // (NOT USED) 
   Double_t fChi2PerCluster; // (NOT USED)
+  // search for extra clusters
+  Bool_t   fSearchForExtras; // swicth yes/no for the search of extra-clusters in RefitInward step
   //
   // default primary vertex (MI,V2)
   Double_t fXV;  // x
@@ -605,6 +631,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Float_t  fMinClusterChargeSA;     // minimum SDD,SSD cluster charge for SA tarcker
   Bool_t fSAOnePointTracks; // one-cluster tracks in SA (only for cosmics!)
   Bool_t fSAUseAllClusters; // do not skip clusters used by MI (same track twice in AliESDEvent!)
+  Int_t fMaxSPDcontrForSAToUseAllClusters; // maximum nContr of SPD vertex for which trackerSA will reuse all ITS clusters
 
   Bool_t fFindV0s;  // flag to enable V0 finder (MI)
   Bool_t fStoreLikeSignV0s; // flag to store like-sign V0s (MI)
@@ -630,6 +657,9 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Float_t fTrackleterPhiOverlapCut;                // Fiducial window in phi for overlap cut
   Float_t fTrackleterZetaOverlapCut;               // Fiducial window in eta for overlap cut
   Float_t fTrackleterPhiRotationAngle;             // Angle to rotate cluster in the SPD inner layer for combinatorial reco only
+  Float_t fTrackleterNStdDev;      // cut on the number of standard deviations
+  Bool_t  fScaleDTBySin2T;         // scale Dtheta by 1/sin^2(theta)
+
   Bool_t fUseCosmicRunShiftsSSD; // SSD time shifts for cosmic run 2007/2008 (use for data taken up to 18 sept 2008)
 
 
@@ -684,13 +714,20 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Float_t fMultCutK0SFromDecay;           // min path*P for K0s
   Float_t fMultCutMaxDCA;                 // max DCA for V0 at ESD vertex
   //
+  // Lorentz angle
+  Bool_t fCorrectLorentzAngleSPD;         // flag to enable correction
+  Float_t fTanLorentzAngleHolesSPD;       // angle for holes in SPD
+  Bool_t fCorrectLorentzAngleSSD;         // flag to enable correction
+  Float_t fTanLorentzAngleHolesSSD;       // tan(angle) for holes in SSD @ B = 0.5 T
+  Float_t fTanLorentzAngleElectronsSSD;   // tan(angle) for electrons in SSD @ B = 0.5 T
+
  private:
   AliESDV0Params * fESDV0Params;  // declare the AliESDV0Params to be able to used in AliITSV0Finder
 
   AliITSRecoParam(const AliITSRecoParam & param);
   AliITSRecoParam & operator=(const AliITSRecoParam &param);
 
-  ClassDef(AliITSRecoParam,31) // ITS reco parameters
+  ClassDef(AliITSRecoParam,36) // ITS reco parameters
 };
 
 #endif
