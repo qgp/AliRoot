@@ -112,6 +112,8 @@ class AliVZEROCalibData: public TNamed {
 
   Float_t  GetLightYields(Int_t channel);
 
+  Float_t  GetCalibDiscriThr(Int_t channel, Bool_t scaled);
+
  protected:
   void     InitLightYields();
   void     InitPMGains();
