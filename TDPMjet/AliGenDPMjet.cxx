@@ -435,17 +435,18 @@ Bool_t AliGenDPMjet::Stable(TParticle*  particle)
 //______________________________________________________________________________
 void AliGenDPMjet::MakeHeader()
 {
+  printf("MakeHeader %13.3f \n", fDPMjet->GetBImpac());
 // Builds the event header, to be called after each event
     AliGenEventHeader* header = new AliGenDPMjetEventHeader("DPMJET");
     ((AliGenDPMjetEventHeader*) header)->SetNProduced(fDPMjet->GetNumStablePc());
     ((AliGenDPMjetEventHeader*) header)->SetImpactParameter(fDPMjet->GetBImpac());
     ((AliGenDPMjetEventHeader*) header)->SetTotalEnergy(fDPMjet->GetTotEnergy());
-    ((AliGenDPMjetEventHeader*) header)->SetParticipants(fDPMjet->GetfIp(), 
-    							 fDPMjet->GetfIt());
- ((AliGenDPMjetEventHeader*) header)->SetProcessType(fDPMjet->GetProcessCode());
-// Bookkeeping for kinematic bias
+    ((AliGenDPMjetEventHeader*) header)->SetParticipants(fDPMjet->GetProjParticipants(), 
+    							 fDPMjet->GetTargParticipants());
+     ((AliGenDPMjetEventHeader*) header)->SetProcessType(fDPMjet->GetProcessCode());
+    // Bookkeeping for kinematic bias
     ((AliGenDPMjetEventHeader*) header)->SetTrials(fTrials);
-// Event Vertex
+    // Event Vertex
     header->SetPrimaryVertex(fVertex);
     gAlice->SetGenEventHeader(header);    
     AddHeader(header);
