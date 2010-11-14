@@ -1233,7 +1233,7 @@ Bool_t AliEMCALGeoUtils::GetFastORIndexFromL0Index(const Int_t iTRU, const Int_t
 	switch (size)
 	{
 		case 1: // Cosmic trigger
-			if (!GetAbsFastORIndexFromTRU(iTRU, id, idx[0])) return kFALSE;
+			if (!GetAbsFastORIndexFromTRU(iTRU, id, idx[1])) return kFALSE;
 			break;
 		case 4: // 4 x 4
 			for (Int_t k = 0; k < 4; k++)
