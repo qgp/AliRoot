@@ -56,6 +56,7 @@ class AliESDTrdTrack;
 class AliESDMuonTrack;
 class AliESD;
 class AliESDcascade;
+class AliESDCentrality;
 class TRefArray;
 class AliESDACORDE;
 class AliESDHLTDecision;
@@ -185,13 +186,15 @@ public:
   Double_t GetZDCP2Energy() const {return fESDZDC?fESDZDC->GetZDCP2Energy():0;}
   Double_t GetZDCEMEnergy(Int_t i=0) const {return fESDZDC?fESDZDC->GetZDCEMEnergy(i):0;}
   Int_t    GetZDCParticipants() const {return fESDZDC?fESDZDC->GetZDCParticipants():0;}
+  AliESDCentrality* GetCentrality() {return fCentrality;}
+
   void     SetZDC(Float_t n1Energy, Float_t p1Energy, Float_t em1Energy, Float_t em2Energy,
                   Float_t n2Energy, Float_t p2Energy, Int_t participants, Int_t nPartA,
 	 	  Int_t nPartC, Double_t b, Double_t bA, Double_t bC, UInt_t recoflag)
   {if(fESDZDC) fESDZDC->SetZDC(n1Energy, p1Energy, em1Energy, em2Energy, n2Energy, p2Energy, 
             participants, nPartA, nPartC, b, bA, bC,  recoflag);}
 
-
+  void SetCentrality(AliESDCentrality* cent) {fCentrality = cent;}
   // FMD
   void SetFMDData(AliESDFMD * obj);
   AliESDFMD *GetFMDData() const { return fESDFMD; }
@@ -250,7 +253,8 @@ public:
 
   void SetTOFHeader(const AliTOFHeader * tofEventTime);
   const AliTOFHeader *GetTOFHeader() const {return fTOFHeader;}
-
+  Float_t GetEventTimeSpread() const {if (fTOFHeader) return fTOFHeader->GetT0spread(); else return 0.;}
+  Float_t GetTOFTimeResolution() const {if (fTOFHeader) return fTOFHeader->GetTOFResolution(); else return 0.;}
 
 
   void SetMultiplicity(const AliMultiplicity *mul);
@@ -466,8 +470,8 @@ protected:
 			     //  combinatorial algorithm.
                              //  It contains also TOF time resolution
                              //  and T0spread as written in OCDB
-
-  ClassDef(AliESDEvent,11)  //ESDEvent class 
+  AliESDCentrality *fCentrality; // Centrality for AA collision
+  ClassDef(AliESDEvent,12)  //ESDEvent class 
 };
 #endif 
 
