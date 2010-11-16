@@ -1,3 +1,4 @@
+// $Id$
 //**************************************************************************
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
@@ -528,7 +529,7 @@ int AliHLTV0HistoComponent::Reconfigure(const char* cdbEntry, const char* chainI
 {
   // see header file for class documentation
   int iResult=0;
-  const char* path="HLT/ConfigTPC/KryptonHistoComponent";
+  const char* path="HLT/ConfigHLT/V0Histo";
   const char* defaultNotify="";
   if (cdbEntry) {
     path=cdbEntry;

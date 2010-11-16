@@ -14,6 +14,8 @@
 ///         on the AliHLTTTreeProcessor
 
 #include "AliHLTTTreeProcessor.h"
+#include "TObjString.h"
+#include "TObjArray.h"
 #include <string>
 #include <map>
 #include <vector>
@@ -64,7 +66,12 @@ class AliHLTGlobalHistoComponent : public AliHLTTTreeProcessor
   virtual const char* GetComponentID() {return "GlobalHisto";};
   /// inherited from AliHLTComponent: input data types
   virtual void GetInputDataTypes(AliHLTComponentDataTypeList&);
-
+ 
+  
+  /// interface function, see AliHLTComponent for description
+  AliHLTComponentDataType GetOutputDataType();
+  
+  
   /// inherited from AliHLTComponent: spawn function, create an instance.
   virtual AliHLTComponent* Spawn() {return new AliHLTGlobalHistoComponent;}
 
@@ -72,14 +79,39 @@ class AliHLTGlobalHistoComponent : public AliHLTTTreeProcessor
 
   /// @class AliHLTGlobalHistoVariables
   /// container for the tree branch variables
+  template <typename T>
   class AliHLTGlobalHistoVariables {
   public:
-    AliHLTGlobalHistoVariables();
-    AliHLTGlobalHistoVariables(int capacity, const char* names);
-    ~AliHLTGlobalHistoVariables();
+    AliHLTGlobalHistoVariables()  : fCapacity(0), fArrays(), fCount(), fKeys() {}
+    AliHLTGlobalHistoVariables(const AliHLTGlobalHistoVariables& src)  : fCapacity(0), fArrays(), fCount(), fKeys() {}
+    ~AliHLTGlobalHistoVariables() {Reset();}
 
     /// init the arrays
-    int Init(int capacity, const char* names);
+    int Init(int capacity, const char* names)
+    {
+      /// init the arrays
+      int iResult=0;
+      TString initializer(names);
+      TObjArray* pTokens=initializer.Tokenize(" ");
+      fCapacity=capacity;
+      if (pTokens) {
+	int entries=pTokens->GetEntriesFast();
+	fArrays.resize(entries);
+	fCount.resize(entries);
+	for (int i=0; i<entries; i++) {
+	  fKeys[pTokens->At(i)->GetName()]=i;
+	  fArrays[i]=new T[fCapacity];
+	}
+	delete pTokens;
+      }
+      if (fArrays.size()!=fCount.size() ||
+	  fArrays.size()!=fKeys.size()) {
+	return -EFAULT;
+      }
+
+      ResetCount();
+      return iResult;
+    }
 
     /// capacity for every key
     int Capacity() const {return fCapacity;}
@@ -87,27 +119,79 @@ class AliHLTGlobalHistoComponent : public AliHLTTTreeProcessor
     int Variables() const {return fArrays.size();}
 
     /// fill variable at index
-    int Fill(unsigned index, float value);
+    int Fill(unsigned index, T value)
+    {
+      if (index>=fArrays.size() || index>=fCount.size()) return -ENOENT;
+      if (fCount[index]>=fCapacity) return -ENOSPC;
+
+      (fArrays[index])[fCount[index]++]=value;
+      return fCount[index];
+    }
+
     /// fill variable at key
-    int Fill(const char* key, float value);
+    int Fill(const char* key, T value)
+    {
+      int index=FindKey(key);
+      if (index<0) return -ENOENT;
+      return Fill(index, value);
+    }
+
     /// get array at key
-    float* GetArray(const char* key);
+    T* GetArray(const char* key)
+    {
+      int index=FindKey(key); if (index<0) return NULL;
+      if ((unsigned)index>=fArrays.size()) return NULL;
+      return fArrays[index];
+    }
+
     /// get the key of an array
-    const char* GetKey(int index) const;
+    const char* GetKey(int index) const
+    {
+      for (map<string, int>::const_iterator element=fKeys.begin(); element!=fKeys.end(); element++) {
+	if (element->second==index) return element->first.c_str();
+      }
+      return NULL;
+    }
 
     /// reset and cleanup arrays
-    int Reset();
+    int Reset()
+    {
+      for (unsigned i=0; i<fArrays.size(); i++) {delete fArrays[i];}
+      fArrays.clear(); fCount.clear(); fKeys.clear();
+      return 0;
+    }
 
     /// reset the fill counts
-    int ResetCount();
+    int ResetCount()
+    {
+      for (vector<int>::iterator element=fCount.begin(); element!=fCount.end(); element++) *element=0;
+      return 0;
+    }
+
+    char GetType() const {AliHLTGlobalHistoVariablesType type(T&); return type.GetType();}
 
   private:
-    int FindKey(const char* key) const;
+    int FindKey(const char* key) const
+    {
+      map<string, int>::const_iterator element=fKeys.find(key);
+      if (element==fKeys.end()) return -ENOENT;
+      return element->second;
+    }
+
+    /// internal helper class to get the type of the template
+    class AliHLTGlobalHistoVariablesType {
+    public:
+      AliHLTGlobalHistoVariablesType(float&) : fType('f') {}
+      AliHLTGlobalHistoVariablesType(int&)   : fType('i') {}
+      char GetType() const {return fType;}
+    private:
+      char fType; //!
+    };
 
     /// capacity of all arrays
     int fCapacity; //!
     /// pointers of arrays
-    vector<float*> fArrays; //!
+    vector<T*> fArrays; //!
     /// fill count for arrays
     vector<int> fCount; //!
     /// map of keys
@@ -122,8 +206,6 @@ class AliHLTGlobalHistoComponent : public AliHLTTTreeProcessor
                        AliHLTComponentTriggerData& trigData );
   /// dtOrigin for PushBack.
   AliHLTComponentDataType GetOriginDataType() const;
-  /// spec for PushBack
-  AliHLTUInt32_t GetDataSpec() const {return 0;}
 
   int ResetVariables();
   
@@ -132,21 +214,48 @@ private:
   AliHLTGlobalHistoComponent(const AliHLTGlobalHistoComponent&);
   /// assignment operator prohibited
   AliHLTGlobalHistoComponent& operator=(const AliHLTGlobalHistoComponent&);
-
+    
   /// the event number, tree filling variable
   int fEvent; //!
   /// track count, tree filling variable
   int fNofTracks; //!
-  /// x coordinate of vertex
+  /// V0 count, tree filling variable
+  int fNofV0s; //!
+  /// UPC pair count (=1), tree filling variable
+  int fNofUPCpairs; //!
+  /// contributors count, tree filling variable
+  int fNofContributors; //!
+ /// x coordinate of vertex
   float fVertexX; //!
   /// y coordinate of vertex
   float fVertexY; //!
   /// z coordinate of vertex
   float fVertexZ; //!
+  /// vertex status, found or not
+  bool fVertexStatus; //!
  
   /// filling arrays for track parameters
-  AliHLTGlobalHistoComponent::AliHLTGlobalHistoVariables fTrackVariables; //!
+  AliHLTGlobalHistoVariables<float> fTrackVariables; //!
+  AliHLTGlobalHistoVariables<int> fTrackVariablesInt; //!
+ 
+  /// filling arrays for V0 parameters
+  AliHLTGlobalHistoVariables<float> fV0Variables; //!
+ 
+  /// filling arrays for UPC parameters
+  AliHLTGlobalHistoVariables<float> fUPCVariables; //!
   
+ 
+  Double_t fGammaCuts[8];  // cuts for gammas
+  Double_t fKsCuts[8];     // cuts for Ks
+  Double_t fLambdaCuts[8]; // cuts for Lambdas
+  Double_t fAPCuts[8];     // cuts for Armenteros-Podolanski plot
+
+  Int_t fNEvents;  // n of processed events
+  Int_t fNGammas;  // n found total
+  Int_t fNKShorts; // n found total
+  Int_t fNLambdas; // n found total
+  Int_t fNPi0s;    // n found total
+
   ClassDef(AliHLTGlobalHistoComponent, 0) // HLT Global Histogram component
 };
 #endif
