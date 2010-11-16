@@ -30,6 +30,7 @@ using namespace std;
 #include "AliHLTZDCESDRecoComponent.h"
 #include "AliHLTDefinitions.h"
 #include "AliRawReaderMemory.h"
+#include "AliGeomManager.h"
 #include "AliGRPObject.h"
 #include "AliZDCReconstructor.h"
 #include "AliZDCRecoParam.h"
@@ -46,8 +47,7 @@ ClassImp(AliHLTZDCESDRecoComponent)
     
 //_____________________________________________________________________
 AliHLTZDCESDRecoComponent::AliHLTZDCESDRecoComponent()
-  : AliHLTProcessor(),
-    fClusterTree(NULL),
+  : AliHLTProcessor(),    
     fRawReader(NULL),
     fReconstructor(NULL)
 {
@@ -100,6 +100,11 @@ int AliHLTZDCESDRecoComponent::DoInit( int argc, const char** argv )
   // see header file for class documentation
   int iResult=0;
 
+  // -- Load GeomManager
+  if(AliGeomManager::GetGeometry()==NULL){
+    AliGeomManager::LoadGeometry();
+  }
+  
   // read configuration object : HLT/ConfigZDC/
   TString cdbPath="HLT/ConfigZDC/";
   cdbPath+=GetComponentID();
@@ -116,8 +121,14 @@ int AliHLTZDCESDRecoComponent::DoInit( int argc, const char** argv )
   AliGRPObject* pGRP = pOCDBEntry?dynamic_cast<AliGRPObject*>(pOCDBEntry):NULL;
   Float_t  beamEnergy=0.;
   if(pGRP) beamEnergy = pGRP->GetBeamEnergy(); 
+
   TString beamType="";
   if(pGRP) beamType = pGRP->GetBeamType();
+
+  //!!! set the beam type and the energy explicitly
+
+  beamType="A-A"; 
+  beamEnergy = 2760.;
 
   // implement the component initialization
   do {
@@ -135,20 +146,11 @@ int AliHLTZDCESDRecoComponent::DoInit( int argc, const char** argv )
       break;
     }
 
-    fClusterTree = new TTree("TreeR", "Tree for reco points in HLT");;
-    if (!fClusterTree) {
-      iResult=-ENOMEM;
-      break;
-    }
-
     // implement further initialization
   } while (0);
 
   if (iResult<0) {
     // implement cleanup
-
-    if (fClusterTree) delete fClusterTree;
-    fClusterTree = NULL;
 
     if (fRawReader) delete fRawReader;
     fRawReader = NULL;
@@ -158,10 +160,12 @@ int AliHLTZDCESDRecoComponent::DoInit( int argc, const char** argv )
   }
 
   if (iResult>=0) {
-    if((beamType.CompareTo("p-p"))==0) fReconstructor->SetRecoParam(AliZDCRecoParampp::GetLowFluxParam());
-    else if((beamType.CompareTo("A-A"))==0) fReconstructor->SetRecoParam(AliZDCRecoParamPbPb::GetHighFluxParam(2*beamEnergy));
+
+   if((beamType.CompareTo("p-p"))==0) fReconstructor->SetRecoParam(AliZDCRecoParampp::GetLowFluxParam());
+    else if((beamType.CompareTo("A-A"))==0) fReconstructor->SetRecoParam(AliZDCRecoParamPbPb::GetHighFluxParam(beamEnergy));
     else HLTWarning(" Beam type not known by ZDC!");
   
+
     fReconstructor->Init(beamType, beamEnergy);
   }
 
@@ -192,7 +196,6 @@ int AliHLTZDCESDRecoComponent::DoDeinit()
 {
     if(fRawReader) delete fRawReader;
     if(fReconstructor) delete fReconstructor;
-    if(fClusterTree) delete fClusterTree;
     return 0;
 }
 
@@ -210,8 +213,8 @@ int AliHLTZDCESDRecoComponent::DoEvent(const AliHLTComponentEventData& /*evtData
   // get ZDC raw input data block and set up the rawreader
   const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(kAliHLTDataTypeDDLRaw|kAliHLTDataOriginZDC);
   if (!pBlock) {
-    HLTError("No ZDC input block !!!");
-    return -1;
+    HLTInfo("No ZDC input block !!!");
+    return 0;
   }
 
   // add input block to raw reader
@@ -221,14 +224,19 @@ int AliHLTZDCESDRecoComponent::DoEvent(const AliHLTComponentEventData& /*evtData
     iResult = -1;
   }
   
+  TTree *clusterTree = new TTree();
+  if (!clusterTree) {
+    iResult=-ENOMEM;
+  }
+
   if (iResult >= 0) {
 
     // set ZDC EquipmentID
     fRawReader->SetEquipmentID(3840);
 
-    fReconstructor->Reconstruct(fRawReader, fClusterTree);
+    fReconstructor->Reconstruct(fRawReader, clusterTree);
 
-    fReconstructor->FillZDCintoESD(fClusterTree, (AliESDEvent *) NULL);
+    fReconstructor->FillZDCintoESD(clusterTree, (AliESDEvent *) NULL);
 
     // send AliESDZDC
     PushBack(static_cast<TObject*>(fReconstructor->GetZDCESDData()), 
@@ -236,8 +244,9 @@ int AliHLTZDCESDRecoComponent::DoEvent(const AliHLTComponentEventData& /*evtData
    
   }
 
+  delete clusterTree;
+
   // clear the rawreader
-  fClusterTree->Reset();
   fRawReader->ClearBuffers();    
   
   return iResult;
