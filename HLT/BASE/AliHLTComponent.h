@@ -899,6 +899,9 @@ class AliHLTComponent : public AliHLTLogging {
    */
   static TUUID GenerateGUID();
 
+  /// get the compression level for TObjects
+  int GetCompressionLevel() const {return fCompressionLevel;}
+
  protected:
 
   /**
@@ -1301,7 +1304,7 @@ class AliHLTComponent : public AliHLTLogging {
    * @param headerSize  size of Header
    * @return neg. error code if failed 
    */
-  int PushBack(TObject* pObject, const AliHLTComponentDataType& dt, 
+  int PushBack(const TObject* pObject, const AliHLTComponentDataType& dt, 
 	       AliHLTUInt32_t spec=kAliHLTVoidDataSpec, 
 	       void* pHeader=NULL, int headerSize=0);
 
@@ -1320,7 +1323,7 @@ class AliHLTComponent : public AliHLTLogging {
    * @param headerSize  size of Header
    * @return neg. error code if failed 
    */
-  int PushBack(TObject* pObject, const char* dtID, const char* dtOrigin,
+  int PushBack(const TObject* pObject, const char* dtID, const char* dtOrigin,
 	       AliHLTUInt32_t spec=kAliHLTVoidDataSpec,
 	       void* pHeader=NULL, int headerSize=0);
  
@@ -1358,7 +1361,7 @@ class AliHLTComponent : public AliHLTLogging {
    * @param pObject
    * @return buffer size in byte
    */
-  int EstimateObjectSize(TObject* pObject) const;
+  int EstimateObjectSize(const TObject* pObject) const;
 
   /**
    * Create a memory file in the output stream.
