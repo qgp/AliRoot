@@ -60,6 +60,8 @@ const char* kPressureSensorNames[kNumPressureSensors] = {
                    "CavernAtmosPressure",
                    "CavernAtmosPressure2",
                    "SurfaceAtmosPressure" };
+const Int_t  kMinCESectors = 32;      // minimum number of sectors (per side)
+                                      // to accept CE calibration
       
 
 //
@@ -982,14 +984,7 @@ UInt_t AliTPCPreprocessor::ExtractCE(Int_t sourceFXS)
       if (fileNameEntry!=NULL) {
         TString fileName = GetFile(sourceFXS, "CE",
                                    fileNameEntry->GetString().Data());
-        TFile *f = TFile::Open(fileName);
-        if (!f) {
-          Log ("Error opening central electrode file.");
-          result =2;
-          break;
-        }
-        AliTPCCalibCE *calCE;
-        f->GetObject("tpcCalibCE",calCE);
+        AliTPCCalibCE *calCE=AliTPCCalibCE::ReadFromFile(fileName.Data());        
         
         if (!calCE) {
           Log ("No valid calibCE object.");
@@ -1023,11 +1018,26 @@ UInt_t AliTPCPreprocessor::ExtractCE(Int_t sourceFXS)
         } else {
           result=10;
         }
+
         delete calCE;
-        f->Close();
       }
       ++index;
     }  // while(list)
+//
+//   Check number of calibrated sectors per side
+// 
+    Int_t aside=0, cside=0;
+    for (Int_t ind=0; ind<nSectors/4; ind++ ) {
+        TGraph *grT=(TGraph*)rocTtime->At(ind);
+	if (grT) aside++;
+	grT=(TGraph*)rocTtime->At(ind+nSectors/2);
+	if (grT) aside++;
+	grT=(TGraph*)rocTtime->At(ind+nSectors/4);
+	if (grT) cside++;
+	grT=(TGraph*)rocTtime->At(ind+3*nSectors/4);
+	if (grT) cside++;
+     }
+     if ( (aside<kMinCESectors) && (cside<kMinCESectors) ) result=10;
 
     //
     //=== New CE part
