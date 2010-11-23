@@ -47,6 +47,10 @@
 #include "AliTOFTrigger.h"
 #include "AliTOFTriggerMask.h"
 
+#include "AliCDBManager.h"
+#include "AliCDBEntry.h"
+
+
 extern AliRun* gAlice;
 
 //-------------------------------------------------------------------------
@@ -142,6 +146,8 @@ AliTOFTrigger::AliTOFTrigger(Int_t HighMultTh, Int_t ppMBTh, Int_t MultiMuonTh, 
   CreateInputs();
 }
 
+
+#if 0 /*** COPY CONSTRUCTOR SUPPRESSED **/
 //____________________________________________________________________________
 
 AliTOFTrigger::AliTOFTrigger(const AliTOFTrigger & tr):
@@ -193,6 +199,7 @@ AliTOFTrigger::AliTOFTrigger(const AliTOFTrigger & tr):
   CreateInputs();
 
 }
+#endif /*** COPY CONTRUCTOR SUPPRESSED ***/
 
 //----------------------------------------------------------------------
 
@@ -483,10 +490,8 @@ void AliTOFTrigger::CreateLTMMatrixFromDigits() {
     GetLTMIndex(detind,indexLTM);
 
     fLTMmatrix[indexLTM[0]][indexLTM[1]] = kTRUE;
-    fLTMarray[indexLTM[0]%36] = kTRUE; //dimensione MAX array 36 = kNCTTM 
+//    fLTMarray[indexLTM[0]%36] = kTRUE; //dimensione MAX array 36 = kNCTTM 
     }
-  fNCrateOn = 0; 
-  for(Int_t j=0; j < kNCTTM; j++) {if(fLTMarray[j]) fNCrateOn++;}
 
 
   tofLoader->UnloadDigits();
@@ -884,18 +889,25 @@ void AliTOFTrigger::CreateCTTMMatrix() {
   //
   // Create CTTM bit map
   //
+    Int_t fromTriggertoDCS[72] = {0,1,4,5,8,9,12,13,16,17,20,21,24,25,28,29,32,33,36,37,40,41,44,45,48,49,52,53,56,57,60,61,64,65,68,69,3,
+				  2,7,6,11,10,15,14,19,18,23,22,27,26,31,30,35,34,39,38,43,42,47,46,51,50,55,54,59,58,63,62,67,66,71,70};
+
+
     fNMaxipadOnAll=0;
     fNMaxipadOn=0;
 
     for(Int_t i = 0; i<kNLTM;i++){
 	UInt_t currentMask = fPowerMask[kNCTTMchannels]-1;
-	if(fTOFTrigMask) currentMask=fTOFTrigMask->GetTriggerMask(i);
+	if(fTOFTrigMask) currentMask=fTOFTrigMask->GetTriggerMask(fromTriggertoDCS[i]);
 	if(i<kNCTTM){
 	    for(Int_t j = 0; j<kNCTTMchannels;j++){
 		fCTTMmatrixFront[i][j]=fLTMmatrix[i][2*j]||fLTMmatrix[i][2*j+1];
 		if(fCTTMmatrixFront[i][j]) fNMaxipadOnAll++;
 		if(!(currentMask & fPowerMask[j])) fCTTMmatrixFront[i][j]=0;
-		if(fCTTMmatrixFront[i][j]) fNMaxipadOn++;
+		if(fCTTMmatrixFront[i][j]){
+		    fNMaxipadOn++;
+		    fLTMarray[i] = kTRUE;
+		}
 	    }
 	}
 	else{
@@ -903,10 +915,17 @@ void AliTOFTrigger::CreateCTTMMatrix() {
 		fCTTMmatrixBack[i-kNCTTM][j]=fLTMmatrix[i][2*j]||fLTMmatrix[i][2*j+1];;
 		if(fCTTMmatrixBack[i-kNCTTM][j]) fNMaxipadOnAll++;
 		if(!(currentMask & fPowerMask[j])) fCTTMmatrixBack[i-kNCTTM][j]=0;
-		if(fCTTMmatrixBack[i-kNCTTM][j]) fNMaxipadOn++;
+		if(fCTTMmatrixBack[i-kNCTTM][j]){
+		    fNMaxipadOn++;
+		    fLTMarray[i-kNCTTM] = kTRUE;
+		}
 	    }
 	}
     }
+  
+    fNCrateOn = 0; 
+    for(Int_t j=0; j < kNCTTM; j++) {if(fLTMarray[j]) fNCrateOn++;}
+
 }     
 //-----------------------------------------------------------------------------
 
@@ -924,12 +943,27 @@ void AliTOFTrigger::LoadActiveMask(){
 //
 // Load OCDB current mask
 //
-    UInt_t maskArray[kNLTM];
-    if(fTOFTrigMask == NULL) fTOFTrigMask = new AliTOFTriggerMask();
-    for (Int_t k = 0; k < kNLTM ; k++) maskArray[k] = fPowerMask[kNCTTMchannels]-1;
-    //for (Int_t k = 0; k < kNLTM ; k+=2) maskArray[k] = 0;
+
+    AliCDBManager *cdb = AliCDBManager::Instance();
+    if(cdb->GetRun() < 0 || !(cdb->GetDefaultStorage())){
+	if(!(cdb->GetDefaultStorage())){
+	    cdb->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
+	    printf("AliTOFTrigger (WARNING): probably CDB first instance - Default Sorage set to \"local://$ALICE_ROOT/OCDB\"\n");
+	}
+	if(cdb->GetRun() < 0){
+	    cdb->SetRun(0);
+         printf("AliTOFTrigger (WARNING): probably CDB first instance - number of run set to 0\n");
+	}
+    }
+    AliCDBEntry *cdbe = cdb->Get("TRIGGER/TOF/TriggerMask");
+    fTOFTrigMask= (AliTOFTriggerMask *)cdbe->GetObject();
     
-    fTOFTrigMask->SetTriggerMaskArray(maskArray);
+//     UInt_t maskArray[kNLTM];
+//     if(fTOFTrigMask == NULL) fTOFTrigMask = new AliTOFTriggerMask();
+//     for (Int_t k = 0; k < kNLTM ; k++) maskArray[k] = fPowerMask[kNCTTMchannels]-1;
+//     //for (Int_t k = 0; k < kNLTM ; k+=2) maskArray[k] = 0;
+    
+//     fTOFTrigMask->SetTriggerMaskArray(maskArray);
 }
 
 
@@ -937,8 +971,6 @@ void AliTOFTrigger::LoadActiveMask(){
 AliTOFTrigger::~AliTOFTrigger()
 {
   // dtor
-
-  if (fTOFTrigMask) delete fTOFTrigMask;
 
 }
 
@@ -949,3 +981,4 @@ AliTOFTrigger& AliTOFTrigger::operator=(const AliTOFTrigger &/*source*/)
   return *this;
 
 }
+
