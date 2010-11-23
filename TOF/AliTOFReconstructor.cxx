@@ -243,3 +243,15 @@ AliTracker* AliTOFReconstructor::CreateTracker() const
   return tracker;
 
 }
+
+//_____________________________________________________________________________
+void 
+AliTOFReconstructor::FillESD(TTree *, TTree *, AliESDEvent *esdEvent) const
+{
+  //
+  // correct Texp 
+  // 
+  //
+
+  fTOFcalib->CalibrateTExp(esdEvent);
+}
