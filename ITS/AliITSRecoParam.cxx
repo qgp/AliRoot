@@ -155,6 +155,7 @@ fMaxLambdaSA(0.008),
 fMinClusterChargeSA(0.),
 fSAOnePointTracks(kFALSE),
 fSAUseAllClusters(kFALSE),
+fMaxSPDcontrForSAToUseAllClusters(1e6),
 fFindV0s(kTRUE),
 fStoreLikeSignV0s(kFALSE),
 fUseUnfoldingInClusterFinderSPD(kFALSE),
@@ -172,6 +173,8 @@ fTrackleterRemoveClustersFromOverlaps(kFALSE),
 fTrackleterPhiOverlapCut(0.005),
 fTrackleterZetaOverlapCut(0.05),
 fTrackleterPhiRotationAngle(0.0),
+fTrackleterNStdDev(1.),
+fScaleDTBySin2T(kFALSE),
 fUseCosmicRunShiftsSSD(kFALSE),
 fSPDRemoveNoisyFlag(kTRUE),
 fSPDRemoveDeadFlag(kTRUE),
@@ -433,6 +436,11 @@ AliITSRecoParam *AliITSRecoParam::GetHighFluxParam()
   param->fMultCutK0SFromDecay = -10.;
   param->fMultCutMaxDCA = 1.;  
   //
+  // trackleter
+  param->fTrackleterPhiWindow = 0.06;
+  param->fTrackleterNStdDev = 25.;
+  param->fScaleDTBySin2T = kTRUE;
+
   return param;
 }
 //_____________________________________________________________________________
