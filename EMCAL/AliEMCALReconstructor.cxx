@@ -119,9 +119,7 @@ AliEMCALReconstructor::AliEMCALReconstructor()
   
   if(!fPedestalData)
     AliFatal("Dead map not found in CDB!");
-  
-  InitClusterizer();
-	
+  	
   if(!fGeom) AliFatal(Form("Could not get geometry!"));
 
   AliEMCALTriggerDCSConfigDB* dcsConfigDB = AliEMCALTriggerDCSConfigDB::Instance();
@@ -174,32 +172,50 @@ AliEMCALReconstructor::~AliEMCALReconstructor()
 //    fList = AliEMCALHistoUtilities::GetTriggersListOfHists(kTRUE);
 // }
 
-//____________________________________________________________________________
-void AliEMCALReconstructor::InitClusterizer() 
+//____________________________________________________________________________                                  
+void AliEMCALReconstructor::InitClusterizer() const
 {
-  //Init the clusterizer with geometry and calibration pointers, avoid doing it twice.
-  
-  AliEMCALRecParam *recParam = NULL;
-  AliCDBEntry *entry = (AliCDBEntry*) 
-  AliCDBManager::Instance()->Get("EMCAL/Calib/RecoParam");
-  //Get The reco param for the default event specie
-  if (entry) 
-    recParam = (AliEMCALRecParam*)((TObjArray *) entry->GetObject())->At(0);
-  
-  if(!recParam){  
-    AliFatal("RecoParam not found in CDB!");
+  //Init the clusterizer with geometry and calibration pointers, avoid doing it twice.                          
+  Int_t clusterizerType = -1;
+  Int_t eventType = -1;
+  if(GetRecParam()) {
+    clusterizerType = GetRecParam()->GetClusterizerFlag();
+    eventType       = GetRecParam()->GetEventSpecie();
   }
   else{
-    if (recParam->GetClusterizerFlag() == AliEMCALRecParam::kClusterizerv1)
-    {
-      fgClusterizer = new AliEMCALClusterizerv1(fGeom, fCalibData,fPedestalData); 
-    }
-    else
-    {
-      fgClusterizer = new AliEMCALClusterizerNxN(fGeom, fCalibData,fPedestalData); 
+    AliCDBEntry *entry = (AliCDBEntry*)
+    AliCDBManager::Instance()->Get("EMCAL/Calib/RecoParam");
+    //Get The reco param for the default event specie                                                           
+    if (entry) {
+      AliEMCALRecParam *recParam  = (AliEMCALRecParam*)((TObjArray *) entry->GetObject())->At(0);
+      if(recParam) clusterizerType = recParam->GetClusterizerFlag(); 
     }
   }
   
+  //Check if clusterizer previously set corresponds to what is needed for this event type                       
+  if(fgClusterizer){
+    if(eventType!=AliRecoParam::kCalib){
+      //printf("ReCreate clusterizer? Clusterizer set <%d>, Clusterizer in use <%s>\n",
+        //     clusterizerType, fgClusterizer->Version());
+      
+      if     (clusterizerType == AliEMCALRecParam::kClusterizerv1 && !strcmp(fgClusterizer->Version(),"clu-v1")) return;
+      
+      else if(clusterizerType == AliEMCALRecParam::kClusterizerNxN && !strcmp(fgClusterizer->Version(),"clu-NxN")) return;
+      
+      //Need to create new clusterizer, the one set previously is not the correct one     
+      delete fgClusterizer;
+    }
+    else return;
+  }
+
+  if (clusterizerType  == AliEMCALRecParam::kClusterizerv1)
+  {
+    fgClusterizer = new AliEMCALClusterizerv1(fGeom, fCalibData,fPedestalData);
+  }
+  else
+  {
+    fgClusterizer = new AliEMCALClusterizerNxN(fGeom, fCalibData,fPedestalData);
+  }
 }
 
 //____________________________________________________________________________
@@ -215,12 +231,14 @@ void AliEMCALReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) 
 
   ReadDigitsArrayFromTree(digitsTree);
 
+  InitClusterizer();
+  
   fgClusterizer->InitParameters();
   fgClusterizer->SetOutput(clustersTree);
- 	
+  
   //Skip clusterization of LED events
   if (GetRecParam()->GetEventSpecie()!=AliRecoParam::kCalib){
-
+ 	
 		if(fgDigitsArr && fgDigitsArr->GetEntries()) {
 
 		  fgClusterizer->SetInput(digitsTree);
@@ -299,92 +317,88 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   // printf(" ## AliEMCALReconstructor::FillESD() is started ### \n ");
   //return;
 
-  //FIXME UNCOMMENT WHEN ESDTRIGGER AVAILABLE 
-//   // Trigger
-//   Int_t v0M[2] = {0, 0};
-	
-//   AliESDVZERO* esdV0 = esd->GetVZEROData();
+  //########################################
+  // Trigger
+  //########################################
 
-//   if (esdV0) 
-//   {
-// 	  for (Int_t i = 0; i < 32; i++)
-// 	  {
-// 		  v0M[0] += esdV0->GetAdcV0C(i);
-// 		  v0M[1] += esdV0->GetAdcV0A(i);
-// 	  }
-//   }
-//   else
-//   {
-// 	  AliWarning("Cannot retrieve V0 ESD! Run w/ null V0 charges");
-//   }
+   Int_t v0M[2] = {0, 0};
+	
+   AliESDVZERO* esdV0 = esd->GetVZEROData();
 
-//   TClonesArray *trgDigits = new TClonesArray("AliEMCALTriggerRawDigit",1000);
+   if (esdV0) 
+   {
+ 	  for (Int_t i = 0; i < 32; i++)
+ 	  {
+ 		  v0M[0] += (Int_t)esdV0->GetAdcV0C(i);
+ 		  v0M[1] += (Int_t)esdV0->GetAdcV0A(i);
+ 	  }
+   }
+   else
+   {
+ 	  AliWarning("Cannot retrieve V0 ESD! Run w/ null V0 charges");
+   }
+
+   TClonesArray *trgDigits = new TClonesArray("AliEMCALTriggerRawDigit",1000);
 	
-//   TBranch *branchtrg = digitsTree->GetBranch("EMTRG");
+   TBranch *branchtrg = digitsTree->GetBranch("EMTRG");
 	
-//   if (!branchtrg) 
-//   { 
-// 	  AliError("Can't get the branch with the EMCAL trigger digits!");
-// 	  return;
-//   }
+   if (!branchtrg) 
+   { 
+ 	  AliError("Can't get the branch with the EMCAL trigger digits!");
+ 	  return;
+   }
 	
-//   branchtrg->SetAddress(&trgDigits);
-//   branchtrg->GetEntry(0);
+   branchtrg->SetAddress(&trgDigits);
+   branchtrg->GetEntry(0);
   
-//   // Note: fgTriggerProcessor reset done at the end of this method
-//   fgTriggerProcessor->Digits2Trigger(trgDigits, v0M, fTriggerData);
+   // Note: fgTriggerProcessor reset done at the end of this method
+   fgTriggerProcessor->Digits2Trigger(trgDigits, v0M, fTriggerData);
 
-//   // Fill ESD
-//   AliESDCaloTrigger* trgESD = esd->GetCaloTrigger("EMCAL");
+   // Fill ESD
+   AliESDCaloTrigger* trgESD = esd->GetCaloTrigger("EMCAL");
   
-//   if (trgESD)
-//   {
-// 	  trgESD->Allocate(trgDigits->GetEntriesFast());
+   if (trgESD)
+   {
+ 	  trgESD->Allocate(trgDigits->GetEntriesFast());
 	  
-// 	  for (Int_t i = 0; i < trgDigits->GetEntriesFast(); i++)
-// 	  {	  
-// 		  AliEMCALTriggerRawDigit* rdig = (AliEMCALTriggerRawDigit*)trgDigits->At(i);
+ 	  for (Int_t i = 0; i < trgDigits->GetEntriesFast(); i++)
+ 	  {	  
+ 		  AliEMCALTriggerRawDigit* rdig = (AliEMCALTriggerRawDigit*)trgDigits->At(i);
 		  
-// 		  Int_t px, py;
-// 		  if (fGeom->GetPositionInEMCALFromAbsFastORIndex(rdig->GetId(), px, py))
-// 		  {
-// 			  Int_t a = -1, t = -1, times[10]; 
+ 		  Int_t px, py;
+ 		  if (fGeom->GetPositionInEMCALFromAbsFastORIndex(rdig->GetId(), px, py))
+ 		  {
+ 			  Int_t a = -1, t = -1, times[10]; 
 			  
-// 			  rdig->GetMaximum(a, t);
-// 			  rdig->GetL0Times(times);
-			  
-// //			  rdig->Print("");
-			  
-// 			  trgESD->Add(px, py, a, t, times, rdig->GetNL0Times(), rdig->GetL1TimeSum());
-// 		  }
-// 	  }
+ 			  rdig->GetMaximum(a, t);
+ 			  rdig->GetL0Times(times);
+			  			  
+ 			  trgESD->Add(px, py, a, t, times, rdig->GetNL0Times(), rdig->GetL1TimeSum());
+ 		  }
+ 	  }
 	  
-// //	  cout << "End of Adding................." << endl;
-
-// 	  trgESD->SetL1Threshold(0, fTriggerData->GetL1GammaThreshold());
+ 	  trgESD->SetL1Threshold(0, fTriggerData->GetL1GammaThreshold());
 	  
-// 	  trgESD->SetL1Threshold(1, fTriggerData->GetL1JetThreshold()  );
+ 	  trgESD->SetL1Threshold(1, fTriggerData->GetL1JetThreshold()  );
 
-// 	  for (Int_t i = 0; i < kTriggerTypeEnd; i++)
-// 	  {	  
-// 		  for (Int_t j = 0; j < 2; j++)
-// 		  {
-// 			  TClonesArray* patches = fTriggerData->GetPatches((TriggerType_t)i, j);
+ 	  for (Int_t i = 0; i < kTriggerTypeEnd; i++)
+ 	  {	  
+ 		  for (Int_t j = 0; j < 2; j++)
+ 		  {
+ 			  TClonesArray* patches = fTriggerData->GetPatches((TriggerType_t)i, j);
 			  
-// 			  TIter NextPatch(patches);
-// 			  while (AliEMCALTriggerPatch* p = (AliEMCALTriggerPatch*)NextPatch())
-// 			  {
-// 				  TVector2 pos; p->Position(pos);
-// 				  trgESD->SetTriggerBits(pos.X(), pos.Y(), i, j);
-// 			  }
-// 		  }
-// 	  }
-//   }
+ 			  TIter NextPatch(patches);
+ 			  while (AliEMCALTriggerPatch* p = (AliEMCALTriggerPatch*)NextPatch())
+ 			  {
+ 				  TVector2 pos; p->Position(pos);
+ 				  trgESD->SetTriggerBits((Int_t) pos.X(), (Int_t) pos.Y(), i, j);
+ 			  }
+ 		  }
+ 	  }
+   }
 
-//   // Resetting
-//   fTriggerData->Reset();
-// //  cout << "Reset trg data" << endl;
-  //FIXME UNCOMMENT WHEN ESDTRIGGER AVAILABLE 
+   // Resetting
+   fTriggerData->Reset();
   
   //########################################
   //##############Fill CaloCells###############
