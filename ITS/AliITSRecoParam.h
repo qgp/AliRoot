@@ -161,6 +161,9 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Double_t GetMaxRoad() const { return fMaxRoad; }
   Double_t GetMaxNormChi2ForGolden(Int_t i) const { return 3.+0.5*i; }
 
+  void     SetSearchForExtraClusters(Bool_t opt=kTRUE){ fSearchForExtras=opt; }
+  Double_t GetSearchForExtraClusters() const { return fSearchForExtras; }
+
   Double_t GetXVdef() const { return fXV; }
   Double_t GetYVdef() const { return fYV; }
   Double_t GetZVdef() const { return fZV; }
@@ -433,16 +436,16 @@ class AliITSRecoParam : public AliDetectorRecoParam
   //
   // Lorentz angle
   Bool_t  GetCorrectLorentzAngleSPD() const {return fCorrectLorentzAngleSPD;}
-  Float_t GetLorentzAngleHolesSPD() const {return fLorentzAngleHolesSPD;}
+  Float_t GetTanLorentzAngleHolesSPD() const {return fTanLorentzAngleHolesSPD;}
   Bool_t  GetCorrectLorentzAngleSSD() const {return fCorrectLorentzAngleSSD;}
-  Float_t GetLorentzAngleHolesSSD() const {return fLorentzAngleHolesSSD;}
-  Float_t GetLorentzAngleElectronsSSD() const {return fLorentzAngleElectronsSSD;}
+  Float_t GetTanLorentzAngleHolesSSD() const {return fTanLorentzAngleHolesSSD;}
+  Float_t GetTanLorentzAngleElectronsSSD() const {return fTanLorentzAngleElectronsSSD;}
 
   void SetCorrectLorentzAngleSPD(Bool_t flag) {fCorrectLorentzAngleSPD=flag;}
-  void SetLorentzAngleHolesSPD(Float_t la) {fLorentzAngleHolesSPD=la;}
+  void SetTanLorentzAngleHolesSPD(Float_t la) {fTanLorentzAngleHolesSPD=la;}
   void SetCorrectLorentzAngleSSD(Bool_t flag) {fCorrectLorentzAngleSSD=flag;}
-  void SetLorentzAngleHolesSSD(Float_t la) {fLorentzAngleHolesSSD=la;}
-  void SetLorentzAngleElectronsSSD(Float_t la) {fLorentzAngleElectronsSSD=la;}
+  void SetTanLorentzAngleHolesSSD(Float_t la) {fTanLorentzAngleHolesSSD=la;}
+  void SetTanLorentzAngleElectronsSSD(Float_t la) {fTanLorentzAngleElectronsSSD=la;}
 
   //
   enum {fgkMaxClusterPerLayer=70000}; //7000*10;   // max clusters per layer
@@ -535,6 +538,8 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Double_t fMaxChi2In; // (NOT USED)
   Double_t fMaxChi2sR[AliITSgeomTGeo::kNLayers];  // (NOT USED) 
   Double_t fChi2PerCluster; // (NOT USED)
+  // search for extra clusters
+  Bool_t   fSearchForExtras; // swicth yes/no for the search of extra-clusters in RefitInward step
   //
   // default primary vertex (MI,V2)
   Double_t fXV;  // x
@@ -700,10 +705,10 @@ class AliITSRecoParam : public AliDetectorRecoParam
   //
   // Lorentz angle
   Bool_t fCorrectLorentzAngleSPD;         // flag to enable correction
-  Float_t fLorentzAngleHolesSPD;          // angle for holes in SPD
+  Float_t fTanLorentzAngleHolesSPD;       // angle for holes in SPD
   Bool_t fCorrectLorentzAngleSSD;         // flag to enable correction
-  Float_t fLorentzAngleHolesSSD;          // angle for holes in SSD
-  Float_t fLorentzAngleElectronsSSD;          // angle for electrons in SSD
+  Float_t fTanLorentzAngleHolesSSD;       // tan(angle) for holes in SSD @ B = 0.5 T
+  Float_t fTanLorentzAngleElectronsSSD;   // tan(angle) for electrons in SSD @ B = 0.5 T
 
  private:
   AliESDV0Params * fESDV0Params;  // declare the AliESDV0Params to be able to used in AliITSV0Finder
@@ -711,7 +716,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   AliITSRecoParam(const AliITSRecoParam & param);
   AliITSRecoParam & operator=(const AliITSRecoParam &param);
 
-  ClassDef(AliITSRecoParam,32) // ITS reco parameters
+  ClassDef(AliITSRecoParam,34) // ITS reco parameters
 };
 
 #endif

@@ -91,6 +91,7 @@ fMaxChi2(0),
 fMaxRoad(0),
 fMaxChi2In(0),
 fChi2PerCluster(0),
+fSearchForExtras(kTRUE),			     
 fXV(0), 
 fYV(0),
 fZV(0),
@@ -211,11 +212,11 @@ fMultCutGammaSFromDecay(-10.),
 fMultCutK0SFromDecay(-10.),
 fMultCutMaxDCA(1.),
 //
-fCorrectLorentzAngleSPD(kFALSE),
-fLorentzAngleHolesSPD(0.),
-fCorrectLorentzAngleSSD(kFALSE),
-fLorentzAngleHolesSSD(0.),
-fLorentzAngleElectronsSSD(0.),
+fCorrectLorentzAngleSPD(kTRUE),
+fTanLorentzAngleHolesSPD(0.017455), // tan(1 degree)
+fCorrectLorentzAngleSSD(kTRUE),
+fTanLorentzAngleHolesSSD(0.016),  // tan(0.94 degrees)
+fTanLorentzAngleElectronsSSD(0.068), // tan(3.98 degrees)
 //
 fESDV0Params(NULL)
 {
@@ -383,8 +384,10 @@ AliITSRecoParam *AliITSRecoParam::GetHighFluxParam()
   param->fMaxChi2sR[4] = 30.;   
   param->fMaxChi2sR[5] = 40.;   
 
+
   param->fChi2PerCluster = 9.;
   // not used
+  param->fSearchForExtras = kFALSE;
 
   param->fXV = 0.;
   param->fYV = 0.;
