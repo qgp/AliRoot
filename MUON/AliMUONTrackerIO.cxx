@@ -325,6 +325,8 @@ AliMUONTrackerIO::DecodeGains(const char* data, AliMUONVStore& gainStore,
         {
           if ( nDAC < 100 ) 
           {
+            delete[] runs;
+            delete[] dac;
             runs = new Int_t[nDAC];
             dac = new Int_t[nDAC];
             // skip two lines
@@ -484,6 +486,9 @@ AliMUONTrackerIO::DecodeCapacitances(const char* data, AliMUONVStore& capaStore)
       }      
       continue;
     }
+    
+    if (!param) continue;
+    
     Int_t channel;
     Float_t capaValue;
     Float_t injectionGain;

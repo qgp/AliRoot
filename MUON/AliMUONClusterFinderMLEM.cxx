@@ -752,20 +752,20 @@ void AliMUONClusterFinderMLEM::PadOverHist(Int_t idir, Int_t ix0, Int_t iy0, Ali
 
 //_____________________________________________________________________________
 void
-AliMUONClusterFinderMLEM::Plot(const char* basename)
+AliMUONClusterFinderMLEM::Plot(const char* /*basename*/)
 {
   /// Make a plot and save it as png
   
   return; //AZ
-  if (!fPlot) return;
-  
-  TCanvas* c = new TCanvas("MLEM","MLEM",800,600);
-  c->Draw();
-  Draw();
-  c->Modified();
-  c->Update();
-  c->Print(Form("%s.EVT%d.DE%d.CLU%d.png",basename,fEventNumber,
-                fDetElemId,fClusterNumber));
+//  if (!fPlot) return;
+//  
+//  TCanvas* c = new TCanvas("MLEM","MLEM",800,600);
+//  c->Draw();
+//  Draw();
+//  c->Modified();
+//  c->Update();
+//  c->Print(Form("%s.EVT%d.DE%d.CLU%d.png",basename,fEventNumber,
+//                fDetElemId,fClusterNumber));
 }
 
 //_____________________________________________________________________________
@@ -1394,6 +1394,9 @@ Int_t AliMUONClusterFinderMLEM::FindLocalMaxima(TObjArray *pixArray, Int_t *loca
   Double_t xylim[4] = {999, 999, 999, 999};
 
   Int_t nPix = pixArray->GetEntriesFast();
+  
+  if ( nPix <= 0 ) return 0;
+  
   AliMUONPad *pixPtr = 0;
   for (Int_t ipix = 0; ipix < nPix; ++ipix) {
     pixPtr = (AliMUONPad*) pixArray->UncheckedAt(ipix);

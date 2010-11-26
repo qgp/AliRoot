@@ -416,7 +416,7 @@ void AliMpSectorReader::ReadRowSpecialData(istream& in, AliMp::XDirection direct
     while (!subZone && j<fSector->GetNofZones())
       subZone = fSector->GetZone(++j)->FindSubZone(segment->GetMotif(i));
     
-    subZone->AddRowSegment(segment);
+    if (subZone) subZone->AddRowSegment(segment);
   }  
 }  
 
@@ -433,7 +433,7 @@ void AliMpSectorReader::ReadRowSegmentSpecialData(istream& in,
   
   AliDebugStream(2) << nofPadRows << endl;
   
-  if ( nofPadRows < 0 ) {
+  if ( nofPadRows < 0 || nofPadRows >= std::numeric_limits<Int_t>::max()) {
     AliErrorStream() << "Wrong nofPadRows value." << endl;
     return;
   }         
