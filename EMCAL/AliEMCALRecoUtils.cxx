@@ -39,9 +39,13 @@
 #include "AliEMCALGeometry.h"
 #include "AliVCluster.h"
 #include "AliVCaloCells.h"
+#include "AliVEvent.h"
 #include "AliLog.h"
 #include "AliEMCALPIDUtils.h"
 #include "AliPID.h"
+#include "AliESDEvent.h"
+#include "AliESDtrack.h"
+#include "AliEMCALTrack.h"
 
 ClassImp(AliEMCALRecoUtils)
   
@@ -50,8 +54,13 @@ AliEMCALRecoUtils::AliEMCALRecoUtils():
   fNonLinearityFunction (kNoCorrection), fParticleType(kPhoton),
   fPosAlgo(kUnchanged),fW0(4.),
   fRecalibration(kFALSE), fEMCALRecalibrationFactors(),
-  fRemoveBadChannels(kFALSE),fEMCALBadChannelMap(),
-  fNCellsFromEMCALBorder(0),fNoEMCALBorderAtEta0(kTRUE), fPIDUtils()
+  fRemoveBadChannels(kFALSE), fRecalDistToBadChannels(kFALSE), fEMCALBadChannelMap(),
+  fNCellsFromEMCALBorder(0), fNoEMCALBorderAtEta0(kTRUE),
+  fMatchedClusterIndex(0x0), fResidualZ(0x0), fResidualR(0x0), fCutR(20), fCutZ(20),
+  fCutMinNClusterTPC(0), fCutMinNClusterITS(0), fCutMaxChi2PerClusterTPC(0), fCutMaxChi2PerClusterITS(0),
+  fCutRequireTPCRefit(0), fCutRequireITSRefit(0), fCutAcceptKinkDaughters(0),
+  fCutMaxDCAToVertexXY(0), fCutMaxDCAToVertexZ(0),fCutDCAToVertex2D(0),
+  fPIDUtils()
 {
 //
   // Constructor.
@@ -68,8 +77,14 @@ AliEMCALRecoUtils::AliEMCALRecoUtils():
   fNonLinearityParams[0] = 0.1457/0.1349766/1.038;
   fNonLinearityParams[1] = -0.02024/0.1349766/1.038;
   fNonLinearityParams[2] = 1.046;
+
+  fMatchedClusterIndex = new TArrayI();
+  fResidualZ = new TArrayF();
+  fResidualR = new TArrayF();
   
   fPIDUtils = new AliEMCALPIDUtils();
+
+  InitTrackCuts();
 
 }
 
@@ -78,8 +93,18 @@ AliEMCALRecoUtils::AliEMCALRecoUtils(const AliEMCALRecoUtils & reco)
 : TNamed(reco), fNonLinearityFunction(reco.fNonLinearityFunction), 
   fParticleType(reco.fParticleType), fPosAlgo(reco.fPosAlgo), fW0(reco.fW0), 
   fRecalibration(reco.fRecalibration),fEMCALRecalibrationFactors(reco.fEMCALRecalibrationFactors),
-  fRemoveBadChannels(reco.fRemoveBadChannels),fEMCALBadChannelMap(reco.fEMCALBadChannelMap),
+  fRemoveBadChannels(reco.fRemoveBadChannels),fRecalDistToBadChannels(reco.fRecalDistToBadChannels),
+  fEMCALBadChannelMap(reco.fEMCALBadChannelMap),
   fNCellsFromEMCALBorder(reco.fNCellsFromEMCALBorder),fNoEMCALBorderAtEta0(reco.fNoEMCALBorderAtEta0),
+  fMatchedClusterIndex(reco.fMatchedClusterIndex?new TArrayI(*reco.fMatchedClusterIndex):0x0),
+  fResidualZ(reco.fResidualZ?new TArrayF(*reco.fResidualZ):0x0),
+  fResidualR(reco.fResidualR?new TArrayF(*reco.fResidualR):0x0),
+  fCutR(reco.fCutR),fCutZ(reco.fCutZ),
+  fCutMinNClusterTPC(reco.fCutMinNClusterTPC), fCutMinNClusterITS(reco.fCutMinNClusterITS), 
+  fCutMaxChi2PerClusterTPC(reco.fCutMaxChi2PerClusterTPC), fCutMaxChi2PerClusterITS(reco.fCutMaxChi2PerClusterITS),
+  fCutRequireTPCRefit(reco.fCutRequireTPCRefit), fCutRequireITSRefit(reco.fCutRequireITSRefit),
+  fCutAcceptKinkDaughters(reco.fCutAcceptKinkDaughters),
+  fCutMaxDCAToVertexXY(reco.fCutMaxDCAToVertexXY), fCutMaxDCAToVertexZ(reco.fCutMaxDCAToVertexZ),fCutDCAToVertex2D(reco.fCutDCAToVertex2D),
   fPIDUtils(reco.fPIDUtils)
 
 {
@@ -90,6 +115,7 @@ AliEMCALRecoUtils::AliEMCALRecoUtils(const AliEMCALRecoUtils & reco)
       fMisalTransShift[i] = reco.fMisalTransShift[i]; 
   } 
   for(Int_t i = 0; i < 6  ; i++) fNonLinearityParams[i] = reco.fNonLinearityParams[i]; 
+
 }
 
 
@@ -108,13 +134,69 @@ AliEMCALRecoUtils & AliEMCALRecoUtils::operator = (const AliEMCALRecoUtils & rec
   fRecalibration         = reco.fRecalibration;
   fEMCALRecalibrationFactors = reco.fEMCALRecalibrationFactors;
   fRemoveBadChannels     = reco.fRemoveBadChannels;
+  fRecalDistToBadChannels= reco.fRecalDistToBadChannels;
   fEMCALBadChannelMap    = reco.fEMCALBadChannelMap;
   fNCellsFromEMCALBorder = reco.fNCellsFromEMCALBorder;
   fNoEMCALBorderAtEta0   = reco.fNoEMCALBorderAtEta0;
-  fPIDUtils              = reco.fPIDUtils;
+
 
   for(Int_t i = 0; i < 15 ; i++) {fMisalTransShift[i] = reco.fMisalTransShift[i]; fMisalRotShift[i] = reco.fMisalRotShift[i];}
   for(Int_t i = 0; i < 6  ; i++) fNonLinearityParams[i] = reco.fNonLinearityParams[i]; 
+  
+  fCutR                  = reco.fCutR;
+  fCutZ                  = reco.fCutZ;
+
+  fCutMinNClusterTPC        = reco.fCutMinNClusterTPC;
+  fCutMinNClusterITS        = reco.fCutMinNClusterITS; 
+  fCutMaxChi2PerClusterTPC  = reco.fCutMaxChi2PerClusterTPC;
+  fCutMaxChi2PerClusterITS  = reco.fCutMaxChi2PerClusterITS;
+  fCutRequireTPCRefit       = reco.fCutRequireTPCRefit;
+  fCutRequireITSRefit       = reco.fCutRequireITSRefit;
+  fCutAcceptKinkDaughters   = reco.fCutAcceptKinkDaughters;
+  fCutMaxDCAToVertexXY      = reco.fCutMaxDCAToVertexXY;
+  fCutMaxDCAToVertexZ       = reco.fCutMaxDCAToVertexZ;
+  fCutDCAToVertex2D         = reco.fCutDCAToVertex2D;
+
+  fPIDUtils              = reco.fPIDUtils;
+  
+  
+  if(reco.fResidualR){
+    // assign or copy construct
+    if(fResidualR){ 
+      *fResidualR = *reco.fResidualR;
+    }
+    else fResidualR = new TArrayF(*reco.fResidualR);
+  }
+  else{
+    if(fResidualR)delete fResidualR;
+    fResidualR = 0;
+  }
+  
+  if(reco.fResidualZ){
+    // assign or copy construct
+    if(fResidualZ){ 
+      *fResidualZ = *reco.fResidualZ;
+    }
+    else fResidualZ = new TArrayF(*reco.fResidualZ);
+  }
+  else{
+    if(fResidualZ)delete fResidualZ;
+    fResidualZ = 0;
+  }
+  
+  
+  if(reco.fMatchedClusterIndex){
+    // assign or copy construct
+    if(fMatchedClusterIndex){ 
+      *fMatchedClusterIndex = *reco.fMatchedClusterIndex;
+    }
+    else fMatchedClusterIndex = new TArrayI(*reco.fMatchedClusterIndex);
+  }
+  else{
+    if(fMatchedClusterIndex)delete fMatchedClusterIndex;
+    fMatchedClusterIndex = 0;
+  }
+  
   
   return *this;
 }
@@ -134,7 +216,11 @@ AliEMCALRecoUtils::~AliEMCALRecoUtils()
 		fEMCALBadChannelMap->Clear();
 		delete  fEMCALBadChannelMap;
 	}
-  
+ 
+  if(fMatchedClusterIndex) {delete fMatchedClusterIndex; fMatchedClusterIndex=0;}
+  if(fResidualR)           {delete fResidualR;           fResidualR=0;}
+  if(fResidualZ)           {delete fResidualZ;           fResidualZ=0;}
+
 }
 
 //_______________________________________________________________
@@ -146,8 +232,9 @@ Bool_t AliEMCALRecoUtils::CheckCellFiducialRegion(AliEMCALGeometry* geom, AliVCl
   //If the distance to the border is 0 or negative just exit accept all clusters
 	if(cells->GetType()==AliVCaloCells::kEMCALCell && fNCellsFromEMCALBorder <= 0 ) return kTRUE;
   
-  Int_t absIdMax	= -1, iSM =-1, ieta = -1, iphi = -1;  
-  GetMaxEnergyCell(geom, cells, cluster, absIdMax,  iSM, ieta, iphi);
+  Int_t absIdMax	= -1, iSM =-1, ieta = -1, iphi = -1;
+  Bool_t shared = kFALSE;
+  GetMaxEnergyCell(geom, cells, cluster, absIdMax,  iSM, ieta, iphi, shared);
 
   AliDebug(2,Form("Cluster Max AbsId %d, Cell Energy %2.2f, Cluster Energy %2.2f, Ncells from border %d, EMCAL eta=0 %d\n", 
            absIdMax, cells->GetCellAmplitude(absIdMax), cluster->E(), fNCellsFromEMCALBorder, fNoEMCALBorderAtEta0));
@@ -283,7 +370,7 @@ Float_t  AliEMCALRecoUtils::GetDepth(const Float_t energy, const Int_t iParticle
   //Calculate shower depth for a given cluster energy and particle type
 
   // parameters 
-  Float_t x0    = 1.23;
+  Float_t x0    = 1.31;
   Float_t ecr   = 8;
   Float_t depth = 0;
   
@@ -327,7 +414,8 @@ Float_t  AliEMCALRecoUtils::GetDepth(const Float_t energy, const Int_t iParticle
 }
 
 //__________________________________________________
-void AliEMCALRecoUtils::GetMaxEnergyCell(AliEMCALGeometry *geom, AliVCaloCells* cells, AliVCluster* clu, Int_t & absId,  Int_t& iSupMod, Int_t& ieta, Int_t& iphi)
+void AliEMCALRecoUtils::GetMaxEnergyCell(AliEMCALGeometry *geom, AliVCaloCells* cells, AliVCluster* clu, 
+                                         Int_t & absId,  Int_t& iSupMod, Int_t& ieta, Int_t& iphi, Bool_t &shared)
 {
   //For a given CaloCluster gets the absId of the cell 
   //with maximum energy deposit.
@@ -341,15 +429,21 @@ void AliEMCALRecoUtils::GetMaxEnergyCell(AliEMCALGeometry *geom, AliVCaloCells* 
   Int_t iTower  = -1;
   Int_t iIphi   = -1;
   Int_t iIeta   = -1;
+  Int_t iSupMod0= -1;
 	//printf("---Max?\n");
   for (Int_t iDig=0; iDig< clu->GetNCells(); iDig++) {
     cellAbsId = clu->GetCellAbsId(iDig);
     fraction  = clu->GetCellAmplitudeFraction(iDig);
     //printf("a Cell %d, id, %d, amp %f, fraction %f\n",iDig,cellAbsId,cells->GetCellAmplitude(cellAbsId),fraction);
     if(fraction < 1e-4) fraction = 1.; // in case unfolding is off
+    geom->GetCellIndex(cellAbsId,iSupMod,iTower,iIphi,iIeta); 
+    geom->GetCellPhiEtaIndexInSModule(iSupMod,iTower,iIphi, iIeta,iphi,ieta);
+    if(iDig==0) iSupMod0=iSupMod;
+    else if(iSupMod0!=iSupMod) {
+      shared = kTRUE;
+      //printf("AliEMCALRecoUtils::GetMaxEnergyCell() - SHARED CLUSTER\n");
+    }
     if(IsRecalibrationOn()) {
-      geom->GetCellIndex(cellAbsId,iSupMod,iTower,iIphi,iIeta); 
-      geom->GetCellPhiEtaIndexInSModule(iSupMod,iTower,iIphi, iIeta,iphi,ieta);
       recalFactor = GetEMCALChannelRecalibrationFactor(iSupMod,ieta,iphi);
     }
     eCell  = cells->GetCellAmplitude(cellAbsId)*fraction*recalFactor;
@@ -379,7 +473,7 @@ void AliEMCALRecoUtils::InitEMCALRecalibrationFactors(){
 	Bool_t oldStatus = TH1::AddDirectoryStatus();
 	TH1::AddDirectory(kFALSE);
   
-	fEMCALRecalibrationFactors = new TObjArray(12);
+	fEMCALRecalibrationFactors = new TObjArray(10);
 	for (int i = 0; i < 12; i++) fEMCALRecalibrationFactors->Add(new TH2F(Form("EMCALRecalFactors_SM%d",i),Form("EMCALRecalFactors_SM%d",i),  48, 0, 48, 24, 0, 24));
 	//Init the histograms with 1
 	for (Int_t sm = 0; sm < 12; sm++) {
@@ -405,9 +499,9 @@ void AliEMCALRecoUtils::InitEMCALBadChannelStatusMap(){
 	Bool_t oldStatus = TH1::AddDirectoryStatus();
 	TH1::AddDirectory(kFALSE);
 	
-	fEMCALBadChannelMap = new TObjArray(12);
+	fEMCALBadChannelMap = new TObjArray(10);
 	//TH2F * hTemp = new  TH2I("EMCALBadChannelMap","EMCAL SuperModule bad channel map", 48, 0, 48, 24, 0, 24);
-	for (int i = 0; i < 12; i++) {
+	for (int i = 0; i < 10; i++) {
 		fEMCALBadChannelMap->Add(new TH2I(Form("EMCALBadChannelMap_Mod%d",i),Form("EMCALBadChannelMap_Mod%d",i), 48, 0, 48, 24, 0, 24));
 	}
 	
@@ -486,9 +580,10 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(AliEMCALGeomet
   Float_t  weight = 0.,  totalWeight=0.;
   Float_t  newPos[3] = {0,0,0};
   Double_t pLocal[3], pGlobal[3];
-  
+  Bool_t shared = kFALSE;
+
   Float_t  clEnergy = clu->E(); //Energy already recalibrated previously
-  GetMaxEnergyCell(geom, cells, clu, absId,  iSupModMax, ieta, iphi);
+  GetMaxEnergyCell(geom, cells, clu, absId,  iSupModMax, ieta, iphi,shared);
   Double_t depth = GetDepth(clEnergy,fParticleType,iSupModMax) ;
   
   //printf("** Cluster energy %f, ncells %d, depth %f\n",clEnergy,clu->GetNCells(),depth);
@@ -561,9 +656,10 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerIndex(AliEMCALGeometr
   Int_t iIphi   = -1, iIeta   = -1;
 	Int_t iSupMod = -1, iSupModMax = -1;
   Int_t iphi = -1, ieta =-1;
-  
+  Bool_t shared = kFALSE;
+
   Float_t clEnergy = clu->E(); //Energy already recalibrated previously.
-  GetMaxEnergyCell(geom, cells, clu, absId,  iSupModMax, ieta, iphi);
+  GetMaxEnergyCell(geom, cells, clu, absId,  iSupModMax, ieta, iphi,shared);
   Float_t  depth = GetDepth(clEnergy,fParticleType,iSupMod) ;
 
   Float_t weight = 0., weightedCol = 0., weightedRow = 0., totalWeight=0.;
@@ -610,6 +706,82 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerIndex(AliEMCALGeometr
   }
   
   clu->SetPosition(xyzNew);
+  
+}
+
+//____________________________________________________________________________
+void AliEMCALRecoUtils::RecalculateClusterDistanceToBadChannel(AliEMCALGeometry * geom, AliVCaloCells* cells, AliVCluster * cluster){           
+	
+  //re-evaluate distance to bad channel with updated bad map
+  
+  if(!fRecalDistToBadChannels) return;
+  
+	//Get channels map of the supermodule where the cluster is.
+  Int_t absIdMax	= -1, iSupMod =-1, icolM = -1, irowM = -1;
+  Bool_t shared = kFALSE;
+  GetMaxEnergyCell(geom, cells, cluster, absIdMax,  iSupMod, icolM, irowM, shared);
+  TH2D* hMap  = (TH2D*)fEMCALBadChannelMap->At(iSupMod);
+
+  Int_t dRrow, dRcol;	
+	Float_t  minDist = 10000.;
+	Float_t  dist    = 0.;
+  
+  //Loop on tower status map 
+	for(Int_t irow = 0; irow < AliEMCALGeoParams::fgkEMCALRows; irow++){
+		for(Int_t icol = 0; icol < AliEMCALGeoParams::fgkEMCALCols; icol++){
+			//Check if tower is bad.
+			if(hMap->GetBinContent(icol,irow)==0) continue;
+      //printf("AliEMCALRecoUtils::RecalculateDistanceToBadChannels() - \n \t Bad channel in SM %d, col %d, row %d, \n \t Cluster max in col %d, row %d\n",
+      //       iSupMod,icol, irow, icolM,irowM);
+      
+      dRrow=TMath::Abs(irowM-irow);
+      dRcol=TMath::Abs(icolM-icol);
+      dist=TMath::Sqrt(dRrow*dRrow+dRcol*dRcol);
+			if(dist < minDist){
+        //printf("MIN DISTANCE TO BAD %2.2f\n",dist);
+        minDist = dist;
+      }
+      
+		}
+	}
+  
+	//In case the cluster is shared by 2 SuperModules, need to check the map of the second Super Module
+	if (shared) {
+		TH2D* hMap2 = 0;
+		Int_t iSupMod2 = -1;
+    
+		//The only possible combinations are (0,1), (2,3) ... (8,9)
+		if(iSupMod%2) iSupMod2 = iSupMod-1;
+		else          iSupMod2 = iSupMod+1;
+		hMap2  = (TH2D*)fEMCALBadChannelMap->At(iSupMod2);
+    
+		//Loop on tower status map of second super module
+		for(Int_t irow = 0; irow < AliEMCALGeoParams::fgkEMCALRows; irow++){
+			for(Int_t icol = 0; icol < AliEMCALGeoParams::fgkEMCALCols; icol++){
+				//Check if tower is bad.
+				if(hMap2->GetBinContent(icol,irow)==0) continue;
+				//printf("AliEMCALRecoUtils::RecalculateDistanceToBadChannels(shared) - \n \t Bad channel in SM %d, col %d, row %d \n \t Cluster max in SM %d, col %d, row %d\n",
+          //     iSupMod2,icol, irow,iSupMod,icolM,irowM);
+        
+        dRrow=TMath::Abs(irow-irowM);
+        
+        if(iSupMod%2) {
+				  dRcol=TMath::Abs(icol-(AliEMCALGeoParams::fgkEMCALCols+icolM));
+				}
+        else {
+          dRcol=TMath::Abs(AliEMCALGeoParams::fgkEMCALCols+icol-icolM);
+				}                    
+        
+				dist=TMath::Sqrt(dRrow*dRrow+dRcol*dRcol);
+        if(dist < minDist) minDist = dist;        
+        
+			}
+		}
+    
+	}// shared cluster in 2 SuperModules
+  
+  AliDebug(2,Form("Max cluster cell (SM,col,row)=(%d %d %d) - Distance to Bad Channel %2.2f",iSupMod, icolM, irowM, minDist));
+  cluster->SetDistanceToBadChannel(minDist);
   
 }
 
@@ -754,6 +926,220 @@ void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(AliEMCALGeometry
   
 }
 
+//__________________________________________________
+void AliEMCALRecoUtils::FindMatches(AliVEvent *event)
+{
+  //This function should be called before the cluster loop
+  //Before call this function, please recalculate the cluster positions
+  //Given the input event, loop over all the tracks, select the closest cluster as matched with fCutR
+  //Store matched cluster indexes and residuals
+  //It only works with ESDs, not AODs
+  
+  fMatchedClusterIndex->Reset();
+  fResidualZ->Reset();
+  fResidualR->Reset();
+  
+  fMatchedClusterIndex->Set(100);
+  fResidualZ->Set(100);
+  fResidualR->Set(100);
+  
+  Int_t    matched=0;
+  Float_t  clsPos[3];
+  Double_t trkPos[3];
+  for(Int_t itr=0; itr<event->GetNumberOfTracks(); itr++)
+  {
+    AliESDtrack *track = ((AliESDEvent*)event)->GetTrack(itr);
+    if(!track || !IsAccepted(track)) continue;
+    
+    Float_t dRMax = fCutR, dZMax = fCutZ;
+    Int_t index = -1;
+    AliEMCALTrack *emctrack = new AliEMCALTrack(*track);
+    for(Int_t icl=0; icl<event->GetNumberOfCaloClusters(); icl++)
+    {
+      AliVCluster *cluster = (AliVCluster*) event->GetCaloCluster(icl);
+      if(!cluster->IsEMCAL()) continue;
+      cluster->GetPosition(clsPos); //Has been recalculated
+      if(!emctrack->PropagateToGlobal(clsPos[0],clsPos[1],clsPos[2],0.,0.) )  continue;
+      emctrack->GetXYZ(trkPos);
+      Float_t tmpR = TMath::Sqrt( TMath::Power(clsPos[0]-trkPos[0],2)+TMath::Power(clsPos[1]-trkPos[1],2)+TMath::Power(clsPos[2]-trkPos[2],2) );
+      Float_t tmpZ = TMath::Abs(clsPos[2]-trkPos[2]);
+      
+      if(tmpR<dRMax)
+	    {
+	      dRMax=tmpR;
+	      dZMax=tmpZ;
+	      index=icl;
+	    }
+      
+    }//cluser loop
+    
+    if(index>-1)
+    {
+      fMatchedClusterIndex->AddAt(index,matched);
+      fResidualZ->AddAt(dZMax,matched);
+      fResidualR->AddAt(dRMax,matched);
+      matched++;
+    }
+    delete emctrack;
+  }//track loop
+  fMatchedClusterIndex->Set(matched);
+  fResidualZ->Set(matched);
+  fResidualR->Set(matched);
+  
+  //printf("Number of matched pairs: %d\n",matched);
+}
+
+//__________________________________________________
+void AliEMCALRecoUtils::GetMatchedResiduals(Int_t index, Float_t &dR, Float_t &dZ)
+{
+  //Given a cluster index as in AliESDEvent::GetCaloCluster(index)
+  //Get the residuals dR and dZ for this cluster
+  //It only works with ESDs, not AODs
+
+  if( FindMatchedPos(index) >= 999 )
+  {
+    AliDebug(2,"No matched tracks found!\n");
+    dR=999.;
+    dZ=999.;
+    return;
+  }
+  dR = fResidualR->At(FindMatchedPos(index));
+  dZ = fResidualZ->At(FindMatchedPos(index));
+}
+
+//__________________________________________________
+Bool_t AliEMCALRecoUtils::IsMatched(Int_t index)
+{
+  //Given a cluster index as in AliESDEvent::GetCaloCluster(index)
+  //Returns if cluster has a match
+  if(FindMatchedPos(index) < 999) 
+    return kTRUE;
+  else
+    return kFALSE;
+}
+//__________________________________________________
+UInt_t AliEMCALRecoUtils::FindMatchedPos(Int_t index) const
+{
+  //Given a cluster index as in AliESDEvent::GetCaloCluster(index)
+  //Returns the position of the match in the fMatchedClusterIndex array
+  Float_t tmpR = fCutR;
+  UInt_t pos = 999;
+
+  for(Int_t i=0; i<fMatchedClusterIndex->GetSize(); i++)
+    {
+      if(fMatchedClusterIndex->At(i)==index && fResidualR->At(i)<tmpR)
+	{
+	  pos=i;
+	  tmpR=fResidualR->At(i);
+	}
+      AliDebug(3,Form("Matched cluster pos: %d, index: %d, dR: %2.4f, dZ: %2.4f.\n",i,fMatchedClusterIndex->At(i),fResidualR->At(i),fResidualZ->At(i)));
+    }
+  return pos;
+}
+
+Bool_t AliEMCALRecoUtils::IsAccepted(AliESDtrack *esdTrack)
+{
+  // Given a esd track, return whether the track survive all the cuts
+
+  // The different quality parameter are first
+  // retrieved from the track. then it is found out what cuts the
+  // track did not survive and finally the cuts are imposed.
+
+  UInt_t status = esdTrack->GetStatus();
+
+  Int_t nClustersITS = esdTrack->GetITSclusters(0);
+  Int_t nClustersTPC = esdTrack->GetTPCclusters(0);
+
+  Float_t chi2PerClusterITS = -1;
+  Float_t chi2PerClusterTPC = -1;
+  if (nClustersITS!=0)
+    chi2PerClusterITS = esdTrack->GetITSchi2()/Float_t(nClustersITS);
+  if (nClustersTPC!=0) 
+    chi2PerClusterTPC = esdTrack->GetTPCchi2()/Float_t(nClustersTPC);
+
+
+  //DCA cuts
+  Float_t MaxDCAToVertexXYPtDep = 0.0182 + 0.0350/TMath::Power(esdTrack->Pt(),1.01); //This expression comes from AliESDtrackCuts::GetStandardITSTPCTrackCuts2010()
+  //AliDebug(3,Form("Track pT = %f, DCAtoVertexXY = %f",esdTrack->Pt(),MaxDCAToVertexXYPtDep));
+  SetMaxDCAToVertexXY(MaxDCAToVertexXYPtDep); //Set pT dependent DCA cut to vertex in x-y plane
+
+
+  Float_t b[2];
+  Float_t bCov[3];
+  esdTrack->GetImpactParameters(b,bCov);
+  if (bCov[0]<=0 || bCov[2]<=0) {
+    AliDebug(1, "Estimated b resolution lower or equal zero!");
+    bCov[0]=0; bCov[2]=0;
+  }
+
+  Float_t dcaToVertexXY = b[0];
+  Float_t dcaToVertexZ = b[1];
+  Float_t dcaToVertex = -1;
+
+  if (fCutDCAToVertex2D)
+    dcaToVertex = TMath::Sqrt(dcaToVertexXY*dcaToVertexXY/fCutMaxDCAToVertexXY/fCutMaxDCAToVertexXY + dcaToVertexZ*dcaToVertexZ/fCutMaxDCAToVertexZ/fCutMaxDCAToVertexZ);
+  else
+    dcaToVertex = TMath::Sqrt(dcaToVertexXY*dcaToVertexXY + dcaToVertexZ*dcaToVertexZ);
+    
+  // cut the track?
+  
+  Bool_t cuts[kNCuts];
+  for (Int_t i=0; i<kNCuts; i++) cuts[i]=kFALSE;
+  
+  // track quality cuts
+  if (fCutRequireTPCRefit && (status&AliESDtrack::kTPCrefit)==0)
+    cuts[0]=kTRUE;
+  if (fCutRequireITSRefit && (status&AliESDtrack::kITSrefit)==0)
+    cuts[1]=kTRUE;
+  if (nClustersTPC<fCutMinNClusterTPC)
+    cuts[2]=kTRUE;
+  if (nClustersITS<fCutMinNClusterITS) 
+    cuts[3]=kTRUE;
+  if (chi2PerClusterTPC>fCutMaxChi2PerClusterTPC) 
+    cuts[4]=kTRUE; 
+  if (chi2PerClusterITS>fCutMaxChi2PerClusterITS) 
+    cuts[5]=kTRUE;  
+  if (!fCutAcceptKinkDaughters && esdTrack->GetKinkIndex(0)>0)
+    cuts[6]=kTRUE;
+  if (fCutDCAToVertex2D && dcaToVertex > 1)
+    cuts[7] = kTRUE;
+  if (!fCutDCAToVertex2D && TMath::Abs(dcaToVertexXY) > fCutMaxDCAToVertexXY)
+    cuts[8] = kTRUE;
+  if (!fCutDCAToVertex2D && TMath::Abs(dcaToVertexZ) > fCutMaxDCAToVertexZ)
+    cuts[9] = kTRUE;
+
+  //Require at least one SPD point + anything else in ITS
+  if( (esdTrack->HasPointOnITSLayer(0) || esdTrack->HasPointOnITSLayer(1)) == kFALSE)
+    cuts[10] = kTRUE;
+
+  Bool_t cut=kFALSE;
+  for (Int_t i=0; i<kNCuts; i++) 
+    if (cuts[i]) {cut = kTRUE;}
+
+    // cut the track
+  if (cut) 
+    return kFALSE;
+  else 
+    return kTRUE;
+}
+//__________________________________________________
+void AliEMCALRecoUtils::InitTrackCuts()
+{
+  //Intilize the track cut criteria
+  //By default these cuts are set according to AliESDtrackCuts::GetStandardITSTPCTrackCuts2010()
+  //Also you can customize the cuts using the setters
+  
+  //TPC
+  SetMinNClustersTPC(70);
+  SetMaxChi2PerClusterTPC(4);
+  SetAcceptKinkDaughters(kFALSE);
+  SetRequireTPCRefit(kTRUE);
+  
+  //ITS
+  SetRequireITSRefit(kTRUE);
+  SetMaxDCAToVertexZ(2);
+  SetDCAToVertex2D(kFALSE);
+}
 
 //__________________________________________________
 void AliEMCALRecoUtils::Print(const Option_t *) const 
@@ -769,5 +1155,15 @@ void AliEMCALRecoUtils::Print(const Option_t *) const
   for(Int_t i=0; i<6; i++) printf("param[%d]=%f\n",i, fNonLinearityParams[i]);
   
   printf("Position Recalculation option %d, Particle Type %d, fW0 %2.2f, Recalibrate Data %d \n",fPosAlgo,fParticleType,fW0, fRecalibration);
+
+  printf("Matching criteria: dR < %2.2f[cm], dZ < %2.2f[cm]\n",fCutR,fCutZ);
+
+  printf("Track cuts: \n");
+  printf("TPCRefit = %d, ITSRefit = %d\n",fCutRequireTPCRefit,fCutRequireITSRefit);
+  printf("AcceptKinks = %d\n",fCutAcceptKinkDaughters);
+  printf("MinNCulsterTPC = %d, MinNClusterITS = %d\n",fCutMinNClusterTPC,fCutMinNClusterITS);
+  printf("MaxChi2TPC = %2.2f, MaxChi2ITS = %2.2f\n",fCutMaxChi2PerClusterTPC,fCutMaxChi2PerClusterITS);
+  printf("DCSToVertex2D = %d, MaxDCAToVertexXY = %2.2f, MaxDCAToVertexZ = %2.2f\n",fCutDCAToVertex2D,fCutMaxDCAToVertexXY,fCutMaxDCAToVertexZ);
+
     
 }

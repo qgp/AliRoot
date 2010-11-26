@@ -16,14 +16,18 @@
 #include "TNamed.h"
 #include "TMath.h"
 #include "TObjArray.h"
+#include "TArrayI.h"
+#include "TArrayF.h"
 #include "TH2F.h"
 
 //AliRoot includes
 class AliVCluster;
 class AliVCaloCells;
+class AliVEvent;
 #include "AliLog.h"
 class AliEMCALGeometry;
 class AliEMCALPIDUtils;
+class AliESDtrack;
 
 class AliEMCALRecoUtils : public TNamed {
   
@@ -48,7 +52,7 @@ public:
   Float_t  GetDepth(const Float_t eCluster, const Int_t iParticle, const Int_t iSM) const ; 
   
   void     GetMaxEnergyCell(AliEMCALGeometry *geom, AliVCaloCells* cells, AliVCluster* clu, 
-                            Int_t & absId,  Int_t& iSupMod, Int_t& ieta, Int_t& iphi);
+                            Int_t & absId,  Int_t& iSupMod, Int_t& ieta, Int_t& iphi, Bool_t &shared);
   
   Float_t  GetMisalTransShift(const Int_t i) const {
     if(i < 15 ){return fMisalTransShift[i]; }
@@ -107,7 +111,7 @@ public:
   void RecalibrateClusterEnergy(AliEMCALGeometry* geom, AliVCluster* cluster, AliVCaloCells * cells);
 
   Bool_t IsRecalibrationOn()  const { return fRecalibration ; }
-  void SwitchOnRecalibration()    {fRecalibration = kTRUE ; InitEMCALRecalibrationFactors();}
+  void SwitchOnRecalibration()    {fRecalibration = kTRUE ; if(!fEMCALRecalibrationFactors)InitEMCALRecalibrationFactors();}
   void SwitchOffRecalibration()   {fRecalibration = kFALSE ; }
   
   void InitEMCALRecalibrationFactors() ;
@@ -135,9 +139,13 @@ public:
   
   // Bad channels
   Bool_t IsBadChannelsRemovalSwitchedOn()  const { return fRemoveBadChannels ; }
-  void SwitchOnBadChannelsRemoval ()  {fRemoveBadChannels = kTRUE  ; InitEMCALBadChannelStatusMap();}
+  void SwitchOnBadChannelsRemoval ()  {fRemoveBadChannels = kTRUE  ; if(!fEMCALBadChannelMap)InitEMCALBadChannelStatusMap();}
   void SwitchOffBadChannelsRemoval()  {fRemoveBadChannels = kFALSE ; }
 	
+  Bool_t IsDistanceToBadChannelRecalculated()  const { return fRecalDistToBadChannels ; }
+  void SwitchOnDistToBadChannelRecalculation()   {fRecalDistToBadChannels = kTRUE  ; if(!fEMCALBadChannelMap)InitEMCALBadChannelStatusMap();}
+  void SwitchOffDistToBadChannelRecalculation()  {fRecalDistToBadChannels = kFALSE ; }
+  
   void InitEMCALBadChannelStatusMap() ;
 	
   Int_t GetEMCALChannelStatus(Int_t iSM , Int_t iCol, Int_t iRow) const { 
@@ -150,14 +158,58 @@ public:
 	
   TH2I * GetEMCALChannelStatusMap(Int_t iSM) const {return (TH2I*)fEMCALBadChannelMap->At(iSM);}
   void   SetEMCALChannelStatusMap(TObjArray *map)  {fEMCALBadChannelMap = map;}
-	
+  void   SetEMCALChannelStatusMap(Int_t iSM , TH2I* h) {fEMCALBadChannelMap->AddAt(h,iSM);}
+
   Bool_t ClusterContainsBadChannel(AliEMCALGeometry* geom, UShort_t* cellList, Int_t nCells);
  
   //Recalculate other cluster parameters
+  void RecalculateClusterDistanceToBadChannel(AliEMCALGeometry * geom, AliVCaloCells* cells, AliVCluster * cluster);
   void RecalculateClusterPID(AliVCluster * cluster);
+
   AliEMCALPIDUtils * GetPIDUtils() { return fPIDUtils;}
 
   void RecalculateClusterShowerShapeParameters(AliEMCALGeometry * geom, AliVCaloCells* cells, AliVCluster * cluster);
+
+  //Track matching
+  void FindMatches(AliVEvent *event);
+  void GetMatchedResiduals(Int_t index, Float_t &dR, Float_t &dZ);
+  Bool_t IsMatched(Int_t index);
+  UInt_t FindMatchedPos(Int_t index) const;
+
+  Float_t GetCutR() const { return fCutR; }
+  Float_t GetCutZ() const { return fCutZ; }
+
+  void SetCutR(Float_t cutR) { fCutR=cutR; }
+  void SetCutZ(Float_t cutZ) { fCutZ=cutZ; }
+
+  //Track Cuts 
+  Bool_t IsAccepted(AliESDtrack *track);
+  void InitTrackCuts();
+
+  // track quality cut setters  
+  void SetMinNClustersTPC(Int_t min=-1)          {fCutMinNClusterTPC=min;}
+  void SetMinNClustersITS(Int_t min=-1)          {fCutMinNClusterITS=min;}
+  void SetMaxChi2PerClusterTPC(Float_t max=1e10) {fCutMaxChi2PerClusterTPC=max;}
+  void SetMaxChi2PerClusterITS(Float_t max=1e10) {fCutMaxChi2PerClusterITS=max;}
+  void SetRequireTPCRefit(Bool_t b=kFALSE)       {fCutRequireTPCRefit=b;}
+  void SetRequireITSRefit(Bool_t b=kFALSE)       {fCutRequireITSRefit=b;}
+  void SetAcceptKinkDaughters(Bool_t b=kTRUE)    {fCutAcceptKinkDaughters=b;}
+  void SetMaxDCAToVertexXY(Float_t dist=1e10)         {fCutMaxDCAToVertexXY = dist;}
+  void SetMaxDCAToVertexZ(Float_t dist=1e10)          {fCutMaxDCAToVertexZ = dist;}
+  void SetDCAToVertex2D(Bool_t b=kFALSE)              {fCutDCAToVertex2D = b;}
+
+  // getters
+
+  Int_t   GetMinNClusterTPC()        const   { return fCutMinNClusterTPC;}
+  Int_t   GetMinNClustersITS()       const   { return fCutMinNClusterITS;}
+  Float_t GetMaxChi2PerClusterTPC()  const   { return fCutMaxChi2PerClusterTPC;}
+  Float_t GetMaxChi2PerClusterITS()  const   { return fCutMaxChi2PerClusterITS;}
+  Bool_t  GetRequireTPCRefit()       const   { return fCutRequireTPCRefit;}
+  Bool_t  GetRequireITSRefit()       const   { return fCutRequireITSRefit;}
+  Bool_t  GetAcceptKinkDaughters()   const   { return fCutAcceptKinkDaughters;}
+  Float_t GetMaxDCAToVertexXY()      const   { return fCutMaxDCAToVertexXY;}
+  Float_t GetMaxDCAToVertexZ()       const   { return fCutMaxDCAToVertexZ;}
+  Bool_t  GetDCAToVertex2D()         const   { return fCutDCAToVertex2D;}
 
 
 private:
@@ -173,13 +225,32 @@ private:
   Bool_t     fRecalibration;             // Switch on or off the recalibration
   TObjArray* fEMCALRecalibrationFactors; // Array of histograms with map of recalibration factors, EMCAL
   Bool_t     fRemoveBadChannels;         // Check the channel status provided and remove clusters with bad channels
+  Bool_t     fRecalDistToBadChannels;    // Calculate distance from highest energy tower of cluster to closes bad channel
   TObjArray* fEMCALBadChannelMap;        // Array of histograms with map of bad channels, EMCAL
   Int_t      fNCellsFromEMCALBorder;     // Number of cells from EMCAL border the cell with maximum amplitude has to be.
   Bool_t     fNoEMCALBorderAtEta0;       // Do fiducial cut in EMCAL region eta = 0?
 
+  TArrayI *fMatchedClusterIndex;  //Array that stores indexes of matched clusters
+  TArrayF *fResidualZ;            //Array that stores the residual z
+  TArrayF *fResidualR;            //Array that stores the residual r
+  Float_t fCutR; //dR cut on matching
+  Float_t fCutZ; //dZ cut on matching
+
+  enum { kNCuts = 11 }; 
+  Int_t   fCutMinNClusterTPC;         // min number of tpc clusters
+  Int_t   fCutMinNClusterITS;         // min number of its clusters  
+  Float_t fCutMaxChi2PerClusterTPC;   // max tpc fit chi2 per tpc cluster
+  Float_t fCutMaxChi2PerClusterITS;   // max its fit chi2 per its cluster
+  Bool_t  fCutRequireTPCRefit;        // require TPC refit
+  Bool_t  fCutRequireITSRefit;        // require ITS refit
+  Bool_t  fCutAcceptKinkDaughters;    // accepting kink daughters?
+  Float_t fCutMaxDCAToVertexXY;       // track-to-vertex cut in max absolute distance in xy-plane
+  Float_t fCutMaxDCAToVertexZ;        // track-to-vertex cut in max absolute distance in z-plane
+  Bool_t  fCutDCAToVertex2D;          // if true a 2D DCA cut is made. Tracks are accepted if sqrt((DCAXY / fCutMaxDCAToVertexXY)^2 + (DCAZ / fCutMaxDCAToVertexZ)^2) < 1 AND sqrt((DCAXY / fCutMinDCAToVertexXY)^2 + (DCAZ / fCutMinDCAToVertexZ)^2) > 1
+
   AliEMCALPIDUtils * fPIDUtils;               // Recalculate PID parameters
   
-  ClassDef(AliEMCALRecoUtils, 5)
+  ClassDef(AliEMCALRecoUtils, 6)
   
 };
 
