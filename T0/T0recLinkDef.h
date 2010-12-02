@@ -13,6 +13,7 @@
 #pragma link C++ class  AliT0CalibLaserData+;
 #pragma link C++ class  AliT0QADataMakerRec+;
 #pragma link C++ class  AliT0RecoParam+;
+#pragma link C++ class  AliT0CalibSeasonTimeShift+;
 
 
 #endif
