@@ -237,7 +237,7 @@ void AliESDpid::MakeTOFPID(AliESDtrack *track, Float_t /*timeZeroTOF*/) const
   track->SetTOFpid(p);
 
   if (heavy) track->ResetStatus(AliESDtrack::kTOFpid);    
-  if (!CheckTOFMatching(track)) track->SetStatus(AliESDtrack::kTOFmismatch);    
+  if (!CheckTOFMatching(track)) track->SetStatus(AliESDtrack::kTOFmismatch);
   
 }
 //_________________________________________________________________________
@@ -307,10 +307,10 @@ Bool_t AliESDpid::CheckTOFMatching(AliESDtrack *track) const{
     Double_t exptimes[5];
     track->GetIntegratedTimes(exptimes);
     
-    Float_t dedx = track->GetTPCsignal();
-    Float_t time = track->GetTOFsignal();
-    
     Float_t p = track->P();
+    
+    Float_t dedx = track->GetTPCsignal();
+    Float_t time = track->GetTOFsignal() - fTOFResponse.GetStartTime(p);
     
     Double_t ptpc[3];
     track->GetInnerPxPyPz(ptpc);
@@ -324,16 +324,15 @@ Bool_t AliESDpid::CheckTOFMatching(AliESDtrack *track) const{
 	    Float_t dedxExp = fTPCResponse.GetExpectedSignal(momtpc,type);
 	    Float_t resolutionTPC = fTPCResponse.GetExpectedSigma(momtpc,track->GetTPCsignalN(),type);
 	    
-	    if(TMath::Abs(dedx - dedxExp) < fRange * resolutionTPC){
+	    if(TMath::Abs(dedx - dedxExp) < fRangeTOFMismatch * resolutionTPC){
 		status = kTRUE;
 	    }
 	}
     }
     
     // for nuclei
-    Float_t dedxExpPr = fTPCResponse.GetExpectedSignal(momtpc,AliPID::kProton);
-    Float_t resolutionTPCpr =  fTPCResponse.GetExpectedSigma(momtpc,track->GetTPCsignalN(),AliPID::kProton);
-    if(!status && (exptimes[4] < time && dedx > dedxExpPr + resolutionTPCpr*fRange)) status = kTRUE;
+    Float_t resolutionTOFpr = fTOFResponse.GetExpectedSigma(p, exptimes[4], AliPID::ParticleMass(4));
+    if(!status && (exptimes[4] + fRange*resolutionTOFpr < time)) status = kTRUE;
     
     
     return status;
