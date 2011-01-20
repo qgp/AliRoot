@@ -76,6 +76,8 @@ class AliAODPidHF : public AliAODPid{
 
  Int_t MakeRawPid(AliAODTrack *track,Int_t specie); //general method to perform PID using raw signals
 
+ Bool_t IsTOFPiKexcluded(AliAODTrack *track,Double_t nsigmaK);
+
 
 
  protected:
@@ -110,8 +112,9 @@ class AliAODPidHF : public AliAODPid{
  
 
 
- ClassDef(AliAODPidHF,6) // AliAODPid for heavy flavor PID
+ ClassDef(AliAODPidHF,7) // AliAODPid for heavy flavor PID
 
 };
 
 #endif
+
