@@ -103,12 +103,10 @@ void AliITStrackV2::UpdateESDtrack(ULong_t flags) const {
   if(flags==AliESDtrack::kITSin) {
     UChar_t itsSharedMap=0;
     for(i=0;i<AliITSgeomTGeo::kNLayers;i++) {
-      if(fSharedWeight[i]>0) {SETBIT(itsSharedMap,i);printf("UpdateESD: l %d\n",i);}
-      
+      if(fSharedWeight[i]>0) SETBIT(itsSharedMap,i);      
     }
     fESDtrack->SetITSSharedMap(itsSharedMap);
   }
-  for(i=0;i<6;i++) if(fESDtrack->HasSharedPointOnITSLayer(i)) printf("shared on %d\n",i);
 
   // copy the 4 dedx samples
   Double_t sdedx[4]={0.,0.,0.,0.};
