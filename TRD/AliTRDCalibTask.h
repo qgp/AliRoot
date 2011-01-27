@@ -105,6 +105,7 @@ class AliTRDCalibTask : public AliAnalysisTaskSE {
   AliTRDCalibraFillHisto *fTRDCalibraFillHisto;  //! calibration analyse object
 
   TH1I        *fNEvents;                         //! counter  
+  TH1I        *fNEventsInput;                    //! counter  
   
   TH1F        *fNbTRDTrack;                      //! nb ESD tracks with TRD clusters
   TH1F        *fNbTRDTrackOffline;               //! nb ESD tracks with TRD clusters
@@ -159,10 +160,13 @@ class AliTRDCalibTask : public AliAnalysisTaskSE {
   Bool_t      fOfflineTracks;                    // Only Offline refitted tracks
   Bool_t      fStandaloneTracks;                 // Take only standalone tracks
 
+  Int_t       fFirstRunGain;                     // FirstRunGainUsed 
   Int_t       fVersionGainUsed;                  // VersionGainUsed 
   Int_t       fSubVersionGainUsed;               // SubVersionGainUsed
+  Int_t       fFirstRunGainLocal;                // FirstRunGainLocalUsed 
   Int_t       fVersionGainLocalUsed;             // VersionGainLocalUsed 
   Int_t       fSubVersionGainLocalUsed;          // SubVersionGainLocalUsed
+  Int_t       fFirstRunVdrift;                   // FirstRunVdriftUsed 
   Int_t       fVersionVdriftUsed;                // VersionVdriftUsed 
   Int_t       fSubVersionVdriftUsed;             // SubVersionVdriftUsed
 
