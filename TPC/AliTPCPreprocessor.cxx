@@ -249,8 +249,11 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
   TObject * status;
 
   UInt_t dcsResult=0;
-  if (!dcsAliasMap) dcsResult=1;
-  if (dcsAliasMap->GetEntries() == 0 ) dcsResult=1;  
+  if (!dcsAliasMap) { 
+     dcsResult=1;
+  } else {
+     if (dcsAliasMap->GetEntries() == 0 ) dcsResult=1;
+  }  
   status = new TParameter<int>("dcsResult",dcsResult);
   resultArray->Add(status);
 
@@ -480,7 +483,9 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
   metaData.SetResponsible("Haavard Helstrup");
   metaData.SetAliRootVersion(ALIROOT_SVN_BRANCH);
   metaData.SetComment("Preprocessor AliTPC status.");
-  Store("Calib", "PreprocStatus", resultArray, &metaData, 0, kFALSE);
+  Bool_t storeOK = Store("Calib", "PreprocStatus", resultArray, &metaData, 0,  kFALSE);
+  if (!storeOK) Log ("Unable to store preprocessor status entry");
+ 
   resultArray->Delete();
   delete resultArray;
 
@@ -1037,7 +1042,11 @@ UInt_t AliTPCPreprocessor::ExtractCE(Int_t sourceFXS)
 	grT=(TGraph*)rocTtime->At(ind+3*nSectors/4);
 	if (grT) cside++;
      }
-     if ( (aside<kMinCESectors) && (cside<kMinCESectors) ) result=10;
+     if ( (aside<kMinCESectors) && (cside<kMinCESectors) ) {
+        Log (Form("ExtractCE: Too few fitted sectors: Aside =%d, Cside=%d\n",
+	     aside, cside)) ;
+	result=10;
+     }
 
     //
     //=== New CE part
@@ -1056,14 +1065,7 @@ UInt_t AliTPCPreprocessor::ExtractCE(Int_t sourceFXS)
         if (fileNameEntry!=NULL) {
           TString fileName = GetFile(sourceFXS, "CEnew",
                                      fileNameEntry->GetString().Data());
-          TFile *f = TFile::Open(fileName);
-          if (!f) {
-            Log ("Error opening new central electrode file.");
-//             result =2;
-            break;
-          }
-          AliTPCCalibCE *calCE;
-          f->GetObject("tpcCalibCE",calCE);
+          AliTPCCalibCE *calCE=AliTPCCalibCE::ReadFromFile(fileName.Data());        
           
           if (!calCE) {
             Log ("No valid new calibCE object.");
@@ -1077,7 +1079,6 @@ UInt_t AliTPCPreprocessor::ExtractCE(Int_t sourceFXS)
             arrFitGraphs->Add(obj->Clone());
           }
           delete calCE;
-	  f->Close();          
         }
         ++index2;
       }
@@ -1313,8 +1314,9 @@ UInt_t AliTPCPreprocessor::ExtractAltro(Int_t sourceFXS, TMap* dcsMap)
 	                                 fileNameEntry->GetString().Data());
         TFile *f = TFile::Open(fileName);
         if (!f) {
-          char message[40];
-	  sprintf(message,"Error opening Altro configuration file, id = %d",id);
+	  const int mess_length=40;
+          char message[mess_length];
+	  snprintf(message,mess_length,"Error opening Altro configuration file, id = %d",id);
 	  Log (message);
 	  result =2;
 	  break;
