@@ -513,7 +513,20 @@ Bool_t AliStack::KeepPhysics(const TParticle* part)
 	//
 	// e+e- from pair production of primary gammas
 	//
-	if ((part->GetUniqueID()) == kPPair) keep = kTRUE;
+	if ((part->GetUniqueID()) == kPPair)  keep = kTRUE;
+    }
+    //
+    // Decay(cascade) from primaries
+    // 
+    if ((part->GetUniqueID() == kPDecay) && (parent >= 0)) {
+      // Particles from decay
+      TParticle* father = GetParticleMapEntry(parent);
+      Int_t imo = parent;
+      while((imo > fHgwmk) && (father->GetUniqueID() == kPDecay)) {
+	imo =  father->GetFirstMother();
+	father = GetParticleMapEntry(imo);
+      }
+      if ((imo <= fHgwmk)) keep = kTRUE;
     }
     return keep;
 }
