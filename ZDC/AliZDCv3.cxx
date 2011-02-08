@@ -92,7 +92,11 @@ AliZDCv3::AliZDCv3() :
   //
   // Default constructor for Zero Degree Calorimeter
   //
-  
+  for(Int_t i=0; i<3; i++){
+     fDimZN[i] = fDimZP[i] = 0.;
+     fPosZNC[i] = fPosZNA[i] = fPosZPC[i]= fPosZPA[i] = fPosZEM[i] = 0.;
+     fFibZN[i] = fFibZP[i] = 0.;
+  }
 }
  
 //_____________________________________________________________________________
@@ -2195,89 +2199,132 @@ void AliZDCv3::InitTables()
  //
 
   Int_t k, j;
-
-  char *lightfName1,*lightfName2,*lightfName3,*lightfName4,
-       *lightfName5,*lightfName6,*lightfName7,*lightfName8;
-  FILE *fp1, *fp2, *fp3, *fp4, *fp5, *fp6, *fp7, *fp8;
+  int read=1;
 
   //  --- Reading light tables for ZN 
-  lightfName1 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362207s");
-  if((fp1 = fopen(lightfName1,"r")) == NULL){
+  char *lightfName1 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362207s");
+  FILE *fp1 = fopen(lightfName1,"r");
+  if(fp1 == NULL){
      printf("Cannot open file fp1 \n");
      return;
   }
-  lightfName2 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362208s");
-  if((fp2 = fopen(lightfName2,"r")) == NULL){
+  else{
+    for(k=0; k<fNalfan; k++){
+      for(j=0; j<fNben; j++){
+       read = fscanf(fp1,"%f",&fTablen[0][k][j]);
+       if(read==0) AliDebug(3, " Error in reading light table 1");
+      }
+    }
+    fclose(fp1);
+  }
+  char *lightfName2 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362208s");
+  FILE *fp2 = fopen(lightfName2,"r");
+  if(fp2 == NULL){
      printf("Cannot open file fp2 \n");
      return;
   }  
-  lightfName3 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362209s");
-  if((fp3 = fopen(lightfName3,"r")) == NULL){
+  else{
+    for(k=0; k<fNalfan; k++){
+      for(j=0; j<fNben; j++){
+       read = fscanf(fp2,"%f",&fTablen[1][k][j]);
+       if(read==0) AliDebug(3, " Error in reading light table 2");
+      }
+    }
+    fclose(fp2);
+  }
+  char *lightfName3 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362209s");
+  FILE *fp3 = fopen(lightfName3,"r");
+  if(fp3 == NULL){
      printf("Cannot open file fp3 \n");
      return;
   }
-  lightfName4 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362210s");
-  if((fp4 = fopen(lightfName4,"r")) == NULL){
+  else{
+    for(k=0; k<fNalfan; k++){
+      for(j=0; j<fNben; j++){
+       read = fscanf(fp3,"%f",&fTablen[2][k][j]);
+       if(read==0) AliDebug(3, " Error in reading light table 3");
+      }
+    }
+    fclose(fp3);
+  }
+  char *lightfName4 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620362210s");
+  FILE *fp4 = fopen(lightfName4,"r");
+  if(fp4 == NULL){
      printf("Cannot open file fp4 \n");
      return;
   }
-  
-  int read=1;
-  for(k=0; k<fNalfan; k++){
-     for(j=0; j<fNben; j++){
-       read = fscanf(fp1,"%f",&fTablen[0][k][j]);
-       if(read==0) AliDebug(3, " Error in reading light table 1");
-       read = fscanf(fp2,"%f",&fTablen[1][k][j]);
-       if(read==0) AliDebug(3, " Error in reading light table 2");
-       read = fscanf(fp3,"%f",&fTablen[2][k][j]);
-       if(read==0) AliDebug(3, " Error in reading light table 3");
+  else{
+    for(k=0; k<fNalfan; k++){
+      for(j=0; j<fNben; j++){
        read = fscanf(fp4,"%f",&fTablen[3][k][j]);
        if(read==0) AliDebug(3, " Error in reading light table 4");
-     } 
+      }
+    }
+    fclose(fp4);
   }
-  fclose(fp1);
-  fclose(fp2);
-  fclose(fp3);
-  fclose(fp4);
-  
+    
   //  --- Reading light tables for ZP and ZEM
-  lightfName5 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552207s");
-  if((fp5 = fopen(lightfName5,"r")) == NULL){
+  char *lightfName5 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552207s");
+  FILE *fp5 = fopen(lightfName5,"r");
+  if(fp5 == NULL){
      printf("Cannot open file fp5 \n");
      return;
   }
-  lightfName6 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552208s");
-  if((fp6 = fopen(lightfName6,"r")) == NULL){
+  else{
+    for(k=0; k<fNalfap; k++){
+      for(j=0; j<fNbep; j++){
+       read = fscanf(fp5,"%f",&fTablep[0][k][j]);
+       if(read==0) AliDebug(3, " Error in reading light table 5");
+      }
+    }
+    fclose(fp5);
+  }
+  char *lightfName6 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552208s");
+  FILE *fp6 = fopen(lightfName6,"r");
+  if(fp6 == NULL){
      printf("Cannot open file fp6 \n");
      return;
   }
-  lightfName7 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552209s");
-  if((fp7 = fopen(lightfName7,"r")) == NULL){
+  else{
+    for(k=0; k<fNalfap; k++){
+      for(j=0; j<fNbep; j++){
+       read = fscanf(fp6,"%f",&fTablep[1][k][j]);
+       if(read==0) AliDebug(3, " Error in reading light table 6");
+      }
+    }
+    fclose(fp6);
+  }
+  char *lightfName7 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552209s");
+  FILE *fp7 = fopen(lightfName7,"r");
+  if(fp7 == NULL){
      printf("Cannot open file fp7 \n");
      return;
   }
-  lightfName8 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552210s");
-  if((fp8 = fopen(lightfName8,"r")) == NULL){
+  else{
+    for(k=0; k<fNalfap; k++){
+      for(j=0; j<fNbep; j++){
+       read = fscanf(fp7,"%f",&fTablep[2][k][j]);
+       if(read==0) AliDebug(3, " Error in reading light table 7");
+      }
+    }
+   fclose(fp7);
+  }
+  char *lightfName8 = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/light22620552210s");
+  FILE *fp8 = fopen(lightfName8,"r");
+  if(fp8 == NULL){
      printf("Cannot open file fp8 \n");
      return;
   }
-  
-  for(k=0; k<fNalfap; k++){
-     for(j=0; j<fNbep; j++){
-       read = fscanf(fp5,"%f",&fTablep[0][k][j]);
-       if(read==0) AliDebug(3, " Error in reading light table 5");
-       read = fscanf(fp6,"%f",&fTablep[1][k][j]);
-       if(read==0) AliDebug(3, " Error in reading light table 6");
-       read = fscanf(fp7,"%f",&fTablep[2][k][j]);
-       if(read==0) AliDebug(3, " Error in reading light table 7");
+  else{
+    for(k=0; k<fNalfap; k++){
+      for(j=0; j<fNbep; j++){
        read = fscanf(fp8,"%f",&fTablep[3][k][j]);
        if(read==0) AliDebug(3, " Error in reading light table 8");
-     } 
+      }
+    }
+   fclose(fp8);
   }
-  fclose(fp5);
-  fclose(fp6);
-  fclose(fp7);
-  fclose(fp8);
+
 }
 //_____________________________________________________________________________
 void AliZDCv3::StepManager()
@@ -2286,7 +2333,7 @@ void AliZDCv3::StepManager()
   // Routine called at every step in the Zero Degree Calorimeters
   //
   Int_t   j, vol[2]={0,0}, ibeta=0, ialfa=0, ibe=0, nphe=0;
-  Float_t hits[13], x[3], xdet[3], um[3], ud[3];
+  Float_t hits[13], x[3], xdet[3]={999.,999.,999.}, um[3], ud[3];
   Float_t destep=0., be=0., out=0.;
   Double_t s[3], p[4];
   const char *knamed;
