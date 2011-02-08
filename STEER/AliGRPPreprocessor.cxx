@@ -529,8 +529,6 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	Log("*************** Processing LTU Configuration");
 	
 	if (partition.IsNull() && !detector.IsNull()){ // standalone partition
-		Log("STANDALONE partition for current run, not retrieving LTU configuration");
-		/*
 		Log("STANDALONE partition for current run, using LTU configuration dummy value");
 		AliCDBEntry *cdbEntry = GetFromOCDB("CTP","DummyLTUConfig");
 		if (!cdbEntry) {
@@ -553,7 +551,6 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 				}
 			}
 		}
-		*/
 	}
 
 	else if (!partition.IsNull() && detector.IsNull()){ // global partition
@@ -1168,6 +1165,7 @@ UInt_t AliGRPPreprocessor::ProcessDaqFxs()
 	//======DAQ FXS======//
 	
 	AliRawEventHeaderV3_9::Class()->IgnoreTObjectStreamer(); // to avoid trying reading TObject store in AliRawEventHeaderV3_9 - temporary fix 
+	AliRawEventHeaderV3_11::Class()->IgnoreTObjectStreamer(); // to avoid trying reading TObject store in AliRawEventHeaderV3_11 - temporary fix 
 	TList* list = GetFileSources(kDAQ);  
 	if (!list) {
 		Log("No raw data tag list: connection problems with DAQ FXS logbook!");
