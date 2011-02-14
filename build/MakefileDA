@@ -228,7 +228,7 @@ $(DASPECFILE): $(DATARGETDIR)
 	@echo "Name: $(DAARCNAME)" >> $@
 	@echo "Version: $(DAVERSION)" >> $@
 	@echo "Release: $(DAALIROOTRELEASE)" >> $@
-	@echo "Copyright: CERN Alice DAQ/Offine" >> $@
+	@echo "License: CERN Alice DAQ/Offine" >> $@
 	@echo "Source: %{name}-%{version}.src.tar.gz" >> $@
 	@echo "Group: Applications/Alice" >> $@
 	@echo "Prefix: /opt/%{name}" >> $@
