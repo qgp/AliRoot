@@ -123,9 +123,9 @@ void AliZDCReconstructor::Init()
   AliCDBEntry *entry = AliCDBManager::Instance()->Get("GRP/Calib/LHCClockPhase"); 
   if (!entry) AliFatal("LHC clock-phase shift is not found in OCDB !");
   AliLHCClockPhase *phaseLHC = (AliLHCClockPhase*)entry->GetObject();
-  // 4/2/2011 According to A. Di Mauro BEAM 2 measurement is more reliable 
-  // than BEAM1 and therefore laso than the average of the 2
-  fMeanPhase = phaseLHC->GetMeanPhaseB2();
+  // 4/2/2011 According to A. Di Mauro BEAM1 measurement is more reliable 
+  // than BEAM2 and therefore also than the average of the 2
+  fMeanPhase = phaseLHC->GetMeanPhaseB1();
     
   if(fIsCalibrationMB==kFALSE)  
     printf("\n\n ***** ZDC reconstruction initialized for %s @ %1.0f + %1.0f GeV *****\n\n",
@@ -386,7 +386,7 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
   Int_t tdcData[32][4];	
   for(Int_t k=0; k<32; k++){
     scalerData[k]=0;
-    for(Int_t i=0; i<4; i++) tdcData[k][i]=0.;
+    for(Int_t i=0; i<4; i++) tdcData[k][i]=0;
   }
   
   
@@ -1017,15 +1017,15 @@ void AliZDCReconstructor::ReconstructEventPbPb(TTree *clustersTree,
   Float_t calibTowZN1[10], calibTowZN2[10], calibTowZP1[10], calibTowZP2[10];
   for(Int_t gi=0; gi<5; gi++){
      // High gain chain
-     calibTowZN1[gi] = equalTowZN1[gi]*calibEne[0]*8.;
-     calibTowZP1[gi] = equalTowZP1[gi]*calibEne[1]*8.;
-     calibTowZN2[gi] = equalTowZN2[gi]*calibEne[2]*8.;
-     calibTowZP2[gi] = equalTowZP2[gi]*calibEne[3]*8.;
+     calibTowZN1[gi] = equalTowZN1[gi]*2*calibEne[0]*8.;
+     calibTowZP1[gi] = equalTowZP1[gi]*2*calibEne[1]*8.;
+     calibTowZN2[gi] = equalTowZN2[gi]*2*calibEne[2]*8.;
+     calibTowZP2[gi] = equalTowZP2[gi]*2*calibEne[3]*8.;
      // Low gain chain
-     calibTowZN1[gi+5] = equalTowZN1[gi+5]*calibEne[0];
-     calibTowZP1[gi+5] = equalTowZP1[gi+5]*calibEne[1];
-     calibTowZN2[gi+5] = equalTowZN2[gi+5]*calibEne[2];
-     calibTowZP2[gi+5] = equalTowZP2[gi+5]*calibEne[3];
+     calibTowZN1[gi+5] = equalTowZN1[gi+5]*2*calibEne[0];
+     calibTowZP1[gi+5] = equalTowZP1[gi+5]*2*calibEne[1];
+     calibTowZN2[gi+5] = equalTowZN2[gi+5]*2*calibEne[2];
+     calibTowZP2[gi+5] = equalTowZP2[gi+5]*2*calibEne[3];
   }
 
   // Ch. debug
