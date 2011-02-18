@@ -188,6 +188,15 @@ void AliTPCDigitizer::ExecFast(Option_t* option)
        {
         cerr<<"AliTPCDigitizer: Input tree with SDigits not found in"
             <<" input "<< i1<<endl;
+        for (Int_t i2=0;i2<i1+1; i2++){ 
+          
+          if(digarr[i2])  delete digarr[i2];
+	}
+        delete [] digarr;
+        delete [] active;
+        delete []masks;
+        delete []pdig;
+        delete []ptr;
         return;
        }
 
@@ -197,6 +206,14 @@ void AliTPCDigitizer::ExecFast(Option_t* option)
       if(!ph){
         cerr<<"AliTPCDigitizer: LHC phase  not found in"
             <<" input "<< i1<<endl;
+        for (Int_t i2=0;i2<i1+1; i2++){ 
+          if(digarr[i2])  delete digarr[i2];
+	}
+        delete [] digarr;
+        delete [] active;
+        delete []masks;
+        delete []pdig;
+        delete []ptr;
         return;
       }
       tree->GetUserInfo()->Add(new TParameter<float>(phname,ph->GetVal()));
@@ -390,9 +407,11 @@ void AliTPCDigitizer::ExecSave(Option_t* option)
     masks[i]= fManager->GetMask(i);
 
   AliSimDigits ** digarr = new AliSimDigits*[nInputs]; 
+  for(Int_t ii=0;ii<nInputs;ii++) digarr[ii]=0;
+
   for (Int_t i1=0;i1<nInputs; i1++)
    {
-    digarr[i1]=0;
+     //digarr[i1]=0;
     //    intree[i1]
     rl = AliRunLoader::GetRunLoader(fManager->GetInputFolderName(i1));
     gime = rl->GetLoader("TPCLoader");

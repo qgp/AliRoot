@@ -108,6 +108,7 @@ ClassImp(AliTPC)
   // Default constructor
   //
   fIshunt   = 0;
+  for(Int_t i=0;i<4;i++) fCurrentIndex[i]=0;
  
   //  fTrackHitsOld = 0;   
 #if ROOT_VERSION_CODE >= ROOT_VERSION(4,0,1)
@@ -165,7 +166,7 @@ AliTPC::AliTPC(const char *name, const char *title)
   fHitType = 2;
 #endif
 
-
+  for(Int_t i=0;i<4;i++) fCurrentIndex[i]=0;
 
   //
   fIshunt     =  0;
@@ -1536,13 +1537,10 @@ void AliTPC::Hits2DigitsSector(Int_t isec)
 
   Stat_t ntracks = tH->GetEntries();
 
-
-
-    TObjArray **row;
-    
     Int_t nrows =fTPCParam->GetNRow(isec);
 
-    row= new TObjArray* [nrows+2]; // 2 extra rows for cross talk
+    TObjArray **row=new TObjArray* [nrows+2]; // 2 extra rows for cross talk
+    for(Int_t j=0;j<nrows+2;j++) row[j]=0;
     
     MakeSector(isec,nrows,tH,ntracks,row);
 

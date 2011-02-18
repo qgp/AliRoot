@@ -4,30 +4,9 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
+
 ////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
 // AliTPCCorrection class                                                     //
-//                                                                            //
-// This class provides a general framework to deal with space point           //
-// distortions. An correction class which inherits from here is for example   //
-// AliTPCExBBShape or AliTPCExBTwist                                          //
-//                                                                            //
-// General functions are (for example):                                       //
-//   CorrectPoint(x,roc) where x is the vector of inital positions in         //
-//   cartesian coordinates and roc represents the Read Out chamber number     //
-//   according to the offline naming convention. The vector x is overwritten  //
-//   with the corrected coordinates.                                          //
-//                                                                            //
-// An alternative usage would be CorrectPoint(x,roc,dx), which leaves the     //
-//   vector x untouched, put returns the distortions via the vector dx        //
-//                                                                            //
-// The class allows "effective Omega Tau" corrections to be shifted to the    //
-// single distortion classes.                                                 //
-//                                                                            //
-// Note: This class is normally used via the class AliTPCComposedCorrection   //
-//                                                                            //
-// date: 27/04/2010                                                           //
-// Authors: Magnus Mager, Stefan Rossegger, Jim Thomas                        //
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -54,11 +33,13 @@ public:
 
   // functions to correct a space point
           void CorrectPoint (      Float_t x[],const Short_t roc);
+          void CorrectPointLocal(Float_t x[],const Short_t roc);
           void CorrectPoint (const Float_t x[],const Short_t roc,Float_t xp[]);
   virtual void GetCorrection(const Float_t x[],const Short_t roc,Float_t dx[]);
 
   // functions to distort a space point
           void DistortPoint (      Float_t x[],const Short_t roc);
+          void DistortPointLocal(Float_t x[],const Short_t roc);
           void DistortPoint (const Float_t x[],const Short_t roc,Float_t xp[]);
   virtual void GetDistortion(const Float_t x[],const Short_t roc,Float_t dx[]);
 
@@ -79,12 +60,16 @@ public:
 
 
   TTree* CreateDistortionTree(Double_t step=5);
-  static void  MakeDistortionMap(THnSparse * his0, TTreeSRedirector *pcstream, const char* hname, Int_t run);
+  static void  MakeDistortionMap(THnSparse * his0, TTreeSRedirector *pcstream, const char* hname, Int_t run,  Float_t refX, Int_t type);
+  static void  MakeDistortionMapCosmic(THnSparse * his0, TTreeSRedirector *pcstream, const char* hname, Int_t run,  Float_t refX, Int_t type);
+  static void  MakeDistortionMapSector(THnSparse * his0, TTreeSRedirector *pcstream, const char* hname, Int_t run, Int_t type);
   // normally called directly in the correction classes which inherit from this class
   virtual void SetOmegaTauT1T2(Float_t omegaTau,Float_t t1,Float_t t2);
   AliExternalTrackParam * FitDistortedTrack(AliExternalTrackParam & trackIn, Double_t refX, Int_t dir,TTreeSRedirector *pcstream);
   void StoreInOCDB(Int_t startRun, Int_t endRun, const char *comment=0);
-  static void MakeTrackDistortionTree(TTree *tinput, Int_t dtype, Int_t ptype, const TObjArray * corrArray, Int_t step=1, Bool_t debug=0);
+  static void MakeTrackDistortionTree(TTree *tinput, Int_t dtype, Int_t ptype, const TObjArray * corrArray, Int_t step=1, Int_t offset=0, Bool_t debug=0);
+  static void MakeSectorDistortionTree(TTree *tinput, Int_t dtype, Int_t ptype, const TObjArray * corrArray, Int_t step=1, Int_t offset=0, Bool_t debug=0);
+  static void MakeLaserDistortionTreeOld(TTree* tree, TObjArray *corrArray, Int_t itype);
   static void MakeLaserDistortionTree(TTree* tree, TObjArray *corrArray, Int_t itype);
 
   void FastSimDistortedVertex(Double_t orgVertex[3], Int_t nTracks, AliESDVertex &aV, AliESDVertex &avOrg, AliESDVertex &cV, AliESDVertex &cvOrg, TTreeSRedirector * const pcstream, Double_t etaCuts);

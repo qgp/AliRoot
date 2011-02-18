@@ -36,8 +36,10 @@
   // default storage ""- data stored at current working directory 
  
   e.g.
-  AliTPCPreprocessorOffline process;
-  process.CalibTimeGain("CalibObjects.root",114000,121040,0);
+  gSystem->Load("libANALYSIS");
+  gSystem->Load("libTPCcalib");
+  AliTPCPreprocessorOffline proces;
+  proces.CalibTimeGain("TPCMultObjects.root",114000,140040,0);
   TFile oo("OCDB/TPC/Calib/TimeGain/Run114000_121040_v0_s0.root")
   TObjArray * arr = AliCDBEntry->GetObject()
   arr->At(4)->Draw("alp")
@@ -72,6 +74,7 @@
 #include "AliRelAlignerKalman.h"
 #include "AliTPCParamSR.h"
 #include "AliTPCcalibTimeGain.h"
+#include "AliTPCcalibGainMult.h"
 #include "AliSplineFit.h"
 #include "AliTPCPreprocessorOffline.h"
 
@@ -96,6 +99,7 @@ AliTPCPreprocessorOffline::AliTPCPreprocessorOffline():
   fGainArray(new TObjArray),               // array to be stored in the OCDB
   fGainMIP(0),          // calibration component for MIP
   fGainCosmic(0),       // calibration component for cosmic
+  fGainMult(0),
   fSwitchOnValidation(kFALSE) // flag to switch on validation of OCDB parameters
 {
   //
@@ -377,6 +381,10 @@ TGraphErrors* AliTPCPreprocessorOffline::FilterGraphMedianAbs(TGraphErrors * gra
   }
   TGraphErrors *graphOut=0;
   if (npoints>1) graphOut= new TGraphErrors(npoints,outx,outy,errx,erry); 
+  delete []outx;
+  delete []outy;
+  delete []errx;
+  delete []erry;
   return graphOut;
 }
 
@@ -415,14 +423,16 @@ void AliTPCPreprocessorOffline::AddHistoGraphs(  TObjArray * vdriftArray, AliTPC
 	continue;
       }
       //
-      graph->SetMarkerStyle(i%8+20);
-      graph->SetMarkerColor(i%7);
-      graph->GetXaxis()->SetTitle("Time");
-      graph->GetYaxis()->SetTitle("v_{dcor}");
-      graph->SetName(graphName);
-      graph->SetTitle(graphName);
-      printf("Graph %d\t=\t%s\n", i, graphName.Data());
-      vdriftArray->Add(graph);
+      if (graph){
+        graph->SetMarkerStyle(i%8+20);
+        graph->SetMarkerColor(i%7);
+        graph->GetXaxis()->SetTitle("Time");
+        graph->GetYaxis()->SetTitle("v_{dcor}");
+        graph->SetName(graphName);
+        graph->SetTitle(graphName);
+        printf("Graph %d\t=\t%s\n", i, graphName.Data());
+        vdriftArray->Add(graph);
+      }
     }
   }
 }
@@ -703,7 +713,7 @@ void AliTPCPreprocessorOffline::MakeDefaultPlots(TObjArray * const arr, TObjArra
     //picArray->AddLast(pad);
   }
 
-  if (itstpcP&&itstpcM){
+  if (itstpcP&&itstpcM&&itstpcB){
     pad = new TCanvas("ITSTPC","ITSTPC");
     itstpcP->Draw("alp");
     SetPadStyle(pad,mx0,mx1,my0,my1);    
@@ -720,7 +730,7 @@ void AliTPCPreprocessorOffline::MakeDefaultPlots(TObjArray * const arr, TObjArra
     //picArray->AddLast(pad);
   }
 
-  if (itstpcB&&laserA){
+  if (itstpcB&&laserA&&itstpcP&&itstpcM){
     pad = new TCanvas("ITSTPC_LASER","ITSTPC_LASER");
     SetPadStyle(pad,mx0,mx1,my0,my1);    
     laserA->Draw("alp");
@@ -787,7 +797,8 @@ void AliTPCPreprocessorOffline::CalibTimeGain(const Char_t* fileName, Int_t star
   //
   AnalyzeGain(startRunNumber,endRunNumber, 1000,1.43);
   AnalyzeAttachment(startRunNumber,endRunNumber);
-
+  AnalyzePadRegionGain();
+  AnalyzeGainMultiplicity();
   //
   // 3. Make control plots
   //
@@ -816,9 +827,11 @@ void AliTPCPreprocessorOffline::ReadGainGlobal(const Char_t* fileName){
   if (array){
     fGainMIP    = ( AliTPCcalibTimeGain *)array->FindObject("calibTimeGain");
     fGainCosmic = ( AliTPCcalibTimeGain *)array->FindObject("calibTimeGainCosmic");
+    fGainMult   = ( AliTPCcalibGainMult *)array->FindObject("calibGainMult");
   }else{
     fGainMIP    = ( AliTPCcalibTimeGain *)fcalib.Get("calibTimeGain");
     fGainCosmic = ( AliTPCcalibTimeGain *)fcalib.Get("calibTimeGainCosmic");
+    fGainMult   = ( AliTPCcalibGainMult *)fcalib.Get("calibGainMult");
   }
   TH1 * hisT=0;
   Int_t firstBinA =0, lastBinA=0;
@@ -963,6 +976,114 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeAttachment(Int_t startRunNumber, Int_t 
   delete hist;
   //
   if (counter < 1) return kFALSE;
+  return kTRUE;
+
+}
+
+
+Bool_t AliTPCPreprocessorOffline::AnalyzePadRegionGain(){
+  //
+  // Analyze gain for different pad regions - produce the calibration graphs 0,1,2
+  //
+  if (fGainMult) 
+  {
+    TH2D * histQmax = (TH2D*) fGainMult->GetHistPadEqual()->Projection(0,2);
+    TH2D * histQtot = (TH2D*) fGainMult->GetHistPadEqual()->Projection(1,2);
+    //
+    TObjArray arr;
+    histQmax->FitSlicesY(0,0,-1,0,"QNR",&arr);
+    Double_t xMax[3] = {0,1,2};
+    Double_t yMax[3]    = {((TH1D*)arr.At(1))->GetBinContent(1),
+			   ((TH1D*)arr.At(1))->GetBinContent(2),
+			   ((TH1D*)arr.At(1))->GetBinContent(3)};
+    Double_t yMaxErr[3] = {((TH1D*)arr.At(1))->GetBinError(1),
+			   ((TH1D*)arr.At(1))->GetBinError(2),
+			   ((TH1D*)arr.At(1))->GetBinError(3)};
+    TGraphErrors * fitPadRegionQmax = new TGraphErrors(3, xMax, yMax, 0, yMaxErr);
+    //
+    histQtot->FitSlicesY(0,0,-1,0,"QNR",&arr);
+    Double_t xTot[3] = {0,1,2};
+    Double_t yTot[3]    = {((TH1D*)arr.At(1))->GetBinContent(1),
+			   ((TH1D*)arr.At(1))->GetBinContent(2),
+			   ((TH1D*)arr.At(1))->GetBinContent(3)};
+    Double_t yTotErr[3] = {((TH1D*)arr.At(1))->GetBinError(1),
+			   ((TH1D*)arr.At(1))->GetBinError(2),
+			   ((TH1D*)arr.At(1))->GetBinError(3)};
+    TGraphErrors * fitPadRegionQtot = new TGraphErrors(3, xTot, yTot, 0, yTotErr);
+    //
+    fitPadRegionQtot->SetName("TGRAPHERRORS_MEANQTOT_PADREGIONGAIN_BEAM_ALL");// set proper names according to naming convention
+    fitPadRegionQmax->SetName("TGRAPHERRORS_MEANQMAX_PADREGIONGAIN_BEAM_ALL");// set proper names according to naming convention
+    //
+    fGainArray->AddLast(fitPadRegionQtot);
+    fGainArray->AddLast(fitPadRegionQmax);
+    return kTRUE;
+  } 
+  return kFALSE;
+
+}
+
+
+Bool_t AliTPCPreprocessorOffline::AnalyzeGainMultiplicity() {
+  //
+  // Analyze gain as a function of multiplicity and produce calibration graphs
+  //
+  if (!fGainMult) return kFALSE;
+  fGainMult->GetHistGainMult()->GetAxis(3)->SetRangeUser(3,3);
+  TH2D * histMultMax = fGainMult->GetHistGainMult()->Projection(0,4);
+  TH2D * histMultTot = fGainMult->GetHistGainMult()->Projection(1,4);
+  histMultMax->RebinX(4);
+  histMultTot->RebinX(4);
+  //
+  TObjArray arrMax;
+  TObjArray arrTot;
+  histMultMax->FitSlicesY(0,0,-1,0,"QNR",&arrMax);
+  histMultTot->FitSlicesY(0,0,-1,0,"QNR",&arrTot);
+  //
+  TH1D * meanMax = (TH1D*)arrMax.At(1);
+  TH1D * meanTot = (TH1D*)arrTot.At(1);
+  Float_t meanMult = histMultMax->GetMean();
+  meanMax->Scale(1./meanMax->GetBinContent(meanMax->FindBin(meanMult)));
+  meanTot->Scale(1./meanTot->GetBinContent(meanTot->FindBin(meanMult)));
+  Float_t xMultMax[50];
+  Float_t yMultMax[50];
+  Float_t yMultErrMax[50];
+  Float_t xMultTot[50];
+  Float_t yMultTot[50];
+  Float_t yMultErrTot[50];
+  //
+  Int_t nCountMax = 0;
+  for(Int_t iBin = 1; iBin < meanMax->GetXaxis()->GetNbins(); iBin++) {
+    Float_t yValMax = meanMax->GetBinContent(iBin);
+    if (yValMax < 0.01) continue;
+    if (meanMax->GetBinError(iBin)/yValMax > 0.01) continue;
+    xMultMax[nCountMax] = meanMax->GetXaxis()->GetBinCenter(iBin);
+    yMultMax[nCountMax] = yValMax;
+    yMultErrMax[nCountMax] = meanMax->GetBinError(iBin);
+    nCountMax++;
+  }
+  //
+  if (nCountMax < 10) return kFALSE;
+  TGraphErrors * fitMultMax = new TGraphErrors(nCountMax, xMultMax, yMultMax, 0, yMultErrMax);
+  fitMultMax->SetName("TGRAPHERRORS_MEANQMAX_MULTIPLICITYDEPENDENCE_BEAM_ALL");
+  //
+  Int_t nCountTot = 0;
+  for(Int_t iBin = 1; iBin < meanTot->GetXaxis()->GetNbins(); iBin++) {
+    Float_t yValTot = meanTot->GetBinContent(iBin);
+    if (yValTot < 0.1) continue;
+    if (meanTot->GetBinError(iBin)/yValTot > 0.1) continue;
+    xMultTot[nCountTot] = meanTot->GetXaxis()->GetBinCenter(iBin);
+    yMultTot[nCountTot] = yValTot;
+    yMultErrTot[nCountTot] = meanTot->GetBinError(iBin);
+    nCountTot++;
+  }
+  //
+  if (nCountTot < 10) return kFALSE;
+  TGraphErrors *  fitMultTot = new TGraphErrors(nCountTot, xMultTot, yMultTot, 0, yMultErrTot);
+  fitMultTot->SetName("TGRAPHERRORS_MEANQTOT_MULTIPLICITYDEPENDENCE_BEAM_ALL");
+  //
+  fGainArray->AddLast(fitMultMax);
+  fGainArray->AddLast(fitMultTot);
+  //
   return kTRUE;
 
 }
