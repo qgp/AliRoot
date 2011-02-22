@@ -774,14 +774,16 @@ void    AliTPC::SetActiveSectors(Int_t flag)
     return;
   }
   for (Int_t i=0;i<fTPCParam->GetNSector();i++) fActiveSectors[i]=kFALSE;
-  TBranch * branch=0;
+  //TBranch * branch=0;
   if (fLoader->TreeH() == 0x0)
    {
      AliFatal("Can not find TreeH in folder");
      return;
    }
-  if (fHitType>1) branch = fLoader->TreeH()->GetBranch("TPC2");
-  else branch = fLoader->TreeH()->GetBranch("TPC");
+  //if (fHitType>1) branch = fLoader->TreeH()->GetBranch("TPC2");
+  if (fHitType>1) fLoader->TreeH()->GetBranch("TPC2");
+  //else branch = fLoader->TreeH()->GetBranch("TPC");
+  else fLoader->TreeH()->GetBranch("TPC");
   Stat_t ntracks = fLoader->TreeH()->GetEntries();
   // loop over all hits
   AliDebug(1,Form("Got %d tracks", (Int_t) ntracks));
@@ -1209,25 +1211,20 @@ void AliTPC::SetDefaults(){
   //
   AliRunLoader* rl = (AliRunLoader*)fLoader->GetEventFolder()->FindObject(AliRunLoader::GetRunLoaderName());
   rl->CdGAFile();
-  AliTPCParamSR *param=(AliTPCParamSR*)gDirectory->Get("75x40_100x60");
-  // if(param){
-//     AliInfo("You are using 2 pad-length geom hits with 3 pad-lenght geom digits...");
-//     delete param;
-//     param = new AliTPCParamSR();
-//   }
-//   else {
-//     param=(AliTPCParamSR*)gDirectory->Get("75x40_100x60_150x60");
-//   }
-  param = (AliTPCParamSR*)AliTPCcalibDB::Instance()->GetParameters();
+  //AliTPCParamSR *param=(AliTPCParamSR*)gDirectory->Get("75x40_100x60");
+  //gDirectory->Get("75x40_100x60");
+  AliTPCParamSR *param = (AliTPCParamSR*)AliTPCcalibDB::Instance()->GetParameters();
+  if(!param){
+    AliFatal("No TPC parameters found");
+    return;
+  }
   if (!param->IsGeoRead()){
       //
       // read transformation matrices for gGeoManager
       //
       param->ReadGeoMatrices();
     }
-  if(!param){
-    AliFatal("No TPC parameters found");
-  }
+
 
 
   AliTPCPRF2D    * prfinner   = new AliTPCPRF2D;
