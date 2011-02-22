@@ -1892,7 +1892,6 @@ Bool_t AliSimulation::ConvertRaw2SDigits(const char* rawDirectory, const char* e
 	runLoader->SetEventNumber(nev);
         runLoader->GetHeader()->Reset(rawReader->GetRunNumber(), 
                                       nev, nev);
-	runLoader->TreeE()->Fill();
         runLoader->GetEvent(nev);
         AliInfo(Form("We are at event %d",nev));
 	//
@@ -1927,6 +1926,7 @@ Bool_t AliSimulation::ConvertRaw2SDigits(const char* rawDirectory, const char* e
 	}
 //
 //      Finish the event
+	runLoader->TreeE()->Fill();
         AliInfo(Form("Finished event %d",nev));
 	nev++;
         if (N>0&&nev>=N)

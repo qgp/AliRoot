@@ -68,7 +68,13 @@ public:
   virtual Bool_t IsCalibrated() const=0;
   /// Set the calibrated status
   virtual void Calibrated(Bool_t value)=0;
+
+  /// Whether this digit has charge in femto coulomb
+  virtual Bool_t IsChargeInFC() const { return kFALSE; }
   
+  /// Whether or not this digit was obtained from a conversion (e.g. real to simulated)
+  virtual Bool_t IsConverted() const { return kFALSE; }
+
   /// Whether this digit is used somewhere (typically in a cluster)
   virtual Bool_t IsUsed() const = 0;
   /// Set the used status

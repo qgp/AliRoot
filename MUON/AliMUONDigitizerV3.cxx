@@ -104,7 +104,7 @@ fLogger(new AliMUONLogger(1000)),
 fTriggerStore(new AliMUONTriggerStoreV1),
 fDigitStore(0x0),
 fOutputDigitStore(0x0),
-fInputDigitStore(0x0)
+fInputDigitStores(0x0)
 {
   /// Ctor.
 
@@ -125,7 +125,7 @@ AliMUONDigitizerV3::~AliMUONDigitizerV3()
   delete fTriggerStore;
   delete fDigitStore;
   delete fOutputDigitStore;
-  delete fInputDigitStore;
+  delete fInputDigitStores;
   
   AliInfo("Summary of messages");
   fLogger->Print();
@@ -144,7 +144,7 @@ AliMUONDigitizerV3::ApplyResponseToTrackerDigit(AliMUONVDigit& digit, Bool_t add
   /// - add some electronics noise (thus leading to a realistic adc), if requested to do so
   /// - sets the signal to zero if below 3*sigma of the noise
 
-  Float_t charge = digit.Charge();
+  Float_t charge = digit.IsChargeInFC() ? digit.Charge()*AliMUONConstants::FC2ADC() : digit.Charge();
   
   // We set the charge to 0, as the only relevant piece of information
   // after Digitization is the ADC value.  
@@ -210,7 +210,9 @@ AliMUONDigitizerV3::ApplyResponse(const AliMUONVDigitStore& store,
     
     if ( stationType != AliMp::kStationTrigger )
     {
-      ApplyResponseToTrackerDigit(*digit,kAddNoise);
+      Bool_t addNoise = kAddNoise;
+      if (digit->IsConverted()) addNoise = kFALSE; // No need to add extra noise to a converted real digit
+      ApplyResponseToTrackerDigit(*digit,addNoise);
     }
 
     if ( digit->ADC() > 0  || digit->Charge() > 0 )
@@ -241,12 +243,13 @@ AliMUONDigitizerV3::DecalibrateTrackerDigit(const AliMUONVCalibParam& pedestals,
   Float_t pedestalSigma = pedestals.ValueAsFloat(channel,1);
   
   AliDebugClass(1,Form("DE %04d MANU %04d CH %02d PEDMEAN %7.2f PEDSIGMA %7.2f",
-                       pedestals.ID0(),pedestals.ID1(),channel,pedestalMean,pedestalSigma));
+		       pedestals.ID0(),pedestals.ID1(),channel,pedestalMean,pedestalSigma));
   
   Float_t a0 = gains.ValueAsFloat(channel,0);
   Float_t a1 = gains.ValueAsFloat(channel,1);
   Int_t thres = gains.ValueAsInt(channel,2);
   Int_t qual = gains.ValueAsInt(channel,3);
+
   if ( qual <= 0 ) return 0;
   
   Float_t chargeThres = a0*thres;
@@ -324,6 +327,19 @@ AliMUONDigitizerV3::DecalibrateTrackerDigit(const AliMUONVCalibParam& pedestals,
   
   if ( adc < TMath::Nint(pedestalMean + fgNSigmas*pedestalSigma + 0.5) ) 
   {
+    // this is an error only in specific cases
+    if ( !addNoise || (addNoise && noiseOnly) ) 
+    {
+      AliErrorClass(Form(" DE %04d Manu %04d Channel %02d "
+                         " a0 %7.2f a1 %7.2f thres %04d ped %7.2f pedsig %7.2f adcNoise %7.2f "
+                         " charge=%7.2f padc=%7.2f adc=%04d ZS=%04d fgNSigmas=%e addNoise %d noiseOnly %d ",
+                         pedestals.ID0(),pedestals.ID1(),channel, 
+                         a0, a1, thres, pedestalMean, pedestalSigma, adcNoise,
+                         charge, padc, adc, 
+                         TMath::Nint(pedestalMean + fgNSigmas*pedestalSigma + 0.5),
+                         fgNSigmas,addNoise,noiseOnly));
+    }
+    
     adc = 0;
   }
   
@@ -338,12 +354,19 @@ AliMUONDigitizerV3::DecalibrateTrackerDigit(const AliMUONVCalibParam& pedestals,
 
 //_____________________________________________________________________________
 void
-AliMUONDigitizerV3::CreateInputDigitStore()
+AliMUONDigitizerV3::CreateInputDigitStores()
 {
-  /// Create an input digit store, and check that all input files
-  /// actually contains the same type of AliMUONVDigitStore
+  /// Create input digit stores
+  /// 
   
-  fInputDigitStore = 0x0;
+  if (fInputDigitStores)
+  {
+    AliFatal("Should be called only once !");
+  }
+  
+  fInputDigitStores = new TObjArray;
+  
+  fInputDigitStores->SetOwner(kTRUE);
   
   for ( Int_t iFile = 0; iFile < fManager->GetNinputs(); ++iFile )
   {    
@@ -357,19 +380,7 @@ AliMUONDigitizerV3::CreateInputDigitStore()
       AliFatal(Form("Could not get access to input file #%d",iFile));
     }
     
-    AliMUONVDigitStore* inputStore = AliMUONVDigitStore::Create(*iTreeS);
-    
-    if (!fInputDigitStore)
-    {
-      fInputDigitStore = inputStore;
-    }
-    else
-    {
-      if ( inputStore->IsA() != fInputDigitStore->IsA() )
-      {
-        AliFatal("Got different types of AliMUONVDigitStore here. Please implement me.");
-      }
-    }
+    fInputDigitStores->AddAt(AliMUONVDigitStore::Create(*iTreeS),iFile);
   }
 }
 
@@ -384,8 +395,6 @@ AliMUONDigitizerV3::Exec(Option_t*)
   /// And we finally generate the trigger outputs.
     
   AliCodeTimerAuto("",0)
-  
-  AliDebug(1, "Running digitizer.");
   
   if ( fManager->GetNinputs() == 0 )
   {
@@ -416,7 +425,7 @@ AliMUONDigitizerV3::Exec(Option_t*)
   // files.
   
   for ( Int_t iFile = 0; iFile < nInputFiles; ++iFile )
-  {    
+  {  
     AliLoader* inputLoader = GetLoader(fManager->GetInputFolderName(iFile));
 
     inputLoader->LoadSDigits("READ");
@@ -427,20 +436,24 @@ AliMUONDigitizerV3::Exec(Option_t*)
       AliFatal(Form("Could not get access to input file #%d",iFile));
     }
 
-    if (!fInputDigitStore)
+    if (!fInputDigitStores)
     {
-      CreateInputDigitStore();
+      CreateInputDigitStores();      
     }
-    fInputDigitStore->Connect(*iTreeS);
+    
+    AliMUONVDigitStore* dstore = static_cast<AliMUONVDigitStore*>(fInputDigitStores->At(iFile));
+    
+    dstore->Connect(*iTreeS);
     
     iTreeS->GetEvent(0);
-    
-    MergeWithSDigits(fDigitStore,*fInputDigitStore,fManager->GetMask(iFile));
+
+    MergeWithSDigits(fDigitStore,*dstore,fManager->GetMask(iFile));
 
     inputLoader->UnloadSDigits();
     
-    fInputDigitStore->Clear();
+    dstore->Clear();
   }
+
   
   // At this point, we do have digit arrays (one per chamber) which contains 
   // the merging of all the sdigits of the input file(s).
@@ -457,9 +470,8 @@ AliMUONDigitizerV3::Exec(Option_t*)
     // Generate noise-only digits for trigger.
     GenerateNoisyDigitsForTrigger(*fDigitStore);
   }
-
   ApplyResponse(*fDigitStore,*fOutputDigitStore);
-  
+
   if ( fGenerateNoisyDigits )
   {
     // Generate noise-only digits for tracker.
