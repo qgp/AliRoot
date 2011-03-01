@@ -425,8 +425,8 @@ cc      SAVE /para5/
 cc      SAVE /prec1/
         common /prec5/ eta(MAXPTN), rap(MAXPTN), tau(MAXPTN)
 cc      SAVE /prec5/
-        common /lor/ enenew, pxnew, pynew, pznew
-cc      SAVE /lor/
+        common /lora/ enenew, pxnew, pynew, pznew
+cc      SAVE /lora/
         common /rndm3/ iseedp
 cc      SAVE /rndm3/
         SAVE   
@@ -445,7 +445,7 @@ cc        external ran1
         do 1001 i = mul + 1, mul + incmul
            ityp0(i) = 21
            xmass0(i) = xmp
-           call energy(e, temp)
+           call energya(e, temp)
            call momntm(px, py, pz, e)
 c     7/20/01:
 c           e = sqrt(e ** 2 + xmp ** 2)
@@ -455,7 +455,7 @@ c           e = sqrt(e ** 2 + xmp ** 2)
               bex = 0d0
               bey = 0d0
               bez = -tanh(eta(i))
-              call lorenz(e, px, py, pz, bex, bey, bez)
+              call lorenza(e, px, py, pz, bex, bey, bez)
               px0(i) = pxnew
               py0(i) = pynew
               pz0(i) = pznew
@@ -564,7 +564,7 @@ cc      SAVE /rndm3/
         return
         end
         
-        subroutine energy(e, temp)
+        subroutine energya(e, temp)
 
 c       to generate the magnitude of the momentum e,
 c       knowing the temperature of the local thermal distribution temp
@@ -636,11 +636,11 @@ cc      SAVE /para6/
      &       PX0(MAXPTN), PY0(MAXPTN), PZ0(MAXPTN), E0(MAXPTN),
      &       XMASS0(MAXPTN), ITYP0(MAXPTN)
 cc      SAVE /prec1/
-        common /lor/ enenew, pxnew, pynew, pznew
-cc      SAVE /lor/
+        common /lora/ enenew, pxnew, pynew, pznew
+cc      SAVE /lora/
         SAVE   
 
-        external lorenz
+        external lorenza
 
         bex = 0d0 
         bey = 0d0
@@ -652,7 +652,7 @@ c       save data for many runs of the same initial condition
            py1 = gy0(i)
            pz1 = gz0(i)
            e1 = ft0(i)
-           call lorenz(e1, px1, py1, pz1, bex, bey, bez)
+           call lorenza(e1, px1, py1, pz1, bex, bey, bez)
            gx0(i) = pxnew
            gy0(i) = pynew
            gz0(i) = pznew
@@ -661,7 +661,7 @@ c       save data for many runs of the same initial condition
            py1 = py0(i)
            pz1 = pz0(i)
            e1 = e0(i)
-           call lorenz(e1, px1, py1, pz1, bex, bey, bez)
+           call lorenza(e1, px1, py1, pz1, bex, bey, bez)
            px0(i) = pxnew
            py0(i) = pynew
            pz0(i) = pznew
@@ -1914,8 +1914,8 @@ cc      SAVE /aurec2/
 cc      SAVE /ilist1/
         common /ilist3/ size1, size2, size3, v1, v2, v3, size
 cc      SAVE /ilist3/
-        common /lor/ enenew, pxnew, pynew, pznew
-cc      SAVE /lor/
+        common /lora/ enenew, pxnew, pynew, pznew
+cc      SAVE /lora/
         common /cprod/ xn1, xn2, xn3
 cc      SAVE /cprod/
         common /rndm2/ iff
@@ -2021,7 +2021,7 @@ ctransend
         bey = (py1 + py2) / (e1 + e2)
         bez = (pz1 + pz2) / (e1 + e2)
 
-        call lorenz(e1, px1, py1, pz1, bex, bey, bez)
+        call lorenza(e1, px1, py1, pz1, bex, bey, bez)
 cc      SAVE pxnew, ..., values for later use.
         px1 = pxnew
         py1 = pynew
@@ -2036,13 +2036,13 @@ cc      SAVE pxnew, ..., values for later use.
 c       we boost to the cm frame, get rotation axis, and rotate 1 particle 
 c       momentum
 
-        call lorenz(t1, x1, y1, z1, bex, bey, bez)
+        call lorenza(t1, x1, y1, z1, bex, bey, bez)
 
         x1 = pxnew
         y1 = pynew
         z1 = pznew
 
-        call lorenz(t2, x2, y2, z2, bex, bey, bez)
+        call lorenza(t2, x2, y2, z2, bex, bey, bez)
 
         x2 = pxnew
         y2 = pynew
@@ -2067,12 +2067,12 @@ c        e2 = e1
         e2 = dsqrt(px2**2+py2**2+pz2**2+xmass(jscat)**2)
 
 c       boost the 2 particle 4 momentum back to lab frame
-        call lorenz(e1, px1, py1, pz1, -bex, -bey, -bez)
+        call lorenza(e1, px1, py1, pz1, -bex, -bey, -bez)
         px(iscat) = pxnew
         py(iscat) = pynew
         pz(iscat) = pznew
         e(iscat) = enenew
-        call lorenz(e2, px2, py2, pz2, -bex, -bey, -bez)        
+        call lorenza(e2, px2, py2, pz2, -bex, -bey, -bez)        
         px(jscat) = pxnew
         py(jscat) = pynew
         pz(jscat) = pznew
@@ -6429,14 +6429,14 @@ cms  &                        em(i, 4, ian) / vol / ntotal
 
 ******************************************************************************
 
-      subroutine lorenz(energy, px, py, pz, bex, bey, bez)
+      subroutine lorenza(energy, px, py, pz, bex, bey, bez)
 
 c     add in a cut for beta2 to prevent gam to be nan (infinity)
 
       implicit double precision (a-h, o-z)
 
-      common /lor/ enenew, pxnew, pynew, pznew
-cc      SAVE /lor/
+      common /lora/ enenew, pxnew, pynew, pznew
+cc      SAVE /lora/
       SAVE   
 
       beta2 = bex ** 2 + bey ** 2 + bez ** 2

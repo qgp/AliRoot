@@ -23,6 +23,7 @@ class AliGenAmpt : public AliGenMC
     AliGenAmpt(Int_t npart);
     virtual ~AliGenAmpt();
 
+    virtual void    SetDecay(Bool_t b)                {fDecay = b;}
     virtual TAmpt  *Ampt() { return fAmpt; }
     virtual void    Generate();
     virtual void    Init();
@@ -134,6 +135,7 @@ class AliGenAmpt : public AliGenMC
     Float_t                  fStringA;         // string frag parameter A
     Float_t                  fStringB;         // string frag parameter B
     AliGenHijingEventHeader *fHeader;          // header
+    Bool_t                   fDecay;           // decay "long-lived" particles
 
   private:
     AliGenAmpt(const AliGenAmpt &Ampt);
@@ -146,6 +148,6 @@ class AliGenAmpt : public AliGenMC
     // check if stable
     Bool_t Stable(TParticle*  particle) const;
 
-    ClassDef(AliGenAmpt, 2) // AliGenerator interface to Ampt
+    ClassDef(AliGenAmpt, 3) // AliGenerator interface to Ampt
 };
 #endif
