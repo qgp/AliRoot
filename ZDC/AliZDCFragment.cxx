@@ -85,7 +85,8 @@ void AliZDCFragment::GenerateIMF()
    // Coefficients of polynomial for fluctuations on average number of IMF
    const Float_t  kParamFluctNimf[4]={-0.13176,2.9392,-5.2147,2.3092}; 
    // Coefficients of polynomial for average maximum Z of fragments
-   const Float_t  kParamZmax[4]={0.16899,14.203,-2.8284,65.036}; 
+   //const Float_t  kParamZmax[4]={0.16899,14.203,-2.8284,65.036}; 
+   const Float_t  kParamZmax[4]={0.16899,14.203,-2.8284,70.5}; 
    // Coefficients of polynomial for fluctuations on maximum Z of fragments
    const Float_t  kParamFluctZmax[5]={0.013782,-0.17282,1.5065,1.0654,-2.4317}; 
    // Coefficients of polynomial for exponent tau of fragments Z distribution
@@ -95,18 +96,21 @@ void AliZDCFragment::GenerateIMF()
    // Coefficients of polynomial for fluctuations on average number of alphas
    const Float_t  kParamFluctNalpha[5]={0.283,6.2141,-17.113,17.394,-6.6084}; 
    // Coefficients of function for Pb nucleus skin
-   const Float_t  kParamSkinPb[2]={0.93,11.05};
+   const Float_t  kParamSkinPb[2]={0.762408, 20.};
    
    // Thickness of nuclear surface
    const Float_t  kNuclearThick = 0.52;
    // Maximum impact parameter for U [r0*A**(1/3)]
    const Float_t  kbMaxU = 14.87;
    // Maximum impact parameter for Pb [r0*A**(1/3)]
+   //const Float_t  kbMaxPb = 14.22+4*kNuclearThick;
    const Float_t  kbMaxPb = 14.22;
    // Z of the projectile
    const Float_t  kZProj = 82.;
    
    // From b(Pb) to b(U)
+   if(fB>kbMaxPb) fB = 2*kbMaxPb-fB;
+   
    Float_t  bU = fB*kbMaxU/kbMaxPb;
     
    // From b(U) to Zbound(U) 
@@ -123,9 +127,10 @@ void AliZDCFragment::GenerateIMF()
    // Zbound is proportional to b**2 up to b < kbMaxPb-2*kNuclearThick
    // and then it is an increasing exponential, imposing that at 
    // b=kbMaxPb-2kNuclearThick the two functions have the same derivative
-   Float_t bCore = kbMaxPb-2*kNuclearThick;
-   if(fB>bCore){
-     fZbAverage=kZProj*(1.-TMath::Exp(-kParamSkinPb[0]*(fB-kParamSkinPb[1])));
+   //Float_t bCore = kbMaxPb-2*kNuclearThick;
+   if(fB>kbMaxPb){
+     fZbAverage = TMath::Exp(-kParamSkinPb[0]*(fB-kParamSkinPb[1]));
+     //printf(" b = %1.2f fm   Z_bound %1.2f\n", fB, fZbAverage);
    }
    if(fZbAverage>kZProj) fZbAverage = kZProj;
    Float_t zbNorm = fZbAverage/kZProj;
@@ -160,7 +165,7 @@ void AliZDCFragment::GenerateIMF()
    fluctZmax = fluctZmax*kZProj/6.;
    Float_t xg = gRandom->Gaus(0.0,1.0);
    fluctZmax = fluctZmax*xg;
-   fZmax = averageZmax+fluctZmax;
+   fZmax = (averageZmax+fluctZmax);
    if(fZmax>kZProj) fZmax = kZProj;
    
 //   printf("\n\n ------------------------------------------------------------");   
