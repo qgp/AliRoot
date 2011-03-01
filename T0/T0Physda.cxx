@@ -122,9 +122,11 @@ int main(int argc, char **argv) {
   // Allocation of histograms - start
 
   TH1F *hCFD1minCFD[24];  
+  TH1F *hCFD[24];  
    
   for(Int_t ic=0; ic<24; ic++) {
     hCFD1minCFD[ic] = new TH1F(Form("CFD1minCFD%d",ic+1),"CFD-CFD",kcbx,kclx,kcmx);
+    hCFD[ic] = new TH1F(Form("CFD%d",ic+1),"CFD",kt0bx,kt0lx,kt0hx);
   }
   TH1F *hVertex = new TH1F("hVertex","T0 time",kt0bx,kt0lx,kt0hx);
   
@@ -183,13 +185,13 @@ int main(int argc, char **argv) {
       AliT0RawReader *start = new AliT0RawReader(reader, kTRUE);
       
       // Read raw data
-      Int_t allData[105][5];
-      for(Int_t i0=0;i0<105;i0++)
+      Int_t allData[110][5];
+      for(Int_t i0=0;i0<107;i0++)
       	for(Int_t j0=0;j0<5;j0++)
 	  allData[i0][j0] = 0;
       
       if(start->Next()){
-	for (Int_t i=0; i<105; i++) {
+	for (Int_t i=0; i<107; i++) {
 	  for(Int_t iHit=0;iHit<5;iHit++){
 	    allData[i][iHit]= start->GetData(i,iHit);
 	  }
@@ -205,11 +207,13 @@ int main(int argc, char **argv) {
 	 { 
 	   if(ik<12 && allData[ik+1][0]>0 && allData[knpmtC][0]>0 ){
 	     hCFD1minCFD[ik]->Fill(allData[ik+1][0]-allData[knpmtC][0]);
+	     if(allData[ik+1][0]>0 ) hCFD[ik]->Fill(allData[ik+1][0]);
 	   }
 	   
 	   if(ik>11 && allData[ik+45][0]>0 && allData[56+knpmtA][0]>0 )
 	     {
 	     hCFD1minCFD[ik]->Fill(allData[ik+45][0]-allData[56+knpmtA][0]);
+	     if(allData[ik+1][0]>0 ) hCFD[ik]->Fill(allData[ik+45][0]);
 	     }
 	   if(iev == 10000) {	
 	     meanShift[ik] =  hCFD1minCFD[ik]->GetMean(); 
@@ -268,6 +272,8 @@ int main(int argc, char **argv) {
   for(Int_t j=0;j<24;j++){
     hCFD1minCFD[j]->SetDirectory(&hist);
     hCFD1minCFD[j]->Write();
+    hCFD[j]->Write();
+
   }
   hVertex->Write();
   hist.Close();
