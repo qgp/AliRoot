@@ -457,6 +457,12 @@ AliTPCtrackerMI::AliTPCtrackerMI(const AliTPCtrackerMI &t):
   // dummy copy constructor
   //------------------------------------------------------------------
   fOutput=t.fOutput;
+  for (Int_t irow=0; irow<200; irow++){
+    fXRow[irow]=0;
+    fYMax[irow]=0;
+    fPadLength[irow]=0;
+  }
+
 }
 AliTPCtrackerMI & AliTPCtrackerMI::operator=(const AliTPCtrackerMI& /*r*/)
 {
@@ -2676,7 +2682,7 @@ Int_t AliTPCtrackerMI::RefitInward(AliESDEvent *event)
   }
   transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
   const AliTPCRecoParam * recoParam = AliTPCcalibDB::Instance()->GetTransform()->GetCurrentRecoParam();
-
+  Int_t nContribut = event->GetNumberOfTracks();
   TGraphErrors * graphMultDependenceDeDx = 0x0;
   if (recoParam && recoParam->GetUseMultiplicityCorrectionDedx() && gainCalibArray) {
     if (recoParam->GetUseTotCharge()) {
@@ -2754,9 +2760,8 @@ Int_t AliTPCtrackerMI::RefitInward(AliESDEvent *event)
       Float_t dedx  = seed->GetdEdx();
       // apply mutliplicity dependent dEdx correction if available
       if (graphMultDependenceDeDx) {
-	Int_t nContribut  = event->GetPrimaryVertexTPC()->GetNContributors();
 	Double_t corrGain =  AliTPCcalibDButil::EvalGraphConst(graphMultDependenceDeDx, nContribut);
-	dedx /= corrGain;
+	dedx += (1 - corrGain)*50.; // MIP is normalized to 50
       }
       esd->SetTPCsignal(dedx, sdedx, ndedx);
       //
@@ -6401,7 +6406,7 @@ void AliTPCtrackerMI::PrepareForBackProlongation(TObjArray *const arr,Float_t fa
       Float_t angle2 = pt->GetAlpha();
       
       if (TMath::Abs(angle1-angle2)>0.001){
-	pt->Rotate(angle1-angle2);
+	if (!pt->Rotate(angle1-angle2)) return;
 	//angle2 = pt->GetAlpha();
 	//pt->fRelativeSector = pt->GetAlpha()/fInnerSec->GetAlpha();
 	//if (pt->GetAlpha()<0) 
@@ -6712,7 +6717,7 @@ Int_t AliTPCtrackerMI::CookLabel(AliTPCseed *const t, Float_t wrong,Int_t first,
      }
   }
   noc = current;
-  if (noc<5) return -1;
+  //if (noc<5) return -1;
   Int_t lab=123456789;
   for (i=0; i<noc; i++) {
     AliTPCclusterMI *c=clusters[i];
