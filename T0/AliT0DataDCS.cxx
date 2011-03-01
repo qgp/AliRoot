@@ -86,6 +86,14 @@ AliT0DataDCS::AliT0DataDCS():
   {
     fDRM[i]=0.;
   }
+  for ( Int_t i=0; i<kCFD; i++ )
+  {
+    fCFDtA[i] = 0;
+    fCFDtC[i] = 0;
+    fCFDwA[i] = 0;
+    fCFDwC[i] = 0;
+  }
+
 
 }
 //---------------------------------------------------------------
@@ -212,6 +220,13 @@ AliT0DataDCS::AliT0DataDCS(const AliT0DataDCS & data):
   for(Int_t i=0;i<kDRM;i++)
   {
     fDRM[i]=data.fDRM[i];
+  }
+  for ( Int_t i=0; i<kCFD; i++ )
+  {
+    fCFDtA[i] = data.fCFDtA[i];
+    fCFDtC[i] = data.fCFDtC[i];
+    fCFDwA[i] = data.fCFDwA[i];
+    fCFDwC[i] = data.fCFDwC[i];
   }
 }
 //---------------------------------------------------------------

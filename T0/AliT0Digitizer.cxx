@@ -63,8 +63,6 @@ ClassImp(AliT0Digitizer)
 				     fAmpLED(0),
                                      fAmpQTC(0),
 				     fParam(0)
-
-
 {
 // Default ctor - don't use it
   ;
