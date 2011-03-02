@@ -24,6 +24,8 @@ SRCS= AliTRDarraySignal.cxx \
       Cal/AliTRDCalDet.cxx \
       Cal/AliTRDCalDCS.cxx \
       Cal/AliTRDCalDCSFEE.cxx \
+      Cal/AliTRDCalDCSv2.cxx \
+      Cal/AliTRDCalDCSFEEv2.cxx \
       Cal/AliTRDCalDCSPTR.cxx \
       Cal/AliTRDCalDCSGTUBoardInfo.cxx \
       Cal/AliTRDCalDCSGTUCtpOpc.cxx \
@@ -67,7 +69,8 @@ SRCS= AliTRDarraySignal.cxx \
       AliTRDgtuTMU.cxx \
       AliTRDhit.cxx \
       AliTRDrecoParam.cxx \
-      AliTRDSimParam.cxx 
+      AliTRDSimParam.cxx \
+      Cal/AliTRDCalTrkAttach.cxx
 
 HDRS= $(SRCS:.cxx=.h)
 

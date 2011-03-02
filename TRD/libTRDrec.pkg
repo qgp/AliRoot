@@ -24,7 +24,8 @@ SRCS= AliTRDcluster.cxx \
       AliTRDCalibraFillHisto.cxx \
       Cal/AliTRDCalPIDLQ.cxx \
       Cal/AliTRDCalPIDNN.cxx \
-      AliTRDqaRecPoints.cxx
+      AliTRDqaRecPoints.cxx \
+      AliTRDtrackletOflHelper.cxx
 
 HDRS= $(SRCS:.cxx=.h)
 
