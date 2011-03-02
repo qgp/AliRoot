@@ -125,7 +125,6 @@ void MakeITSRecoParam_2010(AliRecoParam::EventSpecie_t default=AliRecoParam::kLo
     //
     itsRecoParam->SetTrackleterPhiWindow(0.06);
     itsRecoParam->SetTrackleterThetaWindow(0.025);
-    itsRecoParam->SetTrackleterNStdDevCut(25);
     itsRecoParam->SetTrackleterScaleDThetaBySin2T(kTRUE);
     //
     // Removal of tracklets reconstructed in the SPD overlaps 
@@ -169,5 +168,4 @@ void MakeITSRecoParam_2010(AliRecoParam::EventSpecie_t default=AliRecoParam::kLo
 
   return;
 }
-
 
