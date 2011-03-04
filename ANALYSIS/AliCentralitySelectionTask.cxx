@@ -83,6 +83,7 @@ AliAnalysisTaskSE(),
   fLowRunN(0),
   fHighRunN(0),
   fUseScaling(0),
+  fUseCleaning(0),
   fTrackCuts(0),
   fZVCut(10),
   fOutliersCut(5),
@@ -115,6 +116,9 @@ AliAnalysisTaskSE(),
   fHOutCentV0MvsFMD(0),
   fHOutCentTKLvsV0M(0),
   fHOutCentZEMvsZDC(0),
+  fHOutCentV0MvsCentCL1(0),
+  fHOutCentV0MvsCentTRK(0),
+  fHOutCentTRKvsCentCL1(0),
   fHOutMultV0M(0),
   fHOutMultV0R(0),
   fHOutMultFMD(0),
@@ -150,6 +154,7 @@ AliAnalysisTaskSE(),
     V0MScaleFactorMC[i]=0.0;
   }
   fUseScaling=kTRUE;
+  fUseCleaning=kTRUE;
 }   
 
 //________________________________________________________________________
@@ -165,6 +170,7 @@ AliCentralitySelectionTask::AliCentralitySelectionTask(const char *name):
   fLowRunN(0),
   fHighRunN(0),
   fUseScaling(0),
+  fUseCleaning(0),
   fTrackCuts(0),
   fZVCut(10),
   fOutliersCut(5),
@@ -197,6 +203,9 @@ AliCentralitySelectionTask::AliCentralitySelectionTask(const char *name):
   fHOutCentV0MvsFMD(0),
   fHOutCentTKLvsV0M(0),
   fHOutCentZEMvsZDC(0),
+  fHOutCentV0MvsCentCL1(0),
+  fHOutCentV0MvsCentTRK(0),
+  fHOutCentTRKvsCentCL1(0),
   fHOutMultV0M(0),
   fHOutMultV0R(0),
   fHOutMultFMD(0),
@@ -233,6 +242,7 @@ AliCentralitySelectionTask::AliCentralitySelectionTask(const char *name):
     V0MScaleFactorMC[i]=0.0;
   }
   fUseScaling=kTRUE;
+  fUseCleaning=kTRUE;
 }
 
 //________________________________________________________________________
@@ -258,6 +268,7 @@ AliCentralitySelectionTask::AliCentralitySelectionTask(const AliCentralitySelect
   fLowRunN(ana.fLowRunN),
   fHighRunN(ana.fHighRunN),
   fUseScaling(ana.fUseScaling),
+  fUseCleaning(ana.fUseCleaning),
   fTrackCuts(ana.fTrackCuts),
   fZVCut(ana.fZVCut),
   fOutliersCut(ana.fOutliersCut),
@@ -290,6 +301,9 @@ AliCentralitySelectionTask::AliCentralitySelectionTask(const AliCentralitySelect
   fHOutCentV0MvsFMD(ana.fHOutCentV0MvsFMD),
   fHOutCentTKLvsV0M(ana.fHOutCentTKLvsV0M),
   fHOutCentZEMvsZDC(ana.fHOutCentZEMvsZDC),
+  fHOutCentV0MvsCentCL1(ana.fHOutCentV0MvsCentCL1),
+  fHOutCentV0MvsCentTRK(ana.fHOutCentV0MvsCentTRK),
+  fHOutCentTRKvsCentCL1(ana.fHOutCentTRKvsCentCL1),
   fHOutMultV0M(ana.fHOutMultV0M),
   fHOutMultV0R(ana.fHOutMultV0R),
   fHOutMultFMD(ana.fHOutMultFMD),
@@ -349,6 +363,9 @@ void AliCentralitySelectionTask::UserCreateOutputObjects()
   fHOutCentV0MvsFMD= new TH1F("fHOutCentV0MvsFMD","fHOutCentV0MvsFMD; Centrality V0 vs FMD",501,0,101);
   fHOutCentTKLvsV0M= new TH1F("fHOutCentTKLvsV0M","fHOutCentTKLvsV0M; Centrality tracklets vs V0",501,0,101);
   fHOutCentZEMvsZDC= new TH1F("fHOutCentZEMvsZDC","fHOutCentZEMvsZDC; Centrality ZEM vs ZDC",501,0,101);
+  fHOutCentV0MvsCentCL1= new TH2F("fHOutCentV0MvsCentCL1","fHOutCentV0MvsCentCL1; Cent V0 vs Cent SPD",501,0,101,501,0,101);
+  fHOutCentV0MvsCentTRK= new TH2F("fHOutCentV0MvsCentTRK","fHOutCentV0MvsCentTRK; Cent V0 vs Cent TPC",501,0,101,501,0,101);
+  fHOutCentTRKvsCentCL1= new TH2F("fHOutCentTRKvsCentCL1","fHOutCentTRKvsCentCL1; Cent TPC vs Cent SPD",501,0,101,501,0,101);
 
   fHOutMultV0M = new TH1F("fHOutMultV0M","fHOutMultV0M; Multiplicity V0",25000,0,25000);
   fHOutMultV0R = new TH1F("fHOutMultV0R","fHOutMultV0R; Multiplicity V0",25000,0,25000);
@@ -385,6 +402,9 @@ void AliCentralitySelectionTask::UserCreateOutputObjects()
   fOutputList->Add(  fHOutCentV0MvsFMD);
   fOutputList->Add(  fHOutCentTKLvsV0M);
   fOutputList->Add(  fHOutCentZEMvsZDC);
+  fOutputList->Add(  fHOutCentV0MvsCentCL1);
+  fOutputList->Add(  fHOutCentV0MvsCentTRK);
+  fOutputList->Add(  fHOutCentTRKvsCentCL1);
   fOutputList->Add(  fHOutMultV0M); 
   fOutputList->Add(  fHOutMultV0R); 
   fOutputList->Add(  fHOutMultFMD); 
@@ -557,6 +577,13 @@ void AliCentralitySelectionTask::UserExec(Option_t */*option*/)
 
 
   // ***** Scaling
+  // ***** Scaling for MC
+  if (fIsMCInput) {
+    fUseScaling=kFALSE;
+    Float_t temp_scalefactorV0M = MyGetScaleFactorMC(fCurrentRun);
+    v0Corr  = Short_t((multV0A+multV0C)  * temp_scalefactorV0M);
+  }
+  // ***** Scaling for Data
   if (fUseScaling) {
     Float_t temp_scalefactorV0M = MyGetScaleFactor(fCurrentRun,0);
     Float_t temp_scalefactorSPD = MyGetScaleFactor(fCurrentRun,1);
@@ -564,11 +591,6 @@ void AliCentralitySelectionTask::UserExec(Option_t */*option*/)
     v0Corr  = Short_t(v0Corr / temp_scalefactorV0M);
     spdCorr = spdCorr / temp_scalefactorSPD;
     nTracks = Int_t(nTracks / temp_scalefactorTPC);
-  }
-  // ***** Scaling for MC
-  if (fIsMCInput) {
-    Float_t temp_scalefactorV0M = MyGetScaleFactorMC(fCurrentRun);
-    v0Corr  = Short_t((multV0A+multV0C)  * temp_scalefactorV0M);
   }
 
   // ***** Centrality Selection
@@ -584,22 +606,29 @@ void AliCentralitySelectionTask::UserExec(Option_t */*option*/)
   if(fHtempZEMvsZDC) fCentZEMvsZDC = fHtempZEMvsZDC->GetBinContent(fHtempZEMvsZDC->FindBin(zem1Energy+zem2Energy,zncEnergy+znaEnergy+zpcEnergy+zpaEnergy));
 
   // ***** Cleaning
-  fQuality=0;
-  fZVCut=10;
-  fOutliersCut=6;
-  
-  // ***** vertex
-  if (TMath::Abs(zvtx)>fZVCut) fQuality += 1;   
+  if (fUseCleaning) {
+      fQuality=0;
+      fZVCut=10;
+      fOutliersCut=6;
+      
+      // ***** vertex
+      if (TMath::Abs(zvtx)>fZVCut) fQuality += 1;   
 
-  // ***** outliers
-  // **** V0 vs SPD
-  if (IsOutlierV0MSPD(spdCorr, v0Corr, int(fCentV0M))) fQuality  += 2;
-  // ***** V0 vs TPC
-  if (IsOutlierV0MTPC(nTracks, v0Corr, int(fCentV0M))) fQuality  += 4;
-  // ***** V0 vs ZDC
-  if (IsOutlierV0MZDC((zncEnergy+znaEnergy+zpcEnergy+zpaEnergy), v0Corr) && 
-      (zdcEnergyCal==kFALSE)) fQuality  += 8;
+      // ***** outliers
+      // **** V0 vs SPD
+      if (IsOutlierV0MSPD(spdCorr, v0Corr, int(fCentV0M))) fQuality  += 2;
+      // ***** V0 vs TPC
+      if (IsOutlierV0MTPC(nTracks, v0Corr, int(fCentV0M))) fQuality  += 4;
+      // ***** V0 vs ZDC
+       if (IsOutlierV0MZDC((zncEnergy+znaEnergy+zpcEnergy+zpaEnergy), v0Corr) &&
+	   (zdcEnergyCal==kFALSE) && !(fIsMCInput)) fQuality  += 8;
+       if (IsOutlierV0MZDCECal((zncEnergy+znaEnergy+zpcEnergy+zpaEnergy), v0Corr) &&
+	   ((zdcEnergyCal==kTRUE) || (fIsMCInput))) fQuality  += 8;
+  } else {
+      fQuality = 0;
+  }
 
+        
   if (esdCent) {
       esdCent->SetQuality(fQuality);
       esdCent->SetCentralityV0M(fCentV0M);
@@ -633,6 +662,9 @@ void AliCentralitySelectionTask::UserExec(Option_t */*option*/)
     fHOutCentV0MvsFMD->Fill(fCentV0MvsFMD);
     fHOutCentTKLvsV0M->Fill(fCentTKLvsV0M);
     fHOutCentZEMvsZDC->Fill(fCentZEMvsZDC);
+    fHOutCentV0MvsCentCL1->Fill(fCentV0M,fCentCL1);
+    fHOutCentV0MvsCentTRK->Fill(fCentV0M,fCentTRK);
+    fHOutCentTRKvsCentCL1->Fill(fCentTRK,fCentCL1);
     fHOutMultV0M->Fill(v0Corr);
     fHOutMultV0R->Fill(multV0A+multV0C);
     fHOutMultFMD->Fill((multFMDA+multFMDC));
@@ -808,6 +840,12 @@ Bool_t AliCentralitySelectionTask::IsOutlierV0MZDC(Float_t zdc, Float_t v0)
   if ((zdc >  val1) || (zdc > val2)) 
     return kTRUE;
   else 
+    return kFALSE;
+}
+
+//________________________________________________________________________
+Bool_t AliCentralitySelectionTask::IsOutlierV0MZDCECal(Float_t /*zdc*/, Float_t /*v0*/)
+{
     return kFALSE;
 }
 
@@ -1091,7 +1129,7 @@ void AliCentralitySelectionTask::MyInitScaleFactorMC()
 {
   for (int i=0; i<(fHighRunN-fLowRunN); i++) V0MScaleFactorMC[i] = 0.0;
   // scale factors determined from <V0 charge> on a run-by-run basis
-  V0MScaleFactor[0] = 0.75108;
+  V0MScaleFactorMC[0] = 0.75108;
   // set all missing values to the value of the run before it ....
   for (int i=0; i<(fHighRunN-fLowRunN); i++) {    
     if (V0MScaleFactorMC[i] == 0.0) {     
