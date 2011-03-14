@@ -97,13 +97,9 @@ AliT0CalibWalk::~AliT0CalibWalk()
 Bool_t AliT0CalibWalk::MakeWalkCorrGraph(const char *laserFile)
 {
   //make walk corerction for preprocessor
-  Int_t npeaks = 20;
-  Int_t sigma=3;
-  Bool_t down=false;
-  Int_t index[20];
+  Float_t sigma,cfdmean, qtmean, ledmean;
   Bool_t ok=true;
-  Float_t   mips[20];
-  Int_t nfound=0;
+  Float_t   mips[50];
   
   gFile = TFile::Open(laserFile);
   if(!gFile) {
@@ -149,86 +145,58 @@ Bool_t AliT0CalibWalk::MakeWalkCorrGraph(const char *laserFile)
 	      TH1F *hCFD = (TH1F*) gFile->Get(cfd.Data()) ;
 	      TH1F *hLED = (TH1F*) gFile->Get(led.Data());
 	      TH1F *hQTC = (TH1F*) gFile->Get(qtc.Data()) ;
-	      hCFD->SetDirectory(0);
-	      hQTC->SetDirectory(0);
-	      hLED->SetDirectory(0);
+	      //	      hCFD->SetDirectory(0);
+	      //	      hQTC->SetDirectory(0);
+	      //	      hLED->SetDirectory(0);
 	      if(!hCFD )
  	      	AliWarning(Form(" no CFD data in LASER DA for channel %i for amplitude %f MIPs",i,mips[im]));
 	      if(!hQTC )
  	      	AliWarning(Form(" no QTC correction data in LASER DA for channel %i for amplitude %f MIPs",i,mips[im]));
 	      if(!hLED)	      
 	      	AliWarning(Form(" no LED correction data in LASER DA for channel %i for amplitude %f MIPs",i,mips[im]));
-      	      
-	      if(hCFD )	{
-		TSpectrum *s = new TSpectrum(2*npeaks,1);
-		nfound = s->Search(hCFD,sigma," ",0.1);
-		if(nfound!=0){
-		  Float_t *xpeak = s->GetPositionX();
-		  TMath::Sort(nfound, xpeak, index,down);
-		  Float_t xp = xpeak[index[0]];
-		  Double_t hmax = xp+3*sigma;
-		  Double_t hmin = xp-3*sigma;
-		  hCFD->GetXaxis()->SetRangeUser(hmin-10,hmax+10);
-		}
-		else
-		  {
-		    hCFD->Rebin(2);
-		    TSpectrum *s1 = new TSpectrum(2*npeaks,1);
-		    nfound = s1->Search(hCFD,sigma," ",0.1);
-		    if(nfound!=0){
-		      Float_t *xpeak = s1->GetPositionX();
-		      TMath::Sort(nfound, xpeak, index,down);
-		      Float_t xp = xpeak[index[0]];
-		      Double_t hmax = xp+3*sigma;
-		      Double_t hmin = xp-3*sigma;
-		      hCFD->GetXaxis()->SetRangeUser(hmin-10,hmax+10);
-		    }
-		    else 
-		      {
-			ok=false;
-			printf("no peak in CFD spectrum for PMT %i amplitude %i\n",i,im);
-			return ok;
-		      }
-
-		  }
-
-		if (im == 0) cfd0[i] = hCFD->GetMean();
-		y1[im] =  hCFD->GetMean() - cfd0[i];
+	      if( hCFD && hCFD->GetEntries()<500 ) {
+		ok=false;
+		printf("no peak in CFD spectrum for PMT %i amplitude %i\n",i,im);
+		return ok;
 	      }
-	      if( hQTC) {
-		x1[im] = hQTC->GetMean();
+	      
+	      if(hCFD && hCFD->GetEntries()>500 ) {
+		if( hCFD->GetRMS() >= 1.5) 
+		  GetMeanAndSigma(hCFD, cfdmean, sigma);
+		else
+		  cfdmean = hCFD->GetMean();
+		
+		if (im == 0) cfd0[i] = cfdmean;
+		y1[im] =  cfdmean - cfd0[i];
+	      }	
+	      if(hQTC && hQTC->GetEntries()>500) {
+		GetMeanAndSigma(hQTC, qtmean, sigma);
+		
+		x1[im] = qtmean;
 		if( x1[im] == 0) {
 		  ok=false;
 		  printf("no peak in QTC signal for PMT %i amplitude %i\n",i,im);
 		  return ok;
-		  }
-	      }
-	      
-	      if( hLED){
-		TSpectrum *s = new TSpectrum(2*npeaks,1);
-		nfound = s->Search(hLED,sigma," ",0.1);
-		if(nfound!=0){
-		  Float_t *xpeak = s->GetPositionX();
-		  TMath::Sort(nfound, xpeak, index,down);
-		  Float_t xp = xpeak[index[0]];
-		  Double_t hmax = xp+10*sigma;
-		  Double_t hmin = xp-10*sigma;
-		  hLED->GetXaxis()->SetRangeUser(hmin-10,hmax+10);
 		}
-		else
-		  { 
-		    ok=false;
-		    printf("no peak in LED spectrum for PMT %i amplitude %i\n",i,im);
-		    return ok;
-		  }
-		x2[im] = hLED->GetMean();
-		xx2[im] = x2[nmips-im-1];
 	      }
-	      xx[im]=mips[im];
-	      
-	      if (hQTC) delete  hQTC;
-	      if (hCFD) delete  hCFD;
-	      if (hLED) delete  hLED;
+		
+	      if( hLED && hLED->GetEntries()>500) {
+		GetMeanAndSigma(hLED, ledmean, sigma);
+	      }				   
+	      else
+		{ 
+		  ok=false;
+		  printf("no peak in LED spectrum for PMT %i amplitude %i\n",i,im);
+		  return ok;
+		}
+	      x2[im] = ledmean;
+	      xx2[im] = x2[nmips-im-1];
+		
+		xx[im]=mips[im];
+		if (hQTC) delete  hQTC;
+		if (hCFD) delete  hCFD;
+		if (hLED) delete  hLED;
+		
 	    }
 	  
 	  for (Int_t imi=0; imi<nmips; imi++)
@@ -240,26 +208,7 @@ Bool_t AliT0CalibWalk::MakeWalkCorrGraph(const char *laserFile)
 	  
 	  if(i==0) cout<<"Making graphs..."<<endl;
 	  
-	  
-	  /*
-	  
-	  
-	  Float_t x1[50], y1[50]; 
-	  Float_t x2[50], xx2[50],y2[50];
-	  Float_t xx1[50],yy1[50], xx[50];
-	  
-	  Int_t nmips=20;
-	  for (Int_t i=0; i<24; i++)
-	  {
- 
-	  for (Int_t im=0; im<nmips; im++)
-	  {
-	  x1[im]=xx[im]=500+im*200;
-	  y1[im]=0;
-	  x2[im]=xx1[im]=yy1[im]=260+20*im;
-	  } 
-	  */	  
-       TGraph *grwalkqtc = new TGraph (nmips,x1,y1);
+      TGraph *grwalkqtc = new TGraph (nmips,x1,y1);
       grwalkqtc->SetTitle(Form("PMT%i",i));
       TGraph *grwalkled = new TGraph (nmips,x2,y1);
       grwalkled->SetTitle(Form("PMT%i",i));
@@ -282,6 +231,25 @@ Bool_t AliT0CalibWalk::MakeWalkCorrGraph(const char *laserFile)
   return ok;
 }
 
+void AliT0CalibWalk::GetMeanAndSigma(TH1F* hist, Float_t &mean, Float_t &sigma) 
+{
+
+  const double window = 5.;  //fit window 
+ 
+  double meanEstimate, sigmaEstimate; 
+  int maxBin;
+  maxBin        =  hist->GetMaximumBin(); //position of maximum
+  meanEstimate  =  hist->GetBinCenter( maxBin); // mean of gaussian sitting in maximum
+  sigmaEstimate = hist->GetRMS();
+  TF1* fit= new TF1("fit","gaus", meanEstimate - window*sigmaEstimate, meanEstimate + window*sigmaEstimate);
+  fit->SetParameters(hist->GetBinContent(maxBin), meanEstimate, sigmaEstimate);
+  hist->Fit("fit","RQ","Q");
+
+  mean  = (Float_t) fit->GetParameter(1);
+  sigma = (Float_t) fit->GetParameter(2);
+
+  delete fit;
+}
 
 
 
