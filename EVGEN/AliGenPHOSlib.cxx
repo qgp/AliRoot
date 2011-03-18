@@ -129,6 +129,14 @@ ClassImp(AliGenPHOSlib)
 //    Particle distribution IdPi0Flat  111 (pi0)
 //
 
+Double_t AliGenPHOSlib::PtPi0(const Double_t * px, const Double_t *)
+{
+//     Pion transverse momentum 
+    const Double_t kp0 =1.35; 
+    const Double_t kxn= 6.18;
+    return TMath::Power(kp0 /(kp0 + px[0]), kxn);
+}
+
 Double_t AliGenPHOSlib::PtPi0Flat(const Double_t */*px*/, const Double_t *)
 {
 //     Pion transverse momentum flat distribution 
@@ -557,6 +565,9 @@ GenFunc AliGenPHOSlib::GetPt(Int_t param, const char* /*tname*/) const
       case kPion:     
         func=PtPion;
         break;
+      case kPi0:     
+        func=PtPi0;
+        break;
       case kPi0Flat:     
         func=PtPi0Flat;
         break;
@@ -597,6 +608,7 @@ GenFunc AliGenPHOSlib::GetY(Int_t param, const char* /*tname*/) const
     case kPion:
       func=YPion;
       break;
+    case kPi0:     
     case kPi0Flat:
       func=YPi0Flat;
       break;
@@ -643,6 +655,7 @@ GenFuncIp AliGenPHOSlib::GetIp(Int_t param,  const char* /*tname*/) const
     case kChargedPion:       
       func=IpChargedPion;
       break;
+    case kPi0:     
     case kPi0Flat:       
       func=IpPi0Flat;
       break;
