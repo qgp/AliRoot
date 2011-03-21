@@ -28,6 +28,7 @@ Preliminary test version (T.Malkiewicz)
 #include "TFile.h"
 #include "TMath.h"
 #include "TSystem.h"
+#include "TString.h"
 #include "AliSurveyObj.h"
 #include "AliAlignObjParams.h"
 #include "AliCDBStorage.h"
@@ -292,9 +293,10 @@ void AliT0Align::StoreAlignObj()
   if( TString(gSystem->Getenv("TOCDB")) != TString("kTRUE") ){
     // save on file
     const char* filename = "T0SurveyMisalignment.root";
-    Char_t fullname[80];
-    sprintf(fullname,"%s/T0/Align/Data/%s",gSystem->Getenv("ALICE_ROOT"),filename);
-    TFile *f = new TFile(fullname,"RECREATE");
+    //  Char_t fullname[80];
+    //  sprintf(fullname,"%s/T0/Align/Data/%s",gSystem->Getenv("ALICE_ROOT"),filename);
+    TString fullname = Form("%s/T0/Align/Data/%s",gSystem->Getenv("ALICE_ROOT"), filename);
+    TFile *f = new TFile(fullname.Data(),"RECREATE");
     if(!f){
       AliError("cannot open file for output\n");
       return;
