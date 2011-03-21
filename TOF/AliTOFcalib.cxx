@@ -84,6 +84,7 @@ author: Chiara Zampolli, zampolli@bo.infn.it
 #include "TF1.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TH1C.h"
 #include "TH2F.h"
 //#include "TList.h"
 //#include "TROOT.h"
@@ -120,6 +121,7 @@ author: Chiara Zampolli, zampolli@bo.infn.it
 #include "AliTOFResponseParams.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
+#include "TRandom.h"
 
 class TROOT;
 class TStyle;
@@ -154,6 +156,7 @@ AliTOFcalib::AliTOFcalib():
   fRunParams(NULL),
   fResponseParams(NULL),
   fReadoutEfficiency(NULL),
+  fProblematic(NULL),
   fInitFlag(kFALSE),
   fRemoveMeanT0(kTRUE),
   fCalibrateTOFsignal(kTRUE),
@@ -161,6 +164,8 @@ AliTOFcalib::AliTOFcalib():
 { 
   //TOF Calibration Class ctor
   fNChannels = AliTOFGeometry::NSectors()*(2*(AliTOFGeometry::NStripC()+AliTOFGeometry::NStripB())+AliTOFGeometry::NStripA())*AliTOFGeometry::NpadZ()*AliTOFGeometry::NpadX();
+
+  gRandom->SetSeed(123456789);
 }
 //____________________________________________________________________________ 
 
@@ -188,6 +193,7 @@ AliTOFcalib::AliTOFcalib(const AliTOFcalib & calib):
   fRunParams(NULL),
   fResponseParams(NULL),
   fReadoutEfficiency(NULL),
+  fProblematic(NULL),
   fInitFlag(calib.fInitFlag),
   fRemoveMeanT0(calib.fRemoveMeanT0),
   fCalibrateTOFsignal(calib.fCalibrateTOFsignal),
@@ -225,6 +231,9 @@ AliTOFcalib::AliTOFcalib(const AliTOFcalib & calib):
   if (calib.fRunParams) fRunParams = new AliTOFRunParams(*calib.fRunParams);
   if (calib.fResponseParams) fResponseParams = new AliTOFResponseParams(*calib.fResponseParams);
   if (calib.fReadoutEfficiency) fReadoutEfficiency = new TH1F(*calib.fReadoutEfficiency);
+  if (calib.fProblematic) fProblematic = new TH1C(*calib.fProblematic);
+
+  gRandom->SetSeed(123456789);
 }
 
 //____________________________________________________________________________ 
@@ -286,6 +295,10 @@ AliTOFcalib& AliTOFcalib::operator=(const AliTOFcalib &calib)
     if (fReadoutEfficiency) *fReadoutEfficiency = *calib.fReadoutEfficiency;
     else fReadoutEfficiency = new TH1F(*calib.fReadoutEfficiency);
   }
+  if (calib.fProblematic) {
+    if (fProblematic) *fProblematic = *calib.fProblematic;
+    else fProblematic = new TH1C(*calib.fProblematic);
+  }
   fInitFlag = calib.fInitFlag;
   fRemoveMeanT0 = calib.fRemoveMeanT0;
   fCalibrateTOFsignal = calib.fCalibrateTOFsignal;
@@ -330,6 +343,7 @@ AliTOFcalib::~AliTOFcalib()
     if (fRunParams) delete fRunParams;
     if (fResponseParams) delete fResponseParams;
     if (fReadoutEfficiency) delete fReadoutEfficiency;
+    if (fProblematic) delete fProblematic;
   }
   if (fTree!=0x0) delete fTree;
   if (fChain!=0x0) delete fChain;
@@ -2031,6 +2045,25 @@ AliTOFcalib::WriteReadoutEfficiencyOnCDB(const Char_t *sel , Int_t minrun, Int_t
 
 //----------------------------------------------------------------------------
 
+void
+AliTOFcalib::WriteProblematicOnCDB(const Char_t *sel , Int_t minrun, Int_t maxrun)
+{
+  /*
+   * write problematic on CDB 
+   */
+  
+  if (!fProblematic) return;
+  AliCDBId id(Form("%s/Problematic", sel), minrun, maxrun);
+  AliCDBMetaData *md = new AliCDBMetaData();
+  md->SetResponsible("Roberto Preghenella");
+  AliCDBManager *man = AliCDBManager::Instance();
+  man->Put(fProblematic, id, md);
+  AliDebug(2,Form("Problematic written on CDB with run range [%i, %i] ",minrun ,maxrun));
+  delete md;
+}
+
+//----------------------------------------------------------------------------
+
 Bool_t
 AliTOFcalib::ReadDeltaBCOffsetFromCDB(const Char_t *sel , Int_t nrun)
 {
@@ -2146,6 +2179,29 @@ AliTOFcalib::ReadReadoutEfficiencyFromCDB(const Char_t *sel , Int_t nrun)
 
 //----------------------------------------------------------------------------
 
+Bool_t
+AliTOFcalib::ReadProblematicFromCDB(const Char_t *sel , Int_t nrun)
+{
+  /*
+   * read problematic from CDB
+   */
+  
+  AliCDBManager *man = AliCDBManager::Instance();
+  AliCDBEntry *entry = man->Get(Form("%s/Problematic", sel),nrun);
+  if (!entry) { 
+    AliFatal("No Problematic entry found in CDB");
+    exit(0);  
+  }
+  fProblematic = (TH1C *)entry->GetObject();
+  if(!fProblematic){
+    AliFatal("No Problematic object found in CDB entry");
+    exit(0);  
+  }  
+  return kTRUE; 
+}
+
+//----------------------------------------------------------------------------
+
 Bool_t 
 AliTOFcalib::Init(Int_t run)
 {
@@ -2186,6 +2242,11 @@ AliTOFcalib::Init(Int_t run)
   /* get readout efficiency obj */
   if (!ReadReadoutEfficiencyFromCDB("TOF/Calib", run)) {
     AliError("cannot get \"ReadoutEfficiency\" object from OCDB");
+    return kFALSE;
+  }
+  /* get readout efficiency obj */
+  if (!ReadProblematicFromCDB("TOF/Calib", run)) {
+    AliError("cannot get \"Problematic\" object from OCDB");
     return kFALSE;
   }
   /* get response params */
@@ -2315,7 +2376,7 @@ AliTOFcalib::CalibrateESD(AliESDEvent *event)
 //----------------------------------------------------------------------------
 
 Bool_t
-AliTOFcalib::IsChannelEnabled(Int_t index, Bool_t checkEfficiency)
+AliTOFcalib::IsChannelEnabled(Int_t index, Bool_t checkEfficiency, Bool_t checkProblematic)
 {
   /*
    * is channel enabled
@@ -2331,6 +2392,7 @@ AliTOFcalib::IsChannelEnabled(Int_t index, Bool_t checkEfficiency)
   if (fStatus->GetNoiseStatus(index) == AliTOFChannelOnlineStatusArray::kTOFNoiseBad) return kFALSE;
   if (fStatus->GetHWStatus(index) == AliTOFChannelOnlineStatusArray::kTOFHWBad) return kFALSE;
   if (checkEfficiency && !IsChannelEfficient(index)) return kFALSE;
+  if (checkProblematic && IsChannelProblematic(index)) return kFALSE;
   
   /* good status */
   return kTRUE;
@@ -2354,6 +2416,26 @@ AliTOFcalib::IsChannelEfficient(Int_t index)
   /* check efficiency */
   if (fReadoutEfficiency->GetBinContent(index + 1) < 0.95) return kFALSE;
   return kTRUE;
+
+}
+
+//----------------------------------------------------------------------------
+
+Bool_t
+AliTOFcalib::IsChannelProblematic(Int_t index)
+{
+  /*
+   * is channel problematic
+   */
+
+  if (!fInitFlag) {
+    AliError("class not yet initialized. Initialize it before.");
+    return kTRUE;
+  }
+
+  /* check problematic */
+  if (fProblematic->GetBinContent(index + 1) != 0) return kTRUE;
+  return kFALSE;
 
 }
 
@@ -2392,3 +2474,50 @@ AliTOFcalib::CalibrateTExp(AliESDEvent *event) const
 
 }
 
+//----------------------------------------------------------------------------
+
+Double_t
+AliTOFcalib::TuneForMC(AliESDEvent *event, Double_t resolution)
+{
+  /*
+   * tune for MC
+   */
+
+  /* get vertex spread and define T0-spread */
+  Double_t diamond2 = TMath::Abs(event->GetSigma2DiamondZ());
+  Double_t t0spread = TMath::Sqrt(diamond2) / 2.99792457999999984e-02;
+  /* generate random startTime */
+  Double_t startTime = gRandom->Gaus(0., t0spread);
+  /* define extra smearing for resolution */
+  Double_t defaultResolution = 80.;
+  Double_t extraSmearing = 0.;
+  if (resolution > defaultResolution)
+    extraSmearing = TMath::Sqrt(resolution * resolution - defaultResolution * defaultResolution);
+
+  /* loop over tracks */
+  AliESDtrack *track = NULL;
+  Double_t time;
+  for (Int_t itrk = 0; itrk < event->GetNumberOfTracks(); itrk++) {
+    /* get track */
+    track = event->GetTrack(itrk);
+    if (!track) continue;
+    /* check TOF match */
+    if (!track->IsOn(AliESDtrack::kTOFout)) continue;
+    /* check if channel is enabled */
+    if (!IsChannelEnabled(track->GetTOFCalChannel())) {
+      /* reset TOF status */
+      track->ResetStatus(AliESDtrack::kTOFin);
+      track->ResetStatus(AliESDtrack::kTOFout);
+      track->ResetStatus(AliESDtrack::kTOFmismatch);
+      track->ResetStatus(AliESDtrack::kTOFpid);
+    }
+    /* get original time and manipulate it */
+    time = track->GetTOFsignal();
+    time += startTime; /* add start time */
+    time += gRandom->Gaus(0., extraSmearing); /* extra smearing */
+    time -= 25.; /* remove 25 ps to center the signal */
+    track->SetTOFsignal(time);
+  }
+
+  return startTime;
+}
