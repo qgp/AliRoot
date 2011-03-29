@@ -101,6 +101,26 @@ int AliHLTTTreeProcessor::DoInit(int argc, const char** argv)
   // ask child to create the tree.
   int iResult = 0;
 
+  // component configuration
+  //Stage 1: default initialization.
+  //"Default" (for derived component) histograms.
+  FillHistogramDefinitions();
+  //Default values.
+  fMaxEntries = kMaxEntries;
+  fPublishInterval = kInterval;
+  fLastTime = 0;
+  //Stage 2: OCDB.
+  TString cdbPath("HLT/ConfigHLT/");
+  cdbPath += GetComponentID();
+  //
+  iResult = ConfigureFromCDBTObjString(cdbPath);
+  //
+  if (iResult < 0)
+    return iResult;
+  //Stage 3: command line arguments.
+  if (argc && (iResult = ConfigureFromArgumentString(argc, argv)) < 0)
+    return iResult;
+
   // calculating a unique id from the hostname and process id
   // used for identifying output of multiple components
   TUUID guid = GenerateGUID();
@@ -112,30 +132,13 @@ int AliHLTTTreeProcessor::DoInit(int argc, const char** argv)
   guid.GetUUID(buf);
   fUniqueId = bufAsInt[0];
   
-
   if (!fTree) {
-    std::auto_ptr<TTree> ptr(CreateTree(argc, argv));
+    // originally foreseen to pass the arguments to the function, however
+    // this is not appropriate. Argument scan via overloaded function
+    // ScanConfigurationArgument
+    std::auto_ptr<TTree> ptr(CreateTree(0, NULL));
     if (ptr.get()) {
-      //Stage 1: default initialization.
       ptr->SetDirectory(0);
-      //"Default" (for derived component) histograms.
-      FillHistogramDefinitions();
-      //Default values.
-      fMaxEntries = kMaxEntries;
-      fPublishInterval = kInterval;
-      fLastTime = 0;
-      //Stage 2: OCDB.
-      TString cdbPath("HLT/ConfigHLT/");
-      cdbPath += GetComponentID();
-      //
-      iResult = ConfigureFromCDBTObjString(cdbPath);
-      //
-      if (iResult < 0)
-        return iResult;
-      //Stage 3: command line arguments.
-      if (argc && (iResult = ConfigureFromArgumentString(argc, argv)) < 0)
-        return iResult;
-
       ptr->SetCircular(fMaxEntries);
       fTree = ptr.release();
     } else //No way to process error correctly - error is unknown here.
@@ -198,12 +201,12 @@ int AliHLTTTreeProcessor::DoEvent(const AliHLTComponentEventData& evtData, AliHL
   bool bDoPublishing=false;
   const int cycleResetInterval=1000;
   if (fpEventTimer && fpCycleTimer) {
-    averageEventTime=(fpEventTimer->RealTime()*fgkTimeScale)/(GetEventCount()+1);
-    fillingtime=fpEventTimer->RealTime()*fgkTimeScale;
+    averageEventTime=AliHLTUInt32_t(fpEventTimer->RealTime()*fgkTimeScale)/(GetEventCount()+1);
+    fillingtime=int(fpEventTimer->RealTime()*fgkTimeScale);
     publishtime=fillingtime;
     fpEventTimer->Start(kFALSE);
     fpCycleTimer->Stop();
-    averageCycleTime=(fpCycleTimer->RealTime()*fgkTimeScale)/((GetEventCount()%cycleResetInterval)+1);
+    averageCycleTime=AliHLTUInt32_t(fpCycleTimer->RealTime()*fgkTimeScale)/((GetEventCount()%cycleResetInterval)+1);
     // adapt processing to 3/4 of the max time
     bDoFilling=4*averageEventTime<3*fMaxEventTime ||
       (averageEventTime<fCycleTimeFactor*averageCycleTime && fpCycleTimer->RealTime()>fIgnoreCycleTime);
@@ -228,7 +231,7 @@ int AliHLTTTreeProcessor::DoEvent(const AliHLTComponentEventData& evtData, AliHL
   }
   if (fpEventTimer) {
     fpEventTimer->Stop();
-    fillingtime=fpEventTimer->RealTime()*fgkTimeScale-fillingtime;
+    fillingtime=int(fpEventTimer->RealTime()*fgkTimeScale)-fillingtime;
     if (fillingtime<0) fillingtime=0;
     fpEventTimer->Start(kFALSE);
   }
@@ -271,11 +274,11 @@ int AliHLTTTreeProcessor::DoEvent(const AliHLTComponentEventData& evtData, AliHL
 
   if (fpEventTimer) {
     fpEventTimer->Stop();
-    publishtime=fpEventTimer->RealTime()*fgkTimeScale-publishtime;
+    publishtime=int(fpEventTimer->RealTime()*fgkTimeScale)-publishtime;
     if (publishtime>fillingtime) publishtime-=fillingtime;
     else publishtime=0;
 
-    averageEventTime=(fpEventTimer->RealTime()*fgkTimeScale)/(GetEventCount()+1);
+    averageEventTime=AliHLTUInt32_t(fpEventTimer->RealTime()*fgkTimeScale)/(GetEventCount()+1);
 
     // info output once every 5 seconds
     static UInt_t lastTime=0;
@@ -312,7 +315,7 @@ int AliHLTTTreeProcessor::ScanConfigurationArgument(int argc, const char** argv)
   AliHLTHistogramDefinition def;
 
   int i = 0;
-  int maxEntries = 0;
+  int maxEntries = fMaxEntries;
 
   while (i < argc) {
     const TString argument(argv[i]);
