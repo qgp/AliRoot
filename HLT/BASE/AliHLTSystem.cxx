@@ -183,7 +183,8 @@ int AliHLTSystem::BuildTaskList(AliHLTConfiguration* pConf)
       }
       // task for this configuration exists, terminate
       pTask=NULL;
-    } else if (pConf->SourcesResolved(1)!=1) {
+    // check first if the configuration has all sources resolved, try to extract otherwise
+    } else if (pConf->SourcesResolved()!=1 && pConf->ExtractSources()!=1) {
 	HLTError("configuration \"%s\" has unresolved sources, aborting ...", pConf->GetName());
 	iResult=-ENOLINK;
     } else {
@@ -1490,7 +1491,9 @@ int AliHLTSystem::AddHLTOUTTask(const char* hltoutchains)
 
   fpHLTOUTTask=new AliHLTOUTTask(chains);
   if (fpHLTOUTTask) {
-    if (fpHLTOUTTask->GetConf() && fpHLTOUTTask->GetConf()->SourcesResolved()>=0) {
+    if (fpHLTOUTTask->GetConf() && 
+	(fpHLTOUTTask->GetConf()->SourcesResolved()>0 ||
+	 fpHLTOUTTask->GetConf()->ExtractSources()>0)) {
       iResult=InsertTask(fpHLTOUTTask);
     } else {
       HLTError("HLTOUT task (%s) sources not resolved", fpHLTOUTTask->GetName());
