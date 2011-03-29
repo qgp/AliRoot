@@ -13,6 +13,9 @@ CLASS_HDRS:=	AliHLTGlobalEsdConverterComponent.h \
 		AliHLTGlobalVertexerHistoComponent.h \
 		AliHLTGlobalHistoComponent.h \
 		AliHLTGlobalHistoCollector.h \
+		AliHLTPrimaryVertexFinderComponent.h \
+		AliHLTVertexFinderBase.h \
+		AliHLTV0FinderComponent.h \
 		physics/AliHLTV0HistoComponent.h \
 		physics/AliHLTCaloHistoComponent.h \
 		physics/AliHLTCaloHistoProducer.h \
