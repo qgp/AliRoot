@@ -202,13 +202,16 @@ class AliHLTGlobalHistoComponent : public AliHLTTTreeProcessor
   /// inherited from AliHLTTTreeProcessor: create the tree instance and all branches
   TTree* CreateTree(int argc, const char** argv);
   /// inherited from AliHLTTTreeProcessor: process input blocks and fill tree
-  int FillTree(TTree* pTree, const AliHLTComponentEventData& evtData, 
-                       AliHLTComponentTriggerData& trigData );
+  int FillTree(TTree* pTree, const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData );
   /// dtOrigin for PushBack.
   AliHLTComponentDataType GetOriginDataType() const;
-
+  /// clean up variables
   int ResetVariables();
-  
+  /// inherited from AliHLTComponent, scan argument
+  int ScanConfigurationArgument(int argc, const char** argv);
+  /// function for online reconfiguration
+  int Reconfigure(const char* cdbEntry, const char* chainId);
+
 private:
   /// copy constructor prohibited
   AliHLTGlobalHistoComponent(const AliHLTGlobalHistoComponent&);
@@ -221,11 +224,9 @@ private:
   int fNofTracks; //!
   /// V0 count, tree filling variable
   int fNofV0s; //!
-  /// UPC pair count (=1), tree filling variable
-  int fNofUPCpairs; //!
   /// contributors count, tree filling variable
   int fNofContributors; //!
- /// x coordinate of vertex
+  /// x coordinate of vertex
   float fVertexX; //!
   /// y coordinate of vertex
   float fVertexY; //!
@@ -233,29 +234,20 @@ private:
   float fVertexZ; //!
   /// vertex status, found or not
   bool fVertexStatus; //!
+  /// maximum track multiplicity
+  int fMaxTrackCount; //!
+  /// maximum number of V0 entries
+  int fMaxV0Count; //!
+  /// activate event properties branch
+  bool fFillV0; //!
  
   /// filling arrays for track parameters
   AliHLTGlobalHistoVariables<float> fTrackVariables; //!
+  /// filling array for the track status
   AliHLTGlobalHistoVariables<int> fTrackVariablesInt; //!
- 
   /// filling arrays for V0 parameters
   AliHLTGlobalHistoVariables<float> fV0Variables; //!
- 
-  /// filling arrays for UPC parameters
-  AliHLTGlobalHistoVariables<float> fUPCVariables; //!
-  
- 
-  Double_t fGammaCuts[8];  // cuts for gammas
-  Double_t fKsCuts[8];     // cuts for Ks
-  Double_t fLambdaCuts[8]; // cuts for Lambdas
-  Double_t fAPCuts[8];     // cuts for Armenteros-Podolanski plot
-
-  Int_t fNEvents;  // n of processed events
-  Int_t fNGammas;  // n found total
-  Int_t fNKShorts; // n found total
-  Int_t fNLambdas; // n found total
-  Int_t fNPi0s;    // n found total
-
+   
   ClassDef(AliHLTGlobalHistoComponent, 0) // HLT Global Histogram component
 };
 #endif
