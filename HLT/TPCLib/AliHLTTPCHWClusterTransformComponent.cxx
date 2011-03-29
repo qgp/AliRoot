@@ -108,6 +108,14 @@ AliHLTComponent* AliHLTTPCHWClusterTransformComponent::Spawn() {
 int AliHLTTPCHWClusterTransformComponent::DoInit( int argc, const char** argv ) { 
 // see header file for class documentation
   
+  AliTPCcalibDB *calib=AliTPCcalibDB::Instance();  
+  if(!calib){
+    HLTError("AliTPCcalibDB does not exist");
+    return -ENOENT;
+  }
+  calib->SetRun(GetRunNo());
+  calib->UpdateRunInformations(GetRunNo());
+
   int err = fTransform.Init( GetBz(), GetTimeStamp() );
 
   if( err!=0 ){
@@ -326,7 +334,8 @@ int AliHLTTPCHWClusterTransformComponent::ScanConfigurationArgument(int argc, co
     argument=argv[i];
     AliTPCcalibDB*  calib=AliTPCcalibDB::Instance();
     if(!calib){
-      HLTError("CalibDB not available");
+      HLTError("CalibDB instance cannot be created.");
+      return 0;
     }
     Float_t magneticField = argument.Atof();
     calib->SetExBField(magneticField);
