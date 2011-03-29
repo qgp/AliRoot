@@ -848,3 +848,48 @@ int AliHLTEsdManagerImplementation::CheckClassConditions() const
 
   return 0;
 }
+
+TObject* AliHLTEsdManagerImplementation::CreateEsdEvent(bool bCreateStdContent) const
+{
+  // create ESDEvent object and optionally initialize standard content
+  AliESDEvent* pESD=new AliESDEvent;
+  if (pESD && bCreateStdContent) pESD->CreateStdContent();
+  return pESD;
+}
+
+int AliHLTEsdManagerImplementation::DestroyEsdEvent(TObject* pESDInstance) const
+{
+  // destroy specified ESD object, pointer is invalid afterwords
+  if (!pESDInstance) return -EINVAL;
+  AliESDEvent* pESD=dynamic_cast<AliESDEvent*>(pESDInstance);
+  if (!pESD) return -EINVAL;
+  delete pESD;
+  return 0;
+}
+
+int AliHLTEsdManagerImplementation::AddObject(TObject* pESDInstance, const TObject* pObject, const char* branchname) const
+{
+  // add object to the list of ESD contributors
+  if (!pESDInstance || !pObject) return -EINVAL;
+  AliESDEvent* pESD=dynamic_cast<AliESDEvent*>(pESDInstance);
+  if (!pESD) return -EINVAL;
+  TObject* pESDObject=pESD->FindListObject(branchname);
+  if (pESDObject) {
+    // copy the content to the already existing object
+    pObject->Copy(*pESDObject);
+  } else {
+    // add a new object
+    pESD->AddObject(pObject->Clone());
+  }
+  return 0;
+}
+
+int AliHLTEsdManagerImplementation::ResetEsdEvent(TObject* pESDInstance) const
+{
+  // reset the specified ESD object
+  if (!pESDInstance) return -EINVAL;
+  AliESDEvent* pESD=dynamic_cast<AliESDEvent*>(pESDInstance);
+  if (!pESD) return -EINVAL;
+  pESD->Reset();
+  return 0;
+}

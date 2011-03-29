@@ -110,6 +110,33 @@ class AliHLTEsdManager : public AliHLTLogging {
    */
   virtual TString GetFileNames(AliHLTComponentDataType dt=kAliHLTAnyDataType) const = 0;
 
+  /**
+   * Create an AliESDEvent object.
+   * The standard content can optionally be initialized.
+   */
+  virtual TObject* CreateEsdEvent(bool bCreateStdContent=false) const = 0;
+
+  /**
+   * Delete instance of AliESDEvent
+   */
+  virtual int DestroyEsdEvent(TObject* pESDInstance) const=0;
+
+  /**
+   * Add object to ESD event.
+   * Checks the existance of the object under the name 'branchname'
+   * Note: some of the objects have (branch-)names which differ from the object name
+   * However, parameter branchname is never used when adding an object not yet existing.
+   */
+  virtual int AddObject(TObject* pESDInstance, const TObject* pObject, const char* branchname) const = 0;
+
+  /**
+   * Reset the specified object.
+   * The purpose of this method is to disentangle library dependencies.
+   * The actual implementation is outside the HLT base library in a
+   * child class.
+   */
+  virtual int ResetEsdEvent(TObject* pESDInstance) const = 0;
+
  protected:
   /** constructor */
   AliHLTEsdManager();

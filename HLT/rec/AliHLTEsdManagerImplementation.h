@@ -105,6 +105,14 @@ class AliHLTEsdManagerImplementation : public AliHLTEsdManager {
 
   int CheckClassConditions() const;
 
+  TObject* CreateEsdEvent(bool bCreateStdContent=false) const;
+
+  int DestroyEsdEvent(TObject* pESDInstance) const;
+
+  int AddObject(TObject* pESDInstance, const TObject* pObject, const char* branchname) const;
+
+  int ResetEsdEvent(TObject* pESDInstance) const;
+
  protected:
 
  private:
