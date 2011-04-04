@@ -46,7 +46,6 @@
 
 using namespace std;
 
-
 ClassImp(AliHLTPendolino)
 
 
@@ -456,7 +455,7 @@ Bool_t AliHLTPendolino::IncludeAliCDBEntryInList(const TString& entryPath) {
 
 void AliHLTPendolino::Log(const char* detector, const char* message) {
 	// logging function
-	fpLogger->log(detector, message);
+        if (fpLogger) fpLogger->log(detector, message);
 	// refer data to a Pendolino Logger, which can take care of it
 }
 
@@ -802,3 +801,8 @@ void AliHLTPendolino::Log(const char* name , const char* message, UInt_t level)
   log.LoggingVarargs(severity, "AliHLTPendolino", name , __FILE__ , __LINE__ , message);
 }
 
+// this global object is not for use, it just makes sure that
+// AliHLTPendolino can be instantiated. In case of missing virtual
+// functions a compilation error will indicate potential problems in
+// the pendolino macros
+AliHLTPendolino gAliHLTPendolino(0,"");
