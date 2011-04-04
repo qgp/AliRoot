@@ -56,7 +56,9 @@ const char* AliHLTSystem::fgkHLTDefaultLibs[]= {
   "libAliHLTRCU.so", 
   "libAliHLTTPC.so", 
   //  "libAliHLTSample.so",
-  //  "libAliHLTPHOS.so",
+  "libAliHLTCalo.so",
+  "libAliHLTEMCAL.so",
+  "libAliHLTPHOS.so",
   "libAliHLTMUON.so",
   "libAliHLTTRD.so",
   "libAliHLTITS.so",
@@ -70,10 +72,12 @@ const char* AliHLTSystem::fgkHLTDefaultLibs[]= {
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTSystem)
 
-AliHLTSystem::AliHLTSystem(AliHLTComponentLogSeverity loglevel, const char* name)
-  :
-  fpComponentHandler(AliHLTComponentHandler::CreateHandler()),
-  fpConfigurationHandler(AliHLTConfigurationHandler::CreateHandler()),
+AliHLTSystem::AliHLTSystem(AliHLTComponentLogSeverity loglevel, const char* name,
+			   AliHLTComponentHandler* pCompHandler,
+			   AliHLTConfigurationHandler* pConfHandler
+			   )
+  : fpComponentHandler(pCompHandler==NULL?AliHLTComponentHandler::CreateHandler():pCompHandler)
+  , fpConfigurationHandler(pConfHandler==NULL?AliHLTConfigurationHandler::CreateHandler():pConfHandler),
   fTaskList(),
   fState(0),
   fChains(),
@@ -87,6 +91,7 @@ AliHLTSystem::AliHLTSystem(AliHLTComponentLogSeverity loglevel, const char* name
   fpControlTask(NULL),
   fName(name)
   , fECSParams()
+  , fUseHLTOUTComponentTypeGlobal(true)
 {
   // see header file for class documentation
   // or
@@ -592,14 +597,18 @@ int AliHLTSystem::ProcessTasks(Int_t eventNo, AliHLTUInt64_t trgMask,
   int iResult=0;
   HLTDebug("processing event no %d", eventNo);
   TObjLink *lnk=fTaskList.FirstLink();
-  while (lnk && iResult>=0) {
+  while (lnk) {
     TObject* obj=lnk->GetObject();
     if (obj) {
       AliHLTTask* pTask=(AliHLTTask*)obj;
+      if (iResult>=0) {
       iResult=pTask->ProcessTask(eventNo, eventtype, trgMask, timestamp, participatingDetectors);
 //       ProcInfo_t ProcInfo;
 //       gSystem->GetProcInfo(&ProcInfo);
 //       HLTInfo("task %s processed (%d), current memory usage %d %d", pTask->GetName(), iResult, ProcInfo.fMemResident, ProcInfo.fMemVirtual);
+      } else {
+	pTask->SubscribeSourcesAndSkip();
+      }
     } else {
     }
     lnk = lnk->Next();
@@ -1202,6 +1211,13 @@ int AliHLTSystem::ScanOptions(const char* options)
 	  }
 	} else if (token.BeginsWith("ECS=")) {
 	  fECSParams=token.ReplaceAll("ECS=", "");
+	} else if (token.BeginsWith("hltout-mode=")) {
+	  // The actual parameter for argument 'hltout-mode' is treated in AliSimulation.
+	  // For AliHLTSystem the occurrence with parameter 'split' signals the use of the
+	  // separated HLTOUTComponents for digit and raw data. All others indicate
+	  // HLTOUTComponent type 'global' where the data generation is steered from global
+	  // flags
+	  fUseHLTOUTComponentTypeGlobal=token.CompareTo("hltout-mode=split")==1;
 	} else if (token.BeginsWith("lib") && token.EndsWith(".so")) {
 	  libs+=token;
 	  libs+=" ";
@@ -1348,15 +1364,15 @@ int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader
     chains=fChains;
     HLTImportant("custom reconstruction chain: %s", chains.Data());
   } else {
-    AliHLTModuleAgent* pAgent=AliHLTModuleAgent::GetFirstAgent();
-    while ((pAgent || fChains.Length()>0) && iResult>=0) {
+    for (AliHLTModuleAgent* pAgent=AliHLTModuleAgent::GetFirstAgent();
+	 pAgent && iResult>=0;
+	 pAgent=AliHLTModuleAgent::GetNextAgent()) {
       const char* agentchains=pAgent->GetReconstructionChains(rawReader, runloader);
       if (agentchains) {
 	if (!chains.IsNull()) chains+=" ";
 	chains+=agentchains;
 	HLTInfo("reconstruction chains for agent %s (%p): %s", pAgent->GetName(), pAgent, agentchains);
       }
-      pAgent=AliHLTModuleAgent::GetNextAgent();
     }
   }
 
@@ -1412,7 +1428,19 @@ int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader
       // add the HLTOUT component
       if (fpComponentHandler->FindComponentIndex("HLTOUT")>=0 ||
 	  fpComponentHandler->LoadLibrary("libHLTsim.so")>=0) {
-	AliHLTConfiguration globalout("_globalout_", "HLTOUT", chains.Data(), NULL);
+	// for the default HLTOUTComponent type 'global' the data generation is steered
+	// by global flags from AliSimulation. This allows for emulation of the old
+	// AliHLTSimulation behavior where only one chain is run on either digits or
+	// simulated raw data and the HLT digits and raw files have been generated
+	// depending on the configuration
+	const char* HLTOUTComponentId="HLTOUT";
+	if (!fUseHLTOUTComponentTypeGlobal) {
+	  // choose the type of output depending  on the availability of
+	  // the raw reader
+	  if (rawReader) HLTOUTComponentId="HLTOUTraw";
+	  else HLTOUTComponentId="HLTOUTdigits";
+	}
+	AliHLTConfiguration globalout("_globalout_", HLTOUTComponentId, chains.Data(), NULL);
 	iResult=BuildTaskList("_globalout_");
       } else {
 	HLTError("can not load libHLTsim.so and HLTOUT component");
