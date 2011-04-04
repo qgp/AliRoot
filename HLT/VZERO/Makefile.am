@@ -46,6 +46,7 @@ libAliHLTVZERO_la_LDFLAGS	= -L@ROOTLIBDIR@ \
 				  @HLTBASE_LDFLAGS@ \
 				  @ALIROOT_LDFLAGS@ \
 				  @ALIROOT_LIBS@ \
+				  @ALIVZERO_LIBS@ \
 				  -version-info $(LIBRARY_VERSION)
 
 ###############################################################################

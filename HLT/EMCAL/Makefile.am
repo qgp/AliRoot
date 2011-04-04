@@ -39,6 +39,7 @@ libAliHLTEMCAL_la_SOURCES	= $(MODULE_SRCS)
 pkginclude_HEADERS		= $(MODULE_HDRS)
 
 # linker flags
+libAliHLTEMCAL_la_LIBADD	= $(top_builddir)/CALO/libAliHLTCalo.la
 libAliHLTEMCAL_la_LDFLAGS	= -L@ROOTLIBDIR@ \
 				  @ROOTLIBS@ \
 				  @ALIROOT_LDFLAGS@ \

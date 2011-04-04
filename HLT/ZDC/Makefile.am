@@ -46,6 +46,7 @@ libAliHLTZDC_la_LDFLAGS	= -L@ROOTLIBDIR@ \
 				  @HLTBASE_LDFLAGS@ \
 				  @ALIROOT_LDFLAGS@ \
 				  @ALIROOT_LIBS@ \
+				  @ALIZDC_LIBS@ \
 				  -version-info $(LIBRARY_VERSION)
 
 ###############################################################################
