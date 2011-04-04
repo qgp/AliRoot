@@ -40,6 +40,7 @@ ClassImp(AliMUONTrackerConditionDataMaker)
 #include "AliMUONDigitCalibrator.h"
 #include "AliMUONPadStatusMaker.h"
 #include "AliMUONPadStatusMapMaker.h"
+#include "AliMUONRejectList.h"
 #include "AliMUONTrackerData.h"
 #include "AliMUONTrackerIO.h"
 #include "AliMpArrayI.h"
@@ -79,16 +80,35 @@ fIsOwnerOfData(kTRUE)
 	
 	AliCDBManager::Instance()->SetDefaultStorage(ocdbPath);
 
-  Int_t startOfValidity;
-  AliMUONVStore* store = CreateStore(runNumber,ocdbPath,type,startOfValidity);
-  AliDebug(1,Form("runNumber=%d ocdbPath=%s type=%s startOfValidity=%d store=%p",
-                  runNumber,ocdbPath,type,startOfValidity,store));
-  if ( store )
+  TString stype(type);
+  stype.ToUpper();
+  
+  if ( stype == "REJECTLIST" ) 
   {
-    fData = CreateData(type,*store,startOfValidity);
-  }  
+    
+    Int_t startOfValidity(0);
+    
+    AliMUONRejectList* rl = AliMUONCalibrationData::CreateRejectList(runNumber,&startOfValidity);    
 
-  delete store;
+    if (rl)
+    {
+      fData = new AliMUONTrackerData(Form("RL%d",startOfValidity),"RejectList",*rl);
+    }
+    
+    delete rl;
+  }
+  else
+  {
+    Int_t startOfValidity;
+    AliMUONVStore* store = CreateStore(runNumber,ocdbPath,type,startOfValidity);
+    AliDebug(1,Form("runNumber=%d ocdbPath=%s type=%s startOfValidity=%d store=%p",
+                    runNumber,ocdbPath,type,startOfValidity,store));
+    if ( store )
+    {
+      fData = CreateData(type,*store,startOfValidity);
+    }
+    // we do not delete the store, as it's supposedly part of the OCDB cache...
+  }
   
   AliCDBManager::Instance()->SetDefaultStorage(storage);
 }
@@ -295,14 +315,23 @@ AliMUONTrackerConditionDataMaker::CreateHVStore(TMap& m)
       AliDCSValue* v;
       Float_t hvValue(0);
       Int_t n(0);
+      Int_t noff(0);
+      
       while ( ( v = static_cast<AliDCSValue*>(n2()) ) )
       {
         hvValue += v->GetFloat();
+        if ( v->GetFloat() < AliMpDCSNamer::TrackerHVOFF() ) ++noff;
         ++n;
       }
       hvValue *= switchValue;  
       
       if ( n ) hvValue /= n;
+
+      if (noff>0 && noff<n) 
+      {
+        // that's a trip
+        hvValue = -1.0;        
+      }
       
       Int_t nofChannels(AliMpConstants::ManuNofChannels());
       
@@ -452,6 +481,7 @@ AliMUONTrackerConditionDataMaker::CreateStore(Int_t runNumber,
     if ( ocdb ) 
     {
       store = AliMUONCalibrationData::CreateOccupancyMap(runNumber,&startOfValidity);
+      if (store) store = static_cast<AliMUONVStore*>(store->Clone());
     }
     else
     {

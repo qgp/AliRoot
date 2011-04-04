@@ -43,18 +43,19 @@
 #include "AliMUONCalibrationData.h"
 #include "AliMUONConstants.h"
 #include "AliMUONGlobalCrateConfig.h"
+#include "AliMUONLogger.h"
 #include "AliMUONPadStatusMaker.h"
 #include "AliMUONPadStatusMapMaker.h"
 #include "AliMUONRecoParam.h"
 #include "AliMUONRegionalTriggerConfig.h"
 #include "AliMUONRejectList.h"
+#include "AliMUONTrackerData.h"
 #include "AliMUONTrackerIO.h"
 #include "AliMUONTriggerEfficiencyCells.h"
 #include "AliMUONTriggerLut.h"
 #include "AliMUONVCalibParam.h"
 #include "AliMUONVCalibParam.h"
 #include "AliMUONVStore.h"
-
 
 #include "AliMpCDB.h"
 #include "AliMpConstants.h"
@@ -81,6 +82,7 @@
 #include <Riostream.h>
 #include <TArrayI.h>
 #include <TClass.h>
+#include <TFile.h>
 #include <TH1F.h>
 #include <TList.h>
 #include <TMap.h>
@@ -93,6 +95,7 @@
 #include <TGeoGlobalMagField.h>
 #include <TClonesArray.h>
 #include <sstream>
+#include <set>
 
 namespace
 {
@@ -127,6 +130,8 @@ void getBoundaries(const AliMUONVStore& store, Int_t dim,
     const AliMpVSegmentation* seg = 
       AliMpSegmentation::Instance()->GetMpSegmentationByElectronics(detElemId,manuId);
         
+    if (!seg) continue;
+    
     for ( Int_t manuChannel = 0; manuChannel < value->Size(); ++manuChannel )
     {
       AliMpPad pad = seg->PadByLocation(manuId,manuChannel,kFALSE);
@@ -405,14 +410,14 @@ AliMUONCDB::Diff(AliMUONVStore& store1, AliMUONVStore& store2,
 }
 
 //_____________________________________________________________________________
-void 
+TH1** 
 AliMUONCDB::Plot(const AliMUONVStore& store, const char* name, Int_t nbins)
 {
   /// Make histograms of each dimension of the AliMUONVCalibParam
   /// contained inside store.
   /// It produces histograms named name_0, name_1, etc...
   
-  if (!AliMUONCDB::CheckMapping(kTRUE)) return;
+  if (!AliMUONCDB::CheckMapping(kTRUE)) return 0x0;
   
   TIter next(store.CreateIterator());
   AliMUONVCalibParam* param;
@@ -450,6 +455,8 @@ AliMUONCDB::Plot(const AliMUONVStore& store, const char* name, Int_t nbins)
     const AliMpVSegmentation* seg = 
       AliMpSegmentation::Instance()->GetMpSegmentationByElectronics(detElemId,manuId);
     
+    if (!seg) continue;
+    
     for ( Int_t manuChannel = 0; manuChannel < param->Size(); ++manuChannel )
     {
       AliMpPad pad = seg->PadByLocation(manuId,manuChannel,kFALSE);
@@ -473,6 +480,8 @@ AliMUONCDB::Plot(const AliMUONVStore& store, const char* name, Int_t nbins)
   AliInfoGeneral("AliMUONCDB", Form("Number of channels = %d",n));
   
   delete[] nPerStation;
+  
+  return h;
 }
 
 //_____________________________________________________________________________
@@ -1645,3 +1654,296 @@ AliMUONCDB::ShowConfig(Bool_t withStatusMap)
   delete cd;
   delete statusMaker;  
 }
+
+//______________________________________________________________________________
+void AliMUONCDB::ReadIntegers(const char* filename, std::vector<int>& integers)
+{
+  /// Read integers from filename, where integers are either
+  /// separated by "," or by return carriage
+  ifstream in(gSystem->ExpandPathName(filename));
+  int i;
+  
+  std::set<int> runset;
+  
+  char line[10000];
+  
+  in.getline(line,10000,'\n');
+  
+  TString sline(line);
+  
+  if (sline.Contains(","))
+  {
+    TObjArray* a = sline.Tokenize(",");
+    TIter next(a);
+    TObjString* s;
+    while ( ( s = static_cast<TObjString*>(next()) ) )
+    {
+      runset.insert(s->String().Atoi());
+    }
+    delete a;
+  }
+  else
+  {
+    runset.insert(sline.Atoi());
+    
+    while ( in >> i )
+    {
+      runset.insert(i);
+    }
+  }
+  
+  for ( std::set<int>::const_iterator it = runset.begin(); it != runset.end(); ++it ) 
+  {
+    integers.push_back((*it)); 
+  }
+  
+  std::sort(integers.begin(),integers.end());
+}
+
+//______________________________________________________________________________
+void AliMUONCDB::ShowFaultyBusPatches(const char* runlist, double occLimit,
+                                      const char* outputBaseName,
+                                      const char* ocdbPath)
+{
+  /// Shows the list of bus patches above a given occupancy limit,
+  /// for each run in the runlist
+  
+  AliLog::GetRootLogger()->SetGlobalLogLevel(AliLog::kError);
+  
+  //  AliLog::SetPrintType(AliLog::kInfo,kFALSE);
+  //  AliLog::SetPrintType(AliLog::kWarning,kFALSE);
+  //  gErrorIgnoreLevel=kError; // to avoid all the TAlienFile::Open messages...
+  
+  AliCDBManager* man = AliCDBManager::Instance();
+  
+  man->SetDefaultStorage(ocdbPath);
+  
+  Bool_t first(kTRUE);
+  
+  std::vector<int> runnumbers;
+  
+  ReadIntegers(runlist,runnumbers);
+  
+  AliMUON2DMap bpValues(kFALSE);
+  
+  std::ofstream outfile(Form("%s.txt",outputBaseName));
+  
+  for ( unsigned int i = 0 ; i < runnumbers.size(); ++i )
+  {
+    int runNumber = runnumbers[i];
+    
+    man->SetRun(runNumber);
+    
+    if ( first ) 
+    {
+      AliMpCDB::LoadAll();  
+      first = kFALSE;
+    }
+    
+    AliCDBEntry* e = man->Get("MUON/Calib/OccupancyMap",runNumber);
+    
+    if (!e)
+    {
+      AliErrorGeneral("AliMUONCDB::ShowFaultyBusPatches",
+                      Form("Could not get OccupancyMap for run %09d",runNumber));
+      continue;
+    }
+    
+    AliMUONVStore* occmap = static_cast<AliMUONVStore*>(e->GetObject());
+    
+    AliMUONTrackerData td("occ","occ",*occmap);
+    
+    TIter nextBP(AliMpDDLStore::Instance()->CreateBusPatchIterator());
+    AliMpBusPatch* bp;
+    std::set<int> buspatches;
+    Double_t sumn = 1000.0;
+    
+    while ( ( bp = static_cast<AliMpBusPatch*>(nextBP()) ) )
+    {      
+      Double_t occ = td.BusPatch(bp->GetId(),2);
+      
+      if (occ>occLimit) 
+      {
+        buspatches.insert(bp->GetId());
+        
+        AliMUONVCalibParam* param = static_cast<AliMUONVCalibParam*>(bpValues.FindObject(bp->GetId()));
+        
+        if (!param)
+        {
+          param = new AliMUONCalibParamND(5, 1, bp->GetId(), 0);
+          bpValues.Add(param);
+          
+          Int_t detElemId = AliMpDDLStore::Instance()->GetDEfromBus(bp->GetId());
+          AliMpDetElement* de = AliMpDDLStore::Instance()->GetDetElement(detElemId);
+          
+          Int_t nchannels(0);
+          
+          for ( Int_t imanu = 0; imanu < bp->GetNofManus(); ++imanu ) 
+          {
+            Int_t manuId = bp->GetManuId(imanu);
+            nchannels += de->NofChannelsInManu(manuId);
+          }
+          
+          param->SetValueAsDouble(0,2,sumn);
+          param->SetValueAsDouble(0,3,nchannels);
+          param->SetValueAsDouble(0,4,1);          
+        }
+        
+        Double_t sumw = sumn*(param->ValueAsDouble(0)/sumn+1.0/runnumbers.size());
+        Double_t sumw2 = 0.0; //(sumn-1)*ey*ey+sumw*sumw/sumn;
+        
+        param->SetValueAsDouble(0,0,sumw);
+        param->SetValueAsDouble(0,1,sumw2);
+        
+      }
+    }
+    
+    outfile << Form("RUN %09d",runNumber);
+    
+    for ( std::set<int>::const_iterator bit = buspatches.begin(); bit != buspatches.end(); ++bit )
+    {
+      outfile << Form(" %4d",*bit);
+    }
+    outfile << endl;
+  }
+  
+  outfile.close();
+  
+  const char* name = "BPfailureRate";
+  
+  AliMUONTrackerData* mpData = new AliMUONTrackerData(name,name,bpValues,2);
+  mpData->SetDimensionName(0,name);
+  
+  TFile f(Form("%s.root",outputBaseName),"recreate");
+  mpData->Write();
+  f.Close();
+  
+  cout << Form("Results are in %s.txt and %s.root",outputBaseName,outputBaseName) << endl;
+  
+  gSystem->Exec(Form("cat %s.txt",outputBaseName));
+  
+}
+
+//______________________________________________________________________________
+void AliMUONCDB::CheckHV(Int_t runNumber, Int_t verbose)
+{
+  /// Check the HV values in OCDB for a given run
+  
+  TList messages;
+  messages.SetOwner(kTRUE);
+  
+  Bool_t patched(kTRUE);
+  
+  if (!AliCDBManager::Instance()->IsDefaultStorageSet())
+  {
+    AliCDBManager::Instance()->SetDefaultStorage("raw://");
+  }
+
+  AliCDBManager::Instance()->SetRun(runNumber);
+
+  LoadMapping();
+  
+  AliMUONCalibrationData::CreateHV(runNumber,0,patched,&messages);
+  
+  AliMUONCalibrationData cd(runNumber,true);
+  
+  AliMUONPadStatusMaker statusMaker(cd);
+  
+  AliMUONRecoParam* rp = AliMUONCDB::LoadRecoParam();
+  
+  if (!rp)
+  {
+    AliErrorGeneral("AliMUONCDB::CheckHV","Could not get RecoParam !!!");
+    return;
+  }
+  
+  statusMaker.SetLimits(*rp);
+  
+  TIter next(&messages);
+  TObjString* s;
+  AliMpDCSNamer hvNamer("TRACKER");
+  AliMUONLogger log;
+  
+  while ( ( s = static_cast<TObjString*>(next()) ) )
+  {
+    TObjArray* a = s->String().Tokenize(":");
+    
+    TString name(static_cast<TObjString*>(a->At(0))->String());
+    
+    if ( name.Contains("sw") || name.Contains("SUMMARY") ) continue;
+    
+    Int_t index = hvNamer.DCSIndexFromDCSAlias(name.Data());
+    
+    Int_t detElemId = hvNamer.DetElemIdFromDCSAlias(name.Data());
+    
+    AliMpDetElement* de = AliMpDDLStore::Instance()->GetDetElement(detElemId);
+    
+    if (!de)
+    {
+      AliErrorGeneral("AliMUONCDB::CheckHV",Form("Could not get detElemId from dcsAlias %s",name.Data()));
+      continue;
+    }
+    
+    Int_t manuId;
+    
+    if ( index >= 0 )
+    {
+      const AliMpArrayI* array = de->ManusForHV(index);
+      manuId = array->GetValue(0);
+    }
+    else
+      
+    {
+      AliMpBusPatch* bp = AliMpDDLStore::Instance()->GetBusPatch(de->GetBusPatchId(0));
+      
+      manuId = bp->GetManuId(0);
+    }
+    
+    Int_t status = statusMaker.HVStatus(detElemId,manuId);
+    
+    log.Log(AliMUONPadStatusMaker::AsString(status).Data());
+    
+    s->String() += Form(" (DE %4d) ",detElemId);
+    s->String() += AliMUONPadStatusMaker::AsString(status).Data();
+    
+    delete a;
+  }    
+  
+  TIter nextMessage(&messages);
+  TObjString* msg;
+  
+  while ( ( msg = static_cast<TObjString*>(nextMessage()) ) )
+  {
+    if ( verbose > 0 || msg->String().Contains("SUMMARY") )
+    {
+      AliInfoGeneral("AliMUONCDB::CheckHV",Form("RUN %09d HVchannel %s",runNumber,msg->String().Data()));
+    }
+  }
+  
+  TString lmsg;
+  Int_t occurance;
+  TString totalLog;
+  
+  while (log.Next(lmsg,occurance))
+  {
+    totalLog += Form("%s(%d)",lmsg.Data(),occurance);
+    totalLog += " | ";
+  }
+
+  AliInfoGeneral("AliMUONCDB::CheckHV",Form("RUN %09d %s",runNumber,totalLog.Data()));
+
+  // one last loop to get the list of problematic HV channels
+  nextMessage.Reset();
+  
+  while ( ( msg = static_cast<TObjString*>(nextMessage()) ) )
+  {
+    if ( msg->String().Contains("HV ") )
+    {
+      AliInfoGeneral("AliMUONCDB::CheckHV",Form("     Problem at %s",msg->String().Data()));      
+    }
+  }
+   
+  AliCDBManager::Instance()->ClearCache();
+}
+
+
