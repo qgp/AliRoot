@@ -60,7 +60,10 @@
 	--- util: 44903
 	adjusted track cuts, postponed until check
 
-	--- not ported: 44688 44697 44698 44699 44700 44701 44702 44707 44709 44722 44723 44734 44742 44747 44760 44762 44799 44812 44813 44824 44848 44894 44920 44951 44954 44999 45014 45020 45022 45023 45059 45104 45105 45109 45110 45121 45130 45132 45136 45139 45143 45147 45148 45155 45157 45162 45169 45171 45173 45174 45176 45178 45192 45193 45194 45198 45202 45204 45217 45268 45269 45273 45288 45295 45299
+	xxx compilation warnings: 44760
+	not to be ported
+
+	--- not ported: 44688 44697 44698 44699 44700 44701 44702 44707 44709 44722 44723 44734 44742 44747 44762 44799 44812 44813 44824 44848 44894 44920 44951 44954 44999 45014 45020 45022 45023 45059 45104 45105 45109 45110 45121 45130 45132 45136 45139 45143 45147 45148 45155 45157 45162 45169 45171 45173 45174 45176 45178 45192 45193 45194 45198 45202 45204 45217 45268 45269 45273 45288 45295 45299
 
 	Last checked revision 45310
 
@@ -69,44 +72,54 @@
 	general scalars
 	TriggerCounter component
 	ticket https://savannah.cern.ch/bugs/index.php?79887
+	ported 48809
 
 	--- BASE: 46319 46538 47607 47998
 	HLTOUT handler
 	TTreeProcessor
 	ticket https://savannah.cern.ch/bugs/index.php?79888
+	ported 48810
 
 	--- util: 44701 44954 45555 45683 46128 46376 46378 46799 46800 47093 47337 47369 47608 47910 47957 47961 47989
 	couple of bug fixes
 	ticket https://savannah.cern.ch/bugs/index.php?79889
+	ported 48812
 
 	--- BASE: 44702 45754 45757 46470 46911 46912 47398 47409 47731 47762 47983
 	online configuration
 	ticket https://savannah.cern.ch/bugs/index.php?79890
+	ported 48813
 
 	--- dim: 47693 47749 47904 47917 48373
 	stand alone DIM publisher
 	ticket https://savannah.cern.ch/bugs/index.php?79891
+	ported 48815
 
 	--- global: 47682 47686 47687 48035 48036 48037 48056 48061 48063 48294 48296 48439 48447 48499 48500 48501 48527 48528
 	global histo component
 	ticket https://savannah.cern.ch/bugs/index.php?79892
+	ported 48820
 
 	--- global: 46539,46913,47400,48362,48475,48477,48514,46538,48623
 	for r in 46539 46913 47400 48362 48475 48477 48514 46538 48623; do svn merge -c $r https://alisoft.cern.ch/AliRoot/trunk/HLT/global; done
 	separate primary vertex finder and V0 finder
 	ticket https://savannah.cern.ch/bugs/index.php?79893
+	ported 48821
 
 	--- OCDB: 48712
 	default objects for V0Finder and PrimaryVertexer
 	ticket https://savannah.cern.ch/bugs/index.php?79992
+	ported 48823
 
 	--- TPC: 46100 46110 47678 48442 48710
 	component updates, bugfixes, initialization
 	ticket https://savannah.cern.ch/bugs/index.php?80021
+	ported 48825
 
 	--- TPC: 45450 45665 45672 45741
 	improved/new merger algorithm
 	ticket https://savannah.cern.ch/bugs/index.php?80021
+	ported 48825
 
 	--- TPC: 47379
 	GPU tracking
@@ -115,14 +128,6 @@
 	--- BASE: 47399
 	AliHLTSystem XML handling
 	activation postponed
-
-	--- BASE: 45937 45938 46618 47318 47406 47763
-	AliHLTSystem: minor bugfixes, memory leaks, extended default libs
-	postponed
-
-	--- BASE: 45988 45990 46765
-	AliHLTSystem: simulation for raw data and digits
-	postponed
 
 	--- BASE: 45308 45567 45674
 	component base class
@@ -158,10 +163,6 @@
 	dNdpt component
 	postponed
 
-	--- pendolino: 47333
-	minor fixes
-	postponed
-
 	xxx trigger: 43522 44697
 	D0 simulation
 
@@ -169,3 +170,22 @@
 	not to be ported
 
 	xxx build: 47755 46317 47843 47844
+
+2011-04-04 updated to r48828
+	--- patch for the build system, library dependencies
+	ticket https://savannah.cern.ch/bugs/index.php?80372
+
+	--- BASE/sim: 45937,45938,45988,45990,46618,47318,47406,46746,47763
+	AliHLTSystem: minor bugfixes, memory leaks, extended default libs
+	AliHLTSystem: simulation for raw data and digits
+
+	--- ITS: 45155 45936 46377 46701 48515
+	cluster finder input multipliers, bugfix CF on digits
+	ticket https://savannah.cern.ch/bugs/index.php?80432
+
+	xxx ITS: 47628 47629 48348 48352 48353 48359 48360 48361
+	minor fixes (coverity)
+	not to be ported
+
+	--- pendolino: 47333 48997
+	bugfix: dummy function for pure virtual function of AliShuttleInterface
