@@ -7,11 +7,11 @@
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-/** @file   AliHLTEsdManagerImplementation.h
-    @author Matthias Richter
-    @date   
-    @brief  Implementation of the AliHLTEsdManager
-*/
+/// @file   AliHLTEsdManagerImplementation.h
+/// @author Matthias Richter
+/// @date   
+/// @brief  Implementation of the AliHLTEsdManager
+///         This is an implementation of the abstract interface AliHLTEsdManager
 
 #include "AliHLTEsdManager.h"
 #include "AliESDEvent.h"
@@ -145,9 +145,9 @@ class AliHLTEsdManagerImplementation : public AliHLTEsdManager {
     void SetDirectory(const char* directory);
 
     /**
-     * Delete the ESD file.
+     * Set the tree name
      */
-    void Delete();
+    void SetTreeName(const char* treename) {fTreeName=treename;}
 
     /**
      * Get name of the ESD file.
@@ -169,15 +169,6 @@ class AliHLTEsdManagerImplementation : public AliHLTEsdManager {
     /** assignment operator prohibited */
     AliHLTEsdListEntry& operator=(const AliHLTEsdListEntry& src);
 
-    /**
-     * Write ESD to temporary file.
-     * The ESD is embedded into a tree and saved to a temporary file.
-     * The file name is retrieved by TSystem::GetTempFileName and returned
-     * on success.
-     * @return file name, empty on failure
-     */
-    TString WriteTempFile(AliESDEvent* pESD) const;
-
     /** root file name */
     TString fName; //!transient
     /** target directory */
@@ -192,6 +183,8 @@ class AliHLTEsdManagerImplementation : public AliHLTEsdManager {
     AliESDEvent* fpEsd; //!transient
     /** Prefix for generated ESD objects in the master ESD */
     TString fPrefix; //!transient
+    /** name of the tree to be created */
+    TString fTreeName; //!transient
   };
 
   typedef vector<AliHLTEsdListEntry*> AliHLTEsdPList;
@@ -206,10 +199,12 @@ class AliHLTEsdManagerImplementation : public AliHLTEsdManager {
 
   /** target directory */
   TString fDirectory; //!transient
+  /** target directory */
+  TString fTreeName; //!transient
   /** write local files */
   bool fWriteLocal; //!transient
 
-  ClassDef(AliHLTEsdManagerImplementation, 2)
+  ClassDef(AliHLTEsdManagerImplementation, 3)
 };
 
 #endif
