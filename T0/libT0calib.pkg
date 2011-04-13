@@ -1,0 +1,8 @@
+#-*- Mode: Makefile -*-
+SRCS= AliT0CalibOffsetChannelsTask.cxx AliT0PreprocessorOffline.cxx
+
+HDRS= $(SRCS:.cxx=.h)
+
+DHDR:=  T0calibLinkDef.h
+
+EINCLUDE:=  RAW
