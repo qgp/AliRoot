@@ -285,9 +285,9 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
   //  Int_t refPoint = 0;
   Int_t badpmt[24];
   //Bad channel
-  for (Int_t i=0; i<24; i++) 
-  badpmt[i] = GetRecoParam() -> GetBadChannels(i);
- 
+  for (Int_t i=0; i<24; i++) {
+    badpmt[i] = GetRecoParam() -> GetBadChannels(i);
+  }
   Int_t low[500], high[500];
 
   Int_t allData[110][5];
@@ -413,7 +413,7 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	  }
 	Double32_t time[24], adc[24], adcmip[24], noncalibtime[24];
 	for (Int_t ipmt=0; ipmt<24; ipmt++) {
-	  if(timeCFD[ipmt] >  0  && badpmt[ipmt]==0 ){
+	  if(timeCFD[ipmt] >  0 /* && badpmt[ipmt]==0*/ ){
 	   //for simulated data
 	     //for physics  data
 	   if(( chargeQT0[ipmt] - chargeQT1[ipmt])>0)  {
@@ -448,9 +448,10 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
        }
        fESDTZEROfriend->SetT0timeCorr(noncalibtime) ;     
        for (Int_t ipmt=0; ipmt<12; ipmt++){
-	 if(time[ipmt] !=0 && badpmt[ipmt]==0 &&  adcmip[ipmt]>lowAmpThreshold && adcmip[ipmt]<highAmpThreshold )
+	 if(time[ipmt] !=0 /*&& badpmt[ipmt]==0 */&&  adcmip[ipmt]>lowAmpThreshold && adcmip[ipmt]<highAmpThreshold )
 	   {
-	     if(TMath::Abs(time[ipmt])<TMath::Abs(besttimeC)){
+	       //	       if(TMath::Abs(time[ipmt])<TMath::Abs(besttimeC)) {
+	     if(time[ipmt]<besttimeC){
 	       besttimeC=time[ipmt]; //timeC
 		  pmtBestC=ipmt;
 	     }
@@ -458,30 +459,31 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
        }
        for ( Int_t ipmt=12; ipmt<24; ipmt++)
 	 {
-	   if(time[ipmt] != 0  && badpmt[ipmt]==0 && adcmip[ipmt]>lowAmpThreshold && adcmip[ipmt]<highAmpThreshold)
+	   if(time[ipmt] != 0 /* && badpmt[ipmt]==0*/ && adcmip[ipmt]>lowAmpThreshold && adcmip[ipmt]<highAmpThreshold)
 	     {
-	       if(TMath::Abs(time[ipmt])<TMath::Abs(besttimeA)) {
+	       if(time[ipmt]<besttimeA) {
+		 //	       if(TMath::Abs(time[ipmt])<TMath::Abs(besttimeA)) {
 		 besttimeA=time[ipmt]; //timeA
 		 pmtBestA=ipmt;
 	       }
 	     }
 	 }
        if(besttimeA < 999999) 
-	 //	 frecpoints->SetTimeBestA((besttimeA * channelWidth)- 1000.*fLatencyHPTDC + 1000.*fLatencyL1A - 1000.*fGRPdelays - fTimeMeanShift[1] ); 
-	 frecpoints->SetTimeBestA((besttimeA * channelWidth- fTimeMeanShift[1])); 
+	 frecpoints->SetTimeBestA((besttimeA * channelWidth)- 1000.*fLatencyHPTDC + 1000.*fLatencyL1A - 1000.*fGRPdelays - fTimeMeanShift[1] ); 
+       //	 frecpoints->SetTimeBestA((besttimeA * channelWidth- fTimeMeanShift[1])); 
 
        if( besttimeC < 999999 ) 
-	 //	 frecpoints->SetTimeBestC((besttimeC * channelWidth)- 1000.*fLatencyHPTDC +1000.*fLatencyL1C - 1000.*fGRPdelays - fTimeMeanShift[2]);
-	 frecpoints->SetTimeBestC((besttimeC * channelWidth - fTimeMeanShift[2]));
+	 frecpoints->SetTimeBestC((besttimeC * channelWidth)- 1000.*fLatencyHPTDC +1000.*fLatencyL1C - 1000.*fGRPdelays - fTimeMeanShift[2]);
+       // frecpoints->SetTimeBestC((besttimeC * channelWidth - fTimeMeanShift[2]));
        AliDebug(5,Form(" pmtA %i besttimeA %f shift A %f ps, pmtC %i besttimeC %f shiftC %f ps",
 		       pmtBestA,besttimeA, fTimeMeanShift[1],
 		       pmtBestC,  besttimeC,fTimeMeanShift[2]));
         if(besttimeA <999999 && besttimeC < 999999 ){
 	  //	 timeDiff = ( besttimeA - besttimeC)* 0.001* channelWidth + fLatencyL1A - fLatencyL1C;
-	  // timeclock = channelWidth * Float_t( besttimeA+besttimeC)/2. - 1000.*fLatencyHPTDC + 1000.*fLatencyL1 - 1000.*fGRPdelays - fTimeMeanShift[0] ;  
+	  timeclock = channelWidth * Float_t( besttimeA+besttimeC)/2. - 1000.*fLatencyHPTDC + 1000.*fLatencyL1 - 1000.*fGRPdelays - fTimeMeanShift[0] ;  
 	 meanTime = (besttimeA+besttimeC-2.*Float_t(ref))/2.;
 	 timeDiff = ( besttimeA - besttimeC)* 0.001* channelWidth ;
-	 timeclock = channelWidth * Float_t( besttimeA+besttimeC)/2. - fTimeMeanShift[0] ;  
+	 // timeclock = channelWidth * Float_t( besttimeA+besttimeC)/2. - fTimeMeanShift[0] ;  
 	 vertex =  meanVertex - c*(timeDiff)/2. ; //+ (fdZonA - fdZonC)/2; 
 	}
       }  //if phys event       
