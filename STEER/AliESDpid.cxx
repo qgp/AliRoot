@@ -381,6 +381,7 @@ void AliESDpid::SetTOFResponse(AliESDEvent *event,EStartTimeType_t option){
       for(Int_t i=0;i<fTOFResponse.GetNmomBins();i++){ // read T0-TOF default value
 	startTime[i]=tofHeader->GetDefaultEventTimeVal();
 	startTimeRes[i]=tofHeader->GetDefaultEventTimeRes();
+	if(startTimeRes[i] < 1.e-5) startTimeRes[i] = t0spread;
       }
 
       TArrayI *ibin=tofHeader->GetNvalues();
@@ -390,7 +391,8 @@ void AliESDpid::SetTOFResponse(AliESDEvent *event,EStartTimeType_t option){
 	Int_t icurrent = (Int_t)ibin->GetAt(j);
 	startTime[icurrent]=t0Bin->GetAt(j);
 	startTimeRes[icurrent]=t0ResBin->GetAt(j);
-      }
+ 	if(startTimeRes[icurrent] < 1.e-5) startTimeRes[icurrent] = t0spread;
+     }
     }
 
     // for cut of 3 sigma on t0 spread
