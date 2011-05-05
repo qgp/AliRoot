@@ -307,6 +307,8 @@ void AliEMCALTriggerRawDigitMaker::PostProcess()
 	
 	if (STUin && fSTURawStream && fSTURawStream->ReadPayLoad())
 	{
+		fTriggerData->SetL1DataDecoded(1);
+		
 		fTriggerData->SetL1GammaThreshold(fSTURawStream->GetL1GammaThreshold());
 		fTriggerData->SetL1JetThreshold(  fSTURawStream->GetL1JetThreshold()  );
 		
@@ -322,7 +324,7 @@ void AliEMCALTriggerRawDigitMaker::PostProcess()
 			fSTURawStream->GetJC(),
 			fSTURawStream->GetRegionEnable(), 
 			fSTURawStream->GetFwVersion()
-		};
+		};		
 		
 		fTriggerData->SetL1FrameMask(fSTURawStream->GetFrameReceived());
 		fTriggerData->SetL1V0(v0);
