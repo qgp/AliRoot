@@ -36,7 +36,10 @@
 #include "AliShuttleInterface.h"
 #include "AliEMCALPreprocessor.h"
 #include "AliLog.h"
+#include "AliDCSValue.h"
 #include "AliCDBMetaData.h"
+#include "AliEMCALTriggerTRUDCSConfig.h"
+#include "AliEMCALTriggerDCSConfig.h"
 #include "AliCaloCalibPedestal.h"
 #include "AliCaloCalibSignal.h"
 #include "AliEMCALSensorTempArray.h"
@@ -56,6 +59,8 @@ const TString kMetaComment = "Preprocessor AliEMCAL data base entries.";
 const int kReturnCodeNoInfo = 9;
 const int kReturnCodeNoObject = 2;
 const int kReturnCodeNoEntries = 1;
+
+const int kNTRU = 30; // From 2011; 10 SuperModules (SM) * 3 TRU per SM
 
 ClassImp(AliEMCALPreprocessor)
   
@@ -188,6 +193,17 @@ UInt_t AliEMCALPreprocessor::Process(TMap* dcsAliasMap)
     status = new TParameter<int>("tempResult",tempResult);
     resultArray->Add(status);
   }
+  // Trigger configuration processing: only for Physics runs
+  TString triggerConf = fConfEnv->GetValue("Trigger","ON");
+  triggerConf.ToUpper();
+  if( runType == kPhysicsRunType ) {
+    if (triggerConf != "OFF" && dcsAliasMap ) {
+      UInt_t triggerResult = MapTriggerConfig(dcsAliasMap);
+      result+=triggerResult;
+      status = new TParameter<int>("triggerResult",triggerResult);
+      resultArray->Add(status);
+    }
+  }
   
   // Other calibration information will be retrieved through FXS files
   //  examples:
@@ -268,8 +284,7 @@ UInt_t AliEMCALPreprocessor::Process(TMap* dcsAliasMap)
 }
 //______________________________________________________________________________________________
 UInt_t AliEMCALPreprocessor::MapTemperature(TMap* dcsAliasMap)
-{
-  // extract DCS temperature maps. Perform fits to save space
+{ // extract DCS temperature maps. Perform fits to save space
   UInt_t result=0;
 
   TMap *map = fTemp->ExtractDCS(dcsAliasMap);
@@ -299,19 +314,143 @@ UInt_t AliEMCALPreprocessor::MapTemperature(TMap* dcsAliasMap)
     
     Bool_t storeOK = Store("Calib", "Temperature", fTemp, &metaData, 0, kFALSE);
     if ( !storeOK )  result=1;
+    AliInfo(Form("Temperature info stored. result %d\n", result));
   }
   
   return result;
 }
 
 //______________________________________________________________________________________________
+UInt_t AliEMCALPreprocessor::MapTriggerConfig(TMap* dcsAliasMap)
+{ // extract DCS trigger info
+  AliInfo(Form("Get TRU info from DCS DPs.\n"));
+  Int_t i, iTRU;
+  const Int_t bufsize = 1000;
+  char buf[bufsize];
+
+  AliDCSValue *dcsVal;
+  TObjArray *arrL0ALGSEL, *arrPEAKFINDER, *arrGLOBALTHRESH, *arrCOSMTHRESH;
+  TObjArray *arrMASK[6];
+
+  // overall object to hold STU and DCS config info
+  // DS comment: for now only holds TRU info, i.e. only partially filled
+  // (STU info only in raw data header; unfortunately not also picked up via DCS DPs)
+  AliEMCALTriggerDCSConfig *trigConfig = new AliEMCALTriggerDCSConfig();
+  // allocate space for TRU objects
+  TClonesArray *truArr = new TClonesArray("AliEMCALTriggerTRUDCSConfig", kNTRU);
+  for( iTRU = 0; iTRU < kNTRU; iTRU++){
+    new((*truArr)[iTRU]) AliEMCALTriggerTRUDCSConfig();
+  }
+  trigConfig->SetTRUArr(truArr);
+
+  // loop through all TRUs
+  bool debug = false; // debug flag for AliInfo printouts for each TRU
+  for( iTRU = 0; iTRU < kNTRU; iTRU++){
+    if (debug) AliInfo( Form("iTRU %d \n", iTRU) );
+    // get the shuttled values
+    snprintf( buf, bufsize, "EMC_TRU%02d_L0ALGSEL", iTRU );
+    arrL0ALGSEL = (TObjArray*) dcsAliasMap->GetValue( buf );
+    snprintf( buf, bufsize, "EMC_TRU%02d_PEAKFINDER", iTRU );
+    arrPEAKFINDER = (TObjArray*) dcsAliasMap->GetValue( buf );
+    snprintf( buf, bufsize, "EMC_TRU%02d_GLOBALTHRESH", iTRU );
+    arrGLOBALTHRESH = (TObjArray*) dcsAliasMap->GetValue( buf );
+    snprintf( buf, bufsize, "EMC_TRU%02d_COSMTHRESH", iTRU );
+    arrCOSMTHRESH = (TObjArray*) dcsAliasMap->GetValue( buf );
+    
+    for( i = 0; i < 6; i++ ){
+      snprintf( buf, bufsize, "EMC_TRU%02d_MASK%d", iTRU, i );
+      arrMASK[i] = (TObjArray*) dcsAliasMap->GetValue( buf );
+    }
+    
+    // fill the objects
+    AliEMCALTriggerTRUDCSConfig* truConfig = trigConfig->GetTRUDCSConfig(iTRU);
+    if( ! truConfig ){
+      AliWarning( Form("EMC DCS TRU%02d config not retrieved!\n", iTRU ));
+      continue;
+    }
+
+    // get last entries. fill the TRU object
+    if( ! arrL0ALGSEL ){
+      AliWarning( Form("EMC DCS TRU%02d L0ALGSEL alias not found!\n", iTRU ));
+    }
+    else{
+      if (debug) AliInfo( Form("arrL0ALGSEL has %d entries \n", arrL0ALGSEL->GetEntries()) );
+      if ( arrL0ALGSEL->GetEntries() > 0 ) {
+	dcsVal = (AliDCSValue *) arrL0ALGSEL->At( arrL0ALGSEL->GetEntries() - 1 );
+	if (dcsVal) truConfig->SetL0SEL( dcsVal->GetUInt() );
+      }
+    }
+
+    if( ! arrPEAKFINDER ){
+      AliWarning( Form("EMC DCS TRU%02d PEAKFINDER alias not found!\n", iTRU ));
+    }
+    else{
+      if (debug) AliInfo( Form("arrPEAKFINDER has %d entries \n", arrPEAKFINDER->GetEntries()) );
+      if ( arrPEAKFINDER->GetEntries() > 0 ) {
+	dcsVal = (AliDCSValue *) arrPEAKFINDER->At( arrPEAKFINDER->GetEntries() - 1 );
+	if (dcsVal) truConfig->SetSELPF( dcsVal->GetUInt() );
+      }
+    }
+
+    if( ! arrGLOBALTHRESH ){
+      AliWarning( Form("EMC DCS TRU%02d GLOBALTHRESH alias not found!\n", iTRU ));
+    }
+    else{
+      if (debug) AliInfo( Form("arrGLOBALTHRESH has %d entries \n", arrGLOBALTHRESH->GetEntries()) );
+      if ( arrGLOBALTHRESH->GetEntries() > 0 ) {
+	dcsVal = (AliDCSValue *) arrGLOBALTHRESH->At( arrGLOBALTHRESH->GetEntries() - 1 );
+	if (dcsVal) truConfig->SetGTHRL0( dcsVal->GetUInt() );
+      }
+    }
+
+    if( ! arrCOSMTHRESH ){
+      AliWarning( Form("EMC DCS TRU%02d COSMTHRESH alias not found!\n", iTRU ));
+    }
+    else{
+      if (debug) AliInfo( Form("arrCOSMTHRESH has %d entries \n", arrCOSMTHRESH->GetEntries()) );
+      if ( arrCOSMTHRESH->GetEntries() > 0 ) {
+	dcsVal = (AliDCSValue *) arrCOSMTHRESH->At( arrCOSMTHRESH->GetEntries() - 1 );
+	if (dcsVal) truConfig->SetL0COSM( dcsVal->GetUInt() );
+      }
+    }
+    
+    for( i = 0; i < 6; i++ ){
+      if( ! arrMASK[i] ){
+	AliWarning( Form("EMC DCS TRU%02d MASK%d alias not found!\n", iTRU, i ));
+      }
+      else{
+	if (debug) AliInfo( Form("arrMASK[%d] has %d entries \n", i, arrMASK[i]->GetEntries()) );
+	if ( arrMASK[i]->GetEntries() > 0 ) {
+	  dcsVal = (AliDCSValue *) arrMASK[i]->At( arrMASK[i]->GetEntries() - 1 );
+	  if (dcsVal) truConfig->SetMaskReg( dcsVal->GetUInt(), i );
+	}
+      }
+    }
+    
+  } // TRUs
+  AliInfo(Form("TRU info retrieved.\n"));
+  // save the objects
+  AliCDBMetaData metaData;
+  metaData.SetBeamPeriod(0);
+  metaData.SetResponsible(kMetaResponsible);
+  metaData.SetComment(kMetaComment); 
+      
+  UInt_t result=0;
+  Bool_t storeOK = Store("Calib", "Trigger", trigConfig, &metaData, 0, kFALSE);
+  if ( !storeOK )  result=1;
+  AliInfo(Form("TRU info stored. result %d\n", result));
+
+  return result;
+}
+
+//______________________________________________________________________________________________
 UInt_t AliEMCALPreprocessor::ExtractPedestals(Int_t sourceFXS)
 {
-  UInt_t result=0;
-  //
   //  Read pedestal file from file exchange server
   //  Only store if new pedestal info is available
   //
+  UInt_t result=0;
+
   AliCaloCalibPedestal *calibPed = new AliCaloCalibPedestal(AliCaloCalibPedestal::kEmCal);
   calibPed->Init();
 
@@ -375,12 +514,10 @@ UInt_t AliEMCALPreprocessor::ExtractPedestals(Int_t sourceFXS)
 
 //______________________________________________________________________________________________
 UInt_t AliEMCALPreprocessor::ExtractSignal(Int_t sourceFXS)
-{
-  UInt_t result=0;
-  //
-  //  Read signal file from file exchange server
+{ //  Read signal file from file exchange server
   //  Only store if new signal info is available
   //
+  UInt_t result=0;
   AliCaloCalibSignal *calibSig = new AliCaloCalibSignal(AliCaloCalibSignal::kEmCal); 
   
   TList* list = GetFileSources(sourceFXS,"signal");
