@@ -22,6 +22,11 @@ void MakeVZERORecoParam(AliRecoParam::EventSpecie_t default=AliRecoParam::kLowMu
   }
   {
     AliVZERORecoParam * vzeroRecoParam = new AliVZERORecoParam;
+    // the following two settings are needed to high lumi runs in 2011
+    vzeroRecoParam->SetStartClock(9);
+    vzeroRecoParam->SetEndClock(11);
+    vzeroRecoParam->SetNPreClocks(1);
+    vzeroRecoParam->SetNPostClocks(1);
     vzeroRecoParam->SetEventSpecie(AliRecoParam::kLowMult);
     recoParamArray->AddLast(vzeroRecoParam);
   }
