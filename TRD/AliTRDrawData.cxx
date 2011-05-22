@@ -37,7 +37,7 @@
 #include "AliTRDgeometry.h"
 #include "AliTRDarrayDictionary.h"
 #include "AliTRDarrayADC.h"
-#include "AliTRDrawStreamBase.h"
+#include "AliTRDrawStream.h"
 #include "AliTRDcalibDB.h"
 #include "AliTRDSignalIndex.h"
 #include "AliTRDfeeParam.h"
@@ -57,7 +57,8 @@ AliTRDrawData::AliTRDrawData()
   ,fFee(NULL)
   ,fNumberOfDDLs(0)
   ,fTrackletTree(NULL)
-  ,fTrackletContainer(NULL)
+  ,fTracklets(NULL)
+  ,fTracks(NULL)
   ,fSMindexPos(0)
   ,fStackindexPos(0)
   ,fEventCounter(0)
@@ -81,7 +82,8 @@ AliTRDrawData::AliTRDrawData(const AliTRDrawData &r)
   ,fFee(NULL)
   ,fNumberOfDDLs(0)
   ,fTrackletTree(NULL)
-  ,fTrackletContainer(NULL)
+  ,fTracklets(NULL)
+  ,fTracks(NULL)
   ,fSMindexPos(0)
   ,fStackindexPos(0)
   ,fEventCounter(0)
@@ -104,9 +106,14 @@ AliTRDrawData::~AliTRDrawData()
   // Destructor
   //
 
-  if (fTrackletContainer){
-    delete fTrackletContainer;
-    fTrackletContainer = NULL;
+  if (fTracklets){
+    fTracklets->Delete();
+    delete fTracklets;
+  }
+
+  if (fTracks){
+    fTracks->Delete();
+    delete fTracks;
   }
 
   delete fMcmSim;
@@ -192,7 +199,7 @@ Bool_t AliTRDrawData::Digits2Raw(AliTRDdigitsManager *digitsManager)
   for (Int_t sect = 0; sect < fGeo->Nsector(); sect++) { 
 
     char name[1024];
-    snprintf(name,1024,"TRD_%d.ddl",sect + AliTRDrawStreamBase::kDDLOffset);
+    snprintf(name,1024,"TRD_%d.ddl",sect + AliTRDrawStream::kDDLOffset);
 
     AliFstream* of = new AliFstream(name);
 
@@ -295,6 +302,9 @@ Bool_t AliTRDrawData::Digits2Raw(AliTRDdigitsManager *digitsManager)
     of->Seekp(hpos);         // Rewind to header position
     of->WriteBuffer((char *) (& header), sizeof(header));
     delete of;
+
+    delete [] iwbuffer;
+
   } // loop over sector(SM)
   
   delete [] hcBuffer;
@@ -442,8 +452,8 @@ Int_t AliTRDrawData::ProduceHcData(AliTRDarrayADC *digits, Int_t side, Int_t det
 	
 	if (trackletOn) {
 	  tempBuffer = new UInt_t[maxSize];
-	  tempnw = new Int_t(0);
-	  tempof = new Int_t(0);
+	  tempnw     = new Int_t(0);
+	  tempof     = new Int_t(0);
 	}
 	  
 	WriteIntermediateWords(tempBuffer,*tempnw,*tempof,maxSize,det,side);
@@ -494,12 +504,15 @@ Int_t AliTRDrawData::ProduceHcData(AliTRDarrayADC *digits, Int_t side, Int_t det
 	    else {
 	      AliError("Buffer overflow detected");
 	    }
-	    delete [] tempBuffer;
-	    delete tempof;
-	    delete tempnw;
 	  }
 	}
 
+        if (trackletOn) {
+	  delete [] tempBuffer;
+	  delete tempof;
+          delete tempnw;
+	}
+    
   	// Write end of raw data marker
   	if (nw+3 < maxSize) {
           buf[nw++] = fgkEndOfDataMarker;
@@ -536,45 +549,38 @@ AliTRDdigitsManager *AliTRDrawData::Raw2Digits(AliRawReader *rawReader)
   AliTRDdigitsManager* digitsManager = new AliTRDdigitsManager();
   digitsManager->CreateArrays();
 
-  if (!fTrackletContainer) {
-    const Int_t kTrackletChmb=256;
-    fTrackletContainer = new UInt_t *[2];
-    fTrackletContainer[0] = new UInt_t[kTrackletChmb];
-    fTrackletContainer[1] = new UInt_t[kTrackletChmb];
-    memset(fTrackletContainer[0], 0, kTrackletChmb*sizeof(UInt_t)); //jkl
-    memset(fTrackletContainer[1], 0, kTrackletChmb*sizeof(UInt_t)); //jkl
-  }
-
-  AliTRDrawStreamBase *pinput = AliTRDrawStreamBase::GetRawStream(rawReader);
-  AliTRDrawStreamBase &input = *pinput;
-  input.SetRawVersion( fFee->GetRAWversion() ); //<= ADDED by MinJung
-
-  AliInfo(Form("Stream version: %s", input.IsA()->GetName()));
+  AliTRDrawStream input(rawReader);
 
   // ----- preparing tracklet output -----
   AliDataLoader *trklLoader = AliRunLoader::Instance()->GetLoader("TRDLoader")->GetDataLoader("tracklets");
   if (!trklLoader) {
-    //AliInfo("Could not get the tracklets data loader, adding it now!");
     trklLoader = new AliDataLoader("TRD.Tracklets.root","tracklets", "tracklets");
     AliRunLoader::Instance()->GetLoader("TRDLoader")->AddDataLoader(trklLoader);
+  }
+  if (!trklLoader) {
+    return 0x0;
   }
   AliTreeLoader *trklTreeLoader = dynamic_cast<AliTreeLoader*> (trklLoader->GetBaseLoader("tracklets-raw"));
   if (!trklTreeLoader) {
     trklTreeLoader = new AliTreeLoader("tracklets-raw", trklLoader);
     trklLoader->AddBaseLoader(trklTreeLoader);
   }
+  if (!trklTreeLoader) {
+    return 0x0;
+  }
 
   if (!trklTreeLoader->Tree())
     trklTreeLoader->MakeTree();
+
+  input.SetTrackletArray(TrackletsArray());
+  input.SetTrackArray(TracksArray());
 
   // Loop through the digits
   Int_t det    = 0;
 
   while (det >= 0)
     {
-      det = input.NextChamber(digitsManager,fTrackletContainer);
-
-      if (*(fTrackletContainer[0]) > 0 || *(fTrackletContainer[1]) > 0) WriteTracklets(det);
+      det = input.NextChamber(digitsManager);
 
       if (det >= 0)
 	{
@@ -591,20 +597,8 @@ AliTRDdigitsManager *AliTRDrawData::Raw2Digits(AliRawReader *rawReader)
 	}
     }
 
-  if (trklTreeLoader)
-    trklTreeLoader->WriteData("OVERWRITE");
-  if (trklLoader) 
-    trklLoader->UnloadAll();
-
-  if (fTrackletContainer){
-    delete [] fTrackletContainer[0];
-    delete [] fTrackletContainer[1];
-    delete [] fTrackletContainer;
-    fTrackletContainer = NULL;
-  }
-
-  delete pinput;
-  pinput = NULL;
+  trklTreeLoader->WriteData("OVERWRITE");
+  trklLoader->UnloadAll();
 
   return digitsManager;
 }
@@ -668,43 +662,22 @@ void AliTRDrawData::WriteIntermediateWords(UInt_t* buf, Int_t& nw, Int_t& of, co
     if (nw < maxSize) buf[nw++] = x; else of++;
 }
 
-//_____________________________________________________________________________
-Bool_t AliTRDrawData::WriteTracklets(Int_t det)
+TClonesArray *AliTRDrawData::TrackletsArray()
 {
-  //
-  // Write the raw data tracklets into seperate file
-  //
+  // Returns the array of on-line tracklets
 
-  UInt_t **leaves = new UInt_t *[2];
-  for (Int_t i=0; i<2 ;i++){
-    leaves[i] = new UInt_t[258];
-    leaves[i][0] = det; // det
-    leaves[i][1] = i;   // side
-    memcpy(leaves[i]+2, fTrackletContainer[i], sizeof(UInt_t) * 256);
+  if (!fTracklets) {
+    fTracklets = new TClonesArray("AliTRDtrackletWord", 200);
   }
+  return fTracklets;
+}
 
-  if (!fTrackletTree){
-    AliDataLoader *dl = fRunLoader->GetLoader("TRDLoader")->GetDataLoader("tracklets");
-    dl->MakeTree();
-    fTrackletTree = dl->Tree();
+TClonesArray* AliTRDrawData::TracksArray()
+{
+  // return array of GTU tracks (create TClonesArray if necessary)
+
+  if (!fTracks) {
+    fTracks = new TClonesArray("AliESDTrdTrack",100);
   }
-
-  TBranch *trkbranch = fTrackletTree->GetBranch("trkbranch");
-  if (!trkbranch) {
-    trkbranch = fTrackletTree->Branch("trkbranch",leaves[0],"det/i:side/i:tracklets[256]/i");
-  }
-
-  for (Int_t i=0; i<2; i++){
-    if (leaves[i][2]>0) {
-      trkbranch->SetAddress(leaves[i]);
-      fTrackletTree->Fill();
-    }
-  }
-
-  //  AliDataLoader *dl = fRunLoader->GetLoader("TRDLoader")->GetDataLoader("tracklets"); //jkl: wrong
-  //  dl->WriteData("OVERWRITE"); //jkl: wrong
-  //dl->Unload();
-  delete [] leaves;
-
-  return kTRUE;
+  return fTracks;
 }

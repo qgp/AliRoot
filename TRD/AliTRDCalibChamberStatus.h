@@ -37,8 +37,7 @@ public:
   AliTRDCalibChamberStatus& operator = (const  AliTRDCalibChamberStatus &source);
 
   void ProcessEvent(AliRawReader    *rawReader, Int_t nevents_physics);
-  void ProcessEvent3(AliRawReader    *rawReader, Int_t nevents_physics);
-  
+    
   void Init();
   void AnalyseHisto();
   void CheckEORStatus(AliTRDCalDCSv2 *calDCS);
@@ -93,4 +92,5 @@ public:
     
 };
 #endif
+
 
