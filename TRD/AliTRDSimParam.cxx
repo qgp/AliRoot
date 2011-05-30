@@ -100,6 +100,7 @@ AliTRDSimParam::AliTRDSimParam()
   ,fTimeStructOn(kFALSE)
   ,fPRFOn(kFALSE)
   ,fNTimeBins(0)
+  ,fNTBoverwriteOCDB(kFALSE)
 {
   //
   // Default constructor
@@ -152,7 +153,8 @@ void AliTRDSimParam::Init()
   fPRFOn             = kTRUE;
 
   // The number of time bins
-  fNTimeBins         = 30;
+  fNTimeBins         = 27;
+  fNTBoverwriteOCDB  = kFALSE;
 
   ReInit();
 
@@ -202,6 +204,7 @@ AliTRDSimParam::AliTRDSimParam(const AliTRDSimParam &p)
   ,fTimeStructOn(p.fTimeStructOn)
   ,fPRFOn(p.fPRFOn)
   ,fNTimeBins(p.fNTimeBins)
+  ,fNTBoverwriteOCDB(p.fNTBoverwriteOCDB)
 {
   //
   // Copy constructor
@@ -267,6 +270,7 @@ void AliTRDSimParam::Copy(TObject &p) const
   target->fTimeCoupling       = fTimeCoupling;
   target->fPRFOn              = fPRFOn;
   target->fNTimeBins          = fNTimeBins;
+  target->fNTBoverwriteOCDB   = fNTBoverwriteOCDB;
 
   if (target->fTRFsmp) {
     delete[] target->fTRFsmp;
