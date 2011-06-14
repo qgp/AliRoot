@@ -87,8 +87,8 @@ AliVZEROReconstructor:: AliVZEROReconstructor(): AliReconstructor(),
 
   for(Int_t i = 0 ; i < 64; ++i) {
     Int_t board = AliVZEROCalibData::GetBoardNumber(i);
-    fTimeOffset[i] = (((Float_t)fCalibData->GetTriggerCountOffset(board)-
-			(Float_t)fCalibData->GetRollOver(board))*25.0+
+    fTimeOffset[i] = (((Float_t)fCalibData->GetRollOver(board)-
+		       (Float_t)fCalibData->GetTriggerCountOffset(board))*25.0+
 		       fCalibData->GetTimeOffset(i)-
 		       l1Delay-
 		       phase->GetMeanPhase()+
@@ -384,6 +384,7 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
   // now fill the V0 decision and channel flags
   {
     AliVZEROTriggerMask triggerMask;
+    triggerMask.SetRecoParam(GetRecoParam());
     triggerMask.FillMasks(fESDVZERO, fCalibData, fTimeSlewing);
   }
 
