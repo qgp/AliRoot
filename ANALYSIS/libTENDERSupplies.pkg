@@ -5,13 +5,14 @@ SRCS= TenderSupplies/AliTOFTenderSupply.cxx \
       TenderSupplies/AliTPCTenderSupply.cxx \
       TenderSupplies/AliTRDTenderSupply.cxx \
       TenderSupplies/AliVtxTenderSupply.cxx \
-      TenderSupplies/AliVZEROTenderSupply.cxx
+      TenderSupplies/AliVZEROTenderSupply.cxx \
+      TenderSupplies/AliPHOSTenderSupply.cxx
 
 HDRS= $(SRCS:.cxx=.h)
 
 DHDR= TenderSuppliesLinkDef.h
 
-EINCLUDE:= ANALYSIS ANALYSIS/Tender STEER TOF TRD/Cal VZERO ANALYSIS/TenderSupplies
+EINCLUDE:= ANALYSIS ANALYSIS/Tender STEER TOF TRD/Cal VZERO ANALYSIS/TenderSupplies PHOS
 
 ifeq (win32gcc,$(ALICE_TARGET))
 PACKSOFLAGS:= $(SOFLAGS) -L$(ALICE_ROOT)/lib/tgt_$(ALICE_TARGET) -lSTEERBase \
