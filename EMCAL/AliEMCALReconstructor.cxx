@@ -537,8 +537,8 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
       	      Bool_t isMatch =  CalculateResidual(track, ec, dEta, dPhi);
       	      if(!isMatch) 
       		{
+      		  // AliDebug(10, "Not good");
       		  continue;
-      		  cout<<"Not good"<<endl;
       		}
       	      AliEMCALMatch *match = new AliEMCALMatch();
       	      match->SetIndexT(itrack);
@@ -673,7 +673,7 @@ Bool_t AliEMCALReconstructor::CalculateResidual(AliESDtrack *track, AliESDCaloCl
 
   // If the esdFriend is available, use the TPCOuter point as the starting point of extrapolation
   // Otherwise use the TPCInner point
-  AliExternalTrackParam *trkParam;
+  AliExternalTrackParam *trkParam = 0;
   const AliESDfriendTrack*  friendTrack = track->GetFriendTrack();
   if(friendTrack && friendTrack->GetTPCOut())
     trkParam = const_cast<AliExternalTrackParam*>(friendTrack->GetTPCOut());
@@ -685,20 +685,19 @@ Bool_t AliEMCALReconstructor::CalculateResidual(AliESDtrack *track, AliESDCaloCl
   Double_t trkPos[3];
   Float_t  clsPos[3];
 
-  AliExternalTrackParam *trkParamTmp = new AliExternalTrackParam(*trkParam);
+  AliExternalTrackParam trkParamTmp (*trkParam);
   cluster->GetPosition(clsPos);
   TVector3 vec(clsPos[0],clsPos[1],clsPos[2]);
   Double_t alpha =  ((int)(vec.Phi()*TMath::RadToDeg()/20)+0.5)*20*TMath::DegToRad();
   //Rotate to proper local coordinate
   vec.RotateZ(-alpha); 
-  trkParamTmp->Rotate(alpha); 
+  trkParamTmp.Rotate(alpha); 
   //extrapolation is done here
-  if(!AliTrackerBase::PropagateTrackToBxByBz(trkParamTmp, vec.X(), track->GetMass(), GetRecParam()->GetExtrapolateStep(), kFALSE, 0.8, -1)) 
+  if(!AliTrackerBase::PropagateTrackToBxByBz(&trkParamTmp, vec.X(), track->GetMass(), GetRecParam()->GetExtrapolateStep(), kFALSE, 0.8, -1)) 
     return kFALSE; 
 
   //Calculate the residuals
-  trkParamTmp->GetXYZ(trkPos);     
-  delete trkParamTmp;
+  trkParamTmp.GetXYZ(trkPos); 
    
   TVector3 clsPosVec(clsPos[0],clsPos[1],clsPos[2]);
   TVector3 trkPosVec(trkPos[0],trkPos[1],trkPos[2]);
