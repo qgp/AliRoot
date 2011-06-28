@@ -37,21 +37,23 @@
 #include <TVector2.h>
 #include <cassert>
 
-//--- EMCAL system---
-#include "AliEMCALShishKebabTrd1Module.h"
-
 // --- Standard library ---
 
 //#include <stdio.h>
 
 // --- AliRoot header files ---
-
-#include "AliEMCALv0.h"
-#include "AliEMCALGeometry.h"
 #include "AliRun.h"
+#include "AliRunLoader.h"
 #include "AliLog.h"
 #include "AliGeomManager.h"
+
+//--- EMCAL system---
+#include "AliEMCALShishKebabTrd1Module.h"
+#include "AliEMCALv0.h"
+#include "AliEMCALGeometry.h"
 #include "AliEMCALSpaceFrame.h"
+
+
 
 ClassImp(AliEMCALv0)
 
@@ -115,6 +117,33 @@ void AliEMCALv0::CreateGeometry()
     Error("CreateGeometry","EMCAL Geometry class has not been set up.");
   } // end if
 
+  //Check if run number and requested geometry correspond to the same geometry as
+  //in real data taking. To prevent errors in official productions
+  if(fCheckRunNumberAndGeoVersion){
+    AliRunLoader *rl = AliRunLoader::Instance();
+    Int_t runNumber = rl->GetRunNumber();
+    TString geoName = geom->GetEMCGeometry()->GetGeoName();
+    if(!geoName.Contains("V1")) {
+      AliFatal(Form("Add <<V1>> at the end when setting EMCAL geometry name <<%s>>", geoName.Data()));
+    }
+    else if(runNumber > 104064){//Check runs with collisions since year 2009
+      Bool_t ok = kTRUE;
+      if(runNumber > 140000){ // run transition year 2010-2011 
+        if(geoName.Contains("FIRSTYEAR")) ok = kFALSE;
+      }
+      else {
+        if(geoName.Contains("COMPLETE"))  ok = kFALSE;
+      }
+      
+      if(!ok) {
+        AliFatal(Form("Run number -%d-, does not correspond to the requested geometry <<%s>> with -%d- SuperModules", 
+                      runNumber, geoName.Data(), geom->GetNumberOfSuperModules()));
+      }
+      
+      AliDebug(0,Form("Run number %d and geometry  %s, N Super Modules %d\n",
+                      runNumber, geoName.Data(), geom->GetNumberOfSuperModules()));
+    }
+  }
   // Get pointer to the array containing media indices
   fIdTmedArr = fIdtmed->GetArray() - 1599 ;
   
@@ -374,7 +403,7 @@ void AliEMCALv0::CreateSmod(const char* mother)
   } else {
     par[2]  = 350./2.; // 11-oct-04 - for 26 division
     AliDebug(2,Form(" par[0] %7.2f (old) \n",  par[0]));
-    Float_t *parSM = g->GetSuperModulesPars(); 
+    Float_t parSM[] = {g->GetSuperModulesPar(0),g->GetSuperModulesPar(1),g->GetSuperModulesPar(2)};
     for(int i=0; i<3; i++) par[i] = parSM[i];
   }
   gMC->Gsvolu("SMOD", "BOX", fIdTmedArr[kIdAIR], par, 3);
@@ -967,7 +996,7 @@ void AliEMCALv0::AddAlignableVolumesInALICE() const
   // eventual changes in the geometry.
   //
 
-  Float_t * pars = GetGeometry()->GetSuperModulesPars();
+  Float_t pars[] = {GetGeometry()->GetSuperModulesPar(0),GetGeometry()->GetSuperModulesPar(1),GetGeometry()->GetSuperModulesPar(2)};
   double rpos = (GetGeometry()->GetEnvelop(0) + GetGeometry()->GetEnvelop(1))/2.;
   double phi, phiRad, xpos, ypos, zpos;
 
