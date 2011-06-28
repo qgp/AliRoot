@@ -96,7 +96,7 @@ Int_t AliHLTHOMERProxyHandler::FillSourceList(TList *srcList) {
     iResult = ProcessXmlRpcResponse();
 
   if (iResult < 0) {
-    HLTError(Form("Filling SourceList failed."));
+    HLTError("Filling SourceList failed.");
   }
 
   return iResult;
@@ -235,7 +235,7 @@ Content-Length: 68\r\n\
 
       iResult = socket->RecvRaw(&buffer[bufferLength], 1);
       if ( iResult < 0) {
-	HLTError(Form("Error reading form socket."));
+	HLTError("Error reading form socket.");
 	socket->Close();
 	return iResult;
       }
@@ -283,7 +283,10 @@ Int_t AliHLTHOMERProxyHandler::ProcessXmlRpcResponse() {
   TDOMParser xmlParser;
   xmlParser.SetValidate(kFALSE);
 
-  HLTDebug(Form("XMLResponse: %s",fXmlRpcResponse.Data()));
+  //NOTE Have to use a temporary variable for printing the XML responce,
+  // because Form might overrun its internal buffer and crash for large strings.
+  TString infoMsg = Form("XMLResponse: %s",fXmlRpcResponse.Data());
+  HLTInfo(infoMsg.Data());
   
   iResult = xmlParser.ParseBuffer(fXmlRpcResponse.Data(), fXmlRpcResponse.Length());
   if ( iResult < 0 ) {
@@ -298,7 +301,7 @@ Int_t AliHLTHOMERProxyHandler::ProcessXmlRpcResponse() {
     GetChildren()->GetChildren()->GetChildren()->GetChildren();
   
   if ( strcmp( node->GetNodeName(), "string" ) ) {
-    HLTError(Form("No node 'string' in XmlRpcResponse."));
+    HLTError("No node 'string' in XmlRpcResponse.");
     return -1;
   }
 
@@ -319,7 +322,7 @@ Int_t AliHLTHOMERProxyHandler::ProcessXmlRpcResponse() {
   }
   
   if ( !xmlParser.GetXMLDocument()->GetRootNode()->HasChildren() ) {
-    HLTWarning(Form("No Services active."));
+    HLTWarning("No Services active.");
     return 1;
   }
 
@@ -333,7 +336,7 @@ Int_t AliHLTHOMERProxyHandler::ProcessXmlRpcResponse() {
     // -- Add service to list
     iResult = AddService( serviceNode->GetChildren() );
     if ( iResult > 0 ) {
-      HLTWarning(Form("Incomplete Service not added."));
+      HLTWarning("Incomplete Service not added.");
       iResult = 0;
     }
   } while ( ( serviceNode = prevServiceNode->GetNextNode() ) && !iResult );
@@ -355,7 +358,7 @@ Int_t AliHLTHOMERProxyHandler::AddService(TXMLNode *innerNode) {
 
   Int_t iResult = 0;
 
-  HLTInfo(Form(">> New service"));    
+  HLTInfo(">> New service");    
 
   TXMLNode* serviceNode = innerNode;
 
@@ -415,7 +418,7 @@ Int_t AliHLTHOMERProxyHandler::AddService(TXMLNode *innerNode) {
     TXMLNode* blocks = serviceNode->GetChildren();
 
     if ( ! blocks ) {
-      HLTError(Form("No blocks present"));
+      HLTError("No blocks present");
       return 1;
     }
       
@@ -423,7 +426,7 @@ Int_t AliHLTHOMERProxyHandler::AddService(TXMLNode *innerNode) {
     TXMLNode* prevBlockNode = NULL;
 
     if ( ! blockNode ) {
-      HLTError(Form("No block present in the blocks tag"));
+      HLTError("No block present in the blocks tag");
       return 1;
     }
       
@@ -439,7 +442,7 @@ Int_t AliHLTHOMERProxyHandler::AddService(TXMLNode *innerNode) {
       TXMLNode *prevDataNode = NULL;
 
       if ( ! dataNode ) {
-	HLTError(Form("No data specification tags present in block tag."));
+	HLTError("No data specification tags present in block tag.");
 	return 1;
       }
       // -- data spec loop
