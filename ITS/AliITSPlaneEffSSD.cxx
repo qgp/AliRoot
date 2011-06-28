@@ -50,10 +50,10 @@ AliITSPlaneEffSSD::AliITSPlaneEffSSD():
   fHisClusErrX(0),
   fHisClusErrZ(0){
   for (UInt_t i=0; i<kNModule; i++){
+  // default constructor
     fFound[i]=0;
     fTried[i]=0;
   }
-  // default constructor
   AliDebug(1,Form("Calling default constructor"));
 }
 //______________________________________________________________________
@@ -184,23 +184,7 @@ void AliITSPlaneEffSSD::CopyHistos(AliITSPlaneEffSSD &target) const {
   }
 return;
 }
-/* Commented out by M.Masera 8/3/08
-//______________________________________________________________________
-AliITSPlaneEff&  AliITSPlaneEffSSD::operator=(const
-                                           AliITSPlaneEff &s){
-    //    Assignment operator
-    // Inputs:
-    //    AliITSPlaneEffSSD &s The original class for which
-    //                                this class is a copy of
-    // Outputs:
-    //    none.
-    // Return:
 
-    if(&s == this) return *this;
-    AliError("operator=: Not allowed to make a =, use default creater instead");
-    return *this;
-}
-*/
 //_______________________________________________________________________
 Int_t AliITSPlaneEffSSD::GetMissingTracksForGivenEff(Double_t eff, Double_t RelErr,
           UInt_t im) const {
@@ -382,6 +366,7 @@ return kTRUE;
 }
 //_____________________________________________________________________________
 Bool_t AliITSPlaneEffSSD::AddFromCDB(AliCDBId *cdbId) {
+// Read (actually add the statistics) plane eff. from Data Base
 AliCDBEntry *cdbEntry=0;
 if (!cdbId) {
   if(!fInitCDBCalled)
@@ -499,6 +484,7 @@ return;
 }
 //__________________________________________________________
 void AliITSPlaneEffSSD::DeleteHistos() {
+// Delete histograms and remove them from memory 
   if(fHisResX) {
     for (Int_t i=0; i<kNHisto; i++ ) delete fHisResX[i];
     delete [] fHisResX; fHisResX=0;
@@ -581,7 +567,7 @@ Bool_t AliITSPlaneEffSSD::WriteHistosToFile(TString filename, Option_t* option) 
      AliWarning("WriteHistosToFile: null output filename!");
      return kFALSE;
   }
-//  char branchname[30];
+
   TFile *hFile=new TFile(filename.Data(),option,
                          "The File containing the TREEs with ITS PlaneEff Histos");
   TTree *SSDTree=new TTree("SSDTree","Tree whith Residuals and Cluster Type distributions for SSD");
@@ -635,7 +621,6 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
      AliWarning("ReadHistosFromFile: incorrect output filename!");
      return kFALSE;
   }
-  //char branchname[30];
 
   TH1F *h  = 0;
   TH2F *h2 = 0;
@@ -666,7 +651,6 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histX->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histX->GetEntry(j);
     fHisResX[j]->Add(h);
   }
@@ -676,7 +660,6 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histZ->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histZ->GetEntry(j);
     fHisResZ[j]->Add(h);
   }
@@ -686,7 +669,6 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histXZ->SetAddress(&h2);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h2; h2=0;
     histXZ->GetEntry(j);
     fHisResXZ[j]->Add(h2);
   }
@@ -696,7 +678,6 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histClusterType->SetAddress(&h2i);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h2i; h2i=0;
     histClusterType->GetEntry(j);
     fHisClusterSize[j]->Add(h2i);
   }
@@ -706,7 +687,6 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histTrErrX->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histTrErrX->GetEntry(j);
     fHisTrackErrX[j]->Add(h);
   }
@@ -716,7 +696,6 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histTrErrZ->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histTrErrZ->GetEntry(j);
     fHisTrackErrZ[j]->Add(h);
   }
@@ -726,7 +705,7 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histClErrX->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
+    //delete h; h=0;
     histClErrX->GetEntry(j);
     fHisClusErrX[j]->Add(h);
   }
@@ -736,17 +715,18 @@ Bool_t AliITSPlaneEffSSD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histClErrZ->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
+    //delete h; h=0; 
     histClErrZ->GetEntry(j);
     fHisClusErrZ[j]->Add(h);
   }
 
-  delete h;   h=0;
-  delete h2;  h2=0;
-  delete h2i; h2i=0;
+  delete h;   
+  delete h2;  
+  delete h2i; 
 
   if (file) {
     file->Close();
+    delete file;
   }
 return kTRUE;
 }

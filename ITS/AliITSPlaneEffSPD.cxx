@@ -57,8 +57,14 @@ AliITSPlaneEffSPD::AliITSPlaneEffSPD():
   fHisTrackErrX(0),
   fHisTrackErrZ(0),
   fHisClusErrX(0),
-  fHisClusErrZ(0){
-  for (UInt_t i=0; i<kNModule*kNChip; i++){
+  fHisClusErrZ(0),
+  fHisTrackXFOtrue(0),
+  fHisTrackZFOtrue(0),
+  fHisTrackXFOfalse(0),
+  fHisTrackZFOfalse(0),
+  fHisTrackXZFOtrue(0),
+  fHisTrackXZFOfalse(0){
+  for (UInt_t i=0; i<kNModule*kNChip*(kNClockPhase+1); i++){
     fFound[i]=0;
     fTried[i]=0;
   }
@@ -94,7 +100,13 @@ fProfResZvsDipclu(0),
 fHisTrackErrX(0),
 fHisTrackErrZ(0),
 fHisClusErrX(0),
-fHisClusErrZ(0)
+fHisClusErrZ(0),
+fHisTrackXFOtrue(0),
+fHisTrackZFOtrue(0),
+fHisTrackXFOfalse(0),
+fHisTrackZFOfalse(0),
+fHisTrackXZFOtrue(0),
+fHisTrackXZFOfalse(0)
 {
     //     Copy Constructor
     // Inputs:
@@ -104,7 +116,7 @@ fHisClusErrZ(0)
     //    none.
     // Return:
 
- for (UInt_t i=0; i<kNModule*kNChip; i++){
+ for (UInt_t i=0; i<kNModule*kNChip*(kNClockPhase+1); i++){
     fFound[i]=s.fFound[i];
     fTried[i]=s.fTried[i];
  }
@@ -131,6 +143,14 @@ fHisClusErrZ(0)
       s.fHisTrackErrZ[i]->Copy(*fHisTrackErrZ[i]);
       s.fHisClusErrX[i]->Copy(*fHisClusErrX[i]);
       s.fHisClusErrZ[i]->Copy(*fHisClusErrZ[i]);
+      for(Int_t phas=0; phas<kNClockPhase;phas++){
+        s.fHisTrackXFOtrue[i][phas]->Copy(*fHisTrackXFOtrue[i][phas]);
+        s.fHisTrackZFOtrue[i][phas]->Copy(*fHisTrackXFOtrue[i][phas]);
+        s.fHisTrackXFOfalse[i][phas]->Copy(*fHisTrackXFOtrue[i][phas]);
+        s.fHisTrackZFOfalse[i][phas]->Copy(*fHisTrackXFOtrue[i][phas]);
+        s.fHisTrackXZFOtrue[i][phas]->Copy(*fHisTrackXFOtrue[i][phas]);
+        s.fHisTrackXZFOfalse[i][phas]->Copy(*fHisTrackXFOtrue[i][phas]);
+      }
    }
  }
 }
@@ -143,7 +163,7 @@ AliITSPlaneEffSPD& AliITSPlaneEffSPD::operator+=(const AliITSPlaneEffSPD &add){
     //    none.
     // Return:
     //    none
-    for (UInt_t i=0; i<kNModule*kNChip; i++){
+    for (UInt_t i=0; i<kNModule*kNChip*(kNClockPhase+1); i++){
       fFound[i] += add.fFound[i];
       fTried[i] += add.fTried[i];
     }
@@ -169,6 +189,14 @@ AliITSPlaneEffSPD& AliITSPlaneEffSPD::operator+=(const AliITSPlaneEffSPD &add){
         fHisTrackErrZ[i]->Add(add.fHisTrackErrZ[i]);
         fHisClusErrX[i]->Add(add.fHisClusErrX[i]);
         fHisClusErrZ[i]->Add(add.fHisClusErrZ[i]);
+        for(Int_t phas=0; phas<kNClockPhase;phas++){
+          fHisTrackXFOtrue[i][phas]->Add(add.fHisTrackXFOtrue[i][phas]);
+          fHisTrackZFOtrue[i][phas]->Add(add.fHisTrackXFOtrue[i][phas]);
+          fHisTrackXFOfalse[i][phas]->Add(add.fHisTrackXFOtrue[i][phas]);
+          fHisTrackZFOfalse[i][phas]->Add(add.fHisTrackXFOtrue[i][phas]);
+          fHisTrackXZFOtrue[i][phas]->Add(add.fHisTrackXFOtrue[i][phas]);
+          fHisTrackXZFOfalse[i][phas]->Add(add.fHisTrackXFOtrue[i][phas]);
+        }
       }
     }
     return *this;
@@ -193,7 +221,7 @@ void AliITSPlaneEffSPD::Copy(TObject &obj) const {
   // protected method. copy this to obj
   AliITSPlaneEff::Copy(obj);
   AliITSPlaneEffSPD& target = (AliITSPlaneEffSPD &) obj;
-  for(Int_t i=0;i<kNModule*kNChip;i++) {
+  for(Int_t i=0;i<kNModule*kNChip*(kNClockPhase+1);i++) {
       target.fFound[i] = fFound[i];
       target.fTried[i] = fTried[i];
   }
@@ -221,6 +249,12 @@ void AliITSPlaneEffSPD::CopyHistos(AliITSPlaneEffSPD &target) const {
     target.fHisTrackErrZ=new TH1F*[kNHisto];
     target.fHisClusErrX=new TH1F*[kNHisto];
     target.fHisClusErrZ=new TH1F*[kNHisto];
+    target.fHisTrackXFOtrue=new TH1F**[kNHisto];
+    target.fHisTrackZFOtrue=new TH1F**[kNHisto];
+    target.fHisTrackXFOfalse=new TH1F**[kNHisto];
+    target.fHisTrackZFOfalse=new TH1F**[kNHisto];
+    target.fHisTrackXZFOtrue=new TH2F**[kNHisto];
+    target.fHisTrackXZFOfalse=new TH2F**[kNHisto];
     for(Int_t i=0; i<kNHisto; i++) {
       target.fHisResX[i] = new TH1F(*fHisResX[i]);
       target.fHisResZ[i] = new TH1F(*fHisResZ[i]);
@@ -248,27 +282,26 @@ void AliITSPlaneEffSPD::CopyHistos(AliITSPlaneEffSPD &target) const {
       target.fHisTrackErrZ[i] = new TH1F(*fHisTrackErrZ[i]);
       target.fHisClusErrX[i] = new TH1F(*fHisClusErrX[i]);
       target.fHisClusErrZ[i] = new TH1F(*fHisClusErrZ[i]);
+
+      target.fHisTrackXFOtrue[i]=new TH1F*[kNClockPhase];
+      target.fHisTrackZFOtrue[i]=new TH1F*[kNClockPhase];
+      target.fHisTrackXFOfalse[i]=new TH1F*[kNClockPhase];
+      target.fHisTrackZFOfalse[i]=new TH1F*[kNClockPhase];
+      target.fHisTrackXZFOtrue[i]=new TH2F*[kNClockPhase];
+      target.fHisTrackXZFOfalse[i]=new TH2F*[kNClockPhase];
+      for(Int_t phas=0; phas<kNClockPhase;phas++){
+      target.fHisTrackXFOtrue[i][phas]=new TH1F(*fHisTrackXFOtrue[i][phas]);
+      target.fHisTrackZFOtrue[i][phas]=new TH1F(*fHisTrackZFOtrue[i][phas]);
+      target.fHisTrackXFOfalse[i][phas]=new TH1F(*fHisTrackXFOfalse[i][phas]);
+      target.fHisTrackZFOfalse[i][phas]=new TH1F(*fHisTrackZFOfalse[i][phas]);
+      target.fHisTrackXZFOtrue[i][phas]=new TH2F(*fHisTrackXZFOtrue[i][phas]);
+      target.fHisTrackXZFOfalse[i][phas]=new TH2F(*fHisTrackXZFOfalse[i][phas]);
+      }
     }
   }
 return;
 }
-/*    commented out by M.Masera 8/3/08
-//______________________________________________________________________
-AliITSPlaneEff&  AliITSPlaneEffSPD::operator=(const
-                                           AliITSPlaneEff &s){
-    //    Assignment operator
-    // Inputs:
-    //    AliITSPlaneEffSPD &s The original class for which
-    //                                this class is a copy of
-    // Outputs:
-    //    none.
-    // Return:
 
-    if(&s == this) return *this;
-    AliError("operator=: Not allowed to make a =, use default creater instead");
-    return *this;
-}
-*/
 //_______________________________________________________________________
 Int_t AliITSPlaneEffSPD::GetMissingTracksForGivenEff(Double_t eff, Double_t RelErr,
           UInt_t im, UInt_t ic) const {
@@ -278,7 +311,7 @@ Int_t AliITSPlaneEffSPD::GetMissingTracksForGivenEff(Double_t eff, Double_t RelE
   //   Inputs:
   //         eff    -> Expected efficiency (e.g. those from actual estimate)
   //         RelErr -> tollerance [0,1] 
-  //         im     -> module number [0,249]
+  //         im     -> module number [0,239]
   //         ic     -> chip number [0,4]
   //   Outputs: none
   //   Return: the estimated n. of tracks 
@@ -293,53 +326,91 @@ else {
 }
 }
 //_________________________________________________________________________
-Double_t  AliITSPlaneEffSPD::PlaneEff(const UInt_t im,const UInt_t ic) const {
+Double_t  AliITSPlaneEffSPD::PlaneEff(const UInt_t im,const UInt_t ic, const Bool_t fo, const UInt_t bcm4) const {
 // Compute the efficiency for a basic block, 
 // Inputs:
-//        im     -> module number [0,249]
+//        im     -> module number [0,239]
 //        ic     -> chip number [0,4] 
+//        fo     -> boolean, true in case of Fast Or studies
+//        bcm4   -> for Fast Or: bunch crossing % 4
 if (im>=kNModule || ic>=kNChip) 
  {AliError("PlaneEff(Uint_t,Uint_t): you asked for a non existing chip"); return -1.;}
-UInt_t key=GetKey(im,ic);
+if(fo && bcm4>=kNClockPhase)
+ {AliError("PlaneEff(Uint_t,Uint_t): you asked for Fast Or in a wrong phase"); return -1.;}
 Int_t nf=-1;
 Int_t nt=-1;
-if(key<kNModule*kNChip) {
+if(fo) {
+ AliWarning("PlaneEff: you asked for FO efficiency");
+ UInt_t key=GetKey(im,ic,fo,bcm4);
+ if(key<kNModule*kNChip*(kNClockPhase+1)) {
+   nf=fFound[key];
+   nt=fTried[key];
+ }
+} else {
+ UInt_t key=GetKey(im,ic);
+ if (key<kNModule*kNChip) {
   nf=fFound[key];
   nt=fTried[key];
+ }
 }
 return AliITSPlaneEff::PlaneEff(nf,nt);
 }
 //_________________________________________________________________________
-Double_t  AliITSPlaneEffSPD::ErrPlaneEff(const UInt_t im,const UInt_t ic) const {
+Double_t  AliITSPlaneEffSPD::ErrPlaneEff(const UInt_t im,const UInt_t ic, const Bool_t fo, const UInt_t bcm4) const {
     // Compute the statistical error on efficiency for a basic block,
     // using binomial statistics 
     // Inputs:
-    //        im     -> module number [0,249]
+    //        im     -> module number [0,239]
     //        ic     -> chip number [0,4] 
+//        fo     -> boolean, true in case of Fast Or studies
+//        bcm4   -> for Fast Or: bunch crossing % 4
 if (im>=kNModule || ic>=kNChip) 
  {AliError("ErrPlaneEff(Uint_t,Uint_t): you asked for a non existing chip"); return -1.;}
-UInt_t key=GetKey(im,ic);
+if(fo && bcm4>=kNClockPhase)
+ {AliError("PlaneEff(Uint_t,Uint_t): you asked for Fast Or in a wrong phase"); return -1.;}
 Int_t nf=-1;
 Int_t nt=-1;
-if(key<kNModule*kNChip) {
-  nf=fFound[key];
-  nt=fTried[key];
+if(fo) {
+ AliWarning("ErrPlaneEff: you asked for FO efficiency");
+ UInt_t key=GetKey(im,ic,fo,bcm4);
+ if(key<kNModule*kNChip*(kNClockPhase+1)) {
+   nf=fFound[key];
+   nt=fTried[key];
+ }
+} else {
+ UInt_t key=GetKey(im,ic);
+ if (key<kNModule*kNChip) {
+   nf=fFound[key];
+   nt=fTried[key];
+ }
 }
 return AliITSPlaneEff::ErrPlaneEff(nf,nt);
 } 
 //_________________________________________________________________________
 Bool_t AliITSPlaneEffSPD::UpDatePlaneEff(const Bool_t Kfound,
-                                         const UInt_t im, const UInt_t ic) {
+                                         const UInt_t im, const UInt_t ic, const Bool_t fo, const UInt_t bcm4) {
   // Update efficiency for a basic block
 if (im>=kNModule || ic>=kNChip) 
  {AliError("UpDatePlaneEff: you asked for a non existing chip"); return kFALSE;}
+if(fo && bcm4>=kNClockPhase)
+ {AliError("UpDatePlaneEff: you asked for Fast Or in a wrong phase"); return kFALSE;}
+if (!fo) {
  UInt_t key=GetKey(im,ic);
  if(key<kNModule*kNChip) {
    fTried[key]++;
    if(Kfound) fFound[key]++;
    return kTRUE;
  }
- return kFALSE;
+}
+else {
+ UInt_t key=GetKey(im,ic,fo,bcm4);
+ if(key<kNModule*kNChip*(kNClockPhase+1)) {
+   fTried[key]++;
+   if(Kfound) fFound[key]++;
+   return kTRUE;
+ }
+}
+return kFALSE;
 }
 //_________________________________________________________________________
 UInt_t AliITSPlaneEffSPD::GetChipFromCol(const UInt_t col) const {
@@ -349,36 +420,75 @@ if(col>=kNCol*kNChip)
 return col/kNCol;
 }
 //__________________________________________________________________________
-UInt_t AliITSPlaneEffSPD::GetKey(const UInt_t mod, const UInt_t chip) const {
+UInt_t AliITSPlaneEffSPD::GetKey(const UInt_t mod, const UInt_t chip, const Bool_t FO, const UInt_t BCm4) const {
   // get key given a basic block
+UInt_t key=99999;
 if(mod>=kNModule || chip>=kNChip)
   {AliWarning("GetKey: you asked for a non existing block"); return 99999;}
-return mod*kNChip+chip;
+key = mod*kNChip+chip;
+if(FO) { 
+  if(BCm4>= kNClockPhase) {AliWarning("GetKey: you have asked Fast OR and a non exisiting BC modulo 4"); return 99999;}
+  key += kNModule*kNChip*(BCm4+1);
+}
+return key;
+}
+//__________________________________________________________________________
+UInt_t AliITSPlaneEffSPD::SwitchChipKeyNumbering(UInt_t key) const {
+
+// methods to switch from offline chip key numbering 
+// to online Raw Stream chip numbering and viceversa. 
+// Used for Fast-Or studies.
+// Implemented by valerio.altini@ba.infn.it
+
+if(key>=kNModule*kNChip*(kNClockPhase+1))
+  {AliWarning("SwitchChipKeyNumbering: you asked for a non existing key"); return 99999;}
+UInt_t mod=9999,chip=9999,phase=9999;
+GetModAndChipFromKey(key,mod,chip);
+if(mod<kNModuleLy1) chip = kNChip-(chip+1);
+if(IsForFO(key))phase = GetBCm4FromKey(key);
+
+return GetKey(mod,chip,IsForFO(key),phase);
+
 }
 //__________________________________________________________________________
 UInt_t AliITSPlaneEffSPD::GetModFromKey(const UInt_t key) const {
   // get mod. from key
-if(key>=kNModule*kNChip)
+if(key>=kNModule*kNChip*(kNClockPhase+1))
   {AliError("GetModFromKey: you asked for a non existing key"); return 9999;}
-return key/kNChip;
+return (key%(kNModule*kNChip))/kNChip;
 }
 //__________________________________________________________________________
 UInt_t AliITSPlaneEffSPD::GetChipFromKey(const UInt_t key) const {
   // retrieves chip from key
-if(key>=kNModule*kNChip)
+if(key>=kNModule*kNChip*(kNClockPhase+1))
   {AliError("GetChipFromKey: you asked for a non existing key"); return 999;}
-return (key%(kNModule*kNChip))%kNChip;
+return ((key%(kNModule*kNChip))%(kNModule*kNChip))%kNChip;
+}
+//__________________________________________________________________________
+UInt_t AliITSPlaneEffSPD::GetBCm4FromKey(const UInt_t key) const {
+  // retrieves the "Bunch Crossing modulo 4" (for Fast Or studies)
+if(key>=kNModule*kNChip*(kNClockPhase+1))
+  {AliError("GetBCm4FromKey: you asked for a non existing key"); return 999;}
+if(key<kNModule*kNChip) 
+  {AliWarning("GetBCm4FromKey: key is below 1200, why are you asking for FO related stuff"); return 999;}
+
+return key/(kNModule*kNChip) - 1 ;
+}
+//__________________________________________________________________________
+Bool_t AliITSPlaneEffSPD::IsForFO(const UInt_t key) const {
+if(key>=kNModule*kNChip) return kTRUE;
+else return kFALSE;
 }
 //__________________________________________________________________________
 void AliITSPlaneEffSPD::GetModAndChipFromKey(const UInt_t key,UInt_t& mod,UInt_t& chip) const {
   // get module and chip from a key
-if(key>=kNModule*kNChip)
+if(key>=kNModule*kNChip*(kNClockPhase+1))
   {AliError("GetModAndChipFromKey: you asked for a non existing key"); 
   mod=9999;
   chip=999;
   return;}
-mod=key/kNChip;
-chip=(key%(kNModule*kNChip))%kNChip;
+mod=GetModFromKey(key);
+chip=GetChipFromKey(key);
 return;
 }
 //____________________________________________________________________________
@@ -667,6 +777,12 @@ void AliITSPlaneEffSPD::InitHistos() {
   TString histnameTrackErrZ="HistTrackErrZ_mod_";
   TString histnameClusErrX="HistClusErrX_mod_";
   TString histnameClusErrZ="HistClusErrZ_mod_";
+  TString histnameTrackXFOtrue="HistTrackXFOok_mod_";
+  TString histnameTrackZFOtrue="HistTrackZFOok_mod_";
+  TString histnameTrackXFOfalse="HistTrackXFOko_mod_";
+  TString histnameTrackZFOfalse="HistTrackZFOko_mod_";
+  TString histnameTrackXZFOtrue="HistTrackZvsXFOok_mod_";
+  TString histnameTrackXZFOfalse="HistTrackZvsXFOko_mod_";
 //
 
   TH1::AddDirectory(kFALSE);
@@ -687,6 +803,12 @@ void AliITSPlaneEffSPD::InitHistos() {
   fHisTrackErrZ=new TH1F*[kNHisto];
   fHisClusErrX=new TH1F*[kNHisto];
   fHisClusErrZ=new TH1F*[kNHisto];
+  fHisTrackXFOtrue=new TH1F**[kNHisto];
+  fHisTrackZFOtrue=new TH1F**[kNHisto];
+  fHisTrackXFOfalse=new TH1F**[kNHisto];
+  fHisTrackZFOfalse=new TH1F**[kNHisto];
+  fHisTrackXZFOtrue=new TH2F**[kNHisto];
+  fHisTrackXZFOfalse=new TH2F**[kNHisto];
 
   for (Int_t nhist=0;nhist<kNHisto;nhist++){
     aux=histnameResX;
@@ -715,6 +837,13 @@ void AliITSPlaneEffSPD::InitHistos() {
 
     fHisResXclu[nhist]=new TH1F*[kNclu];
     fHisResZclu[nhist]=new TH1F*[kNclu];
+    fHisTrackXFOtrue[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackZFOtrue[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackXFOfalse[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackZFOfalse[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackXZFOtrue[nhist]=new TH2F*[kNClockPhase];
+    fHisTrackXZFOfalse[nhist]=new TH2F*[kNClockPhase];
+
     for(Int_t clu=0; clu<kNclu; clu++) {  // clu=0 --> cluster size 1
       aux=histnameResXclu;
       aux+=nhist;
@@ -797,7 +926,7 @@ void AliITSPlaneEffSPD::InitHistos() {
       aux+="_clu_";
       aux+=clu+1; // clu=0 --> cluster size 1
       fProfResXvsPhiclu[nhist][clu]=new TProfile("histname","histname",40,-40.,40.0); // binning: range:  -40°- 40
-      fProfResXvsPhiclu[nhist][clu]->SetName(aux.Data()); 		 	      //          bin width: 2°
+      fProfResXvsPhiclu[nhist][clu]->SetName(aux.Data());                             //          bin width: 2°
       fProfResXvsPhiclu[nhist][clu]->SetTitle(aux.Data());
 
       aux=profnameResZvsDipclu;
@@ -809,6 +938,61 @@ void AliITSPlaneEffSPD::InitHistos() {
       fProfResZvsDipclu[nhist][clu]->SetTitle(aux.Data());
     }
 
+    fHisTrackXFOtrue[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackZFOtrue[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackXFOfalse[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackZFOfalse[nhist]=new TH1F*[kNClockPhase];
+    fHisTrackXZFOtrue[nhist]=new TH2F*[kNClockPhase];
+    fHisTrackXZFOfalse[nhist]=new TH2F*[kNClockPhase];
+    for(Int_t phas=0; phas<kNClockPhase;phas++){
+      aux=histnameTrackXFOtrue;
+      aux+=nhist;
+      aux+="_BCmod4_";
+      aux+=phas;
+      fHisTrackXFOtrue[nhist][phas]=new TH1F("histname","histname",128,-0.64,0.64); // +- 6.4 mm; 1 bin=0.1 mm
+      fHisTrackXFOtrue[nhist][phas]->SetName(aux.Data());
+      fHisTrackXFOtrue[nhist][phas]->SetTitle(aux.Data());
+      
+      aux=histnameTrackZFOtrue;
+      aux+=nhist;
+      aux+="_BCmod4_";
+      aux+=phas;
+      fHisTrackZFOtrue[nhist][phas]=new TH1F("histname","histname",350,-3.5,3.5); // +- 35. mm; 1 bin=0.2 mm
+      fHisTrackZFOtrue[nhist][phas]->SetName(aux.Data());
+      fHisTrackZFOtrue[nhist][phas]->SetTitle(aux.Data());
+      
+      aux=histnameTrackXFOfalse;
+      aux+=nhist;
+      aux+="_BCmod4_";
+      aux+=phas;
+      fHisTrackXFOfalse[nhist][phas]=new TH1F("histname","histname",128,-0.64,0.64); // +- 6.4 mm; 1 bin=0.1 mm
+      fHisTrackXFOfalse[nhist][phas]->SetName(aux.Data());
+      fHisTrackXFOfalse[nhist][phas]->SetTitle(aux.Data());
+
+      aux=histnameTrackZFOfalse;
+      aux+=nhist;
+      aux+="_BCmod4_";
+      aux+=phas;
+      fHisTrackZFOfalse[nhist][phas]=new TH1F("histname","histname",350,-3.5,3.5); // +- 35. mm; 1 bin=0.2 mm
+      fHisTrackZFOfalse[nhist][phas]->SetName(aux.Data());
+      fHisTrackZFOfalse[nhist][phas]->SetTitle(aux.Data());
+    
+      aux=histnameTrackXZFOtrue;
+      aux+=nhist;
+      aux+="_BCmod4_";
+      aux+=phas;
+      fHisTrackXZFOtrue[nhist][phas]=new TH2F("histname","histname",22,-3.5,3.5,32,-0.64,0.64); //  localZ +- 35. mm; 1 bin=3.2 mm
+      fHisTrackXZFOtrue[nhist][phas]->SetName(aux.Data());                                      //  localX +- 6.4 mm; 1 bin=0.4 mm
+      fHisTrackXZFOtrue[nhist][phas]->SetTitle(aux.Data());
+
+      aux=histnameTrackXZFOfalse;
+      aux+=nhist;
+      aux+="_BCmod4_";
+      aux+=phas;
+      fHisTrackXZFOfalse[nhist][phas]=new TH2F("histname","histname",22,-3.5,3.5,32,-0.64,0.64); //  localZ +- 35. mm; 1 bin=3.2 mm
+      fHisTrackXZFOfalse[nhist][phas]->SetName(aux.Data());                                      //  localX +- 6.4 mm; 1 bin=0.4 mm
+      fHisTrackXZFOfalse[nhist][phas]->SetTitle(aux.Data());
+      } 
   } // end loop on module
 
   TH1::AddDirectory(kTRUE);
@@ -905,11 +1089,90 @@ void AliITSPlaneEffSPD::DeleteHistos() {
     delete [] fProfResZvsDipclu;
     fProfResZvsDipclu = 0;
   }
-
+  if(fHisTrackXFOtrue) {
+    for (Int_t i=0; i<kNHisto; i++ ) {
+      for (Int_t phas=0; phas<kNClockPhase; phas++) if (fHisTrackXFOtrue[i][phas]) delete fHisTrackXFOtrue[i][phas];
+      delete [] fHisTrackXFOtrue[i];
+    }
+    delete [] fHisTrackXFOtrue;
+    fHisTrackXFOtrue = 0;
+  }
+  if(fHisTrackZFOtrue) {
+    for (Int_t i=0; i<kNHisto; i++ ) {
+      for (Int_t phas=0; phas<kNClockPhase; phas++) if (fHisTrackZFOtrue[i][phas]) delete fHisTrackZFOtrue[i][phas];
+      delete [] fHisTrackZFOtrue[i];
+    }
+    delete [] fHisTrackZFOtrue;
+    fHisTrackZFOtrue = 0;
+  }
+  if(fHisTrackXFOfalse) {
+    for (Int_t i=0; i<kNHisto; i++ ) {
+      for (Int_t phas=0; phas<kNClockPhase; phas++) if (fHisTrackXFOfalse[i][phas]) delete fHisTrackXFOfalse[i][phas];
+      delete [] fHisTrackXFOfalse[i];
+    }
+    delete [] fHisTrackXFOfalse;
+    fHisTrackXFOfalse = 0;
+  }
+  if(fHisTrackZFOfalse) {
+    for (Int_t i=0; i<kNHisto; i++ ) {
+      for (Int_t phas=0; phas<kNClockPhase; phas++) if (fHisTrackZFOfalse[i][phas]) delete fHisTrackZFOfalse[i][phas];
+      delete [] fHisTrackZFOfalse[i];
+    }
+    delete [] fHisTrackZFOfalse;
+    fHisTrackZFOfalse = 0;
+  }
 return;
 }
 //__________________________________________________________
-Bool_t AliITSPlaneEffSPD::FillHistos(UInt_t key, Bool_t found, 
+Bool_t AliITSPlaneEffSPD::FillHistos(UInt_t key, Bool_t found,
+                                     Float_t *tr, Float_t *clu, Int_t *csize, Float_t *angtrkmod) {
+//
+// depending on the value of key this method
+// either call the standard one for clusters 
+// or the one for FO studies
+// if key <  1200 --> call FillHistosST
+// if key >= 1200 --> call FillHistosFO
+if(key>=kNModule*kNChip*(kNClockPhase+1))
+  {AliError("GetChipFromKey: you asked for a non existing key"); return kFALSE;}
+if(key<kNModule*kNChip) return FillHistosStd(key,found,tr,clu,csize,angtrkmod);
+else return FillHistosFO(key,found,tr);
+return kFALSE;
+}
+//__________________________________________________________
+Bool_t AliITSPlaneEffSPD::FillHistosFO(UInt_t key, Bool_t found, Float_t *tr) {
+// this method fill the histograms for FastOr studies
+// input: - key: unique key of the basic block 
+//        - found: Boolean to asses whether a FastOr bit has been associated to the track or not 
+//        - tr[0],tr[1] local X and Z coordinates of the track prediction, respectively
+//        - tr[2],tr[3] error on local X and Z coordinates of the track prediction, respectively
+// output: kTRUE if filling was succesfull kFALSE otherwise
+// side effects: updating of the histograms.
+  if (!fHis) {
+    AliWarning("FillHistos: histograms do not exist! Call SetCreateHistos(kTRUE) first");
+    return kFALSE;
+  }
+  if(key>=kNModule*kNChip*(kNClockPhase+1))
+    {AliWarning("FillHistos: you asked for a non existing key"); return kFALSE;}
+  if(key<kNModule*kNChip)
+    {AliWarning("FillHistos: you asked for a key which is not for FO studies"); return kFALSE;}
+  Int_t id=GetModFromKey(key);
+  Int_t BCm4=GetBCm4FromKey(key);
+  if(id>=kNHisto)
+    {AliWarning("FillHistos: you want to fill a non-existing histos"); return kFALSE;}
+  if(found) {
+    fHisTrackXFOtrue[id][BCm4]->Fill(tr[0]);
+    fHisTrackZFOtrue[id][BCm4]->Fill(tr[1]);
+    fHisTrackXZFOtrue[id][BCm4]->Fill(tr[1],tr[0]);
+  }
+  else {
+    fHisTrackXFOfalse[id][BCm4]->Fill(tr[0]);
+    fHisTrackZFOfalse[id][BCm4]->Fill(tr[1]);
+    fHisTrackXZFOfalse[id][BCm4]->Fill(tr[1],tr[0]);
+  }
+return kTRUE;
+}
+//__________________________________________________________
+Bool_t AliITSPlaneEffSPD::FillHistosStd(UInt_t key, Bool_t found, 
                                      Float_t *tr, Float_t *clu, Int_t *csize, Float_t *angtrkmod) {
 // this method fill the histograms
 // input: - key: unique key of the basic block 
@@ -965,7 +1228,7 @@ Bool_t AliITSPlaneEffSPD::WriteHistosToFile(TString filename, Option_t* option) 
      AliWarning("WriteHistosToFile: null output filename!");
      return kFALSE;
   }
-  char branchname[30];
+  char branchname[51];
   TFile *hFile=new TFile(filename.Data(),option,
                          "The File containing the TREEs with ITS PlaneEff Histos");
   TTree *SPDTree=new TTree("SPDTree","Tree whith Residuals and Cluster Type distributions for SPD");
@@ -980,6 +1243,12 @@ Bool_t AliITSPlaneEffSPD::WriteHistosToFile(TString filename, Option_t* option) 
   TH1F *histClErrZ,*histClErrX;
   TProfile *profXvsPhi,*profZvsDip;
   TProfile *profXvsPhiclu[kNclu],*profZvsDipclu[kNclu];
+  TH1F *histXtrkFOtrue[kNClockPhase];
+  TH1F *histZtrkFOtrue[kNClockPhase];
+  TH1F *histXtrkFOfalse[kNClockPhase];
+  TH1F *histZtrkFOfalse[kNClockPhase];
+  TH2F *histXZtrkFOtrue[kNClockPhase];
+  TH2F *histXZtrkFOfalse[kNClockPhase];
 
   histZ=new TH1F();
   histX=new TH1F();
@@ -993,6 +1262,7 @@ Bool_t AliITSPlaneEffSPD::WriteHistosToFile(TString filename, Option_t* option) 
     histXchip[chip]=new TH1F();
     histZchip[chip]=new TH1F();
   }
+
   histTrErrX=new TH1F();
   histTrErrZ=new TH1F();
   histClErrX=new TH1F();
@@ -1004,21 +1274,29 @@ Bool_t AliITSPlaneEffSPD::WriteHistosToFile(TString filename, Option_t* option) 
     profZvsDipclu[clu]=new TProfile();
   }
 
+  for(Int_t phas=0; phas<kNClockPhase;phas++){
+    histXtrkFOtrue[phas]=new TH1F();
+    histZtrkFOtrue[phas]=new TH1F();
+    histXtrkFOfalse[phas]=new TH1F();
+    histZtrkFOfalse[phas]=new TH1F();
+    histXZtrkFOtrue[phas]=new TH2F();
+    histXZtrkFOfalse[phas]=new TH2F();
+  }
 
   SPDTree->Branch("histX","TH1F",&histX,128000,0);
   SPDTree->Branch("histZ","TH1F",&histZ,128000,0);
   SPDTree->Branch("histXZ","TH2F",&histXZ,128000,0);
   SPDTree->Branch("histClusterType","TH2I",&histClusterType,128000,0);
   for(Int_t clu=0;clu<kNclu;clu++) {
-    sprintf(branchname,"histXclu_%d",clu+1);
+    snprintf(branchname,50,"histXclu_%d",clu+1);
     SPDTree->Branch(branchname,"TH1F",&histXclu[clu],128000,0);
-    sprintf(branchname,"histZclu_%d",clu+1);
+    snprintf(branchname,50,"histZclu_%d",clu+1);
     SPDTree->Branch(branchname,"TH1F",&histZclu[clu],128000,0);
   }
   for(Int_t chip=0;chip<kNChip;chip++) {
-    sprintf(branchname,"histXchip_%d",chip);
+    snprintf(branchname,50,"histXchip_%d",chip);
     SPDTree->Branch(branchname,"TH1F",&histXchip[chip],128000,0);
-    sprintf(branchname,"histZchip_%d",chip);
+    snprintf(branchname,50,"histZchip_%d",chip);
     SPDTree->Branch(branchname,"TH1F",&histZchip[chip],128000,0);
   }
   SPDTree->Branch("histTrErrX","TH1F",&histTrErrX,128000,0);
@@ -1028,10 +1306,24 @@ Bool_t AliITSPlaneEffSPD::WriteHistosToFile(TString filename, Option_t* option) 
   SPDTree->Branch("profXvsPhi","TProfile",&profXvsPhi,128000,0);
   SPDTree->Branch("profZvsDip","TProfile",&profZvsDip,128000,0);
   for(Int_t clu=0;clu<kNclu;clu++) {
-    sprintf(branchname,"profXvsPhiclu_%d",clu+1);
+    snprintf(branchname,50,"profXvsPhiclu_%d",clu+1);
     SPDTree->Branch(branchname,"TProfile",&profXvsPhiclu[clu],128000,0);
-    sprintf(branchname,"profZvsDipclu_%d",clu+1);
+    snprintf(branchname,50,"profZvsDipclu_%d",clu+1);
     SPDTree->Branch(branchname,"TProfile",&profZvsDipclu[clu],128000,0);
+  }
+  for(Int_t phas=0; phas<kNClockPhase;phas++){
+    snprintf(branchname,50,"histTrXFOokBCmod4_%d",phas);
+    SPDTree->Branch(branchname,"TH1F",&histXtrkFOtrue[phas],128000,0);
+    snprintf(branchname,50,"histTrZFOokBCmod4_%d",phas);
+    SPDTree->Branch(branchname,"TH1F",&histZtrkFOtrue[phas],128000,0);
+    snprintf(branchname,50,"histTrXFOkoBCmod4_%d",phas);
+    SPDTree->Branch(branchname,"TH1F",&histXtrkFOfalse[phas],128000,0);
+    snprintf(branchname,50,"histTrZFOkoBCmod4_%d",phas);
+    SPDTree->Branch(branchname,"TH1F",&histZtrkFOfalse[phas],128000,0);
+    snprintf(branchname,50,"histTrXZFOokBCmod4_%d",phas);
+    SPDTree->Branch(branchname,"TH2F",&histXZtrkFOtrue[phas],128000,0);
+    snprintf(branchname,50,"histTrXZFOkoBCmod4_%d",phas);
+    SPDTree->Branch(branchname,"TH2F",&histXZtrkFOfalse[phas],128000,0);
   }
 
   for(Int_t j=0;j<kNHisto;j++){
@@ -1057,6 +1349,14 @@ Bool_t AliITSPlaneEffSPD::WriteHistosToFile(TString filename, Option_t* option) 
       profXvsPhiclu[clu]=fProfResXvsPhiclu[j][clu];
       profZvsDipclu[clu]=fProfResZvsDipclu[j][clu];
     }
+    for(Int_t phas=0; phas<kNClockPhase;phas++){
+      histXtrkFOtrue[phas]=fHisTrackXFOtrue[j][phas];
+      histZtrkFOtrue[phas]=fHisTrackZFOtrue[j][phas];
+      histXtrkFOfalse[phas]=fHisTrackXFOfalse[j][phas];
+      histZtrkFOfalse[phas]=fHisTrackZFOfalse[j][phas];
+      histXZtrkFOtrue[phas]=fHisTrackXZFOtrue[j][phas];
+      histXZtrkFOfalse[phas]=fHisTrackXZFOfalse[j][phas];
+    }
 
     SPDTree->Fill();
   }
@@ -1074,7 +1374,7 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
      AliWarning("ReadHistosFromFile: incorrect output filename!");
      return kFALSE;
   }
-  char branchname[30];
+  char branchname[51];
 
   TH1F *h  = 0;
   TH2F *h2 = 0;
@@ -1097,17 +1397,17 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
    
   TBranch *histXclu[kNclu], *histZclu[kNclu];
   for(Int_t clu=0; clu<kNclu; clu++) {
-    sprintf(branchname,"histXclu_%d",clu+1);
+    snprintf(branchname,50,"histXclu_%d",clu+1);
     histXclu[clu]= (TBranch*) tree->GetBranch(branchname);
-    sprintf(branchname,"histZclu_%d",clu+1);
+    snprintf(branchname,50,"histZclu_%d",clu+1);
     histZclu[clu]= (TBranch*) tree->GetBranch(branchname);
   }
 
   TBranch *histXchip[kNChip], *histZchip[kNChip];
   for(Int_t chip=0; chip<kNChip; chip++) {
-    sprintf(branchname,"histXchip_%d",chip);
+    snprintf(branchname,50,"histXchip_%d",chip);
     histXchip[chip]= (TBranch*) tree->GetBranch(branchname);
-    sprintf(branchname,"histZchip_%d",chip);
+    snprintf(branchname,50,"histZchip_%d",chip);
     histZchip[chip]= (TBranch*) tree->GetBranch(branchname);
   }
 
@@ -1120,10 +1420,28 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
 
   TBranch *profXvsPhiclu[kNclu], *profZvsDipclu[kNclu];
   for(Int_t clu=0; clu<kNclu; clu++) {
-    sprintf(branchname,"profXvsPhiclu_%d",clu+1);
+    snprintf(branchname,50,"profXvsPhiclu_%d",clu+1);
     profXvsPhiclu[clu]= (TBranch*) tree->GetBranch(branchname);
-    sprintf(branchname,"profZvsDipclu_%d",clu+1);
+    snprintf(branchname,50,"profZvsDipclu_%d",clu+1);
     profZvsDipclu[clu]= (TBranch*) tree->GetBranch(branchname);
+  }
+
+  TBranch *histXtrkFOtrue[kNClockPhase], *histZtrkFOtrue[kNClockPhase],
+          *histXtrkFOfalse[kNClockPhase], *histZtrkFOfalse[kNClockPhase],
+          *histXZtrkFOtrue[kNClockPhase], *histXZtrkFOfalse[kNClockPhase];
+  for(Int_t phas=0; phas<kNClockPhase;phas++){
+    snprintf(branchname,50,"histTrXFOokBCmod4_%d",phas);
+    histXtrkFOtrue[phas] = (TBranch*) tree->GetBranch(branchname);
+    snprintf(branchname,50,"histTrZFOokBCmod4_%d",phas);
+    histZtrkFOtrue[phas] = (TBranch*) tree->GetBranch(branchname);
+    snprintf(branchname,50,"histTrXFOkoBCmod4_%d",phas);
+    histXtrkFOfalse[phas] = (TBranch*) tree->GetBranch(branchname);
+    snprintf(branchname,50,"histTrZFOkoBCmod4_%d",phas);
+    histZtrkFOfalse[phas] = (TBranch*) tree->GetBranch(branchname);
+    snprintf(branchname,50,"histTrXZFOokBCmod4_%d",phas);
+    histXZtrkFOtrue[phas] = (TBranch*) tree->GetBranch(branchname);
+    snprintf(branchname,50,"histTrXZFOkoBCmod4_%d",phas);
+    histXZtrkFOfalse[phas] = (TBranch*) tree->GetBranch(branchname);
   }
 
   gROOT->cd();
@@ -1133,7 +1451,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histX->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histX->GetEntry(j);
     fHisResX[j]->Add(h);
   }
@@ -1143,7 +1460,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histZ->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histZ->GetEntry(j);
     fHisResZ[j]->Add(h);
   }
@@ -1153,7 +1469,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histXZ->SetAddress(&h2);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h2; h2=0;
     histXZ->GetEntry(j);
     fHisResXZ[j]->Add(h2);
   }
@@ -1163,7 +1478,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histClusterType->SetAddress(&h2i);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h2i; h2i=0;
     histClusterType->GetEntry(j);
     fHisClusterSize[j]->Add(h2i);
   }
@@ -1175,7 +1489,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
     histXclu[clu]->SetAddress(&h);
     for(Int_t j=0;j<kNHisto;j++){
-      delete h; h=0;
       histXclu[clu]->GetEntry(j);
       fHisResXclu[j][clu]->Add(h);
     }
@@ -1185,7 +1498,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
     histZclu[clu]->SetAddress(&h);
     for(Int_t j=0;j<kNHisto;j++){
-      delete h; h=0;
       histZclu[clu]->GetEntry(j);
       fHisResZclu[j][clu]->Add(h);
     }
@@ -1199,7 +1511,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
     histXchip[chip]->SetAddress(&h);
     for(Int_t j=0;j<kNHisto;j++){
-      delete h; h=0;
       histXchip[chip]->GetEntry(j);
       fHisResXchip[j][chip]->Add(h);
     }
@@ -1209,7 +1520,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
     histZchip[chip]->SetAddress(&h);
     for(Int_t j=0;j<kNHisto;j++){
-      delete h; h=0;
       histZchip[chip]->GetEntry(j);
       fHisResZchip[j][chip]->Add(h);
     }
@@ -1220,7 +1530,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histTrErrX->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histTrErrX->GetEntry(j);
     fHisTrackErrX[j]->Add(h);
   }
@@ -1230,7 +1539,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histTrErrZ->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histTrErrZ->GetEntry(j);
     fHisTrackErrZ[j]->Add(h);
   }
@@ -1240,7 +1548,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histClErrX->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histClErrX->GetEntry(j);
     fHisClusErrX[j]->Add(h);
   }
@@ -1250,17 +1557,14 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   histClErrZ->SetAddress(&h);
   for(Int_t j=0;j<kNHisto;j++){
-    delete h; h=0;
     histClErrZ->GetEntry(j);
     fHisClusErrZ[j]->Add(h);
   }
-
   nevent = (Int_t)profXvsPhi->GetEntries();
   if(nevent!=kNHisto)
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   profXvsPhi->SetAddress(&p);
   for(Int_t j=0;j<kNHisto;j++){
-    delete p; p=0;
     profXvsPhi->GetEntry(j);
     fProfResXvsPhi[j]->Add(p);
   }
@@ -1269,8 +1573,7 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
   if(nevent!=kNHisto)
     {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
   profZvsDip->SetAddress(&p);
-  for(Int_t j=0;j<kNHisto;j++){
-    delete p; p=0;
+  for(Int_t j=0;j<kNHisto;j++){ 
     profZvsDip->GetEntry(j);
     fProfResZvsDip[j]->Add(p);
   }
@@ -1282,7 +1585,6 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
     profXvsPhiclu[clu]->SetAddress(&p);
     for(Int_t j=0;j<kNHisto;j++){
-      delete p; p=0;
       profXvsPhiclu[clu]->GetEntry(j);
       fProfResXvsPhiclu[j][clu]->Add(p);
     }
@@ -1291,21 +1593,78 @@ Bool_t AliITSPlaneEffSPD::ReadHistosFromFile(TString filename) {
     if(nevent!=kNHisto)
       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
     profZvsDipclu[clu]->SetAddress(&p);
-    for(Int_t j=0;j<kNHisto;j++){
-      delete p; p=0;
+    for(Int_t j=0;j<kNHisto;j++){ 
       profZvsDipclu[clu]->GetEntry(j);
       fProfResZvsDipclu[j][clu]->Add(p);
     }
   }
 
+    for(Int_t phas=0; phas<kNClockPhase;phas++){
 
-  delete h;   h=0;
-  delete h2;  h2=0;
-  delete h2i; h2i=0;
-  delete p;   p=0;
+    nevent = (Int_t)histXtrkFOtrue[phas]->GetEntries();
+    if(nevent!=kNHisto)
+       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
+    histXtrkFOtrue[phas]->SetAddress(&h);
+    for(Int_t j=0;j<kNHisto;j++){
+      histXtrkFOtrue[phas]->GetEntry(j);
+      fHisTrackXFOtrue[j][phas]->Add(h);
+    }
+
+    nevent = (Int_t)histZtrkFOtrue[phas]->GetEntries();
+    if(nevent!=kNHisto)
+       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
+    histZtrkFOtrue[phas]->SetAddress(&h);
+    for(Int_t j=0;j<kNHisto;j++){
+      histZtrkFOtrue[phas]->GetEntry(j);
+      fHisTrackZFOtrue[j][phas]->Add(h);
+    }
+
+    nevent = (Int_t)histXtrkFOfalse[phas]->GetEntries();
+    if(nevent!=kNHisto)
+       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
+    histXtrkFOfalse[phas]->SetAddress(&h);
+    for(Int_t j=0;j<kNHisto;j++){
+      histXtrkFOfalse[phas]->GetEntry(j);
+      fHisTrackXFOfalse[j][phas]->Add(h);
+    }
+
+    nevent = (Int_t)histZtrkFOfalse[phas]->GetEntries();
+    if(nevent!=kNHisto)
+       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
+    histZtrkFOfalse[phas]->SetAddress(&h);
+    for(Int_t j=0;j<kNHisto;j++){
+      histZtrkFOfalse[phas]->GetEntry(j);
+      fHisTrackZFOfalse[j][phas]->Add(h);
+    }
+
+    nevent = (Int_t)histXZtrkFOtrue[phas]->GetEntries();
+    if(nevent!=kNHisto)
+       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
+    histXZtrkFOtrue[phas]->SetAddress(&h2);
+    for(Int_t j=0;j<kNHisto;j++){
+      histXZtrkFOtrue[phas]->GetEntry(j);
+      fHisTrackXZFOtrue[j][phas]->Add(h2);
+    }
+
+    nevent = (Int_t)histXZtrkFOfalse[phas]->GetEntries();
+    if(nevent!=kNHisto)
+       {AliWarning("ReadHistosFromFile: trying to read too many or too few histos!"); return kFALSE;}
+    histXZtrkFOfalse[phas]->SetAddress(&h2);
+    for(Int_t j=0;j<kNHisto;j++){
+      histXZtrkFOfalse[phas]->GetEntry(j);
+      fHisTrackXZFOfalse[j][phas]->Add(h2);
+    }
+
+   }
+
+  delete h;   
+  delete h2;  
+  delete h2i; 
+  delete p;   
 
   if (file) {
     file->Close();
+    delete file;
   }
 return kTRUE;
 }

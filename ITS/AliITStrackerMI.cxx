@@ -33,6 +33,7 @@
 #include <TRandom.h>
 #include <TTreeStream.h>
 #include <TVector3.h>
+#include <TBits.h>
 
 #include "AliLog.h"
 #include "AliGeomManager.h"
@@ -92,7 +93,11 @@ fxTimesRhoLayerTrks(0),
 fDebugStreamer(0),
 fITSChannelStatus(0),
 fkDetTypeRec(0),
-fPlaneEff(0) {
+fPlaneEff(0),
+fSPDChipIntPlaneEff(0),
+fITSPid(0)
+
+ {
   //Default constructor
   Int_t i;
   for(i=0;i<4;i++) fSPDdetzcentre[i]=0.;
@@ -105,6 +110,7 @@ fPlaneEff(0) {
   fOriginal.SetOwner();
   for(i=0;i<AliITSgeomTGeo::kNLayers;i++)fForceSkippingOfLayer[i]=0;
   for(i=0;i<100000;i++)fBestTrackIndex[i]=0;
+  fITSPid=new AliITSPIDResponse();
 
 }
 //------------------------------------------------------------------------
@@ -138,7 +144,9 @@ fxTimesRhoLayerTrks(0),
 fDebugStreamer(0),
 fITSChannelStatus(0),
 fkDetTypeRec(0),
-fPlaneEff(0) {
+fPlaneEff(0),
+fSPDChipIntPlaneEff(0),
+fITSPid(0) {
   //--------------------------------------------------------------------
   //This is the AliITStrackerMI constructor
   //--------------------------------------------------------------------
@@ -262,7 +270,11 @@ fPlaneEff(0) {
     Int_t iplane=AliITSReconstructor::GetRecoParam()->GetIPlanePlaneEff();
     if(!AliITSReconstructor::GetRecoParam()->GetLayersToSkip(iplane)==1)
       AliWarning(Form("Evaluation of Plane Eff for layer %d will be attempted without removing it from tracker",iplane));
-    if (iplane<2) fPlaneEff = new AliITSPlaneEffSPD();
+    if (iplane<2) {
+      fPlaneEff = new AliITSPlaneEffSPD();
+      fSPDChipIntPlaneEff = new Bool_t[AliITSPlaneEffSPD::kNModule*AliITSPlaneEffSPD::kNChip];
+      for (UInt_t i=0; i<AliITSPlaneEffSPD::kNModule*AliITSPlaneEffSPD::kNChip; i++) fSPDChipIntPlaneEff[i]=kFALSE;
+    }
     else if (iplane<4) fPlaneEff = new AliITSPlaneEffSDD();
     else fPlaneEff = new AliITSPlaneEffSSD();
     if(AliITSReconstructor::GetRecoParam()->GetReadPlaneEffFromOCDB())
@@ -275,6 +287,7 @@ fPlaneEff(0) {
   fFlagFakes        = AliITSReconstructor::GetRecoParam()->GetFlagFakes();
   fUseImproveKalman = AliITSReconstructor::GetRecoParam()->GetUseImproveKalman();
   //
+  fITSPid=new AliITSPIDResponse();
 }
 /*
 //------------------------------------------------------------------------
@@ -346,6 +359,9 @@ AliITStrackerMI::~AliITStrackerMI()
   }
   if(fITSChannelStatus) delete fITSChannelStatus;
   if(fPlaneEff) delete fPlaneEff;
+  if(fITSPid) delete fITSPid;
+  if (fSPDChipIntPlaneEff) delete [] fSPDChipIntPlaneEff;
+
 }
 //------------------------------------------------------------------------
 void AliITStrackerMI::ReadBadFromDetTypeRec() {
@@ -762,6 +778,13 @@ Int_t AliITStrackerMI::RefitInward(AliESDEvent *event) {
 
   Int_t nentr=event->GetNumberOfTracks();
   //  Info("RefitInward", "Number of ESD tracks: %d\n", nentr);
+
+  // only for PlaneEff and in case of SPD (for FO studies)
+  if( AliITSReconstructor::GetRecoParam()->GetComputePlaneEff() &&
+      AliITSReconstructor::GetRecoParam()->GetIPlanePlaneEff()>=0 && 
+      AliITSReconstructor::GetRecoParam()->GetIPlanePlaneEff()<2) {
+      for (UInt_t i=0; i<AliITSPlaneEffSPD::kNModule*AliITSPlaneEffSPD::kNChip; i++) fSPDChipIntPlaneEff[i]=kFALSE;     
+  }
 
   Int_t ntrk=0;
   for (Int_t i=0; i<nentr; i++) {
@@ -5090,6 +5113,29 @@ void AliITStrackerMI::UseTrackForPlaneEff(const AliITStrackMI* track, Int_t ilay
   }
   if(!fPlaneEff->UpDatePlaneEff(found,key))
        AliWarning(Form("UseTrackForPlaneEff: cannot UpDate PlaneEff for key=%d",key));
+
+// this for FO efficiency studies (only for SPD) // 
+   UInt_t keyFO=999999;
+   Bool_t foundFO=kFALSE;
+   if(ilayer<2){ //ONLY SPD layers for FastOr studies
+    TBits mapFO = fkDetTypeRec->GetFastOrFiredMap();
+    Int_t phase = (fEsd->GetBunchCrossNumber())%4;
+    if(!fSPDChipIntPlaneEff[key]){
+      AliITSPlaneEffSPD spd; 
+      keyFO = spd.SwitchChipKeyNumbering(key);
+      if(mapFO.TestBitNumber(keyFO))foundFO=kTRUE;
+       keyFO = key + (AliITSPlaneEffSPD::kNModule*AliITSPlaneEffSPD::kNChip)*(phase+1);
+       if(keyFO<AliITSPlaneEffSPD::kNModule*AliITSPlaneEffSPD::kNChip) {
+         AliWarning(Form("UseTrackForPlaneEff: too small keyF0 (= %d), setting it to 999999",keyFO));
+         keyFO=999999;
+       }
+       if(!fPlaneEff->UpDatePlaneEff(foundFO,keyFO))
+          AliWarning(Form("UseTrackForPlaneEff: cannot UpDate PlaneEff for FastOR for key=%d",keyFO));
+     }
+  }
+  
+
+
   if(fPlaneEff->GetCreateHistos()&&  AliITSReconstructor::GetRecoParam()->GetHistoPlaneEff()) {
     Float_t tr[4]={99999.,99999.,9999.,9999.};    // initialize to high values 
     Float_t clu[4]={-99999.,-99999.,9999.,9999.}; // (in some cases GetCov fails) 
@@ -5173,8 +5219,12 @@ Float_t AngleModTrack[3]={99999.,99999.,99999.}; // angles (phi, z and "absolute
     AngleModTrack[1]-=TMath::Pi()/2.; // range of angle is -pi/2 , pi/2
     AngleModTrack[1]*=180./TMath::Pi(); // in degree
 
-      fPlaneEff->FillHistos(key,found,tr,clu,cltype,AngleModTrack);
+    fPlaneEff->FillHistos(key,found,tr,clu,cltype,AngleModTrack);
+
+    // For FO efficiency studies of SPD 
+    if(ilayer<2 && !fSPDChipIntPlaneEff[key]) fPlaneEff->FillHistos(keyFO,foundFO,tr,clu,cltype,AngleModTrack);
   }
+  if(ilayer<2) fSPDChipIntPlaneEff[key]=kTRUE;
 return;
 }
 
