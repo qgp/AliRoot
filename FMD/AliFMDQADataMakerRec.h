@@ -26,6 +26,15 @@ public:
   AliFMDQADataMakerRec& operator = (const AliFMDQADataMakerRec& qadm) ;
   virtual ~AliFMDQADataMakerRec();
 private:
+  static TH1* MakeADCHist(UShort_t d=0, Char_t r='\0', Short_t b=-1);
+  static TH1* MakeELossHist(UShort_t d=0, Char_t r='\0', Short_t b=-1);
+  
+  /** 
+   * Called at end of monitor cycle 
+   * 
+   * @param TASKINDEX_t Task
+   * @param list        Output list
+   */
   virtual void   EndOfDetectorCycle(AliQAv1::TASKINDEX_t, TObjArray ** list);
   virtual void   InitESDs(); 
   virtual void   InitDigits(); 
@@ -40,6 +49,7 @@ private:
   Int_t GetHalfringIndex(UShort_t det, Char_t ring, UShort_t board, UShort_t monitor = 0);
   ClassDef(AliFMDQADataMakerRec,0)  // description 
   TClonesArray fRecPointsArray;
+
 
 };
 
