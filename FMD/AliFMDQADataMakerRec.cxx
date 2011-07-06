@@ -97,6 +97,7 @@ AliFMDQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task,
 {
   // Detector specific actions at end of cycle
   // do the QA checking
+  ResetEventTrigClasses(); // reset triggers list to select all histos
   AliLog::Message(5,"FMD: end of detector cycle",
 		  "AliFMDQADataMakerRec","AliFMDQADataMakerRec",
 		  "AliFMDQADataMakerRec::EndOfDetectorCycle",
@@ -168,7 +169,7 @@ void AliFMDQADataMakerRec::InitESDs()
   
   TH1* hist = MakeELossHist();
   Add2ESDsList(hist, 0, !expert, image);
-    
+  ClonePerTrigClass(AliQAv1::kESDS); // this should be the last line    
 }
 
 //_____________________________________________________________________
@@ -180,8 +181,8 @@ void AliFMDQADataMakerRec::InitDigits()
   
   TH1* hist = MakeADCHist();
   Add2DigitsList(hist, 0, !expert, image);
+  ClonePerTrigClass(AliQAv1::kDIGITS); // this should be the last line
 }
-
 
 //_____________________________________________________________________ 
 void AliFMDQADataMakerRec::InitRecPoints()
@@ -192,6 +193,7 @@ void AliFMDQADataMakerRec::InitRecPoints()
 
   TH1* hist = MakeELossHist();
   Add2RecPointsList(hist,0, !expert, image);
+  ClonePerTrigClass(AliQAv1::kRECPOINTS); // this should be the last linea
 }
 
 //_____________________________________________________________________ 
@@ -236,6 +238,8 @@ void AliFMDQADataMakerRec::InitRaws()
       }
     }
   }
+  //
+  ClonePerTrigClass(AliQAv1::kRAWS); // this should be the last line
 }
 
 #if 0
@@ -249,7 +253,7 @@ struct FillESDHist : public AliESDFMD::ForOne
     // Float_t mult = fmd->Multiplicity(det,ring,sec,strip);
     if(m == AliESDFMD::kInvalidMult) return true;
     
-    fM->GetESDsData(0)->Fill(m);    
+    fM->FillESDsData(0,m);
     return true;
   }
   AliFMDQADataMakerRec* fM;
@@ -287,12 +291,14 @@ void AliFMDQADataMakerRec::MakeESDs(AliESDEvent * esd)
 	  Float_t mult = fmd->Multiplicity(det,ring,sec,strip);
 	  if(mult == AliESDFMD::kInvalidMult) continue;
 	  
-	  GetESDsData(0)->Fill(mult);
+	  FillESDsData(0,mult);
 	}
       }
     }
   }
 #endif
+  IncEvCountCycleESDs();
+  IncEvCountTotalESDs();
 }
 
 
@@ -308,14 +314,13 @@ void AliFMDQADataMakerRec::MakeDigits()
   for(Int_t i=0;i<fDigitsArray->GetEntriesFast();i++) {
     //Raw ADC counts
     AliFMDDigit* digit = static_cast<AliFMDDigit*>(fDigitsArray->At(i));
-    GetDigitsData(0)->Fill(digit->Counts());
+    FillDigitsData(0,digit->Counts());
   }
 }
 
 //_____________________________________________________________________
 void AliFMDQADataMakerRec::MakeDigits(TTree * digitTree)
 {
-  
   if (fDigitsArray) 
     fDigitsArray->Clear();
   else 
@@ -329,6 +334,9 @@ void AliFMDQADataMakerRec::MakeDigits(TTree * digitTree)
   branch->SetAddress(&fDigitsArray);
   branch->GetEntry(0); 
   MakeDigits();
+  //
+  IncEvCountCycleDigits();
+  IncEvCountTotalDigits();
 }
 
 //_____________________________________________________________________
@@ -359,15 +367,18 @@ void AliFMDQADataMakerRec::MakeRaws(AliRawReader* rawReader)
     Short_t           board = pars->GetAltroMap()->Sector2Board(ring, sec);
     
     Int_t index1 = GetHalfringIndex(det, ring, 0, 1);
+    FillRawsData(index1,digit->Counts());
     Int_t index2 = GetHalfringIndex(det, ring, board/16,0);
-    // AliInfo(Form("FMD%d%c[0x%02x]->%2d,%2d", 
-    //              det, ring, board, index1, index2));
-    GetRawsData(index1)->Fill(digit->Counts());
-    GetRawsData(index2)->Fill(digit->Counts()); 
+    FillRawsData(index2,digit->Counts());
+    
   }
-  GetRawsData(1)->Fill(1, fmdReader.GetNErrors(0));
-  GetRawsData(1)->Fill(2, fmdReader.GetNErrors(1));
-  GetRawsData(1)->Fill(3, fmdReader.GetNErrors(2));
+  //
+  FillRawsData(1,1, fmdReader.GetNErrors(0));
+  FillRawsData(1,2, fmdReader.GetNErrors(1));
+  FillRawsData(1,3, fmdReader.GetNErrors(2));
+  //
+  IncEvCountCycleRaws();
+  IncEvCountTotalRaws();
 }
 
 //_____________________________________________________________________
@@ -390,11 +401,11 @@ void AliFMDQADataMakerRec::MakeRecPoints(TTree* clustersTree)
   TIter next(RecPointsAddress) ; 
   AliFMDRecPoint * rp ; 
   while ((rp = static_cast<AliFMDRecPoint*>(next()))) {
-    
-    GetRecPointsData(0)->Fill(rp->Edep()/pars->GetEdepMip()) ;
-  
+    FillRecPointsData(0,rp->Edep()/pars->GetEdepMip());
   }
-
+  IncEvCountCycleRecPoints();
+  IncEvCountTotalRecPoints();
+  //
 }
 
 //_____________________________________________________________________ 

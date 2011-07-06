@@ -105,20 +105,18 @@ void AliT0QAChecker::Check(Double_t *  test, AliQAv1::ALITASK_t index, TObjArray
 
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) {
     //  TString dataType = AliQAv1::GetAliTaskName(index);
-    if (list[specie]->GetEntries() == 0){
+    if (!(AliQAv1::Instance()->IsEventSpecieSet(specie) && list[specie]) || list[specie]->GetEntries() == 0) {
       test[specie] = 1. ; // nothing to check
+      continue;
     }
-    else {
-      if (index == AliQAv1::kRAW && AliRecoParam::ConvertIndex(specie) == AliRecoParam::kCalib)
-       //      if (index == AliQAv1::kRAW )
-	{
-	  test[specie] = CheckRaw(list[specie]);
-	}
-      
-       if (index == AliQAv1::kESD && AliRecoParam::Convert(specie) != AliRecoParam::kCalib)
-	  test[specie] = CheckESD(list[specie]);
-    }
-  
+    if (index == AliQAv1::kRAW && AliRecoParam::ConvertIndex(specie) == AliRecoParam::kCalib)
+      //      if (index == AliQAv1::kRAW )
+      {
+	test[specie] = CheckRaw(list[specie]);
+      }
+    if (index == AliQAv1::kESD && AliRecoParam::Convert(specie) != AliRecoParam::kCalib)
+      test[specie] = CheckESD(list[specie]);
+    //
   }
 }
 
@@ -227,8 +225,7 @@ Double_t AliT0QAChecker::CheckESD(TObjArray *listrec ) const
     
     text->AddText(Form("T0 RUN %d ",AliCDBManager::Instance()->GetRun()));
     
-    printf("numentries %f mean %f #sigma %f ", fhESD->GetEntries(), par[2], par[2]);
-    AliDebug(AliQAv1::GetQADebugLevel(), Form("numentries %d mean %f  #sigma %f", fhESD->GetEntries(),par[1], par[2]));
+    AliDebug(AliQAv1::GetQADebugLevel(), Form("numentries %f mean %f  #sigma %f", (int)fhESD->GetEntries(),par[1], par[2]));
     
     
     if (par[2] > 0.07 && par[2] < 1.) {
@@ -248,8 +245,6 @@ Double_t AliT0QAChecker::CheckESD(TObjArray *listrec ) const
       text->SetFillColor(2);
       
       fhESD->GetListOfFunctions()->Add(text);	
-      printf("Please, repeate calibration: shift= %f resolution %f test=%f\n",
-	     par[1], par[2], checkr );
        AliDebug(AliQAv1::GetQADebugLevel(),
 		Form("Please, check calibration: shift= %f resolution %f test=%f\n",
 		     par[1], par[2], checkr) ) ; 

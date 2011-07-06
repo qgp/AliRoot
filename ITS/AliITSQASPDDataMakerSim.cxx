@@ -101,7 +101,7 @@ void AliITSQASPDDataMakerSim::StartOfDetectorCycle()
 }
 
 //____________________________________________________________________________ 
-void AliITSQASPDDataMakerSim::EndOfDetectorCycle(AliQAv1::TASKINDEX_t /*task*/, TObjArray* /*list*/)
+void AliITSQASPDDataMakerSim::EndOfDetectorCycle(AliQAv1::TASKINDEX_t /*task*/, TObjArray** /*list*/)
 {
   // launch the QA checking
   AliDebug(AliQAv1::GetQADebugLevel(),"AliITSDM instantiates checker with Run(AliQAv1::kITS, task, list)\n"); 
@@ -190,26 +190,27 @@ Int_t AliITSQASPDDataMakerSim::MakeDigits(TTree *digits)
     digits->GetEvent(imod);
     Int_t ndigits = iITSdigits->GetEntries();
     if (imod<80) {
-      fAliITSQADataMakerSim->GetDigitsData(0+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(0.5,ndigits);
-      fAliITSQADataMakerSim->GetDigitsData(1+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(imod,ndigits);
+      fAliITSQADataMakerSim->FillDigitsData(0+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],0.5,ndigits);
+      fAliITSQADataMakerSim->FillDigitsData(1+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],imod,ndigits);
       nDigitsL1+=ndigits;
     }
     else {
-      fAliITSQADataMakerSim->GetDigitsData(0+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(1,ndigits);
-      fAliITSQADataMakerSim->GetDigitsData(2+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(imod,ndigits);
+      fAliITSQADataMakerSim->FillDigitsData(0+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],1,ndigits);
+      fAliITSQADataMakerSim->FillDigitsData(2+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],imod,ndigits);
       nDigitsL2+=ndigits;
     }
     for (Int_t idig=0; idig<ndigits; ++idig) {
       AliITSdigit *dig=(AliITSdigit*)iITSdigits->UncheckedAt(idig);
       Int_t col=dig->GetCoord1();  // cell number z
       Int_t row=dig->GetCoord2();  // cell number x
-      fAliITSQADataMakerSim->GetDigitsData(3+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(col);
-      fAliITSQADataMakerSim->GetDigitsData(4+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(row);
+      fAliITSQADataMakerSim->FillDigitsData(3+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],col);
+      fAliITSQADataMakerSim->FillDigitsData(4+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],row);
     }
   }
-  fAliITSQADataMakerSim->GetDigitsData(5+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(nDigitsL1);
-  fAliITSQADataMakerSim->GetDigitsData(6+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(nDigitsL2);
-  fAliITSQADataMakerSim->GetDigitsData(7+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(nDigitsL1,nDigitsL2);
+  fAliITSQADataMakerSim->FillDigitsData(5+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],nDigitsL1);
+  fAliITSQADataMakerSim->FillDigitsData(6+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],nDigitsL2);
+  fAliITSQADataMakerSim->FillDigitsData(7+fGenOffsetD[fAliITSQADataMakerSim->GetEventSpecie()],nDigitsL1,nDigitsL2);
+  //
   return rv ; 
 }
 
@@ -253,7 +254,6 @@ Int_t AliITSQASPDDataMakerSim::MakeSDigits(TTree *sdigits)
 { 
   // Fill QA for SDIGIT - SPD -
   Int_t rv = 0 ; 
-  
   static TClonesArray * sdig ; 
   if (! sdig )
     sdig = new TClonesArray( "AliITSpListItem",1000 );
@@ -264,15 +264,16 @@ Int_t AliITSQASPDDataMakerSim::MakeSDigits(TTree *sdigits)
     brchSDigits->GetEvent(imod);
     Int_t nsdig=sdig->GetEntries();
     if (imod<80) {
-      fAliITSQADataMakerSim->GetSDigitsData(0+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(0.5,nsdig);
-      fAliITSQADataMakerSim->GetSDigitsData(1+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(imod,nsdig);
+      fAliITSQADataMakerSim->FillSDigitsData(0+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()],0.5,nsdig);
+      fAliITSQADataMakerSim->FillSDigitsData(1+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()],imod,nsdig);
     }
     else {
-      fAliITSQADataMakerSim->GetSDigitsData(0+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(1,nsdig);
-      fAliITSQADataMakerSim->GetSDigitsData(2+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(imod,nsdig);
+      fAliITSQADataMakerSim->FillSDigitsData(0+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()],1,nsdig);
+      fAliITSQADataMakerSim->FillSDigitsData(2+fGenOffsetS[fAliITSQADataMakerSim->GetEventSpecie()],imod,nsdig);
     }
     sdig->Clear() ;
   }
+  //
   return rv ; 
 }
 
@@ -298,8 +299,8 @@ Int_t AliITSQASPDDataMakerSim::InitHits()
 
   TH1F **hmod = new TH1F*[2];
   for (Int_t iLay=0; iLay<2; ++iLay) {
-    sprintf(name,"SPDModPattern_SPD%d",iLay+1);
-    sprintf(title,"Module map - SPD Layer %d",iLay+1);
+    snprintf(name,49,"SPDModPattern_SPD%d",iLay+1);
+    snprintf(title,49,"Module map - SPD Layer %d",iLay+1);
     hmod[iLay]=new TH1F(name,title,240,0,240);
     hmod[iLay]->GetXaxis()->SetTitle("Module number");
     hmod[iLay]->GetYaxis()->SetTitle("Entries");
@@ -342,11 +343,11 @@ Int_t AliITSQASPDDataMakerSim::MakeHits(TTree *hits)
     TObjArray *arrHits = module->GetHits();
     Int_t nhits = arrHits->GetEntriesFast();
     if (imod<80) {
-      fAliITSQADataMakerSim->GetHitsData(fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(0.5,nhits);
-      fAliITSQADataMakerSim->GetHitsData(1+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(imod,nhits);
+      fAliITSQADataMakerSim->FillHitsData(fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()],0.5,nhits);
+      fAliITSQADataMakerSim->FillHitsData(1+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()],imod,nhits);
     } else {
-      fAliITSQADataMakerSim->GetHitsData(fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(1,nhits);
-      fAliITSQADataMakerSim->GetHitsData(2+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(imod,nhits);
+      fAliITSQADataMakerSim->FillHitsData(fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()],1,nhits);
+      fAliITSQADataMakerSim->FillHitsData(2+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()],imod,nhits);
     }
     for (Int_t iHit=0; iHit<nhits; ++iHit) {
       AliITShit *hit = (AliITShit*) arrHits->At(iHit);
@@ -355,13 +356,14 @@ Int_t AliITSQASPDDataMakerSim::MakeHits(TTree *hits)
       hit->GetPositionL(xl,yl,zl,tof);
       hit->GetPositionL0(xl0,yl0,zl0,tof0);
       Float_t dyloc=TMath::Abs(yl-yl0)*10000.;
-      fAliITSQADataMakerSim->GetHitsData(3+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(dyloc);
+      fAliITSQADataMakerSim->FillHitsData(3+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()],dyloc);
       Float_t edep=hit->GetIonization()*1000000;
       if(dyloc>180.){
-        fAliITSQADataMakerSim->GetHitsData(4+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()])->Fill(edep);
+        fAliITSQADataMakerSim->FillHitsData(4+fGenOffsetH[fAliITSQADataMakerSim->GetEventSpecie()],edep);
       }
     }
   }
+  //
   return rv ; 
 }
 

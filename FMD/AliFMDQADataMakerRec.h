@@ -47,10 +47,9 @@ private:
   virtual void   MakeRaws(AliRawReader* rawReader); 
   virtual void   StartOfDetectorCycle(); 
   Int_t GetHalfringIndex(UShort_t det, Char_t ring, UShort_t board, UShort_t monitor = 0);
-  ClassDef(AliFMDQADataMakerRec,0)  // description 
   TClonesArray fRecPointsArray;
 
-
+  ClassDef(AliFMDQADataMakerRec,0)  // description 
 };
 
 #endif // AliFMDQADataMakerRec_H

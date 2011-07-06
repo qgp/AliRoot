@@ -106,6 +106,8 @@ AliGRPObject::AliGRPObject():
 	fMachineMode(fgkInvalidString),
 	fLHCStateArray(0x0),
 	fMachineModeArray(0x0),
+	fQATrigClasses(0x0),
+	fQACloningRequest(0x0),
 	fMaxTimeLHCValidity(0)
 {
 
@@ -138,6 +140,10 @@ nhp, fHallProbes[nhp]));
 		fDipoleCurrent[i] = fgkInvalidFloat;
 		fCavernTemperature[i] = fgkInvalidFloat;
 	}
+
+	for (Int_t ibeamType = 0; ibeamType<2; ibeamType++){
+		fSeparateBeamType[ibeamType] = fgkInvalidString;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -167,6 +173,8 @@ AliGRPObject::AliGRPObject(const AliGRPObject &obj):
 	fMachineMode(obj.fMachineMode),
 	fLHCStateArray(obj.fLHCStateArray),
 	fMachineModeArray(obj.fMachineModeArray),
+	fQATrigClasses(obj.fQATrigClasses),
+	fQACloningRequest(obj.fQACloningRequest),
 	fMaxTimeLHCValidity(obj.fMaxTimeLHCValidity)
 
 {
@@ -186,6 +194,10 @@ AliGRPObject::AliGRPObject(const AliGRPObject &obj):
 		fL3Current[i] = obj.fL3Current[i];
 		fDipoleCurrent[i] = obj.fDipoleCurrent[i];
 		fCavernTemperature[i] = obj.fCavernTemperature[i];
+	}
+
+	for (Int_t ibeamType = 0; ibeamType<2; ibeamType++){
+		fSeparateBeamType[ibeamType] = obj.fSeparateBeamType[ibeamType];
 	}
 }
 
@@ -238,6 +250,14 @@ AliGRPObject& AliGRPObject:: operator=(const AliGRPObject & obj)
 	this->fLHCStateArray = obj.fLHCStateArray;
 	this->fMachineModeArray = obj.fMachineModeArray;
 	this->fMaxTimeLHCValidity = obj.fMaxTimeLHCValidity;
+
+	this->fQATrigClasses = obj.fQATrigClasses;
+	this->fQACloningRequest = obj.fQACloningRequest;
+
+	for (Int_t ibeamType = 0; ibeamType<2; ibeamType++){
+		this->fSeparateBeamType[ibeamType] = obj.fSeparateBeamType[ibeamType];
+	}
+
 	return *this;
 }
 
@@ -274,6 +294,14 @@ AliGRPObject::~AliGRPObject() {
 	if (fMachineModeArray){
 		delete fMachineModeArray;
 		fMachineModeArray = 0x0;
+	}
+	if (fQATrigClasses) {
+	  delete fQATrigClasses;
+	  fQATrigClasses = 0x0;
+	}
+	if (fQACloningRequest) {
+	  delete fQACloningRequest;
+	  fQACloningRequest = 0x0;
 	}
 }
 

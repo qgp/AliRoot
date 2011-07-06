@@ -70,7 +70,9 @@ Int_t AliMUONQADataMakerRec::Add2List(TH1 * hist, const Int_t index, AliQAv1::TA
 void AliMUONQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArray** list)
 {
   /// Detector specific actions at end of cycle
-  
+  //
+  ResetEventTrigClasses(); // RS
+  //
   for (Int_t specie = 0 ; specie < AliRecoParam::kNSpecies ; specie++) 
   {
     if (! IsValidEventSpecie(specie, list)  ) continue;
@@ -148,6 +150,8 @@ void AliMUONQADataMakerRec::InitRaws()
 	
   if ( fTracker ) fTracker->InitRaws();
   if ( fTrigger ) fTrigger->InitRaws();
+  //
+  ClonePerTrigClass(AliQAv1::kRAWS); // this should be the last line
 }
 
 //__________________________________________________________________
@@ -156,6 +160,8 @@ void AliMUONQADataMakerRec::InitDigits()
   /// Initialized Digits spectra 
   if ( fTracker ) fTracker->InitDigits();
   if ( fTrigger ) fTrigger->InitDigits();
+  //
+  ClonePerTrigClass(AliQAv1::kDIGITS); // this should be the last line
 } 
 
 //____________________________________________________________________________ 
@@ -164,6 +170,8 @@ void AliMUONQADataMakerRec::InitRecPoints()
 	/// create Reconstructed Points histograms in RecPoints subdir
   if ( fTracker ) fTracker->InitRecPoints();
   if ( fTrigger ) fTrigger->InitRecPoints();
+  //
+  ClonePerTrigClass(AliQAv1::kRECPOINTS); // this should be the last line
 }
 
 
@@ -173,6 +181,8 @@ void AliMUONQADataMakerRec::InitESDs()
   ///create ESDs histograms in ESDs subdir
   if ( fTracker ) fTracker->InitESDs();
   if ( fTrigger ) fTrigger->InitESDs();
+  //
+  ClonePerTrigClass(AliQAv1::kESDS); // this should be the last line
 }
 
 //____________________________________________________________________________
@@ -194,6 +204,10 @@ void AliMUONQADataMakerRec::MakeRaws(AliRawReader* rawReader)
     rawReader->Reset();    
     fTrigger->MakeRaws(rawReader);
   }
+  //
+  IncEvCountCycleRaws();
+  IncEvCountTotalRaws();
+  //
 }
 
 //__________________________________________________________________
@@ -214,6 +228,10 @@ void AliMUONQADataMakerRec::MakeDigits(TTree* digitsTree)
 
   if ( fTracker ) fTracker->MakeDigits(digitsTree);
   if ( fTrigger ) fTrigger->MakeDigits(digitsTree);  
+  //
+  IncEvCountCycleDigits();
+  IncEvCountTotalDigits();
+  //
 }
 
 //____________________________________________________________________________
@@ -226,6 +244,10 @@ void AliMUONQADataMakerRec::MakeRecPoints(TTree* clustersTree)
 	
   if ( fTracker ) fTracker->MakeRecPoints(clustersTree);
   if ( fTrigger ) fTrigger->MakeRecPoints(clustersTree);  
+  //
+  IncEvCountCycleRecPoints();
+  IncEvCountTotalRecPoints();
+  //
 }
 
 //____________________________________________________________________________
@@ -238,7 +260,10 @@ void AliMUONQADataMakerRec::MakeESDs(AliESDEvent* esd)
   
   if ( fTracker ) fTracker->MakeESDs(esd);
   if ( fTrigger ) fTrigger->MakeESDs(esd);  
-
+  //
+  IncEvCountCycleESDs();
+  IncEvCountTotalESDs();
+  //
  }
 
 //____________________________________________________________________________ 
@@ -281,5 +306,6 @@ void AliMUONQADataMakerRec::ResetDetector(AliQAv1::TASKINDEX_t task)
 //____________________________________________________________________________ 
 void AliMUONQADataMakerRec::StartOfDetectorCycle()
 {
-    /// Detector specific actions at start of cycle  
+  /// Detector specific actions at start of cycle  
+  
 }

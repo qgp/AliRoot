@@ -106,7 +106,9 @@ AliQAChecker::~AliQAChecker()
   AliQACheckerBase * AliQAChecker::GetDetQAChecker(Int_t det)
 {
 	// Gets the Quality Assurance checker for the detector specified by its name
-	
+
+  if (det<0 || det>=AliQAv1::kNDET) return NULL;
+
 	if (fCheckers[det]) 
     return fCheckers[det];
 
@@ -312,7 +314,7 @@ Bool_t AliQAChecker::Run(const char * fileName, AliDetectorRecoParam * recoParam
       if ( taskName == AliQAv1::GetTaskName(AliQAv1::kESDS) ) 
         index = AliQAv1::kESD ; 
       qac->Init(AliQAv1::DETECTORINDEX_t(det)) ; 
-		  qac->Run(index, recoParam) ; 
+      qac->Run(index, recoParam) ; 
     }
   }
   TString detList ; 
@@ -333,32 +335,38 @@ Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task
 {
 	// run the Quality Assurance Checker for detector det, for task task starting from data in list
 
-	AliQACheckerBase * qac = GetDetQAChecker(det) ; 
-	if (qac)
-		AliDebug(AliQAv1::GetQADebugLevel(), Form("QA checker found for %s", AliQAv1::GetDetName(det).Data())) ;
-	if (!qac)
-		AliError(Form("QA checker not found for %s", AliQAv1::GetDetName(det).Data())) ; 
+  if (det >= AliQAv1::kNDET) {
+    AliError(Form("det = %i is larger than AliQAv1::kNDET ... should never happen", det)); 
+    return kFALSE ; 
+  }
+  AliQACheckerBase * qac = GetDetQAChecker(det) ; 
+  if (qac)
+    AliDebug(AliQAv1::GetQADebugLevel(), Form("QA checker found for %s", AliQAv1::GetDetName(det).Data())) ;
+  if (!qac) {
+    AliError(Form("QA checker not found for %s", AliQAv1::GetDetName(det).Data())) ; 
+    return kFALSE;
+  }
   
-	AliQAv1::ALITASK_t index = AliQAv1::kNULLTASK ; 
-	if ( task == AliQAv1::kRAWS ) 
-		index = AliQAv1::kRAW ; 
-	else if ( task == AliQAv1::kHITS ) 
-		index = AliQAv1::kSIM ; 
-	else if ( task == AliQAv1::kSDIGITS ) 
-		index = AliQAv1::kSIM ; 
-	else if ( task == AliQAv1::kDIGITS ) 
-		index = AliQAv1::kSIM ; 
-	else if ( task == AliQAv1::kDIGITSR ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kRECPOINTS ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kTRACKSEGMENTS ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kRECPARTICLES ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kESDS ) 
-		index = AliQAv1::kESD ; 
-
+  AliQAv1::ALITASK_t index = AliQAv1::kNULLTASK ; 
+  if ( task == AliQAv1::kRAWS ) 
+    index = AliQAv1::kRAW ; 
+  else if ( task == AliQAv1::kHITS ) 
+    index = AliQAv1::kSIM ; 
+  else if ( task == AliQAv1::kSDIGITS ) 
+    index = AliQAv1::kSIM ; 
+  else if ( task == AliQAv1::kDIGITS ) 
+    index = AliQAv1::kSIM ; 
+  else if ( task == AliQAv1::kDIGITSR ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kRECPOINTS ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kTRACKSEGMENTS ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kRECPARTICLES ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kESDS ) 
+    index = AliQAv1::kESD ; 
+  
   qac->Init(det) ; 
   qac->Run(index, list, recoParam) ; 
   
@@ -371,33 +379,35 @@ Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task
 //_____________________________________________________________________________
 Bool_t AliQAChecker::Run(AliQAv1::DETECTORINDEX_t det, AliQAv1::TASKINDEX_t task, TNtupleD ** list, AliDetectorRecoParam * recoParam)
 {
-	// run the Quality Assurance Checker for detector det, for task task starting from data in list
+  // run the Quality Assurance Checker for detector det, for task task starting from data in list
   
-	AliQACheckerBase * qac = GetDetQAChecker(det) ; 
-	if (qac)
-		AliDebug(AliQAv1::GetQADebugLevel(), Form("QA checker found for %s", AliQAv1::GetDetName(det).Data())) ;
-	if (!qac)
-		AliError(Form("QA checker not found for %s", AliQAv1::GetDetName(det).Data())) ; 
+  AliQACheckerBase * qac = GetDetQAChecker(det) ; 
+  if (qac)
+    AliDebug(AliQAv1::GetQADebugLevel(), Form("QA checker found for %s", AliQAv1::GetDetName(det).Data())) ;
+  if (!qac) {
+    AliError(Form("QA checker not found for %s", AliQAv1::GetDetName(det).Data())) ; 
+    return kFALSE;
+  }
   
-	AliQAv1::ALITASK_t index = AliQAv1::kNULLTASK ; 
-	if ( task == AliQAv1::kRAWS ) 
-		index = AliQAv1::kRAW ; 
-	else if ( task == AliQAv1::kHITS ) 
-		index = AliQAv1::kSIM ; 
-	else if ( task == AliQAv1::kSDIGITS ) 
-		index = AliQAv1::kSIM ; 
-	else if ( task == AliQAv1::kDIGITS ) 
-		index = AliQAv1::kSIM ; 
-	else if ( task == AliQAv1::kDIGITSR ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kRECPOINTS ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kTRACKSEGMENTS ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kRECPARTICLES ) 
-		index = AliQAv1::kREC ; 
-	else if ( task == AliQAv1::kESDS ) 
-		index = AliQAv1::kESD ; 
+  AliQAv1::ALITASK_t index = AliQAv1::kNULLTASK ; 
+  if ( task == AliQAv1::kRAWS ) 
+    index = AliQAv1::kRAW ; 
+  else if ( task == AliQAv1::kHITS ) 
+    index = AliQAv1::kSIM ; 
+  else if ( task == AliQAv1::kSDIGITS ) 
+    index = AliQAv1::kSIM ; 
+  else if ( task == AliQAv1::kDIGITS ) 
+    index = AliQAv1::kSIM ; 
+  else if ( task == AliQAv1::kDIGITSR ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kRECPOINTS ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kTRACKSEGMENTS ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kRECPARTICLES ) 
+    index = AliQAv1::kREC ; 
+  else if ( task == AliQAv1::kESDS ) 
+    index = AliQAv1::kESD ; 
   
   qac->Init(det) ; 
   qac->Run(index, list, recoParam) ; 

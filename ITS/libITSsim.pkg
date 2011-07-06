@@ -19,8 +19,6 @@ SRCS = 	AliITS.cxx \
 		AliITSTableSSD.cxx \
 		AliITSetfSDD.cxx \
 		AliITSHuffman.cxx \
-		AliITSstatistics.cxx \
-		AliITSstatistics2.cxx \
 		AliITSsDigitize.cxx \
 		AliITSDigitizer.cxx \
 		AliITSFOEfficiencySPD.cxx \

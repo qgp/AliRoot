@@ -607,6 +607,9 @@ void AliReconstruction::InitQA()
   if (fInitQACalled) return;
   fInitQACalled = kTRUE;
   
+  if (fGRPData) AliQADataMaker::SetCloningRequest( fGRPData->GetQATrigClasses(), fGRPData->GetQACloningRequest());
+
+
   AliQAManager * qam = AliQAManager::QAManager(AliQAv1::kRECMODE) ; 
   if (fWriteQAExpertData)
     qam->SetWriteExpert() ; 
@@ -1744,6 +1747,9 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
         }
       }
     }
+    //
+    if (fRunQA || fRunGlobalQA) AliQADataMaker::SetEventTrigClasses(fEventInfo.GetTriggerClasses()); // RS: select which histo clones are to be filled
+    //
     if (fRunQA) {
       const AliDetectorRecoParam *grppar = fRecoParam.GetDetRecoParam(kNDetectors);
       AliQAManager::QAManager()->SetRecoParam(AliQAv1::kGLOBAL, grppar) ; 
@@ -2347,9 +2353,9 @@ Bool_t AliReconstruction::RunLocalEventReconstruction(const TString& detectors)
       }
       loader->UnloadDigits();
     }
-		if (fRunQA && IsInTasks(AliQAv1::kRECPOINTS)) {
+    if (fRunQA && IsInTasks(AliQAv1::kRECPOINTS)) {
       AliQAManager::QAManager()->SetEventSpecie(fRecoParam.GetEventSpecie()) ;
-			AliQAManager::QAManager()->RunOneEventInOneDetector(iDet, clustersTree) ; 
+      AliQAManager::QAManager()->RunOneEventInOneDetector(iDet, clustersTree) ; 
     }
     loader->WriteRecPoints("OVERWRITE");
     loader->UnloadRecPoints();
@@ -3211,7 +3217,7 @@ Bool_t AliReconstruction::CreateTrackers(const TString& detectors)
 void AliReconstruction::CleanUp()
 {
 // delete trackers and the run loader and close and delete the file
-
+/*
   for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
     delete fReconstructor[iDet];
     fReconstructor[iDet] = NULL;
@@ -3219,6 +3225,8 @@ void AliReconstruction::CleanUp()
     delete fTracker[iDet];
     fTracker[iDet] = NULL;
   }
+*/
+
   delete fRunInfo;
   fRunInfo = NULL;
 
@@ -3243,7 +3251,7 @@ void AliReconstruction::CleanUp()
 
   if (AliQAManager::QAManager())
     AliQAManager::QAManager()->ShowQA() ; 
-  AliQAManager::Destroy() ; 
+  //  AliQAManager::Destroy() ; 
   
 }
 
