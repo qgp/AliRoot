@@ -117,7 +117,9 @@ void AliACORDEQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObj
     //
     for (int itc=-1;itc<GetNTrigClasses();itc++) { // RS Loop over the trigger classes
       //
-      TObjArray &harr = *GetRawsDataOfTrigClass(itc);
+      TObjArray * parr = GetRawsDataOfTrigClass(itc);
+      if (!parr) continue;
+      TObjArray &harr = *parr;
       //
       if (!harr[0] || !harr[1]) continue;
       TH1* h0 = GetRawsData(0,itc);
