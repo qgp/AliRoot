@@ -108,8 +108,10 @@ Bool_t AliT0CalibSeasonTimeShift::SetT0Par(const char* filePhys, Float_t *cdbtim
 {
   // compute online equalized time
   Float_t mean, sigma;
-  Bool_t ok=false;
+  Bool_t ok=true;
   TH1F *cfd = NULL;
+  TObjArray * TzeroObj = NULL;
+
   gFile = TFile::Open(filePhys);
   if(!gFile) {
     AliError("No input PHYS data found ");
@@ -118,11 +120,7 @@ Bool_t AliT0CalibSeasonTimeShift::SetT0Par(const char* filePhys, Float_t *cdbtim
     {
       //    gFile->ls();
     TDirectory *dr = (TDirectory*) gFile->Get("T0Calib");
-    if (!dr) {
-      AliWarning(Form("no Tzero Directory in file collected "));
-      return ok;
-    }
-    TObjArray * TzeroObj = (TObjArray*) dr->Get("T0Calib");
+    if (dr) TzeroObj = (TObjArray*) dr->Get("T0Calib");
     TString histname[4]={"fTzeroORAplusORC", "fTzeroORA", "fTzeroORC",  "fResolution"};
     for (Int_t i=0; i<4; i++)
       {
@@ -130,17 +128,26 @@ Bool_t AliT0CalibSeasonTimeShift::SetT0Par(const char* filePhys, Float_t *cdbtim
 	if(TzeroObj) 
 	  cfd = (TH1F*)TzeroObj->FindObject( histname[i].Data());
 	else
-	  dr->Get(histname[i].Data());
-	if(!cfd) AliWarning(Form("no histograms collected for %s", histname[i].Data()));
+	  cfd =  (TH1F*)gFile ->Get(histname[i].Data());
+
+	if(!cfd) {
+	  AliWarning(Form("no histograms collected for %s", histname[i].Data()));
+	  //	  ok=false;
+	  fMeanPar[i] = cdbtime[i];
+	  fSigmaPar[i] = 0;
+	  //	  return ok;
+	}
 	if(cfd) {
-	    //	    printf(" T0s: %i %s mean %f  rms %f  \n", i, histname[i].Data(),cfd->GetMean , cfd ->GetRMS() ); 
 	    GetMeanAndSigma(cfd, mean, sigma);
-	    if (sigma == 0 || sigma > 500 || cfd->GetEntries()<500 ) ok = false;
+	    if (sigma == 0 || sigma > 500 || cfd->GetEntries()<500 ){
+	      //ok = false;
+	      fMeanPar[i] = cdbtime[i];
+	      fSigmaPar[i] = 0;
+	    }
 	    if ( sigma > 0 && sigma < 500 && cfd->GetEntries()>500)
 	      { 
 		fMeanPar[i] = cdbtime[i] +  mean;
 		fSigmaPar[i] = sigma;
-		//		printf(" T0s: %i %s %f %f  \n", i, histname[i].Data(), fMeanPar[i],fSigmaPar[i] ); 
 		ok=true;
 	      }
 	  }
@@ -155,7 +162,7 @@ Bool_t AliT0CalibSeasonTimeShift::SetT0Par(const char* filePhys, Float_t *cdbtim
 //________________________________________________________________________
 void AliT0CalibSeasonTimeShift::GetMeanAndSigma(TH1F* hist,  Float_t &mean, Float_t &sigma) {
 
-  const double window = 3.;  //fit window 
+  const double window =2.;  //fit window 
  
   double meanEstimate, sigmaEstimate; 
   int maxBin;
