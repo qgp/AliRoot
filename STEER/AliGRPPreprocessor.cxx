@@ -78,7 +78,7 @@ ClassImp(AliGRPPreprocessor)
   const Int_t AliGRPPreprocessor::fgknDAQLbPar = 6; // num parameters in the logbook used to fill the GRP object
   const Int_t AliGRPPreprocessor::fgknDCSDP = 48;   // number of dcs dps
   const Int_t AliGRPPreprocessor::fgknDCSDPHallProbes = 40;   // number of dcs dps
-  const Int_t AliGRPPreprocessor::fgknLHCDP = 8;   // number of dcs dps from LHC data
+  const Int_t AliGRPPreprocessor::fgknLHCDP = 9;   // number of dcs dps from LHC data
   const Int_t AliGRPPreprocessor::fgkDCSDPHallTopShift = 4;   // shift from the top to get tp the Hall Probes names in the list of DCS DPs
   const Int_t AliGRPPreprocessor::fgkDCSDPNonWorking = 5; // number of non working DCS DPs
   const char* AliGRPPreprocessor::fgkDCSDataPoints[AliGRPPreprocessor::fgknDCSDP] = {
@@ -187,7 +187,8 @@ ClassImp(AliGRPPreprocessor)
 	  "BPTX_Phase_Shift_B1",
 	  "BPTX_Phase_Shift_B2",
 	  "LHC_Particle_Type_B1",
-	  "LHC_Particle_Type_B2"
+	  "LHC_Particle_Type_B2",
+	  "LHC_Data_Quality_Flag"
   };
 
   const char* kppError[] = {
@@ -282,7 +283,7 @@ void AliGRPPreprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTime)
 	
 	fPressure = new AliDCSSensorArray(GetStartTimeDCSQuery(), GetEndTimeDCSQuery(), array);
 
-        ffailedDPs->Clear(); // cleaning ffailedDPs for current run
+	ffailedDPs->Clear(); // cleaning ffailedDPs for current run
 	for (Int_t iDP=0; iDP < fgknDCSDP; iDP++){
 		TObjString* dp = new TObjString(fgkDCSDataPoints[iDP]);
 		ffailedDPs->AddAt(dp,iDP);
@@ -601,7 +602,7 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 				error |= 2048;
 			}		
 		}
-		if (ltuarray) delete ltuarray;
+		delete ltuarray;
 	}
 
 	else {
@@ -1050,7 +1051,8 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 			AliWarning(Form("Setting MaxTimeLHCValidity to %f",minTimeLHCValidity));
 			grpobj->SetMaxTimeLHCValidity(minTimeLHCValidity);
 		}
-		/*
+		/* 
+		   // Old way to determine the Maximum Time during which the LHC info is valid
 		if (timeBeamModeEnd!=0 || timeMachineModeEnd!=0 || timeBeamEnd !=0){
 			Double_t minTimeLHCValidity;
 			if (flagBeamMode == kFALSE && flagMachineMode == kFALSE && flagBeam == kTRUE){ // flagBeam only true --> it is the only one that changed
@@ -1080,6 +1082,122 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 		}
 		*/
 		
+		// Data Quality Flag --> storing start and end values of periods within the run during which the value was found to be FALSE
+		Log("*************Data Quality Flag ");
+		TObjArray* dataQualityArray = lhcReader.ReadSingleLHCDP(fileName.Data(),fgkLHCDataPoints[8]);
+		Int_t nDataQuality = -1;
+		Double_t timeDataQualityStart = -1; // min validity for Data Quality Flag
+	        Int_t indexDataQuality = -1;               // index of first measurement used to set Data Quality Flag
+		Bool_t foundDataQualityStart = kFALSE;     // flag to be set in case an entry for the Data Quality Flag is found before (or at) SOR
+
+		if (dataQualityArray){
+			nDataQuality = dataQualityArray->GetEntries();
+			if (nDataQuality==0){
+				AliInfo("No Data Quality Flag found, leaving it empty");
+			}
+			else{
+				for (Int_t iDataQuality = 0; iDataQuality<nDataQuality; iDataQuality++){
+					AliDCSArray* dataQuality = (AliDCSArray*)dataQualityArray->At(iDataQuality);
+					if (dataQuality){
+						if (dataQuality->GetTimeStamp()<=timeStart && dataQuality->GetTimeStamp()>=timeDataQualityStart){// taking always the very last entry: if two measurements have the same timestamp, the last one is taken
+							timeDataQualityStart = dataQuality->GetTimeStamp();
+							indexDataQuality = iDataQuality;
+							foundDataQualityStart = kTRUE;
+						}
+						else{
+							// we suppose here that if the first measurement is not before SOR, then none will be (they MUST be in chronological order!!!) 
+							break;
+						}
+					}
+				}
+				if (!foundDataQualityStart){
+					// The Data Quality Flag should be found and TRUE at the start of the run. For the time being, if it is not found, don't do anything, but it means there is a problem..
+					AliInfo("No value for the Data Quality Flag found before start of run, the Data Quality Flag will remain empty");
+				}
+				else {
+					// counting how many FALSE values there are
+					Bool_t foundEndOfFalse = kFALSE;
+					Int_t nFalse = 0;
+					for (Int_t iDataQuality = indexDataQuality; iDataQuality < nDataQuality; iDataQuality ++){
+						AliDCSArray* dataQuality = (AliDCSArray*)dataQualityArray->At(iDataQuality);
+						AliDebug(4,Form("dataQuality->GetTimeStamp() = %f, timeDataQualityStart = %f, timeEnd = %f", dataQuality->GetTimeStamp(), timeDataQualityStart, timeEnd ));
+						if (dataQuality->GetTimeStamp()>=timeDataQualityStart && dataQuality->GetTimeStamp()<=timeEnd){ // considering only values between the first valid and the end of the run
+							Bool_t dataQualityFlag = dataQuality->GetBool(0);
+							AliDebug(3,Form("DataQuality = %d (set at %f)",(Int_t)dataQualityFlag,dataQuality->GetTimeStamp()));
+							if (dataQualityFlag != kTRUE){
+								if (iDataQuality == indexDataQuality) {  // the first Data Quality value should be TRUE, but ignoring the problem now...
+									AliError("The first value for the Data Quality MUST be TRUE! Ignoring for now...");
+								}
+								nFalse++;
+							}
+						}
+					}
+
+					AliInfo(Form("Found %d FALSE values for the Data Quality Flag",nFalse));
+					Double_t falses[nFalse*2];  // dimensioning this to the maximum possible, as if each false value was followed by a true one --> the false periods correspond to the number of falses
+
+					Int_t iDataQuality = indexDataQuality;
+					if (nFalse > 0){
+						Int_t iFalse = 0;
+						// filling the info about the periods when the flag was set to FALSE
+						// starting, like for the other DPS, from the measurement closest to SOR (the index of which is iDataQuality)
+						while (iDataQuality < nDataQuality){
+							AliDebug(3,Form("iDataQuality = %d",iDataQuality));
+							AliDCSArray* dataQuality = (AliDCSArray*)dataQualityArray->At(iDataQuality);
+							if (dataQuality->GetTimeStamp()>=timeDataQualityStart && dataQuality->GetTimeStamp()<=timeEnd){ // considering only values between the first valid and the end of the run
+								Bool_t dataQualityFlag = dataQuality->GetBool(0);
+								AliDebug(3,Form("DataQuality = %d (set at %f)",(Int_t)dataQualityFlag,dataQuality->GetTimeStamp()));
+								if (dataQualityFlag == kTRUE){
+									// found TRUE value, continuing
+									iDataQuality++;
+									continue;
+								}
+								else{
+									/*
+									// the check was already done before
+									if (iDataQuality == indexDataQuality) {  // the first Data Quality value should be TRUE, but ignoring the problem now...
+									AliError("The first value for the Data Quality MUST be TRUE! Ignoring for now...");
+									}
+									*/
+									falses[iFalse*2] = dataQuality->GetTimeStamp();
+									foundEndOfFalse = kFALSE;
+									Int_t iDataQualityNext = iDataQuality+1;
+									while (iDataQualityNext < nDataQuality){
+										AliDCSArray* dataQualityNext = (AliDCSArray*)dataQualityArray->At(iDataQualityNext);
+										if (dataQualityNext->GetTimeStamp()>timeDataQualityStart && dataQualityNext->GetTimeStamp()<=timeEnd && dataQualityNext->GetTimeStamp() > dataQuality->GetTimeStamp()){ // considering only values between the first valid and the end of the run, and subsequent to the current value
+											Bool_t dataQualityFlagNext = dataQualityNext->GetBool(0);
+											AliDebug(3,Form("DataQualityNext = %d (set at %f)",(Int_t)dataQualityFlagNext,dataQualityNext->GetTimeStamp()));
+											if (dataQualityFlagNext == kTRUE){
+												// found TRUE value, first FALSE period completed
+												foundEndOfFalse = kTRUE;
+												falses[iFalse*2+1] = dataQualityNext->GetTimeStamp();
+												iFalse++;
+												break;
+											}
+											iDataQualityNext++;
+										}
+									}
+									if (!foundEndOfFalse) {
+										AliInfo("Please, note that the last FALSE value lasted until the end of the run");
+										falses[iFalse*2+1] = timeEnd;
+										iFalse++;
+										break;
+									}
+									iDataQuality = iDataQualityNext+1;
+								}
+							}
+						}
+						grpobj->SetNFalseDataQualityFlag(iFalse);
+						grpobj->SetFalseDataQualityFlagPeriods(falses);
+					}
+				}
+			}
+			delete dataQualityArray;
+		}
+		else{
+			AliError("Data Quality Flag array not found in LHC Data file!!!");
+		}
+
 		// Processing data to go to AliLHCData object
 		AliLHCData* dt = new AliLHCData(fileName.Data(),timeStart,timeEnd);
 		// storing AliLHCData in OCDB
@@ -1141,7 +1259,11 @@ UInt_t AliGRPPreprocessor::ProcessSPDMeanVertex()
 			AliInfo("The following sources produced files with the id VertexDiamond from SPD");
 			list->Print();
 			for (Int_t jj=0;jj<list->GetEntries();jj++){
-				TObjString * str = dynamic_cast<TObjString*> (list->At(jj));
+				TObjString * str = dynamic_cast<TObjString*> (list->At(jj)); 
+				if (!str){
+					AliError(Form("Expecting a TObjString in the list for the %d-th source, but something else was found.",jj));
+					continue;
+				}
 				AliInfo(Form("found source %s", str->String().Data()));
 				TString fileNameRun = GetForeignFile("SPD", kDAQ, "VertexDiamond", str->GetName());
 				if (fileNameRun.Length()>0){
@@ -1822,10 +1944,6 @@ AliSplineFit* AliGRPPreprocessor::GetSplineFit(const TObjArray *array, const TSt
 	fit->InitKnots(gr,10,10,0.0);
 	fit->SplineFit(2);
 	fit->Cleanup();
-	if (!fit) {
-		AliWarning(Form("%s: no fit performed",stringID.Data()));
-		return NULL;
-	} 
 	return fit;
 }
 
@@ -1906,6 +2024,7 @@ Float_t* AliGRPPreprocessor::ProcessFloatAll(const TObjArray* array)
 			AliError(Form("Error! Float value found in DCS map at %d-th entry is OUT OF RANGE: value = %6.5e",i,v->GetFloat()));
 			if (v->GetFloat() < fminFloat) AliInfo(Form("The value is smaller than %6.5e",fminFloat));
 			if (v->GetFloat() > fmaxFloat) AliInfo(Form("The value is greater than %6.5e",fmaxFloat));
+			delete [] parameters;
 			return NULL;
 		}
 		if(((Int_t)(v->GetTimeStamp()) >= (Int_t)GetStartTimeDCSQuery()) &&((Int_t)(v->GetTimeStamp()) <= (Int_t)GetEndTimeDCSQuery())) {
@@ -2085,6 +2204,15 @@ Float_t* AliGRPPreprocessor::ProcessFloatAll(const TObjArray* array)
 	else{
 			parameters[1] = AliGRPObject::GetInvalidFloat();
 	}
+
+	if (arrayValues){
+		delete [] arrayValues;
+	} 
+	if (arrayWeights){
+		delete [] arrayWeights;
+	} 
+	delete [] arrayValuesTruncMean;
+	delete [] arrayWeightsTruncMean;
 
 	AliInfo(Form("(weighted) mean = %f ",parameters[0]));
 	AliInfo(Form("(weighted) truncated mean = %f ",parameters[1]));
@@ -2276,6 +2404,8 @@ Float_t AliGRPPreprocessor::ProcessInt(const TObjArray* array)
 			arrayValues[i-ientrySOR] = (Float_t)v->GetInt();
 		}
 		aDCSArrayMean = TMath::Mean(iCountsRun,arrayValues,arrayWeights);
+		delete [] arrayValues;
+		delete [] arrayWeights;
 	}
 	else if (iCountsRun == 1){
 		AliDCSValue* v = (AliDCSValue *)array->At(ientrySOR);
@@ -2291,6 +2421,8 @@ Float_t AliGRPPreprocessor::ProcessInt(const TObjArray* array)
 			AliDebug(2,Form("value0 = %f, with weight = %f",arrayValues[0],arrayWeights[0])); 
 			AliDebug(2,Form("value1 = %f, with weight = %f",arrayValues[1],arrayWeights[1])); 
 			aDCSArrayMean = TMath::Mean(2,arrayValues,arrayWeights);
+			delete [] arrayValues;
+			delete [] arrayWeights;
 		}
 		else{
 			AliError("Cannot calculate mean - only one value collected during the run, but no value before with which to calculate the statistical quantities");
@@ -2319,6 +2451,8 @@ Float_t AliGRPPreprocessor::ProcessInt(const TObjArray* array)
 			AliDebug(2,Form("value0 = %f, with weight = %f",arrayValues[0],arrayWeights[0])); 
 			AliDebug(2,Form("value1 = %f, with weight = %f",arrayValues[1],arrayWeights[1])); 
 			aDCSArrayMean = TMath::Mean(1,arrayValues,arrayWeights);
+			delete [] arrayValues;
+			delete [] arrayWeights;
 		}
 	}
 
@@ -2431,6 +2565,8 @@ Float_t AliGRPPreprocessor::ProcessUInt(const TObjArray* array)
 			arrayValues[i-ientrySOR] = (Float_t)v->GetUInt();
 		}
 		aDCSArrayMean = TMath::Mean(iCountsRun,arrayValues,arrayWeights);
+		delete [] arrayValues;
+		delete [] arrayWeights;
 	}
 	else if (iCountsRun == 1){
 		AliDCSValue* v = (AliDCSValue *)array->At(ientrySOR);
@@ -2446,6 +2582,8 @@ Float_t AliGRPPreprocessor::ProcessUInt(const TObjArray* array)
 			AliDebug(2,Form("value0 = %f, with weight = %f",arrayValues[0],arrayWeights[0])); 
 			AliDebug(2,Form("value1 = %f, with weight = %f",arrayValues[1],arrayWeights[1])); 
 			aDCSArrayMean = TMath::Mean(2,arrayValues,arrayWeights);
+			delete [] arrayValues;
+			delete [] arrayWeights;
 		}
 		else{
 			AliError("Cannot calculate mean - only one value collected during the run, but no value before with which to calculate the statistical quantities");
@@ -2474,6 +2612,8 @@ Float_t AliGRPPreprocessor::ProcessUInt(const TObjArray* array)
 			AliDebug(2,Form("value0 = %f, with weight = %f",arrayValues[0],arrayWeights[0])); 
 			AliDebug(2,Form("value1 = %f, with weight = %f",arrayValues[1],arrayWeights[1])); 
 			aDCSArrayMean = TMath::Mean(1,arrayValues,arrayWeights);
+			delete [] arrayValues;
+			delete [] arrayWeights;
 		}
 	}
 
@@ -2756,239 +2896,6 @@ Int_t AliGRPPreprocessor::ReceivePromptRecoParameters(UInt_t run, const char* db
 	server = 0;
 	
 	return lastRun;
-}
-//-----------------------------------------------------------------
-Double_t AliGRPPreprocessor::CalculateMean(TObjArray* const array){
-
-	//
-	// Calculating mean over TObjArray from LHC Data
-	//
-
-	TString timeStartString = (TString)GetRunParameter("DAQ_time_start");
-	TString timeEndString = (TString)GetRunParameter("DAQ_time_end");
-	if (timeStartString.IsNull() || timeStartString.IsNull()){
-		if (timeStartString.IsNull()){ 
-			AliError("DAQ_time_start not set in logbook! Setting statistical values for current DP to invalid");
-		}
-		else if (timeStartString.IsNull()){
-			AliError("DAQ_time_end not set in logbook! Setting statistical values for current DP to invalid");
-		}
-		return 0;
-	}  
-
-	Int_t timeStart = (Int_t)(timeStartString.Atoi());
-	Int_t timeEnd = (Int_t)(timeEndString.Atoi());
-	timeStart = 1260646960;
-	timeEnd = 1260652740;
-	Double_t* parameters = new Double_t[5];
-	parameters[0] = -1.;
-	parameters[1] = -1.;
-	parameters[2] = -1.;
-	parameters[3] = -1.;
-	parameters[4] = -1.;
-	Int_t iCounts = 0;
-	Int_t iCountsRun = 0;
-	Int_t nCounts = array->GetEntries();
-	printf("ncounts = %d\n",nCounts);
-	Double_t valueBeforeSOR = 0;
-	Double_t valueAfterEOR = 0;
-	Double_t timestampBeforeSOR = -1.;
-	Double_t timestampAfterEOR = -1.;
-	Int_t ientrySOR = -1;
-	Int_t ientryEOR = -1;
-	Double_t* arrayValues = 0x0; 
-	Double_t* arrayWeights = 0x0; 
-	Bool_t truncMeanFlag = kTRUE;  // flag to indicate whether Truncated Mean should be calculated or not
-	Bool_t sdFlag = kTRUE;  // flag to indicate whether SD (wrt Mean/Median) should be calculated or not
-
-	for(Int_t i = 0; i < nCounts; i++) {
-		AliDCSArray *dcs = (AliDCSArray*)array->At(i);
-		if((dcs->GetTimeStamp() >= timeStart) &&(dcs->GetTimeStamp() <= timeEnd)) {
-			AliDebug(2,Form("%d-th entry = %f at timestamp %f\n",i,(Double_t)(dcs->GetInt(0)),dcs->GetTimeStamp()));
-			iCounts += 1;
-			// look for the last value before SOR and the first value before EOR
-			if ((dcs->GetTimeStamp() >= timeStart) && (dcs->GetTimeStamp() < timeStart)) {
-				timestampBeforeSOR = dcs->GetTimeStamp();
-				AliDebug(2,Form("timestamp of last value before SOR = %f, with DAQ_time_start = %d\n",timestampBeforeSOR,timeStart));
-				valueBeforeSOR = (Double_t)(dcs->GetInt(0));
-			}
-			else if ((dcs->GetTimeStamp() <= timeEnd) && (dcs->GetTimeStamp() > timeEnd) && timestampAfterEOR == -1){
-				timestampAfterEOR = dcs->GetTimeStamp();
-				valueAfterEOR = (Double_t)(dcs->GetInt(0));
-				AliDebug(2,Form("timestamp of first value after EOR = %f, with DAQ_time_end = %d\n",timestampAfterEOR,timeEnd));
-			}
-			// check if there are DPs between DAQ_time_start and DAQ_time_end
-			if((dcs->GetTimeStamp() >= timeStart) &&(dcs->GetTimeStamp() <= timeEnd)) {
-				if (ientrySOR == -1) ientrySOR = i;  // first entry after SOR
-				if (ientryEOR < i) ientryEOR = i;  // last entry before EOR
-				AliDebug(2,Form("entry between SOR and EOR\n"));
-				iCountsRun += 1;
-			}
-		}
-		else {
-			printf("DCS values for the parameter outside the queried interval: timestamp = %f\n",dcs->GetTimeStamp());
-		}
-	}
-
-	if (timestampBeforeSOR == -1.){
-		printf("No value found before SOR\n");
-	}
-	if (timestampAfterEOR == -1.){
-		printf("No value found after EOR\n");
-	}
-
-	printf("Number of valid entries (within DCS query interval) = %i, from a total amount of %i entries\n",iCounts,nCounts);
-	printf("Last value before DAQ_time_start (SOR) = %f at timestamp = %f\n",valueBeforeSOR,timestampBeforeSOR);
-	printf("First value after DAQ_time_end (EOR)   = %f at timestamp = %f\n",valueAfterEOR,timestampAfterEOR);
-	printf("Found %d entries between DAQ_time_start (SOR) and DAQ_time_end (EOR)\n",iCountsRun);
-	printf("Index of first entry after DAQ_time_start (SOR) = %d\n ",ientrySOR);
-	printf("Index of first entry before DAQ_time_end (EOR) = %d\n ",ientryEOR);
-
-	Int_t nentriesUsed = 0;
-	if (iCountsRun > 1){
-		printf("Using entries between DAQ_time_start (SOR) and DAQ_time_end (EOR)\n");
-		printf("Calculating (weighted) Mean and Median\n" );
-		arrayValues = new Double_t[iCountsRun]; 
-		arrayWeights = new Double_t[iCountsRun]; 
-		nentriesUsed = iCountsRun;
-		for (Int_t i = ientrySOR; i <= ientryEOR; i++){
-			AliDCSArray *dcs = (AliDCSArray *)array->At(i);
-			Double_t timestamp2 = 0;
-			if (i < ientryEOR){
-				AliDCSArray *dcs1 = (AliDCSArray *)array->At(i+1);
-				timestamp2 = dcs1->GetTimeStamp();
-			}
-			else {
-				timestamp2 = (Double_t)timeEnd+1;
-			}
-			arrayWeights[i-ientrySOR] = (Double_t)((Double_t)timestamp2 - dcs->GetTimeStamp());
-			arrayValues[i-ientrySOR] = (Double_t)(dcs->GetInt(0));
-			printf("Entry %d: value = %f, weight = %f\n",i-ientrySOR,arrayValues[i-ientrySOR],arrayWeights[i-ientrySOR]);
-		}
-		parameters[0] = TMath::Mean(iCountsRun,arrayValues,arrayWeights);
-		parameters[2] = TMath::Median(iCountsRun,arrayValues,arrayWeights);
-	}
-	else if (iCountsRun == 1){
-		AliDCSArray* dcs = (AliDCSArray *)array->At(ientrySOR);
-		nentriesUsed = 2;
-		if (timestampBeforeSOR != -1 && timestampBeforeSOR != (Int_t)dcs->GetTimeStamp()){
-			printf("Using single entry between DAQ_time_start (SOR) and DAQ_time_end (EOR) and last entry before SOR. Truncated mean won't be calculated.\n");
-			arrayValues = new Double_t[2];
-			arrayWeights = new Double_t[2];
-			arrayValues[0] = valueBeforeSOR;
-			arrayWeights[0] = (Double_t)(dcs->GetTimeStamp()-(Double_t)timestampBeforeSOR);
-			arrayValues[1] = (Double_t)(dcs->GetInt(0));
-			arrayWeights[1] = (Double_t)((Double_t)timeEnd+1-dcs->GetTimeStamp());
-			printf("value0 = %f, with weight = %f\n",arrayValues[0],arrayWeights[0]); 
-			printf("value1 = %f, with weight = %f\n",arrayValues[1],arrayWeights[1]); 
-			parameters[0] = TMath::Mean(2,arrayValues,arrayWeights);
-			parameters[2] = TMath::Median(2,arrayValues,arrayWeights);
-			truncMeanFlag = kFALSE;
-		}
-		else{
-			printf("Cannot calculate mean, truncated mean, median, SD wrt mean, SD wrt median for current DP - only one value collected during the run, but no value before with which to calculate the statistical quantities\n");
-			parameters[0] = -1;
-			parameters[1] = -1;
-			parameters[2] = -1;
-			parameters[3] = -1;
-			parameters[4] = -1;
-			return parameters[0];
-		}
-	}
-	else { // iCountsRun == 0, using only the point immediately before SOR
-		if (timestampBeforeSOR == -1.){
-			printf("Cannot set mean, truncated mean, median, SD wrt mean, SD wrt median for current DP - no points during the run collected, and point before SOR missing\n");
-			parameters[0] = -1;
-			parameters[1] = -1;
-			parameters[2] = -1;
-			parameters[3] = -1;
-			parameters[4] = -1;
-			return parameters[0];
-		}
-		else {
-			printf("Using only last entry before SOR. Truncated mean and Standard deviations (wrt mean/median) won't be calculated.\n");
-			printf("value = %f\n",valueBeforeSOR); 
-			parameters[0] = valueBeforeSOR;
-			parameters[2] = valueBeforeSOR;
-			truncMeanFlag = kFALSE;
-			sdFlag = kFALSE;
-		}
-	}
-
-	Double_t temp = 0;
-	Double_t temp1 = 0;
-	Double_t sumweights = 0; 
-	Int_t entriesTruncMean = 0;
-	Double_t* arrayValuesTruncMean = new Double_t[nentriesUsed]; 
-	Double_t* arrayWeightsTruncMean = new Double_t[nentriesUsed]; 
-
-	// calculating SD wrt Mean and Median
-	printf("Calculating SD wrt Mean and SD wrt Median\n");
-	if (sdFlag){
-		for (Int_t i =0; i< nentriesUsed; i++){
-			//printf("Entry %d: value = %f, weight = %f\n",i,arrayValues[i],arrayWeights[i]);
-			temp += (arrayValues[i]-parameters[2])*(arrayValues[i]-parameters[2]);
-			temp1 += arrayWeights[i]*(arrayValues[i]-parameters[0])*(arrayValues[i]-parameters[0]);
-			sumweights += arrayWeights[i];
-		}
-		// setting SD wrt Mean 
-		if (sumweights != 0 ){
-			parameters[3] = TMath::Sqrt(temp1/sumweights);
-		}
-		else {
-			printf("Sum of weights to calculate Standard Deviation (wrt mean) <= 0, setting the SD to invalid\n");
-			parameters[3] = -1;
-		}
-		// setting SD wrt Median
-		if (nentriesUsed != 0){
-			parameters[4] = TMath::Sqrt(temp/nentriesUsed);
-		}
-		else{
-			printf("Number of entries used to calculate Standard Deviation (wrt median) <= 0, setting the SD to invalid\n");
-			parameters[4] = -1;
-		}
-	}
-	else {
-		parameters[3] = -1;
-		parameters[4] = -1;
-	}		
-
-	// calculating truncated mean (this comes afterwards since you need the SD wrt Mean)
-	if (truncMeanFlag){
-		printf("Calculating Truncated Mean\n");
-		for (Int_t i =0; i< nentriesUsed; i++){
-			//printf("Entry %d: value = %f, weight = %f\n",i,arrayValues[i],arrayWeights[i]);
-			if ((arrayValues[i]<=parameters[0]+3*parameters[3]) && (arrayValues[i]>=parameters[0]-3*parameters[3])){
-				arrayValuesTruncMean[entriesTruncMean]=arrayValues[i];
-				arrayWeightsTruncMean[entriesTruncMean]=arrayWeights[i];
-				printf("For Truncated Mean: Entry %d: value = %f, weight = %f\n",entriesTruncMean,arrayValuesTruncMean[entriesTruncMean],arrayWeightsTruncMean[entriesTruncMean]);
-				entriesTruncMean++;			
-			}
-			else{
-				printf("Discarding entry\n");
-			}
-		}
-		// setting truncated mean 
-		if (entriesTruncMean >1){
-			printf("%d entries used for truncated mean\n",entriesTruncMean);
-			parameters[1] = TMath::Mean(entriesTruncMean,arrayValuesTruncMean,arrayWeightsTruncMean);
-		}
-		else{	
-			printf("Too few entries (%d) to calculate truncated mean\n",entriesTruncMean);
-			parameters[1] = -1;
-		}
-	}
-	else{
-			parameters[1] = -1;
-	}
-	
-	printf("(weighted) mean = %f \n",parameters[0]);
-	printf("(weighted) truncated mean = %f \n",parameters[1]);
-	printf("median = %f \n",parameters[2]);
-	printf("(weighted) standard deviation with (weighted) mean = %f \n",parameters[3]);
-	printf("standard deviation with median = %f \n",parameters[4]);
-	
-	return (parameters[0]);
 }
 //------------------------------------------------------------------------------------------------------
 Float_t AliGRPPreprocessor::ProcessEnergy(TObjArray* const array, Double_t timeStart){

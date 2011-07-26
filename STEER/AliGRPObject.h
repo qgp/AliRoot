@@ -14,6 +14,8 @@
 
 #include <time.h>
 #include <TString.h>
+#include <TTimeStamp.h>
+#include <TArrayD.h>
 
 class TMap;
 
@@ -73,6 +75,11 @@ class AliGRPObject : public TObject {
 	AliDCSSensor*   GetCavernAtmosPressure() const {return fCavernAtmosPressure;}
 	AliDCSSensor*   GetCavernAtmosPressure2() const {return fCavernAtmosPressure2;}
 	AliDCSSensor*   GetSurfaceAtmosPressure() const {return fSurfaceAtmosPressure;}
+	AliDCSSensor*   GetBestCavernAtmosPressure() const ;
+	AliDCSSensor*   GetBestCavernAtmosPressure(const TTimeStamp& time) const;
+	static AliDCSSensor* GetBestCavernAtmosPressure(AliDCSSensor* cavern1, 
+	                   AliDCSSensor* cavern2, AliDCSSensor* surface, const TTimeStamp& time);
+
 
 	Float_t*  GetHallProbesArray(DP_HallProbes hp) const;
 	Float_t   GetHallProbes(Int_t hp) const {return fHallProbes[hp];}
@@ -142,12 +149,26 @@ class AliGRPObject : public TObject {
 	static Int_t GetNumberOfHP() {return fgknDCSDPHallProbes;}
 	static const char* GetHPDP(Int_t indexHP) {return fgkDCSDataPointsHallProbes[indexHP];}
 
+        Double_t EvalCavernPressure(const TTimeStamp& time, Bool_t& inside) const;
+	static Double_t EvalCavernPressure(AliDCSSensor* cavern1, 
+	              AliDCSSensor* cavern2, AliDCSSensor* surface, 
+		      const TTimeStamp& time, Bool_t& inside);
+
 	// to read old GRP object in TMap format
 
 	void ReadValuesFromMap(const TMap* map);	
 
 	void SetSingleBeamType(Int_t ibeamType, TString beamType)  {fSeparateBeamType[ibeamType] = beamType;}
 	TString   GetSingleBeamType(Int_t ibeamType) const {return fBeamType[ibeamType];}
+
+	void SetNFalseDataQualityFlag(Int_t nFalses) {fNFalseDataQualityFlag = nFalses;}
+	Int_t GetNFalseDataQualityFlag() const {return fNFalseDataQualityFlag;}
+
+	void SetFalseDataQualityFlagPeriods(Double_t* falses);
+	TArrayD* GetFalseDataQualityFlagPeriods() const {return fFalseDataQualityFlag;}
+
+	Double_t GetStartFalseDataQualityFlag(Int_t iperiod) const;
+	Double_t GetEndFalseDataQualityFlag(Int_t iperiod) const;
 
  private:
 
@@ -195,8 +216,11 @@ class AliGRPObject : public TObject {
 	TObjArray* fQACloningRequest;  // RS: Array of cloning requests for QA histos
 	Double_t fMaxTimeLHCValidity;    // time until which the LHC Data Machine Mode and Beam Mode didn't change 
 	TString  fSeparateBeamType[2];   // separate beam Types from LHC
-
-	ClassDef(AliGRPObject,8)
+	Int_t fNFalseDataQualityFlag;    // number of times the data quality flag turned to FALSE
+	TArrayD* fFalseDataQualityFlag;  // array of starts (even positions) and ends (odd poistions) of the periods
+	                                 // when the data quality flag was FALSE
+	
+	ClassDef(AliGRPObject,9)
 
 };
 
