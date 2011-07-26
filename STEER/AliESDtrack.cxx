@@ -1129,36 +1129,63 @@ void AliESDtrack::MakeMiniESDtrack(){
 
   delete fFriendTrack; fFriendTrack = 0;
 } 
+
 //_______________________________________________________________________
-Double_t AliESDtrack::GetMass() const {
-  // Returns the mass of the most probable particle type
-
+Int_t AliESDtrack::GetPID() const 
+{
+  // Returns the particle most probable id
   Int_t i;
-  for (i=0; i<AliPID::kSPECIES-1; i++) { 
-      if (fR[i] != fR[i+1]) break;
-  }
-  // If all the probabilities are equal, return the pion mass
-  if (i == AliPID::kSPECIES-1) return AliPID::ParticleMass(AliPID::kPion);
-
+  for (i=0; i<AliPID::kSPECIES-1; i++) if (fR[i] != fR[i+1]) break;
+  //
+  if (i == AliPID::kSPECIES-1) return AliPID::kPion;  // If all the probabilities are equal, return the pion mass
+  //
   Float_t max=0.;
   Int_t k=-1;
-  for (i=0; i<AliPID::kSPECIES; i++) {
-    if (fR[i]>max) {k=i; max=fR[i];}
-  }
+  for (i=0; i<AliPID::kSPECIES; i++) if (fR[i]>max) {k=i; max=fR[i];}
+  //
   if (k==0) { // dE/dx "crossing points" in the TPC
-     Double_t p=GetP();
-     if ((p>0.38)&&(p<0.48))
-        if (fR[0]<fR[3]*10.) return AliPID::ParticleMass(AliPID::kKaon);
-     if ((p>0.75)&&(p<0.85))
-        if (fR[0]<fR[4]*10.) return AliPID::ParticleMass(AliPID::kProton);
-     return 0.00051;
+    Double_t p=GetP();
+    if ((p>0.38)&&(p<0.48))
+      if (fR[0]<fR[3]*10.) return AliPID::kKaon;
+    if ((p>0.75)&&(p<0.85))
+      if (fR[0]<fR[4]*10.) return AliPID::kProton;
+    return AliPID::kElectron;
   }
-  if (k==1) return AliPID::ParticleMass(AliPID::kMuon); 
-  if (k==2||k==-1) return AliPID::ParticleMass(AliPID::kPion);
-  if (k==3) return AliPID::ParticleMass(AliPID::kKaon);
-  if (k==4) return AliPID::ParticleMass(AliPID::kProton);
-  AliWarning("Undefined mass !");
-  return AliPID::ParticleMass(AliPID::kPion);
+  if (k==1) return AliPID::kMuon; 
+  if (k==2||k==-1) return AliPID::kPion;
+  if (k==3) return AliPID::kKaon;
+  if (k==4) return AliPID::kProton;
+  AliWarning("Undefined PID !");
+  return AliPID::kPion;
+}
+
+//_______________________________________________________________________
+Int_t AliESDtrack::GetTOFBunchCrossing(Double_t b) const 
+{
+  // Returns the number of bunch crossings after trigger (assuming 25ns spacing)
+  const double kSpacing = 25e3; // min interbanch spacing
+  const double kShift = 0;
+  Int_t bcid = -1; // defualt one
+  if (!IsOn(kTOFout) || !IsOn(kESDpid)) return bcid; // no info
+  //
+  double tdif = fTOFsignal;
+  if (IsOn(kTIME)) { // integrated time info is there
+    int pid = GetPID();
+    tdif -= fTrackTime[pid];
+  }
+  else { // assume integrated time info from TOF radius and momentum
+    const double kRTOF = 385.;
+    const double kCSpeed = 3.e-2; // cm/ps
+    double p = GetP();
+    if (p<0.01) return bcid;
+    double m = GetMass();
+    double curv = GetC(b);
+    double path = TMath::Abs(curv)>kAlmost0 ? // account for curvature
+      2./curv*TMath::ASin(kRTOF*curv/2.)*TMath::Sqrt(1.+GetTgl()*GetTgl()) : kRTOF;
+    tdif -= path/kCSpeed*TMath::Sqrt(1.+m*m/(p*p));
+  }
+  bcid = TMath::Nint((tdif - kShift)/kSpacing);
+  return bcid;
 }
 
 //______________________________________________________________________________

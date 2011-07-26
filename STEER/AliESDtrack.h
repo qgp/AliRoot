@@ -101,7 +101,9 @@ public:
 
   Double_t GetIntegratedLength() const {return fTrackLength;}
   void GetIntegratedTimes(Double_t *times) const;
-  Double_t GetMass() const;
+  Int_t    GetPID()  const;
+  Int_t    GetTOFBunchCrossing(Double_t b=0) const;
+  Double_t GetMass() const {return AliPID::ParticleMass(GetPID());}
   Double_t M() const;
   Double_t E() const;
   Double_t Y() const;
