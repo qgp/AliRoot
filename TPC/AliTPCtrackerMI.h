@@ -82,11 +82,11 @@ public:
    Int_t UpdateClusters(AliTPCseed& t,  Int_t nr);
    Int_t FollowToNextCluster( AliTPCseed& t, Int_t nr);
 
-   Int_t PropagateBack(TObjArray *const arr);
+   Int_t PropagateBack(const TObjArray *const arr);
    Int_t PropagateBack(AliESDEvent * event);
    Int_t PropagateBack(AliTPCseed *const pt, Int_t row0, Int_t row1);   
    Int_t PropagateForward();
-   Int_t PropagateForward2(TObjArray *const arr);
+   Int_t PropagateForward2(const TObjArray *const arr);
 
    void SortTracks(TObjArray * arr, Int_t mode) const;
   
@@ -121,6 +121,7 @@ private:
   AliTPCtrackerMI(const AliTPCtrackerMI& r);           //dummy copy constructor
   AliTPCtrackerMI &operator=(const AliTPCtrackerMI& r);//dummy assignment operator
   void AddCovariance(AliTPCseed * seed);               // add covariance
+  void AddCovarianceAdd(AliTPCseed * seed);               // add covariance
 
    inline AliTPCtrackerRow &GetRow(Int_t sec, Int_t row);
    inline Bool_t     IsActive(Int_t sec, Int_t row);
@@ -133,7 +134,7 @@ private:
 
     void GetShape(AliTPCseed * seed, Int_t row);
  
-   void ReadSeeds(AliESDEvent *const event, Int_t direction);  //read seeds from the event
+   void ReadSeeds(const AliESDEvent *const event, Int_t direction);  //read seeds from the event
 
    void MakeSeeds3(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1, Int_t ddsec=0); 
    void MakeSeeds5(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1);
@@ -160,7 +161,7 @@ private:
    TObjArray * Tracking();
    TObjArray * TrackingSpecial();
    void SumTracks(TObjArray *arr1,TObjArray *&arr2) const;
-   void PrepareForBackProlongation(TObjArray *const arr, Float_t fac) const;
+   void PrepareForBackProlongation(const TObjArray *const arr, Float_t fac) const;
    void PrepareForProlongation(TObjArray *const arr, Float_t fac) const;
 
    Int_t UpdateTrack(AliTPCseed *t, Int_t accept); //update trackinfo

@@ -105,7 +105,8 @@ AliTPCRecoParam::AliTPCRecoParam():
   fMinFraction(0.01),           // truncated mean - lower threshold
   fMaxFaction(0.7),            // truncated mean - upper threshold
   fNeighborRowsDedx(2),           // neighbour rows for below threshold dEdx calculation
-  fUseTOFCorrection(kTRUE)
+  fUseTOFCorrection(kTRUE),
+  fUseSystematicCorrelation(kTRUE)
 {
   //
   // constructor
@@ -131,7 +132,17 @@ AliTPCRecoParam::~AliTPCRecoParam()
   //  
 }
 
-
+void AliTPCRecoParam::Print(const Option_t* /*option*/) const{
+  //
+  //
+  //
+  AliTPCRecoParam::Dump();
+  printf("Systematic errors:\n");
+  const char * cherrs[5]={"sy=","sz=","ssnp=","stheta=","s1pt="};
+  for (Int_t i=0; i<5; i++){
+    printf("%s%f\n",cherrs[i],fSystematicErrors[i]);
+  }
+}
 
 
 AliTPCRecoParam *AliTPCRecoParam::GetLowFluxParam(){

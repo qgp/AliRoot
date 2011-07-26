@@ -1131,7 +1131,7 @@ Bool_t   AliTPCtrackerMI::GetProlongation(Double_t x1, Double_t x2, Double_t x[5
 
 Int_t  AliTPCtrackerMI::LoadClusters (TTree *const tree)
 {
-  //
+  // load clusters
   //
   fInput = tree;
   return LoadClusters();
@@ -1360,7 +1360,7 @@ void AliTPCtrackerMI::FillClusterArray(TObjArray* array) const{
 
 void   AliTPCtrackerMI::Transform(AliTPCclusterMI * cluster){
   //
-  //
+  // transformation
   //
   AliTPCcalibDB * calibDB = AliTPCcalibDB::Instance();
   AliTPCTransform *transform = calibDB->GetTransform() ;
@@ -2040,7 +2040,7 @@ Int_t AliTPCtrackerMI::FollowBackProlongation(AliTPCseed& t, Int_t rf) {
    
 Float_t AliTPCtrackerMI::OverlapFactor(AliTPCseed * s1, AliTPCseed * s2, Int_t &sum1, Int_t & sum2)
 {
-  //
+  // overlapping factor
   //
   sum1=0;
   sum2=0;
@@ -2083,7 +2083,7 @@ Float_t AliTPCtrackerMI::OverlapFactor(AliTPCseed * s1, AliTPCseed * s2, Int_t &
 
 void  AliTPCtrackerMI::SignShared(AliTPCseed * s1, AliTPCseed * s2)
 {
-  //
+  // shared clusters
   //
   Float_t thetaCut = 0.2;//+10.*TMath::Sqrt(s1->GetSigmaTglZ()+ s2->GetSigmaTglZ());
   if (TMath::Abs(s1->GetTgl()-s2->GetTgl())>thetaCut) return;
@@ -2810,6 +2810,7 @@ Int_t AliTPCtrackerMI::PropagateBack(AliESDEvent *event)
     seed->UpdatePoints();
     AddCovariance(seed);
     AliESDtrack *esd=event->GetTrack(i);
+    if (!esd) continue; //never happen
     if (seed->GetNumberOfClusters()<60 && seed->GetNumberOfClusters()<(esd->GetTPCclusters(0) -5)*0.8){
       AliExternalTrackParam paramIn;
       AliExternalTrackParam paramOut;
@@ -2874,7 +2875,7 @@ void AliTPCtrackerMI::DeleteSeeds()
   fSeeds =0;
 }
 
-void AliTPCtrackerMI::ReadSeeds(AliESDEvent *const event, Int_t direction)
+void AliTPCtrackerMI::ReadSeeds(const AliESDEvent *const event, Int_t direction)
 {
   //
   //read seeds from the event
@@ -5862,9 +5863,15 @@ Int_t AliTPCtrackerMI::ReadSeeds(const TFile *inp) {
 Int_t AliTPCtrackerMI::Clusters2Tracks (AliESDEvent *const esd)
 {
   //
+  // clusters to tracks
   
   if (fSeeds) DeleteSeeds();
-  fEvent = esd;
+  fEvent = esd; 
+
+  AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;  
+  transform->SetCurrentTimeStamp( esd->GetTimeStamp());
+  transform->SetCurrentRun(esd->GetRunNumber());
+
   Clusters2Tracks();
   if (!fSeeds) return 1;
   FillESD(fSeeds);
@@ -6075,7 +6082,7 @@ TObjArray * AliTPCtrackerMI::Tracking(Int_t seedtype, Int_t i1, Int_t i2, Float_
 
 TObjArray * AliTPCtrackerMI::Tracking()
 {
-  //
+  // tracking
   //
   if (AliTPCReconstructor::GetRecoParam()->GetSpecialSeeding()) return TrackingSpecial();
   TStopwatch timer;
@@ -6384,7 +6391,7 @@ void  AliTPCtrackerMI::ParallelTracking(TObjArray *const arr, Int_t rfirst, Int_
   }    
 }
 
-void AliTPCtrackerMI::PrepareForBackProlongation(TObjArray *const arr,Float_t fac) const
+void AliTPCtrackerMI::PrepareForBackProlongation(const TObjArray *const arr,Float_t fac) const
 {
   //
   //
@@ -6439,7 +6446,7 @@ void AliTPCtrackerMI::PrepareForProlongation(TObjArray *const arr, Float_t fac) 
 
 }
 
-Int_t AliTPCtrackerMI::PropagateBack(TObjArray *const arr)
+Int_t AliTPCtrackerMI::PropagateBack(const TObjArray *const arr)
 {
   //
   // make back propagation
@@ -6470,7 +6477,7 @@ Int_t AliTPCtrackerMI::PropagateBack(TObjArray *const arr)
 }
 
 
-Int_t AliTPCtrackerMI::PropagateForward2(TObjArray *const arr)
+Int_t AliTPCtrackerMI::PropagateForward2(const TObjArray *const arr)
 {
   //
   // make forward propagation
@@ -6552,7 +6559,7 @@ Int_t AliTPCtrackerMI::PropagateBack(AliTPCseed *const pt, Int_t row0, Int_t row
 
 void  AliTPCtrackerMI::GetShape(AliTPCseed * seed, Int_t row)
 {
-  //
+  // gets cluster shape
   // 
   AliTPCClusterParam * clparam = AliTPCcalibDB::Instance()->GetClusterParam();
   Float_t zdrift = TMath::Abs((fkParam->GetZLength(0)-TMath::Abs(seed->GetZ())));
@@ -6825,9 +6832,40 @@ Bool_t AliTPCtrackerMI::IsFindable(AliTPCseed & track){
 
 void AliTPCtrackerMI::AddCovariance(AliTPCseed * seed){
   //
-  // Adding systematic error
+  // Adding systematic error estimate to the covariance matrix
   // !!!! the systematic error for element 4 is in 1/cm not in pt 
+  //
+  const Double_t *param = AliTPCReconstructor::GetRecoParam()->GetSystematicError();
+  //
+  // use only the diagonal part if not specified otherwise
+  if (!AliTPCReconstructor::GetRecoParam()->GetUseSystematicCorrelation()) return AddCovarianceAdd(seed);
+  //
+  Double_t *covarS= (Double_t*)seed->GetCovariance();
+  Double_t factor[5]={1,1,1,1,1};
+  Double_t facC =  AliTracker::GetBz()*kB2C;
+  factor[0]= TMath::Sqrt(TMath::Abs((covarS[0] + param[0]*param[0])/covarS[0]));
+  factor[1]= TMath::Sqrt(TMath::Abs((covarS[2] + param[1]*param[1])/covarS[2]));
+  factor[2]= TMath::Sqrt(TMath::Abs((covarS[5] + param[2]*param[2])/covarS[5]));
+  factor[3]= TMath::Sqrt(TMath::Abs((covarS[9] + param[3]*param[3])/covarS[9]));
+  factor[4]= TMath::Sqrt(TMath::Abs((covarS[14] + facC*facC*param[4]*param[4])/covarS[14]));
+  // 0
+  // 1    2
+  // 3    4    5
+  // 6    7    8    9 
+  // 10   11   12   13   14
+  for (Int_t i=0; i<5; i++){
+    for (Int_t j=i; j<5; j++){
+      Int_t index=seed->GetIndex(i,j);
+      covarS[index]*=factor[i]*factor[j];
+    }
+  }
+}
 
+
+void AliTPCtrackerMI::AddCovarianceAdd(AliTPCseed * seed){
+  //
+  // Adding systematic error - as additive factor without correlation
+  //
   const Double_t *param = AliTPCReconstructor::GetRecoParam()->GetSystematicError();
   Double_t *covarIn= (Double_t*)seed->GetCovariance();
   Double_t covar[15];
