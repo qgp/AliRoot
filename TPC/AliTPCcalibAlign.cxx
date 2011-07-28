@@ -1811,7 +1811,7 @@ void AliTPCcalibAlign::FillHisto(AliExternalTrackParam *tp1,
   // Track2-Track1
   if (s2<s1) return;//
   const Double_t kEpsilon=0.001;
-  Double_t x[8]={0,0,0,0,0,0,0,0};
+  Double_t x[9]={0,0,0,0,0,0,0,0,0};
   AliExternalTrackParam p1(*tp1);
   AliExternalTrackParam p2(*tp2);
   if (s1%18==s2%18) {
@@ -1986,7 +1986,7 @@ TGraphErrors * AliTPCcalibAlign::MakeGraph(Int_t sec0, Int_t sec1, Int_t dsec,
   }
   TGraphErrors *gr = new TGraphErrors(npoints,xsec,ysec,0,0);
   Char_t name[1000];
-  sprintf(name,"Mat[%d,%d]  Type=%d",i0,i1,type);
+  snprintf(name,100,"Mat[%d,%d]  Type=%d",i0,i1,type);
   gr->SetName(name);
   return gr;
 }
