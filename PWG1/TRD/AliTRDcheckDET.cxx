@@ -146,7 +146,7 @@ void AliTRDcheckDET::UserExec(Option_t *opt){
     nTracks++;
   }
   if(nTracks)
-    dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNtracksEvent))->Fill(nTracks);
+    if((histo = dynamic_cast<TH1F *>(fContainer->UncheckedAt(kNtracksEvent)))) histo->Fill(nTracks);
 
   if(!fEvent->GetEventHeader()) return; // For trigger statistics event header is essential
   Int_t triggermask = fEvent->GetEventHeader()->GetTriggerMask();
@@ -1599,6 +1599,7 @@ Bool_t AliTRDcheckDET::MakePlotPulseHeight(){
 	// Project centrality of the 2 histograms
 	//TH2 *hProjCentX = dynamic_cast<TH2 *>(hPhx->Project3D("yx")),
 	TH2 *hProjCentT = dynamic_cast<TH2 *>(hPht->Project3D("yx"));
+  if(!hProjCentT) return kFALSE;
 	//hProjCentX->SetName("hProjCentX");
 	hProjCentT->SetName("hProjCentT");
 	// Draw 2D histogram versus time on pad 2
