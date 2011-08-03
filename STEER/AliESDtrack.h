@@ -42,6 +42,7 @@ class TPolyMarker3D;
 
 class AliESDtrack : public AliExternalTrackParam {
 public:
+  enum {kNITSchi2Std=3};
   enum {
     kITSin=0x0001,kITSout=0x0002,kITSrefit=0x0004,kITSpid=0x0008,
     kTPCin=0x0010,kTPCout=0x0020,kTPCrefit=0x0040,kTPCpid=0x0080,
@@ -188,6 +189,8 @@ public:
   void    GetITSdEdxSamples(Double_t *s) const;
 
   Double_t GetITSchi2() const {return fITSchi2;}
+  Double_t GetITSchi2Std(Int_t step) const {return (step>-1&&step<kNITSchi2Std) ? fITSchi2Std[step] : -1;}
+  void     SetITSchi2Std(Double_t chi2, Int_t step)  { if (step>-1&&step<kNITSchi2Std) fITSchi2Std[step] = chi2;}
   Char_t   GetITSclusters(Int_t *idx) const;
   UChar_t GetITSClusterMap() const {return fITSClusterMap;}
   UChar_t GetITSSharedMap() const {return fITSSharedMap;}
@@ -455,6 +458,7 @@ protected:
   Double32_t   fCdd,fCdz,fCzz; // Covariance matrix of the impact parameters 
   Double32_t   fCchi2;          // [0.,0.,8] chi2 at the primary vertex
 
+  Double32_t   fITSchi2Std[kNITSchi2Std];  // [0.,0.,8] standard chi2 in the ITS (with standard errors)
   Double32_t   fITSchi2;        // [0.,0.,8] chi2 in the ITS
   Double32_t   fTPCchi2;        // [0.,0.,8] chi2 in the TPC
   Double32_t   fTPCchi2Iter1;  // [0.,0.,8] chi2 in the TPC
@@ -517,7 +521,7 @@ protected:
   static bool fgkOnlineMode; //! indicate the online mode to skip some of the functionality
 
   AliESDtrack & operator=(const AliESDtrack & );
-  ClassDef(AliESDtrack,58)  //ESDtrack 
+  ClassDef(AliESDtrack,60)  //ESDtrack 
 };
 
 
