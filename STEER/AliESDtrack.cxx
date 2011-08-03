@@ -163,7 +163,7 @@ AliESDtrack::AliESDtrack() :
   fTPCInner(0),
   fOp(0),
   fHMPIDp(0),  
-  fFriendTrack(new AliESDfriendTrack()),
+  fFriendTrack(NULL),
   fTPCClusterMap(159),//number of padrows
   fTPCSharedMap(159),//number of padrows
   fFlags(0),
@@ -232,6 +232,8 @@ AliESDtrack::AliESDtrack() :
   //
   // The default ESD constructor 
   //
+  if (!OnlineMode()) fFriendTrack=new AliESDfriendTrack();
+
   Int_t i;
   for (i=0; i<AliPID::kSPECIES; i++) {
     fTrackTime[i]=0.;
@@ -254,6 +256,8 @@ AliESDtrack::AliESDtrack() :
   for (i=0;i<10;i++) {fTOFInfo[i]=0;}
   for (i=0;i<12;i++) {fITSModule[i]=-1;}
 }
+
+bool AliESDtrack::fgkOnlineMode=false;
 
 //_______________________________________________________________________
 AliESDtrack::AliESDtrack(const AliESDtrack& track):
@@ -705,7 +709,8 @@ AliESDtrack::~AliESDtrack(){
   delete fOp;
   delete fHMPIDp;
   delete fCp; 
-  delete fFriendTrack;
+  if (fFriendTrack) delete fFriendTrack;
+  fFriendTrack=NULL;
   if(fTRDnSlices)
     delete[] fTRDslices;
 }
@@ -931,6 +936,7 @@ void AliESDtrack::AddCalibObject(TObject * object){
   // add calib object to the list
   //
   if (!fFriendTrack) fFriendTrack  = new AliESDfriendTrack;
+  if (!fFriendTrack) return;
   fFriendTrack->AddCalibObject(object);
 }
 
@@ -1241,9 +1247,11 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
   }
 
   Set(t->GetX(),t->GetAlpha(),t->GetParameter(),t->GetCovariance());
+  if (fFriendTrack) {
   if (flags==kITSout) fFriendTrack->SetITSOut(*t);
   if (flags==kTPCout) fFriendTrack->SetTPCOut(*t);
   if (flags==kTRDrefit) fFriendTrack->SetTRDIn(*t);
+  }
   
   switch (flags) {
     
@@ -1251,6 +1259,7 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
     {
     fITSClusterMap=0;
     fITSncls=t->GetNumberOfClusters();
+    if (fFriendTrack) {
     Int_t* indexITS = new Int_t[AliESDfriendTrack::kMaxITScluster];
     for (Int_t i=0;i<AliESDfriendTrack::kMaxITScluster;i++) {
 	indexITS[i]=t->GetClusterIndex(i);
@@ -1262,6 +1271,7 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
     }
     fFriendTrack->SetITSIndices(indexITS,AliESDfriendTrack::kMaxITScluster);
     delete [] indexITS;
+    }
 
     fITSchi2=t->GetChi2();
     fITSsignal=t->GetPIDsignal();
@@ -1287,9 +1297,9 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
     else 
       fIp->Set(t->GetX(),t->GetAlpha(),t->GetParameter(),t->GetCovariance());
     }
+    // Intentionally no break statement; need to set general TPC variables as well
   case kTPCout:
     {
-    Int_t* indexTPC = new Int_t[AliESDfriendTrack::kMaxTPCcluster];
     if (flags & kTPCout){
       if (!fOp) fOp=new AliExternalTrackParam(*t);
       else 
@@ -1298,60 +1308,13 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
     fTPCncls=t->GetNumberOfClusters();    
     fTPCchi2=t->GetChi2();
     
-     {//prevrow must be declared in separate namespace, otherwise compiler cries:
-      //"jump to case label crosses initialization of `Int_t prevrow'"
-       Int_t prevrow = -1;
-       //       for (Int_t i=0;i<fTPCncls;i++) 
-       for (Int_t i=0;i<AliESDfriendTrack::kMaxTPCcluster;i++) 
-        {
-	  indexTPC[i]=t->GetClusterIndex(i);
-	  Int_t idx = indexTPC[i];
-
-	  if (idx<0) continue; 
-
-          // Piotr's Cluster Map for HBT  
-          // ### please change accordingly if cluster array is changing 
-          // to "New TPC Tracking" style (with gaps in array) 
-          Int_t sect = (idx&0xff000000)>>24;
-          Int_t row = (idx&0x00ff0000)>>16;
-          if (sect > 18) row +=63; //if it is outer sector, add number of inner sectors
-
-          fTPCClusterMap.SetBitNumber(row,kTRUE);
-
-          //Fill the gap between previous row and this row with 0 bits
-          //In case  ###  pleas change it as well - just set bit 0 in case there 
-          //is no associated clusters for current "i"
-          if (prevrow < 0) 
-           {
-             prevrow = row;//if previous bit was not assigned yet == this is the first one
-           }
-          else
-           { //we don't know the order (inner to outer or reverse)
-             //just to be save in case it is going to change
-             Int_t n = 0, m = 0;
-             if (prevrow < row)
-              {
-                n = prevrow;
-                m = row;
-              }
-             else
-              {
-                n = row;
-                m = prevrow;
-              }
-
-             for (Int_t j = n+1; j < m; j++)
-              {
-                fTPCClusterMap.SetBitNumber(j,kFALSE);
-              }
-             prevrow = row; 
-           }
-          // End Of Piotr's Cluster Map for HBT
-        }
-	fFriendTrack->SetTPCIndices(indexTPC,AliESDfriendTrack::kMaxTPCcluster);
-	delete [] indexTPC;
-
-     }
+    if (fFriendTrack) {  // Copy cluster indices
+      Int_t* indexTPC = new Int_t[AliESDfriendTrack::kMaxTPCcluster];
+      for (Int_t i=0;i<AliESDfriendTrack::kMaxTPCcluster;i++)         
+	indexTPC[i]=t->GetClusterIndex(i);
+      fFriendTrack->SetTPCIndices(indexTPC,AliESDfriendTrack::kMaxTPCcluster);
+      delete [] indexTPC;
+    }
     fTPCsignal=t->GetPIDsignal();
     }
     break;
@@ -1363,12 +1326,13 @@ Bool_t AliESDtrack::UpdateTrackParams(const AliKalmanTrack *t, ULong_t flags){
     fTRDLabel = t->GetLabel(); 
     fTRDchi2  = t->GetChi2();
     fTRDncls  = t->GetNumberOfClusters();
+    if (fFriendTrack) {
       Int_t* indexTRD = new Int_t[AliESDfriendTrack::kMaxTRDcluster];
       for (Int_t i=0;i<AliESDfriendTrack::kMaxTRDcluster;i++) indexTRD[i]=-2;
       for (Int_t i=0;i<6;i++) indexTRD[i]=t->GetTrackletIndex(i);
       fFriendTrack->SetTRDIndices(indexTRD,AliESDfriendTrack::kMaxTRDcluster);
       delete [] indexTRD;
-    
+    }    
     
     fTRDsignal=t->GetPIDsignal();
     }
@@ -1637,7 +1601,7 @@ Char_t AliESDtrack::GetITSclusters(Int_t *idx) const {
   //---------------------------------------------------------------------
   // This function returns indices of the assgined ITS clusters 
   //---------------------------------------------------------------------
-  if (idx) {
+  if (idx && fFriendTrack) {
     Int_t *index=fFriendTrack->GetITSindices();
     for (Int_t i=0; i<AliESDfriendTrack::kMaxITScluster; i++) {
       if ( (i>=fITSncls) && (i<6) ) idx[i]=-1;
@@ -1714,7 +1678,7 @@ UShort_t AliESDtrack::GetTPCclusters(Int_t *idx) const {
   //---------------------------------------------------------------------
   // This function returns indices of the assgined ITS clusters 
   //---------------------------------------------------------------------
-  if (idx) {
+  if (idx && fFriendTrack) {
     Int_t *index=fFriendTrack->GetTPCindices();
 
     if (index){
@@ -1727,11 +1691,70 @@ UShort_t AliESDtrack::GetTPCclusters(Int_t *idx) const {
   return fTPCncls;
 }
 
+//_______________________________________________________________________
+Float_t AliESDtrack::GetTPCClusterInfo(Int_t nNeighbours/*=3*/, Int_t type/*=0*/, Int_t row0, Int_t row1) const
+{
+  //
+  // TPC cluster information
+  // type 0: get fraction of found/findable clusters with neighbourhood definition
+  //      1: findable clusters with neighbourhood definition
+  //      2: found clusters
+  //
+  // definition of findable clusters:
+  //            a cluster is defined as findable if there is another cluster
+  //           within +- nNeighbours pad rows. The idea is to overcome threshold
+  //           effects with a very simple algorithm.
+  //
+
+  if (type==2) return fTPCClusterMap.CountBits();
+  
+  Int_t found=0;
+  Int_t findable=0;
+  Int_t last=-nNeighbours;
+  
+  Int_t upperBound=fTPCClusterMap.GetNbits();
+  if (upperBound>row1) upperBound=row1;
+  for (Int_t i=row0; i<upperBound; ++i){
+    //look to current row
+    if (fTPCClusterMap[i]) {
+      last=i;
+      ++found;
+      ++findable;
+      continue;
+    }
+    //look to nNeighbours before
+    if ((i-last)<=nNeighbours) {
+      ++findable;
+      continue;
+    }
+    //look to nNeighbours after
+    for (Int_t j=i+1; j<i+1+nNeighbours; ++j){
+      if (fTPCClusterMap[j]){
+        ++findable;
+        break;
+      }
+    }
+  }
+  if (type==1) return findable;
+  
+  if (type==0){
+    Float_t fraction=0;
+    if (findable>0) 
+      fraction=(Float_t)found/(Float_t)findable;
+    else 
+      fraction=0;
+    return fraction;
+  }  
+  return 0;  // undefined type - default value
+}
+
+//_______________________________________________________________________
 Double_t AliESDtrack::GetTPCdensity(Int_t row0, Int_t row1) const{
   //
   // GetDensity of the clusters on given region between row0 and row1
   // Dead zone effect takin into acoount
   //
+  if (!fFriendTrack) return 0.0;
   Int_t good  = 0;
   Int_t found = 0;
   //  
@@ -1764,7 +1787,7 @@ UChar_t AliESDtrack::GetTRDclusters(Int_t *idx) const {
   //---------------------------------------------------------------------
   // This function returns indices of the assgined TRD clusters 
   //---------------------------------------------------------------------
-  if (idx) {
+  if (idx && fFriendTrack) {
     Int_t *index=fFriendTrack->GetTRDindices();
 
     if (index) {
@@ -1789,6 +1812,7 @@ UChar_t AliESDtrack::GetTRDtracklets(Int_t *idx) const {
 //   2. The idx array store not only the index but also the layer of the tracklet. 
 //      Therefore tracks with TRD gaps contain default values for indices [-1] 
 
+  if (!fFriendTrack) return 0;
   if (!idx) return GetTRDntracklets();
   Int_t *index=fFriendTrack->GetTRDindices();
   Int_t n = 0;

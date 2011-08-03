@@ -201,10 +201,10 @@ public:
 				Float_t &xloc,Float_t &zloc) const;
   Int_t   GetITSLabel() const {return fITSLabel;}
   void    SetITStrack(AliKalmanTrack * track){
-     fFriendTrack->SetITStrack(track);
+    if (fFriendTrack) fFriendTrack->SetITStrack(track);
   }
   AliKalmanTrack *GetITStrack(){
-     return fFriendTrack->GetITStrack();
+    return fFriendTrack!=NULL?fFriendTrack->GetITStrack():NULL;
   }
   Bool_t  HasPointOnITSLayer(Int_t i) const {return TESTBIT(fITSClusterMap,i);}
   Bool_t  HasSharedPointOnITSLayer(Int_t i) const {return TESTBIT(fITSSharedMap,i);}
@@ -246,7 +246,8 @@ public:
   const TBits& GetTPCSharedMap() const {return fTPCSharedMap;}
   void    SetTPCClusterMap(const TBits amap) {fTPCClusterMap = amap;}
   void    SetTPCSharedMap(const TBits amap) {fTPCSharedMap = amap;}
-
+  Float_t GetTPCClusterInfo(Int_t nNeighbours=3, Int_t type=0, Int_t row0=0, Int_t row1=159) const;
+  
   void    SetTRDpid(const Double_t *p);
   
 // A.Bercuci
@@ -285,10 +286,10 @@ public:
   Int_t   GetTRDLabel() const {return fTRDLabel;}
 
   void    SetTRDtrack(AliKalmanTrack * track){
-     fFriendTrack->SetTRDtrack(track);
+    if (fFriendTrack) fFriendTrack->SetTRDtrack(track);
   }
   AliKalmanTrack *GetTRDtrack(){
-     return fFriendTrack->GetTRDtrack();
+    return fFriendTrack!=NULL?fFriendTrack->GetTRDtrack():NULL;
   }
 
   void    SetTOFsignal(Double_t tof) {fTOFsignal=tof;}
@@ -356,10 +357,10 @@ public:
 
 
   void SetTrackPointArray(AliTrackPointArray *points) {
-    fFriendTrack->SetTrackPointArray(points);
+    if (fFriendTrack) fFriendTrack->SetTrackPointArray(points);
   }
   const AliTrackPointArray *GetTrackPointArray() const {
-    return fFriendTrack->GetTrackPointArray(); 
+    return fFriendTrack!=NULL?fFriendTrack->GetTrackPointArray():NULL; 
   }
   Bool_t RelateToVertexTPC(const AliESDVertex *vtx, Double_t b, Double_t maxd,
                            AliExternalTrackParam *cParam=0);
@@ -389,6 +390,14 @@ public:
   //
   void FillPolymarker(TPolyMarker3D *pol, Float_t magf, Float_t minR, Float_t maxR, Float_t stepR);
 
+  //
+  // online mode Matthias.Richter@cern.ch
+  // in order to optimize AliESDtrack for usage in the online HLT,
+  // some functionality is disabled
+  // - creation of AliESDfriendTrack
+  // - set lengt of bit fields fTPCClusterMap and fTPCSharedMap to 0
+  static void OnlineMode(bool mode) {fgkOnlineMode=mode;}
+  static bool OnlineMode() {return fgkOnlineMode;}
 protected:
   
   AliExternalTrackParam *fCp; // Track parameters constrained to the primary vertex
@@ -505,6 +514,7 @@ protected:
   AliESDEvent*   fESDEvent; //!Pointer back to event to which the track belongs
   
  private:
+  static bool fgkOnlineMode; //! indicate the online mode to skip some of the functionality
 
   AliESDtrack & operator=(const AliESDtrack & );
   ClassDef(AliESDtrack,58)  //ESDtrack 
