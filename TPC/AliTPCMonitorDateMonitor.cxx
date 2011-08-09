@@ -88,7 +88,7 @@ Int_t AliTPCMonitorDateMonitor::OpenMonitoring(string name){
 //_____________________________________________________________________________
 char* AliTPCMonitorDateMonitor::DecodeError(Int_t error  ){
   // Return decoded error string 
-  return monitorDecodeError(error);
+  return const_cast<char*>(monitorDecodeError(error));
 }
 
 //_____________________________________________________________________________
@@ -100,7 +100,7 @@ Int_t AliTPCMonitorDateMonitor::DeclareMonitor(string name){
 //_____________________________________________________________________________
 Int_t AliTPCMonitorDateMonitor::GetEvent(){
   // Get next event
-  return monitorGetEventDynamic( (void**)&fPointer );
+  return monitorGetEventDynamic(reinterpret_cast<void**>(&fPointer));
 }
  
 //_____________________________________________________________________________
