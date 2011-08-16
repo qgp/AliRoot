@@ -76,6 +76,7 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCDataCheckerComponent.h"
 #include "AliHLTTPCHWCFEmulatorComponent.h"
 #include "AliHLTTPCHWCFConsistencyControlComponent.h"
+#include "AliHLTTPCDataCompressionComponent.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCAgent)
@@ -119,6 +120,7 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     TString sinkClusterInput;
     TString sinkHWClusterInput;
     TString dEdXInput;
+    TString compressorInput;
     for (int slice=iMinSlice; slice<=iMaxSlice; slice++) {
       TString trackerInput;
       for (int part=iMinPart; part<=iMaxPart; part++) {
@@ -153,15 +155,18 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 	// soon going to replace the software clusterfinder
 	TString hwcfemu;
 	hwcfemu.Form("TPC-HWCFEmu_%02d_%d", slice, part);
-	handler->CreateConfiguration(hwcfemu.Data(), "TPCHWClusterFinderEmulator", publisher.Data(), "-do-mc 1  -single-sequence-limit 100 -cluster-lower-limit 10");
+	handler->CreateConfiguration(hwcfemu.Data(), "TPCHWClusterFinderEmulator", publisher.Data(), "-do-mc 1");
+	if (compressorInput.Length()>0) compressorInput+=" ";
+	compressorInput+=hwcfemu;
+
 	TString hwcf;
 	hwcf.Form("TPC-HWCF_%02d_%d", slice, part);
 	handler->CreateConfiguration(hwcf.Data(), "TPCHWClusterTransform",hwcfemu.Data(), "-publish-raw");
 
 	if (trackerInput.Length()>0) trackerInput+=" ";
-	trackerInput+=cf;
+	trackerInput+=hwcf;
 	if (dEdXInput.Length()>0) dEdXInput+=" ";
-	dEdXInput+=cf;
+	dEdXInput+=hwcf;
 	if (sinkClusterInput.Length()>0) sinkClusterInput+=" ";
 	sinkClusterInput+=cf;
 	if (sinkHWClusterInput.Length()>0) sinkHWClusterInput+=" ";
@@ -170,7 +175,7 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
       TString tracker;
       // tracker finder components
       tracker.Form("TPC-TR_%02d", slice);
-      handler->CreateConfiguration(tracker.Data(), "TPCCATracker", trackerInput.Data(), "-minTrackPt 0.0");
+      handler->CreateConfiguration(tracker.Data(), "TPCCATracker", trackerInput.Data(), "");
 
       if (mergerInput.Length()>0) mergerInput+=" ";
       mergerInput+=tracker;
@@ -180,16 +185,22 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     // GlobalMerger component
     handler->CreateConfiguration("TPC-globalmerger","TPCCAGlobalMerger",mergerInput.Data(),"");
 
+    // dEdx component
     if (dEdXInput.Length()>0) dEdXInput+=" ";
     dEdXInput+="TPC-globalmerger";
 
     handler->CreateConfiguration("TPC-dEdx","TPCdEdx",dEdXInput.Data(),"");
 
+    // compression component
+    if (compressorInput.Length()>0) compressorInput+=" ";
+    compressorInput+="TPC-globalmerger";
+    handler->CreateConfiguration("TPC-compression", "TPCDataCompressor", compressorInput.Data(),"");
+
     // the esd converter configuration
     TString converterInput="TPC-globalmerger";
     if (!rawReader && runloader) {
       // propagate cluster info to the esd converter in order to fill the MC information
-      handler->CreateConfiguration("TPC-clustermc-info", "BlockFilter"   , sinkClusterInput.Data(), "-datatype 'CLMCINFO' 'TPC '");  
+      handler->CreateConfiguration("TPC-clustermc-info", "BlockFilter"   , sinkHWClusterInput.Data(), "-datatype 'CLMCINFO' 'TPC '");  
       handler->CreateConfiguration("TPC-mcTrackMarker","TPCTrackMCMarker","TPC-globalmerger TPC-clustermc-info","" );
       converterInput+=" ";
       converterInput+="TPC-mcTrackMarker";
@@ -320,6 +331,7 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTTPCDataCheckerComponent);
   pHandler->AddComponent(new AliHLTTPCHWCFEmulatorComponent);
 //  pHandler->AddComponent(new AliHLTTPCHWCFConsistencyControlComponent);  //FIXME: Causes crash: https://savannah.cern.ch/bugs/?83677
+  pHandler->AddComponent(new AliHLTTPCDataCompressionComponent);
   return 0;
 }
 

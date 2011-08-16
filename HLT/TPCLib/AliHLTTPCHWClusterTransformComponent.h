@@ -25,6 +25,7 @@
 #include "AliHLTComponentBenchmark.h"
 
 class AliTPCTransform;
+class AliHLTTPCHWCFData;
 
 /**
  * @class AliHLTTPCHWClusterTransformComponent
@@ -150,9 +151,9 @@ private:
   static const char* fgkOCDBEntryHWTransform; //!transient
   
   Bool_t fDataId;
-  UInt_t fChargeThreshold;  //!transient 
   AliHLTTPCClusterTransformation fTransform;
   Bool_t fPublishRawClusters; // publish raw clusters in addition
+  AliHLTTPCHWCFData* fpDecoder; // decoder
 
   AliHLTComponentBenchmark fBenchmark; // benchmarks
 

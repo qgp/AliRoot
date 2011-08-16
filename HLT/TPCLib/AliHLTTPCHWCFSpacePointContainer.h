@@ -1,40 +1,41 @@
 //-*- Mode: C++ -*-
 // $Id$
-#ifndef ALIHLTTPCSPACEPOINTCONTAINER_H
-#define ALIHLTTPCSPACEPOINTCONTAINER_H
+#ifndef ALIHLTTPCHWCFSPACEPOINTCONTAINER_H
+#define ALIHLTTPCHWCFSPACEPOINTCONTAINER_H
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-/// @file   AliHLTTPCSpacePointContainer.h
+/// @file   AliHLTTPCHWCFSpacePointContainer.h
 /// @author Matthias Richter
-/// @date   2011-04-29
-/// @brief  Helper class for handling of HLT TPC space point data blocks
-///
+/// @date   2011-08-08
+/// @brief  Helper class for handling of HLT TPC cluster data blocks from the
+///         HW ClusterFinder
+/// @note   Class is a duplicate of AliHLTTPCHWCFSpacePointContainer and should
+///         be merged with it in a generic way
 
 #include "AliHLTSpacePointContainer.h"
-#include "AliHLTTPCClusterDataFormat.h"
-#include "AliHLTTPCSpacePointData.h"
+#include "AliHLTTPCHWCFData.h"
 #include <map>
 using namespace std;
 
 /**
- * @class AliHLTTPCSpacePointContainer
- * Handler class for HLT TPCS space point data blocks.
+ * @class AliHLTTPCHWCFSpacePointContainer
+ * Handler class for HLT TPC hardware ClusterFinder space point data blocks.
  *
  * @ingroup alihlt_tpc
  */
-class AliHLTTPCSpacePointContainer : public AliHLTSpacePointContainer
+class AliHLTTPCHWCFSpacePointContainer : public AliHLTSpacePointContainer
 {
  public:
   /// standard constructor
-  AliHLTTPCSpacePointContainer();
+  AliHLTTPCHWCFSpacePointContainer();
   /// copy constructor
-  AliHLTTPCSpacePointContainer(const AliHLTTPCSpacePointContainer& c);
+  AliHLTTPCHWCFSpacePointContainer(const AliHLTTPCHWCFSpacePointContainer& c);
   /// assignment operator
-  AliHLTTPCSpacePointContainer& operator=(const AliHLTTPCSpacePointContainer& c);
+  AliHLTTPCHWCFSpacePointContainer& operator=(const AliHLTTPCHWCFSpacePointContainer& c);
   /// destructor
-  ~AliHLTTPCSpacePointContainer();
+  ~AliHLTTPCHWCFSpacePointContainer();
 
   virtual bool Check(AliHLTUInt32_t clusterID) const;
   virtual int GetClusterIDs(vector<AliHLTUInt32_t>& tgt) const;
@@ -46,7 +47,6 @@ class AliHLTTPCSpacePointContainer : public AliHLTSpacePointContainer
   virtual float GetZ(AliHLTUInt32_t clusterID) const;
   virtual float GetZWidth(AliHLTUInt32_t clusterID) const;
   virtual float GetCharge(AliHLTUInt32_t clusterID) const;
-  virtual float GetMaxSignal(AliHLTUInt32_t clusterID) const;
   virtual float GetPhi(AliHLTUInt32_t clusterID) const;
 
   /// add input block to the collection
@@ -78,16 +78,22 @@ class AliHLTTPCSpacePointContainer : public AliHLTSpacePointContainer
   virtual int GetTrackID(AliHLTUInt32_t clusterID) const;
   virtual int SetMCID(int clusterID, const AliHLTUInt32_t* clusterIDs, int arraySize);
 
-  class AliHLTTPCSpacePointProperties {
+  virtual int Write(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size,
+		    vector<AliHLTComponentBlockData>& outputBlocks,
+		    AliHLTDataDeflater* pDeflater,
+		    const char* option="") const;
+
+  class AliHLTTPCHWCFSpacePointProperties {
   public:
-    AliHLTTPCSpacePointProperties();
-    AliHLTTPCSpacePointProperties(const AliHLTTPCSpacePointData* pCluster);
-    AliHLTTPCSpacePointProperties(const AliHLTTPCSpacePointProperties& src);
-    AliHLTTPCSpacePointProperties& operator=(const AliHLTTPCSpacePointProperties& src);
+    AliHLTTPCHWCFSpacePointProperties();
+    AliHLTTPCHWCFSpacePointProperties(const AliHLTTPCHWCFData* pDecoder, int index);
+    AliHLTTPCHWCFSpacePointProperties(const AliHLTTPCHWCFSpacePointProperties& src);
+    AliHLTTPCHWCFSpacePointProperties& operator=(const AliHLTTPCHWCFSpacePointProperties& src);
 
-    ~AliHLTTPCSpacePointProperties() {}
+    ~AliHLTTPCHWCFSpacePointProperties() {}
 
-    const AliHLTTPCSpacePointData* Data() const {return fCluster;}
+    const AliHLTTPCHWCFData* Decoder() const {return fDecoder;}
+    int GetSpacepointIndex() const {return fIndex;}
     bool IsUsed() const {return fUsed;}
     void MarkUsed(bool used=true) {fUsed=used;}
     int GetTrackId() const {return fTrackId;}
@@ -98,7 +104,8 @@ class AliHLTTPCSpacePointContainer : public AliHLTSpacePointContainer
     void Print(ostream& out, Option_t *option="") const;
 
   private:
-    const AliHLTTPCSpacePointData* fCluster; //! transient
+    const AliHLTTPCHWCFData* fDecoder; //! decoder for data block
+    int fIndex; //! index within the decoder block
     bool fUsed; //! transient
     int fTrackId; //! track id from reconstruction
     int fMCId; //! MC id
@@ -108,14 +115,17 @@ class AliHLTTPCSpacePointContainer : public AliHLTSpacePointContainer
 
  private:
   /// map of clusters
-  std::map<AliHLTUInt32_t, AliHLTTPCSpacePointProperties> fClusters; //!
+  std::map<AliHLTUInt32_t, AliHLTTPCHWCFSpacePointProperties> fClusters; //!
 
   /// map of cluster id collection for different masks
   std::map<AliHLTUInt32_t, vector<AliHLTUInt32_t>*> fSelections; //!
 
-  ClassDef(AliHLTTPCSpacePointContainer, 0)
+  /// array of decoders
+  std::vector<AliHLTTPCHWCFData*> fDecoders; //!
+
+  ClassDef(AliHLTTPCHWCFSpacePointContainer, 0)
 };
 
-ostream& operator<<(ostream &out, const AliHLTTPCSpacePointContainer::AliHLTTPCSpacePointProperties& p);
+ostream& operator<<(ostream &out, const AliHLTTPCHWCFSpacePointContainer::AliHLTTPCHWCFSpacePointProperties& p);
 
 #endif
