@@ -35,8 +35,6 @@
 AliHLTTPCAgent gAliHLTTPCAgent;
 
 // component headers
-#include "AliHLTTPCRunStatisticsProducerComponent.h"
-#include "AliHLTTPCEventStatisticsProducerComponent.h"
 #include "AliHLTTPCCompModelInflaterComponent.h"
 #include "AliHLTTPCCompModelDeflaterComponent.h"
 #include "AliHLTTPCCompModelDeconverterComponent.h"
@@ -53,11 +51,9 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCdEdxComponent.h"
 #include "AliHLTTPCGlobalMergerComponent.h"
 #include "AliHLTTPCSliceTrackerComponent.h"
-#include "AliHLTTPCVertexFinderComponent.h"
 #include "AliHLTTPCClusterFinderComponent.h"
 #include "AliHLTTPCRawDataUnpackerComponent.h"
 #include "AliHLTTPCDigitPublisherComponent.h"
-#include "AliHLTTPCZeroSuppressionComponent.h"
 #include "AliHLTTPCDigitDumpComponent.h"
 #include "AliHLTTPCClusterDumpComponent.h"
 #include "AliHLTTPCEsdWriterComponent.h"
@@ -66,7 +62,6 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCOfflineTrackerCalibComponent.h"
 #include "AliHLTTPCOfflineCalibrationComponent.h" // to be added to the calibration library agent
 #include "AliHLTTPCClusterHistoComponent.h"
-#include "AliHLTTPCNoiseMapComponent.h"
 #include "AliHLTTPCHistogramHandlerComponent.h"
 //#include "AliHLTTPCCalibTracksComponent.h"
 #include "AliHLTTPCTrackHistoComponent.h"
@@ -79,6 +74,9 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 // #include "AliHLTTPCCalibTimeGainComponent.h"
 // #include "AliHLTTPCCalibrationComponent.h"
 #include "AliHLTTPCDataCheckerComponent.h"
+#include "AliHLTTPCHWCFEmulatorComponent.h"
+#include "AliHLTTPCHWCFConsistencyControlComponent.h"
+#include "AliHLTTPCDataCompressionComponent.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCAgent)
@@ -120,7 +118,9 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     int iMaxPart=5;
     TString mergerInput;
     TString sinkClusterInput;
+    TString sinkHWClusterInput;
     TString dEdXInput;
+    TString compressorInput;
     for (int slice=iMinSlice; slice<=iMaxSlice; slice++) {
       TString trackerInput;
       for (int part=iMinPart; part<=iMaxPart; part++) {
@@ -143,30 +143,41 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 
 	// cluster finder components
 	cf.Form("TPC-CF_%02d_%d", slice, part);
-	arg="-release-memory";
+	arg="-release-memory -publish-raw";
 	if (!rawReader && runloader) {
 	  arg+=" -do-mc";
 	  handler->CreateConfiguration(cf.Data(), "TPCClusterFinderUnpacked", publisher.Data(), arg.Data());
 	} else {
-#ifndef HAVE_NOT_ALTRORAWSTREAMV3
 	  handler->CreateConfiguration(cf.Data(), "TPCClusterFinder32Bit", publisher.Data(),arg.Data());
-#else
-	  // using the AltroDecoder if the official V3 decoder is not
-	  // available in the offline code
-	  handler->CreateConfiguration(cf.Data(), "TPCClusterFinderDecoder", publisher.Data(), arg.Data());
-#endif 
 	}
+
+	// Hardware CF emulator
+	// soon going to replace the software clusterfinder
+	TString hwcfemu;
+	hwcfemu.Form("TPC-HWCFEmu_%02d_%d", slice, part);
+	handler->CreateConfiguration(hwcfemu.Data(), "TPCHWClusterFinderEmulator", publisher.Data(), "-do-mc 1");
+	if (compressorInput.Length()>0) compressorInput+=" ";
+	compressorInput+=hwcfemu;
+
+	TString hwcf;
+	hwcf.Form("TPC-HWCF_%02d_%d", slice, part);
+	handler->CreateConfiguration(hwcf.Data(), "TPCHWClusterTransform",hwcfemu.Data(), "-publish-raw");
+
 	if (trackerInput.Length()>0) trackerInput+=" ";
-	trackerInput+=cf;
+	trackerInput+=hwcf;
 	if (dEdXInput.Length()>0) dEdXInput+=" ";
-	dEdXInput+=cf;
+	dEdXInput+=hwcf;
+	if (compressorInput.Length()>0) compressorInput+=" ";
+	compressorInput+=hwcf;
 	if (sinkClusterInput.Length()>0) sinkClusterInput+=" ";
 	sinkClusterInput+=cf;
+	if (sinkHWClusterInput.Length()>0) sinkHWClusterInput+=" ";
+	sinkHWClusterInput+=hwcf;
       }
       TString tracker;
       // tracker finder components
       tracker.Form("TPC-TR_%02d", slice);
-      handler->CreateConfiguration(tracker.Data(), "TPCCATracker", trackerInput.Data(), "");
+      handler->CreateConfiguration(tracker.Data(), "TPCCATracker", trackerInput.Data(), "-minTrackPt 0.0");
 
       if (mergerInput.Length()>0) mergerInput+=" ";
       mergerInput+=tracker;
@@ -176,10 +187,16 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     // GlobalMerger component
     handler->CreateConfiguration("TPC-globalmerger","TPCCAGlobalMerger",mergerInput.Data(),"");
 
+    // dEdx component
     if (dEdXInput.Length()>0) dEdXInput+=" ";
     dEdXInput+="TPC-globalmerger";
 
     handler->CreateConfiguration("TPC-dEdx","TPCdEdx",dEdXInput.Data(),"");
+
+    // compression component
+    if (compressorInput.Length()>0) compressorInput+=" ";
+    compressorInput+="TPC-globalmerger";
+    handler->CreateConfiguration("TPC-compression", "TPCDataCompressor", compressorInput.Data(),"");
 
     // the esd converter configuration
     TString converterInput="TPC-globalmerger";
@@ -193,7 +210,10 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     handler->CreateConfiguration("TPC-esd-converter", "TPCEsdConverter"   , converterInput.Data(), "");
 
     // cluster dump collection
-    handler->CreateConfiguration("TPC-clusters", "BlockFilter"   , sinkClusterInput.Data(), "-datatype 'CLUSTERS' 'TPC '");
+    handler->CreateConfiguration("TPC-clusters", "BlockFilter"   , sinkClusterInput.Data(), "-datatype 'CLUSTERS' 'TPC ' -datatype 'CLMCINFO' 'TPC '");
+    handler->CreateConfiguration("TPC-raw-clusters", "BlockFilter"   , sinkClusterInput.Data(), "-datatype 'CLUSTRAW' 'TPC ' -datatype 'CLMCINFO' 'TPC '");
+    handler->CreateConfiguration("TPC-hwclusters", "BlockFilter"   , sinkHWClusterInput.Data(), "-datatype 'CLUSTERS' 'TPC ' -datatype 'CLMCINFO' 'TPC '");
+    handler->CreateConfiguration("TPC-raw-hwclusters", "BlockFilter"   , sinkHWClusterInput.Data(), "-datatype 'CLUSTRAW' 'TPC ' -datatype 'CLMCINFO' 'TPC '");
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -268,8 +288,6 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   // see header file for class documentation
   if (!pHandler) return -EINVAL;
 
-  pHandler->AddComponent(new AliHLTTPCRunStatisticsProducerComponent);
-  pHandler->AddComponent(new AliHLTTPCEventStatisticsProducerComponent);
 //   pHandler->AddComponent(new AliHLTTPCCalibCEComponent);
 //   pHandler->AddComponent(new AliHLTTPCCalibPulserComponent);
 //   pHandler->AddComponent(new AliHLTTPCCalibPedestalComponent);
@@ -286,14 +304,12 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTTPCGlobalMergerComponent);
   pHandler->AddComponent(new AliHLTTPCdEdxComponent);
   pHandler->AddComponent(new AliHLTTPCSliceTrackerComponent);
-  pHandler->AddComponent(new AliHLTTPCVertexFinderComponent);
   pHandler->AddComponent(new AliHLTTPCClusterFinderComponent(AliHLTTPCClusterFinderComponent::kClusterFinderPacked));
   pHandler->AddComponent(new AliHLTTPCClusterFinderComponent(AliHLTTPCClusterFinderComponent::kClusterFinderUnpacked));
   pHandler->AddComponent(new AliHLTTPCClusterFinderComponent(AliHLTTPCClusterFinderComponent::kClusterFinderDecoder));
   pHandler->AddComponent(new AliHLTTPCClusterFinderComponent(AliHLTTPCClusterFinderComponent::kClusterFinder32Bit));
   pHandler->AddComponent(new AliHLTTPCRawDataUnpackerComponent);
   pHandler->AddComponent(new AliHLTTPCDigitPublisherComponent);
-  pHandler->AddComponent(new AliHLTTPCZeroSuppressionComponent);
   pHandler->AddComponent(new AliHLTTPCDigitDumpComponent);
   pHandler->AddComponent(new AliHLTTPCClusterDumpComponent);
   pHandler->AddComponent(new AliHLTTPCEsdWriterComponent::AliWriter);
@@ -303,7 +319,6 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTTPCOfflineTrackerCalibComponent);
   pHandler->AddComponent(new AliHLTTPCOfflineCalibrationComponent);
   pHandler->AddComponent(new AliHLTTPCClusterHistoComponent);
-  pHandler->AddComponent(new AliHLTTPCNoiseMapComponent);
   pHandler->AddComponent(new AliHLTTPCHistogramHandlerComponent);
   //pHandler->AddComponent(new AliHLTTPCCalibTracksComponent);
   pHandler->AddComponent(new AliHLTTPCTrackHistoComponent);
@@ -316,7 +331,9 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
 //   pHandler->AddComponent(new AliHLTTPCCalibTimeGainComponent);
 //   pHandler->AddComponent(new AliHLTTPCCalibrationComponent);
   pHandler->AddComponent(new AliHLTTPCDataCheckerComponent);
-
+  pHandler->AddComponent(new AliHLTTPCHWCFEmulatorComponent);
+//  pHandler->AddComponent(new AliHLTTPCHWCFConsistencyControlComponent);  //FIXME: Causes crash: https://savannah.cern.ch/bugs/?83677
+  pHandler->AddComponent(new AliHLTTPCDataCompressionComponent);
   return 0;
 }
 
@@ -346,6 +363,18 @@ int AliHLTTPCAgent::GetHandlerDescription(AliHLTComponentDataType dt,
   // dump for {'CLUSTERS':'TPC '} blocks stored in a 'digit' file
   if (dt==AliHLTTPCDefinitions::fgkClustersDataType) {
       desc=AliHLTOUTHandlerDesc(kChain, dt, GetModuleId());
+      return 1;
+  }
+
+  // {'CLUSTRAW':'TPC '} 
+  if (dt==AliHLTTPCDefinitions::fgkRawClustersDataType) {
+      desc=AliHLTOUTHandlerDesc(kProprietary, dt, GetModuleId());
+      return 1;
+  }
+
+  // {'CLMCINFO':'TPC '} 
+  if (dt==AliHLTTPCDefinitions::fgkAliHLTDataTypeClusterMCInfo) {
+      desc=AliHLTOUTHandlerDesc(kProprietary, dt, GetModuleId());
       return 1;
   }
 

@@ -26,6 +26,11 @@ CLASS_HDRS:=  	AliHLTTPCTransform.h \
 		AliHLTTPCVertexFinder.h \
 		AliHLTTPCTrackArray.h \
 		AliHLTTPCTrack.h \
+		AliHLTTPCSpacePointContainer.h \
+		AliHLTTPCRawSpacePointContainer.h \
+		AliHLTTPCHWCFSpacePointContainer.h \
+		AliHLTTPCTrackGeometry.h \
+		AliHLTTPCHWCFData.h \
 		offline/AliHLTTPCDigitPublisherComponent.h \
 		offline/AliHLTTPCOfflineClustererComponent.h \
 		offline/AliHLTTPCOfflineTrackerComponent.h \
@@ -99,6 +104,15 @@ CLASS_HDRS:=  	AliHLTTPCTransform.h \
 		comp/AliHLTTPCCompModelDeflaterComponent.h \
 		comp/AliHLTTPCCompModelInflater.h \
 		comp/AliHLTTPCCompModelInflaterComponent.h \
+		comp/AliHLTTPCDataCompressionComponent.h \
+                HWCFemulator/AliHLTTPCHWCFExtractorUnit.h \
+                HWCFemulator/AliHLTTPCHWCFProcessorUnit.h \
+                HWCFemulator/AliHLTTPCHWCFMergerUnit.h \
+                HWCFemulator/AliHLTTPCHWCFDivisionUnit.h \
+		HWCFemulator/AliHLTTPCHWCFEmulator.h \
+		HWCFemulator/AliHLTTPCHWCFSupport.h \
+		HWCFemulator/AliHLTTPCHWCFEmulatorComponent.h \
+		HWCFemulator/AliHLTTPCHWCFConsistencyControlComponent.h \
                 AliHLTTPCEventStatistics.h \
                 AliHLTTPCEventStatisticsProducerComponent.h \
                 AliHLTTPCRunStatistics.h \
@@ -137,6 +151,8 @@ MODULE_HDRS:= 	$(CLASS_HDRS) \
 		AliHLTTPCLog.h \
 		AliHLTTPCLogging.h \
 		AliHLTTPCSpacePointData.h \
+		AliHLTTPCRawCluster.h \
+		AliHLTTPCClusterMCData.h \
 		AliHLTTPCRootTypes.h \
 		AliHLTTPCDigitData.h \
 		AliHLTTPCTrackSegmentData.h \
@@ -153,6 +169,7 @@ EINCLUDE 	:= HLT/TPCLib \
 		   HLT/TPCLib/tracking-ca \
 		   HLT/TPCLib/merger-ca \
 		   HLT/TPCLib/offline \
+		   HLT/TPCLib/HWCFemulator \
 		   HLT/BASE \
 		   HLT/BASE/util \
 		   HLT/RCU \
