@@ -18,8 +18,10 @@
 #include "AliHLTDataTypes.h"
 #include "AliHLTStdIncludes.h"
 
+class AliHLTDataDeflater;
 class TArrayC;
 class TH1;
+class TTree;
 
 /**
  * @class AliHLTSpacePointContainer
@@ -48,6 +50,7 @@ class AliHLTSpacePointContainer : public TObject, public AliHLTLogging
   virtual int GetNumberOfSpacePoints() const;
   virtual bool Check(AliHLTUInt32_t clusterID) const;
   virtual int GetClusterIDs(vector<AliHLTUInt32_t>& tgt) const = 0;
+  virtual const vector<AliHLTUInt32_t>* GetClusterIDs(AliHLTUInt32_t /*mask*/) {return NULL;}
   virtual float GetX(AliHLTUInt32_t clusterID) const = 0;
   virtual float GetXWidth(AliHLTUInt32_t clusterID) const = 0;
   virtual float GetY(AliHLTUInt32_t clusterID) const = 0;
@@ -55,7 +58,11 @@ class AliHLTSpacePointContainer : public TObject, public AliHLTLogging
   virtual float GetZ(AliHLTUInt32_t clusterID) const = 0;
   virtual float GetZWidth(AliHLTUInt32_t clusterID) const = 0;
   virtual float GetCharge(AliHLTUInt32_t clusterID) const = 0;
+  virtual float GetMaxSignal(AliHLTUInt32_t /*clusterID*/) const {return 0.0;}
   virtual float GetPhi(AliHLTUInt32_t /*clusterID*/) const {return 0.0;}
+
+  /// create a collection of clusters for a space point mask
+  virtual AliHLTSpacePointContainer* SelectByMask(AliHLTUInt32_t mask, bool bAlloc=false) const;
 
   /// create a collection of clusters for a specific track
   virtual AliHLTSpacePointContainer* SelectByTrack(int trackId, bool bAlloc=false) const;
@@ -84,11 +91,27 @@ class AliHLTSpacePointContainer : public TObject, public AliHLTLogging
   }
   virtual int SetMCID(int clusterID, const AliHLTUInt32_t* clusterIDs, int arraySize);
 
+  /// write blocks to HLT component output
+  virtual int Write(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size,
+		    vector<AliHLTComponentBlockData>& outputBlocks,
+		    AliHLTDataDeflater* /*pDeflater*/,
+		    const char* option="") const {
+    return Write(outputPtr, size, outputBlocks, option);
+  }
+
+  /// write blocks to HLT component output: old function definition for backward compatibility
+  virtual int Write(AliHLTUInt8_t* /*outputPtr*/, AliHLTUInt32_t /*size*/,
+		    vector<AliHLTComponentBlockData>& /*outputBlocks*/,
+		    const char* /*option*/="") const {return 0;}
+
   /// add input block from file to collection
   int AddInputBlock(const char* filename, AliHLTComponentDataType dt, unsigned specification);
 
   /// add input block from list of blank separated files to collection
   int AddInputBlocks(const char* filenames, AliHLTComponentDataType dt);
+
+  /// alloc memory for a space point data block
+  AliHLTUInt8_t* Alloc(int size);
 
   /// inherited from TObject: clear the object and reset pointer references
   virtual void Clear(Option_t * /*option*/ ="");
@@ -111,6 +134,8 @@ class AliHLTSpacePointContainer : public TObject, public AliHLTLogging
   }
 
   TH1* DrawProjection(const char* plane, const vector<AliHLTUInt32_t>& selection) const;
+
+  TTree* FillTree(const char* name, const char* title="");
 
  protected:
 

@@ -31,6 +31,7 @@
 #include "TH2F.h"
 #include "TMath.h"
 #include "TMarker.h"
+#include "TTree.h"
 #include <memory>
 #include <algorithm>
 #include <iostream>
@@ -159,6 +160,24 @@ int AliHLTSpacePointContainer::AddInputBlocks(const char* listfile, AliHLTCompon
   // }
 
   return count;
+}
+
+AliHLTUInt8_t* AliHLTSpacePointContainer::Alloc(int size)
+{
+  /// alloc memory for a space point data block
+  TArrayC* buffer=new TArrayC;
+  if (!buffer) return NULL;
+
+  buffer->Set(size);
+  fBuffers.push_back(buffer);
+  return reinterpret_cast<AliHLTUInt8_t*>(buffer->GetArray());
+}
+
+AliHLTSpacePointContainer* AliHLTSpacePointContainer::SelectByMask(AliHLTUInt32_t /*mask*/, bool /*bAlloc*/) const
+{
+  /// create a collection of clusters for a space point mask
+  /// default implementation, nothing to do
+  return NULL;
 }
 
 AliHLTSpacePointContainer* AliHLTSpacePointContainer::SelectByTrack(int /*trackId*/, bool /*bAlloc*/) const
@@ -312,6 +331,8 @@ void AliHLTSpacePointContainer::Draw(Option_t *option)
   /// Inherited from TObject, draw clusters
   float scale=250;
   float center[2]={0.5,0.5};
+  int markersize=1;
+  int markercolor=5;
 
   TString strOption(option);
   std::auto_ptr<TObjArray> tokens(strOption.Tokenize(" "));
@@ -336,6 +357,16 @@ void AliHLTSpacePointContainer::Draw(Option_t *option)
       arg.ReplaceAll(key, "");
       center[1]=arg.Atof();
     }
+    key="markersize=";
+    if (arg.BeginsWith(key)) {
+      arg.ReplaceAll(key, "");
+      markersize=arg.Atoi();
+    }
+    key="markercolor=";
+    if (arg.BeginsWith(key)) {
+      arg.ReplaceAll(key, "");
+      markercolor=arg.Atoi();
+    }
   }
 
   vector<AliHLTUInt32_t> clusterIDs;
@@ -348,14 +379,58 @@ void AliHLTSpacePointContainer::Draw(Option_t *option)
     float sinphi=TMath::Sin(clusterphi);
     float clusterx=GetX(*clusterID);
     float clustery=GetY(*clusterID);
+    //cout << " " << *clusterID << " " << clusterx << " " << clustery << " " << clusterphi << endl;
     // rotate
     float pointx= clusterx*sinphi + clustery*cosphi;
     float pointy=-clusterx*cosphi + clustery*sinphi;
 
     TMarker* m=new TMarker(pointx/(2*scale)+center[0], pointy/(2*scale)+center[1], 3);
-    m->SetMarkerColor(5);
+    m->SetMarkerSize(markersize);
+    m->SetMarkerColor(markercolor);
     m->Draw("same");    
   }  
+}
+
+TTree* AliHLTSpacePointContainer::FillTree(const char* name, const char* title)
+{
+  // create tree and fill the space point coordinates
+  TString treename=name;
+  TString treetitle=title;
+  if (treename.IsNull()) treename="spacepoints";
+  if (treetitle.IsNull()) treetitle="HLT space point coordinates";
+  std::auto_ptr<TTree> tree(new TTree(treename, treetitle));
+  if (!tree.get()) return NULL;
+
+  const unsigned dimension=8;
+  float values[dimension];
+  memset(values, 0, sizeof(values));
+  const char* names[dimension]={
+    "x", "y", "z", "sigmaY2", "sigmaZ2", "charge", "qmax", "alpha"
+  };
+
+  for (unsigned i=0; i<dimension; i++) {
+    TString type=names[i]; type+="/F";
+    tree->Branch(names[i], &values[i], type);
+  }
+
+  const vector<AliHLTUInt32_t>* clusterIDs=GetClusterIDs(0xffffffff);
+  for (vector<AliHLTUInt32_t>::const_iterator clusterID=clusterIDs->begin();
+       clusterID!=clusterIDs->end();
+       clusterID++) {
+    unsigned pos=0;
+    values[pos++]=GetX(*clusterID);
+    values[pos++]=GetY(*clusterID);
+    values[pos++]=GetZ(*clusterID);
+    values[pos++]=GetYWidth(*clusterID);
+    values[pos++]=GetZWidth(*clusterID);
+    values[pos++]=GetCharge(*clusterID);
+    values[pos++]=GetMaxSignal(*clusterID);
+    values[pos++]=GetPhi(*clusterID);
+
+    tree->Fill();
+  }
+
+  return tree.release();
 }
 
 ostream& operator<<(ostream &out, const AliHLTSpacePointContainer& c)

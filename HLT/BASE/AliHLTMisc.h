@@ -72,6 +72,9 @@ class AliHLTMisc : public TObject {
   virtual void GetBxByBz(const Double_t r[3], Double_t b[3]);
 
   virtual const TClass* IsAliESDHLTDecision() const;
+  
+  using TObject::Copy;  // Needed since the declaration of AliHLTMisc::Copy below is ambiguous to the compiler.
+  
   virtual int Copy(const AliHLTGlobalTriggerDecision* pDecision, TObject* pESDHLTDecision) const;
 
   /// Init streamer info from ocdb entry
@@ -79,6 +82,22 @@ class AliHLTMisc : public TObject {
 
   /// Init streamer info for a collection of classes
   virtual int InitStreamerInfos(TObjArray* pSchemas) const;
+
+  /// set the online mode flag of AliESDtrack
+  virtual void SetAliESDtrackOnlineModeFlag(bool mode) const;
+
+  /// get status of the online mode flag of AliESDtrack
+  virtual bool GetAliESDtrackOnlineModeFlag() const;
+
+  /// guard class for switching offline software to online mode
+  class AliOnlineGuard {
+  public:
+    AliOnlineGuard(bool mode=true);
+    ~AliOnlineGuard();
+
+  private:
+    bool fMode; //! old value to be restored
+  };
 
  private:
   static AliHLTMisc* fgInstance;

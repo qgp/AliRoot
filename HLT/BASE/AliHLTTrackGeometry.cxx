@@ -27,6 +27,7 @@
 #include "TObjArray.h"
 #include "TMarker.h"
 #include "TMath.h"
+#include "TH2.h"
 #include <memory>
 #include <iostream>
 #include <algorithm>
@@ -37,7 +38,9 @@ ClassImp(AliHLTTrackGeometry)
 AliHLTTrackGeometry::AliHLTTrackGeometry()
   : TObject(), AliHLTLogging()
   , fTrackPoints()
+  , fSelectionMasks()
   , fTrackId(-1)
+  , fVerbosity(0)
 {
   /// standard constructor
 }
@@ -45,7 +48,9 @@ AliHLTTrackGeometry::AliHLTTrackGeometry()
 AliHLTTrackGeometry::AliHLTTrackGeometry(const AliHLTTrackGeometry& src)
   : TObject(src), AliHLTLogging()
   , fTrackPoints(src.fTrackPoints)
+  , fSelectionMasks(src.fSelectionMasks)
   , fTrackId(src.fTrackId)
+  , fVerbosity(src.fVerbosity)
 {
   /// copy constructor
 }
@@ -55,7 +60,9 @@ AliHLTTrackGeometry& AliHLTTrackGeometry::operator=(const AliHLTTrackGeometry& s
   /// assignment operator
   if (this!=&src) {
     fTrackPoints.assign(src.fTrackPoints.begin(), src.fTrackPoints.end());
+    fSelectionMasks.assign(src.fSelectionMasks.begin(), src.fSelectionMasks.end());
     fTrackId=src.fTrackId;
+    fVerbosity=src.fVerbosity;
   }
   return *this;
 }
@@ -65,12 +72,15 @@ AliHLTTrackGeometry::~AliHLTTrackGeometry()
   /// destructor
 }
 
-int AliHLTTrackGeometry::AddTrackPoint(const AliHLTTrackPoint& point)
+int AliHLTTrackGeometry::AddTrackPoint(const AliHLTTrackPoint& point, AliHLTUInt32_t selectionMask)
 {
   /// add a track point to the list
   vector<AliHLTTrackPoint>::const_iterator element = find(fTrackPoints.begin(), fTrackPoints.end(), point);
   if (element==fTrackPoints.end()) {
     fTrackPoints.push_back(point);
+    if (std::find(fSelectionMasks.begin(), fSelectionMasks.end(), selectionMask)==fSelectionMasks.end()) {
+      fSelectionMasks.push_back(selectionMask);
+    }
   } else {
     HLTError("track point of id %08x already existing", point.GetId());
     return -EEXIST;
@@ -102,6 +112,7 @@ void AliHLTTrackGeometry::Draw(Option_t *option)
   float center[2]={0.5,0.5};
   int markerColor=1;
   int markerSize=1;
+  int verbosity=0;
 
   TString strOption(option);
   std::auto_ptr<TObjArray> tokens(strOption.Tokenize(" "));
@@ -143,6 +154,13 @@ void AliHLTTrackGeometry::Draw(Option_t *option)
       markerSize=arg.Atoi();
       continue;
     }
+
+    key="verbosity=";
+    if (arg.BeginsWith(key)) {
+      arg.ReplaceAll(key, "");
+      verbosity=arg.Atoi();
+      continue;
+    }
   }
 
   bool bFirstPoint=true;
@@ -156,6 +174,9 @@ void AliHLTTrackGeometry::Draw(Option_t *option)
     float sina=TMath::Sin(alpha);
     float x = r*sina + point->GetU()*cosa;
     float y =-r*cosa + point->GetU()*sina;
+    if (verbosity>0) {
+      HLTInfo("ID 0x%08x: x=% .4f y=% .4f alpha=% .4f", point->GetId(), r, point->GetU(), alpha);
+    }
     int color=markerColor;
     if (bFirstPoint) {
       bFirstPoint=false;
@@ -174,12 +195,14 @@ void AliHLTTrackGeometry::Draw(Option_t *option)
   }
 }
 
-int AliHLTTrackGeometry::SetAssociatedSpacePoint(UInt_t planeId, UInt_t spacepointId, int status)
+int AliHLTTrackGeometry::SetAssociatedSpacePoint(UInt_t planeId, UInt_t spacepointId, int status, float fdU, float fdV)
 {
   /// set the spacepoint associated with a track point
   vector<AliHLTTrackPoint>::iterator element = find(fTrackPoints.begin(), fTrackPoints.end(), planeId);
   if (element==fTrackPoints.end()) return -ENOENT;
   element->SetAssociatedSpacePoint(spacepointId, status);
+  element->SetResidual(0, fdU);
+  element->SetResidual(1, fdV);
   return 0;
 }
 
@@ -209,6 +232,13 @@ AliHLTTrackGeometry::AliHLTTrackPoint* AliHLTTrackGeometry::GetTrackPoint(AliHLT
   return &(*element);
 }
 
+AliHLTSpacePointContainer* AliHLTTrackGeometry::ConvertToSpacePoints(bool /*bAssociated*/) const
+{
+  /// create a collection of all points
+  HLTError("implementation of child method missing");
+  return NULL;
+}
+
 int AliHLTTrackGeometry::AssociateSpacePoints(AliHLTSpacePointContainer& points)
 {
   /// associate the track space points to the calculated track points
@@ -217,7 +247,7 @@ int AliHLTTrackGeometry::AssociateSpacePoints(AliHLTSpacePointContainer& points)
   if (ids.size()>0) return 0;
   int result=AssociateSpacePoints(&ids[0], ids.size(), points);
   if (result>0) {
-    HLTInfo("associated %d space point(s) to track points", result);
+    HLTInfo("associated %d of %d space point(s) to track points", result, ids.size());
   }
   return result;
 }
@@ -237,13 +267,14 @@ int AliHLTTrackGeometry::AssociateSpacePoints(const AliHLTUInt32_t* trackpoints,
     AliHLTUInt32_t planeId=0;
     int result=FindMatchingTrackPoint(trackpoints[i], xyz, planeId);
     if (result<0) {
-      HLTWarning("no associated track point found for space point id %08x x=%f y=%f z=%f", trackpoints[i], xyz[0], xyz[1], xyz[2]);
+      if (GetVerbosity()>0) HLTWarning("no associated track point found for space point id %08x x=%f y=%f z=%f", trackpoints[i], xyz[0], xyz[1], xyz[2]);
       continue;
     } else if (result==0) {
       HLTWarning("associated track point for space pointid %08x x=%f y=%f z=%f occupied", trackpoints[i], xyz[0], xyz[1], xyz[2]);
       continue;
     }
-    SetAssociatedSpacePoint(planeId, trackpoints[i], 1);
+    vector<AliHLTTrackPoint>::const_iterator element = find(fTrackPoints.begin(), fTrackPoints.end(), planeId);
+    SetAssociatedSpacePoint(planeId, trackpoints[i], 1, xyz[1]-element->GetU(), xyz[2]-element->GetV());
     if (points.GetTrackID(trackpoints[i])<0 && GetTrackId()>=0) {
       points.SetTrackID(GetTrackId(), trackpoints[i]);
       HLTDebug("associating unused cluster %08x with track %d", trackpoints[i], GetTrackId());
@@ -257,28 +288,53 @@ int AliHLTTrackGeometry::AssociateUnusedSpacePoints(AliHLTSpacePointContainer& p
 {
   /// associate the track space points to the calculated track points
   int count=0;
-  vector<AliHLTUInt32_t> ids;
-  points.GetClusterIDs(ids);
-  for (vector<AliHLTUInt32_t>::iterator id=ids.begin();
-       id!=ids.end(); id++) {
-    float xyz[3]={points.GetX(*id), points.GetY(*id), points.GetZ(*id)};
-    AliHLTUInt32_t planeId=0;
-    int result=FindMatchingTrackPoint(*id, xyz, planeId);
-    if (result<0) {
-      //HLTWarning("no associated track point found for space point id %08x x=%f y=%f z=%f", *id, xyz[0], xyz[1], xyz[2]);
-      continue;
-    } else if (result==0) {
-      //HLTWarning("associated track point for space pointid %08x x=%f y=%f z=%f occupied", *id, xyz[0], xyz[1], xyz[2]);
+  for (vector<AliHLTUInt32_t>::iterator mask=fSelectionMasks.begin();
+       mask!=fSelectionMasks.end(); mask++) {
+    int subcount=0;
+    const vector<AliHLTUInt32_t>* selectedPoints=points.GetClusterIDs(*mask);
+    if (!selectedPoints) {
+      HLTWarning("space point collection does not contain data for mask 0x%08x", *mask);
       continue;
     }
-    SetAssociatedSpacePoint(planeId, *id, 1);
-    if (points.GetTrackID(*id)<0 && GetTrackId()>=0) {
-      points.SetTrackID(GetTrackId(), *id);
-      HLTDebug("associating unused cluster %08x with track %d", *id, GetTrackId());
+    for (vector<AliHLTUInt32_t>::const_iterator id=selectedPoints->begin();
+	 id!=selectedPoints->end(); id++) {
+      if (points.GetTrackID(*id)>=0) continue;
+      float xyz[3]={points.GetX(*id), points.GetY(*id), points.GetZ(*id)};
+      AliHLTUInt32_t planeId=0;
+      int result=FindMatchingTrackPoint(*id, xyz, planeId);
+      if (result<0) {
+	//HLTWarning("no associated track point found for space point id %08x x=%f y=%f z=%f", *id, xyz[0], xyz[1], xyz[2]);
+	continue;
+      } else if (result==0) {
+	//HLTWarning("associated track point for space pointid %08x x=%f y=%f z=%f occupied", *id, xyz[0], xyz[1], xyz[2]);
+	continue;
+      }
+      SetAssociatedSpacePoint(planeId, *id, 1);
+      if (points.GetTrackID(*id)<0 && GetTrackId()>=0) {
+	points.SetTrackID(GetTrackId(), *id);
+	HLTDebug("associating unused cluster %08x with track %d", *id, GetTrackId());
+      }
+      subcount++;
     }
-    count++;
+    if (fVerbosity>0) {
+      HLTInfo("associated %d of %d spacepoint(s) from selection 0x%08x to track %d",
+	      subcount, selectedPoints->size(), *mask, GetTrackId());
+    }
+    count+=subcount;
   }
   return count;
+}
+
+int AliHLTTrackGeometry::FillResidual(int coordinate, TH2* histo) const
+{
+  // fill residual histogram
+  const vector<AliHLTTrackPoint>& trackPoints=TrackPoints();
+  for (vector<AliHLTTrackPoint>::const_iterator trackpoint=trackPoints.begin();
+       trackpoint!=trackPoints.end(); trackpoint++) {
+    if (!trackpoint->HaveAssociatedSpacePoint()) continue;
+    histo->Fill(GetPlaneR(trackpoint->GetId()), trackpoint->GetResidual(coordinate));
+  }
+  return 0;
 }
 
 ostream& operator<<(ostream &out, const AliHLTTrackGeometry& p)
