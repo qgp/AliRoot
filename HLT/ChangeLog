@@ -1,0 +1,27 @@
+2011-07-18 branch v5-01-Release created, r50671
+# Syntax: revision numbers x y z preceded by key '---' and module/comment
+#
+#   revision log: '--- [module/comment]: x y z'
+#   merging:      '---> [module/comment]: x y z'
+#
+# merging of an entry of this file:
+# cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z/]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text; svn merge -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
+#
+# checking log message and diff of the selected revisions
+# cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z/]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text;svn log -c $r https://alisoft.cern.ch/AliRoot/trunk/HLT; svn diff -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
+#
+# merged revisions:
+# for r in `cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/---/!d' -e 's|---[ >/:A-Za-z]*||'`; do echo $r; done | sort
+#
+# changes in the trunk since creation of the branch
+# svn log -r 50671:HEAD https://alisoft.cern.ch/AliRoot/trunk/HLT/ | sed -e '/^r[0-9]/!d' -e 's|^r||' | cut -d ' ' -f 1
+#
+# check differences and sort
+# choice=port;for f in diff_*.diff; do kompare $f; echo port $f? "[$choice], n"; folder=$choice; read choice; if test "x$choice" == "x"; then choice=$folder; fi; if test "x$choice" != "xn"; then mkdir -p $choice;mv $f $choice; else choice=$folder; fi; done
+#
+2011-08-15 preparing next HLT online software tag
+	--- BASE: 50695,50730,50798,50801,50869,50878,50970,50971,51002,51006,51012,51017,51025,51063,51067,51068,51083,51089
+	new base classes
+
+	--- TPCLib: 50691 50756 50766 50799 50800 50839 50846 50861 50870 50879 50926 50962 50963 50964 50965 50966 50967 50968 50969 50984 51001 51003 51005 51007 51008 51009 51010 51011 51014 51015 51026 51031 51033 51034 51064 51065 51073 51074 51075 51080 51081 51084 51087 51088
+	HWCF format decoder, compression component, ...
