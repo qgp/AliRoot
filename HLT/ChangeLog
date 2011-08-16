@@ -189,3 +189,51 @@
 
 	--- pendolino: 47333 48997
 	bugfix: dummy function for pure virtual function of AliShuttleInterface
+
+2011-08-15 updated to r51086
+	--- BASE:
+	patch to include new classes
+	adding new classes and headers from r51031
+	  HLT/libHLTbase.pkg
+	  HLT/BASE/HLTbaseLinkDef.h
+	  HLT/BASE/AliHLTSpacePointContainer.cxx
+	  HLT/BASE/AliHLTSpacePointContainer.h
+	  HLT/BASE/AliHLTTemplates.h
+	  HLT/BASE/AliHLTTrackGeometry.cxx
+	  HLT/BASE/AliHLTTrackGeometry.h
+	updating components to 51031
+	  HLT/BASE/util/AliHLTGlobalBarrelTrack.cxx
+	  HLT/BASE/util/AliHLTGlobalBarrelTrack.h
+
+	--- TPC:
+	patch to include new classes
+	adding new classes and headers from r51031
+	  HLT/libAliHLTTPC.pkg
+	  HLT/TPCLib/AliHLTTPCClusterMCData.h
+	  HLT/TPCLib/AliHLTTPCRawCluster.h
+	  HLT/TPCLib/AliHLTTPCHWCFData.cxx
+	  HLT/TPCLib/AliHLTTPCHWCFData.h
+	  HLT/TPCLib/AliHLTTPCSpacePointContainer.h
+	  HLT/TPCLib/AliHLTTPCSpacePointContainer.cxx
+	  HLT/TPCLib/AliHLTTPCRawSpacePointContainer.h
+	  HLT/TPCLib/AliHLTTPCRawSpacePointContainer.cxx
+	  HLT/TPCLib/AliHLTTPCHWCFSpacePointContainer.h
+	  HLT/TPCLib/AliHLTTPCHWCFSpacePointContainer.cxx
+	  HLT/TPCLib/AliHLTTPCTrackGeometry.h
+	  HLT/TPCLib/AliHLTTPCTrackGeometry.cxx
+	  HLT/TPCLib/AliHLTTPCClusterAccessHLTOUT.h
+	  HLT/TPCLib/AliHLTTPCClusterAccessHLTOUT.cxx
+	  HLT/TPCLib/comp/AliHLTTPCDataCompressionComponent.cxx
+	  HLT/TPCLib/comp/AliHLTTPCDataCompressionComponent.h
+	  HLT/TPCLib/HWCFemulator
+
+	 updating components to 51031
+	  HLT/TPCLib/AliHLTTPCSpacePointData.h
+	  HLT/TPCLib/AliHLTTPCDefinitions.h
+	  HLT/TPCLib/AliHLTTPCDefinitions.cxx
+	  HLT/TPCLib/AliHLTTPCHWClusterTransformComponent.h
+	  HLT/TPCLib/AliHLTTPCHWClusterTransformComponent.cxx
+	  HLT/TPCLib/AliHLTTPCAgent.cxx
+	  HLT/TPCLib/offline/AliHLTTPCOfflineCluster.cxx
+	
+	---> BASE TPC: 51033 51034 51063 51064 51065 51067 51068 51073 51074 51075 51080 51081 51083 51084
