@@ -62,7 +62,9 @@ CLASS_HDRS:=  	AliHLTComponent.h \
                 AliHLTTriggerMenuSymbol.h                   \
                 AliHLTCTPData.h                             \
                 AliHLTScalars.h                             \
-                AliHLTRunStatistics.h
+                AliHLTRunStatistics.h \
+		AliHLTSpacePointContainer.h \
+		AliHLTTrackGeometry.h
 
 
 
@@ -72,6 +74,7 @@ MODULE_SRCS= 	AliHLT_C_Component_WrapperInterface.cxx \
 
 MODULE_HDRS:= 	$(CLASS_HDRS) \
 		AliHLTDataTypes.h \
+		AliHLTTemplates.h \
 		AliHLTLoggingVariadicFree.h \
 		AliHLTExternalTrackParam.h \
 		AliHLTCommonCDBEntries.h \
