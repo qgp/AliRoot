@@ -35,6 +35,7 @@
 #include <memory>
 #include <algorithm>
 #include <iostream>
+#include <iomanip>
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTSpacePointContainer)
@@ -436,5 +437,12 @@ TTree* AliHLTSpacePointContainer::FillTree(const char* name, const char* title)
 ostream& operator<<(ostream &out, const AliHLTSpacePointContainer& c)
 {
   c.Print(out);
+  return out;
+}
+
+ostream& operator<<(ostream &out, const AliHLTSpacePointContainer::AliHLTSpacePointProperties& p)
+{
+  // print
+  cout << p.fId;
   return out;
 }

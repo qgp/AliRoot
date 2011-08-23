@@ -107,6 +107,9 @@
 #pragma link C++ class AliHLTTriggerMenuSymbol+;
 #pragma link C++ class AliHLTRunStatistics+;
 #pragma link C++ class AliHLTSpacePointContainer+;
+#pragma link C++ class AliHLTIndexGrid<float, AliHLTSpacePointContainer::AliHLTSpacePointProperties>+;
+#pragma link C++ class AliHLTIndexGrid<float, AliHLTUInt32_t>+;
+#pragma link C++ class AliHLTIndexGrid<int, AliHLTUInt32_t>+;
 #pragma link C++ class AliHLTTrackGeometry+;
 #pragma link C++ class AliHLTMisc+;
 #pragma link C++ class AliHLTCTPData+;
