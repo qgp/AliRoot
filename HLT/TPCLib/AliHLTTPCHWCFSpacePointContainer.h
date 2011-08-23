@@ -29,7 +29,7 @@ class AliHLTTPCHWCFSpacePointContainer : public AliHLTSpacePointContainer
 {
  public:
   /// standard constructor
-  AliHLTTPCHWCFSpacePointContainer();
+  AliHLTTPCHWCFSpacePointContainer(int mode=0);
   /// copy constructor
   AliHLTTPCHWCFSpacePointContainer(const AliHLTTPCHWCFSpacePointContainer& c);
   /// assignment operator
@@ -51,6 +51,11 @@ class AliHLTTPCHWCFSpacePointContainer : public AliHLTSpacePointContainer
 
   /// add input block to the collection
   virtual int AddInputBlock(const AliHLTComponentBlockData* pDesc);
+
+  virtual int PopulateAccessGrid(AliHLTSpacePointPropertyGrid* pGrid, AliHLTUInt32_t mask) const;
+  int PopulateAccessGrid(AliHLTSpacePointPropertyGrid* pGrid, AliHLTTPCHWCFData* pDecoder, int slice, int partition) const;
+  virtual const AliHLTSpacePointPropertyGrid* GetSpacePointPropertyGrid(AliHLTUInt32_t mask) const;
+  virtual int SetSpacePointPropertyGrid(AliHLTUInt32_t mask, AliHLTSpacePointPropertyGrid*);
 
   /// clear the object and reset pointer references
   virtual void Clear(Option_t * option ="");
@@ -82,6 +87,30 @@ class AliHLTTPCHWCFSpacePointContainer : public AliHLTSpacePointContainer
 		    vector<AliHLTComponentBlockData>& outputBlocks,
 		    AliHLTDataDeflater* pDeflater,
 		    const char* option="") const;
+  virtual int Write(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size, AliHLTUInt32_t offset,
+		    vector<AliHLTComponentBlockData>& outputBlocks,
+		    AliHLTDataDeflater* pDeflater,
+		    const char* option="") const;
+
+  int WriteUnsorted(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size, AliHLTUInt32_t offset,
+		    vector<AliHLTComponentBlockData>& outputBlocks,
+		    AliHLTDataDeflater* pDeflater,
+		    const char* option="") const;
+
+  int WriteSorted(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size, AliHLTUInt32_t offset,
+		  vector<AliHLTComponentBlockData>& outputBlocks,
+		  AliHLTDataDeflater* pDeflater,
+		  const char* option="") const;
+
+  int WriteSorted(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size, AliHLTUInt32_t offset,
+		  AliHLTTPCHWCFData* pDecoder, AliHLTSpacePointPropertyGrid* pGrid,
+		  AliHLTUInt32_t mask,
+		  vector<AliHLTComponentBlockData>&  outputBlocks,
+		  AliHLTDataDeflater* pDeflater,
+		  const char* option) const;
+
+  /// allocate index grid, one single point to define the dimensions
+  static AliHLTSpacePointPropertyGrid* AllocateIndexGrid();
 
   class AliHLTTPCHWCFSpacePointProperties {
   public:
@@ -111,6 +140,31 @@ class AliHLTTPCHWCFSpacePointContainer : public AliHLTSpacePointContainer
     int fMCId; //! MC id
   };
 
+  class AliHLTTPCHWCFSpacePointBlock {
+  public:
+    AliHLTTPCHWCFSpacePointBlock(AliHLTUInt32_t id=0, AliHLTTPCHWCFData* pDecoder=NULL, AliHLTSpacePointPropertyGrid* pGrid=NULL)
+      : fDecoder(pDecoder), fGrid(pGrid), fId(id) {}
+    AliHLTTPCHWCFSpacePointBlock(const AliHLTTPCHWCFSpacePointBlock& s) 
+      : fDecoder(s.fDecoder), fGrid(s.fGrid), fId(s.fId) {}
+    AliHLTTPCHWCFSpacePointBlock& operator=(const AliHLTTPCHWCFSpacePointBlock& s) 
+    { fDecoder=s.fDecoder; fGrid=s.fGrid; fId=s.fId; return *this;}
+    ~AliHLTTPCHWCFSpacePointBlock() {}
+
+    int GetNofSpacepoints() const {return fDecoder?fDecoder->GetNumberOfClusters():0;}
+    AliHLTUInt32_t GetId() const {return fId;}
+    void SetId(AliHLTUInt32_t id) {fId=id;}
+    AliHLTTPCHWCFData* GetDecoder() const {return fDecoder;} 
+    void SetDecoder(AliHLTTPCHWCFData* pDecoder) {fDecoder=pDecoder;}
+    AliHLTSpacePointPropertyGrid* GetGrid() const {return fGrid;}
+    void SetGrid(AliHLTSpacePointPropertyGrid* pGrid) {fGrid=pGrid;}
+
+  protected:
+  private:
+    AliHLTTPCHWCFData* fDecoder; //!
+    AliHLTSpacePointPropertyGrid* fGrid; //!
+    AliHLTUInt32_t fId; //!
+  };
+
  protected:
 
  private:
@@ -121,7 +175,13 @@ class AliHLTTPCHWCFSpacePointContainer : public AliHLTSpacePointContainer
   std::map<AliHLTUInt32_t, vector<AliHLTUInt32_t>*> fSelections; //!
 
   /// array of decoders
-  std::vector<AliHLTTPCHWCFData*> fDecoders; //!
+  std::map<AliHLTUInt32_t, AliHLTTPCHWCFSpacePointBlock> fBlocks; //!
+
+  /// the one instance for mode single (=1)
+  AliHLTTPCHWCFSpacePointBlock fSingleBlock;
+
+  /// mode
+  int fMode; //!
 
   ClassDef(AliHLTTPCHWCFSpacePointContainer, 0)
 };
