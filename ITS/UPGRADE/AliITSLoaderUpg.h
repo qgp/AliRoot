@@ -1,22 +1,22 @@
-#ifndef ALIITSLOADER_H
-#define ALIITSLOADER_H
+#ifndef ALIITSLOADERUPG_H
+#define ALIITSLOADERUPG_H
 //////////////////////////////////////////////////////////
-// Loader class for ITS                                 //
+// Loader class for ITS Upgrade                         //
 //////////////////////////////////////////////////////////
 #include <AliLoader.h>
 #include <AliESDVertex.h>
-#include "AliITSgeom.h"
+#include <AliITSgeom.h>
 class AliITSpidESD;
 class AliITSdigit;
 class TObjArray;
 
-class AliITSLoader: public AliLoader{
+class AliITSLoaderUpg: public AliLoader{
   public:
-    AliITSLoader();
-    AliITSLoader(const Char_t *name,const Char_t *topfoldername);
-    AliITSLoader(const Char_t *name,TFolder *topfolder);
+    AliITSLoaderUpg();
+    AliITSLoaderUpg(const Char_t *name,const Char_t *topfoldername);
+    AliITSLoaderUpg(const Char_t *name,TFolder *topfolder);
 
-    virtual ~AliITSLoader();
+    virtual ~AliITSLoaderUpg();
 
     void           MakeTree(Option_t* opt);
     virtual void   SetupDigits(TObjArray *digPerDet,Int_t n,
@@ -112,8 +112,8 @@ class AliITSLoader: public AliLoader{
     void SetITSgeom(AliITSgeom* g);
   protected:
 
-    AliITSLoader(const AliITSLoader &ob); // copy constructor
-    AliITSLoader& operator=(const AliITSLoader & /* source */); // ass.
+    AliITSLoaderUpg(const AliITSLoaderUpg &ob); // copy constructor
+    AliITSLoaderUpg& operator=(const AliITSLoaderUpg & /* source */); // ass.
 
     // METHODS
     virtual void   MakeRawClustersContainer() {GetRawClLoader()->MakeTree();}
@@ -141,7 +141,7 @@ class AliITSLoader: public AliLoader{
     AliITSgeom *fGeom;     //! pointer to the ITS geometry class
 
 
-    ClassDef(AliITSLoader,6) // Loader for additional ITS specific trees.
+    ClassDef(AliITSLoaderUpg,1) // Loader for additional ITS specific trees.
 };
  
 #endif
