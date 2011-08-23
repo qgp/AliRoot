@@ -1952,23 +1952,6 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 	if (fStopOnError) {CleanUp(); return kFALSE;}
       }
     }
-
-    // AdC+FN
-    if (fReconstructor[3])
-      GetReconstructor(3)->FillEventTimeWithTOF(fesd,&pid);
-
-    // combined PID
-    pid.MakePID(fesd);
-
-    if (fFillTriggerESD) {
-      if (!FillTriggerESD(fesd)) {
-	if (fStopOnError) {CleanUp(); return kFALSE;}
-      }
-    }
-    // Always fill scalers
-    if (!FillTriggerScalers(fesd)) {
-       if (fStopOnError) {CleanUp(); return kFALSE;}
-    }
     
 
     ffile->cd();
@@ -2126,6 +2109,23 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 	  }
           cvtxer.V0sTracks2CascadeVertices(fesd);
        }
+    }
+
+    // AdC+FN
+    if (fReconstructor[3])
+      GetReconstructor(3)->FillEventTimeWithTOF(fesd,&pid);
+
+    // combined PID
+    pid.MakePID(fesd);
+
+    if (fFillTriggerESD) {
+      if (!FillTriggerESD(fesd)) {
+	if (fStopOnError) {CleanUp(); return kFALSE;}
+      }
+    }
+    // Always fill scalers
+    if (!FillTriggerScalers(fesd)) {
+       if (fStopOnError) {CleanUp(); return kFALSE;}
     }
 
     // write ESD
