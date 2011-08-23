@@ -44,6 +44,36 @@
 
 
 ClassImp(AliITSQASDDChecker)
+
+
+
+//_____________________________________________________________________
+
+AliITSQASDDChecker::AliITSQASDDChecker():
+fSubDetOffset(0),
+  fStepBitSDD(NULL),
+  fLowSDDValue(NULL),
+  fHighSDDValue(NULL),
+  fCalibration(NULL),
+  fThresholdForRelativeOccupancy(0.01),
+  fThresholdForRecToRawRatio(0.04),
+  fImage(NULL),
+  fESforCheck(0)
+{
+// Default constructor
+	fStepBitSDD=new Double_t[AliQAv1::kNBIT];
+	fLowSDDValue=new Float_t[AliQAv1::kNBIT];
+	fHighSDDValue=new Float_t[AliQAv1::kNBIT];
+	for(Int_t ibit=0;ibit<AliQAv1::kNBIT;ibit++)
+	  {
+	    fStepBitSDD[ibit]=0.;
+	    fLowSDDValue[ibit]=0.;
+	    fHighSDDValue[ibit]=0.;
+	  }
+
+}          // ctor
+
+
 //__________________________________________________________________
 AliITSQASDDChecker& AliITSQASDDChecker::operator = (const AliITSQASDDChecker& qac ) 
 {
@@ -406,7 +436,8 @@ Double_t AliITSQASDDChecker::Check(AliQAv1::ALITASK_t index, const TObjArray * l
 	  AliWarning(Form(" Layer 3: %i good module(s) and %i good single drift regions didn't take data! \n",emptyactivemoduleperlayer[0] ,emptyactivedrperlayer[0] ));
 	  AliWarning(Form(" Layer 4: %i good module(s) and %i good single drift regions didn't take data! \n",emptyactivemoduleperlayer[1] ,emptyactivedrperlayer[1] ));
 	  //printf("========================= %d",AliQAv1::Instance(AliQAv1::GetDetIndex(GetName()))->IsEventSpecieSet(AliRecoParam::kCosmic));
-	  if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kFALSE){     
+	  //	  if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kFALSE){     
+	  if(AliRecoParam::Convert(GetEventSpecieForCheck())!=AliRecoParam::kCosmic){     
 	    
 	    results1.Form("%i good module(s) and %i good drift regions didn't take data!",emptydiff,emptydrdiff);
 	    if(neventsraw<numlimit)
@@ -423,21 +454,22 @@ Double_t AliITSQASDDChecker::Check(AliQAv1::ALITASK_t index, const TObjArray * l
 	      }
 	  }
 	  else
-	    if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kTRUE)
-	      {
+	    //	    if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kTRUE)
+	    if(AliRecoParam::Convert(GetEventSpecieForCheck())==AliRecoParam::kCosmic)
+	      {     
 		numlimit=10000;
 		if(neventsraw<numlimit)
 		  {
 		    AliWarning(Form("This is a cosmic run. Some module and drift region are empty but all is OK. "));
-		    results1.Form("OK. Thi is a cosmic run. you need a lot of events");
+		    results1.Form("OK. This is a cosmic run. you need a lot of events. Events %i",neventsraw);
 		    results2.Form("%i good module(s) and %i good drift are empty! DO NOT CALL THE EXPERT",emptydiff,emptydrdiff);
 		    color=5;
 		    sddQACheckerValue=fHighSDDValue[AliQAv1::kWARNING];
 		  }
 		else
 		  {
-		    results1.Form("%i good module(s) and %i good drift region(s) have not recpoints!",emptydiff,emptydrdiff);
-		    results2.Form(" Events %d .Follow the TWiki instruction and call the Expert ",neventsraw);
+		    results1.Form("%i good module(s) and %i good drift region(s) have no data!",emptydiff,emptydrdiff);
+		    results2.Form(" Cosmic Events %d .Follow the TWiki instruction and call the Expert ",neventsraw);
 		    color=2;
 		    sddQACheckerValue=fHighSDDValue[AliQAv1::kERROR];
 		  }
@@ -878,8 +910,9 @@ Double_t AliITSQASDDChecker::Check(AliQAv1::ALITASK_t index, const TObjArray * l
 	  Int_t numlimits=1000;	  
 
 	  results1.Form("%i good module(s) and %i good drift region(s) have not recpoints!",emptydiff,emptydrdiff);
-	  if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kFALSE)
-	    {
+	  //	  if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kFALSE)
+	  if(AliRecoParam::Convert(GetEventSpecieForCheck())!=AliRecoParam::kCosmic){     
+	    
 	      if(neventsrecpoints<numlimits)
 		{
 		  results2.Form(" Events %d .Too few events.DO NOT CALL the Expert ",neventsrecpoints);
@@ -894,13 +927,13 @@ Double_t AliITSQASDDChecker::Check(AliQAv1::ALITASK_t index, const TObjArray * l
 		}
 	    }
 	  else
-	    if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kTRUE)
-	      {
+	    //if((AliQAv1::Instance(AliQAv1::GetDetIndex("ITS")))->IsEventSpecieSet(AliRecoParam::kCosmic)==kTRUE)
+	    if(AliRecoParam::Convert(GetEventSpecieForCheck())==AliRecoParam::kCosmic){     
 		numlimit=10000;
-		if(neventsrecpoints<numlimit)
+		if( neventsrecpoints<numlimit)
 		  {
 		    AliWarning(Form("This is a cosmic run. Some module and drift region are empty but all is OK. "));
-		    results1.Form("OK. Thi is a cosmic run. You need a lot of events");
+		    results1.Form("OK. Thi is a cosmic run. You need a lot of events. Events %i",neventsrecpoints);
 		    results2.Form("%i good module(s) and %i good drift are empty! DO NOT CALL THE EXPERT",emptydiff,emptydrdiff);
 		    color=5;
 		    sddQACheckerValue=fHighSDDValue[AliQAv1::kWARNING];
@@ -908,7 +941,7 @@ Double_t AliITSQASDDChecker::Check(AliQAv1::ALITASK_t index, const TObjArray * l
 		else
 		  {
 		    results1.Form("%i good module(s) and %i good drift region(s) have not recpoints!",emptydiff,emptydrdiff);
-		    results2.Form(" Events %d .Follow the TWiki instruction and call the Expert ",neventsrecpoints);
+		    results2.Form("Cosmic Events %d .Follow the TWiki instruction and call the Expert ",neventsrecpoints);
 		    color=2;
 		    sddQACheckerValue=fHighSDDValue[AliQAv1::kERROR];
 		  }
@@ -1198,7 +1231,8 @@ void AliITSQASDDChecker::SetTaskOffset(Int_t taskoffset)
 void AliITSQASDDChecker::SetStepBit(const Double_t *steprange)
 {
   //set the values of the step bit for each QA bit range calculated in the AliITSQAChecker class
-  fStepBitSDD = new Double_t[AliQAv1::kNBIT];
+  //if(fStepBitSDD){/*delete fStepBitSDD;*/ fStepBitSDD=NULL;}
+  //fStepBitSDD = new Double_t[AliQAv1::kNBIT];
   for(Int_t bit=0;bit<AliQAv1::kNBIT;bit++)
     {
       fStepBitSDD[bit]=steprange[bit];
@@ -1209,8 +1243,8 @@ void AliITSQASDDChecker::SetStepBit(const Double_t *steprange)
 void  AliITSQASDDChecker::SetSDDLimits(const Float_t *lowvalue, const Float_t * highvalue)
 {
   //set the low and high values in for each QA bit range calculated in the AliITSQAChecker class
-  fLowSDDValue = new Float_t[AliQAv1::kNBIT];
-  fHighSDDValue= new Float_t[AliQAv1::kNBIT];
+  //  fLowSDDValue = new Float_t[AliQAv1::kNBIT];
+  //  fHighSDDValue= new Float_t[AliQAv1::kNBIT];
 
   for(Int_t bit=0;bit<AliQAv1::kNBIT;bit++)
     {
