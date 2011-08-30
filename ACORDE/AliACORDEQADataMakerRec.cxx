@@ -90,6 +90,10 @@ AliACORDEQADataMakerRec::~AliACORDEQADataMakerRec()
   delete fhACOMin;
   delete fhACOMax;
   delete fhACOMulti;
+  delete fhACOMeanAMU;
+  delete fhACOMinAMU;
+  delete fhACOMaxAMU;
+  delete fhACOMultiAMU;
   delete fhACOTriggerCheck;
 }
 
@@ -674,7 +678,8 @@ if(rawStream.Next())
 			}
 			
         } 
-	FillRawsData(3,contSingle); 
+	FillRawsData(1,contSingle); 
+	FillRawsData(3,contMulti); 
 	//	FillRawsData(7,contMulti);
 }
 }
