@@ -1172,17 +1172,7 @@ void AliEMCALRecoUtils::FindMatches(AliVEvent *event,TObjArray * clusterArr,  Al
       AliESDtrack *esdTrack = esdevent->GetTrack(itr);
       if(!esdTrack || !IsAccepted(esdTrack)) continue;
       if(esdTrack->Pt()<fCutMinTrackPt) continue;
-      const AliESDfriendTrack*  friendTrack = esdTrack->GetFriendTrack();
-      if(friendTrack && friendTrack->GetTPCOut())
-      {
-        //Use TPC Out as starting point if it is available
-        trackParam=  const_cast<AliExternalTrackParam*>(friendTrack->GetTPCOut());
-      }
-      else
-      {
-        //Otherwise use TPC inner
-        trackParam =  const_cast<AliExternalTrackParam*>(esdTrack->GetInnerParam());
-      }
+      trackParam =  const_cast<AliExternalTrackParam*>(esdTrack->GetInnerParam());
     }
     
     //If the input event is AOD, the starting point for extrapolation is at vertex
@@ -1322,12 +1312,7 @@ Int_t AliEMCALRecoUtils::FindMatchedCluster(AliESDtrack *track, AliVEvent *event
   Float_t dRMax = fCutR, dEtaMax = fCutEta, dPhiMax = fCutPhi;
   Int_t index = -1;
   
-  AliExternalTrackParam *trackParam=0;
-  const AliESDfriendTrack*  friendTrack = track->GetFriendTrack();
-  if(friendTrack && friendTrack->GetTPCOut())
-    trackParam= const_cast<AliExternalTrackParam*>(friendTrack->GetTPCOut());
-  else
-    trackParam = const_cast<AliExternalTrackParam*>(track->GetInnerParam());
+  AliExternalTrackParam *trackParam = const_cast<AliExternalTrackParam*>(track->GetInnerParam());
   
   if(!trackParam) return index;	  
   for(Int_t icl=0; icl<event->GetNumberOfCaloClusters(); icl++)
@@ -1641,7 +1626,7 @@ void AliEMCALRecoUtils::InitTrackCuts()
     {
     case kTPCOnlyCut:
       {
-	AliInfo(Form("Track cuts for matching: GetStandardTPCOnlyTrackCuts()\n"));
+	AliInfo(Form("Track cuts for matching: GetStandardTPCOnlyTrackCuts()"));
 	//TPC
 	SetMinNClustersTPC(70);
 	SetMaxChi2PerClusterTPC(4);
@@ -1659,7 +1644,7 @@ void AliEMCALRecoUtils::InitTrackCuts()
     
     case kGlobalCut:
       {
-	AliInfo(Form("Track cuts for matching: GetStandardITSTPCTrackCuts2010(kTURE)\n"));
+	AliInfo(Form("Track cuts for matching: GetStandardITSTPCTrackCuts2010(kTURE)"));
 	//TPC
 	SetMinNClustersTPC(70);
 	SetMaxChi2PerClusterTPC(4);
