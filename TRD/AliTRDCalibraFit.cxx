@@ -136,6 +136,7 @@ AliTRDCalibraFit::AliTRDCalibraFit()
   ,fAccCDB(kFALSE)
   ,fMinEntries(800)
   ,fRebin(1)
+  ,fScaleGain(0.02431)
   ,fNumberFit(0)
   ,fNumberFitSuccess(0)
   ,fNumberEnt(0)
@@ -195,6 +196,7 @@ AliTRDCalibraFit::AliTRDCalibraFit(const AliTRDCalibraFit &c)
 ,fAccCDB(c.fAccCDB)
 ,fMinEntries(c.fMinEntries)
 ,fRebin(c.fRebin)
+,fScaleGain(c.fScaleGain)
 ,fNumberFit(c.fNumberFit)
 ,fNumberFitSuccess(c.fNumberFitSuccess)
 ,fNumberEnt(c.fNumberEnt)
@@ -544,6 +546,188 @@ Bool_t AliTRDCalibraFit::AnalyseCH(AliTRDCalibraVector *calvect)
   fDebugStreamer = 0x0;
   return kTRUE;
 }
+//____________Functions fit Online CH2d________________________________________
+Double_t AliTRDCalibraFit::AnalyseCHAllTogether(const TH2I *ch)
+{
+  //
+  // Fit the 1D histos, projections of the 2D ch on the Xaxis, for each
+  // calibration group normalized the resulted coefficients (to 1 normally)
+  //
+  Int_t    nbins   = ch->GetNbinsX();// charge
+  Int_t    nybins  = ch->GetNbinsY();// groups number
+  // Take the histo
+  TH1I *projch = (TH1I *) ch->ProjectionX("projch",1,nybins+1,(Option_t *)"e");
+  projch->SetDirectory(0);
+  // Number of entries for this calibration group
+  Double_t nentries = 0.0;
+  Double_t mean = 0.0;
+  for (Int_t k = 0; k < nbins; k++) {
+    nentries += projch->GetBinContent(k+1);
+    mean += projch->GetBinCenter(k+1)*projch->GetBinContent(k+1);
+    projch->SetBinError(k+1,TMath::Sqrt(projch->GetBinContent(k+1)));
+  }
+  projch->SetEntries(nentries);
+  //printf("The number of entries for the group %d is %f\n",idect,nentries);
+  if (nentries > 0) {
+    mean /= nentries;
+  }
+  // This detector has not enough statistics or was off
+  if (nentries <= fMinEntries) {
+    delete projch;
+    AliInfo(Form("There are %d entries for all together, it is not enough (%d)",(Int_t) nentries, fMinEntries));
+    return -100.0;
+  }
+  //Method choosen
+  switch(fMethod)
+    {
+    case 0: FitMeanW((TH1 *) projch, nentries); break;
+    case 1: FitMean((TH1 *) projch, nentries, mean); break;
+    case 2: FitCH((TH1 *) projch, mean); break;
+    case 3: FitBisCH((TH1 *) projch, mean); break;
+    default: return -100.0;
+    }
+  delete fDebugStreamer;
+  fDebugStreamer = 0x0;
+  
+  if(fCurrentCoef[0] > 0.0) return fCurrentCoef[0];
+  else return -100.0;
+  
+}
+//________________functions fit Online PH2d____________________________________
+Double_t AliTRDCalibraFit::AnalysePHAllTogether(const TProfile2D *ph)
+{
+  //
+  // Take the 1D profiles (average pulse height), projections of the 2D PH
+  // on the Xaxis, for each calibration group
+  // Reconstruct a drift velocity
+  // A first calibration of T0 is also made  using the same method
+  //
+
+  // Number of Xbins (detectors or groups of pads)
+  Int_t    nbins   = ph->GetNbinsX();// time
+  Int_t    nybins  = ph->GetNbinsY();// calibration group
+ 
+  // Take the histo
+  TH1D *projph = (TH1D *) ph->ProjectionX("projph",1,nybins+1,(Option_t *) "e");
+  projph->SetDirectory(0); 
+  // Number of entries for this calibration group
+  Double_t nentries = 0;
+  for(Int_t idect = 0; idect < nybins; idect++){
+    for (Int_t k = 0; k < nbins; k++) {
+      Int_t binnb = (nbins+2)*(idect+1)+(k+1);
+      nentries += ph->GetBinEntries(binnb);
+    }
+  }
+  //printf("AnalysePHAllTogether:: the number of entries is %f\n",nentries);
+  // This detector has not enough statistics or was off
+  if (nentries  <= fMinEntries) {
+    AliInfo(Form("There are %d entries for all together, it is not enough (%d)",(Int_t) nentries, fMinEntries));
+    if (fDebugLevel != 1) {
+      delete projph;
+    }
+    return -100.0;
+  }
+  //Method choosen
+  //printf("Method\n");
+  switch(fMethod)
+    {
+    case 0: FitLagrangePoly((TH1 *) projph); break;
+    case 1: FitPente((TH1 *) projph); break;
+    case 2: FitPH((TH1 *) projph,0); break;
+    default: return -100.0;
+    }
+  // Memory!!!
+  if (fDebugLevel != 1) {
+    delete projph;
+  }
+  delete fDebugStreamer;
+  fDebugStreamer = 0x0;
+  
+  if(fCurrentCoef[0] > 0.0) return fCurrentCoef[0];
+  else return -100.0;
+  
+}
+//____________Functions fit Online PH2d________________________________________
+Bool_t AliTRDCalibraFit::AnalysePH(AliTRDCalibraVector *calvect)
+{
+  //
+  // Reconstruct the average pulse height from the vectorPH for each
+  // calibration group
+  // Reconstruct a drift velocity
+  // A first calibration of T0 is also made  using the same method (slope method)
+  //
+
+  // Set the calibration mode
+  //const char *name = calvect->GetNamePH();
+  TString name = calvect->GetNamePH();
+  if(!SetModeCalibration(name,1)) return kFALSE;
+
+  // Number of Xbins (detectors or groups of pads)
+  if (!InitFit((432*calvect->GetDetCha0(1)+108*calvect->GetDetCha2(1)),1)) {
+    return kFALSE;
+  }
+  if (!InitFitPH()) {
+    return kFALSE;
+  }
+  fStatisticMean        = 0.0;
+  fNumberFit            = 0;
+  fNumberFitSuccess     = 0;
+  fNumberEnt            = 0;
+  // Init fCountDet and fCount
+  InitfCountDetAndfCount(1);
+  // Beginning of the loop
+  for (Int_t idect = fDect1; idect < fDect2; idect++) {
+    // Determination of fNnZ, fNnRphi, fNfragZ and fNfragRphi...........
+    UpdatefCountDetAndfCount(idect,1);
+    ReconstructFitRowMinRowMax(idect,1);
+    // Take the histo
+    fEntriesCurrent = 0;
+    if(!calvect->GetPHEntries(fCountDet)) {
+      NotEnoughStatisticPH(idect,fEntriesCurrent);
+      continue;
+    }
+    TString tname("PH");
+    tname += idect;
+    TH1F *projph  = calvect->CorrectTheError((TGraphErrors *) (calvect->ConvertVectorPHTGraphErrors(fCountDet,(idect-(fCount-(fCalibraMode->GetNfragZ(1)*fCalibraMode->GetNfragRphi(1)))),(const char *) tname)),fEntriesCurrent);
+    projph->SetDirectory(0);
+    if(fEntriesCurrent > 0) fNumberEnt++;
+    //printf("The number of entries for the group %d is %d\n",idect,fEntriesCurrent);
+    // This detector has not enough statistics or was off
+    if (fEntriesCurrent <=  fMinEntries) {
+      //printf("Not enough stat!\n");
+      NotEnoughStatisticPH(idect,fEntriesCurrent);
+      continue;
+    }
+    // Statistic of the histos fitted
+    fNumberFit++;
+    fStatisticMean += fEntriesCurrent;
+    // Calcul of "real" coef
+    CalculVdriftCoefMean();
+    CalculT0CoefMean();
+    //Method choosen
+    switch(fMethod)
+      {
+      case 0: FitLagrangePoly((TH1 *) projph); break;
+      case 1: FitPente((TH1 *) projph); break;
+      case 2: FitPH((TH1 *) projph,(Int_t) (idect - fDect1)); break;
+      default: return kFALSE;
+      }
+    // Fill the tree if end of a detector or only the pointer to the branch!!!
+    FillInfosFitPH(idect,fEntriesCurrent);
+  } // Boucle object
+  
+  // Mean Statistic
+  if (fNumberFit > 0) {
+    AliInfo(Form("There are %d with at least one entries. %d fits have been proceeded (sucessfully or not...). There is a mean statistic of: %d over these fitted histograms and %d successfulled fits",fNumberEnt, fNumberFit, (Int_t) fStatisticMean/fNumberFit,fNumberFitSuccess));
+    fStatisticMean = fStatisticMean / fNumberFit;
+  }
+  else {
+    AliInfo(Form("There are %d with at least one entries. There is no fit!",fNumberEnt));
+  }
+  delete fDebugStreamer;
+  fDebugStreamer = 0x0;
+  return kTRUE;
+}
 //________________functions fit Online PH2d____________________________________
 Bool_t AliTRDCalibraFit::AnalysePH(const TProfile2D *ph)
 {
@@ -634,87 +818,6 @@ Bool_t AliTRDCalibraFit::AnalysePH(const TProfile2D *ph)
       delete projph;
     }
   } // Boucle object
-  // Mean Statistic
-  if (fNumberFit > 0) {
-    AliInfo(Form("There are %d with at least one entries. %d fits have been proceeded (sucessfully or not...). There is a mean statistic of: %d over these fitted histograms and %d successfulled fits",fNumberEnt, fNumberFit, (Int_t) fStatisticMean/fNumberFit,fNumberFitSuccess));
-    fStatisticMean = fStatisticMean / fNumberFit;
-  }
-  else {
-    AliInfo(Form("There are %d with at least one entries. There is no fit!",fNumberEnt));
-  }
-  delete fDebugStreamer;
-  fDebugStreamer = 0x0;
-  return kTRUE;
-}
-//____________Functions fit Online PH2d________________________________________
-Bool_t AliTRDCalibraFit::AnalysePH(AliTRDCalibraVector *calvect)
-{
-  //
-  // Reconstruct the average pulse height from the vectorPH for each
-  // calibration group
-  // Reconstruct a drift velocity
-  // A first calibration of T0 is also made  using the same method (slope method)
-  //
-
-  // Set the calibration mode
-  //const char *name = calvect->GetNamePH();
-  TString name = calvect->GetNamePH();
-  if(!SetModeCalibration(name,1)) return kFALSE;
-
-  // Number of Xbins (detectors or groups of pads)
-  if (!InitFit((432*calvect->GetDetCha0(1)+108*calvect->GetDetCha2(1)),1)) {
-    return kFALSE;
-  }
-  if (!InitFitPH()) {
-    return kFALSE;
-  }
-  fStatisticMean        = 0.0;
-  fNumberFit            = 0;
-  fNumberFitSuccess     = 0;
-  fNumberEnt            = 0;
-  // Init fCountDet and fCount
-  InitfCountDetAndfCount(1);
-  // Beginning of the loop
-  for (Int_t idect = fDect1; idect < fDect2; idect++) {
-    // Determination of fNnZ, fNnRphi, fNfragZ and fNfragRphi...........
-    UpdatefCountDetAndfCount(idect,1);
-    ReconstructFitRowMinRowMax(idect,1);
-    // Take the histo
-    fEntriesCurrent = 0;
-    if(!calvect->GetPHEntries(fCountDet)) {
-      NotEnoughStatisticPH(idect,fEntriesCurrent);
-      continue;
-    }
-    TString tname("PH");
-    tname += idect;
-    TH1F *projph  = calvect->CorrectTheError((TGraphErrors *) (calvect->ConvertVectorPHTGraphErrors(fCountDet,(idect-(fCount-(fCalibraMode->GetNfragZ(1)*fCalibraMode->GetNfragRphi(1)))),(const char *) tname)),fEntriesCurrent);
-    projph->SetDirectory(0);
-    if(fEntriesCurrent > 0) fNumberEnt++;
-    //printf("The number of entries for the group %d is %d\n",idect,fEntriesCurrent);
-    // This detector has not enough statistics or was off
-    if (fEntriesCurrent <=  fMinEntries) {
-      //printf("Not enough stat!\n");
-      NotEnoughStatisticPH(idect,fEntriesCurrent);
-      continue;
-    }
-    // Statistic of the histos fitted
-    fNumberFit++;
-    fStatisticMean += fEntriesCurrent;
-    // Calcul of "real" coef
-    CalculVdriftCoefMean();
-    CalculT0CoefMean();
-    //Method choosen
-    switch(fMethod)
-      {
-      case 0: FitLagrangePoly((TH1 *) projph); break;
-      case 1: FitPente((TH1 *) projph); break;
-      case 2: FitPH((TH1 *) projph,(Int_t) (idect - fDect1)); break;
-      default: return kFALSE;
-      }
-    // Fill the tree if end of a detector or only the pointer to the branch!!!
-    FillInfosFitPH(idect,fEntriesCurrent);
-  } // Boucle object
-  
   // Mean Statistic
   if (fNumberFit > 0) {
     AliInfo(Form("There are %d with at least one entries. %d fits have been proceeded (sucessfully or not...). There is a mean statistic of: %d over these fitted histograms and %d successfulled fits",fNumberEnt, fNumberFit, (Int_t) fStatisticMean/fNumberFit,fNumberFitSuccess));
@@ -1173,6 +1276,92 @@ Bool_t AliTRDCalibraFit::AnalyseLinearFitters(AliTRDCalibraVdriftLinearFit *cali
   return kTRUE;
   
 }
+//____________Functions fit Online CH2d________________________________________
+Double_t AliTRDCalibraFit::AnalyseLinearFittersAllTogether(AliTRDCalibraVdriftLinearFit *calivdli)
+{
+  //
+  // The linear method
+  //
+
+  // Add histos
+
+  TH2S *linearfitterhisto = 0x0;
+  
+  for(Int_t idet = 0; idet < 540; idet++){
+    
+    TH2S * u = calivdli->GetLinearFitterHistoForce(idet);
+    if(idet == 0) linearfitterhisto = u;
+    else linearfitterhisto->Add(u);
+
+  }
+
+  // Fit
+
+  Int_t entries = 0;
+  TAxis *xaxis = linearfitterhisto->GetXaxis();
+  TAxis *yaxis = linearfitterhisto->GetYaxis();
+  TLinearFitter linearfitter = TLinearFitter(2,"pol1");
+  //printf("test\n");
+  Double_t integral = linearfitterhisto->Integral();
+  //printf("Integral is %f\n",integral);
+  Bool_t securitybreaking = kFALSE;
+  if(TMath::Abs(integral-1199) < 0.00001) securitybreaking = kTRUE;
+  for(Int_t ibinx = 0; ibinx < linearfitterhisto->GetNbinsX(); ibinx++){
+    for(Int_t ibiny = 0; ibiny < linearfitterhisto->GetNbinsY(); ibiny++){
+      if(linearfitterhisto->GetBinContent(ibinx+1,ibiny+1)>0){
+	Double_t x = xaxis->GetBinCenter(ibinx+1);
+	Double_t y = yaxis->GetBinCenter(ibiny+1);
+	
+	for(Int_t k = 0; k < (Int_t)linearfitterhisto->GetBinContent(ibinx+1,ibiny+1); k++){
+	  if(!securitybreaking){
+	    linearfitter.AddPoint(&x,y);
+	    entries++;
+	  }
+	  else {
+	    if(entries< 1198){
+	      linearfitter.AddPoint(&x,y);
+	      entries++; 
+	    }
+	  }
+	}
+	
+      }
+    }
+  }
+      
+  //printf("AnalyseLinearFittersAllTogether::Find %d entries\n",entries);
+  //printf("Minstats %d\n",fMinEntries);
+
+      // Eval the linear fitter
+  if(entries > fMinEntries){
+    TVectorD  par  = TVectorD(2);
+    //printf("Fit\n");
+    if((linearfitter.EvalRobust(0.8)==0)) {
+      //printf("Take the param\n");
+      linearfitter.GetParameters(par);
+      //printf("Done\n");
+      par.Print();
+      //printf("Finish\n");
+      // Put the fCurrentCoef
+      fCurrentCoef[0]  = -par[1];
+      // here the database must be the one of the reconstruction for the lorentz angle....
+      fCurrentCoef2[0] = (par[0]+fCurrentCoef[1]*fCurrentCoef2[1])/fCurrentCoef[0];
+      
+      return fCurrentCoef[0];
+    }
+    else return -100.0;
+    
+    
+  }
+  else {
+    return -100.0;
+  }
+  
+  delete linearfitterhisto;
+  delete fDebugStreamer;
+  fDebugStreamer = 0x0;
+  
+}
 //____________Functions for seeing if the pad is really okey___________________
 //_____________________________________________________________________________
 Int_t AliTRDCalibraFit::GetNumberOfGroupsPRF(TString nametitle)
@@ -1561,7 +1750,10 @@ void AliTRDCalibraFit::RemoveOutliers2(Bool_t perdetector){
     for (Int_t row = 0; row < rowMax; row++) {
       for (Int_t col = 0; col < colMax; col++) {
 	value = coef[(Int_t)(col*rowMax+row)];
-	if((value < 70.0) && (rmsAll > 0.0) && (TMath::Abs(value-meanAll) > (2.5*rmsAll))) coef[(Int_t)(col*rowMax+row)] = 100.0;
+	if((value < 70.0) && (rmsAll > 0.0) && (TMath::Abs(value-meanAll) > (2.5*rmsAll))) {
+	  //printf("value outlier %f\n",value);
+	  coef[(Int_t)(col*rowMax+row)] = 100.0;
+	}
       } // Col
     } // Row
   }
@@ -1910,6 +2102,7 @@ AliTRDCalDet *AliTRDCalibraFit::CreateDetObjectGain(const TObjArray *vectorFit, 
   // Create the DetObject
   AliTRDCalDet *object = new AliTRDCalDet("ChamberGainFactor","GainFactor (detector value)");
   
+  fScaleGain = scaleFitFactor;
  
   Int_t loop = (Int_t) vectorFit->GetEntriesFast();
   if(loop != 540) AliInfo("The Vector Fit is not complete!");
@@ -1972,6 +2165,7 @@ AliTRDCalDet *AliTRDCalibraFit::CreateDetObjectT0(const TObjArray *vectorFit, Bo
     Float_t min  = 100.0;
     if(perdetector){
       value = ((AliTRDFitInfo *) vectorFit->At(k))->GetCoef()[0];
+      //printf("Create det object %f for %d\n",value,k);
       // check successful
       if(value > 70.0) value = value-100.0;
       //
@@ -4266,7 +4460,7 @@ void AliTRDCalibraFit::FitPente(TH1* projPH)
 
     if (fPhdt0 >= 0.0) {
       fCurrentCoef2[0] = (fPhdt0 - t0Shift) / widbins;
-      if (fCurrentCoef2[0] < -1.0) {
+      if (fCurrentCoef2[0] < -3.0) {
         fCurrentCoef2[0] = fCurrentCoef2[1] + 100.0;
       }
     }
@@ -4841,7 +5035,8 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
     else fNumberFitSuccess++;
     if (fPhdt0 >= 0.0) {
       fCurrentCoef2[0] = (fPhdt0 - t0Shift) / widbins;
-      if (fCurrentCoef2[0] < -1.0) {
+      //printf("Value of timeoffset %f\n",fCurrentCoef2[0]);
+      if (fCurrentCoef2[0] < -3.0) {
         fCurrentCoef2[0] = fCurrentCoef2[1] + 100.0;
       }
     }
@@ -4850,14 +5045,14 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
     }
   }
   else {
-    //printf("Put default %f\n",-TMath::Abs(fCurrentCoef[1]));
+    ////printf("Put default %f\n",-TMath::Abs(fCurrentCoef[1]));
     fCurrentCoef[0]      = -TMath::Abs(fCurrentCoef[1]);
     
     if((fPhd[1] > fPhd[0]) &&
        (put)) {
       if (fPhdt0 >= 0.0) {
 	fCurrentCoef2[0] = (fPhdt0 - t0Shift) / widbins;
-	if (fCurrentCoef2[0] < -1.0) {
+	if (fCurrentCoef2[0] < -3.0) {
 	  fCurrentCoef2[0] = fCurrentCoef2[1] + 100.0;
 	}
       }
@@ -4905,7 +5100,7 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
   //Provisoire
   //if(fCurrentCoef[0] > 1.7) fCurrentCoef[0] = -TMath::Abs(fCurrentCoef[1]);
   //if((fCurrentCoef2[0] > 2.6) || (fCurrentCoef2[0] < 2.1)) fCurrentCoef2[0] = fCurrentCoef2[1] + 100.0;
-  
+  //printf("Value of timeoffset final %f\n",fCurrentCoef2[0]);
   projPH->SetDirectory(0);
 
 }
