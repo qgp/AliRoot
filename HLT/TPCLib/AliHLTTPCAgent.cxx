@@ -195,7 +195,7 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     // compression component
     if (compressorInput.Length()>0) compressorInput+=" ";
     compressorInput+="TPC-globalmerger";
-    handler->CreateConfiguration("TPC-compression", "TPCDataCompressor", compressorInput.Data(),"");
+    handler->CreateConfiguration("TPC-compression", "TPCDataCompressor", compressorInput.Data(),"-deflater-mode 1");
 
     // the esd converter configuration
     TString converterInput="TPC-globalmerger";
@@ -366,8 +366,12 @@ int AliHLTTPCAgent::GetHandlerDescription(AliHLTComponentDataType dt,
       return 1;
   }
 
-  // {'CLUSTRAW':'TPC '} 
-  if (dt==AliHLTTPCDefinitions::fgkRawClustersDataType) {
+  // {'CLUSTRAW':'TPC '}
+  // {'REMCLSCM':'TPC '}
+  // {'CLSTRKCM':'TPC '}
+  if (dt==AliHLTTPCDefinitions::fgkRawClustersDataType ||
+      dt==AliHLTTPCDefinitions::RemainingClustersCompressedDataType() ||
+      dt==AliHLTTPCDefinitions::ClusterTracksCompressedDataType()) {
       desc=AliHLTOUTHandlerDesc(kProprietary, dt, GetModuleId());
       return 1;
   }

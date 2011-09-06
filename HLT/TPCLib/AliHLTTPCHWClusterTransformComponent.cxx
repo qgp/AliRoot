@@ -263,9 +263,7 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 	 float time=cl.GetTime();
 	 float sigmaY2=cl.GetSigmaY2();
 	 float sigmaZ2=cl.GetSigmaZ2();
-	 sigmaY2-=pad*pad;
 	 sigmaY2*=padpitch*padpitch;
-	 sigmaZ2-=time*time;
 	 sigmaZ2*=zwidth*zwidth;
 	 c.SetPadRow(padrow);
 	 c.SetCharge(charge);
@@ -274,7 +272,7 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 	 c.SetQMax(cl.GetQMax());
 
 	 Float_t xyz[3];
-	 fTransform.Transform( minSlice, padrow, pad + 0.5, time, xyz );
+	 fTransform.Transform( minSlice, padrow, pad, time, xyz );
 	 c.SetX(xyz[0]);
 	 c.SetY(xyz[1]);
 	 c.SetZ(xyz[2]);
@@ -347,8 +345,6 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 	   float time =cl.GetTime();
 	   float sigmaP2=cl.GetSigmaY2();
 	   float sigmaT2=cl.GetSigmaZ2();
-	   sigmaP2-=pad*pad;
-	   sigmaT2-=time*time;
 	   c.SetPadRow(padrow);
 	   c.SetCharge(charge);
 	   c.SetPad(pad);  
