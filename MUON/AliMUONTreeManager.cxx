@@ -221,7 +221,7 @@ AliMUONTreeManager::UpdateBranchStatuses(TTree& tree, const char* pattern) const
 }
 
 //_____________________________________________________________________________
-const char* 
+TString
 AliMUONTreeManager::GetClassName(const TTree& tree, const char* pattern,
                                  Bool_t makeDefault) const
 {
@@ -244,7 +244,7 @@ AliMUONTreeManager::GetClassName(const TTree& tree, const char* pattern,
     TString value = (static_cast<TObjString*>(pair->Second()))->String();
     if ( key.Contains(pattern,TString::kIgnoreCase) ) 
     {
-      return value.Data();
+      return value;
     }
   }
   
@@ -254,7 +254,7 @@ AliMUONTreeManager::GetClassName(const TTree& tree, const char* pattern,
 }
 
 //_____________________________________________________________________________
-const char* 
+TString
 AliMUONTreeManager::DefaultClassName(const char* treeName, const char* pattern) const
 {
   /// For backward compatibility only. Decides, based on the tree name and a 
