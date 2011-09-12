@@ -44,6 +44,7 @@ AliAODTrack::AliAODTrack() :
   fID(-999),
   fCharge(-99),
   fType(kUndef),
+  fCaloIndex(kEMCALNoMatch),
   fCovMatrix(NULL),
   fDetPid(NULL),
   fProdVertex(NULL)
@@ -88,6 +89,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   fID(id),
   fCharge(charge),
   fType(ttype),
+  fCaloIndex(kEMCALNoMatch),
   fCovMatrix(NULL),
   fDetPid(NULL),
   fProdVertex(prodVertex)
@@ -136,6 +138,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   fID(id),
   fCharge(charge),
   fType(ttype),
+  fCaloIndex(kEMCALNoMatch),
   fCovMatrix(NULL),
   fDetPid(NULL),
   fProdVertex(prodVertex)
@@ -178,6 +181,7 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   fID(trk.fID),
   fCharge(trk.fCharge),
   fType(trk.fType),
+  fCaloIndex(trk.fCaloIndex),
   fCovMatrix(NULL),
   fDetPid(NULL),
   fProdVertex(trk.fProdVertex)
@@ -225,6 +229,8 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
 
     fCharge = trk.fCharge;
     fType = trk.fType;
+
+    fCaloIndex = trk.fCaloIndex;
 
     delete fCovMatrix;
     if(trk.fCovMatrix) fCovMatrix=new AliAODRedCov<6>(*trk.fCovMatrix);
@@ -671,7 +677,7 @@ Int_t AliAODTrack::GetTOFBunchCrossing(Double_t b) const
   // Returns the number of bunch crossings after trigger (assuming 25ns spacing)
   const double kSpacing = 25e3; // min interbanch spacing
   const double kShift = 0;
-  Int_t bcid = -1; // defualt one
+  Int_t bcid = kTOFBCNA; // defualt one
   if (!IsOn(kTOFout) || !IsOn(kESDpid)) return bcid; // no info
   //
   double tdif = GetTOFsignal();

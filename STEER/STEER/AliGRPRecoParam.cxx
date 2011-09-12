@@ -31,7 +31,7 @@ AliGRPRecoParam::AliGRPRecoParam() : AliDetectorRecoParam(),
 fMostProbablePt(0.350),
 fVertexerTracksConstraintITS(kTRUE),
 fVertexerTracksConstraintTPC(kTRUE),
-fVertexerTracksNCuts(12),
+fVertexerTracksNCuts(21),
 fVertexerTracksITSdcacut(0.1),
 fVertexerTracksITSdcacutIter0(0.1),
 fVertexerTracksITSmaxd0z0(0.5),
@@ -44,6 +44,17 @@ fVertexerTracksITSfidR(3.),
 fVertexerTracksITSfidZ(30.),
 fVertexerTracksITSalgo(1.),
 fVertexerTracksITSalgoIter0(4.),
+//
+fVertexerTracksITSMVTukey2(7.),
+fVertexerTracksITSMVSig2Ini(1e3),
+fVertexerTracksITSMVMaxSigma2(5.0),
+fVertexerTracksITSMVMinSig2Red(0.05),
+fVertexerTracksITSMVMinDst(10e-4),
+fVertexerTracksITSMVScanStep(2.),
+fVertexerTracksITSMVMaxWghNtr(10),
+fVertexerTracksITSMVFinalWBinary(1),
+fVertexerTracksITSMVBCSpacing(50),
+//
 fVertexerTracksTPCdcacut(0.1),
 fVertexerTracksTPCdcacutIter0(1.0),
 fVertexerTracksTPCmaxd0z0(5.),
@@ -56,6 +67,17 @@ fVertexerTracksTPCfidR(3.),
 fVertexerTracksTPCfidZ(30.),
 fVertexerTracksTPCalgo(1.),
 fVertexerTracksTPCalgoIter0(4.),
+//
+fVertexerTracksTPCMVTukey2(7.),
+fVertexerTracksTPCMVSig2Ini(1e3),
+fVertexerTracksTPCMVMaxSigma2(5.0),
+fVertexerTracksTPCMVMinSig2Red(0.05),
+fVertexerTracksTPCMVMinDst(10e-4),
+fVertexerTracksTPCMVScanStep(2.),
+fVertexerTracksTPCMVMaxWghNtr(10),
+fVertexerTracksTPCMVFinalWBinary(1),
+fVertexerTracksTPCMVBCSpacing(50),
+//
 fVertexerV0NCuts(7),
 fVertexerV0Chi2max(33.),
 fVertexerV0DNmin(0.05),
@@ -107,6 +129,17 @@ AliGRPRecoParam::AliGRPRecoParam(const AliGRPRecoParam& par) :
   fVertexerTracksITSfidZ(par.fVertexerTracksITSfidZ),
   fVertexerTracksITSalgo(par.fVertexerTracksITSalgo),
   fVertexerTracksITSalgoIter0(par.fVertexerTracksITSalgoIter0),
+  //
+  fVertexerTracksITSMVTukey2(par.fVertexerTracksITSMVTukey2),
+  fVertexerTracksITSMVSig2Ini(par.fVertexerTracksITSMVSig2Ini),
+  fVertexerTracksITSMVMaxSigma2(par.fVertexerTracksITSMVMaxSigma2),
+  fVertexerTracksITSMVMinSig2Red(par.fVertexerTracksITSMVMinSig2Red),
+  fVertexerTracksITSMVMinDst(par.fVertexerTracksITSMVMinDst),
+  fVertexerTracksITSMVScanStep(par.fVertexerTracksITSMVScanStep),
+  fVertexerTracksITSMVMaxWghNtr(par.fVertexerTracksITSMVMaxWghNtr),
+  fVertexerTracksITSMVFinalWBinary(par.fVertexerTracksITSMVFinalWBinary),
+  fVertexerTracksITSMVBCSpacing(par.fVertexerTracksITSMVBCSpacing),
+  //
   fVertexerTracksTPCdcacut(par.fVertexerTracksTPCdcacut),
   fVertexerTracksTPCdcacutIter0(par.fVertexerTracksTPCdcacutIter0),
   fVertexerTracksTPCmaxd0z0(par.fVertexerTracksTPCmaxd0z0),
@@ -119,6 +152,17 @@ AliGRPRecoParam::AliGRPRecoParam(const AliGRPRecoParam& par) :
   fVertexerTracksTPCfidZ(par.fVertexerTracksTPCfidZ),
   fVertexerTracksTPCalgo(par.fVertexerTracksTPCalgo),
   fVertexerTracksTPCalgoIter0(par.fVertexerTracksTPCalgoIter0),
+  //
+  fVertexerTracksTPCMVTukey2(par.fVertexerTracksTPCMVTukey2),
+  fVertexerTracksTPCMVSig2Ini(par.fVertexerTracksTPCMVSig2Ini),
+  fVertexerTracksTPCMVMaxSigma2(par.fVertexerTracksTPCMVMaxSigma2),
+  fVertexerTracksTPCMVMinSig2Red(par.fVertexerTracksTPCMVMinSig2Red),
+  fVertexerTracksTPCMVMinDst(par.fVertexerTracksTPCMVMinDst),
+  fVertexerTracksTPCMVScanStep(par.fVertexerTracksTPCMVScanStep),
+  fVertexerTracksTPCMVMaxWghNtr(par.fVertexerTracksTPCMVMaxWghNtr),
+  fVertexerTracksTPCMVFinalWBinary(par.fVertexerTracksTPCMVFinalWBinary),
+  fVertexerTracksTPCMVBCSpacing(par.fVertexerTracksTPCMVBCSpacing),
+  //
   fVertexerV0NCuts(par.fVertexerV0NCuts),
   fVertexerV0Chi2max(par.fVertexerV0Chi2max),
   fVertexerV0DNmin(par.fVertexerV0DNmin),
@@ -192,7 +236,6 @@ AliGRPRecoParam *AliGRPRecoParam::GetLowFluxParam()
   // make default reconstruction  parameters for low  flux env.
   //
   AliGRPRecoParam *param = new AliGRPRecoParam();
-
   return param;
 }
 //_____________________________________________________________________________
@@ -210,42 +253,62 @@ AliGRPRecoParam *AliGRPRecoParam::GetCosmicTestParam()
   return param;
 }
 //_____________________________________________________________________________
-void AliGRPRecoParam::GetVertexerTracksCuts(Int_t mode,Double_t *cuts) const {
+void AliGRPRecoParam::GetVertexerTracksCuts(Int_t mode,Double_t *cuts, int n) const {
   //
   // get cuts for ITS (0) or TPC (1) mode
   //
   if(mode==1) {
-    cuts[0] = fVertexerTracksTPCdcacut;
-    cuts[1] = fVertexerTracksTPCdcacutIter0;
-    cuts[2] = fVertexerTracksTPCmaxd0z0;
-    cuts[3] = fVertexerTracksTPCminCls;
-    cuts[4] = fVertexerTracksTPCmintrks;
-    cuts[5] = fVertexerTracksTPCnsigma;
-    cuts[6] = fVertexerTracksTPCnindetfitter;
-    cuts[7] = fVertexerTracksTPCmaxtgl; 
-    cuts[8] = fVertexerTracksTPCfidR;
-    cuts[9] = fVertexerTracksTPCfidZ;
-    cuts[10]= fVertexerTracksTPCalgo;
-    cuts[11]= fVertexerTracksTPCalgoIter0;
+    if (n>0)  cuts[0] = fVertexerTracksTPCdcacut;
+    if (n>1)  cuts[1] = fVertexerTracksTPCdcacutIter0;
+    if (n>2)  cuts[2] = fVertexerTracksTPCmaxd0z0;
+    if (n>3)  cuts[3] = fVertexerTracksTPCminCls;
+    if (n>4)  cuts[4] = fVertexerTracksTPCmintrks;
+    if (n>5)  cuts[5] = fVertexerTracksTPCnsigma;
+    if (n>6)  cuts[6] = fVertexerTracksTPCnindetfitter;
+    if (n>7)  cuts[7] = fVertexerTracksTPCmaxtgl; 
+    if (n>8)  cuts[8] = fVertexerTracksTPCfidR;
+    if (n>9)  cuts[9] = fVertexerTracksTPCfidZ;
+    if (n>10) cuts[10]= fVertexerTracksTPCalgo;
+    if (n>11) cuts[11]= fVertexerTracksTPCalgoIter0;
+    //
+    if (n>12)  cuts[12]= fVertexerTracksTPCMVTukey2;
+    if (n>13)  cuts[13]= fVertexerTracksTPCMVSig2Ini;
+    if (n>14)  cuts[14]= fVertexerTracksTPCMVMaxSigma2;
+    if (n>15)  cuts[15]= fVertexerTracksTPCMVMinSig2Red;
+    if (n>16)  cuts[16]= fVertexerTracksTPCMVMinDst;
+    if (n>17)  cuts[17]= fVertexerTracksTPCMVScanStep;
+    if (n>18)  cuts[18]= fVertexerTracksTPCMVMaxWghNtr;
+    if (n>19)  cuts[19]= fVertexerTracksTPCMVFinalWBinary;
+    if (n>20)  cuts[20]= fVertexerTracksTPCMVBCSpacing;
   } else {
-    cuts[0] = fVertexerTracksITSdcacut;
-    cuts[1] = fVertexerTracksITSdcacutIter0;
-    cuts[2] = fVertexerTracksITSmaxd0z0;
-    cuts[3] = fVertexerTracksITSminCls;
-    cuts[4] = fVertexerTracksITSmintrks;
-    cuts[5] = fVertexerTracksITSnsigma;
-    cuts[6] = fVertexerTracksITSnindetfitter;
-    cuts[7] = fVertexerTracksITSmaxtgl; 
-    cuts[8] = fVertexerTracksITSfidR;
-    cuts[9] = fVertexerTracksITSfidZ;
-    cuts[10]= fVertexerTracksITSalgo;
-    cuts[11]= fVertexerTracksITSalgoIter0;
+    if (n>0 ) cuts[0] = fVertexerTracksITSdcacut;
+    if (n>1 ) cuts[1] = fVertexerTracksITSdcacutIter0;
+    if (n>2 ) cuts[2] = fVertexerTracksITSmaxd0z0;
+    if (n>3 ) cuts[3] = fVertexerTracksITSminCls;
+    if (n>4 ) cuts[4] = fVertexerTracksITSmintrks;
+    if (n>5 ) cuts[5] = fVertexerTracksITSnsigma;
+    if (n>6 ) cuts[6] = fVertexerTracksITSnindetfitter;
+    if (n>7 ) cuts[7] = fVertexerTracksITSmaxtgl; 
+    if (n>8 ) cuts[8] = fVertexerTracksITSfidR;
+    if (n>9 ) cuts[9] = fVertexerTracksITSfidZ;
+    if (n>10) cuts[10]= fVertexerTracksITSalgo;
+    if (n>11) cuts[11]= fVertexerTracksITSalgoIter0;
+    //
+    if (n>12) cuts[12]= fVertexerTracksITSMVTukey2;
+    if (n>13) cuts[13]= fVertexerTracksITSMVSig2Ini;
+    if (n>14) cuts[14]= fVertexerTracksITSMVMaxSigma2;
+    if (n>15) cuts[15]= fVertexerTracksITSMVMinSig2Red;
+    if (n>16) cuts[16]= fVertexerTracksITSMVMinDst;
+    if (n>17) cuts[17]= fVertexerTracksITSMVScanStep;
+    if (n>18) cuts[18]= fVertexerTracksITSMVMaxWghNtr;
+    if (n>19) cuts[19]= fVertexerTracksITSMVFinalWBinary;
+    if (n>20) cuts[20]= fVertexerTracksITSMVBCSpacing;
   }
 
   return;
 }
 //_____________________________________________________________________________
-void AliGRPRecoParam::SetVertexerTracksCuts(Int_t mode,Int_t ncuts,Double_t cuts[12]) {
+void AliGRPRecoParam::SetVertexerTracksCuts(Int_t mode,Int_t ncuts,Double_t cuts[21]) {
   //
   // set cuts for ITS (0) or TPC (1) mode
   //
@@ -255,33 +318,53 @@ void AliGRPRecoParam::SetVertexerTracksCuts(Int_t mode,Int_t ncuts,Double_t cuts
   }
 
   if(mode==1) {
-    fVertexerTracksTPCdcacut = cuts[0];
-    fVertexerTracksTPCdcacutIter0 = cuts[1];
-    fVertexerTracksTPCmaxd0z0 = cuts[2];
-    fVertexerTracksTPCminCls = cuts[3];
-    fVertexerTracksTPCmintrks = cuts[4];
-    fVertexerTracksTPCnsigma = cuts[5];
-    fVertexerTracksTPCnindetfitter = cuts[6];
-    fVertexerTracksTPCmaxtgl = cuts[7]; 
-    fVertexerTracksTPCfidR = cuts[8];
-    fVertexerTracksTPCfidZ = cuts[9];
-    fVertexerTracksTPCalgo = cuts[10];
-    fVertexerTracksTPCalgoIter0 = cuts[11];
+    if (ncuts>0) fVertexerTracksTPCdcacut = cuts[0];
+    if (ncuts>1) fVertexerTracksTPCdcacutIter0 = cuts[1];
+    if (ncuts>2) fVertexerTracksTPCmaxd0z0 = cuts[2];
+    if (ncuts>3) fVertexerTracksTPCminCls = cuts[3];
+    if (ncuts>4) fVertexerTracksTPCmintrks = cuts[4];
+    if (ncuts>5) fVertexerTracksTPCnsigma = cuts[5];
+    if (ncuts>6) fVertexerTracksTPCnindetfitter = cuts[6];
+    if (ncuts>7) fVertexerTracksTPCmaxtgl = cuts[7]; 
+    if (ncuts>8) fVertexerTracksTPCfidR = cuts[8];
+    if (ncuts>9) fVertexerTracksTPCfidZ = cuts[9];
+    if (ncuts>10) fVertexerTracksTPCalgo = cuts[10];
+    if (ncuts>11) fVertexerTracksTPCalgoIter0 = cuts[11];
+    //
+    if (ncuts>12) fVertexerTracksTPCMVTukey2       = cuts[12];
+    if (ncuts>13) fVertexerTracksTPCMVSig2Ini      = cuts[13];
+    if (ncuts>14) fVertexerTracksTPCMVMaxSigma2    = cuts[14];
+    if (ncuts>15) fVertexerTracksTPCMVMinSig2Red   = cuts[15];
+    if (ncuts>16) fVertexerTracksTPCMVMinDst       = cuts[16];
+    if (ncuts>17) fVertexerTracksTPCMVScanStep     = cuts[17];
+    if (ncuts>18) fVertexerTracksTPCMVMaxWghNtr    = cuts[18];
+    if (ncuts>19) fVertexerTracksTPCMVFinalWBinary = cuts[19];
+    if (ncuts>20) fVertexerTracksTPCMVBCSpacing    = cuts[20];
   } else {
-    fVertexerTracksITSdcacut = cuts[0];
-    fVertexerTracksITSdcacutIter0 = cuts[1];
-    fVertexerTracksITSmaxd0z0 = cuts[2];
-    fVertexerTracksITSminCls = cuts[3];
-    fVertexerTracksITSmintrks = cuts[4];
-    fVertexerTracksITSnsigma = cuts[5];
-    fVertexerTracksITSnindetfitter = cuts[6];
-    fVertexerTracksITSmaxtgl = cuts[7]; 
-    fVertexerTracksITSfidR = cuts[8];
-    fVertexerTracksITSfidZ = cuts[9];
-    fVertexerTracksITSalgo = cuts[10];
-    fVertexerTracksITSalgoIter0 = cuts[11];
+    if (ncuts>0) fVertexerTracksITSdcacut = cuts[0];
+    if (ncuts>1) fVertexerTracksITSdcacutIter0 = cuts[1];
+    if (ncuts>2) fVertexerTracksITSmaxd0z0 = cuts[2];
+    if (ncuts>3) fVertexerTracksITSminCls = cuts[3];
+    if (ncuts>4) fVertexerTracksITSmintrks = cuts[4];
+    if (ncuts>5) fVertexerTracksITSnsigma = cuts[5];
+    if (ncuts>6) fVertexerTracksITSnindetfitter = cuts[6];
+    if (ncuts>7) fVertexerTracksITSmaxtgl = cuts[7]; 
+    if (ncuts>8) fVertexerTracksITSfidR = cuts[8];
+    if (ncuts>9) fVertexerTracksITSfidZ = cuts[9];
+    if (ncuts>10) fVertexerTracksITSalgo = cuts[10];
+    if (ncuts>11) fVertexerTracksITSalgoIter0 = cuts[11];
+    //
+    if (ncuts>12) fVertexerTracksITSMVTukey2       = cuts[12];
+    if (ncuts>13) fVertexerTracksITSMVSig2Ini      = cuts[13];
+    if (ncuts>14) fVertexerTracksITSMVMaxSigma2    = cuts[14];
+    if (ncuts>15) fVertexerTracksITSMVMinSig2Red   = cuts[15];
+    if (ncuts>16) fVertexerTracksITSMVMinDst       = cuts[16];
+    if (ncuts>17) fVertexerTracksITSMVScanStep     = cuts[17];
+    if (ncuts>18) fVertexerTracksITSMVMaxWghNtr    = cuts[18];
+    if (ncuts>19) fVertexerTracksITSMVFinalWBinary = cuts[19];
+    if (ncuts>20) fVertexerTracksITSMVBCSpacing    = cuts[20];
   }
-
+  //
   return;
 }
 //_____________________________________________________________________________

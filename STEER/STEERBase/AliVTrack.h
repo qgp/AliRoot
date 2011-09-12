@@ -40,7 +40,8 @@ public:
   };
   enum {
     kTRDnPlanes = 6,
-    kEMCALNoMatch = -4096
+    kEMCALNoMatch = -4096,
+    kTOFBCNA = -100
   };
 
   AliVTrack() { }
@@ -54,6 +55,14 @@ public:
   virtual UShort_t GetTPCNcls() const { return 0;}
   virtual UShort_t GetTPCNclsF() const { return 0;}
   virtual Double_t GetTRDslice(Int_t /*plane*/, Int_t /*slice*/) const { return -1.; }
+  
+  virtual Int_t GetEMCALcluster()     const {return -1;}
+  virtual void SetEMCALcluster(Int_t)       {;}
+  virtual Bool_t IsEMCAL()            const {return kFALSE;}
+
+  virtual Int_t GetPHOScluster()      const {return -1;}
+  virtual void SetPHOScluster(Int_t)        {;}
+  virtual Bool_t IsPHOS()             const {return kFALSE;}
   
   //pid info
   virtual Double_t  GetITSsignal()       const {return 0.;}
@@ -75,7 +84,7 @@ public:
   virtual Int_t    GetNcls(Int_t /*idet*/) const { return 0; }
   virtual Bool_t   GetPxPyPz(Double_t */*p*/) const { return kFALSE; }
   virtual void     SetID(Short_t /*id*/) {;}
-  virtual Int_t    GetTOFBunchCrossing(Double_t = 0) const { return -1;}
+  virtual Int_t    GetTOFBunchCrossing(Double_t = 0) const { return kTOFBCNA;}
 
   ClassDef(AliVTrack,1)  // base class for tracks
 };
