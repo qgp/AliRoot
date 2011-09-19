@@ -307,16 +307,16 @@ void AliEPSelectionTask::UserExec(Option_t */*option*/)
     }
   }
   
-  else if (fAnalysisInput.CompareTo("AOD")==0){
+    else if (fAnalysisInput.CompareTo("AOD")==0){
     AliVEvent* event = InputEvent();
     AliAODEvent* aod = dynamic_cast<AliAODEvent*>(event);
 
     if (aod){
       if (!(fRunNumber == aod->GetRunNumber())) {
-	fRunNumber = aod->GetRunNumber();
-	SetPhiDist();      
+        fRunNumber = aod->GetRunNumber();
+        SetPhiDist();      
       }
-  
+
       if (fUseMCRP) {
 	AliAODMCHeader *headerH = dynamic_cast<AliAODMCHeader*>(aod->GetList()->FindObject(AliAODMCHeader::StdBranchName()));
 	if (headerH) fRP = headerH->GetReactionPlaneAngle();
@@ -355,7 +355,7 @@ void AliEPSelectionTask::UserExec(Option_t */*option*/)
 	fHOutEventplaneQ->Fill(fEventplaneQ);
 	fHOutsub1sub2->Fill(fQsub1->Phi()/2.,fQsub2->Phi()/2.);
 	fHOutNTEPRes->Fill(NT,fQsubRes);
-
+	
 	if (fUseMCRP) fHOutDiff->Fill(fEventplaneQ, fRP);
 	
 	for (int iter = 0; iter<NT;iter++){

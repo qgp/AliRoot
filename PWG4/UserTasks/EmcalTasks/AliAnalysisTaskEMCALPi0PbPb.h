@@ -44,7 +44,9 @@ class AliAnalysisTaskEMCALPi0PbPb : public AliAnalysisTaskSE {
   void         SetCentralityRange(Double_t from, Double_t to) { fCentFrom=from; fCentTo=to; }
   void         SetClusName(const char *n)                     { fClusName      = n;         }
   void         SetDoAfterburner(Bool_t b)                     { fDoAfterburner = b;         }
+  void         SetDoPhysicsSelection(Bool_t b)                { fDoPSel        = b;         }
   void         SetDoTrackMatWithGeom(Bool_t b)                { fDoTrMatGeom   = b;         }
+  void         SetEmbedMode(Bool_t b)                         { fEmbedMode     = b;         }
   void         SetFillNtuple(Bool_t b)                        { fDoNtuple      = b;         }
   void         SetGeoName(const char *n)                      { fGeoName       = n;         }
   void         SetGeoUtils(AliEMCALGeometry *geo)             { fGeom          = geo;       }
@@ -52,7 +54,6 @@ class AliAnalysisTaskEMCALPi0PbPb : public AliAnalysisTaskSE {
   void         SetL0TimeRange(Int_t l, Int_t h)               { fMinL0Time=l; fMaxL0Time=h; }
   void         SetMarkCells(const char *n)                    { fMarkCells     = n;         }
   void         SetMcMode(Bool_t b)                            { fMcMode        = b;         }
-  void         SetEmbedMode(Bool_t b)                         { fEmbedMode     = b;         }
   void         SetMinClusEnergy(Double_t e)                   { fMinE          = e;         }
   void         SetMinEcc(Double_t ecc)                        { fMinEcc        = ecc;       }
   void         SetMinErat(Double_t erat)                      { fMinErat       = erat;      }
@@ -63,9 +64,9 @@ class AliAnalysisTaskEMCALPi0PbPb : public AliAnalysisTaskSE {
   void         SetTrClassNames(const char *n)                 { fTrClassNames  = n;         }
   void         SetTrackCuts(AliESDtrackCuts *c)               { fTrCuts        = c;         }
   void         SetTrainMode(Bool_t b)                         { fTrainMode     = b;         }
+  void         SetTrigName(const char *n)                     { fTrigName      = n;         }
   void         SetUseQualFlag(Bool_t b)                       { fUseQualFlag   = b;         }
   void         SetVertexRange(Double_t z1, Double_t z2)       { fVtxZMin=z1; fVtxZMax=z2;   }
-  void         SetDoPhysicsSelection(Bool_t b)                { fDoPSel        = b;         }
 
  protected:
   virtual void CalcCaloTriggers();
@@ -88,6 +89,7 @@ class AliAnalysisTaskEMCALPi0PbPb : public AliAnalysisTaskSE {
   Double_t     GetCellEnergy(const AliVCluster *c)    const;
   Double_t     GetMaxCellEnergy(const AliVCluster *c) const { Short_t id=-1; return GetMaxCellEnergy(c,id); }
   Double_t     GetMaxCellEnergy(const AliVCluster *c, Short_t &id)                                        const;
+  Double_t     GetSecondMaxCellEnergy(AliVCluster *clus, Short_t &id)                                     const;
   Int_t        GetNCells(const AliVCluster *c, Double_t emin=0.)                                          const;
   Int_t        GetNCells(Int_t sm, Double_t emin=0.)                                                      const;
   void         GetSigma(const AliVCluster *c, Double_t &sigmaMax, Double_t &sigmaMin)                     const;
@@ -102,7 +104,6 @@ class AliAnalysisTaskEMCALPi0PbPb : public AliAnalysisTaskSE {
   void         PrintTrackRefs(AliMCParticle *p)                                                           const;
   void         ProcessDaughters(AliVParticle *p, Int_t index, const TObjArray *arr);
   void         ProcessDaughters(AliMCParticle *p, Int_t index, const AliMCEvent *arr);
-  Double_t     GetSecondMaxCell(AliVCluster *clus);
 
     // input members
   TString                fCentVar;                // variable for centrality determination
@@ -222,7 +223,8 @@ class AliStaHeader
  public:
   AliStaHeader() : fRun(0), fOrbit(0), fPeriod(0), fBx(0), fL0(0), fL1(0), fL2(0),
                    fTrClassMask(0), fTrCluster(0), fOffTriggers(0), fFiredTriggers(),
-                   fTcls(0), fV0And(0), fIsHT(0), fV0Cent(0), fV0(0), fCl1Cent(0), fCl1(0), fTrCent(0), 
+                   fTcls(0), fV0And(0), fIsHT(0), fIsPileup(0), fIsPileup2(0), fIsPileup4(0), fIsPileup8(0), 
+                   fNSpdVertices(0), fNTpcVertices(0), fV0Cent(0), fV0(0), fCl1Cent(0), fCl1(0), fTrCent(0), 
                    fTr(0), fCqual(-1), fPsi(0), fPsiRes(0), fNSelTr(0), fNSelPrimTr(0), fNSelPrimTr1(0),
                    fNSelPrimTr2(0), fNCells(0), fNCells0(0), fNCells01(0), fNCells03(0), 
                    fNCells1(0), fNCells2(0), fNCells5(0), fNClus(0), fNClus1(0), fNClus2(0), fNClus5(0), 
@@ -251,6 +253,12 @@ class AliStaHeader
   UInt_t        fTcls;           //         custom trigger definition
   Bool_t        fV0And;          //         if V0AND (from AliTriggerAnalysis)
   Bool_t        fIsHT;           //         if EMCAL L0 (from AliTriggerAnalysis)
+  Bool_t        fIsPileup;       //         indicate pileup from IsPileupFromSPD with 0.8 minzdist
+  Bool_t        fIsPileup2;      //         indicate pileup from IsPileupFromSPD with 0.4 minzdist
+  Bool_t        fIsPileup4;      //         indicate pileup from IsPileupFromSPD with 0.2 minzdist
+  Bool_t        fIsPileup8;      //         indicate pileup from IsPileupFromSPD with 0.1 minzdist
+  UShort_t      fNSpdVertices;   //         number of pileup vertices (spd)
+  UShort_t      fNTpcVertices;   //         number of pileup vertices (tpc)
   Double32_t    fV0Cent;         //[0,0,16] v0 cent
   Double32_t    fV0;             //[0,0,16] v0 result used for cent 
   Double32_t    fCl1Cent;        //[0,0,16] cl1 cent
@@ -289,7 +297,7 @@ class AliStaHeader
   UShort_t      fNcSM8;          //         # cells > 0.1  GeV in SM 8
   UShort_t      fNcSM9;          //         # cells > 0.1  GeV in SM 9
 
-  ClassDef(AliStaHeader,5) // Header class
+  ClassDef(AliStaHeader,6) // Header class
 };
 
 class AliStaVertex
@@ -321,8 +329,9 @@ class AliStaCluster : public TObject
                       fE(0), fR(0), fEta(0), fPhi(0), fN(0), fN1(0), fN3(0), fIdMax(-1), fSM(-1), fEmax(0), fE2max(0), 
                       fTmax(0), fDbc(-1), fDisp(-1), fM20(-1), fM02(-1), fEcc(-1), fSig(-1), fSigEtaEta(-1), fSigPhiPhi(-1),
                       fIsTrackM(0), fTrDz(0), fTrDr(-1), fTrEp(0), fTrDedx(0), fTrIso(0), fTrIso1(0), fTrIso2(0),  
-                      fTrIsoD1(0), fTrIso1D1(0), fTrIso2D1(0), fTrIsoD3(0), fTrIso1D3(0), fTrIso2D3(0),fTrIsoStrip(0),
-                      fCeIso(0), fCeIso1(0), fCeIso3(0), fCeIso4x4(0), fCeIso5x5(0), fCeCore(0), fCeIso3x22(0), 
+                      fTrIsoD1(0), fTrIso1D1(0), fTrIso2D1(0), fTrIsoD3(0), fTrIso1D3(0), fTrIso2D3(0),
+                      fTrIsoD4(0), fTrIso1D4(0), fTrIso2D4(0), fTrIsoStrip(0), fCeIso(0), fCeIso1(0), 
+                      fCeIso3(0), fCeIso4(0), fCeIso4x4(0), fCeIso5x5(0), fCeCore(0), fCeIso3x22(0), 
                       fIsShared(0), fTrigId(-1), fTrigE(0), fMcLabel(-1), fEmbE(0) {;}
 
  public:
@@ -360,10 +369,14 @@ class AliStaCluster : public TObject
   Double32_t    fTrIsoD3;          //[0,0,16] track isolation, iso dist 0.3
   Double32_t    fTrIso1D3;         //[0,0,16] track isolation (pt>1GeV/c), iso dist 0.3
   Double32_t    fTrIso2D3;         //[0,0,16] track isolation (pt>2GeV/c), iso dist 0.3
+  Double32_t    fTrIsoD4;          //[0,0,16] track isolation, iso dist 0.4
+  Double32_t    fTrIso1D4;         //[0,0,16] track isolation (pt>1GeV/c), iso dist 0.4
+  Double32_t    fTrIso2D4;         //[0,0,16] track isolation (pt>2GeV/c), iso dist 0.4
   Double32_t    fTrIsoStrip;       //[0,0,16] track isolation strip, dEtaXdPhi=0.015x0.3
   Double32_t    fCeIso;            //[0,0,16] cell isolation in R=0.20
   Double32_t    fCeIso1;           //[0,0,16] cell isolation in R=0.10
   Double32_t    fCeIso3;           //[0,0,16] cell isolation in R=0.30
+  Double32_t    fCeIso4;           //[0,0,16] cell isolation in R=0.30
   Double32_t    fCeIso4x4;         //[0,0,16] cell isolation in 4x4 cells
   Double32_t    fCeIso5x5;         //[0,0,16] cell isolation in 5x5 cells
   Double32_t    fCeCore;           //[0,0,16] cell content in R=0.05 
@@ -374,7 +387,7 @@ class AliStaCluster : public TObject
   Short_t       fMcLabel;          //         index of closest MC particle
   Double32_t    fEmbE;             //[0,0,16] sum of energy of embedded (MC) cells in cluster
 
-  ClassDef(AliStaCluster,7) // Cluster class
+  ClassDef(AliStaCluster,8) // Cluster class
 };
 
 class AliStaTrigger : public TObject

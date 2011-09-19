@@ -78,7 +78,7 @@ AliAnalysisTaskEMCALPi0PbPb::AliAnalysisTaskEMCALPi0PbPb()
     fEmbedMode(0),
     fGeom(0),
     fReco(0),
-    fTrigName("EmcalClusters_L0FEE"),
+    fTrigName(),
     fDoPSel(kTRUE),
     fIsGeoMatsSet(0),
     fNEvs(0),
@@ -175,7 +175,7 @@ AliAnalysisTaskEMCALPi0PbPb::AliAnalysisTaskEMCALPi0PbPb(const char *name)
     fEmbedMode(0),
     fGeom(0),
     fReco(0),
-    fTrigName("EmcalClusters_L0FEE"),
+    fTrigName(),
     fDoPSel(kTRUE),
     fIsGeoMatsSet(0),
     fNEvs(0),
@@ -240,7 +240,7 @@ AliAnalysisTaskEMCALPi0PbPb::AliAnalysisTaskEMCALPi0PbPb(const char *name)
   // Constructor.
 
   DefineOutput(1, TList::Class());
-  fBranchNames="ESD:AliESDRun.,AliESDHeader.,PrimaryVertex.,SPDVertex.,TPCVertex.,EMCALCells.,Tracks,EMCALTrigger. "
+  fBranchNames="ESD:AliESDRun.,AliESDHeader.,PrimaryVertex.,SPDVertex.,TPCVertex.,EMCALCells.,Tracks,EMCALTrigger.,SPDPileupVertices,TrkPileupVertices "
                "AOD:header,vertices,emcalCells,tracks";
 }
 
@@ -969,7 +969,8 @@ void AliAnalysisTaskEMCALPi0PbPb::CalcClusterProps()
     cl->fIdMax    = id;
     cl->fSM       = fGeom->GetSuperModuleNumber(id);
     cl->fEmax     = emax;
-    cl->fE2max    = GetSecondMaxCell(clus);
+    Short_t id2   = -1;
+    cl->fE2max    = GetSecondMaxCellEnergy(clus,id2);
     cl->fTmax     = cells->GetCellTime(id);
     if (clus->GetDistanceToBadChannel()<10000)
       cl->fDbc    = clus->GetDistanceToBadChannel();
@@ -1002,11 +1003,15 @@ void AliAnalysisTaskEMCALPi0PbPb::CalcClusterProps()
     cl->fTrIsoD3    = GetTrackIsolation(clusterVec.Eta(),clusterVec.Phi(),fIsoDist+0.1);
     cl->fTrIso1D3   = GetTrackIsolation(clusterVec.Eta(),clusterVec.Phi(),fIsoDist+0.1, 1);
     cl->fTrIso2D3   = GetTrackIsolation(clusterVec.Eta(),clusterVec.Phi(),fIsoDist+0.1, 2);
+    cl->fTrIsoD4    = GetTrackIsolation(clusterVec.Eta(),clusterVec.Phi(),fIsoDist+0.2);
+    cl->fTrIso1D4   = GetTrackIsolation(clusterVec.Eta(),clusterVec.Phi(),fIsoDist+0.2, 1);
+    cl->fTrIso2D4   = GetTrackIsolation(clusterVec.Eta(),clusterVec.Phi(),fIsoDist+0.2, 2);
     cl->fTrIsoStrip = GetTrackIsoStrip(clusterVec.Eta(), clusterVec.Phi());
     cl->fCeCore     = GetCellIsolation(clsVec.Eta(),clsVec.Phi(),0.05);
     cl->fCeIso      = GetCellIsolation(clsVec.Eta(),clsVec.Phi(),fIsoDist);
     cl->fCeIso1     = GetCellIsolation(clsVec.Eta(),clsVec.Phi(),0.10);
     cl->fCeIso3     = GetCellIsolation(clsVec.Eta(),clsVec.Phi(),0.30);
+    cl->fCeIso4     = GetCellIsolation(clsVec.Eta(),clsVec.Phi(),0.40);
     cl->fCeIso4x4   = GetCellIsoNxM(clsVec.Eta(),clsVec.Phi(), 4, 4);
     cl->fCeIso5x5   = GetCellIsoNxM(clsVec.Eta(),clsVec.Phi(), 5, 5);
     cl->fCeIso3x22  = GetCellIsoNxM(clsVec.Eta(),clsVec.Phi(), 3, 22);
@@ -1637,9 +1642,17 @@ void AliAnalysisTaskEMCALPi0PbPb::FillNtuple()
     AliTriggerAnalysis trAn; /// Trigger Analysis
     Bool_t v0B = trAn.IsOfflineTriggerFired(fEsdEv, AliTriggerAnalysis::kV0C);
     Bool_t v0A = trAn.IsOfflineTriggerFired(fEsdEv, AliTriggerAnalysis::kV0A);
-    fHeader->fV0And = v0A && v0B;
+    fHeader->fV0And        = v0A && v0B;
+    fHeader->fIsHT         = (fHeader->fOffTriggers & AliVEvent::kEMC1) || (fHeader->fOffTriggers & AliVEvent::kEMC7);
+    am->LoadBranch("SPDPileupVertices");
+    am->LoadBranch("TrkPileupVertices");
+    fHeader->fIsPileup     = fEsdEv->IsPileupFromSPD(3,0.8);
+    fHeader->fIsPileup2    = fEsdEv->IsPileupFromSPD(3,0.4);
+    fHeader->fIsPileup4    = fEsdEv->IsPileupFromSPD(3,0.2);
+    fHeader->fIsPileup8    = fEsdEv->IsPileupFromSPD(3,0.1);
+    fHeader->fNSpdVertices = fEsdEv->GetNumberOfPileupVerticesSPD();
+    fHeader->fNTpcVertices = fEsdEv->GetNumberOfPileupVerticesTracks();
   }
-  fHeader->fIsHT = (fHeader->fOffTriggers & AliVEvent::kEMC1) || (fHeader->fOffTriggers & AliVEvent::kEMC7);
 
   AliCentrality *cent = InputEvent()->GetCentrality();
   fHeader->fV0Cent    = cent->GetCentralityPercentileUnchecked("V0M");
@@ -2036,6 +2049,36 @@ Double_t AliAnalysisTaskEMCALPi0PbPb::GetMaxCellEnergy(const AliVCluster *cluste
 }
 
 //________________________________________________________________________
+Double_t AliAnalysisTaskEMCALPi0PbPb::GetSecondMaxCellEnergy(AliVCluster *clus, Short_t &id) const
+{
+  // Get second maximum cell.
+
+  AliVCaloCells *cells = fEsdCells;
+  if (!cells)
+    cells = fAodCells;
+  if (!cells)
+    return -1;
+ 
+  Double_t secondEmax=0, firstEmax=0;
+  Double_t cellen;
+  for(Int_t iCell=0;iCell<clus->GetNCells();iCell++){
+    Int_t absId = clus->GetCellAbsId(iCell);
+    cellen = cells->GetCellAmplitude(absId);
+    if(cellen > firstEmax)
+      firstEmax = cellen;
+  }
+  for(Int_t iCell=0;iCell<clus->GetNCells();iCell++){
+    Int_t absId = clus->GetCellAbsId(iCell);
+    cellen = cells->GetCellAmplitude(absId);
+    if(cellen < firstEmax && cellen > secondEmax) {
+      secondEmax = cellen;
+      id = absId;
+    }
+  }
+  return secondEmax;
+}
+
+//________________________________________________________________________
 void AliAnalysisTaskEMCALPi0PbPb::GetSigma(const AliVCluster *c, Double_t& sigmaMax, Double_t &sigmaMin) const
 {
   // Calculate the (E) weighted variance along the longer (eigen) axis.
@@ -2203,7 +2246,7 @@ Double_t AliAnalysisTaskEMCALPi0PbPb::GetTrackIsolation(Double_t cEta, Double_t 
   Double_t rad2 = radius*radius;
   Int_t ntrks = fSelPrimTracks->GetEntries();
   for(Int_t j = 0; j<ntrks; ++j) {
-    AliVTrack *track = static_cast<AliVTrack*>(fSelTracks->At(j));
+    AliVTrack *track = static_cast<AliVTrack*>(fSelPrimTracks->At(j));
     if (!track)
       continue;
     if (track->Pt()<pt)
@@ -2227,7 +2270,7 @@ Double_t AliAnalysisTaskEMCALPi0PbPb::GetTrackIsoStrip(Double_t cEta, Double_t c
   Double_t trkIsolation = 0;
   Int_t ntrks = fSelPrimTracks->GetEntries();
   for(Int_t j = 0; j<ntrks; ++j) {
-    AliVTrack *track = static_cast<AliVTrack*>(fSelTracks->At(j));
+    AliVTrack *track = static_cast<AliVTrack*>(fSelPrimTracks->At(j));
     if (!track)
       continue;
     if (track->Pt()<pt)
@@ -2248,10 +2291,7 @@ Bool_t AliAnalysisTaskEMCALPi0PbPb::IsShared(const AliVCluster *c) const
 {
   // Returns if cluster shared across super modules.
 
-  AliVCaloCells *cells = fEsdCells;
-  if (!cells)
-    cells = fAodCells;
-  if (!cells)
+  if (!c)
     return 0;
 
   Int_t n = -1;
@@ -2457,32 +2497,4 @@ void AliAnalysisTaskEMCALPi0PbPb::ProcessDaughters(AliMCParticle *p, Int_t index
       continue;
     ProcessDaughters(dmc,i,arr);
   }
-}
-
-//________________________________________________________________________
-Double_t AliAnalysisTaskEMCALPi0PbPb::GetSecondMaxCell(AliVCluster *clus)
-{
-  // Get second maximum cell.
-
-  AliVCaloCells *cells = fEsdCells;
-  if (!cells)
-    cells = fAodCells;
-  if (!cells)
-    return -1;
- 
-  Double_t secondEmax=0, firstEmax=0;
-  Double_t cellen;
-  for(Int_t iCell=0;iCell<clus->GetNCells();iCell++){
-    Int_t absId = clus->GetCellAbsId(iCell);
-    cellen = cells->GetCellAmplitude(absId);
-    if(cellen > firstEmax)
-      firstEmax = cellen;
-  }
-  for(Int_t iCell=0;iCell<clus->GetNCells();iCell++){
-    Int_t absId = clus->GetCellAbsId(iCell);
-    cellen = cells->GetCellAmplitude(absId);
-    if(cellen < firstEmax && cellen > secondEmax)
-      secondEmax = cellen;
-  }
-  return secondEmax;
 }

@@ -1,5 +1,5 @@
 //
-// All cuts for single pions in phi analysis 2010,
+// All cuts for single protons and kaons in Lambda(1520) analysis 2010,
 // based on track quality and particle identification
 // with TPC and TOF.
 // Author: Serguey Kiselev.
@@ -10,14 +10,13 @@
 
 #include "AliPID.h"
 #include "AliPIDResponse.h"
-#include "AliRsnCutDaughterKStar2010PP.h"
+#include "AliRsnCutDaughterLStar2010.h"
 
-ClassImp(AliRsnCutDaughterKStar2010PP)
+ClassImp(AliRsnCutDaughterLStar2010)
 
 //__________________________________________________________________________________________________
-AliRsnCutDaughterKStar2010PP::AliRsnCutDaughterKStar2010PP(const char *name, AliPID::EParticleType pid) :
+AliRsnCutDaughterLStar2010::AliRsnCutDaughterLStar2010(const char *name, AliPID::EParticleType pid) :
    AliRsnCut(name, AliRsnTarget::kDaughter),
-   fNoPID(kFALSE),
    fPID(pid),
    fCutQuality(Form("%sQuality", name))
 {
@@ -40,7 +39,7 @@ AliRsnCutDaughterKStar2010PP::AliRsnCutDaughterKStar2010PP(const char *name, Ali
 }
 
 //__________________________________________________________________________________________________
-Bool_t AliRsnCutDaughterKStar2010PP::IsSelected(TObject *obj)
+Bool_t AliRsnCutDaughterLStar2010::IsSelected(TObject *obj)
 {
 //
 // Global check
@@ -50,8 +49,11 @@ Bool_t AliRsnCutDaughterKStar2010PP::IsSelected(TObject *obj)
    if (!TargetOK(obj)) return kFALSE;
    
    // check track
-   AliVTrack *track = dynamic_cast<AliVTrack*>(fDaughter->GetRef());
-   if (!track) return kFALSE;
+   AliVTrack *track = fDaughter->Ref2Vtrack();
+   if (!track) {
+      if (!fDaughter->GetRef()) AliWarning("NULL ref");
+      return kFALSE;
+   }
    
    // check flags
    if ((track->GetStatus() & AliESDtrack::kTPCin   ) == 0) return kFALSE;
@@ -60,9 +62,6 @@ Bool_t AliRsnCutDaughterKStar2010PP::IsSelected(TObject *obj)
    
    // quality
    if (!fCutQuality.IsSelected(obj)) return kFALSE;
-   
-   // if no PID is required, accept
-   if (fNoPID) return kTRUE;
    
    // check initialization of PID object
    AliPIDResponse *pid = fEvent->GetPIDResponse();
@@ -77,7 +76,7 @@ Bool_t AliRsnCutDaughterKStar2010PP::IsSelected(TObject *obj)
    Double_t pTPC   = track->GetTPCmomentum();
    Double_t p      = track->P();
    Double_t nsTPC  = TMath::Abs(pid->NumberOfSigmasTPC(track, fPID));
-   Double_t nsTOF  = isTOF ? TMath::Abs(pid->NumberOfSigmasTOF(track, fPID)) : 1E20;
+   Double_t nsTOF  = TMath::Abs(pid->NumberOfSigmasTOF(track, fPID));
    Double_t maxTPC = 1E20;
    Double_t maxTOF = 1E20;
    
@@ -90,25 +89,22 @@ Bool_t AliRsnCutDaughterKStar2010PP::IsSelected(TObject *obj)
       return (nsTOF <= maxTOF);
    } else {
       // TPC: 
-      // all   below   350         MeV: 5sigma
-      // all   between 350 and 500 MeV: 3sigma
-      // pions above   500         MeV: 2sigma
+      // below 350 MeV: 5sigma
+      // between 350 and 500 MeV: 3sigma
+      // pions above 500 MeV: 2sigma
       // kaons between 500 and 700 MeV: 2sigma
-      // kaons above   700         MeV: rejected
-      if (pTPC <= 0.35) 
+      // kaons above 700 MeV: rejected
+      // protons above 1200 MeV: rejected
+     if (pTPC <= 0.35) 
          maxTPC = 5.0;
-      else if (pTPC > 0.35 && pTPC <= 0.5)
+      else if (pTPC <= 0.5)
          maxTPC = 3.0;
-      else {  
-         if (fPID == AliPID::kPion) 
-            maxTPC = 2.0;
-         else if (fPID == AliPID::kKaon) {
-            if (pTPC <= 0.7)
-               maxTPC = 2.0;
-            else
-               return kFALSE;
-         }
-      }
+      else if (pTPC > 0.5 && pTPC <= 0.7 && fPID == AliPID::kKaon)
+         maxTPC = 2.0;
+      else if (pTPC > 0.5 && pTPC <= 1.2 && fPID == AliPID::kProton)
+         maxTPC = 2.0;
+      else
+         return kFALSE;
       return (nsTPC <= maxTPC);
    }
 }
