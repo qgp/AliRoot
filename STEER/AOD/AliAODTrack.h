@@ -34,10 +34,24 @@ class AliAODTrack : public AliVTrack {
     kIsDCA=BIT(14),   // set if fPosition is the DCA and not the position of the first point
     kUsedForVtxFit=BIT(15), // set if this track was used to fit the vertex it is attached to
     kUsedForPrimVtxFit=BIT(16), // set if this track was used to fit the primary vertex
-    kIsTPCOnly=BIT(17), // set if this track is a SA TPC track constrained to the SPD vertex, needs to be skipped in any track loop to avoid double counting
-    kIsHybridITSTPC=BIT(18), // set if this track can be used as a hybrid track i.e. Gbobal tracks with certain slecetion plus the TPC constrained tracks that did not pass the selection
-    kIsHybridTPC=BIT(19) //  for TPC tracks that have been selected with a combination of cuts involving the ITS, tracks without ITS information are taken from TPC only
+    kIsTPCConstrained=BIT(17), // set if this track is a SA TPC track constrained to the SPD vertex, needs to be skipped in any track loop to avoid double counting
+    kIsHybridTPCCG=BIT(18), // set if this track can be used as a hybrid track i.e. Gbobal tracks with certain slecetion plus the TPC constrained tracks that did not pass the selection
+    kIsGlobalConstrained=BIT(19), // set if this track is a global track constrained to the vertex, needs to be skipped in any track loop to avoid double counting
+    kIsHybridGCG=BIT(20)// set if this track can be used as a hybrid track i.e. tracks with certain slecetion plus the global constraint tracks that did not pass the selection
   };
+
+
+  enum AODTrkFilterBits_t {
+    kTrkTPCOnly = BIT(1), // Standard TPC only tracks
+    kTrkITSsa   = BIT(2), // ITS standalone
+    kTrkITSConstrained = BIT(3), // Pixel OR necessary for the electrons
+    kTrkElectronsPID = BIT(4),    // PID for the electrons
+    kTrkGlobalNoDCA = BIT(5), // standard cuts with very loose DCA
+    kTrkGlobal = BIT(6),  // standard cuts with tight DCA cut
+    kTrkGlobalSDD = BIT(7), // standard cuts with tight DCA but with requiring the first SDD cluster instead of an SPD cluster tracks selected by this cut are exclusive to those selected by the previous cut
+    kTrkTPCOnlyConstrained = BIT(8) // TPC only tracks: TPConly information constrained to SPD vertex in the filter below
+  };
+  
 
   enum AODTrkPID_t {
     kElectron     =  0,
@@ -151,9 +165,12 @@ class AliAODTrack : public AliVTrack {
   Bool_t  IsPrimaryCandidate() const;
   Bool_t  GetUsedForVtxFit() const { return TestBit(kUsedForVtxFit); }
   Bool_t  GetUsedForPrimVtxFit() const { return TestBit(kUsedForPrimVtxFit); }
-  Bool_t  IsHybridITSTPC() const { return TestBit(kIsHybridITSTPC); }
-  Bool_t  IsHybridTPC() const { return TestBit(kIsHybridTPC); }
-  Bool_t  IsTPCOnly() const { return TestBit(kIsTPCOnly); }
+
+  Bool_t  IsHybridGlobalConstrainedGlobal() const { return TestBit(kIsHybridGCG); }
+  Bool_t  IsHybridTPCConstrainedGlobal() const { return TestBit(kIsHybridTPCCG); }
+  Bool_t  IsTPCOnly() const { return IsTPCConstrained(); } // obsolete bad naming
+  Bool_t  IsTPCConstrained() const { return TestBit(kIsTPCConstrained); }
+  Bool_t  IsGlobalConstrained() const { return TestBit(kIsGlobalConstrained); }
   //
   Int_t   GetTOFBunchCrossing(Double_t b=0) const;
   //
@@ -245,6 +262,7 @@ class AliAODTrack : public AliVTrack {
   void      GetIntegratedTimes(Double_t *times) const {if (fDetPid) fDetPid->GetIntegratedTimes(times); }
   Double_t  GetTRDslice(Int_t plane, Int_t slice) const;
   Double_t  GetTRDmomentum(Int_t plane, Double_t */*sp*/=0x0) const;
+  UChar_t   GetTRDntrackletsPID() const;
   void      GetHMPIDpid(Double_t *p) const { if (fDetPid) fDetPid->GetHMPIDprobs(p); }
 
   
@@ -266,9 +284,16 @@ class AliAODTrack : public AliVTrack {
   void SetDCA(Double_t d, Double_t z);
   void SetUsedForVtxFit(Bool_t used = kTRUE) { used ? SetBit(kUsedForVtxFit) : ResetBit(kUsedForVtxFit); }
   void SetUsedForPrimVtxFit(Bool_t used = kTRUE) { used ? SetBit(kUsedForPrimVtxFit) : ResetBit(kUsedForPrimVtxFit); }
-  void SetIsHybridITSTPC(Bool_t hybrid = kTRUE) { hybrid ? SetBit(kIsHybridITSTPC) : ResetBit(kIsHybridITSTPC); }
-  void SetIsHybridTPC(Bool_t hybrid = kTRUE) { hybrid ? SetBit(kIsHybridTPC) : ResetBit(kIsHybridTPC); }
-  void SetIsTPCOnly(Bool_t b = kTRUE) { b ? SetBit(kIsTPCOnly) : ResetBit(kIsTPCOnly); }
+
+  void SetIsTPCOnly(Bool_t b = kTRUE) { SetIsTPCConstrained(b); }// obsolete bad naming
+
+  void SetIsTPCConstrained(Bool_t b = kTRUE) { b ? SetBit(kIsTPCConstrained) : ResetBit(kIsTPCConstrained); }
+  void SetIsHybridTPCConstrainedGlobal(Bool_t hybrid = kTRUE) { hybrid ? SetBit(kIsHybridTPCCG) : ResetBit(kIsHybridTPCCG); }
+
+  void SetIsGlobalConstrained(Bool_t b = kTRUE) { b ? SetBit(kIsGlobalConstrained) : ResetBit(kIsGlobalConstrained); }
+  void SetIsHybridGlobalConstrainedGlobal(Bool_t hybrid = kTRUE) { hybrid ? SetBit(kIsHybridGCG) : ResetBit(kIsHybridGCG); }
+
+
 
   void SetOneOverPt(Double_t oneOverPt) { fMomentum[0] = 1. / oneOverPt; }
   void SetPt(Double_t pt) { fMomentum[0] = pt; };
@@ -354,7 +379,7 @@ class AliAODTrack : public AliVTrack {
   AliAODPid    *fDetPid;            // more detailed or detector specific pid information
   TRef          fProdVertex;        // vertex of origin
 
-  ClassDef(AliAODTrack, 13);
+  ClassDef(AliAODTrack, 14);
 };
 
 inline Bool_t  AliAODTrack::IsPrimaryCandidate() const

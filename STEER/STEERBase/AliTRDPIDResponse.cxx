@@ -233,7 +233,8 @@ Bool_t AliTRDPIDResponse::CookdEdx(Int_t nSlice, const Double_t * const in, Doub
     break;
   case kLQ1D: // 1D LQ 
     out[0]= 0.;
-    for(Int_t islice = 0; islice < nSlice; islice++) out[0] += in[islice] * fGainNormalisationFactor;
+    for(Int_t islice = 0; islice < nSlice; islice++) 
+      if(in[islice] > 0) out[0] += in[islice] * fGainNormalisationFactor;   // Protect against negative values for slices having no dE/dx information
     if(out[0] < 1e-6) return kFALSE;
     break;
   default:
@@ -277,7 +278,7 @@ const TVectorD* AliTRDPIDResponse::GetParams(Int_t ntracklets, Double_t level) c
   // returns the threshold for a given number of tracklets and a given efficiency level
   //tby definition the lower of step is given.
   //
-  if(ntracklets > 6 || ntracklets) return NULL;
+  if(ntracklets > 6 || ntracklets <=0) return NULL;
   TObjArray * entry = dynamic_cast<TObjArray *>(fkPIDParams->At(ntracklets - 1));
   if(!entry) return NULL;
   
@@ -287,11 +288,13 @@ const TVectorD* AliTRDPIDResponse::GetParams(Int_t ntracklets, Double_t level) c
   TIter cutIter(entry);
   while((cut = dynamic_cast<TObjArray *>(cutIter()))){
     effLevel = static_cast<TVectorF *>(cut->At(0));
-    if(effLevel[0] > currentLower && effLevel[0] <= level){
+    if((*effLevel)[0] > currentLower && (*effLevel)[0] <= level){
       // New Lower entry found
       parameters = static_cast<const TVectorD *>(cut->At(1));
+      currentLower = (*effLevel)[0];
     }
   }  
+  AliDebug(2, Form("Taking params for %d tracklets and %f electron Efficiency\n", ntracklets, currentLower));
 
   return parameters;
 }

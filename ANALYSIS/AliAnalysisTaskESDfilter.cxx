@@ -80,10 +80,12 @@ AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter():
     fNumberOfKinks(0),
     fOldESDformat(kFALSE),
     fPrimaryVertex(0x0),
-    fTPCOnlyFilterMask(0),
-    fHybridFilterMaskITSTPC(0),
-    fHybridFilterMaskTPC0(0),
-    fHybridFilterMaskTPC1(0),
+  fTPCConstrainedFilterMask(0),
+  fHybridFilterMaskTPCCG(0),
+  fWriteHybridTPCCOnly(kFALSE),
+  fGlobalConstrainedFilterMask(0),
+  fHybridFilterMaskGCG(0),
+  fWriteHybridGCOnly(kFALSE),
     fIsVZEROEnabled(kTRUE),
     fIsZDCEnabled(kTRUE),
     fAreCascadesEnabled(kTRUE),
@@ -128,10 +130,12 @@ AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter(const char* name):
     fNumberOfKinks(0),
     fOldESDformat(kFALSE),
     fPrimaryVertex(0x0),
-    fTPCOnlyFilterMask(0),
-    fHybridFilterMaskITSTPC(0),
-    fHybridFilterMaskTPC0(0),
-    fHybridFilterMaskTPC1(0),
+  fTPCConstrainedFilterMask(0),
+  fHybridFilterMaskTPCCG(0),
+  fWriteHybridTPCCOnly(kFALSE),
+  fGlobalConstrainedFilterMask(0),
+  fHybridFilterMaskGCG(0),
+  fWriteHybridGCOnly(kFALSE),
     fIsVZEROEnabled(kTRUE),
     fIsZDCEnabled(kTRUE),
     fAreCascadesEnabled(kTRUE),
@@ -949,8 +953,9 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
   // Here we have wo hybrid appraoch to remove fakes
   // ******* ITSTPC ********
   // Uses a cut on the ITS properties to select global tracks
-  // which are than marked as HybdridITSTPC for the remainder the TPC only tracks are 
-  // flagged as HybridITSTPConly. Note, in order not to get fakes back in the TPC cuts, one needs 
+  // which are than marked as HybdridITSTPC for the remainder 
+  // the TPC only tracks are flagged as HybridITSTPConly. 
+  // Note, in order not to get fakes back in the TPC cuts, one needs 
   // two "ITS" cuts one tight (1) (to throw out fakes) and one lose (2) (to NOT flag the trakcs in the TPC only)
   // using cut number (3)
   // so fHybridFilterMask == (1)|(2) fTPCFilterMask = (3), Usercode needs to slect with mask = (1)|(3) and track->IsHybridITSTPC()
@@ -966,14 +971,14 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
     AliAODTrack *tr = (AliAODTrack*)(Tracks().At(it));
     if(!tr)continue;
     UInt_t map = tr->GetFilterMap();
-    if(map&fTPCOnlyFilterMask){
+    if(map&fTPCConstrainedFilterMask){
       // we only reset the track select ionfo, no deletion...
-      tr->SetFilterMap(map&~fTPCOnlyFilterMask);
+      tr->SetFilterMap(map&~fTPCConstrainedFilterMask);
     }
-    if(map&fHybridFilterMaskITSTPC){
+    if(map&fHybridFilterMaskTPCCG){
       // this is one part of the hybrid tracks
       // the others not passing the selection will be TPC only selected below
-      tr->SetIsHybridITSTPC(kTRUE);
+      tr->SetIsHybridTPCConstrainedGlobal(kTRUE);
     }
   }
   // Loop over the ESD trcks and pick out the tracks passing TPC only cuts
@@ -995,38 +1000,40 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
 
   AliAODTrack* aodTrack(0x0);
   
+  // account for change in pT after the constraint
+  Float_t ptMax = 1E10;
+  Float_t ptMin = 0;
+  for(int i = 0;i<32;i++){
+    if(fTPCConstrainedFilterMask&(1<<i)){
+      AliESDtrackCuts*cuts = (AliESDtrackCuts*)fTrackFilter->GetCuts()->At(i);
+      Float_t tmp1= 0,tmp2 = 0;
+      cuts->GetPtRange(tmp1,tmp2);
+      if(tmp1>ptMin)ptMin=tmp1;
+      if(tmp2<ptMax)ptMax=tmp2;
+    }
+  } 
+
   for (Int_t nTrack = 0; nTrack < esd.GetNumberOfTracks(); ++nTrack) 
   {
     AliESDtrack* esdTrack = esd.GetTrack(nTrack); //carefull do not modify it othwise  need to work with a copy 
     
     UInt_t selectInfo = 0;
     Bool_t isHybridITSTPC = false;
-    Bool_t isHybridTPC = false;
     //
     // Track selection
     if (fTrackFilter) {
       selectInfo = fTrackFilter->IsSelected(esdTrack);
     }
 
-    if(!(selectInfo&fHybridFilterMaskITSTPC)){
+    if(!(selectInfo&fHybridFilterMaskTPCCG)){
       // not already selected tracks, use second part of hybrid tracks
       isHybridITSTPC = true;
       // too save space one could only store these...
     }
 
-    if(selectInfo&fHybridFilterMaskTPC0){
-      isHybridTPC = true;
-    }
-    else if (!(selectInfo&fHybridFilterMaskTPC1)){
-      // select all that have not been chosen by the loose 
-      // cuts
-      isHybridTPC = true;
-    }
-
-
-    selectInfo &= fTPCOnlyFilterMask;
+    selectInfo &= fTPCConstrainedFilterMask;
     if (!selectInfo)continue;
-    
+    if (fWriteHybridTPCCOnly&&!isHybridITSTPC)continue; // write only complementary tracks
     // create a tpc only tracl
     AliESDtrack *track = AliESDtrackCuts::GetTPCOnlyTrack(const_cast<AliESDEvent*>(&esd),esdTrack->GetID());
     if(!track) continue;
@@ -1049,14 +1056,25 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
       }
       // get the DCA to the vertex:
       track->GetImpactParametersTPC(dDCA,cDCA);
-      // set the constraint parameters to the track
+      // set the constrained parameters to the track
       track->Set(exParam.GetX(),exParam.GetAlpha(),exParam.GetParameter(),exParam.GetCovariance());
     }
     
     track->GetPxPyPz(p);
+
+    Float_t pT = track->Pt();
+    if(pT<ptMin||pT>ptMax){
+      delete track;
+      continue;
+    }
+
+    // 
+
+
     track->GetXYZ(pos);
     track->GetCovarianceXYZPxPyPz(covTr);
     track->GetESDpid(pid);
+
     if(fMChandler)fMChandler->SelectParticle(esdTrack->GetLabel());
     aodTrack = new(Tracks()[fNumberOfTracks++]) AliAODTrack((track->GetID()+1)*-1,
                                                             track->GetLabel(),
@@ -1073,10 +1091,10 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
                                                             vtx->UsesTrack(track->GetID()),
                                                             AliAODTrack::kPrimary, 
                                                             selectInfo);
-    aodTrack->SetIsHybridITSTPC(isHybridITSTPC);    
-    aodTrack->SetIsHybridTPC(isHybridTPC);
+    aodTrack->SetIsHybridTPCConstrainedGlobal(isHybridITSTPC);    
     aodTrack->SetTPCClusterMap(track->GetTPCClusterMap());
     aodTrack->SetTPCSharedMap (track->GetTPCSharedMap());
+    aodTrack->SetIsTPCConstrained(kTRUE);    
     Float_t ndf = track->GetTPCNcls()+1 - 5 ;
     if(ndf>0){
       aodTrack->SetChi2perNDF(track->GetConstrainedChi2TPC());
@@ -1097,6 +1115,146 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
   } // end of loop on tracks
   
 }
+
+
+void AliAnalysisTaskESDfilter::ConvertGlobalConstrainedTracks(const AliESDEvent& esd)
+{
+
+  // Here we have the option to store the complement from global constraint information
+  // to tracks passing tight cuts (1) in order not to get fakes back in, one needs 
+  // two sets of cuts one tight (1) (to throw out fakes) and one lose (2) (fakes/bad tracks would pass (2) but not (1))
+  // using cut number (3) selects the tracks that complement (1) e.g. tracks witout ITS refit or cluster requirement
+
+
+  AliCodeTimerAuto("",0);
+  
+  // Loop over the tracks and extract and mask out all aod tracks that pass the selections for AODt racks
+  for(int it = 0;it < fNumberOfTracks;++it)
+  {
+    AliAODTrack *tr = (AliAODTrack*)(Tracks().At(it));
+    if(!tr)continue;
+    UInt_t map = tr->GetFilterMap();
+    if(map&fGlobalConstrainedFilterMask){
+      // we only reset the track select info, no deletion...
+      // mask reset mask in case track is already taken
+      tr->SetFilterMap(map&~fGlobalConstrainedFilterMask);
+    }
+    if(map&fHybridFilterMaskGCG){
+      // this is one part of the hybrid tracks
+      // the others not passing the selection will be the ones selected below
+      tr->SetIsHybridGlobalConstrainedGlobal(kTRUE);
+    }
+  }
+  // Loop over the ESD trcks and pick out the tracks passing the GlobalConstraint cuts
+ 
+
+  Double_t pos[3] = { 0. };      
+  Double_t covTr[21]={0.};
+  Double_t pid[10]={0.};  
+  Double_t p[3] = { 0. };
+
+  Double_t pDCA[3] = { 0. }; // momentum at DCA
+  Double_t rDCA[3] = { 0. }; // position at DCA
+  Float_t  dDCA[2] = {0.};    // DCA to the vertex d and z
+  Float_t  cDCA[3] = {0.};    // covariance of impact parameters
+
+
+  AliAODTrack* aodTrack(0x0);
+  const AliESDVertex *vtx = esd.GetPrimaryVertex();
+
+  // account for change in pT after the constraint
+  Float_t ptMax = 1E10;
+  Float_t ptMin = 0;
+  for(int i = 0;i<32;i++){
+    if(fGlobalConstrainedFilterMask&(1<<i)){
+      AliESDtrackCuts*cuts = (AliESDtrackCuts*)fTrackFilter->GetCuts()->At(i);
+      Float_t tmp1= 0,tmp2 = 0;
+      cuts->GetPtRange(tmp1,tmp2);
+      if(tmp1>ptMin)ptMin=tmp1;
+      if(tmp2<ptMax)ptMax=tmp2;
+    }
+  } 
+
+
+
+ for (Int_t nTrack = 0; nTrack < esd.GetNumberOfTracks(); ++nTrack) 
+  {
+    AliESDtrack* esdTrack = esd.GetTrack(nTrack); //carefull do not modify it othwise  need to work with a copy 
+    const AliExternalTrackParam * exParamGC = esdTrack->GetConstrainedParam();
+    if(!exParamGC)continue;
+
+    UInt_t selectInfo = 0;
+    Bool_t isHybridGC = false;
+
+    //
+    // Track selection
+    if (fTrackFilter) {
+      selectInfo = fTrackFilter->IsSelected(esdTrack);
+    }
+
+
+    if(!(selectInfo&fHybridFilterMaskGCG))isHybridGC = true;
+    if (fWriteHybridGCOnly&&!isHybridGC)continue; // write only complementary tracks
+
+    selectInfo &= fGlobalConstrainedFilterMask;
+    if (!selectInfo)continue;
+    // fetch the track parameters at the DCA (unconstrained)
+    esdTrack->GetPxPyPz(pDCA);
+    esdTrack->GetXYZ(rDCA);
+    // get the DCA to the vertex:
+    esdTrack->GetImpactParameters(dDCA,cDCA);
+
+    esdTrack->GetConstrainedPxPyPz(p);
+
+
+    Float_t pT = exParamGC->Pt();
+    if(pT<ptMin||pT>ptMax){
+      continue;
+    }
+
+
+    esdTrack->GetConstrainedXYZ(pos);
+    exParamGC->GetCovarianceXYZPxPyPz(covTr);
+    esdTrack->GetESDpid(pid);
+    if(fMChandler)fMChandler->SelectParticle(esdTrack->GetLabel());
+    aodTrack = new(Tracks()[fNumberOfTracks++]) AliAODTrack((esdTrack->GetID()+1)*-1,
+                                                            esdTrack->GetLabel(),
+                                                            p,
+                                                            kTRUE,
+                                                            pos,
+                                                            kFALSE,
+                                                            covTr, 
+                                                            (Short_t)esdTrack->GetSign(),
+                                                            esdTrack->GetITSClusterMap(), 
+                                                            pid,
+                                                            fPrimaryVertex,
+                                                            kTRUE, // check if this is right
+                                                            vtx->UsesTrack(esdTrack->GetID()),
+                                                            AliAODTrack::kPrimary, 
+                                                            selectInfo);
+    aodTrack->SetIsHybridGlobalConstrainedGlobal(isHybridGC);    
+    aodTrack->SetIsGlobalConstrained(kTRUE);    
+    aodTrack->SetTPCClusterMap(esdTrack->GetTPCClusterMap());
+    aodTrack->SetTPCSharedMap (esdTrack->GetTPCSharedMap());
+    Float_t ndf = esdTrack->GetTPCNcls()+1 - 5 ;
+    if(ndf>0){
+      aodTrack->SetChi2perNDF(esdTrack->GetConstrainedChi2TPC());
+    }
+    else{
+      aodTrack->SetChi2perNDF(-1);
+    }
+
+    // set the DCA values to the AOD track
+    aodTrack->SetPxPyPzAtDCA(pDCA[0],pDCA[1],pDCA[2]);
+    aodTrack->SetXYAtDCA(rDCA[0],rDCA[1]);
+    aodTrack->SetDCA(dDCA[0],dDCA[1]);
+
+    aodTrack->SetFlags(esdTrack->GetStatus());
+    aodTrack->SetTPCPointsF(esdTrack->GetTPCNclsF());
+  } // end of loop on tracks
+  
+}
+
 
 //______________________________________________________________________________
 void AliAnalysisTaskESDfilter::ConvertTracks(const AliESDEvent& esd)
@@ -1726,8 +1884,9 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD()
   header->SetRefMultiplicityPos(fNumberOfPositiveTracks);
   header->SetRefMultiplicityNeg(fNumberOfTracks - fNumberOfPositiveTracks);
 
-  if ( fTPCOnlyFilterMask ) ConvertTPCOnlyTracks(*esd);
-  
+  if ( fTPCConstrainedFilterMask ) ConvertTPCOnlyTracks(*esd);
+  if( fGlobalConstrainedFilterMask) ConvertGlobalConstrainedTracks(*esd);  
+
   if ( fArePmdClustersEnabled ) ConvertPmdClusters(*esd);
   
   if ( fAreCaloClustersEnabled ) ConvertCaloClusters(*esd);
@@ -1813,6 +1972,10 @@ void AliAnalysisTaskESDfilter::SetDetectorRawSignals(AliAODPid *aodpid, AliESDtr
 
 
  aodpid->SetITSsignal(track->GetITSsignal());
+ Double_t itsdedx[4]; // dE/dx samples for individual ITS layers
+ track->GetITSdEdxSamples(itsdedx);
+ aodpid->SetITSdEdxSamples(itsdedx);
+
  aodpid->SetTPCsignal(track->GetTPCsignal());
  aodpid->SetTPCsignalN(track->GetTPCsignalN());
 

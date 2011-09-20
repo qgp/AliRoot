@@ -534,6 +534,9 @@ void AliPIDResponse::ExecNewRun()
   
   SetTPCPidResponseMaster();
   SetTPCParametrisation();
+
+  SetTRDPidResponseMaster(); 
+  InitializeTRDResponse();
   
   fTOFResponse.SetTimeResolution(fTOFres);
 }
@@ -571,12 +574,12 @@ void AliPIDResponse::SetRecoInfo()
     
   fBeamType="PP";
   
-  TPRegexp reg(".*(LHC11[a-z]+[0-9]+[a-z]*)/.*");
+  TPRegexp reg(".*(LHC11[a-z]+[0-9]+[a-z_]*)/.*");
   //find the period by run number (UGLY, but not stored in ESD and AOD... )
   if (fRun>=114737&&fRun<=117223)      { fLHCperiod="LHC10B"; fMCperiodTPC="LHC10D1";  }
   else if (fRun>=118503&&fRun<=121040) { fLHCperiod="LHC10C"; fMCperiodTPC="LHC10D1";  }
   else if (fRun>=122195&&fRun<=126437) { fLHCperiod="LHC10D"; fMCperiodTPC="LHC10F6A"; }
-  else if (fRun>=127719&&fRun<=130850) { fLHCperiod="LHC10E"; fMCperiodTPC="LHC10F6A"; }
+  else if (fRun>=127710&&fRun<=130850) { fLHCperiod="LHC10E"; fMCperiodTPC="LHC10F6A"; }
   else if (fRun>=133004&&fRun<=135029) { fLHCperiod="LHC10F"; fMCperiodTPC="LHC10F6A"; }
   else if (fRun>=135654&&fRun<=136377) { fLHCperiod="LHC10G"; fMCperiodTPC="LHC10F6A"; }
   else if (fRun>=136851&&fRun<=139517) {
@@ -734,12 +737,13 @@ void AliPIDResponse::SetTRDPidResponseMaster()
   // Load the TRD pid params and references from the OADB
   //
   if(fTRDPIDParams) return;
-  AliOADBContainer contParams; 
+  AliOADBContainer contParams("contParams"); 
+
   contParams.InitFromFile(Form("%s/COMMON/PID/data/TRDPIDParams.root", fOADBPath.Data()), "AliTRDPIDParams");
   fTRDPIDParams = (TObjArray *)contParams.GetObject(fRun);
 
-  AliOADBContainer contRefs;
-  contRefs.InitFromFile(Form("%s/COMMON/PID/dReferencesLQ1D.root", fOADBPath.Data()), "AliTRDPIDReference");
+  AliOADBContainer contRefs("contRefs");
+  contRefs.InitFromFile(Form("%s/COMMON/PID/data/TRDPIDReferenceLQ1D.root", fOADBPath.Data()), "AliTRDPIDReference");
   fTRDPIDReference = (AliTRDPIDReference *)contRefs.GetObject(fRun);
 }
 
@@ -764,14 +768,16 @@ Bool_t AliPIDResponse::IdentifiedAsElectronTRD(const AliVTrack *vtrack, Double_t
   Double_t probs[AliPID::kSPECIES];
   ComputeTRDProbability(vtrack, AliPID::kSPECIES, probs);
 
-  Int_t ntracklets=0;
-  Double_t p = 0;
+  Int_t ntracklets = vtrack->GetTRDntrackletsPID();
+  // Take mean of the TRD momenta in the given tracklets
+  Float_t p = 0, trdmomenta[AliVTrack::kTRDnPlanes];
+  Int_t nmomenta = 0;
   for(Int_t iPl=0;iPl<AliVTrack::kTRDnPlanes;iPl++){
     if(vtrack->GetTRDmomentum(iPl) > 0.){
-      ntracklets++;
-      p = vtrack->GetTRDmomentum(iPl); 
+      trdmomenta[nmomenta++] = vtrack->GetTRDmomentum(iPl); 
     }
   }
+  p = TMath::Mean(nmomenta, trdmomenta);
 
   return fTRDResponse.IdentifiedAsElectron(ntracklets, probs, p, efficiencyLevel);
 }

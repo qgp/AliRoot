@@ -1,26 +1,21 @@
-AliAnalysisTask *AddTaskPIDqa(){
+AliAnalysisTask *AddTaskPIDqa(const char *useroutputfile=""){
   //get the current analysis manager
   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
   if (!mgr) {
     Error("AddTaskPIDqa", "No analysis manager found.");
     return 0;
   }
-  //============= Set Task Name ===================
-  TString taskName=("AliAnalysisTaskPIDqa");
-  //===============================================
-  //            Load the task
-  gROOT->LoadMacro(Form("%s.cxx+",taskName.Data()));
   
   //========= Add task to the ANALYSIS manager =====
   AliAnalysisTaskPIDqa *task=new AliAnalysisTaskPIDqa("PIDqaTask");
   mgr->AddTask(task);
-
   
   //================================================
   //              data containers
   //================================================
 
-  TString outputfile = Form("%s:PIDqa", AliAnalysisManager::GetCommonFileName());
+  TString outputfile=useroutputfile;
+  if (outputfile.IsNull()) outputfile = Form("%s:PIDqa", AliAnalysisManager::GetCommonFileName());
   AliAnalysisDataContainer *coutput1 =
     mgr->CreateContainer("PIDqa", TList::Class(),
                          AliAnalysisManager::kOutputContainer,outputfile);
