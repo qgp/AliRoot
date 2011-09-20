@@ -15,6 +15,10 @@
  */
 struct AliHLTTPCClusterMCWeight
 {
+  //* constructor **/
+  AliHLTTPCClusterMCWeight(): fMCID(-1), fWeight(0)
+  {}
+
   AliHLTInt32_t  fMCID;     // MC track ID
   AliHLTFloat32_t fWeight; // weight of the track ID
 };  
@@ -42,7 +46,7 @@ typedef struct AliHLTTPCClusterMCLabel AliHLTTPCClusterMCLabel;
 struct AliHLTTPCClusterMCData 
 {
   AliHLTUInt32_t fCount;
-#if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC)
+#if defined(__HP_aCC) || defined(__DECCXX) || defined(__SUNPRO_CC) || defined (__clang__)
   AliHLTTPCClusterMCLabel fLabels[1];
 #else
   AliHLTTPCClusterMCLabel fLabels[];

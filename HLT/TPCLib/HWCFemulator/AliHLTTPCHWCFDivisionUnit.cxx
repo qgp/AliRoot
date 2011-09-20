@@ -69,7 +69,7 @@ int AliHLTTPCHWCFDivisionUnit::InputStream( const AliHLTTPCHWCFClusterFragment *
   // input stream of data
   fkInput = fragment;
   if( fkInput && fDebug ){
-    std::cout<<"HWCF Division: input F: "<<fragment->fFlag<<" R: "<<fragment->fRow
+    std::cout<<"HWCF Division: input Br: "<<fragment->fBranch<<" F: "<<fragment->fFlag<<" R: "<<fragment->fRow
 	     <<" Q: "<<(fragment->fQ>>AliHLTTPCHWCFDefinitions::kFixedPoint)
 	     <<" P: "<<fragment->fPad<<" Tmean: "<<fragment->fTMean;	        
     if( fragment->fFlag==1 && fragment->fQ > 0 ){
@@ -120,7 +120,7 @@ const AliHLTTPCHWCFCluster *AliHLTTPCHWCFDivisionUnit::OutputStream()
  
   // MC part
 
-  AliHLTTPCClusterMCWeight emptyWeight = {-1,0};
+  AliHLTTPCClusterMCWeight emptyWeight;
 
   fOutput.fMC.fClusterID[0] = emptyWeight;
   fOutput.fMC.fClusterID[1] = emptyWeight;

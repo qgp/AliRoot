@@ -53,16 +53,17 @@ using namespace std;
 AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent()
   :
   AliHLTProcessor(),
-  fDoDeconvTime(1),
-  fDoDeconvPad(1),
-  fDoMC(1),
+  fDoDeconvTime(0),
+  fDoDeconvPad(0),
+  fDoMC(0),
   fDoFlowControl(0),
-  fDoSinglePadSuppression(1),
+  fDoSinglePadSuppression(0),
   fBypassMerger(0),
   fClusterLowerLimit(0),
   fSingleSeqLimit(0),
-  fMergerDistance(3),
-  fTimeBinWindow(5),
+  fMergerDistance(0),
+  fUseTimeBinWindow(0),
+  fUseTimeFollow(0),
   fChargeFluctuation(0),
   fDebug(0),
   fCFSupport(),
@@ -80,16 +81,17 @@ AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent()
 AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent(const AliHLTTPCHWCFEmulatorComponent&)
   :
   AliHLTProcessor(),
-  fDoDeconvTime(1),
-  fDoDeconvPad(1),
-  fDoMC(1),
+  fDoDeconvTime(0),
+  fDoDeconvPad(0),
+  fDoMC(0),
   fDoFlowControl(0),
-  fDoSinglePadSuppression(1),
+  fDoSinglePadSuppression(0),
   fBypassMerger(0),
   fClusterLowerLimit(0),
   fSingleSeqLimit(0),
-  fMergerDistance(3),
-  fTimeBinWindow(5),
+  fMergerDistance(0),
+  fUseTimeBinWindow(0),
+  fUseTimeFollow(0),
   fChargeFluctuation(0),
   fDebug(0),
   fCFSupport(),
@@ -206,16 +208,17 @@ void AliHLTTPCHWCFEmulatorComponent::SetDefaultConfiguration()
   // Set default configuration for the FPGA ClusterFinder Emulator component
   // Some parameters can be later overwritten from the OCDB
 
-  fDoDeconvTime = 0;
-  fDoDeconvPad = 0;
-  fDoMC = 1;
+  fDoDeconvTime = 1;
+  fDoDeconvPad = 1;
+  fDoMC = 0;
   fDoFlowControl = 0;
-  fDoSinglePadSuppression = 1;
+  fDoSinglePadSuppression = 0;
   fBypassMerger = 0;
-  fClusterLowerLimit = 0;
+  fClusterLowerLimit = 10;
   fSingleSeqLimit = 0;
-  fMergerDistance = 3;
-  fTimeBinWindow = 5;
+  fMergerDistance = 4;
+  fUseTimeBinWindow = 1;
+  fUseTimeFollow = 1;
   fChargeFluctuation = 0;
   fDebug = 0;
   fBenchmark.Reset();
@@ -230,7 +233,7 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
 
   int iResult = 0;
   if ( !arguments ) return iResult;
-
+  //cout<<"["<<arguments<<"]"<<endl;
   TString allArgs = arguments;
   TString argument;
   int bMissingParam = 0;
@@ -246,7 +249,8 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
     if ( argument.CompareTo( "-deconvolute-time" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fDoDeconvTime  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
-      HLTInfo( "Time deconvolution is set to: %d", fDoDeconvTime );
+      fUseTimeBinWindow = fDoDeconvTime;
+      HLTInfo( "Time deconvolution and using of TimeBin window are set to: %d", fDoDeconvTime );
       continue;
     }
 
@@ -260,8 +264,9 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
     if ( argument.CompareTo( "-deconvolute" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fDoDeconvTime  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      fUseTimeBinWindow = fDoDeconvTime;
       fDoDeconvPad  = fDoDeconvTime;
-      HLTInfo( "Time and pad deconvolution is set to: %d", fDoDeconvPad );
+      HLTInfo( "Time and pad deconvolution and using of TimeBin window are set to: %d", fDoDeconvPad );
       continue;
     }
  
@@ -314,10 +319,11 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
       continue;
     }
  
-    if ( argument.CompareTo( "-timebin-window" ) == 0 ) {
+    if ( argument.CompareTo( "-use-timebin-window" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
-      fTimeBinWindow  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
-      HLTInfo( "TimeBin window is set to: %d", fTimeBinWindow );
+      fUseTimeBinWindow  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      fDoDeconvTime = fUseTimeBinWindow;
+      HLTInfo( "Using TimeBin window and Time deconvolution are set to: %d", fUseTimeBinWindow );
       continue;
     }
    
@@ -327,7 +333,14 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
       HLTInfo( "Charge fluctuation is set to: %d", fChargeFluctuation );
       continue;
     }
-
+    
+    if ( argument.CompareTo( "-use-time-follow" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fUseTimeFollow  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Use of time follow algorithm is set to: %d", fUseTimeFollow );
+      continue;
+    }
+   
     if ( argument.CompareTo( "-debug-level" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fDebug  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
@@ -444,7 +457,7 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
 
   AliHLTUInt32_t configWord1=0, configWord2=0; 
   AliHLTTPCHWCFEmulator::CreateConfiguration
-    ( fDoDeconvTime, fDoDeconvPad, fDoFlowControl, fDoSinglePadSuppression, fBypassMerger, fClusterLowerLimit, fSingleSeqLimit, fMergerDistance, fTimeBinWindow, fChargeFluctuation, configWord1, configWord2 );
+    ( fDoDeconvTime, fDoDeconvPad, fDoFlowControl, fDoSinglePadSuppression, fBypassMerger, fClusterLowerLimit, fSingleSeqLimit, fMergerDistance, fUseTimeBinWindow, fChargeFluctuation, fUseTimeFollow, configWord1, configWord2 );
 
   for ( unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++ )
     {
@@ -485,7 +498,8 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
       std::auto_ptr<AliHLTTPCClusterMCLabel> allocOutMC(new AliHLTTPCClusterMCLabel[nOutputMC+1]);
       
       if( !outBlock.get() || !allocOutMC.get() ){
-	return -ENOMEM;
+	iResult=-ENOMEM;
+	break;
       }
 
       memset(outBlock.get(), 0, outBlockSize*sizeof(AliHLTUInt8_t));
@@ -564,6 +578,7 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
       } else {
 	HLTWarning( "Output buffer (%db) is too small, required %db", maxSize, size+outSize);
 	iResult=-ENOSPC;
+	break;
       }
 
       if( fDoMC && outMC && outMC->fCount>0 ){
@@ -583,12 +598,14 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
 	} else {	
 	  HLTWarning( "Output buffer (%db) is too small, required %db", maxSize, size+s);
 	  iResult=-ENOSPC;	    
+	  break;
 	}
       }
     }
   
   fBenchmark.Stop(0);  
   HLTInfo(fBenchmark.GetStatistics());
+  fCFSupport.ReleaseEventMemory();
   return iResult;
 }
 
