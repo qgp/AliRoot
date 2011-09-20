@@ -48,3 +48,38 @@
 
 	--- TRD: 51027 51030 51238
 	new trigger monitoring components
+
+2011-09-19
+	--- BASE: 51292 51309 51310
+	ported in r51454
+
+	--- TRD: 51288 51412
+	ported in r51455
+
+	--- TPC: 51242 51289 51306 51319 51321 51408 51410 51411 51420 51421
+	ported in r51456
+
+2011-09-19 updated to r51577
+	--- BASE: 51532 51566 51592 51603 51621 51638 51644
+	huffman encoder classes
+
+	--- TPC: 51381 51533 51535 51536 51537 51583 51584 51593 51594 51595 51601 51602 51504 51607 51645 51646 51647
+	updated TPC HWCF Emulator and DataCompression
+
+	--- RCU: 50881 51637 51639
+	bugfix for the AltroChannelSelection
+
+	--- trigger: 51623
+	bugfix for seg fault in AliHLTLogging if string gets too long
+
+	--- trigger: 51606 51622
+	not to be ported
+
+	--- global: 51534
+	ported in 51568
+
+	--- tools: 51640
+	postponed
+
+	--- BASE: 51409
+	postponed
