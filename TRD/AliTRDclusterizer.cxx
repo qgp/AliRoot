@@ -92,6 +92,7 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDReconstructor *const rec)
   ,fNoOfClusters(0)
   ,fBaseline(0)
   ,fRawStream(NULL)
+  ,fTrgFlags()
 {
   //
   // AliTRDclusterizer default constructor
@@ -151,6 +152,7 @@ AliTRDclusterizer::AliTRDclusterizer(const Text_t *name
   ,fNoOfClusters(0)
   ,fBaseline(0)
   ,fRawStream(NULL)
+  ,fTrgFlags()
 {
   //
   // AliTRDclusterizer constructor
@@ -203,6 +205,7 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDclusterizer &c)
   ,fNoOfClusters(0)
   ,fBaseline(0)
   ,fRawStream(NULL)
+  ,fTrgFlags()
 {
   //
   // AliTRDclusterizer copy constructor
@@ -539,6 +542,9 @@ Bool_t AliTRDclusterizer::ReadTracks()
   }
 
   AliLoader* loader = runLoader->GetLoader("TRDLoader");
+  if (!loader) {
+    return kFALSE;
+  }
 
   AliDataLoader *trackLoader = loader->GetDataLoader("gtutracks");
   if (!trackLoader) {
@@ -691,6 +697,10 @@ Bool_t AliTRDclusterizer::Raw2ClustersChamber(AliRawReader *rawReader)
 	trklLoader->UnloadAll();
       }
     }
+  }
+
+  for (Int_t iSector = 0; iSector < AliTRDgeometry::kNsector; iSector++) {
+    fTrgFlags[iSector] = fRawStream->GetTriggerFlags(iSector);
   }
 
   if(fReconstructor->IsWritingClusters()) WriteClusters(-1);
