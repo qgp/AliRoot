@@ -41,6 +41,7 @@
 #include <TCanvas.h>
 #include <TStopwatch.h>
 
+#include "AliLog.h"
 #include "AliAnalysisSelector.h"
 #include "AliAnalysisGrid.h"
 #include "AliAnalysisTask.h"
@@ -104,7 +105,6 @@ AliAnalysisManager::AliAnalysisManager(const char *name, const char *title)
    fOutputs    = new TObjArray();
    fParamCont  = new TObjArray();
    SetEventLoop(kTRUE);
-   TObject::SetObjectStat(kFALSE);
 }
 
 //______________________________________________________________________________
@@ -153,7 +153,6 @@ AliAnalysisManager::AliAnalysisManager(const AliAnalysisManager& other)
    fParamCont  = new TObjArray(*other.fParamCont);
    fgCommonFileName  = "AnalysisResults.root";
    fgAnalysisManager = this;
-   TObject::SetObjectStat(kFALSE);
 }
    
 //______________________________________________________________________________
@@ -216,7 +215,6 @@ AliAnalysisManager::~AliAnalysisManager()
    if (fMCtruthEventHandler) delete fMCtruthEventHandler;
    if (fEventPool) delete fEventPool;
    if (fgAnalysisManager==this) fgAnalysisManager = NULL;
-   TObject::SetObjectStat(kTRUE);
 }
 
 //______________________________________________________________________________
@@ -432,6 +430,7 @@ Bool_t AliAnalysisManager::Notify()
    // to the generated code, but the routine can be extended by the
    // user if needed. The return value is currently not used.
    if (!fTree) return kFALSE;
+   if (!TObject::TestBit(AliAnalysisManager::kTrueNotify)) return kFALSE;
 
    fTable.Clear("nodelete"); // clearing the hash table may not be needed -> C.L.
    if (fMode == kProofAnalysis) fIsRemote = kTRUE;
@@ -444,8 +443,10 @@ Bool_t AliAnalysisManager::Notify()
    
    if (fDebug > 1) printf("->AliAnalysisManager::Notify() file: %s\n", curfile->GetName());
    Int_t run = AliAnalysisManager::GetRunFromAlienPath(curfile->GetName());
-   if (run) SetRunFromPath(run);
-   if (fDebug > 1) printf("   ### run found from path: %d\n", run); 
+   if (run && (run != fRunFromPath)) {
+      fRunFromPath = run;
+      if (fDebug > 1) printf("   ### run found from path: %d\n", run);
+   }
    TIter next(fTasks);
    AliAnalysisTask *task;
 	
@@ -471,7 +472,7 @@ Bool_t AliAnalysisManager::Notify()
 }    
 
 //______________________________________________________________________________
-Bool_t AliAnalysisManager::Process(Long64_t entry)
+Bool_t AliAnalysisManager::Process(Long64_t)
 {
   // The Process() function is called for each entry in the tree (or possibly
   // keyed object in the case of PROOF) to be processed. The entry argument
@@ -490,18 +491,8 @@ Bool_t AliAnalysisManager::Process(Long64_t entry)
   //  The entry is always the local entry number in the current tree.
   //  Assuming that fChain is the pointer to the TChain being processed,
   //  use fChain->GetTree()->GetEntry(entry).
-   if (fDebug > 1) printf("->AliAnalysisManager::Process(%lld)\n", entry);
 
-   if (fInputEventHandler)   fInputEventHandler  ->BeginEvent(entry);
-   if (fOutputEventHandler)  fOutputEventHandler ->BeginEvent(entry);
-   if (fMCtruthEventHandler) fMCtruthEventHandler->BeginEvent(entry);
-   
-   GetEntry(entry);
-
-   if (fInputEventHandler)   fInputEventHandler  ->GetEntry();
-
-   ExecAnalysis();
-   if (fDebug > 1) printf("<-AliAnalysisManager::Process()\n");
+   // This method is obsolete. ExecAnalysis is called instead.
    return kTRUE;
 }
 
@@ -1165,6 +1156,11 @@ void AliAnalysisManager::ProfileTask(const char *name, const char */*option*/) c
 void AliAnalysisManager::AddTask(AliAnalysisTask *task)
 {
 // Adds a user task to the global list of tasks.
+   if (fInitOK) {
+      Error("AddTask", "Cannot add task %s since InitAnalysis was already called", task->GetName());
+      return;
+   }   
+      
    if (fTasks->FindObject(task)) {
       Warning("AddTask", "Task %s: the same object already added to the analysis manager. Not adding.", task->GetName());
       return;
@@ -1274,7 +1270,7 @@ Bool_t AliAnalysisManager::InitAnalysis()
 // Initialization of analysis chain of tasks. Should be called after all tasks
 // and data containers are properly connected
    // Reset flag and remove valid_outputs file if exists
-   fInitOK = kFALSE;
+   if (fInitOK) return kTRUE;
    if (!gSystem->AccessPathName("outputs_valid"))
       gSystem->Unlink("outputs_valid");
    // Check for top tasks (depending only on input data containers)
@@ -1526,7 +1522,10 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree,
       return -1;
    }
    if (!CheckTasks()) Fatal("StartAnalysis", "Not all needed libraries were loaded");
-   if (fDebug > 1) printf("StartAnalysis %s\n",GetName());
+   if (fDebug > 1) {
+      printf("StartAnalysis %s\n",GetName());
+      AliLog::SetGlobalLogLevel(AliLog::kInfo);
+   }   
    fMaxEntries = nentries;
    fIsRemote = kFALSE;
    TString anaType = type;
@@ -1968,6 +1967,12 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
    static Long64_t nentries = 0;
    static TTree *lastTree = 0;
    static TStopwatch *timer = new TStopwatch();
+   // Only the first call to Process will trigger a true Notify. Other Notify
+   // coming before is ignored.
+   if (!TObject::TestBit(AliAnalysisManager::kTrueNotify)) {
+      TObject::SetBit(AliAnalysisManager::kTrueNotify);
+      Notify();
+   }   
    if (fDebug > 0) printf("MGR: Processing event #%d\n", fNcalls);
    else {
       if (fTree && (fTree != lastTree)) {
@@ -2084,7 +2089,7 @@ void AliAnalysisManager::SetInputEventHandler(AliVEventHandler* const handler)
 {
 // Set the input event handler and create a container for it.
    fInputEventHandler   = handler;
-   fCommonInput = CreateContainer("cAUTO_INPUT", TChain::Class(), AliAnalysisManager::kInputContainer);
+   if (!fCommonInput) fCommonInput = CreateContainer("cAUTO_INPUT", TChain::Class(), AliAnalysisManager::kInputContainer);
 }
 
 //______________________________________________________________________________
@@ -2092,7 +2097,7 @@ void AliAnalysisManager::SetOutputEventHandler(AliVEventHandler* const handler)
 {
 // Set the input event handler and create a container for it.
    fOutputEventHandler   = handler;
-   fCommonOutput = CreateContainer("cAUTO_OUTPUT", TTree::Class(), AliAnalysisManager::kOutputContainer, "default");
+   if (!fCommonOutput) fCommonOutput = CreateContainer("cAUTO_OUTPUT", TTree::Class(), AliAnalysisManager::kOutputContainer, "default");
    fCommonOutput->SetSpecialOutput();
 }
 

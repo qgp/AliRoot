@@ -34,6 +34,7 @@
 #include "TChain.h"
 #include "TObjString.h"
 #include "TObjArray.h"
+#include "TMacro.h"
 #include "TGrid.h"
 #include "TGridResult.h"
 #include "TGridCollection.h"
@@ -42,12 +43,29 @@
 #include "TGridJobStatus.h"
 #include "TFileMerger.h"
 #include "AliAnalysisManager.h"
+#include "AliAnalysisTaskCfg.h"
 #include "AliVEventHandler.h"
 #include "AliAnalysisDataContainer.h"
 #include "AliMultiInputEventHandler.h"
 
 ClassImp(AliAnalysisAlien)
+#if 0
+;
+#endif  
 
+namespace {
+  Bool_t copyLocal2Alien(const char* where, const char* loc, const char* rem)
+  {
+    TString sl(Form("file:%s", loc));
+    TString sr(Form("alien://%s", rem));
+    Bool_t ret = TFile::Cp(sl, sr);
+    if (!ret) { 
+      Warning(where, "Failed to copy %s to %s", sl.Data(), sr.Data());
+    }
+    return ret;
+  }
+}
+    
 //______________________________________________________________________________
 AliAnalysisAlien::AliAnalysisAlien()
                  :AliAnalysisGrid(),
@@ -113,6 +131,7 @@ AliAnalysisAlien::AliAnalysisAlien()
                   fMergeDirName(),
                   fInputFiles(0),
                   fPackages(0),
+                  fModules(0),
                   fProofParam()
 {
 // Dummy ctor.
@@ -184,6 +203,7 @@ AliAnalysisAlien::AliAnalysisAlien(const char *name)
                   fMergeDirName(),
                   fInputFiles(0),
                   fPackages(0),
+                  fModules(0),
                   fProofParam()
 {
 // Default ctor.
@@ -255,6 +275,7 @@ AliAnalysisAlien::AliAnalysisAlien(const AliAnalysisAlien& other)
                   fMergeDirName(other.fMergeDirName),
                   fInputFiles(0),
                   fPackages(0),
+                  fModules(0),
                   fProofParam()
 {
 // Copy ctor.
@@ -276,16 +297,27 @@ AliAnalysisAlien::AliAnalysisAlien(const AliAnalysisAlien& other)
       while ((obj=next())) fPackages->Add(new TObjString(obj->GetName()));
       fPackages->SetOwner();
    }   
+   if (other.fModules) {
+      fModules = new TObjArray();
+      fModules->SetOwner();
+      TIter next(other.fModules);
+      AliAnalysisTaskCfg *mod, *crt;
+      while ((crt=(AliAnalysisTaskCfg*)next())) {
+         mod = new AliAnalysisTaskCfg(*crt);
+         fModules->Add(mod);
+      }
+   }   
 }
 
 //______________________________________________________________________________
 AliAnalysisAlien::~AliAnalysisAlien()
 {
 // Destructor.
-   if (fGridJDL) delete fGridJDL;
-   if (fMergingJDL) delete fMergingJDL;
-   if (fInputFiles) delete fInputFiles;
-   if (fPackages) delete fPackages;
+   delete fGridJDL;
+   delete fMergingJDL;
+   delete fInputFiles;
+   delete fPackages;
+   delete fModules;
    fProofParam.DeleteAll();
 }   
 
@@ -369,9 +401,239 @@ AliAnalysisAlien &AliAnalysisAlien::operator=(const AliAnalysisAlien& other)
          while ((obj=next())) fPackages->Add(new TObjString(obj->GetName()));
          fPackages->SetOwner();
       }   
+      if (other.fModules) {
+         fModules = new TObjArray();
+         fModules->SetOwner();
+         TIter next(other.fModules);
+         AliAnalysisTaskCfg *mod, *crt;
+         while ((crt=(AliAnalysisTaskCfg*)next())) {
+            mod = new AliAnalysisTaskCfg(*crt);
+            fModules->Add(mod);
+         }
+      }   
    }
    return *this;
 }
+
+//______________________________________________________________________________
+void AliAnalysisAlien::AddModule(AliAnalysisTaskCfg *module)
+{
+// Adding a module. Checks if already existing. Becomes owned by this.
+   if (!module) return;
+   if (GetModule(module->GetName())) {
+      Error("AddModule", "A module having the same name %s already added", module->GetName());
+      return;
+   }
+   if (!fModules) {
+      fModules = new TObjArray();
+      fModules->SetOwner();
+   }
+   fModules->Add(module);
+}
+
+//______________________________________________________________________________
+void AliAnalysisAlien::AddModules(TObjArray *list)
+{
+// Adding a list of modules. Checks if already existing. Becomes owned by this.
+   TIter next(list);
+   AliAnalysisTaskCfg *module;
+   while ((module = (AliAnalysisTaskCfg*)next())) AddModule(module);
+}   
+
+//______________________________________________________________________________
+Bool_t AliAnalysisAlien::CheckDependencies()
+{
+// Check if all dependencies are satisfied. Reorder modules if needed.
+   Int_t nmodules = GetNmodules();
+   if (!nmodules) {
+      Warning("CheckDependencies", "No modules added yet to check their dependencies");
+      return kTRUE;
+   }   
+   AliAnalysisTaskCfg *mod = 0;
+   AliAnalysisTaskCfg *dep = 0;
+   TString depname;
+   Int_t i, j, k;
+   for (i=0; i<nmodules; i++) {
+      mod = (AliAnalysisTaskCfg*) fModules->At(i);
+      Int_t ndeps = mod->GetNdeps();
+      Int_t istart = i;
+      for (j=0; j<ndeps; j++) {
+         depname = mod->GetDependency(j);
+         dep = GetModule(depname);
+         if (!dep) {
+            Error("CheckDependencies","Dependency %s not added for module %s",
+                   depname.Data(), mod->GetName());
+            return kFALSE;
+         }
+         if (dep->NeedsDependency(mod->GetName())) {
+            Error("CheckDependencies","Modules %s and %s circularly depend on each other",
+                   mod->GetName(), dep->GetName());
+            return kFALSE;
+         }                  
+         Int_t idep = fModules->IndexOf(dep);
+         // The dependency task must come first
+         if (idep>i) {
+            // Remove at idep and move all objects below up one slot
+            // down to index i included.
+            fModules->RemoveAt(idep);
+            for (k=idep-1; k>=i; k--) fModules->AddAt(fModules->RemoveAt(k),k+1);
+            fModules->AddAt(dep, i++);
+         }
+         //Redo from istart if dependencies were inserted
+         if (i>istart) i=istart-1;
+      }
+   }
+   return kTRUE;
+}      
+
+//______________________________________________________________________________
+AliAnalysisManager *AliAnalysisAlien::CreateAnalysisManager(const char *name, const char *filename)
+{
+// Create the analysis manager and optionally execute the macro in filename.
+   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
+   if (mgr) return mgr;
+   mgr = new AliAnalysisManager(name);
+   mgr->SetGridHandler((AliAnalysisGrid*)this);
+   if (strlen(filename)) {
+      TString line = gSystem->ExpandPathName(filename);
+      line.Prepend(".x ");
+      gROOT->ProcessLine(line.Data());
+   }
+   return mgr;
+}      
+      
+//______________________________________________________________________________
+Int_t AliAnalysisAlien::GetNmodules() const
+{
+// Get number of modules.
+   if (!fModules) return 0;
+   return fModules->GetEntries();
+}
+
+//______________________________________________________________________________
+AliAnalysisTaskCfg *AliAnalysisAlien::GetModule(const char *name)
+{
+// Get a module by name.
+   if (!fModules) return 0;
+   return (AliAnalysisTaskCfg*)fModules->FindObject(name);
+}
+   
+//______________________________________________________________________________
+Bool_t AliAnalysisAlien::LoadModule(AliAnalysisTaskCfg *mod)
+{
+// Load a given module.
+   if (mod->IsLoaded()) return kTRUE;
+   Int_t ndeps = mod->GetNdeps();
+   TString depname;
+   for (Int_t j=0; j<ndeps; j++) {
+      depname = mod->GetDependency(j);
+      AliAnalysisTaskCfg *dep = GetModule(depname);
+      if (!dep) {
+         Error("LoadModule","Dependency %s not existing for module %s",
+                depname.Data(), mod->GetName());
+         return kFALSE;
+      }
+      if (!LoadModule(dep)) {
+         Error("LoadModule","Dependency %s for module %s could not be loaded",
+                depname.Data(), mod->GetName());
+         return kFALSE;
+      }
+   }
+   // Load libraries for the module
+   if (!mod->CheckLoadLibraries()) {
+      Error("LoadModule", "Cannot load all libraries for module %s", mod->GetName());
+      return kFALSE;
+   }
+   // Execute the macro
+   if (mod->ExecuteMacro()<0) {
+      Error("LoadModule", "Executing the macro %s with arguments: %s for module %s returned a negative value",
+             mod->GetMacroName(), mod->GetMacroArgs(), mod->GetName());
+      return kFALSE;
+   }
+   // Configure dependencies
+   if (mod->GetConfigMacro() && mod->ExecuteConfigMacro()<0) {
+      Error("LoadModule", "There was an error executing the deps config macro %s for module %s",
+            mod->GetConfigMacro()->GetTitle(), mod->GetName());
+      return kFALSE;
+   }
+   // Adjust extra libraries
+   Int_t nlibs = mod->GetNlibs();
+   TString lib;
+   for (Int_t i=0; i<nlibs; i++) {
+      lib = mod->GetLibrary(i);
+      if (fAdditionalLibs.Contains(lib)) continue;
+      lib = Form("lib%s.so", lib.Data());
+      if (!fAdditionalLibs.IsNull()) fAdditionalLibs += " ";
+      fAdditionalLibs += lib;
+   }
+   return kTRUE;
+}
+
+//______________________________________________________________________________
+Bool_t AliAnalysisAlien::GenerateTest(const char *name, const char *modname)
+{
+// Generate test macros for a single module or for the full train.
+   fAdditionalLibs = "";
+   if (strlen(modname)) {
+      if (!CheckDependencies()) return kFALSE;
+      AliAnalysisTaskCfg *mod = GetModule(modname);
+      if (!mod) {
+         Error("GenerateTest", "cannot generate test for inexistent module %s", modname);
+         return kFALSE;
+      }
+      if (!LoadModule(mod)) return kFALSE;
+   } else if (!LoadModules()) return kFALSE;
+   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
+   if (!mgr->InitAnalysis()) return kFALSE;
+   mgr->PrintStatus();
+   SetLocalTest(kTRUE);
+   Int_t productionMode = fProductionMode;
+   SetProductionMode();
+   TString macro = fAnalysisMacro;
+   TString executable = fExecutable;
+   TString validation = fValidationScript;
+   TString execCommand = fExecutableCommand;
+   SetAnalysisMacro(Form("%s.C", name));
+   SetExecutable(Form("%s.sh", name));
+   SetExecutableCommand("aliroot -b -q ");
+   SetValidationScript(Form("%s_validation.sh", name));
+   WriteAnalysisFile();   
+   WriteAnalysisMacro();
+   WriteExecutable();
+   WriteValidationScript();   
+   SetLocalTest(kFALSE);
+   SetProductionMode(productionMode);
+   fAnalysisMacro = macro;
+   fExecutable = executable;
+   fExecutableCommand = execCommand;
+   fValidationScript = validation;
+   return kTRUE;   
+}
+
+//______________________________________________________________________________
+Bool_t AliAnalysisAlien::LoadModules()
+{
+// Load all modules by executing the AddTask macros. Checks first the dependencies.
+   fAdditionalLibs = "";
+   Int_t nmodules = GetNmodules();
+   if (!nmodules) {
+      Warning("LoadModules", "No module to be loaded");
+      return kTRUE;
+   }   
+   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
+   if (!mgr) {
+      Error("LoadModules", "No analysis manager created yet. Use CreateAnalysisManager first.");
+      return kFALSE;
+   }   
+   if (!CheckDependencies()) return kFALSE;
+   nmodules = GetNmodules();
+   AliAnalysisTaskCfg *mod;
+   for (Int_t imod=0; imod<nmodules; imod++) {
+      mod = (AliAnalysisTaskCfg*)fModules->At(imod);
+      if (!LoadModule(mod)) return kFALSE;
+   }
+   return kTRUE;
+}      
 
 //______________________________________________________________________________
 void AliAnalysisAlien::SetRunPrefix(const char *prefix)
@@ -704,6 +966,53 @@ Bool_t AliAnalysisAlien::CheckInputData()
       }   
    }
    return kTRUE;      
+}   
+
+//______________________________________________________________________________
+Bool_t AliAnalysisAlien::CopyLocalDataset(const char *griddir, const char *pattern, Int_t nfiles, const char *output, const char *anchorfile)
+{
+// Copy data from the given grid directory according a pattern and make a local
+// dataset.
+   if (!Connect()) {
+      Error("CopyLocalDataset", "Cannot copy local dataset with no grid connection");
+      return kFALSE;
+   }
+   if (!DirectoryExists(griddir)) {
+      Error("CopyLocalDataset", "Data directory %s not existing.", griddir);
+      return kFALSE;
+   }
+   TString command = Form("find -z -l %d %s %s", nfiles, griddir, pattern);
+   printf("Running command: %s\n", command.Data());
+   TGridResult *res = gGrid->Command(command);
+   Int_t nfound = res->GetEntries();
+   if (!nfound) {
+      Error("CopyLocalDataset", "No file found in <%s> having pattern <%s>", griddir, pattern);
+      return kFALSE;
+   }
+   printf("... found %d files. Copying locally ...\n", nfound);
+   // Copy files locally
+   ofstream out;
+   out.open(output, ios::out);
+   TMap *map;
+   TString turl, dirname, filename, temp;
+   TString cdir = gSystem->WorkingDirectory();
+   gSystem->MakeDirectory("data");
+   gSystem->ChangeDirectory("data");
+   for (Int_t i=0; i<nfound; i++) {
+      map = (TMap*)res->At(i);
+      turl = map->GetValue("turl")->GetName();
+      filename = gSystem->BaseName(turl.Data());
+      dirname = gSystem->DirName(turl.Data());
+      dirname = gSystem->BaseName(dirname.Data());
+      gSystem->MakeDirectory(dirname);
+      if (TFile::Cp(turl, Form("file:./%s/%s", dirname.Data(), filename.Data()))) {
+         if (strlen(anchorfile)) filename = Form("%s#%s", filename.Data(), anchorfile);
+         out << cdir << "/data/" << Form("%s/%s", dirname.Data(), filename.Data()) << endl;
+      }
+   }
+   gSystem->ChangeDirectory(cdir);
+   delete res;
+   return kTRUE;
 }   
 
 //______________________________________________________________________________
@@ -1239,8 +1548,6 @@ Bool_t AliAnalysisAlien::CreateJDL()
       analysisFile.ReplaceAll(".sh", ".root");
       fGridJDL->AddToInputSandbox(Form("LF:%s/%s", workdir.Data(),analysisFile.Data()));
       fMergingJDL->AddToInputSandbox(Form("LF:%s/%s", workdir.Data(),analysisFile.Data()));
-      if (IsUsingTags() && !gSystem->AccessPathName("ConfigureCuts.C"))
-         fGridJDL->AddToInputSandbox(Form("LF:%s/ConfigureCuts.C", workdir.Data()));
       if (fAdditionalLibs.Length()) {
          arr = fAdditionalLibs.Tokenize(" ");
          TIter next(arr);
@@ -1379,10 +1686,14 @@ Bool_t AliAnalysisAlien::CreateJDL()
          if (FileExists(locjdl)) gGrid->Rm(locjdl);
          if (FileExists(locjdl1)) gGrid->Rm(locjdl1);
          Info("CreateJDL", "\n#####   Copying JDL file <%s> to your AliEn output directory", fJDLName.Data());
-         TFile::Cp(Form("file:%s",fJDLName.Data()), Form("alien://%s", locjdl.Data()));
+         if (!copyLocal2Alien("CreateJDL", fJDLName, locjdl)) 
+            Fatal("","Terminating");
+//         TFile::Cp(Form("file:%s",fJDLName.Data()), Form("alien://%s", locjdl.Data()));
          if (fMergeViaJDL) {
             Info("CreateJDL", "\n#####   Copying merging JDL file <%s> to your AliEn output directory", mergeJDLName.Data());
-            TFile::Cp(Form("file:%s",mergeJDLName.Data()), Form("alien://%s", locjdl1.Data()));
+//            TFile::Cp(Form("file:%s",mergeJDLName.Data()), Form("alien://%s", locjdl1.Data()));
+            if (!copyLocal2Alien("CreateJDL", mergeJDLName.Data(), locjdl1)) 
+               Fatal("","Terminating");
          }   
       }
       if (fAdditionalLibs.Length()) {
@@ -1393,7 +1704,10 @@ Bool_t AliAnalysisAlien::CreateJDL()
             if (os->GetString().Contains(".so")) continue;
             Info("CreateJDL", "\n#####   Copying dependency: <%s> to your alien workspace", os->GetString().Data());
             if (FileExists(os->GetString())) gGrid->Rm(os->GetString());
-            TFile::Cp(Form("file:%s",os->GetString().Data()), Form("alien://%s/%s", workdir.Data(), os->GetString().Data()));
+//            TFile::Cp(Form("file:%s",os->GetString().Data()), Form("alien://%s/%s", workdir.Data(), os->GetString().Data()));
+            if (!copyLocal2Alien("CreateJDL", os->GetString().Data(), 
+                Form("%s/%s", workdir.Data(), os->GetString().Data())))
+              Fatal("","Terminating");
          }   
          delete arr;   
       }
@@ -1403,7 +1717,10 @@ Bool_t AliAnalysisAlien::CreateJDL()
          while ((obj=next())) {
             if (FileExists(obj->GetName())) gGrid->Rm(obj->GetName());
             Info("CreateJDL", "\n#####   Copying dependency: <%s> to your alien workspace", obj->GetName());
-            TFile::Cp(Form("file:%s",obj->GetName()), Form("alien://%s/%s", workdir.Data(), obj->GetName()));
+//            TFile::Cp(Form("file:%s",obj->GetName()), Form("alien://%s/%s", workdir.Data(), obj->GetName()));
+            if (!copyLocal2Alien("CreateJDL",obj->GetName(), 
+                Form("%s/%s", workdir.Data(), obj->GetName()))) 
+              Fatal("","Terminating"); 
          }   
       }      
    } 
@@ -1435,7 +1752,10 @@ Bool_t AliAnalysisAlien::WriteJDL(Bool_t copy)
       while ((os=next())) {
          fGridJDL->AddToInputDataCollection(Form("LF:%s,nodownload", os->GetName()), "Input xml collections");
       }
-      fGridJDL->SetOutputDirectory(Form("%s/#alien_counter_04i#", fGridOutputDir.Data()));
+      if (!fOutputToRunNo)
+         fGridJDL->SetOutputDirectory(Form("%s/#alien_counter_04i#", fGridOutputDir.Data()));
+      else  
+         fGridJDL->SetOutputDirectory(fGridOutputDir);
    } else {            
       if (!fRunNumbers.Length() && !fRunRange[0]) {
          // One jdl with no parameters in case input data is specified by name.
@@ -1616,11 +1936,17 @@ Bool_t AliAnalysisAlien::WriteJDL(Bool_t copy)
       if (FileExists(locjdl1)) gGrid->Rm(locjdl1);
       if (FileExists(locjdl2)) gGrid->Rm(locjdl2);
       Info("WriteJDL", "\n#####   Copying JDL file <%s> to your AliEn output directory", fJDLName.Data());
-      TFile::Cp(Form("file:%s",fJDLName.Data()), Form("alien://%s", locjdl.Data()));
+//      TFile::Cp(Form("file:%s",fJDLName.Data()), Form("alien://%s", locjdl.Data()));
+      if (!copyLocal2Alien("WriteJDL",fJDLName.Data(),locjdl.Data())) 
+         Fatal("","Terminating");
       if (fMergeViaJDL) {
          Info("WriteJDL", "\n#####   Copying merging JDL files <%s> to your AliEn output directory", mergeJDLName.Data());
-         TFile::Cp(Form("file:%s",mergeJDLName.Data()), Form("alien://%s", locjdl1.Data()));
-         TFile::Cp(Form("file:%s",finalJDL.Data()), Form("alien://%s", locjdl2.Data()));
+//         TFile::Cp(Form("file:%s",mergeJDLName.Data()), Form("alien://%s", locjdl1.Data()));
+//         TFile::Cp(Form("file:%s",finalJDL.Data()), Form("alien://%s", locjdl2.Data()));
+         if (!copyLocal2Alien("WriteJDL",mergeJDLName.Data(),locjdl1.Data()))
+            Fatal("","Terminating");
+         if (!copyLocal2Alien("WriteJDL",finalJDL.Data(),locjdl2.Data()))
+           Fatal("","Terminating");
       }   
    } 
    return kTRUE;
@@ -2096,7 +2422,9 @@ Bool_t AliAnalysisAlien::CheckMergedFiles(const char *filename, const char *alie
    }   
    // Copy the file in the output directory
    printf("===> Copying collection %s in the output directory %s\n", Form("Stage_%d.xml",stage), aliendir);
-   TFile::Cp(Form("Stage_%d.xml",stage), Form("alien://%s/Stage_%d.xml",aliendir,stage));
+//   TFile::Cp(Form("Stage_%d.xml",stage), Form("alien://%s/Stage_%d.xml",aliendir,stage));
+   if (!copyLocal2Alien("CheckMergedFiles", Form("Stage_%d.xml",stage), 
+        Form("%s/Stage_%d.xml",aliendir,stage))) Fatal("","Terminating");
    // Check if this is the last stage to be done.
    Bool_t laststage = (nfiles<nperchunk);
    if (fMaxMergeStages && stage>=fMaxMergeStages) laststage = kTRUE;
@@ -2288,7 +2616,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
          // Loop 'find' results and get next LFN
          if (countZero == nmaxmerge) {
             // First file in chunk - create file merger and add previous chunk if any.
-            fm = new TFileMerger(kFALSE);
+            fm = new TFileMerger(kTRUE);
             fm->SetFastMethod(kTRUE);
             if (previousChunk.Length()) fm->AddFile(previousChunk.Data());
             outputChunk = outputFile;
@@ -2328,7 +2656,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
    }
    // Merging stage different than 0.
    // Move to the begining of the requested chunk.
-   fm = new TFileMerger(kFALSE);
+   fm = new TFileMerger(kTRUE);
    fm->SetFastMethod(kTRUE);
    while ((nextfile=next())) fm->AddFile(nextfile->GetName());
    delete listoffiles;
@@ -2840,7 +3168,7 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
       Error("StartAnalysis", "No data to process. Please fix %s in your plugin configuration.", serror.Data());
       return kFALSE;
    }   
-   WriteAnalysisFile();   
+   WriteAnalysisFile();
    WriteAnalysisMacro();
    WriteExecutable();
    WriteValidationScript();
@@ -3220,7 +3548,8 @@ void AliAnalysisAlien::WriteAnalysisFile()
       workdir += fGridWorkingDir;
       Info("WriteAnalysisFile", "\n#####   Copying file <%s> containing your initialized analysis manager to your alien workspace", analysisFile.Data());
       if (FileExists(analysisFile)) gGrid->Rm(analysisFile);
-      TFile::Cp(Form("file:%s",analysisFile.Data()), Form("alien://%s/%s", workdir.Data(),analysisFile.Data()));
+      if (!copyLocal2Alien("WriteAnalysisFile",analysisFile.Data(), 
+          Form("%s/%s", workdir.Data(),analysisFile.Data()))) Fatal("","Terminating");
    }   
 }
 
@@ -3418,15 +3747,25 @@ void AliAnalysisAlien::WriteAnalysisMacro()
          out << "   gEnv->SetValue(\"XNet.MaxRedirectCount\",2);" << endl;
          out << "   gEnv->SetValue(\"XNet.ReconnectTimeout\",50);" << endl;
          out << "   gEnv->SetValue(\"XNet.FirstConnectMaxCnt\",1);" << endl << endl;
+      } 
+      if (!IsLocalTest()) {  
+         out << "// connect to AliEn and make the chain" << endl;
+         out << "   if (!TGrid::Connect(\"alien://\")) return;" << endl;
       }   
-      out << "// connect to AliEn and make the chain" << endl;
-      out << "   if (!TGrid::Connect(\"alien://\")) return;" << endl;
       out << "// read the analysis manager from file" << endl;
       TString analysisFile = fExecutable;
       analysisFile.ReplaceAll(".sh", ".root");
       out << "   AliAnalysisManager *mgr = AliAnalysisAlien::LoadAnalysisManager(\"" 
           << analysisFile << "\");" << endl;
       out << "   if (!mgr) return;" << endl;
+      if (IsLocalTest()) {
+         out << "   AliAnalysisAlien *plugin = new AliAnalysisAlien();" << endl;
+         out << "   plugin->SetRunMode(\"test\");" << endl;
+         out << "   plugin->SetFileForTestMode(\"data.txt\");" << endl;
+         out << "   mgr->SetGridHandler(plugin);" << endl;
+         out << "   mgr->SetDebugLevel(10);" << endl;
+         out << "   mgr->SetNSysInfo(100);" << endl;
+      }
       out << "   mgr->PrintStatus();" << endl;
       if (AliAnalysisManager::GetAnalysisManager()) {
          if (AliAnalysisManager::GetAnalysisManager()->GetDebugLevel()>3) {
@@ -3438,57 +3777,16 @@ void AliAnalysisAlien::WriteAnalysisMacro()
                out << "   AliLog::SetGlobalLogLevel(AliLog::kError);" << endl;
          }
       }   
-      if (IsUsingTags()) {
-         out << "   TChain *chain = CreateChainFromTags(\"wn.xml\", anatype);" << endl << endl;
-      } else {
+      if (!IsLocalTest()) {
          out << "   TChain *chain = CreateChain(\"wn.xml\", anatype);" << endl << endl;   
+         out << "   mgr->StartAnalysis(\"localfile\", chain);" << endl;
+      } else {
+         out << "   mgr->StartAnalysis(\"localfile\");" << endl;
       }   
-      out << "   mgr->StartAnalysis(\"localfile\", chain);" << endl;
       out << "   timer.Stop();" << endl;
       out << "   timer.Print();" << endl;
       out << "}" << endl << endl;
-      if (IsUsingTags()) {
-         out << "TChain* CreateChainFromTags(const char *xmlfile, const char *type=\"ESD\")" << endl;
-         out << "{" << endl;
-         out << "// Create a chain using tags from the xml file." << endl;
-         out << "   TAlienCollection* coll = TAlienCollection::Open(xmlfile);" << endl;
-         out << "   if (!coll) {" << endl;
-         out << "      ::Error(\"CreateChainFromTags\", \"Cannot create an AliEn collection from %s\", xmlfile);" << endl;
-         out << "      return NULL;" << endl;
-         out << "   }" << endl;
-         out << "   TGridResult* tagResult = coll->GetGridResult(\"\",kFALSE,kFALSE);" << endl;
-         out << "   AliTagAnalysis *tagAna = new AliTagAnalysis(type);" << endl;
-         out << "   tagAna->ChainGridTags(tagResult);" << endl << endl;
-         out << "   AliRunTagCuts      *runCuts = new AliRunTagCuts();" << endl;
-         out << "   AliLHCTagCuts      *lhcCuts = new AliLHCTagCuts();" << endl;
-         out << "   AliDetectorTagCuts *detCuts = new AliDetectorTagCuts();" << endl;
-         out << "   AliEventTagCuts    *evCuts  = new AliEventTagCuts();" << endl;
-         out << "   // Check if the cuts configuration file was provided" << endl;
-         out << "   if (!gSystem->AccessPathName(\"ConfigureCuts.C\")) {" << endl;
-         out << "      gROOT->LoadMacro(\"ConfigureCuts.C\");" << endl;
-         out << "      ConfigureCuts(runCuts, lhcCuts, detCuts, evCuts);" << endl;
-         out << "   }" << endl;
-         if (fFriendChainName=="") {
-            out << "   TChain *chain = tagAna->QueryTags(runCuts, lhcCuts, detCuts, evCuts);" << endl;
-         } else {
-            out << "   TString tmpColl=\"tmpCollection.xml\";" << endl;
-            out << "   tagAna->CreateXMLCollection(tmpColl.Data(),runCuts, lhcCuts, detCuts, evCuts);" << endl;
-            out << "   TChain *chain = CreateChain(tmpColl.Data(),type);" << endl;
-         }
-         out << "   if (!chain || !chain->GetNtrees()) return NULL;" << endl;
-         out << "   chain->ls();" << endl;
-         out << "   return chain;" << endl;
-         out << "}" << endl << endl;
-         if (gSystem->AccessPathName("ConfigureCuts.C")) {
-            TString msg = "\n#####   You may want to provide a macro ConfigureCuts.C with a method:\n";
-            msg += "   void ConfigureCuts(AliRunTagCuts *runCuts,\n";
-            msg += "                      AliLHCTagCuts *lhcCuts,\n";
-            msg += "                      AliDetectorTagCuts *detCuts,\n";
-            msg += "                      AliEventTagCuts *evCuts)";
-            Info("WriteAnalysisMacro", "%s", msg.Data());
-         }
-      } 
-      if (!IsUsingTags() || fFriendChainName!="") {
+      if (!IsLocalTest()) {
          out <<"//________________________________________________________________________________" << endl;
          out << "TChain* CreateChain(const char *xmlfile, const char *type=\"ESD\")" << endl;
          out << "{" << endl;
@@ -3593,13 +3891,11 @@ void AliAnalysisAlien::WriteAnalysisMacro()
       TString workdir = gGrid->GetHomeDirectory();
       workdir += fGridWorkingDir;
       if (FileExists(fAnalysisMacro)) gGrid->Rm(fAnalysisMacro);
-      if (IsUsingTags() && !gSystem->AccessPathName("ConfigureCuts.C")) {
-         if (FileExists("ConfigureCuts.C")) gGrid->Rm("ConfigureCuts.C");
-         Info("WriteAnalysisMacro", "\n#####   Copying cuts configuration macro: <ConfigureCuts.C> to your alien workspace");
-         TFile::Cp("file:ConfigureCuts.C", Form("alien://%s/ConfigureCuts.C", workdir.Data()));
-      }   
       Info("WriteAnalysisMacro", "\n#####   Copying analysis macro: <%s> to your alien workspace", fAnalysisMacro.Data());
-      TFile::Cp(Form("file:%s",fAnalysisMacro.Data()), Form("alien://%s/%s", workdir.Data(), fAnalysisMacro.Data()));
+//      TFile::Cp(Form("file:%s",fAnalysisMacro.Data()), Form("alien://%s/%s", workdir.Data(), fAnalysisMacro.Data()));
+      if (!copyLocal2Alien("WriteAnalysisMacro",fAnalysisMacro.Data(), 
+           Form("alien://%s/%s", workdir.Data(), 
+           fAnalysisMacro.Data()))) Fatal("","Terminating");
    }
 }
 
@@ -3887,7 +4183,9 @@ void AliAnalysisAlien::WriteMergingMacro()
       workdir += fGridWorkingDir;
       if (FileExists(mergingMacro)) gGrid->Rm(mergingMacro);
       Info("WriteMergingMacro", "\n#####   Copying merging macro: <%s> to your alien workspace", mergingMacro.Data());
-      TFile::Cp(Form("file:%s",mergingMacro.Data()), Form("alien://%s/%s", workdir.Data(), mergingMacro.Data()));
+//      TFile::Cp(Form("file:%s",mergingMacro.Data()), Form("alien://%s/%s", workdir.Data(), mergingMacro.Data()));
+      if (!copyLocal2Alien("WriteMergeMacro",mergingMacro.Data(), 
+           Form("%s/%s", workdir.Data(), mergingMacro.Data()))) Fatal("","Terminating");
    }
 }
 
@@ -3983,7 +4281,9 @@ void AliAnalysisAlien::WriteExecutable()
       TString executable = Form("%s/bin/%s", gGrid->GetHomeDirectory(), fExecutable.Data());
       if (FileExists(executable)) gGrid->Rm(executable);
       Info("WriteExecutable", "\n#####   Copying executable file <%s> to your AliEn bin directory", fExecutable.Data());
-      TFile::Cp(Form("file:%s",fExecutable.Data()), Form("alien://%s", executable.Data()));
+//      TFile::Cp(Form("file:%s",fExecutable.Data()), Form("alien://%s", executable.Data()));
+      if (!copyLocal2Alien("WriteExecutable",fExecutable.Data(), 
+          executable.Data())) Fatal("","Terminating");
    } 
 }
 
@@ -4044,7 +4344,9 @@ void AliAnalysisAlien::WriteMergeExecutable()
       TString executable = Form("%s/bin/%s", gGrid->GetHomeDirectory(), mergeExec.Data());
       if (FileExists(executable)) gGrid->Rm(executable);
       Info("WriteMergeExecutable", "\n#####   Copying executable file <%s> to your AliEn bin directory", mergeExec.Data());
-      TFile::Cp(Form("file:%s",mergeExec.Data()), Form("alien://%s", executable.Data()));
+//      TFile::Cp(Form("file:%s",mergeExec.Data()), Form("alien://%s", executable.Data()));
+      if (!copyLocal2Alien("WriteMergeExecutable",
+          mergeExec.Data(), executable.Data())) Fatal("","Terminating");
    } 
 }
 
@@ -4080,7 +4382,9 @@ void AliAnalysisAlien::WriteProductionFile(const char *filename) const
    if (gGrid) {
       Info("WriteProductionFile", "\n#####   Copying production file <%s> to your work directory", filename);
       if (FileExists(filename)) gGrid->Rm(filename);
-      TFile::Cp(Form("file:%s",filename), Form("alien://%s/%s", workdir.Data(),filename));
+//      TFile::Cp(Form("file:%s",filename), Form("alien://%s/%s", workdir.Data(),filename));
+      if (!copyLocal2Alien("WriteProductionFile", filename, 
+          Form("%s/%s", workdir.Data(),filename))) Fatal("","Terminating");
    }   
 }
 
@@ -4225,6 +4529,8 @@ void AliAnalysisAlien::WriteValidationScript(Bool_t merge)
       workdir += fGridWorkingDir;
       Info("WriteValidationScript", "\n#####   Copying validation script <%s> to your AliEn working space", validationScript.Data());
       if (FileExists(validationScript)) gGrid->Rm(validationScript);
-      TFile::Cp(Form("file:%s",validationScript.Data()), Form("alien://%s/%s", workdir.Data(),validationScript.Data()));
+//      TFile::Cp(Form("file:%s",validationScript.Data()), Form("alien://%s/%s", workdir.Data(),validationScript.Data()));
+      if (!copyLocal2Alien("WriteValidationScript", validationScript.Data(), 
+          Form("%s/%s",workdir.Data(), validationScript.Data()))) Fatal("","Terminating");
    } 
 }
