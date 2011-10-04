@@ -88,3 +88,13 @@
 	--- global: 51392 51406 51407 51688 51689 51696
 
 	--- EMCAL: 51701
+
+2011-10-03 updated to r51892
+	--- BASE: 51700 51751 51858
+	abstract interface for inflater implementations
+
+	--- TPC: 51667 51801 51802 51803 51804 51805 51806 51846 51859 51860 51861 51862 51879 51881 51882 51910
+	generic decoder for TPC compressed data, monitor component for data compression
+
+	--- global: 51837 51838 51839
+	Preprocessor, postponed
