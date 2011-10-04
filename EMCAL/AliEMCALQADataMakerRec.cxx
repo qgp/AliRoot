@@ -37,6 +37,7 @@ Also calculate the ratio of amplitude from LED Monitor system (current/Reference
 #include <TLine.h>
 #include <TText.h>
 #include <TProfile.h> 
+#include <TProfile2D.h> 
 #include <TStyle.h>
 // --- Standard library ---
 
@@ -324,7 +325,9 @@ void AliEMCALQADataMakerRec::InitRaws()
   Int_t nSMSectors = fSuperModules / 2; // 2 SMs per sector
   Int_t nbinsZ = 2*AliEMCALGeoParams::fgkEMCALCols;
   Int_t nbinsPhi = nSMSectors * AliEMCALGeoParams::fgkEMCALRows;
-   
+	
+  Int_t nTRUCols = 2*AliEMCALGeoParams::fgkEMCALTRUCols; //total TRU columns for 2D TRU histos
+  Int_t nTRURows = nSMSectors*AliEMCALGeoParams::fgkEMCALTRUsPerSM*AliEMCALGeoParams::fgkEMCALTRURows; //total TRU rows for 2D TRU histos
    // counter info: number of channels per event (bins are SM index)
   TProfile * h0 = new TProfile("hLowEmcalSupermodules", "Low Gain EMC: # of towers vs SuperMod;SM Id;# of towers",
 			       fSuperModules, -0.5, fSuperModules-0.5, profileOption) ;
@@ -344,10 +347,10 @@ void AliEMCALQADataMakerRec::InitRaws()
   // how much above pedestal was the max sample?  (bins are towers)
   TProfile * h4 = new TProfile("hLowEmcalRawMaxMinusMin", "Low Gain EMC: Max - Min vs towerId;Tower Id;Max-Min [ADC counts]", 
 			       nTot, -0.5, nTot-0.5, profileOption) ;
-  Add2RawsList(h4, kSigLG, expert, image, !saveCorr) ;
+  Add2RawsList(h4, kSigLG, expert, !image, !saveCorr) ;
   TProfile * h5 = new TProfile("hHighEmcalRawMaxMinusMin", "High Gain EMC: Max - Min vs towerId;Tower Id;Max-Min [ADC counts]",
 			       nTot, -0.5, nTot-0.5, profileOption) ;
-  Add2RawsList(h5, kSigHG, expert, image, !saveCorr) ;
+  Add2RawsList(h5, kSigHG, expert, !image, !saveCorr) ;
 
   // total counter: channels per event
   TH1I * h6 = new TH1I("hLowNtot", "Low Gain EMC: Total Number of found towers;# of Towers;Counts", 200, 0, nTot) ;
@@ -365,32 +368,6 @@ void AliEMCALQADataMakerRec::InitRaws()
 			       nTot, -0.5, nTot-0.5, profileOption) ;
   Add2RawsList(h9, kPedHG, expert, !image, !saveCorr) ;
 	
-  //temp 2D amplitude histogram for the current run
-  fHighEmcHistoH2F = new TH2F("h2DHighEC2", "High Gain EMC:Max - Min [ADC counts]", nbinsZ, -0.5 , nbinsZ-0.5, nbinsPhi, -0.5, nbinsPhi-0.5);
-   fHighEmcHistoH2F->SetDirectory(0) ; // this histo must be memory resident
-  //add ratio histograms: to comapre the current run with the reference data 
-  TH2F * h15 = new TH2F("h2DRatioAmp", "High Gain Ratio to Reference:Amplitude_{current run}/Amplitude_{reference run}", nbinsZ, -0.5 , nbinsZ-0.5, 
-                        nbinsPhi, -0.5, nbinsPhi-0.5);
-  //settings for display in amore
-  h15->SetTitle("Amplitude_{current run}/Amplitude_{reference run}"); 
-  h15->SetMaximum(2.0);
-  h15->SetMinimum(0.1);
-  h15->SetOption("COLZ");
-  gStyle->SetOptStat(0);
-  Int_t color[] = {4,3,2} ;
-  gStyle->SetPalette(3,color);
-  h15->GetZaxis()->SetNdivisions(3);
-  h15->UseCurrentStyle();
-  h15->SetDirectory(0);
-  Add2RawsList(h15, k2DRatioAmp, !expert, image, !saveCorr) ;
-
-  TH1F * h16 = new TH1F("hRatioDist", "Amplitude_{current run}/Amplitude_{reference run} ratio distribution", nTot, 0., 2.);
-  h16->SetMinimum(0.1); 
-  h16->SetMaximum(100.);
-  gStyle->SetOptStat(0);
-  h16->UseCurrentStyle();
-  h16->SetDirectory(0);
-  Add2RawsList(h16, kRatioDist, !expert, image, !saveCorr) ;
  
   // now repeat the same for TRU and LEDMon data
   Int_t nTot2x2 = fSuperModules * AliEMCALGeoParams::fgkEMCALTRUsPerSM * AliEMCALGeoParams::fgkEMCAL2x2PerTRU; // max number of TRU channels for all SuperModules
@@ -400,34 +377,35 @@ void AliEMCALQADataMakerRec::InitRaws()
 				fSuperModules, -0.5, fSuperModules-0.5, profileOption) ;
   Add2RawsList(hT0, kNsmodTRU, expert, !image, !saveCorr) ;
 
-  // where did max sample occur? (bins are TRU channels)
-  TProfile * hT1 = new TProfile("hTRUEmcalRawtime", "TRU EMC: Time at Max vs 2x2Id;2x2 Id;Time [ticks]", 
-				nTot2x2, -0.5, nTot2x2-0.5, profileOption) ;
-  Add2RawsList(hT1, kTimeTRU, expert, !image, !saveCorr) ;
-
   // how much above pedestal was the max sample?  (bins are TRU channels)
-  TProfile * hT2 = new TProfile("hTRUEmcalRawMaxMinusMin", "TRU EMC: Max - Min vs 2x2Id;2x2 Id;Max-Min [ADC counts]", 
+  TProfile * hT1 = new TProfile("hTRUEmcalRawMaxMinusMin", "TRU EMC: Max - Min vs 2x2Id;2x2 Id;Max-Min [ADC counts]", 
 				nTot2x2, -0.5, nTot2x2-0.5, profileOption) ;
-  Add2RawsList(hT2, kSigTRU, expert, !image, !saveCorr) ;
+  Add2RawsList(hT1, kSigTRU, expert, !image, !saveCorr) ;
 
   // total counter: channels per event
-  TH1I * hT3 = new TH1I("hTRUNtot", "TRU EMC: Total Number of found TRU channels;# of TRU Channels;Counts", 200, 0, nTot2x2) ;
-  hT3->Sumw2() ;
-  Add2RawsList(hT3, kNtotTRU, expert, !image, !saveCorr) ;
-
-  // pedestal (bins are TRU channels)
-  TProfile * hT4 = new TProfile("hTRUEmcalRawPed", "TRU EMC: Pedestal vs 2x2Id;2x2 Id;Pedestal [ADC counts]", 
-				nTot2x2, -0.5, nTot2x2-0.5, profileOption) ;
-  Add2RawsList(hT4, kPedTRU, expert, !image, !saveCorr) ;
+  TH1I * hT2 = new TH1I("hTRUNtot", "TRU EMC: Total Number of found TRU channels;# of TRU Channels;Counts", 200, 0, nTot2x2) ;
+  hT2->Sumw2() ;
+  Add2RawsList(hT2, kNtotTRU, expert, !image, !saveCorr) ;
 
   // L0 trigger hits: # of hits (bins are TRU channels)
-  TH1I * hT5 = new TH1I("hTRUEmcalL0hits", "L0 trigger hits: Total number of 2x2 L0 generated", nTot2x2, -0.5, nTot2x2);
-  hT5->Sumw2();
-  Add2RawsList(hT5, kNL0TRU, expert, !image, !saveCorr);
+  TH2I * hT3 = new TH2I("hTRUEmcalL0hits", "L0 trigger hits: Total number of 2x2 L0 generated",  nTRUCols, -0.5, nTRUCols - 0.5, nTRURows, -0.5, nTRURows-0.5);
+  hT3->SetOption("COLZ");
+  //hT3->Sumw2();
+  Add2RawsList(hT3, kNL0TRU, !expert, image, !saveCorr);
 
   // L0 trigger hits: average time (bins are TRU channels)
-  TProfile * hT6 = new TProfile("hTRUEmcalL0hitsAvgTime", "L0 trigger hits: average time bin", nTot2x2, -0.5, nTot2x2, profileOption); 
-  Add2RawsList(hT6, kTimeL0TRU, expert, !image, !saveCorr);
+  TProfile2D * hT4 = new TProfile2D("hTRUEmcalL0hitsAvgTime", "L0 trigger hits: average time bin", nTRUCols, -0.5, nTRUCols - 0.5, nTRURows, -0.5, nTRURows-0.5, profileOption);
+  hT4->SetOption("COLZ");
+  Add2RawsList(hT4, kTimeL0TRU, !expert, image, !saveCorr);
+
+  // L0 trigger hits: first in the event (bins are TRU channels)
+  TH1I * hT5 = new TH1I("hTRUEmcalL0hitsFirst", "L0 trigger hits: First hit in the event", nTot2x2, -0.5, nTot2x2);
+  hT5->Sumw2();
+  Add2RawsList(hT5, kNL0FirstTRU, expert, !image, !saveCorr);
+	
+  // L0 trigger hits: average time of first hit in the event (bins are TRU channels)
+  TProfile * hT6 = new TProfile("hTRUEmcalL0hitsFirstAvgTime", "L0 trigger hits: average time of first hit", nTot2x2, -0.5, nTot2x2, profileOption); 
+  Add2RawsList(hT6, kTimeL0FirstTRU, expert, !image, !saveCorr);
 
   // and also LED Mon..
   // LEDMon has both high and low gain channels, just as regular FEE/towers
@@ -473,6 +451,33 @@ void AliEMCALQADataMakerRec::InitRaws()
 			       nTotLEDMon, -0.5, nTotLEDMon-0.5, profileOption) ;
   Add2RawsList(hL9, kPedHGLEDMon, expert, !image, !saveCorr) ;
   
+  //temp 2D amplitude histogram for the current run
+  fHighEmcHistoH2F = new TH2F("h2DHighEC2", "High Gain EMC:Max - Min [ADC counts]", nbinsZ, -0.5 , nbinsZ-0.5, nbinsPhi, -0.5, nbinsPhi-0.5);
+   fHighEmcHistoH2F->SetDirectory(0) ; // this histo must be memory resident
+  //add ratio histograms: to comapre the current run with the reference data 
+  TH2F * h15 = new TH2F("h2DRatioAmp", "High Gain Ratio to Reference:Amplitude_{current run}/Amplitude_{reference run}", nbinsZ, -0.5 , nbinsZ-0.5, 
+                        nbinsPhi, -0.5, nbinsPhi-0.5);
+  //settings for display in amore
+  h15->SetTitle("Amplitude_{current run}/Amplitude_{reference run}"); 
+  h15->SetMaximum(2.0);
+  h15->SetMinimum(0.1);
+  h15->SetOption("COLZ");
+  gStyle->SetOptStat(0);
+  Int_t color[] = {4,3,2} ;
+  gStyle->SetPalette(3,color);
+  h15->GetZaxis()->SetNdivisions(3);
+  h15->UseCurrentStyle();
+  h15->SetDirectory(0);
+  Add2RawsList(h15, k2DRatioAmp, !expert, image, !saveCorr) ;
+
+  TH1F * h16 = new TH1F("hRatioDist", "Amplitude_{current run}/Amplitude_{reference run} ratio distribution", nTot, 0., 2.);
+  h16->SetMinimum(0.1); 
+  h16->SetMaximum(100.);
+  gStyle->SetOptStat(0);
+  h16->UseCurrentStyle();
+  h16->SetDirectory(0);
+  Add2RawsList(h16, kRatioDist, !expert, image, !saveCorr) ;
+
   //add two histograms for shifter from the LED monitor system: comapre LED monitor with the reference run
   //to be used for decision whether we need to change reference data
   TH1F * hL10 = new TH1F("hMaxMinusMinLEDMonRatio", "LEDMon amplitude, Ratio to reference run", nTotLEDMon, -0.5, nTotLEDMon-0.5) ;
@@ -547,14 +552,15 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 
   AliRecoParam::EventSpecie_t saveSpecie = fEventSpecie ;
   if (rawReader->GetType() == AliRawEventHeaderBase::kCalibrationEvent) { 
-    SetEventSpecie(AliRecoParam::kCalib) ;
+    SetEventSpecie(AliRecoParam::kCalib) ;	
   }
-  
+
   const Int_t nTowersPerSM = AliEMCALGeoParams::fgkEMCALRows * AliEMCALGeoParams::fgkEMCALCols; // number of towers in a SuperModule; 24x48
   const Int_t nRows        = AliEMCALGeoParams::fgkEMCALRows; // number of rows per SuperModule
   const Int_t nStripsPerSM = AliEMCALGeoParams::fgkEMCALLEDRefs; // number of strips per SuperModule
   const Int_t n2x2PerSM    = AliEMCALGeoParams::fgkEMCALTRUsPerSM * AliEMCALGeoParams::fgkEMCAL2x2PerTRU; // number of TRU 2x2's per SuperModule
   const Int_t n2x2PerTRU   = AliEMCALGeoParams::fgkEMCAL2x2PerTRU;
+  const Int_t nTot2x2	   = fSuperModules * n2x2PerSM; // total TRU channel
 
   // SM counters; decl. should be safe, assuming we don't get more than expected SuperModules..
   Int_t nTotalSMLG[AliEMCALGeoParams::fgkEMCALModules]       = {0};
@@ -564,13 +570,20 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   Int_t nTotalSMHGLEDMon[AliEMCALGeoParams::fgkEMCALModules] = {0};
 
   const Int_t nTRUL0ChannelBits = 10; // used for L0 trigger bits checks
+	int firstL0TimeBin = 999;
+  int triggers[nTot2x2][24]; //auxiliary array for L0 trigger - TODO remove hardcoded 24
+	memset(triggers, 0, sizeof(int) * 24 * nTot2x2);
+
   Int_t iSM = 0; // SuperModule index 
   // start loop over input stream  
   while (in.NextDDL()) {
     Int_t iRCU = in.GetDDLNumber() % 2; // RCU0 or RCU1, within SuperModule
+    Int_t iDDL = in.GetDDLNumber();
     fRawAnalyzer->SetIsZeroSuppressed( in.GetZeroSupp() ); 
-
+    
     while (in.NextChannel()) {
+      Int_t iBranch = in.GetBranch();
+      
       iSM = in.GetModule(); // SuperModule
       //prInt_tf("iSM %d DDL %d", iSM, in.GetDDLNumber()); 
       if (iSM>=0 && iSM<fSuperModules) { // valid module reading
@@ -603,7 +616,7 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	    time = fitResults.GetTof();	
 	    firstPedSample = fFirstPedestalSampleTRU;
 	    lastPedSample  = fLastPedestalSampleTRU;
-	    if (in.GetColumn() > n2x2PerTRU) {
+	    if (in.GetColumn() >= n2x2PerTRU) {
 	      isTRUL0IdData = true;
 	    }
 	  }
@@ -650,15 +663,21 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 		  if(iTRUIdInSM < n2x2PerTRU) {
 		    Int_t iTRUAbsId = iTRUIdInSM + n2x2PerTRU * iTRUId;
 		    // Fill the histograms
-		    FillRawsData(kNL0TRU,iTRUAbsId);
-		    FillRawsData(kTimeL0TRU,iTRUAbsId, startBin);
+		    Int_t globTRUCol, globTRURow;
+		    GetTruChannelPosition(globTRURow, globTRUCol, iSM, iDDL, iBranch, iTRUIdInSM );
+		    
+		    FillRawsData(kNL0TRU, globTRUCol, globTRURow);
+		    FillRawsData(kTimeL0TRU, globTRUCol, globTRURow, startBin);
+		    triggers[iTRUAbsId][startBin] = 1;
+		    
+		    if((int)startBin < firstL0TimeBin) firstL0TimeBin = startBin;
 		  }
 		}
 	      }
 	      startBin--;
 	    } // i	
 	  } // TRU L0 Id data			
-
+	  
 	  // fill histograms
 	  if ( in.IsLowGain() || in.IsHighGain() ) { // regular towers
 	    Int_t towerId = iSM*nTowersPerSM + in.GetColumn()*nRows + in.GetRow();
@@ -696,13 +715,13 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	    nTotalSMTRU[iSM]++; 
 	    if ( (amp > fMinSignalTRU) && (amp < fMaxSignalTRU) ) { 
 	      FillRawsData(kSigTRU,iTRU2x2Id, amp);
-	      FillRawsData(kTimeTRU,iTRU2x2Id, time);
+	      //FillRawsData(kTimeTRU,iTRU2x2Id, time);
 	    }
-	    if (nPed > 0) {
-	      for (Int_t i=0; i<nPed; i++) {
-		FillRawsData(kPedTRU,iTRU2x2Id, pedSamples[i]);
-	      }
-	    }
+	    //if (nPed > 0) {
+	      //for (Int_t i=0; i<nPed; i++) {
+		//FillRawsData(kPedTRU,iTRU2x2Id, pedSamples[i]);
+	      //}
+	    //}
 	  }
 	  // LED Mon
 	  else if ( in.IsLEDMonData() ) {
@@ -743,7 +762,16 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
     }// end while over channel 
    
   }//end while over DDL's, of input stream 
-
+  //filling some L0 trigger histos
+  if( firstL0TimeBin < 999 ){
+    for(Int_t i = 0; i < nTot2x2; i++) {	
+      if( triggers[i][firstL0TimeBin] > 0 ) {
+	//histo->Fill(i,j);
+	FillRawsData(kNL0FirstTRU, i);
+	FillRawsData(kTimeL0FirstTRU, i, firstL0TimeBin);
+      }
+    }
+  }
   
   //calculate the ratio of the amplitude and fill the histograms, only if the events type is Calib
   // RS: operation on the group of histos kSigHG,k2DRatioAmp,kRatioDist,kLEDMonRatio,kLEDMonRatio,kSigLGLEDMon
@@ -1009,3 +1037,50 @@ void AliEMCALQADataMakerRec::ConvertProfile2H(TProfile * p, TH2 * histo)
     histo->SetBinContent(col2d+1, row2d+1, binContent);
   }
 } 
+
+
+
+void AliEMCALQADataMakerRec::GetTruChannelPosition( Int_t &globRow, Int_t &globColumn, Int_t module, Int_t ddl, Int_t branch, Int_t column )
+{
+  Int_t mrow;
+  Int_t mcol;
+  Int_t trow;
+  Int_t tcol;
+  Int_t drow;
+  Int_t rcu;
+  // RCU 0 or 1
+  rcu = ddl % 2;
+
+  // 12 rows of 2x2s in a module (3 TRUs by 4 rows)
+  mrow = (module/2) * 12;
+  // 24 columns per module, odd module numbers increased by 24
+  mcol = (module%2) * 24;
+
+  // position within TRU coordinates
+  tcol = column / 4;
+  trow = column % 4;
+
+  //.combine
+  if( module%2 == 0 ){   // A side
+    // mirror rows
+    trow = 3 - trow;
+
+    // TRU in module row addition
+    drow = (rcu*branch+rcu) * 4;
+
+  }
+  else{   // C side
+    // mirror columns
+    tcol = 23 - tcol;
+
+    // TRU in module row addition
+    drow = (2 - (rcu*branch+rcu)) * 4;
+  }
+
+  // output global row/collumn position (0,0 = SMA0, phi = 0, |eta| = max)
+  globRow = mrow + drow + trow;
+  globColumn = mcol + tcol;
+	return;
+
+}
+

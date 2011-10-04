@@ -50,10 +50,10 @@ public:
     kPedLG,kPedHG,
     k2DRatioAmp,kRatioDist, kLEDMonRatio, kLEDMonRatioDist,
     // then TRU info
-    kNsmodTRU,kTimeTRU,
+    kNsmodTRU,
     kSigTRU,kNtotTRU,
-    kPedTRU,
     kNL0TRU, kTimeL0TRU,
+		kNL0FirstTRU, kTimeL0FirstTRU,
     // and also LED Mon info
     kNsmodLGLEDMon,kNsmodHGLEDMon,kTimeLGLEDMon,kTimeHGLEDMon,
     kSigLGLEDMon,kSigHGLEDMon,kNtotLGLEDMon,kNtotHGLEDMon,
@@ -121,6 +121,7 @@ public:
 
   virtual void   EndOfDetectorCycle(AliQAv1::TASKINDEX_t, TObjArray ** list) ;
   void           GetCalibRefFromOCDB() ;
+  void		 GetTruChannelPosition( Int_t &globRow, Int_t &globColumn, Int_t module, Int_t ddl, Int_t branch, Int_t column ) ;
   virtual void   InitESDs() ; 
   virtual void   InitDigits() ; 
   virtual void   InitRecPoints() ; 
