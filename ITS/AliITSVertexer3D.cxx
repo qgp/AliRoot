@@ -723,8 +723,10 @@ Int_t  AliITSVertexer3D::Prepare3DVertex(Int_t optCuts){
   Int_t *validate = new Int_t [vsiz];
   for(Int_t i=0; i<vsiz;i++)validate[i]=0;
   for(Int_t i=0; i<vsiz-1;i++){
+    if (validate[i]) continue;
     AliStrLine *l1 = (AliStrLine*)fLines.At(i);
     for(Int_t j=i+1;j<fLines.GetEntriesFast();j++){
+      if (validate[j]) continue;
       AliStrLine *l2 = (AliStrLine*)fLines.At(j);
       Double_t dca=l1->GetDCA(l2);
       if(dca > fDCAcut || dca<0.00001) continue;
