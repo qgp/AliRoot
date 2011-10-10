@@ -508,6 +508,21 @@ void AliPHOSDigitizer::Digitize(Int_t event)
     }
   }
 
+
+  //Apply non-linearity
+  if(AliPHOSSimParam::GetInstance()->IsCellNonlinearityOn()){ //Apply non-lineairyt on cell level
+    const Double_t aNL = AliPHOSSimParam::GetInstance()->GetCellNonLineairyA() ;
+    const Double_t bNL = AliPHOSSimParam::GetInstance()->GetCellNonLineairyB() ;
+    const Double_t cNL = AliPHOSSimParam::GetInstance()->GetCellNonLineairyC() ;
+    for(Int_t i = 0 ; i < nEMC ; i++){
+      digit = static_cast<AliPHOSDigit*>( digits->At(i) ) ;
+      Double_t e= digit->GetEnergy() ;
+      // version(1)      digit->SetEnergy(e*(1+a*TMath::Exp(-e/b))) ;
+      digit->SetEnergy(e*cNL*(1.+aNL*TMath::Exp(-e*e/2./bNL/bNL))) ; //Better agreement with data...
+    }  
+  }
+
+
   //distretize energy if necessary
   if(AliPHOSSimParam::GetInstance()->IsEDigitizationOn()){
     Float_t adcW=AliPHOSSimParam::GetInstance()->GetADCchannelW() ;
@@ -516,12 +531,12 @@ void AliPHOSDigitizer::Digitize(Int_t event)
       digit->SetEnergy(adcW*ceil(digit->GetEnergy()/adcW)) ;
     } 
   }
+ 
   //Apply decalibration if necessary
   for(Int_t i = 0 ; i < nEMC ; i++){
     digit = static_cast<AliPHOSDigit*>( digits->At(i) ) ;
     Decalibrate(digit) ;
   }
- 
   
 //  ticks->Delete() ;
 //  delete ticks ;
@@ -610,7 +625,7 @@ void AliPHOSDigitizer::Digitize(Int_t event)
 
     geom->AbsToRelNumbering(digit->GetId(),relId);
 
-    digit->SetEnergy(TMath::Ceil(digit->GetEnergy())-0.9999) ;
+//    digit->SetEnergy(TMath::Ceil(digit->GetEnergy())-0.9999) ;
 
     Float_t tres = TimeResolution(digit->GetEnergy()) ; 
     digit->SetTime(gRandom->Gaus(digit->GetTime(), tres) ) ;
