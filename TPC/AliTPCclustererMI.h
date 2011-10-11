@@ -64,6 +64,7 @@ private:
   Bool_t AcceptCluster(AliTPCclusterMI*c);
   Double_t  ProcesSignal(Float_t * signal, Int_t nchannels, Int_t id[3], Double_t &rms, Double_t &pedestalCalib);
   void ProcessSectorData();
+  Int_t ReadHLTClusters();
   
   Float_t * fBins;       //!digits array
   Int_t   * fSigBins; //!digits array containg only timebins above threshold
@@ -96,6 +97,7 @@ private:
   const AliTPCRecoParam  * fRecoParam;        //! reconstruction parameters
   Bool_t  fBDumpSignal; // dump signal flag
   Bool_t  fBClonesArray; // output clusters stored in TClonesArray 
+  Int_t  fUseHLTClusters; // use HLT clusters instead of offline clusters
 
   // Non-persistent arrays
 
@@ -104,7 +106,7 @@ private:
   Int_t*  fAllNSigBins;//! Number of signal bins in a sector
 
 
-  ClassDef(AliTPCclustererMI,2)  // Time Projection Chamber digits
+  ClassDef(AliTPCclustererMI,3)  // Time Projection Chamber digits
 };
 
 inline Bool_t AliTPCclustererMI::IsMaximum(Float_t q,Int_t max,const Float_t *bins) const {
