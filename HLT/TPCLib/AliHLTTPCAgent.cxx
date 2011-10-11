@@ -88,6 +88,7 @@ AliHLTTPCAgent::AliHLTTPCAgent()
   , fRawDataHandler(NULL)
   , fTracksegsDataHandler(NULL)
   , fClustersDataHandler(NULL)
+  , fCompressionMonitorHandler(NULL)
 {
   // see header file for class documentation
   // or
@@ -201,12 +202,10 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     // compression component
     if (compressorInput.Length()>0) compressorInput+=" ";
     compressorInput+="TPC-globalmerger";
-    arg.Form("-deflater-mode 1");
-    handler->CreateConfiguration("TPC-compression", "TPCDataCompressor", compressorInput.Data(), arg.Data());
-    arg+=" -cluster-verification 1";
-    handler->CreateConfiguration("TPC-compression-verification", "TPCDataCompressor", compressorInput.Data(), arg.Data());
+    handler->CreateConfiguration("TPC-compression-component", "TPCDataCompressor", compressorInput.Data(), " -cluster-verification 1");
     handler->CreateConfiguration("TPC-compression-huffman-trainer", "TPCDataCompressor", compressorInput.Data(),"-deflater-mode 3");
-    handler->CreateConfiguration("TPC-compression-monitoring", "TPCDataCompressorMonitor", "TPC-compression-verification TPC-hwcfdata","");
+    handler->CreateConfiguration("TPC-compression", "BlockFilter", "TPC-compression-component TPC-hwcfdata", "");
+    handler->CreateConfiguration("TPC-compression-monitoring", "TPCDataCompressorMonitor", "TPC-compression","");
 
     // the esd converter configuration
     TString converterInput="TPC-globalmerger";
@@ -277,6 +276,24 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 
     // the HLTOUT component collects the blocks and stores the file
     handler->CreateConfiguration("TPC-hltout-cluster-dump", "HLTOUT", "TPC-hltout-cluster-publisher", "-digitfile HLT.TPC.Clusters.root -rawout=off -links 2");
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    //
+    // monitoring of compressed TPC data {CLUSTRAW:TPC }, {REMCLSCM,TPC }, {CLSTRKCM,TPC }
+    // 
+
+    // publisher component
+    handler->CreateConfiguration("TPC-hltout-compressionmonitor-publisher", "AliHLTOUTPublisher"   , NULL,
+				 "-datatype HWCLUST1 'TPC ' "
+				 "-datatype CLUSTRAW 'TPC ' "
+				 "-datatype REMCLSCM 'TPC ' "
+				 "-datatype CLSTRKCM 'TPC ' "
+				 "-datatype REMCLIDS 'TPC ' "
+				 "-datatype CLIDSTRK 'TPC ' "
+				 );
+
+    // the HLTOUT component collects the blocks and stores the file
+    handler->CreateConfiguration("TPC-hltout-compressionmonitor", "TPCDataCompressorMonitor", "TPC-hltout-compressionmonitor-publisher", "");
   }
 
   return 0;
@@ -395,17 +412,26 @@ int AliHLTTPCAgent::GetHandlerDescription(AliHLTComponentDataType dt,
       return 1;
   }
 
+  // define handlers for all blocks related to compression, flag if the
+  // cluster id blocks are existing, this will be used to decide
+  // whether to create the handler or not
   // {'CLUSTRAW':'TPC '}
+  // {'HWCLUST1':'TPC '}
   // {'REMCLSCM':'TPC '}
   // {'CLSTRKCM':'TPC '}
   // {'REMCLIDS':'TPC '}
   // {'CLIDSTRK':'TPC '}
   if (dt==AliHLTTPCDefinitions::RawClustersDataType() ||
+      dt==AliHLTTPCDefinitions::HWClustersDataType() ||
       dt==AliHLTTPCDefinitions::RemainingClustersCompressedDataType() ||
-      dt==AliHLTTPCDefinitions::ClusterTracksCompressedDataType() ||
-      dt==AliHLTTPCDefinitions::RemainingClusterIdsDataType() ||
+      dt==AliHLTTPCDefinitions::ClusterTracksCompressedDataType()) {
+      desc=AliHLTOUTHandlerDesc(kProprietary, dt, GetModuleId());
+      return 1;
+  }
+  if (dt==AliHLTTPCDefinitions::RemainingClusterIdsDataType() ||
       dt==AliHLTTPCDefinitions::ClusterIdTracksDataType()) {
       desc=AliHLTOUTHandlerDesc(kProprietary, dt, GetModuleId());
+      const_cast<AliHLTTPCAgent*>(this)->SetBit(kHaveCompressedClusterIdDataBlock);
       return 1;
   }
 
@@ -464,6 +490,24 @@ AliHLTOUTHandler* AliHLTTPCAgent::GetOutputHandler(AliHLTComponentDataType dt,
     return new AliHLTOUTHandlerChain("chains=TPC-hltout-tracks-esd-converter");
   }
 
+  // monitoring of compressed data if cluster verification blocks exist
+  // {'REMCLIDS':'TPC '}
+  // {'CLIDSTRK':'TPC '}
+  // FIXME: needs to be commissioned
+  // if (dt==AliHLTTPCDefinitions::RawClustersDataType() ||
+  //     dt==AliHLTTPCDefinitions::HWClustersDataType() ||
+  //     dt==AliHLTTPCDefinitions::RemainingClustersCompressedDataType() ||
+  //     dt==AliHLTTPCDefinitions::ClusterTracksCompressedDataType() ||
+  //     dt==AliHLTTPCDefinitions::RemainingClusterIdsDataType() ||
+  //     dt==AliHLTTPCDefinitions::ClusterIdTracksDataType()) {
+  //   const char* arg="chains=TPC-hltout-compressionmonitor";
+  //   if (!TestBit(kHaveCompressedClusterIdDataBlock))
+  //     arg="chains=TPC-hltout-compressionmonitorpublisher";
+  //   if (!fCompressionMonitorHandler)
+  //     fCompressionMonitorHandler=new AliHLTOUTHandlerChain(arg);
+  //   return fCompressionMonitorHandler;
+  // }
+
   return NULL;
 }
 
@@ -485,6 +529,11 @@ int AliHLTTPCAgent::DeleteOutputHandler(AliHLTOUTHandler* pInstance)
   if (pInstance==fClustersDataHandler) {
     delete fClustersDataHandler;
     fClustersDataHandler=NULL;
+  }
+
+  if (pInstance==fCompressionMonitorHandler) {
+    delete fCompressionMonitorHandler;
+    fCompressionMonitorHandler=NULL;
   }
 
   return 0;

@@ -32,8 +32,7 @@
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCTrackGeometry.h"
 #include "AliHLTTPCHWCFSpacePointContainer.h"
-#include "AliHLTDataInflaterSimple.h"
-#include "AliHLTDataInflaterHuffman.h"
+#include "AliHLTErrorGuard.h"
 #include "AliRawDataHeader.h"
 #include "AliTPCclusterMI.h"
 #include "TH1I.h"
@@ -125,12 +124,15 @@ int AliHLTTPCDataCompressionMonitorComponent::DoEvent( const AliHLTComponentEven
   unsigned rawDataSize=0;
   unsigned hwclustersDataSize=0;
   unsigned nofClusters=0;
+
+  // check size of TPC raw data
   for (pDesc=GetFirstInputBlock(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTPC);
        pDesc!=NULL; pDesc=GetNextInputBlock()) {
     fFlags|=kHaveRawData;
     rawDataSize+=pDesc->fSize;
   }
 
+  // check size of HWCF data and add to the MonitoringContainer
   for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::fgkHWClustersDataType);
        pDesc!=NULL; pDesc=GetNextInputBlock()) {
     fFlags|=kHaveHWClusters;
@@ -166,12 +168,29 @@ int AliHLTTPCDataCompressionMonitorComponent::DoEvent( const AliHLTComponentEven
 
     // read data
     AliHLTTPCDataCompressionDecoder decoder;
+    bool bHaveRawClusters=false;
+    for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::RawClustersDataType());
+	 pDesc!=NULL; pDesc=GetNextInputBlock()) {
+      // Note: until r51411 and v5-01-Rev-03 the compressed cluster format was sent with data
+      // type {CLUSTRAW,TPC }, the version member indicated the actual type of data
+      // transparently handled in the decoder
+      bHaveRawClusters=true;
+      iResult=decoder.ReadClustersPartition(fMonitoringContainer->BeginRemainingClusterBlock(0, pDesc->fSpecification),
+					    reinterpret_cast<AliHLTUInt8_t*>(pDesc->fPtr),
+					    pDesc->fSize,
+					    pDesc->fSpecification);
+      if (iResult<0) {
+	HLTError("reading of partition clusters failed with error %d", iResult);
+      }
+    }
+
+    if (!bHaveRawClusters) {
     for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::RemainingClustersCompressedDataType());
 	 pDesc!=NULL; pDesc=GetNextInputBlock()) {
-      iResult=decoder.ReadRemainingClustersCompressed(fMonitoringContainer->BeginRemainingClusterBlock(0, pDesc->fSpecification),
-					      reinterpret_cast<AliHLTUInt8_t*>(pDesc->fPtr),
-					      pDesc->fSize,
-					      pDesc->fSpecification);
+      iResult=decoder.ReadClustersPartition(fMonitoringContainer->BeginRemainingClusterBlock(0, pDesc->fSpecification),
+					    reinterpret_cast<AliHLTUInt8_t*>(pDesc->fPtr),
+					    pDesc->fSize,
+					    pDesc->fSpecification);
     }
 
     for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::ClusterTracksCompressedDataType());
@@ -180,6 +199,12 @@ int AliHLTTPCDataCompressionMonitorComponent::DoEvent( const AliHLTComponentEven
 					       reinterpret_cast<AliHLTUInt8_t*>(pDesc->fPtr),
 					       pDesc->fSize,
 					       pDesc->fSpecification);
+    }
+    } else {
+      if (GetFirstInputBlock(AliHLTTPCDefinitions::RemainingClustersCompressedDataType()) ||
+	  GetFirstInputBlock(AliHLTTPCDefinitions::ClusterTracksCompressedDataType())) {
+	ALIHLTERRORGUARD(5, "conflicting data blocks, monitoring histograms already filled from raw cluster data, ignoring blocks of compressed partition and track clusters");
+      }		     
     }
 
     fMonitoringContainer->Clear();
@@ -335,8 +360,8 @@ AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::AliDataContainer()
   , fTrackModelClusterIds()
   , fCurrentClusterIds(NULL)
   , fRawData(NULL)
+  , fLastPadRow(-1)
   , fBegin()
-  , fEnd()
 {
   /// constructor
   if (fHistograms) {
@@ -370,6 +395,7 @@ const AliHLTTPCDataCompressionMonitorComponent::AliHistogramDefinition AliHLTTPC
   {kHistogramDeltaSigmaZ2,  "d_sigmaZ2", "d_sigmaZ2", 1000,  -1.,     1.},
   {kHistogramDeltaCharge,   "d_chareg" , "d_charge" , 1000,  -1.,     1.},
   {kHistogramDeltaQMax,     "d_qmax"   , "d_qmax"   , 1000,  -1.,     1.},
+  {kHistogramOutOfRange,    "OutOfR"   , "OutOfR"   ,  159,   0.,   158.},
   {kNumberOfHistograms, NULL    ,  NULL    ,    0,  0.,     0.}
 };
 
@@ -447,6 +473,7 @@ AliHLTUInt32_t AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::GetCl
 {
   /// get the cluster id from the current cluster id block (optional)
   if (!fCurrentClusterIds ||
+      clusterNo<0 ||
       (int)fCurrentClusterIds->fSize<=clusterNo)
     return kAliHLTVoidDataSpec;
   return fCurrentClusterIds->fIds[clusterNo];
@@ -456,6 +483,7 @@ void AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::FillPadRow(int 
 {
   /// fill padrow histogram
   unsigned index=kHistogramPadrow;
+  fLastPadRow=row;
   if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL)
     fHistogramPointers[index]->Fill(row);
   if (clusterId!=kAliHLTVoidDataSpec) {
@@ -478,7 +506,18 @@ void AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::FillPad(float p
     index=kHistogramDeltaPad;
     if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL && fRawData) {
       if (fRawData->Check(clusterId)) {
-	fHistogramPointers[index]->Fill(pad-fRawData->GetY(clusterId));
+	float dPad=pad-fRawData->GetY(clusterId);
+	fHistogramPointers[index]->Fill(dPad);
+	static const float maxdPad=0.015; // better 100um for 4 and 6mm pad width
+	if (TMath::Abs(dPad)>maxdPad) {
+	  AliHLTUInt8_t slice = AliHLTTPCSpacePointData::GetSlice(clusterId);
+	  AliHLTUInt8_t partition = AliHLTTPCSpacePointData::GetPatch(clusterId);
+	  HLTError("cluster 0x%08x slice %d partition %d: pad difference %f - max %f", clusterId, slice, partition, dPad, maxdPad);
+	  index=kHistogramOutOfRange;
+	  if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL && fRawData) {
+	    fHistogramPointers[index]->Fill(fLastPadRow>=0?fLastPadRow:0);
+	  }
+	}
       }
     }
   }
@@ -494,18 +533,31 @@ void AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::FillTime(float 
     index=kHistogramDeltaTime;
     if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL && fRawData) {
       if (fRawData->Check(clusterId)) {
-	fHistogramPointers[index]->Fill(time-fRawData->GetZ(clusterId));
+	float dTime=time-fRawData->GetZ(clusterId);
+	fHistogramPointers[index]->Fill(dTime);
+	static const float maxdTime=0.04; // corresponds to 100um
+	if (TMath::Abs(dTime)>maxdTime) {
+	  AliHLTUInt8_t slice = AliHLTTPCSpacePointData::GetSlice(clusterId);
+	  AliHLTUInt8_t partition = AliHLTTPCSpacePointData::GetPatch(clusterId);
+	  HLTError("cluster 0x%08x slice %d partition %d: time difference %f - max %f", clusterId, slice, partition, dTime, maxdTime);
+	  index=kHistogramOutOfRange;
+	  if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL && fRawData) {
+	    fHistogramPointers[index]->Fill(fLastPadRow>=0?fLastPadRow:0);
+	  }
+	}
       }
     }
   }
 }
 
-void AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::FillSigmaY2(float sigmaY2, AliHLTUInt32_t clusterId)
+void AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::FillSigmaY2(float sigmaY2, AliHLTUInt32_t clusterId, int partition)
 {
   /// fill sigmaY2 histogram
   unsigned index=kHistogramSigmaY2;
+  /// take account for different pad widths
+  float weight=AliHLTTPCTransform::GetPadPitchWidth(partition);
   if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL)
-    fHistogramPointers[index]->Fill(sigmaY2);
+    fHistogramPointers[index]->Fill(sigmaY2*weight*weight);
   if (clusterId!=kAliHLTVoidDataSpec) {
     index=kHistogramDeltaSigmaY2;
     if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL && fRawData) {
@@ -520,8 +572,11 @@ void AliHLTTPCDataCompressionMonitorComponent::AliDataContainer::FillSigmaZ2(flo
 {
   /// fill sigmaZ2 histogram
   unsigned index=kHistogramSigmaZ2;
+  // FIXME: this is just a fixed value, to be correct the values from the global
+  // parameter block has to be used
+  float weight=AliHLTTPCTransform::GetZWidth();
   if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL)
-    fHistogramPointers[index]->Fill(sigmaZ2);
+    fHistogramPointers[index]->Fill(sigmaZ2*weight*weight);
   if (clusterId!=kAliHLTVoidDataSpec) {
     index=kHistogramDeltaSigmaZ2;
     if (index<fHistogramPointers.size() && fHistogramPointers[index]!=NULL && fRawData) {

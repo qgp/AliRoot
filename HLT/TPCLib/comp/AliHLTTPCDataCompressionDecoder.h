@@ -44,6 +44,9 @@ class AliHLTTPCDataCompressionDecoder : public AliHLTLogging {
   template<typename T>
   int ReadTrackClustersCompressed(T& c, AliHLTDataInflater* pInflater, AliHLTTPCTrackGeometry* pTrackPoints);
 
+  template<typename T>
+  int ReadClustersPartition(T& c, const AliHLTUInt8_t* pData, unsigned dataSize, AliHLTUInt32_t specification);
+
   AliHLTDataInflater* CreateInflater(int deflater, int mode) const;
 
  protected:
@@ -89,16 +92,20 @@ int AliHLTTPCDataCompressionDecoder::ReadRemainingClustersCompressed(T& c, AliHL
   // the compressed format stores the difference of the local row number in
   // the partition to the row of the last cluster
   // add the first row in the partition to get global row number
-  // offline uses row number in physical sector, inner sector consists of
-  // partitions 0 and 1, outer sector of partition 2-5
-  int rowOffset=AliHLTTPCTransform::GetFirstRow(partition);//-(partition<2?0:AliHLTTPCTransform::GetFirstRow(2));
+  int rowOffset=AliHLTTPCTransform::GetFirstRow(partition);
 
   int parameterId=0;
   int outClusterCnt=0;
   AliHLTUInt64_t value=0;
   AliHLTUInt32_t length=0;
   AliHLTUInt32_t lastPadRow=0;
+  bool bNextCluster=true;
   while (outClusterCnt<nofClusters && pInflater->NextValue(value, length)) {
+    if (bNextCluster) {
+      // switch to next cluster
+      c.Next(slice, partition);
+      bNextCluster=false;
+    }
     const AliHLTTPCDefinitions::AliClusterParameter& parameter
       =AliHLTTPCDefinitions::fgkClusterParameterDefinitions[parameterId];
 
@@ -125,8 +132,7 @@ int AliHLTTPCDataCompressionDecoder::ReadRemainingClustersCompressed(T& c, AliHL
       {c.SetQMax(value); break;}
     }
     if (parameterId>=AliHLTTPCDefinitions::kLast) {
-      // switch to next cluster
-      c.Next(slice, partition);
+      bNextCluster=true;
       outClusterCnt++;
       parameterId=-1;
     }
@@ -261,11 +267,12 @@ int AliHLTTPCDataCompressionDecoder::ReadTrackClustersCompressed(T& c, AliHLTDat
       HLTError("decoding error, can not find track point on row %d", row);
       return -EFAULT;
     }
-    AliHLTUInt8_t slice = AliHLTTPCDefinitions::GetMinSliceNr(currentTrackPoint->GetId());
-    AliHLTUInt8_t partition = AliHLTTPCDefinitions::GetMinPatchNr(currentTrackPoint->GetId());
+    AliHLTUInt8_t slice = AliHLTTPCSpacePointData::GetSlice(currentTrackPoint->GetId());
+    AliHLTUInt8_t partition = AliHLTTPCSpacePointData::GetPatch(currentTrackPoint->GetId());
     AliHLTUInt8_t nofClusters=0;
     bReadSuccess=bReadSuccess && pInflater->InputBits(nofClusters, clusterCountBitLength);
     if (!bReadSuccess) break;
+    HLTDebug("slice %02d partition %d row %03d: %d cluster(s)", slice, partition, row, nofClusters);
 
     static const AliHLTTPCDefinitions::AliClusterParameterId_t kParameterIdMapping[] = {
       AliHLTTPCDefinitions::kResidualPad,
@@ -280,7 +287,13 @@ int AliHLTTPCDataCompressionDecoder::ReadTrackClustersCompressed(T& c, AliHLTDat
     int inClusterCnt=0;
     AliHLTUInt64_t value=0;
     AliHLTUInt32_t length=0;
+    bool bNextCluster=true;
     while (bReadSuccess && inClusterCnt<nofClusters && pInflater->NextValue(value, length)) {
+      if (bNextCluster) {
+	// switch to next cluster
+	c.Next(slice, partition);
+	bNextCluster=false;
+      }
       const AliHLTTPCDefinitions::AliClusterParameter& parameter
 	=AliHLTTPCDefinitions::fgkClusterParameterDefinitions[kParameterIdMapping[parameterId]];
 
@@ -338,7 +351,7 @@ int AliHLTTPCDataCompressionDecoder::ReadTrackClustersCompressed(T& c, AliHLTDat
 	//      << "  charge " << setfill(' ') << setw(5) << fixed << right << setprecision (0) << c.GetQ()
 	//      << "  qmax "   << setfill(' ') << setw(4) << fixed << right << setprecision (0) << c.GetMax()
 	//      << endl;
-	c.Next(slice, partition);
+	bNextCluster=true;
 	inClusterCnt++;
 	parameterId=-1;
       }
@@ -352,5 +365,34 @@ int AliHLTTPCDataCompressionDecoder::ReadTrackClustersCompressed(T& c, AliHLTDat
     currentTrackPoint++;
   }
   return iResult;
+}
+
+template<typename T>
+int AliHLTTPCDataCompressionDecoder::ReadClustersPartition(T& c, const AliHLTUInt8_t* pData, unsigned dataSize, AliHLTUInt32_t specification)
+{
+  // read raw cluster data
+  if (!pData) return -EINVAL;
+  if (dataSize<sizeof(AliHLTTPCRawClusterData)) return -ENODATA;
+  const AliHLTTPCRawClusterData* clusterData = reinterpret_cast<const AliHLTTPCRawClusterData*>(pData);
+  Int_t nCount = (Int_t) clusterData->fCount;
+  if (clusterData->fVersion!=0) {
+    return ReadRemainingClustersCompressed(c, pData, dataSize, specification);
+  }
+  if (nCount*sizeof(AliHLTTPCRawCluster) + sizeof(AliHLTTPCRawClusterData) != dataSize) return -EBADF;
+  AliHLTUInt8_t slice = AliHLTTPCDefinitions::GetMinSliceNr(specification);
+  AliHLTUInt8_t partition = AliHLTTPCDefinitions::GetMinPatchNr(specification);
+
+  const AliHLTTPCRawCluster *clusters = clusterData->fClusters;
+  for (int i=0; i<nCount; i++) {
+    c.Next(slice, partition);
+    c.SetPadRow(clusters[i].GetPadRow());
+    c.SetPad(clusters[i].GetPad());
+    c.SetTime(clusters[i].GetTime());
+    c.SetSigmaY2(clusters[i].GetSigmaY2());
+    c.SetSigmaZ2(clusters[i].GetSigmaZ2());
+    c.SetCharge(clusters[i].GetCharge());
+    c.SetQMax(clusters[i].GetQMax());
+  }
+  return 0;
 }
 #endif

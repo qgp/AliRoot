@@ -33,6 +33,7 @@
 #include "AliHLTTPCTransform.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCClusterTransformation.h"
+#include "AliHLTErrorGuard.h"
 #include "AliRawDataHeader.h"
 #include "AliCDBManager.h"
 #include "AliCDBPath.h"
@@ -131,8 +132,8 @@ AliHLTComponent* AliHLTTPCDataCompressionComponent::Spawn()
   return new AliHLTTPCDataCompressionComponent;
 }
 
-int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& evtData, 
-						const AliHLTComponentBlockData* inputBlocks, 
+int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& /*evtData*/, 
+						const AliHLTComponentBlockData* /*inputBlocks*/, 
 						AliHLTComponentTriggerData& /*trigData*/,
 						AliHLTUInt8_t* outputPtr,
 						AliHLTUInt32_t& size,
@@ -201,8 +202,10 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
     }
   }
 
+  vector<int> trackindexmap; // stores index for every track id
+
   // track data input
-  if (fMode==2) { // FIXME: condition to be adjusted
+  if (fMode==2) {
     for (pDesc=GetFirstInputBlock(kAliHLTDataTypeTrack|kAliHLTDataOriginTPC);
 	 pDesc!=NULL; pDesc=GetNextInputBlock()) {
       if (GetBenchmarkInstance()) {
@@ -220,6 +223,7 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
       if ((iResult=AliHLTGlobalBarrelTrack::ConvertTrackDataArray(pTracks, pDesc->fSize, inputTrackArray))<0) {
 	return iResult;
       }
+      trackindexmap.resize(inputTrackArray.size(), -1);
     }
   }
 
@@ -229,15 +233,19 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
   }
 
   // processing
+  int trackindex=0;
   for (vector<AliHLTGlobalBarrelTrack>::iterator track=inputTrackArray.begin();
        track!=inputTrackArray.end();
-       track++) {
+       track++, trackindex++) {
     int trackID=track->GetID();
     if (trackID<0) {
       // FIXME: error guard
       HLTError("invalid track ID");
       continue;
     }
+    if (trackID>=(int)trackindexmap.size())
+      trackindexmap.resize(trackID+1, -1);
+    trackindexmap[trackID]=trackindex;
 
     if (fVerbosity>0) {
       UInt_t nofPoints=track->GetNumberOfPoints();
@@ -252,6 +260,7 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
 
     AliHLTTPCTrackGeometry* trackpoints=new AliHLTTPCTrackGeometry;
     if (!trackpoints) continue;
+    HLTDebug("track %d id %d:", trackindex, trackID);
     trackpoints->InitDriftTimeTransformation(fDriftTimeFactorA, fDriftTimeOffsetA, fDriftTimeFactorC, fDriftTimeOffsetC);
     trackpoints->SetTrackId(trackID);
     trackpoints->CalculateTrackPoints(*track);
@@ -321,13 +330,13 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
       GetBenchmarkInstance()->Start(5);
     }
     allClusters+=fSpacePointGrid->GetNumberOfSpacePoints();
-    iResult=ProcessTrackClusters(&inputTrackArray[0], inputTrackArray.size(), fTrackGrid, fSpacePointGrid, fRawInputClusters, slice, patch);
+    iResult=ProcessTrackClusters(&inputTrackArray[0], inputTrackArray.size(), fTrackGrid, trackindexmap, fSpacePointGrid, fRawInputClusters, slice, patch);
     int assignedInThisPartition=0;
     if (iResult>=0) {
       assignedInThisPartition=iResult;
       associatedClusters+=iResult;
     }
-    iResult=ProcessRemainingClusters(&inputTrackArray[0], inputTrackArray.size(), fTrackGrid, fSpacePointGrid, fRawInputClusters, slice, patch);
+    iResult=ProcessRemainingClusters(&inputTrackArray[0], inputTrackArray.size(), fTrackGrid, trackindexmap, fSpacePointGrid, fRawInputClusters, slice, patch);
     if (iResult>=0) {
       if (fSpacePointGrid->GetNumberOfSpacePoints()>0) {
 	if (fVerbosity>0) HLTInfo("associated %d (%d) of %d clusters in slice %d partition %d", iResult+assignedInThisPartition, assignedInThisPartition, fSpacePointGrid->GetNumberOfSpacePoints(), slice, patch);
@@ -350,36 +359,15 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
     if (iResult>=0) {
       size+=iResult;
       outputDataSize+=iResult;
+      // the size of the optional cluster id array must be subtracted
+      if (fpWrittenAssociatedClusterIds && outputBlocks.size()>0 &&
+	  outputBlocks.back().fDataType==AliHLTTPCDefinitions::RemainingClusterIdsDataType()) {
+	outputDataSize-=outputBlocks.back().fSize;
+      }
       if (GetBenchmarkInstance()) GetBenchmarkInstance()->AddOutput(iResult);
     }
     if (GetBenchmarkInstance()) {
       GetBenchmarkInstance()->Stop(5);
-    }
-
-    // forward MC labels
-    if (bHaveMC) {
-      // loop over input blocks and find MC block of current specification
-      unsigned mcBlock=0;
-      for (; mcBlock<evtData.fBlockCnt; mcBlock++) {
-	if (inputBlocks[mcBlock].fDataType!=(AliHLTTPCDefinitions::fgkAliHLTDataTypeClusterMCInfo | kAliHLTDataOriginTPC) ||
-	    inputBlocks[mcBlock].fSpecification!=pDesc->fSpecification) {
-	  continue;
-	}
-	if (size+inputBlocks[mcBlock].fSize>capacity) {
-	  iResult=-ENOSPC;
-	  break;
-	}
-	iResult=ForwardMCLabels(inputBlocks[mcBlock], fSpacePointGrid, outputPtr+size, capacity-size, size, outputBlocks);
-	if (iResult>0) {
-	  size+=iResult;
-	}
-
-	HLTDebug("forwarded MC data block of slice %d partition %d", slice, patch);
-	break;
-      }
-      if (mcBlock==evtData.fBlockCnt) {
-	HLTWarning("no mc data found for slice %d partition %d", slice, patch);
-      }
     }
 
     fSpacePointGrid->Clear();
@@ -422,6 +410,7 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
       break;
     }
 
+    if (fMode==2) {
     iResult=WriteTrackClusters(inputTrackArray, fRawInputClusters, fpDataDeflater, outputPtr+size+tracksBufferOffset, capacity-size-tracksBufferOffset);
     if (iResult>=0) {
       AliHLTComponent_BlockData bd;
@@ -452,6 +441,7 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
 	fpWrittenAssociatedClusterIds->clear();
       }
     }
+    }
   } while (0);
 
   fRawInputClusters->Clear();
@@ -480,34 +470,41 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
     fTrackGrid->Clear();
   }
 
+  // forward MC labels
+  for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::fgkAliHLTDataTypeClusterMCInfo | kAliHLTDataOriginTPC);
+       pDesc!=NULL; pDesc=GetNextInputBlock()) {
+    outputBlocks.push_back(*pDesc);
+  }
+
   return iResult;
 }
 
 int AliHLTTPCDataCompressionComponent::ProcessTrackClusters(AliHLTGlobalBarrelTrack* pTracks, unsigned nofTracks,
 							    AliHLTTrackGeometry::AliHLTTrackGrid* pTrackIndex,
+							    const vector<int>& trackIndexMap,
 							    AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid* pClusterIndex,
 							    AliHLTSpacePointContainer* pClusters,
 							    int slice, int partition) const
 {
   // process to assigned track clusters
+  int iResult=0;
   int assignedClusters=0;
   if (!pTracks || nofTracks==0) return 0;
 
-  vector<AliHLTUInt32_t> processedTracks;
+  vector<int> processedTracks(nofTracks, -1);
   for (AliHLTTrackGeometry::AliHLTTrackGrid::iterator& trackId=pTrackIndex->begin(slice, partition, -1);
        trackId!=pTrackIndex->end(); trackId++) {
-    if (find(processedTracks.begin(), processedTracks.end(), trackId.Data())!=processedTracks.end()) {
+    if (trackId.Data()>=trackIndexMap.size()) {
+      HLTError("can not find track id %d in index map of size %d", trackId.Data(), trackIndexMap.size());
       continue;
     }
-    unsigned trackindex=0;
-    for (; trackindex<nofTracks; trackindex++) {
-      if ((unsigned)pTracks[trackindex].GetID()==trackId.Data()) break;
-    }
-    if (trackindex>=nofTracks) {
-      HLTError("can not find track of id %d", trackId.Data());
+    int trackindex=trackIndexMap[trackId.Data()];
+    if (trackindex<0 || trackindex>=(int)nofTracks) {
+      HLTError("invalid index %d found for track id %d", trackindex, trackId.Data());
       continue;
     }
-    processedTracks.push_back(trackId.Data());
+    if (processedTracks[trackindex]>0) continue;
+    processedTracks[trackindex]=1;
     AliHLTGlobalBarrelTrack& track=pTracks[trackindex];
     if (!track.GetTrackGeometry()) {
       HLTError("can not find track geometry for track %d", trackId.Data());
@@ -528,17 +525,8 @@ int AliHLTTPCDataCompressionComponent::ProcessTrackClusters(AliHLTGlobalBarrelTr
 	// not in the current partition;
 	continue;
       }
-	  
-      AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid::iterator& cl=pClusterIndex->find(AliHLTSpacePointContainer::AliHLTSpacePointProperties(clusterId));
-      if (cl==pClusterIndex->end()) {
-	HLTError("can not find cluster no 0x%08x of track %d in index grid", clusterId, track.GetID());
-	continue;
-      }
 
       int clusterrow=(int)pClusters->GetX(clusterId);
-      float clusterpad=pClusters->GetY(clusterId);
-      float clustertime=pClusters->GetZ(clusterId);
-
       AliHLTUInt32_t pointId=AliHLTTPCSpacePointData::GetID(slice, partition, clusterrow);
       AliHLTTrackGeometry::AliHLTTrackPoint* point=pTrackPoints->GetRawTrackPoint(pointId);
       if (!point) {
@@ -547,13 +535,9 @@ int AliHLTTPCDataCompressionComponent::ProcessTrackClusters(AliHLTGlobalBarrelTr
       }
       float pad=point->GetU();
       float time=point->GetV();
-      if (TMath::Abs(clusterpad-pad)<fMaxDeltaPad &&
-	  TMath::Abs(clustertime-time)<fMaxDeltaTime) {
-	// add this cluster to the track point and mark in the index grid
-	cl.Data().fTrackId=track.GetID();
-	point->AddAssociatedSpacePoint(clusterId, clusterpad-pad, clustertime-time);
-	assignedClusters++;
-      }
+
+      iResult=FindCellClusters(trackId.Data(), clusterrow, pad, time, pClusterIndex, pClusters, point, clusterId);
+      if (iResult>0) assignedClusters+=iResult;
     }
   }
   return assignedClusters;
@@ -561,6 +545,7 @@ int AliHLTTPCDataCompressionComponent::ProcessTrackClusters(AliHLTGlobalBarrelTr
 
 int AliHLTTPCDataCompressionComponent::ProcessRemainingClusters(AliHLTGlobalBarrelTrack* pTracks, unsigned nofTracks,
 								AliHLTTrackGeometry::AliHLTTrackGrid* pTrackIndex,
+								const vector<int>& trackIndexMap,
 								AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid* pClusterIndex,
 								AliHLTSpacePointContainer* pClusters,
 								int slice, int partition) const
@@ -573,15 +558,16 @@ int AliHLTTPCDataCompressionComponent::ProcessRemainingClusters(AliHLTGlobalBarr
   for (int padrow=0; padrow<AliHLTTPCTransform::GetNRows(partition); padrow++) {
     for (AliHLTTrackGeometry::AliHLTTrackGrid::iterator& trackId=pTrackIndex->begin(slice, partition, padrow);
 	 trackId!=pTrackIndex->end(); trackId++) {
-      unsigned i=0;
-      for (; i<nofTracks; i++) {
-	if ((unsigned)pTracks[i].GetID()==trackId.Data()) break;
-      }
-      if (i>=nofTracks) {
-	HLTError("can not find track of id %d", trackId.Data());
+      if (trackId.Data()>=trackIndexMap.size()) {
+	HLTError("can not find track id %d in index map of size %d", trackId.Data(), trackIndexMap.size());
 	continue;
       }
-      AliHLTGlobalBarrelTrack& track=pTracks[i];
+      int trackindex=trackIndexMap[trackId.Data()];
+      if (trackindex<0 || trackindex>=(int)nofTracks) {
+	HLTError("invalid index %d found for track id %d", trackindex, trackId.Data());
+	continue;
+      }
+      AliHLTGlobalBarrelTrack& track=pTracks[trackindex];
       if (!track.GetTrackGeometry()) {
 	HLTError("can not find track geometry for track %d", trackId.Data());
 	continue;
@@ -614,29 +600,45 @@ int AliHLTTPCDataCompressionComponent::ProcessRemainingClusters(AliHLTGlobalBarr
 int AliHLTTPCDataCompressionComponent::FindCellClusters(int trackId, int padrow, float pad, float time,
 							AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid* pClusterIndex,
 							AliHLTSpacePointContainer* pClusters,
-							AliHLTTrackGeometry::AliHLTTrackPoint* pTrackPoint) const
+							AliHLTTrackGeometry::AliHLTTrackPoint* pTrackPoint,
+							AliHLTUInt32_t clusterId) const
 {
   // check index cell for entries and assign to track
   int count=0;
   // search a 4x4 matrix out of the 9x9 matrix around the cell addressed by
   // pad and time
-  int rowindex=pClusterIndex->GetYIndex((float)padrow);
-  int padindex=pClusterIndex->GetYIndex(pad);
-  int timeindex=pClusterIndex->GetZIndex(time);
-  if (pClusterIndex->GetCenterY(padindex)>pad) padindex--;
-  if (pClusterIndex->GetCenterZ(timeindex)>pad) timeindex--;
-  for (int padcount=0; padcount<2; padcount++, padindex++) {
+  int rowindex=pClusterIndex->GetXIndex((float)padrow);
+  int padstartindex=pClusterIndex->GetYIndex(pad);
+  int timestartindex=pClusterIndex->GetZIndex(time);
+  int cellindex=pClusterIndex->Index(rowindex, padstartindex, timestartindex);
+  float centerpad=pClusterIndex->GetCenterY(cellindex);
+  float centertime=pClusterIndex->GetCenterZ(cellindex);
+  if ((TMath::Abs(centerpad-pad)>fMaxDeltaPad && pad>0.) ||
+      (TMath::Abs(centertime-time)>fMaxDeltaTime && time>0.)) {
+    ALIHLTERRORGUARD(20, "invalid pad center calculation, please check dimensions if dimensions of index grid match the maximum possible deviation");
+  }
+
+  int paddirection=1;
+  int timedirection=1;
+  if (centerpad>pad) paddirection=-1;
+  if (centertime>time) timedirection=-1;
+  for (int padcount=0, padindex=padstartindex; padcount<2; padcount++, padindex+=paddirection) {
     if (padindex<0) continue;
     if (padindex>=pClusterIndex->GetDimensionY()) break;
-    for (int timecount=0; timecount<2; timecount++, timeindex++) {
+    for (int timecount=0, timeindex=timestartindex; timecount<2; timecount++, timeindex+=timedirection) {
       if (timeindex<0) continue;
       if (timeindex>=pClusterIndex->GetDimensionZ()) break;
-      int cellindex=pClusterIndex->Index(rowindex, padindex, timeindex);
-      pad=pClusterIndex->GetCenterY(cellindex);
-      time=pClusterIndex->GetCenterZ(cellindex);
-      for (AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid::iterator& cl=pClusterIndex->begin((float)padrow, pad, time);
+      cellindex=pClusterIndex->Index(rowindex, padindex, timeindex);
+      float cellpad=pClusterIndex->GetCenterY(cellindex);
+      float celltime=pClusterIndex->GetCenterZ(cellindex);
+      for (AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid::iterator& cl=pClusterIndex->begin((float)padrow, cellpad, celltime);
 	   cl!=pClusterIndex->end(); cl++) {
 	if (cl.Data().fTrackId>=0) continue;
+	if (clusterId!=(~(AliHLTUInt32_t)0) && clusterId!=cl.Data().fId) continue;
+	if (TMath::Abs(padrow-pClusters->GetX(cl.Data().fId))>=1.) {
+	  HLTError("cluster 0x%08x: mismatch on padrow: trackpoint %d  cluster %f", cl.Data().fId, padrow, pClusters->GetX(cl.Data().fId));
+	  continue;
+	}
 	float clusterpad=pClusters->GetY(cl.Data().fId);
 	float clustertime=pClusters->GetZ(cl.Data().fId);
 	if (TMath::Abs(clusterpad-pad)<fMaxDeltaPad &&
@@ -646,6 +648,7 @@ int AliHLTTPCDataCompressionComponent::FindCellClusters(int trackId, int padrow,
 	  pTrackPoint->AddAssociatedSpacePoint(cl.Data().fId, clusterpad-pad, clustertime-time);
 	  count++;
 	}
+	if (clusterId!=(~(AliHLTUInt32_t)0)) break;
       }
     }
   }
@@ -1013,68 +1016,6 @@ int AliHLTTPCDataCompressionComponent::ScanConfigurationArgument(int argc, const
   }
 
   return iResult;
-}
-
-int AliHLTTPCDataCompressionComponent::ForwardMCLabels(const AliHLTComponentBlockData& desc,
-						       AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid* pIndex,
-						       AliHLTUInt8_t* outputPtr,
-						       AliHLTUInt32_t size, AliHLTUInt32_t offset,
-						       vector<AliHLTComponentBlockData>& outputBlocks) const
-{
-  // forward the mc labels in the same order as the clusters
-  // sorted according to the index grid
-  if (!outputPtr || !pIndex) return -EINVAL;
-  if (!desc.fPtr) return -ENODATA;
-  if (size<desc.fSize) return -ENOSPC;
-
-  int slice=AliHLTTPCDefinitions::GetMinSliceNr(desc.fSpecification);
-  int part=AliHLTTPCDefinitions::GetMinPatchNr(desc.fSpecification);
-
-  const AliHLTTPCClusterMCData* pInput = reinterpret_cast<const AliHLTTPCClusterMCData*>(desc.fPtr);
-  Int_t nLabels = (Int_t) pInput->fCount;
-  if (nLabels*sizeof(AliHLTTPCClusterMCLabel) + sizeof(AliHLTTPCClusterMCData) != desc.fSize) {
-    HLTError("inconsistent cluster mc data block size, skipping block");
-    return -EBADF;
-  }
-  const AliHLTTPCClusterMCLabel *pInputLabels = pInput->fLabels;
-
-  AliHLTTPCClusterMCData* pOutput = reinterpret_cast<AliHLTTPCClusterMCData*>(outputPtr);
-  AliHLTTPCClusterMCLabel *pOutputLabels = pOutput->fLabels;
-
-  unsigned outIndex=0;
-  for (AliHLTSpacePointContainer::AliHLTSpacePointPropertyGrid::iterator clusterID=pIndex->begin();
-       clusterID!=pIndex->end(); clusterID++, outIndex++) {
-      if (clusterID.Data().fTrackId>-1) {
-	// this is an assigned cluster, skip
-	// TODO: introduce selectors into AliHLTIndexGrid::begin to loop
-	// consistently over entries, e.g. this check has to be done also
-	// in the forwarding of MC labels in
-	// AliHLTTPCHWCFSpacePointContainer::WriteSorted
-	continue;
-      }
-      if ((unsigned)slice!=AliHLTTPCSpacePointData::GetSlice(clusterID.Data().fId) ||
-      	  (unsigned)part!=AliHLTTPCSpacePointData::GetPatch(clusterID.Data().fId)) {
-	HLTError("spacepoint index 0x%08x out of slice %d partition %d", clusterID.Data().fId, slice, part);
-      }
-      int index=AliHLTTPCSpacePointData::GetNumber(clusterID.Data().fId);
-      pOutputLabels[outIndex]=pInputLabels[index];
-  }
-  if (outIndex==pInput->fCount) {
-    pOutput->fCount=outIndex;
-  } else {
-    HLTError("failed to copy MC label data block 0x%08x: expecting %d, copied %d entries", desc.fSpecification, pInput->fCount, outIndex);
-    return -EBADMSG;
-  }
-
-  AliHLTComponent_BlockData bd;
-  AliHLTComponent::FillBlockData(bd);
-  bd.fSize          = desc.fSize;
-  bd.fOffset        = offset;
-  bd.fSpecification = desc.fSpecification;
-  bd.fDataType      = desc.fDataType;
-  outputBlocks.push_back(bd);
-
-  return bd.fSize;
 }
 
 int AliHLTTPCDataCompressionComponent::InitDriftTimeTransformation()
