@@ -25,7 +25,8 @@
 #include "AliRawReader.h"
 #include "AliLog.h"
 #include "AliDAQ.h"
-
+#include "AliVZEROCalibData.h"
+#include "AliVZEROTriggerData.h"
 ClassImp(AliVZERORawStream)
 
 //_____________________________________________________________________________
@@ -226,4 +227,127 @@ UShort_t AliVZERORawStream::GetNextShort()
   word |= fData[fPosition++] << 8;
 
   return word;
+}
+
+//_____________________________________________________________________________
+void AliVZERORawStream::CalculateChargeForCentrTriggers(AliVZEROTriggerData *triggerData,
+							UShort_t &chargeA, UShort_t &chargeC) const
+{
+  // Use the raw-data payload
+  // in order to calculate the total
+  // charge (which is used in the
+  // centrality triggers) on each side of V0
+  if (!triggerData) {
+    AliFatal("Trigger configuration data is not provided. Exiting...");
+    return;
+  }
+  chargeA = chargeC = 0;
+  for(Int_t iChannel=0; iChannel<64; iChannel++) {
+    Int_t offlineCh = GetOfflineChannel(iChannel);
+    Int_t board = AliVZEROCalibData::GetBoardNumber(offlineCh);
+    Int_t feeChannel = AliVZEROCalibData::GetFEEChannelNumber(offlineCh);
+    if (triggerData->GetEnableCharge(board,feeChannel)) {
+      Bool_t integ10 = GetIntegratorFlag(iChannel,10);
+      UShort_t ch10 = (UShort_t)GetPedestal(iChannel,10);
+      UShort_t trPed = (integ10 == kFALSE) ? triggerData->GetPedestal(0,board,feeChannel) : triggerData->GetPedestal(1,board,feeChannel);
+      UShort_t trPedCut = (integ10 == kFALSE) ? triggerData->GetPedestalCut(0,board,feeChannel) : triggerData->GetPedestalCut(1,board,feeChannel);
+      if (!triggerData->GetPedestalSubtraction(board)) trPed = trPedCut = 0;
+      if (ch10 > trPedCut) {
+	if (offlineCh < 32) {
+	  chargeC += (ch10 - trPed);
+	}
+	else {
+	  chargeA += (ch10 - trPed);
+	}
+      }
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void AliVZERORawStream::CalculateBBandBGFlags(AliVZEROTriggerData *triggerData,
+					      UChar_t &nBBA, UChar_t &nBBC,
+					      UChar_t &nBGA, UChar_t &nBGC) const
+{
+  // Use the raw-data payload
+  // in order to calculate the total
+  // number of beam-beam and beam-gas flags
+  // (which is used in the centrality and
+  // multiplicity triggers) on each side of V0
+  if (!triggerData) {
+    AliFatal("Trigger configuration data is not provided. Exiting...");
+    return;
+  }
+  nBBA = nBBC = nBGA = nBGC = 0;
+  for(Int_t iChannel=0; iChannel<64; iChannel++) {
+    Int_t offlineCh = GetOfflineChannel(iChannel);
+    Int_t board = AliVZEROCalibData::GetBoardNumber(offlineCh);
+    Int_t feeChannel = AliVZEROCalibData::GetFEEChannelNumber(offlineCh);
+    if (triggerData->GetEnableTiming(board,feeChannel)) {
+      if (offlineCh < 32) {
+	if (GetBBFlag(iChannel,10)) nBBC++;
+	if (GetBGFlag(iChannel,10)) nBGC++;
+      }
+      else {
+	if (GetBBFlag(iChannel,10)) nBBA++;
+	if (GetBGFlag(iChannel,10)) nBGA++;
+      }
+    }
+  }
+}
+
+//_____________________________________________________________________________
+void AliVZERORawStream::FillTriggerBits(AliVZEROTriggerData *triggerData)
+{
+  // Calculate the charge sums and
+  // number of trigger flags and then
+  // fill the V0 trigger bits word
+  // following the trigger logic implemented
+  // in the firmware
+  UShort_t chargeA,chargeC;
+  CalculateChargeForCentrTriggers(triggerData,chargeA,chargeC);
+  UChar_t nBBA,nBBC,nBGA,nBGC;
+  CalculateBBandBGFlags(triggerData,
+			nBBA,nBBC,
+			nBGA,nBGC);
+
+  fTrigger = 0;
+  //BBA and BBC
+  if((nBBC >= triggerData->GetBBCThreshold()) && (nBBA >= triggerData->GetBBAThreshold())) fTrigger |= 1;
+  //BBA or BBC
+  if((nBBC >= triggerData->GetBBCThreshold()) || (nBBA >= triggerData->GetBBAThreshold())) fTrigger |= (1<<1);
+  //BGA and BBC
+  if((nBBC >= triggerData->GetBBCForBGThreshold()) && (nBGA >= triggerData->GetBGAThreshold())) fTrigger |= (1<<2);
+  //BGA 
+  if((nBGA >= triggerData->GetBGAThreshold())) fTrigger |= (1<<3);
+  //BGC and BBA
+  if((nBGC >= triggerData->GetBGCThreshold()) && (nBBA >= triggerData->GetBBAForBGThreshold())) fTrigger |= (1<<4);
+  //BGC 
+  if((nBGC >= triggerData->GetBGCThreshold())) fTrigger |= (1<<5);
+  //CTA1 and CTC1
+  if((chargeC >= triggerData->GetCentralityV0CThrLow()) && (chargeA >= triggerData->GetCentralityV0AThrLow())) fTrigger |= (1<<6);
+  //CTA1 or CTC1
+  if((chargeC >= triggerData->GetCentralityV0CThrLow()) || (chargeA >= triggerData->GetCentralityV0AThrLow())) fTrigger |= (1<<7);
+  //CTA2 and CTC2
+  if((chargeC >= triggerData->GetCentralityV0CThrHigh()) && (chargeA >= triggerData->GetCentralityV0AThrHigh())) fTrigger |= (1<<8);
+  //CTA2 or CTC2
+  if((chargeC >= triggerData->GetCentralityV0CThrHigh()) || (chargeA >= triggerData->GetCentralityV0AThrHigh())) fTrigger |= (1<<9);
+  //MTA and MTC
+  if(((nBBC >= triggerData->GetMultV0CThrLow()) && (nBBC <= triggerData->GetMultV0CThrHigh())) &&
+     ((nBBA >= triggerData->GetMultV0AThrLow()) && (nBBA <= triggerData->GetMultV0AThrHigh()))) 
+    fTrigger |= (1<<10);
+  //MTA or MTC
+  if(((nBBC >= triggerData->GetMultV0CThrLow()) && (nBBC <= triggerData->GetMultV0CThrHigh())) ||
+     ((nBBA >= triggerData->GetMultV0AThrLow()) && (nBBA <= triggerData->GetMultV0AThrHigh()))) 
+    fTrigger |= (1<<11);
+  //BBA 
+  if((nBBA >= triggerData->GetBBAThreshold())) fTrigger |= (1<<12);
+  //BBC
+  if((nBBC >= triggerData->GetBBCThreshold())) fTrigger |= (1<<13);
+  //BGA or BGC 
+  if((nBGC >= triggerData->GetBGCThreshold()) || (nBGA >= triggerData->GetBGAThreshold())) fTrigger |= (1<<14);
+  //(BGA and BBC) or (BGC and BBA) 
+  if(((nBBC >= triggerData->GetBBCForBGThreshold()) && (nBGA >= triggerData->GetBGAThreshold())) ||
+     ((nBGC >= triggerData->GetBGCThreshold()) && (nBBA >= triggerData->GetBBAForBGThreshold()))) fTrigger |= (1<<15);
+
 }
