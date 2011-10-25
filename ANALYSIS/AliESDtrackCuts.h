@@ -41,6 +41,9 @@ class AliESDtrackCuts : public AliAnalysisCuts
 public:
   enum ITSClusterRequirement { kOff = 0, kNone, kAny, kFirst, kOnlyFirst, kSecond, kOnlySecond, kBoth };
   enum Detector { kSPD = 0, kSDD, kSSD };
+  enum MultEstTrackCuts { kMultEstTrackCutGlobal = 0, kMultEstTrackCutITSSA, kMultEstTrackCutDCAwSPD, kMultEstTrackCutDCAwoSPD, kNMultEstTrackCuts /* this must always be the last */};
+  enum MultEstTrackType { kTrackletsITSTPC = 0, kTrackletsITSSA, kTracklets };
+  enum VertexType { kVertexTracks = 0x1, kVertexSPD = 0x2, kVertexTPC = 0x4 };
   
   AliESDtrackCuts(const Char_t* name = "AliESDtrackCuts", const Char_t* title = "");
   virtual ~AliESDtrackCuts();
@@ -49,13 +52,15 @@ public:
        {return AcceptTrack((AliESDtrack*)obj);}
   virtual Bool_t IsSelected(TList* /*list*/) {return kTRUE;}
 
-  Bool_t AcceptTrack(AliESDtrack* esdTrack);
-  TObjArray* GetAcceptedTracks(AliESDEvent* esd, Bool_t bTPC = kFALSE);
+  Bool_t AcceptTrack(const AliESDtrack* esdTrack, const AliESDEvent* esdEvent = 0);
+  TObjArray* GetAcceptedTracks(const AliESDEvent* esd, Bool_t bTPC = kFALSE);
   Int_t CountAcceptedTracks(const AliESDEvent* const esd);
   
   static Int_t GetReferenceMultiplicity(const AliESDEvent* esd, Bool_t tpcOnly);
+  static Int_t GetReferenceMultiplicity(const AliESDEvent* esd, MultEstTrackType trackType = kTrackletsITSTPC, Float_t etaRange = 0.5);
+  static AliESDtrackCuts* GetMultEstTrackCuts(MultEstTrackCuts cut);
 
-  static AliESDtrack* GetTPCOnlyTrack(AliESDEvent* esd, Int_t iTrack);
+  static AliESDtrack* GetTPCOnlyTrack(const AliESDEvent* esd, Int_t iTrack);
   
   // Standard cut definitions
   static AliESDtrackCuts* GetStandardTPCOnlyTrackCuts();
@@ -66,6 +71,8 @@ public:
   static AliESDtrackCuts* GetStandardITSSATrackCutsPbPb2010(Bool_t selPrimaries=kTRUE, Bool_t useForPid=kTRUE);
   static AliESDtrackCuts* GetStandardITSPureSATrackCuts2009(Bool_t selPrimaries=kTRUE, Bool_t useForPid=kTRUE);
   static AliESDtrackCuts* GetStandardITSPureSATrackCuts2010(Bool_t selPrimaries=kTRUE, Bool_t useForPid=kTRUE);
+  // Standard cuts for daughter tracks
+  static AliESDtrackCuts* GetStandardV0DaughterCuts();
 
   virtual Long64_t Merge(TCollection* list);
   virtual void Copy(TObject &c) const;
@@ -81,6 +88,8 @@ public:
   void SetClusterRequirementITS(Detector det, ITSClusterRequirement req = kOff) { fCutClusterRequirementITS[det] = req; }
   void SetMaxChi2PerClusterTPC(Float_t max=1e10) {fCutMaxChi2PerClusterTPC=max;}
   void SetMaxChi2PerClusterITS(Float_t max=1e10) {fCutMaxChi2PerClusterITS=max;}
+  void SetMaxChi2TPCConstrainedGlobal(Float_t max=1e10) {fCutMaxChi2TPCConstrainedVsGlobal = max; }
+  void SetMaxChi2TPCConstrainedGlobalVertexType(Int_t vertexType = kVertexTracks | kVertexSPD) { fCutMaxChi2TPCConstrainedVsGlobalVertexType = vertexType; }
   void SetMaxNOfMissingITSPoints(Int_t max=6)    {fCutMaxMissingITSPoints=max;}
   void SetRequireTPCRefit(Bool_t b=kFALSE)       {fCutRequireTPCRefit=b;}
   void SetRequireTPCStandAlone(Bool_t b=kFALSE)  {fCutRequireTPCStandAlone=b;}
@@ -119,6 +128,8 @@ public:
   ITSClusterRequirement GetClusterRequirementITS(Detector det) const { return fCutClusterRequirementITS[det]; }
   Float_t GetMaxChi2PerClusterTPC()  const   { return fCutMaxChi2PerClusterTPC;}
   Float_t GetMaxChi2PerClusterITS()  const   { return fCutMaxChi2PerClusterITS;}
+  Float_t GetMaxChi2TPCConstrainedGlobal() const { return fCutMaxChi2TPCConstrainedVsGlobal; }
+  Int_t GetMaxChi2TPCConstrainedGlobalVertexType() const { return fCutMaxChi2TPCConstrainedVsGlobalVertexType; }
   Int_t   GetMaxNOfMissingITSPoints() const   { return  fCutMaxMissingITSPoints;}
   Bool_t  GetRequireTPCRefit()       const   { return fCutRequireTPCRefit;}
   Bool_t  GetRequireTPCStandAlone()  const   { return fCutRequireTPCStandAlone;}
@@ -166,7 +177,7 @@ public:
   void SaveHistograms(const Char_t* dir = 0);
   void DrawHistograms();
 
-  static Float_t GetSigmaToVertex(AliESDtrack* const esdTrack);
+  static Float_t GetSigmaToVertex(const AliESDtrack* const esdTrack);
   
   static void EnableNeededBranches(TTree* tree);
 
@@ -183,11 +194,12 @@ protected:
   Bool_t CheckPtDepDCA(TString dist,Bool_t print=kFALSE) const;
   void SetPtDepDCACuts(Double_t pt);
 
-  enum { kNCuts = 39 }; 
+  enum { kNCuts = 40 }; 
 
   //######################################################
   // esd track quality cuts
   static const Char_t* fgkCutNames[kNCuts]; //! names of cuts (for internal use)
+  static AliESDtrackCuts* fgMultEstTrackCuts[kNMultEstTrackCuts]; //! track cuts used for the multiplicity estimate
 
   Int_t   fCutMinNClusterTPC;         // min number of tpc clusters
   Int_t   fCutMinNClusterITS;         // min number of its clusters
@@ -198,6 +210,8 @@ protected:
 
   Float_t fCutMaxChi2PerClusterTPC;   // max tpc fit chi2 per tpc cluster
   Float_t fCutMaxChi2PerClusterITS;   // max its fit chi2 per its cluster
+  Float_t fCutMaxChi2TPCConstrainedVsGlobal; // max chi2 TPC track constrained with vtx vs. global track
+  Int_t fCutMaxChi2TPCConstrainedVsGlobalVertexType; // vertex type for max chi2 TPC track constrained with vtx vs. global track (can be configured to accept several vertex types)
   Int_t   fCutMaxMissingITSPoints;    // max n. of missing ITS points
 
   Float_t fCutMaxC11;                 // max cov. matrix diag. elements (res. y^2)
@@ -261,6 +275,7 @@ protected:
 
   TH1F* fhChi2PerClusterITS[2];       //->
   TH1F* fhChi2PerClusterTPC[2];       //->
+  TH1F* fhChi2TPCConstrainedVsGlobal[2];       //->
   TH1F* fhNClustersForITSPID[2];      //-> number of points in SDD+SSD (ITS PID selection)
   TH1F* fhNMissingITSPoints[2];       //-> number of missing ITS points
 
@@ -290,7 +305,7 @@ protected:
   TH1F*  fhCutStatistics;             //-> statistics of what cuts the tracks did not survive
   TH2F*  fhCutCorrelation;            //-> 2d statistics plot
 
-  ClassDef(AliESDtrackCuts, 15)
+  ClassDef(AliESDtrackCuts, 17)
 };
 
 

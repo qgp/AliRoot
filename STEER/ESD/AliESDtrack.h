@@ -32,6 +32,7 @@
 #include "AliVTrack.h"
 #include "AliPID.h"
 #include "AliESDfriendTrack.h"
+#include "AliTPCdEdxInfo.h"
 
 class TParticle;
 class AliESDVertex;
@@ -39,6 +40,7 @@ class AliESDEvent;
 class AliKalmanTrack;
 class AliTrackPointArray;
 class TPolyMarker3D;
+
 
 class AliESDtrack : public AliExternalTrackParam {
 public:
@@ -102,6 +104,7 @@ public:
               (Double_t &alpha, Double_t &x, Double_t p[5]) const;
   Bool_t GetConstrainedExternalCovariance(Double_t cov[15]) const;
   Double_t GetConstrainedChi2() const {return fCchi2;}
+  Double_t GetChi2TPCConstrainedVsGlobal(const AliESDVertex* vtx) const;
   //
   
   // global track chi2
@@ -215,6 +218,8 @@ public:
   void    SetTPCsignal(Float_t signal, Float_t sigma, UChar_t npoints){ 
      fTPCsignal = signal; fTPCsignalS = sigma; fTPCsignalN = npoints;
   }
+  void    SetTPCdEdxInfo(AliTPCdEdxInfo * dEdxInfo){ fTPCdEdxInfo = dEdxInfo;}
+  AliTPCdEdxInfo * GetTPCdEdxInfo(){return fTPCdEdxInfo;}
   Double_t GetTPCsignal() const {return fTPCsignal;}
   Double_t GetTPCsignalSigma() const {return fTPCsignalS;}
   UShort_t GetTPCsignalN() const {return fTPCsignalN;}
@@ -231,6 +236,7 @@ public:
   void    SetTPCClusterMap(const TBits amap) {fTPCClusterMap = amap;}
   void    SetTPCSharedMap(const TBits amap) {fTPCSharedMap = amap;}
   Float_t GetTPCClusterInfo(Int_t nNeighbours=3, Int_t type=0, Int_t row0=0, Int_t row1=159) const;
+  Float_t GetTPCCrossedRows() const;
   
   void    SetTRDpid(const Double_t *p);
   void    SetTRDsignal(Double_t sig) {fTRDsignal = sig;}
@@ -453,9 +459,10 @@ protected:
   Double32_t  fITSsignal;     // [0.,0.,10] detector's PID signal
   Double32_t  fITSdEdxSamples[4]; // [0.,0.,10] ITS dE/dx samples
 
-  Double32_t  fTPCsignal;     // [0.,0.,10] detector's PID signal
-  Double32_t  fTPCsignalS;    // [0.,0.,10] RMS of dEdx measurement
-  Double32_t  fTPCPoints[4];  // [0.,0.,10] TPC points -first, max. dens, last and max density
+  Double32_t  fTPCsignal;        // [0.,0.,10] detector's PID signal
+  Double32_t  fTPCsignalS;       // [0.,0.,10] RMS of dEdx measurement
+  AliTPCdEdxInfo * fTPCdEdxInfo; // object containing dE/dx information for different pad regions
+  Double32_t  fTPCPoints[4];     // [0.,0.,10] TPC points -first, max. dens, last and max density
 
   Double32_t fTRDsignal;      // detector's PID signal
   Double32_t fTRDQuality;     // trd quality factor for TOF
@@ -499,11 +506,15 @@ protected:
   Char_t  fVertexID; // ID of the primary vertex this track belongs to
   AliESDEvent*   fESDEvent; //!Pointer back to event to which the track belongs
   
+  mutable Float_t fCacheNCrossedRows; //! Cache for the number of crossed rows
+  mutable Float_t fCacheChi2TPCConstrainedVsGlobal; //! Cache for the chi2 of constrained TPC vs global track
+  mutable const AliESDVertex* fCacheChi2TPCConstrainedVsGlobalVertex; //! Vertex for which the cache is valid
+  
  private:
   static bool fgkOnlineMode; //! indicate the online mode to skip some of the functionality
 
   AliESDtrack & operator=(const AliESDtrack & );
-  ClassDef(AliESDtrack,60)  //ESDtrack 
+  ClassDef(AliESDtrack,62)  //ESDtrack 
 };
 
 

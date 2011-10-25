@@ -116,6 +116,7 @@
 #include <TMath.h>
 #include <TParticle.h>
 #include <TDatabasePDG.h>
+#include <TMatrixD.h>
 
 #include "AliESDVertex.h"
 #include "AliESDtrack.h"
@@ -125,6 +126,8 @@
 #include "AliLog.h"
 #include "AliTrackPointArray.h"
 #include "TPolyMarker3D.h"
+#include "AliTrackerBase.h"
+#include "AliTPCdEdxInfo.h"
 
 ClassImp(AliESDtrack)
 
@@ -197,6 +200,7 @@ AliESDtrack::AliESDtrack() :
   fITSsignal(0),
   fTPCsignal(0),
   fTPCsignalS(0),
+  fTPCdEdxInfo(0),
   fTRDsignal(0),
   fTRDQuality(0),
   fTRDBudget(0),
@@ -227,7 +231,10 @@ AliESDtrack::AliESDtrack() :
   fTRDnSlices(0),
   fTRDslices(0x0),
   fVertexID(-2),// -2 means an orphan track 
-  fESDEvent(0)
+  fESDEvent(0),
+  fCacheNCrossedRows(-10),
+  fCacheChi2TPCConstrainedVsGlobal(-10),
+  fCacheChi2TPCConstrainedVsGlobalVertex(0)
 {
   //
   // The default ESD constructor 
@@ -302,6 +309,7 @@ AliESDtrack::AliESDtrack(const AliESDtrack& track):
   fITSsignal(track.fITSsignal),
   fTPCsignal(track.fTPCsignal),
   fTPCsignalS(track.fTPCsignalS),
+  fTPCdEdxInfo(0),
   fTRDsignal(track.fTRDsignal),
   fTRDQuality(track.fTRDQuality),
   fTRDBudget(track.fTRDBudget),
@@ -332,7 +340,10 @@ AliESDtrack::AliESDtrack(const AliESDtrack& track):
   fTRDnSlices(track.fTRDnSlices),
   fTRDslices(0x0),
   fVertexID(track.fVertexID),
-  fESDEvent(track.fESDEvent)
+  fESDEvent(track.fESDEvent),
+  fCacheNCrossedRows(track.fCacheNCrossedRows),
+  fCacheChi2TPCConstrainedVsGlobal(track.fCacheChi2TPCConstrainedVsGlobal),
+  fCacheChi2TPCConstrainedVsGlobalVertex(track.fCacheChi2TPCConstrainedVsGlobalVertex)
 {
   //
   //copy constructor
@@ -358,6 +369,7 @@ AliESDtrack::AliESDtrack(const AliESDtrack& track):
     for (Int_t i=0; i<fTRDnSlices; i++) fTRDslices[i]=track.fTRDslices[i];
   }
 
+
   for (Int_t i=0;i<AliPID::kSPECIES;i++) fTRDr[i]=track.fTRDr[i]; 
   for (Int_t i=0;i<AliPID::kSPECIES;i++) fTOFr[i]=track.fTOFr[i];
   for (Int_t i=0;i<3;i++) fTOFLabel[i]=track.fTOFLabel[i];
@@ -370,6 +382,8 @@ AliESDtrack::AliESDtrack(const AliESDtrack& track):
   if (track.fTPCInner) fTPCInner=new AliExternalTrackParam(*track.fTPCInner);
   if (track.fOp) fOp=new AliExternalTrackParam(*track.fOp);
   if (track.fHMPIDp) fHMPIDp=new AliExternalTrackParam(*track.fHMPIDp);
+  if (track.fTPCdEdxInfo) fTPCdEdxInfo = new AliTPCdEdxInfo(*track.fTPCdEdxInfo);
+
   
   if (track.fFriendTrack) fFriendTrack=new AliESDfriendTrack(*(track.fFriendTrack));
 }
@@ -416,6 +430,7 @@ AliESDtrack::AliESDtrack(const AliVTrack *track) :
   fITSsignal(0),
   fTPCsignal(0),
   fTPCsignalS(0),
+  fTPCdEdxInfo(0),
   fTRDsignal(0),
   fTRDQuality(0),
   fTRDBudget(0),
@@ -446,7 +461,10 @@ AliESDtrack::AliESDtrack(const AliVTrack *track) :
   fTRDnSlices(0),
   fTRDslices(0x0),
   fVertexID(-2),  // -2 means an orphan track
-  fESDEvent(0)  
+  fESDEvent(0),
+  fCacheNCrossedRows(-10),
+  fCacheChi2TPCConstrainedVsGlobal(-10),
+  fCacheChi2TPCConstrainedVsGlobalVertex(0)
 {
   //
   // ESD track from AliVTrack.
@@ -553,6 +571,7 @@ AliESDtrack::AliESDtrack(TParticle * part) :
   fITSsignal(0),
   fTPCsignal(0),
   fTPCsignalS(0),
+  fTPCdEdxInfo(0),
   fTRDsignal(0),
   fTRDQuality(0),
   fTRDBudget(0),
@@ -583,7 +602,10 @@ AliESDtrack::AliESDtrack(TParticle * part) :
   fTRDnSlices(0),
   fTRDslices(0x0),
   fVertexID(-2),  // -2 means an orphan track
-  fESDEvent(0)
+  fESDEvent(0),
+  fCacheNCrossedRows(-10),
+  fCacheChi2TPCConstrainedVsGlobal(-10),
+  fCacheChi2TPCConstrainedVsGlobalVertex(0)  
 {
   //
   // ESD track from TParticle
@@ -714,6 +736,7 @@ AliESDtrack::~AliESDtrack(){
   delete fHMPIDp;
   delete fCp; 
   if (fFriendTrack) delete fFriendTrack;
+  if (fTPCdEdxInfo) delete fTPCdEdxInfo;
   fFriendTrack=NULL;
   if(fTRDnSlices)
     delete[] fTRDslices;
@@ -760,6 +783,10 @@ AliESDtrack &AliESDtrack::operator=(const AliESDtrack &source){
     fTPCInner = 0;
   }
 
+  if(source.fTPCdEdxInfo) {
+    if(fTPCdEdxInfo) *fTPCdEdxInfo = *source.fTPCdEdxInfo;
+    fTPCdEdxInfo = new AliTPCdEdxInfo(*source.fTPCdEdxInfo);
+  }
 
   if(source.fOp){
     // we have the trackparam: assign or copy construct
@@ -784,7 +811,6 @@ AliESDtrack &AliESDtrack::operator=(const AliESDtrack &source){
     fHMPIDp = 0;
   }
 
-  
   // copy also the friend track 
   // use copy constructor
   if(source.fFriendTrack){
@@ -1709,6 +1735,19 @@ UShort_t AliESDtrack::GetTPCclusters(Int_t *idx) const {
 }
 
 //_______________________________________________________________________
+Float_t AliESDtrack::GetTPCCrossedRows() const
+{
+  // This function calls GetTPCClusterInfo with some default parameters which are used in the track selection and caches the outcome
+  // because GetTPCClusterInfo is quite time-consuming
+  
+  if (fCacheNCrossedRows > -1)
+    return fCacheNCrossedRows;
+  
+  fCacheNCrossedRows = GetTPCClusterInfo(2, 1);
+  return fCacheNCrossedRows;
+}
+
+//_______________________________________________________________________
 Float_t AliESDtrack::GetTPCClusterInfo(Int_t nNeighbours/*=3*/, Int_t type/*=0*/, Int_t row0, Int_t row1) const
 {
   //
@@ -2385,4 +2424,91 @@ UShort_t   AliESDtrack::GetTPCncls(Int_t i0,Int_t i1) const{
   // get number of TPC clusters
   //
   return  fTPCClusterMap.CountBits(i0)-fTPCClusterMap.CountBits(i1);
+}
+
+//____________________________________________________________________
+Double_t AliESDtrack::GetChi2TPCConstrainedVsGlobal(const AliESDVertex* vtx) const
+{
+  // Calculates the chi2 between the TPC track (TPCinner) constrained to the primary vertex and the global track
+  //
+  // Returns -1 in case the calculation failed
+  //
+  // Value is cached as a non-persistent member.
+  //
+  // Code adapted from original code by GSI group (Jacek, Marian, Michael)
+  
+  // cache, ignoring that a different vertex might be passed
+  if (fCacheChi2TPCConstrainedVsGlobalVertex == vtx)
+    return fCacheChi2TPCConstrainedVsGlobal;
+  
+  fCacheChi2TPCConstrainedVsGlobal = -1;
+  fCacheChi2TPCConstrainedVsGlobalVertex = vtx;
+  
+  Double_t x[3];
+  GetXYZ(x);
+  Double_t b[3];
+  AliTrackerBase::GetBxByBz(x,b);
+
+  if (!fTPCInner)  { 
+    AliWarning("Could not get TPC Inner Param.");
+    return fCacheChi2TPCConstrainedVsGlobal;
+  }
+  
+  // clone for constraining
+  AliExternalTrackParam* tpcInnerC = new AliExternalTrackParam(*fTPCInner);
+  if (!tpcInnerC) { 
+    AliWarning("Clone of TPCInnerParam failed.");
+    return fCacheChi2TPCConstrainedVsGlobal;  
+  }
+  
+  // transform to the track reference frame 
+  Bool_t isOK = tpcInnerC->Rotate(GetAlpha());
+  isOK &= tpcInnerC->PropagateTo(GetX(), b[2]);
+  if (!isOK) { 
+    delete tpcInnerC;
+    tpcInnerC = 0; 
+    AliWarning("Rotation/Propagation of track failed.") ; 
+    return fCacheChi2TPCConstrainedVsGlobal;    
+  }  
+
+  // constrain TPCinner 
+  isOK = tpcInnerC->ConstrainToVertex(vtx, b);
+  
+  // transform to the track reference frame 
+  isOK &= tpcInnerC->Rotate(GetAlpha());
+  isOK &= tpcInnerC->PropagateTo(GetX(), b[2]);
+
+  if (!isOK) {
+    AliWarning("ConstrainTPCInner failed.") ;
+    delete tpcInnerC;
+    tpcInnerC = 0; 
+    return fCacheChi2TPCConstrainedVsGlobal;  
+  }
+  
+  // calculate chi2 between vi and vj vectors
+  // with covi and covj covariance matrices
+  // chi2ij = (vi-vj)^(T)*(covi+covj)^(-1)*(vi-vj)
+  TMatrixD deltaT(5,1);
+  TMatrixD delta(1,5);
+  TMatrixD covarM(5,5);
+
+  for (Int_t ipar=0; ipar<5; ipar++) {
+    deltaT(ipar,0) = tpcInnerC->GetParameter()[ipar] - GetParameter()[ipar];
+    delta(0,ipar) = tpcInnerC->GetParameter()[ipar] - GetParameter()[ipar];
+
+    for (Int_t jpar=0; jpar<5; jpar++) {
+      Int_t index = GetIndex(ipar,jpar);
+      covarM(ipar,jpar) = GetCovariance()[index]+tpcInnerC->GetCovariance()[index];
+    }
+  }
+  // chi2 distance TPC constrained and TPC+ITS
+  TMatrixD covarMInv = covarM.Invert();
+  TMatrixD mat2 = covarMInv*deltaT;
+  TMatrixD chi2 = delta*mat2; 
+  
+  delete tpcInnerC; 
+  tpcInnerC = 0;
+  
+  fCacheChi2TPCConstrainedVsGlobal = chi2(0,0);
+  return fCacheChi2TPCConstrainedVsGlobal;
 }
