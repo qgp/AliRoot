@@ -268,25 +268,6 @@ void AliAnaPi0EbE::FillWeightHistograms(AliVCluster *clus)
   }// EMCAL
 }
 
-//_____________________________________________________________________________________
-AliVCluster * AliAnaPi0EbE::FindCluster(TObjArray* clusters, const Int_t id, Int_t & iclus, const Int_t first) {
-  // Given the cluster ID stored in AliAODPWG4Particle, get the originator cluster and its index in the array
-  
-  if(!clusters) return 0x0;
-  
-  for(iclus = first; iclus < clusters->GetEntriesFast(); iclus++){
-    AliVCluster *cluster= dynamic_cast<AliVCluster*> (clusters->At(iclus));
-    if(cluster){
-      if     (cluster->GetID()==id) {
-        return cluster;
-      }
-    }      
-  }// calorimeter clusters loop
-  
-  return 0x0;
-
-}
-
 //___________________________________________
 TObjString *  AliAnaPi0EbE::GetAnalysisCuts()
 {	
@@ -755,6 +736,10 @@ void  AliAnaPi0EbE::MakeInvMassInCalorimeter()
           FillSelectedClusterHistograms(cluster2, tag2);
         }
         
+        // Tag both photons as decay
+        photon1->SetTagged(kTRUE);
+        photon2->SetTagged(kTRUE);
+
         //Create AOD for analysis
         mom = mom1+mom2;
         AliAODPWG4Particle pi0 = AliAODPWG4Particle(mom);
@@ -892,6 +877,10 @@ void  AliAnaPi0EbE::MakeInvMassInCalorimeterAndCTS()
         if(cluster && GetReader()->GetDataType()!=AliCaloTrackReader::kMC){
           FillSelectedClusterHistograms(cluster, tag1);
         }        
+        
+        // Tag both photons as decay
+        photon1->SetTagged(kTRUE);
+        photon2->SetTagged(kTRUE);        
         
         //Create AOD for analysis
         mom = mom1+mom2;
