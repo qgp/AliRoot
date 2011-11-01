@@ -1224,6 +1224,7 @@ Bool_t AliReconstruction::LoadCDB()
   for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
     if (!IsSelected(fgkDetectorName[iDet], detStr)) continue;
     AliCDBManager::Instance()->GetAll(Form("%s/Calib/*",fgkDetectorName[iDet]));
+    AliCDBManager::Instance()->GetAll(Form("%s/Trigger/*",fgkDetectorName[iDet]));
   }
 
   // Temporary fix - one has to define the correct policy in order
