@@ -72,6 +72,7 @@
 #include "AliTRDCalibraMode.h"
 #include "AliTRDCalibraVector.h"
 #include "AliTRDCalibraVdriftLinearFit.h"
+#include "AliTRDCalibraExbAltFit.h"
 #include "AliTRDcalibDB.h"
 #include "AliTRDgeometry.h"
 #include "AliTRDpadPlane.h"
@@ -1286,6 +1287,77 @@ Bool_t AliTRDCalibraFit::AnalyseLinearFitters(AliTRDCalibraVdriftLinearFit *cali
   return kTRUE;
   
 }
+//______________________________________________________________________________________
+Bool_t AliTRDCalibraFit::AnalyseExbAltFit(AliTRDCalibraExbAltFit *calivdli)
+{
+  //
+  // The linear method
+  //
+
+  fStatisticMean        = 0.0;
+  fNumberFit            = 0;
+  fNumberFitSuccess     = 0;
+  fNumberEnt            = 0;
+  if(!InitFitExbAlt()) return kFALSE;
+
+  
+  for(Int_t idet = 0; idet < 540; idet++){
+
+
+    //printf("detector number %d\n",idet);
+
+    // Take the result
+    TVectorD param(3);
+    TVectorD error(3);
+    fEntriesCurrent = 0;
+    fCountDet       = idet;
+    Bool_t here     = calivdli->GetParam(idet,&param);
+    Bool_t heree    = calivdli->GetError(idet,&error);
+    //printf("here %d and heree %d\n",here, heree);
+    if(heree) {
+      fEntriesCurrent = (Int_t) error[2];
+      fNumberEnt++;
+    }
+    //printf("Number of entries %d\n",fEntriesCurrent);
+    // Nothing found or not enough statistic
+    if((!heree) || (!here) || (fEntriesCurrent <= fMinEntries)) {
+      NotEnoughStatisticExbAlt();
+      continue;
+    }
+    //param.Print();
+    //error.Print();
+    //Statistics
+    fNumberFit++;
+    fStatisticMean += fEntriesCurrent;
+
+    // Statistics   
+    fNumberFitSuccess ++;
+
+    // Put the fCurrentCoef
+    if(TMath::Abs(param[2])>0.0001){
+      fCurrentCoef2[0]  = -param[1]/2/param[2];
+      fCurrentCoefE2    = 0;//error[1];
+    }else{
+      fCurrentCoef2[0]  = 100;
+      fCurrentCoefE2    = 0;//error[1];
+    }
+    
+    // Fill
+    FillInfosFitExbAlt();
+    
+  }
+  // Mean Statistics
+  if (fNumberFit > 0) {
+    AliInfo(Form("There are %d with at least one entries. %d fits have been proceeded (sucessfully or not...). There is a mean statistic of: %d over these fitted histograms and %d successfulled fits",fNumberEnt, fNumberFit, (Int_t) fStatisticMean/fNumberFit,fNumberFitSuccess));
+  }
+  else {
+    AliInfo(Form("There are %d with at least one entries. There is no fit!",fNumberEnt));
+  }
+  delete fDebugStreamer;
+  fDebugStreamer = 0x0;
+  return kTRUE;
+  
+}
 //____________Functions fit Online CH2d________________________________________
 void AliTRDCalibraFit::AnalyseLinearFittersAllTogether(AliTRDCalibraVdriftLinearFit *calivdli, Double_t &vdriftoverall, Double_t &exboverall)
 {
@@ -2287,6 +2359,47 @@ AliTRDCalDet *AliTRDCalibraFit::CreateDetObjectLorentzAngle(const TObjArray *vec
   
 }
 //_____________________________________________________________________________
+AliTRDCalDet *AliTRDCalibraFit::CreateDetObjectExbAlt(const TObjArray *vectorFit)
+{
+  //
+  // It creates the AliTRDCalDet object from the AliTRDFitInfo2
+  // It takes the min value of the coefficients per detector 
+  // This object has to be written in the database
+  //
+  
+  // Create the DetObject
+  AliTRDCalDet *object = new AliTRDCalDet("tan(lorentzangle)","tan(lorentzangle) (detector value)");
+  
+  
+  Int_t loop = (Int_t) vectorFit->GetEntriesFast();
+  if(loop != 540) AliInfo("The Vector Fit is not complete!");
+  Int_t detector = -1;
+  Float_t value  = 0.0;
+
+  for (Int_t k = 0; k < loop; k++) {
+    detector  = ((AliTRDFitInfo *) vectorFit->At(k))->GetDetector();
+    /*
+      Int_t rowMax    = fGeo->GetRowMax(GetLayer(detector),GetStack(detector),GetSector(detector));
+      Int_t colMax    = fGeo->GetColMax(GetLayer(detector));
+      Float_t min  = 100.0;
+      for (Int_t row = 0; row < rowMax; row++) {
+      for (Int_t col = 0; col < colMax; col++) {
+      value = ((AliTRDFitInfo *) fVectorFit2.At(k))->GetCoef()[(Int_t)(col*rowMax+row)];
+      mean += -TMath::Abs(value);
+      count++;       
+      } // Col
+      } // Row
+      if(count > 0) mean = mean/count;
+    */
+    value = ((AliTRDFitInfo *) vectorFit->At(k))->GetCoef()[0];
+    //if(value > 70.0) value = value-100.0;
+    object->SetValue(detector,value);
+  }
+
+  return object;
+  
+}
+//_____________________________________________________________________________
 TObject *AliTRDCalibraFit::CreatePadObjectGain(const TObjArray *vectorFit, Double_t scaleFitFactor, const AliTRDCalDet *detobject)
 {
   //
@@ -2776,6 +2889,7 @@ Bool_t AliTRDCalibraFit::InitFitCH()
   gDirectory = gROOT;
  
   fScaleFitFactor = 0.0;
+  if( fCurrentCoefDetector ) delete [] fCurrentCoefDetector;
   fCurrentCoefDetector   = new Float_t[2304];
   for (Int_t k = 0; k < 2304; k++) {
     fCurrentCoefDetector[k] = 0.0;    
@@ -2820,11 +2934,12 @@ Bool_t AliTRDCalibraFit::InitFitPH()
   fVectorFit.SetName("driftvelocitycoefficients");
   fVectorFit2.SetName("t0coefficients");
 
+  if( fCurrentCoefDetector ) delete [] fCurrentCoefDetector;
   fCurrentCoefDetector   = new Float_t[2304];
   for (Int_t k = 0; k < 2304; k++) {
     fCurrentCoefDetector[k] = 0.0;    
   }
-
+  if( fCurrentCoefDetector2 ) delete [] fCurrentCoefDetector2;
   fCurrentCoefDetector2   = new Float_t[2304];
   for (Int_t k = 0; k < 2304; k++) {
     fCurrentCoefDetector2[k] = 0.0;    
@@ -2872,6 +2987,7 @@ Bool_t AliTRDCalibraFit::InitFitPRF()
   gDirectory = gROOT;
   fVectorFit.SetName("prfwidthcoefficients");
  
+  if( fCurrentCoefDetector ) delete [] fCurrentCoefDetector;
   fCurrentCoefDetector   = new Float_t[2304];
   for (Int_t k = 0; k < 2304; k++) {
     fCurrentCoefDetector[k] = 0.0;    
@@ -2893,6 +3009,8 @@ Bool_t AliTRDCalibraFit::InitFitLinearFitter()
   
   gDirectory = gROOT;
  
+ if( fCurrentCoefDetector ) delete [] fCurrentCoefDetector;
+ if( fCurrentCoefDetector2 ) delete [] fCurrentCoefDetector2;
   fCurrentCoefDetector   = new Float_t[2304];
   fCurrentCoefDetector2  = new Float_t[2304];
   for (Int_t k = 0; k < 2304; k++) {
@@ -2901,6 +3019,23 @@ Bool_t AliTRDCalibraFit::InitFitLinearFitter()
   }
 
   if((!fCalDetVdriftUsed) || (!fCalDetExBUsed)) return kFALSE; 
+
+  return kTRUE;
+}
+//____________Functions for initialising the AliTRDCalibraFit in the code_________
+Bool_t AliTRDCalibraFit::InitFitExbAlt()
+{
+  //
+  // Init the fCalDet, fVectorFit fCurrentCoefDetector 
+  //
+  
+  gDirectory = gROOT;
+ 
+  if( fCurrentCoefDetector2 ) delete [] fCurrentCoefDetector2;
+  fCurrentCoefDetector2   = new Float_t[2304];
+  for (Int_t k = 0; k < 2304; k++) {
+    fCurrentCoefDetector2[k]  = 0.0;
+  }
 
   return kTRUE;
 }
@@ -3498,6 +3633,33 @@ Bool_t AliTRDCalibraFit::NotEnoughStatisticLinearFitter()
 }
 
 //____________Functions for initialising the AliTRDCalibraFit in the code_________
+Bool_t AliTRDCalibraFit::NotEnoughStatisticExbAlt()
+{
+  //
+  // For the case where there are not enough entries in the histograms
+  // of the calibration group, the value present in the choosen database
+  // will be put. A negativ sign enables to know that a fit was not possible.
+  //
+  
+  Int_t factor = 0;
+  if(GetStack(fCountDet) == 2) factor = 1728;
+  else factor = 2304;
+    
+    
+  // Fill the fCurrentCoefDetector
+  for (Int_t k = 0; k < factor; k++) {
+    fCurrentCoefDetector2[k] = 100.0;
+  }
+   
+  fCurrentCoef2[0] = 100.0;
+  fCurrentCoefE2 = 0.0; 
+  
+  FillFillExbAlt();
+    
+  return kTRUE;
+}
+
+//____________Functions for initialising the AliTRDCalibraFit in the code_________
 Bool_t AliTRDCalibraFit::FillInfosFitCH(Int_t idect)
 {
   //
@@ -3871,6 +4033,28 @@ Bool_t AliTRDCalibraFit::FillInfosFitLinearFitter()
   return kTRUE;
 
 }
+//____________Functions for initialising the AliTRDCalibraFit in the code_________
+Bool_t AliTRDCalibraFit::FillInfosFitExbAlt()
+{
+  //
+  // Fill the coefficients found with the fits or other
+  // methods from the Fit functions
+  //
+  
+  Int_t factor = 0;
+  if(GetStack(fCountDet) == 2) factor = 1728;
+  else factor = 2304; 
+  
+  // Pointer to the branch
+  for (Int_t k = 0; k < factor; k++) {
+    fCurrentCoefDetector2[k]  = fCurrentCoef2[0];
+  }
+  
+  FillFillExbAlt();
+  
+  return kTRUE;
+
+}
 //________________________________________________________________________________
 void AliTRDCalibraFit::FillFillCH(Int_t idect)
 {
@@ -4089,6 +4273,56 @@ void AliTRDCalibraFit::FillFillLinearFitter()
       "lorentzangler="<<lorentzangler<<
       "Elorentzangler="<<elorentzangler<<
       "lorentzangles="<<lorentzangles<<
+      "\n";  
+  }
+  
+}
+//________________________________________________________________________________
+void AliTRDCalibraFit::FillFillExbAlt()
+{
+  //
+  // DebugStream and fVectorFit
+  //
+
+  // End of one detector
+  FillVectorFit2();
+  
+  
+  // Reset
+  for (Int_t k = 0; k < 2304; k++) {
+    fCurrentCoefDetector2[k]  = 0.0;
+  }
+  
+
+  if(fDebugLevel > 1){
+
+    if ( !fDebugStreamer ) {
+      //debug stream
+      TDirectory *backup = gDirectory;
+      fDebugStreamer = new TTreeSRedirector("TRDDebugFitExbAlt.root");
+      if ( backup ) backup->cd();  //we don't want to be cd'd to the debug streamer
+    } 
+    
+    //Debug: comparaison of the different methods (okey for first time but not for iterative procedure)
+    AliTRDpadPlane *padplane = fGeo->GetPadPlane(GetLayer(fCountDet),GetStack(fCountDet));
+    Float_t rowmd            = (padplane->GetRow0()+padplane->GetRowEnd())/2.;
+    Float_t r                = AliTRDgeometry::GetTime0(GetLayer(fCountDet)); 
+    Float_t tiltangle        = padplane->GetTiltingAngle();
+    Int_t   detector         = fCountDet;
+    Int_t   stack            = GetStack(fCountDet);
+    Int_t   layer            = GetLayer(fCountDet);
+    Float_t vf               = fCurrentCoef2[0]; 
+    Float_t vfE              = fCurrentCoefE2;
+   
+    (* fDebugStreamer) << "FillFillLinearFitter"<<
+      "detector="<<detector<<
+      "stack="<<stack<<
+      "layer="<<layer<<
+      "rowmd="<<rowmd<<
+      "r="<<r<<
+      "tiltangle="<<tiltangle<<
+      "vf="<<vf<<
+      "vfE="<<vfE<<
       "\n";  
   }
   
@@ -4592,7 +4826,7 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
       y[1] = pentea->GetBinContent(binmax-1);
       y[2] = pentea->GetBinContent(binmax);
       CalculPolynomeLagrange2(x,y,c0,c1,c2,c3,c4);
-      AliInfo("At the limit for beginning!");
+      //AliInfo("At the limit for beginning!");
       break;  
     case 2:
       minnn = pentea->GetBinCenter(binmax-2);
@@ -4810,20 +5044,20 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
   if (binmin <= 1) {
     binmin = 2;
     put = 1;
-    AliInfo("Put the binmax from 1 to 2 to enable the fit");
+    //AliInfo("Put the binmax from 1 to 2 to enable the fit");
   }
   
   //check
   if((projPH->GetBinContent(binmin)-projPH->GetBinError(binmin)) < (projPH->GetBinContent(binmin+1))) {
-    AliInfo("Too many fluctuations at the end!");
+    //AliInfo("Too many fluctuations at the end!");
     put = kFALSE;
   }
   if((projPH->GetBinContent(binmin)+projPH->GetBinError(binmin)) > (projPH->GetBinContent(binmin-1))) {
-    AliInfo("Too many fluctuations at the end!");
+    //AliInfo("Too many fluctuations at the end!");
     put = kFALSE;
   }
   if(TMath::Abs(pente->GetBinContent(binmin+1)) <= 0.0000000000001){
-    AliInfo("No entries for the next bin!");
+    //AliInfo("No entries for the next bin!");
     pente->SetBinContent(binmin,0);
     if(pente->GetEntries() > 0) binmin = (Int_t) pente->GetMinimumBin();
   }
@@ -4873,7 +5107,7 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
        (pente->GetBinContent(binmin+3) <= pente->GetBinContent(binmin+2)) &&
        ((binmin-3) >= TMath::Min(binmax+4, projPH->GetNbinsX())) &&
        (pente->GetBinContent(binmin-3) <= pente->GetBinContent(binmin-2))) {
-      AliInfo("polynome 4 false 2");
+      //AliInfo("polynome 4 false 2");
       put = kFALSE;
     }
     // poly 3
@@ -4991,18 +5225,18 @@ void AliTRDCalibraFit::FitLagrangePoly(TH1* projPH)
   }
   if((binmin == (nbins-1)) && ((binmin-2) < TMath::Min(binmax+4, projPH->GetNbinsX()))) {
     put = kFALSE;
-    AliInfo("At the limit for the drift and not usable!");
+    //AliInfo("At the limit for the drift and not usable!");
   }
 
   //pass
   if((binmin == (nbins-2)) && ((binmin-1) < TMath::Min(binmax+4, projPH->GetNbinsX()))){
     put = kFALSE;
-    AliInfo("For the drift...problem!");
+    //AliInfo("For the drift...problem!");
   }
   //pass but should not happen
   if((binmin <= (nbins-3)) && (binmin < TMath::Min(binmax+6, projPH->GetNbinsX()))){
     put = kFALSE;
-    AliInfo("For the drift...problem!");
+    //AliInfo("For the drift...problem!");
   }
   
   if(put) {
