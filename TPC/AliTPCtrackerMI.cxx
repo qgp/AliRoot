@@ -1267,7 +1267,10 @@ Int_t  AliTPCtrackerMI::LoadClusters()
   TTree * tree = fInput;
   TBranch * br = tree->GetBranch("Segment");
   br->SetAddress(&clrow);
-  //
+
+  // Conversion of pad, row coordinates in local tracking coords.
+  // Could be skipped here; is already done in clusterfinder
+
   Int_t j=Int_t(tree->GetEntries());
   for (Int_t i=0; i<j; i++) {
     br->GetEntry(i);
@@ -1872,9 +1875,9 @@ Int_t AliTPCtrackerMI::UpdateClusters(AliTPCseed& t,  Int_t nr) {
 
   if (!cl){
     index = t.GetClusterIndex2(nr);    
-    if ( (index>0) && (index&0x8000)==0){
+    if ( (index >= 0) && (index&0x8000)==0){
       cl = t.GetClusterPointer(nr);
-      if ( (cl==0) && (index>0)) cl = GetClusterMI(index);
+      if ( (cl==0) && (index >= 0)) cl = GetClusterMI(index);
       t.SetCurrentClusterIndex1(index);
       if (cl) {
 	t.SetCurrentCluster(cl);
@@ -2111,11 +2114,7 @@ void  AliTPCtrackerMI::SignShared(AliTPCseed * s1, AliTPCseed * s2)
     //    if ( (s1->GetClusterIndex2(i)&0xFFFF8FFF)==(s2->GetClusterIndex2(i)&0xFFFF8FFF) && s1->GetClusterIndex2(i)>0) {
     if ( (s1->GetClusterIndex2(i))==(s2->GetClusterIndex2(i)) && s1->GetClusterIndex2(i)>0) {
       sumshared++;
-      s1->SetSharedMapBit(i, kTRUE);
-      s2->SetSharedMapBit(i, kTRUE);
     }
-    if (s1->GetClusterIndex2(i)>0)
-      s1->SetClusterMapBit(i, kTRUE);
   }
   if (sumshared>cutN0){
     // sign clusters
@@ -2744,11 +2743,9 @@ Int_t AliTPCtrackerMI::RefitInward(AliESDEvent *event)
     seed->PropagateTo(fkParam->GetInnerRadiusLow());
     seed->UpdatePoints();
     AddCovariance(seed);
-    MakeBitmaps(seed);
+    MakeESDBitmaps(seed, esd);
     seed->CookdEdx(0.02,0.6);
     CookLabel(seed,0.1); //For comparison only
-    esd->SetTPCClusterMap(seed->GetClusterMap());
-    esd->SetTPCSharedMap(seed->GetSharedMap());
     //
     if (AliTPCReconstructor::StreamLevel()>1 && seed!=0) {
       TTreeSRedirector &cstream = *fDebugStreamer;
@@ -2966,7 +2963,7 @@ void AliTPCtrackerMI::ReadSeeds(const AliESDEvent *const event, Int_t direction)
     if (esd->GetKinkIndex(0)<=0){
       for (Int_t irow=0;irow<160;irow++){
 	Int_t index = seed->GetClusterIndex2(irow);    
-	if (index>0){ 
+	if (index >= 0){ 
 	  //
 	  AliTPCclusterMI * cl = GetClusterMI(index);
 	  seed->SetClusterPointer(irow,cl);
@@ -3847,7 +3844,7 @@ AliTPCseed *AliTPCtrackerMI::MakeSeed(AliTPCseed *const track, Float_t r0, Float
       if ( (index<p0) || x0[0]<0 ){
 	if (trpoint->GetX()>1){
 	  clindex = track->GetClusterIndex2(i);
-	  if (clindex>0){	
+	  if (clindex >= 0){	
 	    x0[0] = trpoint->GetX();
 	    x0[1] = trpoint->GetY();
 	    x0[2] = trpoint->GetZ();
@@ -3858,7 +3855,7 @@ AliTPCseed *AliTPCtrackerMI::MakeSeed(AliTPCseed *const track, Float_t r0, Float
 
       if ( (index<p1) &&(trpoint->GetX()>1)){
 	clindex = track->GetClusterIndex2(i);
-	if (clindex>0){
+	if (clindex >= 0){
 	  x1[0] = trpoint->GetX();
 	  x1[1] = trpoint->GetY();
 	  x1[2] = trpoint->GetZ();
@@ -3867,7 +3864,7 @@ AliTPCseed *AliTPCtrackerMI::MakeSeed(AliTPCseed *const track, Float_t r0, Float
       }
       if ( (index<p2) &&(trpoint->GetX()>1)){
 	clindex = track->GetClusterIndex2(i);
-	if (clindex>0){
+	if (clindex >= 0){
 	  x2[0] = trpoint->GetX();
 	  x2[1] = trpoint->GetY();
 	  x2[2] = trpoint->GetZ(); 
@@ -5914,7 +5911,7 @@ Int_t AliTPCtrackerMI::Clusters2Tracks() {
     CookLabel(pt,0.1); 
     if (pt->GetRemoval()==10) {
       if (pt->GetDensityFirst(20)>0.8 || pt->GetDensityFirst(30)>0.8 || pt->GetDensityFirst(40)>0.7)
-	pt->Desactivate(10);  // make track again active
+	pt->Desactivate(10);  // make track again active  // MvL: should be 0 ?
       else{
 	pt->Desactivate(20); 	
 	delete fSeeds->RemoveAt(i);
@@ -6793,7 +6790,7 @@ Int_t  AliTPCtrackerMI::GetRowNumber(Double_t x[3]) const
 
 
 
-void AliTPCtrackerMI::MakeBitmaps(AliTPCseed *t)
+void AliTPCtrackerMI::MakeESDBitmaps(AliTPCseed *t, AliESDtrack *esd)
 {
   //-----------------------------------------------------------------------
   // Fill the cluster and sharing bitmaps of the track
@@ -6804,22 +6801,30 @@ void AliTPCtrackerMI::MakeBitmaps(AliTPCseed *t)
   AliTPCTrackerPoint *point;
   AliTPCclusterMI    *cluster;
   
+  Int_t nclsf = 0;
+  TBits clusterMap(159);
+  TBits sharedMap(159);
+  TBits fitMap(159);
   for (int iter=firstpoint; iter<lastpoint; iter++) {
     // Change to cluster pointers to see if we have a cluster at given padrow
+
     cluster = t->GetClusterPointer(iter);
     if (cluster) {
-      t->SetClusterMapBit(iter, kTRUE);
+      clusterMap.SetBitNumber(iter, kTRUE);
       point = t->GetTrackPoint(iter);
       if (point->IsShared())
-	t->SetSharedMapBit(iter,kTRUE);
-      else
-	t->SetSharedMapBit(iter, kFALSE);
+	sharedMap.SetBitNumber(iter,kTRUE);
     }
-    else {
-      t->SetClusterMapBit(iter, kFALSE);
-      t->SetSharedMapBit(iter, kFALSE);
+    if (t->GetClusterIndex(iter) >= 0 && (t->GetClusterIndex(iter) & 0x8000) == 0) {
+      fitMap.SetBitNumber(iter, kTRUE);
+      nclsf++;
     }
   }
+  esd->SetTPCClusterMap(clusterMap);
+  esd->SetTPCSharedMap(sharedMap);
+  esd->SetTPCFitMap(fitMap);
+  if (nclsf != t->GetNumberOfClusters())
+    AliWarning(Form("Inconsistency between ncls %d and indices %d (found %d)",t->GetNumberOfClusters(),nclsf,esd->GetTPCClusterMap().CountBits()));
 }
 
 Bool_t AliTPCtrackerMI::IsFindable(AliTPCseed & track){
