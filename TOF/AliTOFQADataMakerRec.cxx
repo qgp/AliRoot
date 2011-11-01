@@ -22,6 +22,10 @@
 ///////////////////////////////////////////////////////////////////////
 
 /*
+Modified by fbellini on 01/11/2011
+- added histograms for LTM monitoring
+- fix for coverity
+
 Modified by fbellini on 17/10/2011
 - fix for memory leak in constructor
 - added methods to read histos ranges from config file in DQM
@@ -79,6 +83,8 @@ Modified by fbellini on 14/06/2010
    - Added CheckVolumeID() and CheckEquipID() methods  
    - Updated Raw QA
 */
+#include <iostream>
+#include <fstream>
 
 #include <TClonesArray.h>
 #include <TH1F.h> 
@@ -327,7 +333,9 @@ void AliTOFQADataMakerRec::InitRaws()
   TH2F * h25 = new TH2F("hTOFhitsCTTM","Map of hit pads according to CTTM numbering;LTM index;bit index",  72, 0., 72., 23, 0., 23.);
   TH2F * h26 = new TH2F("hTOFmacropadCTTM","Map of hit macropads according to CTTM numbering;LTM index; bit index",  72, 0., 72., 23, 0., 23.);
   TH2F * h27 = new TH2F("hTOFmacropadDeltaPhiTime","#Deltat vs #Delta#Phi of hit macropads;#Delta#Phi (degrees);#DeltaBX",  18, 0., 180., 20, 0., 20.0);
- 
+  TH2I *h28 = new TH2I("hBXVsCttmBit","BX ID in TOF matching window vs trg channel; trg channel; BX", 1728, 0, 1728, 24, 0, 24); 
+  TH2F *h29 = new TH2F("hTimeVsCttmBit","TOF raw time vs trg channel; trg channel; raw time (ns)", 1728, 0., 1728., fgNbinsTime, fgRangeMinTime, fgRangeMaxTime); 
+
   h25->GetYaxis()->SetTickLength(-0.02);
   h26->GetYaxis()->SetTickLength(-0.02);
   h25->GetYaxis()->SetNdivisions(210);
@@ -367,6 +375,9 @@ void AliTOFQADataMakerRec::InitRaws()
   h25->Sumw2() ;
   h26->Sumw2() ;
   h27->Sumw2() ;
+  h28->Sumw2() ;
+  h29->Sumw2() ;
+
   //add lines for DQM shifter
   fLineExpTimeMin = new TLine(200., 0., 200., 0.);
   fLineExpTimeMax = new TLine(250., 0., 250., 0.);
@@ -454,6 +465,9 @@ void AliTOFQADataMakerRec::InitRaws()
   Add2RawsList(h25, 25,  !expert, !image, !saveCorr) ;
   Add2RawsList(h26, 26,  !expert,  image, !saveCorr) ;
   Add2RawsList(h27, 27,  !expert,  image, !saveCorr) ;
+  Add2RawsList(h28, 28,  !expert,  !image, !saveCorr) ;
+  Add2RawsList(h29, 29,  !expert,  !image, !saveCorr) ;
+  
 //
   ClonePerTrigClass(AliQAv1::kRAWS); // this should be the last line
 }
@@ -631,6 +645,7 @@ void AliTOFQADataMakerRec::MakeRaws(AliRawReader* rawReader)
       clonesRawData = (TClonesArray*)fTOFRawStream.GetRawData();
       for (Int_t iRawData = 0; iRawData<clonesRawData->GetEntriesFast(); iRawData++) {
 	AliTOFrawData *tofRawDatum = (AliTOFrawData*)clonesRawData->UncheckedAt(iRawData);
+	Float_t tofRawTime=tofRawDatum->GetTOF()*tdc2ns;
 	
 	if (tofRawDatum->GetTOF()){
 	  equipmentID[0]=iDDL;
@@ -651,22 +666,29 @@ void AliTOFQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	      if (equipmentID[2]==1)  //crate left, A-side or C-side
 		FillRawsData(15,equipmentID[0]);
 	      else 
-		FillRawsData(15,equipmentID[0]-1);  
+		FillRawsData(15,equipmentID[0]-1); 
+	      
+	      //retrieve CTTM index (Ltm, bit)
+	      GetCTTMIndex(equipmentID, indexCTTM);
+	      
+	      //get BX index within TOF-matching window
+	      Int_t indexBC=-1;
+	      indexBC= TMath::Nint(tofRawTime/24.4);
+
+	      Int_t indexCttmChannel=indexCTTM[0]*24+indexCTTM[1];
+	      FillRawsData(28,indexCttmChannel,indexBC);
+	      FillRawsData(29,indexCttmChannel,tofRawTime);
 	      
 	      //fired macropad map (from LTM hits) - only for low multi evts (UPC)
 	      if ((nFiredMacropad<=fgCutNmaxFiredMacropad)){	
 		iFiredMacropad++;
 		AliInfo(Form("Event found with %i fired macropads in BCID = %i!",nFiredMacropad,BCID));
-		
-		GetCTTMIndex(equipmentID, indexCTTM);
 		FillRawsData(26,indexCTTM[0],indexCTTM[1]);
 		Float_t halfSMphi=-999.0;
-		Int_t indexBC=-1;
 		if (indexCTTM[0]<36)
 		  halfSMphi=indexCTTM[0]*10.+5.;
 		else  halfSMphi=(indexCTTM[0]-36)*10.+5.;
 		macropadPhiTimeUPC[iFiredMacropad][0]=halfSMphi;
-		indexBC= TMath::Nint(tofRawDatum->GetTOF()*tdc2ns)/25;
 		macropadPhiTimeUPC[iFiredMacropad][1]=indexBC;
 	      }
 	    }
@@ -692,9 +714,9 @@ void AliTOFQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 		  ntof[0]++; //counter for tof hits
 		  
 		  //fill global spectra for DQM plots
-		  FillRawsData(5, tofRawDatum->GetTOF()*tdc2ns) ;//in ns
+		  FillRawsData(5, tofRawTime) ;//in ns
 		  FillRawsData(10, tofRawDatum->GetTOT()*tot2ns) ;//in ns
-		  FillRawsData(23, BCID, tofRawDatum->GetTOF()*tdc2ns) ;//in ns
+		  FillRawsData(23, BCID, tofRawTime) ;//in ns
 		  
 		  //fill side-related spectra for experts plots
 		  Int_t ddlACside=iDDL/36; // 0 or 1
@@ -703,22 +725,22 @@ void AliTOFQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 		  if (volumeID2[0]>4 && volumeID2[0]<14){       //O side
 		    if (ddlPerSm<2){ //A side
 		      ntof[1]++;
-		      FillRawsData(6, tofRawDatum->GetTOF()*tdc2ns) ;
+		      FillRawsData(6, tofRawTime) ;
 		      FillRawsData(11, tofRawDatum->GetTOT()*tot2ns) ;
 		    } else {  //C side
 		      ntof[3]++;
-		      FillRawsData(8, tofRawDatum->GetTOF()*tdc2ns) ;
+		      FillRawsData(8, tofRawTime) ;
 		      FillRawsData(13, tofRawDatum->GetTOT()*tot2ns) ;
 		    }
 		  } else {                                    
 		    if (volumeID2[0]<5 || volumeID2[0]>13){   //I side
 		      if (ddlPerSm<2){ //A side
 			ntof[2]++;
-			FillRawsData(7, tofRawDatum->GetTOF()*tdc2ns) ;
+			FillRawsData(7, tofRawTime) ;
 			FillRawsData(12, tofRawDatum->GetTOT()*tot2ns) ;
 		      } else {//C side
 			ntof[4]++;
-			FillRawsData(9, tofRawDatum->GetTOF()*tdc2ns) ;
+			FillRawsData(9, tofRawTime) ;
 			FillRawsData(14, tofRawDatum->GetTOT()*tot2ns) ;
 		      }
 		    }	
@@ -726,8 +748,8 @@ void AliTOFQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 		  
 		  //compute TRM offset
 		  Int_t trm= iDDL*10+(equipmentID[1]-3);
-		  FillRawsData(20+ddlACside,trm,tofRawDatum->GetTOF()*tdc2ns);
-		  FillRawsData(22,GetStripIndex(volumeID),tofRawDatum->GetTOF()*tdc2ns) ;
+		  FillRawsData(20+ddlACside,trm,tofRawTime);
+		  FillRawsData(22,GetStripIndex(volumeID),tofRawTime) ;
 		  Short_t fea = volumeID2[4]/12;
 		  Float_t hitmapx = volumeID2[0] + ((Double_t)(3 - fea) + 0.5) *0.25;
 		  FillRawsData(17,hitmapx,GetStripIndex(volumeID2));
@@ -738,7 +760,7 @@ void AliTOFQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	      else { //orphans
 		if (!(fCalibData->GetNoiseStatus(chIndex) == AliTOFChannelOnlineStatusArray::kTOFNoiseBad)
 		    && (fCalibData->GetHWStatus(chIndex) == AliTOFChannelOnlineStatusArray::kTOFHWOk))
-		  FillRawsData(19, tofRawDatum->GetTOF()*tdc2ns) ;//in ns
+		  FillRawsData(19, tofRawTime) ;//in ns
 	      }//end orphans
 	    }//end volumeID check
 	  }//end equipID check
@@ -1045,6 +1067,9 @@ void AliTOFQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 	  if ( (htmp=(TH1*)arrRW[22]) ) htmp->SetOption("colz"); 
 	  if ( (htmp=(TH1*)arrRW[23]) ) htmp->SetOption("colz"); 
 	  if ( (htmp=(TH1*)arrRW[24]) ) htmp->SetOption("colz"); 
+	  if ( (htmp=(TH1*)arrRW[28]) ) htmp->SetOption("colz"); 
+	  if ( (htmp=(TH1*)arrRW[29]) ) htmp->SetOption("colz"); 
+
 	  if ( (htmp=(TH1*)arrRW[25]) ) {
 	    htmp->SetOption("colz"); 
 	    htmp->SetTitle(title25.Data());
@@ -1354,15 +1379,22 @@ void AliTOFQADataMakerRec::ReadHistogramRangeFromFile(const Char_t * filename)
     return;
   }
   
-  FILE * configFile = fopen(filename,"r");
-  if (!configFile){
+  std::fstream configFile;
+  configFile.open(filename, std::fstream::in);
+  if (!configFile.is_open()){
     AliInfo("Cannot open config file with histograms ranges -> use default values.");
     SetDefaultHistogramRange();
     return;
   }
   
-  if (feof(configFile)){
-    AliInfo("Unexpected EOF of config file with histograms ranges -> use default values.");
+  //check file size
+  Int_t begin = configFile.tellg();
+  configFile.seekg(0, std::fstream::end); /* end */
+  Int_t end = configFile.tellg();
+  Int_t size = end - begin;
+  configFile.seekg(0, std::fstream::beg); /* rewind file */
+  if (size <= 0){
+    AliInfo(Form("Unexpected EOF of config file with histograms ranges. File size: %d -> use default values", size));
     SetDefaultHistogramRange();
     return;
   }
@@ -1371,32 +1403,34 @@ void AliTOFQADataMakerRec::ReadHistogramRangeFromFile(const Char_t * filename)
   Int_t nbinsMulti=0,nbinsTime=0;
   Float_t minTime=9999.0, maxTime=-9999.0;
   Int_t cutFiredMacropad=0;
+  TString endoflist;
+  while (!configFile.eof()) {
+    configFile >> cutFiredMacropad >> minMulti >> maxMulti >> minTime >> maxTime;
+    configFile >> endoflist;
+    if (endoflist.Contains("end")) break;
+  }
 
-  fscanf(configFile,"%10i %10i %10i %10f %10f", &cutFiredMacropad,&minMulti,&maxMulti,&minTime,&maxTime);
-  
   //set multiplicity histo ranges
   if (minMulti>maxMulti){
-    AliInfo("Invalid range for multiplicity histogram set. Changing to defualt values.");
+    AliInfo("Invalid range for multiplicity histogram set. Changing to default values.");
     SetDefaultMultiHistogramRange();
   } else {
     nbinsMulti = maxMulti-minMulti;
     SetNbinsMultiplicityHisto(nbinsMulti);
     SetMultiplicityHistoRange(minMulti,maxMulti);
-    AliInfo(Form("Setting multiplicity histogram ranges to: multMin = %i - multMax = %i - nMultBins = %i",
-		 fgRangeMinMultiplicity, fgRangeMaxMultiplicity, fgNbinsMultiplicity));
+    //AliInfo(Form("Setting multiplicity histogram ranges to: multMin = %i - multMax = %i - nMultBins = %i", fgRangeMinMultiplicity, fgRangeMaxMultiplicity, fgNbinsMultiplicity));
   }
 
   //set time histo ranges
   if (minTime>maxTime){
-    AliInfo("Invalid range for time histogram set. Changing to defualt values.");
+    AliInfo("Invalid range for time histogram set. Changing to default values.");
     SetDefaultTimeHistogramRange();
   } else {
     nbinsTime = TMath::Nint((maxTime - minTime)/fgkNbinsWidthTime);//ns
     maxTime=minTime+nbinsTime*fgkNbinsWidthTime;//ns
     SetNbinsTimeHisto(nbinsTime);
     SetTimeHistoRange(minTime,maxTime);
-    AliInfo(Form("Setting time histogram ranges to: timeMin = %5.2f ns - timeMax = %5.2f ns - nTimeBins = %i",
-		 fgRangeMinTime, fgRangeMaxTime,fgNbinsTime));
+    //AliInfo(Form("Setting time histogram ranges to: timeMin = %5.2f ns - timeMax = %5.2f ns - nTimeBins = %i", fgRangeMinTime, fgRangeMaxTime,fgNbinsTime));
   } 
  
   if ((cutFiredMacropad>0)&&(cutFiredMacropad<fgkFiredMacropadLimit)){
@@ -1404,10 +1438,11 @@ void AliTOFQADataMakerRec::ReadHistogramRangeFromFile(const Char_t * filename)
     SetDefaultCutNmaxFiredMacropad();
   } else {
     SetCutNmaxFiredMacropad(cutFiredMacropad);
-    AliInfo(Form("Setting cut on fired macropad to:  = %i",cutFiredMacropad));
+    //AliInfo(Form("Setting cut on fired macropad to:  = %i",cutFiredMacropad));
   } 
- 
-  fclose(configFile);
+  AliInfo(Form("Setting: multMin = %i - multMax = %i - nMultBins = %i, timeMin = %5.2f ns - timeMax = %5.2f ns - nTimeBins = %i, cutMaxFiredMacropad = %i", 
+	       fgRangeMinMultiplicity, fgRangeMaxMultiplicity, fgNbinsMultiplicity, fgRangeMinTime, fgRangeMaxTime,fgNbinsTime, cutFiredMacropad));
+  configFile.close();
   return;
 }
 
