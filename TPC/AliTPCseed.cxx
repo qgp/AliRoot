@@ -79,7 +79,9 @@ AliTPCseed::AliTPCseed():
     fDEDX[i] = 0.;
     fSDEDX[i] = 1e10;
     fNCDEDX[i] = 0;
+    fNCDEDXInclThres[i] = 0;
   }
+  fDEDX[4] = 0;
   for (Int_t i=0;i<12;i++) fOverlapLabels[i] = -1;
 }
 
@@ -130,7 +132,9 @@ AliTPCseed::AliTPCseed(const AliTPCseed &s, Bool_t clusterOwner):
     fDEDX[i] = s.fDEDX[i];
     fSDEDX[i] = s.fSDEDX[i];
     fNCDEDX[i] = s.fNCDEDX[i];
+    fNCDEDXInclThres[i] = s.fNCDEDXInclThres[i];
   }
+  fDEDX[4] = s.fDEDX[4];
   for (Int_t i=0;i<12;i++) fOverlapLabels[i] = s.fOverlapLabels[i];
 
 }
@@ -183,7 +187,9 @@ AliTPCseed::AliTPCseed(const AliTPCtrack &t):
     fDEDX[i] = 0.;
     fSDEDX[i] = 1e10;
     fNCDEDX[i] = 0;
+    fNCDEDXInclThres[i] = 0;
   }
+    fDEDX[4] = 0;
   for (Int_t i=0;i<12;i++) fOverlapLabels[i] = -1;
 }
 
@@ -227,7 +233,9 @@ AliTPCseed::AliTPCseed(Double_t xr, Double_t alpha, const Double_t xx[5],
     fDEDX[i] = 0.;
     fSDEDX[i] = 1e10;
     fNCDEDX[i] = 0;
+    fNCDEDXInclThres[i] = 0;
   }
+    fDEDX[4] = 0;
   for (Int_t i=0;i<12;i++) fOverlapLabels[i] = -1;
 }
 
@@ -273,7 +281,9 @@ AliTPCseed & AliTPCseed::operator=(const AliTPCseed &param)
       fDEDX[i]   = param.fDEDX[i];
       fSDEDX[i]  = param.fSDEDX[i];
       fNCDEDX[i] = param.fNCDEDX[i];
+      fNCDEDXInclThres[i] = param.fNCDEDXInclThres[i];
     }
+      fDEDX[4]   = param.fDEDX[4];
     for(Int_t i = 0;i<AliPID::kSPECIES;++i)fTPCr[i] = param.fTPCr[i];
     
     fSeedType = param.fSeedType;
