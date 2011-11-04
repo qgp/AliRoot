@@ -42,6 +42,7 @@ class AliGenAmpt : public AliGenMC
     virtual void    SetSelectAll(Int_t flag=0)        {fSelectAll  = flag;}
     virtual void    SetRadiation(Int_t flag=3)        {fRadiation  = flag;}    
     virtual void    SetSpectators(Int_t spects=1)     {fSpectators = spects;}
+    virtual void    SetDecayer(AliDecayer *decayer)   {fDecayer = decayer;}
     virtual void    SetPtHardMin(Float_t ptmin)       {fPtHardMin  = ptmin;}
     virtual void    SetPtHardMax(Float_t ptmax)       {fPtHardMax  = ptmax;}
     virtual void    SetPtJet(Float_t ptmin)           {fPtMinJet   = ptmin;}
@@ -86,11 +87,13 @@ class AliGenAmpt : public AliGenMC
     virtual TGraph* CrossSection()     {return fDsigmaDb;}
     virtual TGraph* BinaryCollisions() {return fDnDb;}
     virtual Bool_t  CheckTrigger();
+    virtual Bool_t  IsThisAKnownParticle(TParticle *thisGuy);
 
   protected:
     Bool_t      SelectFlavor(Int_t pid);
     void        MakeHeader();
 
+    AliDecayer              *fDecayer;
     TString                  fFrame;           // Reference frame 
     Float_t                  fMinImpactParam;  // minimum impact parameter
     Float_t                  fMaxImpactParam;  // maximum impact parameter	
@@ -126,7 +129,6 @@ class AliGenAmpt : public AliGenMC
     Int_t                    fLHC;             // Assume LHC as lab frame
     Bool_t                   fRandomPz;        // Randomise sign of pz event by event
     Bool_t                   fNoHeavyQuarks;   // If true no heavy quarks are produced
-    Float_t                  fEventTime;       // The event time
     Int_t                    fIsoft;           // ISOFT (D=1): select Default AMPT or String Melting
     Int_t                    fNtMax;           // NTMAX: number of timesteps (D=150)
     Int_t                    fIpop;            // (D=1,yes;0,no) flag for popcorn mechanism(netbaryon stopping)
@@ -134,6 +136,7 @@ class AliGenAmpt : public AliGenMC
     Float_t                  fAlpha;           // alpha running (fixed) coupling
     Float_t                  fStringA;         // string frag parameter A
     Float_t                  fStringB;         // string frag parameter B
+    Float_t                  fEventTime;       // The event time
     AliGenHijingEventHeader *fHeader;          // header
     Bool_t                   fDecay;           // decay "long-lived" particles
 
@@ -148,6 +151,6 @@ class AliGenAmpt : public AliGenMC
     // check if stable
     Bool_t Stable(TParticle*  particle) const;
 
-    ClassDef(AliGenAmpt, 3) // AliGenerator interface to Ampt
+    ClassDef(AliGenAmpt, 4) // AliGenerator interface to Ampt
 };
 #endif
