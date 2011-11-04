@@ -120,12 +120,14 @@ private:
   TObjArray *fArrPidResponseMaster;    //!  TPC pid splines
   TF1       *fResolutionCorrection;    //! TPC resolution correction
 
-  TObjArray *fTRDPIDParams;             //! TRD PID Params
+  AliTRDPIDParams *fTRDPIDParams;       //! TRD PID Params
   AliTRDPIDReference *fTRDPIDReference; //! TRD PID References
   UInt_t fTRDslicesForPID[2];           //! TRD PID slices
 
   Int_t   fTOFTimeZeroType;            //! default start time type for tof (ESD)
   Float_t fTOFres;                     //! TOF resolution
+
+  TObjArray *fEMCALPIDParams;             //! EMCAL PID Params
 
   AliVEvent *fCurrentEvent;            //! event currently being processed
   
@@ -148,7 +150,11 @@ private:
   void InitializeTRDResponse();
 
   //TOF
-  
+
+  //EMCAL
+  void SetEMCALPidResponseMaster();
+  void InitializeEMCALResponse();
+
   //
   void SetRecoInfo();
   
