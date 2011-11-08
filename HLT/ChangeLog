@@ -10,6 +10,9 @@
 # checking log message and diff of the selected revisions
 # cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z/]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text;svn log -c $r https://alisoft.cern.ch/AliRoot/trunk/HLT; svn diff -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
 #
+# comparing modified files with another aliroot version
+# for f in `svn st HLT | grep Ali | sed -e 's|^M||'`; do diff -I '$Id' $f ../AliRoot_HEAD_2011-10-18/$f; done
+#
 # merged revisions:
 # for r in `cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/---/!d' -e 's|---[ >/:A-Za-z]*||'`; do echo $r; done | sort
 #
@@ -98,3 +101,75 @@
 
 	--- global: 51837 51838 51839
 	Preprocessor, postponed
+
+2011-10-10 updated to r52017
+	--- TPC: 51926 51937 51953 51954 51955 51972 51973 51977 51997 51998 51999 52000 52019 52020 52021 52023 52024 52042 52047
+	decoding of compressed TPC data optimized, improved cluster verification
+
+	--- BASE: 52097 52104 52105
+	committed r52140, r52141
+
+	--- TPC: 52114 52116 52117 52118
+
+	--- BASE: 52022
+	convenience methods
+	postponed
+
+	--- trigger: 52070
+	bugfix TString in root v5-30
+
+2011-10-24
+	--- BASE: 52184 52185
+	reworked TString handling in root v5-30
+	committed r52188
+	
+	--- TPC: 52258
+	memory leak in AliHLTTPCDataCompressionDecoder
+	committed r52295
+
+	--- EMCAL: 52150,52247,52248
+	memory leak in AliHLTEMCALMapper
+	committed r52298
+
+	--- TPC: 52563
+	bug #88431: Memory corruption related to unpacking of HLT GlobalTriggerDecision during reconstruction
+	committed r52335
+
+	--- BASE: 52326
+	bug #88140: Request to port bugfix in HLTOUT unpacking
+	committed r52577
+
+2011-11-08 updated to r52659
+	--- TPC: 52147 52327 52373 52374 52413 52426 52579
+	bug #88195: Quality issues with reconstruction using compressed HLT Clusters
+	technical fixes without functional change
+	update of AliHLTTPCDataCompressionMonitorComponent
+
+	---> BASE: 51665 51978 52498 52502 52618 52619 52620 52624 52625 52636
+	AliHLTHuffman: avoid compilation warning on some architectures
+	AliHLTTTreeProcessor: configurable histogram titles
+	bug #82052: CDB access of HLT components uses "forbidden" functions
+	bug #83123: HLT simulation fails for raw data in ppbench
+
+	--- BASE: 52674
+	event modulo introduced in component base class
+
+	--- TPC: 52507
+	update of dEdx monitoring component
+	postponed
+
+	--- sim: 52499 52621
+	AliHLTOUTComponent: implemented ddl round-robin mode to store all blocks of one event in only one DDL
+	postponed
+
+	--- RCU: 52506
+	update of AltroChannelSelectorComponent
+	postponed
+	
+	--- global: 52503 52525 52640
+	update of AliHLTMultiplicityCorrelations
+	included ITS-SPD-vertexer to the inputs of GLOBAL-esd-converter
+	postponed
+
+	--- QA: 52501
+	postponed
