@@ -462,7 +462,8 @@ void AliEMCALDigitizer::Digitize(Int_t event)
           //Here we convert the summed amplitude to an energy in GeV
           energy = sDigitizer->Calibrate(digit->GetAmplitude()) ; // GeV
           // add fluctuations for photo-electron creation
-          energy *= static_cast<Float_t>(gRandom->Poisson(fMeanPhotonElectron)) / static_cast<Float_t>(fMeanPhotonElectron) ;
+          //energy *= static_cast<Float_t>(gRandom->Poisson(fMeanPhotonElectron)) / static_cast<Float_t>(fMeanPhotonElectron) ;
+          energy *= static_cast<Float_t>(gRandom->Poisson((energy*fMeanPhotonElectron)/15.00)) / static_cast<Float_t>((energy*fMeanPhotonElectron)/15.00) ;
           
           //calculate and set time
           //New timing model needed - JLK 28-April-2008
