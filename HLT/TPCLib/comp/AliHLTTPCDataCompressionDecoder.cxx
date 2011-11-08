@@ -30,6 +30,7 @@
 ClassImp(AliHLTTPCDataCompressionDecoder)
 
 AliHLTTPCDataCompressionDecoder::AliHLTTPCDataCompressionDecoder()
+: fPadShift(0.), fVerbosity(0)
 {
   /// constructor
 }
