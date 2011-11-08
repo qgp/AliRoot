@@ -189,7 +189,7 @@ int AliHLTSystem::BuildTaskList(AliHLTConfiguration* pConf)
       // task for this configuration exists, terminate
       pTask=NULL;
     // check first if the configuration has all sources resolved, try to extract otherwise
-    } else if (pConf->SourcesResolved()!=1 && pConf->ExtractSources()!=1) {
+    } else if (pConf->SourcesResolved()!=1 && pConf->ExtractSources(fpConfigurationHandler)!=1) {
 	HLTError("configuration \"%s\" has unresolved sources, aborting ...", pConf->GetName());
 	iResult=-ENOLINK;
     } else {
@@ -1091,7 +1091,8 @@ int AliHLTSystem::LoadComponentLibraries(const char* libraries)
       if (pTokens) {
 	int iEntries=pTokens->GetEntriesFast();
 	for (int i=0; i<iEntries && iResult>=0; i++) {
-	  iResult=fpComponentHandler->LoadLibrary((((TObjString*)pTokens->At(i))->String()).Data());
+	  if (!pTokens->At(i)) continue;
+	  iResult=fpComponentHandler->LoadLibrary(pTokens->At(i)->GetName());
 	}
 	delete pTokens;
       }
@@ -1164,7 +1165,8 @@ int AliHLTSystem::ScanOptions(const char* options)
     if (pTokens) {
       int iEntries=pTokens->GetEntriesFast();
       for (int i=0; i<iEntries; i++) {
-	TString token=(((TObjString*)pTokens->At(i))->String());
+	if (!pTokens->At(i)) continue;
+	TString token=pTokens->At(i)->GetName();
 	if (token.Contains("loglevel=")) {
 	  TString param=token.ReplaceAll("loglevel=", "");
 	  if (param.IsDigit()) {
@@ -1263,7 +1265,7 @@ int AliHLTSystem::ScanOptions(const char* options)
 	  // separated HLTOUTComponents for digit and raw data. All others indicate
 	  // HLTOUTComponent type 'global' where the data generation is steered from global
 	  // flags
-	  fUseHLTOUTComponentTypeGlobal=token.CompareTo("hltout-mode=split")==1;
+	  fUseHLTOUTComponentTypeGlobal=token.CompareTo("hltout-mode=split")!=0;
 	} else if (token.BeginsWith("lib") && token.EndsWith(".so")) {
 	  libs+=token;
 	  libs+=" ";
@@ -1348,7 +1350,8 @@ int AliHLTSystem::LoadConfigurations(AliRawReader* rawReader, AliRunLoader* runl
     TObjArray* pTokens=dependencies.Tokenize(" ");
     if (pTokens) {
       for (int n=0; n<pTokens->GetEntriesFast(); n++) {
-	TString module=((TObjString*)pTokens->At(n))->String();
+	if (!pTokens->At(n)) continue;
+	TString module=pTokens->At(n)->GetName();
 	HLTDebug("  checking %s", module.Data());
 	module.ReplaceAll("libAliHLT", "");
 	module.ReplaceAll(".so", "");
@@ -1401,6 +1404,8 @@ int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader
     return 0;
   }
 
+  if (!fpConfigurationHandler || !fpComponentHandler) return -EFAULT;
+
   int iResult=0;
   int bHaveOutput=0;
 
@@ -1427,14 +1432,14 @@ int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader
   if (pTokens) {
     int iEntries=pTokens->GetEntriesFast();
     for (int i=0; i<iEntries && iResult>=0; i++) {
-      const char* pCID=((TObjString*)pTokens->At(i))->String().Data();
+      if (!pTokens->At(i)) continue;
+      const char* pCID=pTokens->At(i)->GetName();
       AliHLTConfiguration* pConf=fpConfigurationHandler->FindConfiguration(pCID);
       if (pConf) {
 	iResult=BuildTaskList(pConf);
 	if (true) { // condition was deprecated but kept for sake of svn diff
 	  // bHaveOutput variable has to be set for both running modes
 	  // AliHLTSimulation and AliHLTReconstruction
-	  assert(fpComponentHandler!=NULL);
 	  TString cid=pConf->GetComponentID();
 	  if (runloader!=NULL && cid.CompareTo("HLTOUT")==0) {
 	    // remove from the input of a global HLTOUT configuration
@@ -1464,8 +1469,8 @@ int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader
       // the output stream
       if (fpComponentHandler->FindComponentIndex("ROOTSchemaEvolutionComponent")>=0 ||
 	  fpComponentHandler->LoadLibrary("libAliHLTUtil.so")>=0) {
-	AliHLTConfiguration schemaevo("_schemaevolution_", "ROOTSchemaEvolutionComponent", 
-				      chains.Data(), "-file=HLT.StreamerInfo.root");
+	fpConfigurationHandler->CreateConfiguration("_schemaevolution_", "ROOTSchemaEvolutionComponent", 
+						     chains.Data(), "-file=HLT.StreamerInfo.root");
 	iResult=BuildTaskList("_schemaevolution_");
       } else {
 	HLTWarning("can not load libAliHLTUtil.so and ROOTSchemaEvolutionComponent");
@@ -1486,7 +1491,7 @@ int AliHLTSystem::BuildTaskListsFromReconstructionChains(AliRawReader* rawReader
 	  if (rawReader) HLTOUTComponentId="HLTOUTraw";
 	  else HLTOUTComponentId="HLTOUTdigits";
 	}
-	AliHLTConfiguration globalout("_globalout_", HLTOUTComponentId, chains.Data(), NULL);
+	fpConfigurationHandler->CreateConfiguration("_globalout_", HLTOUTComponentId, chains.Data(), NULL);
 	iResult=BuildTaskList("_globalout_");
       } else {
 	HLTError("can not load libHLTsim.so and HLTOUT component");
@@ -1531,7 +1536,8 @@ int AliHLTSystem::AddHLTOUTTask(const char* hltoutchains)
   if (pTokens) {
     int iEntries=pTokens->GetEntriesFast();
     for (int i=0; i<iEntries && iResult>=0; i++) {
-      const char* token=((TObjString*)pTokens->At(i))->String().Data();
+      if (!pTokens->At(i)) continue;
+      const char* token=pTokens->At(i)->GetName();
       AliHLTConfiguration* pConf=fpConfigurationHandler->FindConfiguration(token);
       if (pConf) {
 	TString cid=pConf->GetComponentID();
@@ -1567,7 +1573,7 @@ int AliHLTSystem::AddHLTOUTTask(const char* hltoutchains)
   if (fpHLTOUTTask) {
     if (fpHLTOUTTask->GetConf() && 
 	(fpHLTOUTTask->GetConf()->SourcesResolved()>0 ||
-	 fpHLTOUTTask->GetConf()->ExtractSources()>0)) {
+	 fpHLTOUTTask->GetConf()->ExtractSources(fpConfigurationHandler)>0)) {
       iResult=InsertTask(fpHLTOUTTask);
     } else {
       HLTError("HLTOUT task (%s) sources not resolved", fpHLTOUTTask->GetName());

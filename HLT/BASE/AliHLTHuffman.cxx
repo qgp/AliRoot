@@ -270,6 +270,7 @@ Bool_t AliHLTHuffman::Decode(std::bitset<64> bits, AliHLTUInt64_t& value,
 			     AliHLTUInt32_t& length, AliHLTUInt32_t& codeLength) const {
 	// TODO: check decoding logic, righ now it is just as written
 	AliHLTHuffmanNode* currNode = fHuffTopNode;
+	if (!currNode) return kFALSE;
 	if (currNode->GetValue() >= 0) {
 		// handle case with just one node - also quite unlikely
 		value = currNode->GetValue();
@@ -326,9 +327,9 @@ Bool_t AliHLTHuffman::GenerateHuffmanTree() {
 	}
 	while (nodeCollection.size() > 1) {
 		// insert new node into structure, combining the two with lowest probability
-		nodeCollection.insert(
-				new AliHLTHuffmanTreeNode(*nodeCollection.begin(),
-						*++nodeCollection.begin()));
+		AliHLTHuffmanNode* node=new AliHLTHuffmanTreeNode(*nodeCollection.begin(), *++nodeCollection.begin());
+		if (!node) return kFALSE;
+		nodeCollection.insert(node);
 		nodeCollection.erase(nodeCollection.begin());
 		nodeCollection.erase(nodeCollection.begin());
 	}
