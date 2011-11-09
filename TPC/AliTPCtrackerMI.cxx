@@ -2023,7 +2023,7 @@ Int_t AliTPCtrackerMI::FollowBackProlongation(AliTPCseed& t, Int_t rf, Bool_t fr
   Double_t alpha=t.GetAlpha();
   if (alpha > 2.*TMath::Pi()) alpha -= 2.*TMath::Pi();  
   if (alpha < 0.            ) alpha += 2.*TMath::Pi();  
-  t.SetRelativeSector(Int_t(alpha/fSectors->GetAlpha())%fN);
+  t.SetRelativeSector(Int_t(alpha/fSectors->GetAlpha()+0.0001)%fN);
     
   Int_t first = t.GetFirstPoint();
   Int_t ri = GetRowNumber(xt); 
