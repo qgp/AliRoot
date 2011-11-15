@@ -34,8 +34,10 @@
 #include <TAxis.h>
 #include <TLinearFitter.h>
 #include <TMath.h>
+#include <TDirectory.h>
 #include <TTreeStream.h>
-
+#include <TGraphErrors.h>
+#include <TF1.h>
 
 //header file
 #include "AliTRDCalibraExbAltFit.h"
@@ -48,7 +50,10 @@ AliTRDCalibraExbAltFit::AliTRDCalibraExbAltFit() : /*FOLD00*/
   fVersion(0),
   fFitterHistoArray(540),
   fFitterPArray(540),
-  fFitterEArray(540)
+  fFitterEArray(540),
+  fRobustFit(kFALSE),
+  fDebugStreamer(0x0),
+  fDebugLevel(0)
 {
   //
   // default constructor
@@ -60,7 +65,10 @@ AliTRDCalibraExbAltFit::AliTRDCalibraExbAltFit(const AliTRDCalibraExbAltFit &ped
   fVersion(ped.fVersion),
   fFitterHistoArray(540),
   fFitterPArray(540),
-  fFitterEArray(540)
+  fFitterEArray(540),
+  fRobustFit(kFALSE),
+  fDebugStreamer(0x0),
+  fDebugLevel(0)
 {
     //
     // copy constructor
@@ -86,7 +94,10 @@ AliTRDCalibraExbAltFit::AliTRDCalibraExbAltFit(const TObjArray &obja) : /*FOLD00
   fVersion(0),
   fFitterHistoArray(540),
   fFitterPArray(540),
-  fFitterEArray(540)
+  fFitterEArray(540),
+  fRobustFit(kFALSE),
+  fDebugStreamer(0x0),
+  fDebugLevel(0)
 {
   //
   // constructor from a TObjArray
@@ -124,6 +135,8 @@ AliTRDCalibraExbAltFit::~AliTRDCalibraExbAltFit() /*FOLD00*/
   fFitterHistoArray.Delete();
   fFitterPArray.Delete();
   fFitterEArray.Delete();
+
+  if ( fDebugStreamer ) delete fDebugStreamer;
 
 }
 //_____________________________________________________________________________
@@ -353,7 +366,9 @@ void AliTRDCalibraExbAltFit::FillPEArray()
 	TVectorD  pare = TVectorD(2);
 	TVectorD  *parE = new TVectorD(3);
 	//printf("Fit\n");
-	if((fitter.EvalRobust(0.8)==0)) {
+	//if((fitter.EvalRobust(0.8)==0)) {
+	//if((fitter.EvalRobust()==0)) {
+	if(((fRobustFit) && (fitter.EvalRobust(0.8)==0)) || ((!fRobustFit) && (fitter.Eval()==0))) {
 	  //if((fitter.Eval()==0)) {
 	  //printf("Take the param\n");
 	  fitter.GetParameters(*par);
@@ -384,4 +399,104 @@ void AliTRDCalibraExbAltFit::FillPEArray()
    
 }
 
+//____________Functions fit Online CH2d________________________________________
+void AliTRDCalibraExbAltFit::FillPEArray2()
+{
+  //
+  // Fill fFitterPArray and fFitterEArray from inside
+  //
 
+  // Loop over histos 
+      
+  for(Int_t cb = 0; cb < 540; cb++){
+    TH2S *fitterhisto = (TH2S*)fFitterHistoArray.UncheckedAt(cb);
+    //printf("Processing the detector cb %d we find %d\n",cb, (Bool_t) fitterhisto);    
+
+    if ( fitterhisto != 0 ){
+      TF1 *f1 = new TF1("f1","[0]*(x-[1])**2+[2]",-1,1);
+      
+      Int_t nEntries=0;
+      TGraphErrors *gg=DrawMS(fitterhisto,nEntries);
+      // printf("N: %i\n",gg->GetN());
+      // printf("entries: %i\n",nEntries);
+
+      if(gg->GetN() < 20) {
+	if(gg) delete gg;
+	continue;	
+      }
+      gg->Fit(f1,"Q0");
+      
+      TVectorD  *par  = new TVectorD(3);
+      TVectorD  *parE = new TVectorD(3);
+      (*parE)[0] = 0.0;
+      (*parE)[1] = 0.0;
+      (*parE)[2] = (Double_t) nEntries;
+      (*par)[0] = f1->GetParameter(0)*TMath::Power(f1->GetParameter(1),2)+f1->GetParameter(2);
+      (*par)[1] = -2*f1->GetParameter(0)*f1->GetParameter(1);
+      (*par)[2] = f1->GetParameter(0);
+      fFitterPArray.AddAt(par,cb);
+      fFitterEArray.AddAt(parE,cb);
+
+      // if ( !fDebugStreamer ) {
+      // 	//debug stream
+      // 	TDirectory *backup = gDirectory;
+      // 	fDebugStreamer = new TTreeSRedirector("TRDdebugCalibraFill.root");
+      // 	if ( backup ) backup->cd();  //we don't want to be cd'd to the debug streamer
+      // } 
+    
+      // if(cb==513){
+      // 	fitterhisto->Draw();
+      // 	gg->Draw("P");
+      // 	f1->Draw("same");
+      // }
+      // double exb=f1->GetParameter(1);
+      // (* fDebugStreamer) << "FindP1TrackPHtrackletV1"<<
+      // 	//"snpright="<<snpright<<
+      // 	"det="<<cb<<
+      // 	"h2="<<(TObject*)fitterhisto<<
+      // 	"gg="<<gg<<
+      // 	"f1="<<f1<<
+      // 	"exb="<<exb<<
+      // 	"\n";
+
+      //if(cb!=513){
+      delete gg; 
+      delete f1;
+      //}
+    }
+  }
+  //if(fDebugStreamer) delete fDebugStreamer;
+}
+
+//_________Helper function__________________________________________________
+TGraphErrors* AliTRDCalibraExbAltFit::DrawMS(const TH2 *const h2, Int_t &nEntries)
+{
+  TF1 fg("fg", "gaus", -10., 30.);
+  TGraphErrors *gp = new TGraphErrors();
+
+  TAxis *ax(h2->GetXaxis());
+  TAxis *ay(h2->GetYaxis());
+  TH1D *h1(NULL);
+  for(Int_t ipt(0), jpt(1), ig(0); ipt<ax->GetNbins(); ipt++, jpt++){
+    h1 = h2->ProjectionY("py", jpt, jpt);
+    fg.SetParameter(1, h1->GetMean());
+    //Float_t x(ax->GetBinCenter(jpt)); 
+    Int_t n=Int_t(h1->Integral(1, h1->GetNbinsX()));
+    nEntries+=n;
+    if(n < 5){
+      //Warning("drawMS()", Form("reject x[%d]=%f on n=%d", jpt, x, n));
+      continue;
+    }
+    h1->Fit(&fg, "WWQ0");
+    if(fg.GetNDF()<2){
+      //Warning("drawMS()", Form("reject x[%d]=%f on NDF=%d", jpt, x, fg.GetNDF()));
+      continue;
+    }
+    if(((fg.GetParameter(1)+fg.GetParameter(2)/2)>ay->GetXmax()) || ((fg.GetParameter(1)-fg.GetParameter(2)/2)<ay->GetXmin()) || (TMath::Abs(fg.GetParameter(0))< 0.00001)) continue;
+    gp->SetPoint(ig, ax->GetBinCenter(jpt), fg.GetParameter(1));
+    gp->SetPointError(ig, 0, TMath::Sqrt(pow(fg.GetParError(1),2) + (1/pow(fg.GetParameter(0),2))));
+    ig++;
+  }
+  delete h1;
+  return gp;
+}

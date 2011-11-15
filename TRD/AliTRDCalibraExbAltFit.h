@@ -18,7 +18,9 @@
 //class TVectorD;
 class TObjArray;
 class TH2S;
+class TH2;
 class TTreeSRedirector;
+class TGraphErrors;
 
 class AliTRDCalibraExbAltFit : public TObject {
 
@@ -35,6 +37,7 @@ class AliTRDCalibraExbAltFit : public TObject {
 
   void            Update(Int_t detector, Float_t tnp, Float_t pars1);
   void            FillPEArray();
+  void            FillPEArray2();
   void            Add(const AliTRDCalibraExbAltFit *ped);
   TH2S           *GetFitterHisto(Int_t detector, Bool_t force=kFALSE);
   TH2S           *GetFitterHistoForce(Int_t detector);
@@ -46,7 +49,10 @@ class AliTRDCalibraExbAltFit : public TObject {
   TObjArray      *GetEArray()                    { return &fFitterEArray;       };
   TObjArray       GetHistoArray() const          { return fFitterHistoArray;    };
 
- private:
+  void            SetRobustFit(Bool_t robustFit) { fRobustFit = robustFit;            };
+
+private:
+  TGraphErrors   *DrawMS(const TH2 *const h2, Int_t &nEntries);
    
   Int_t           fVersion;                 // Version of the object
 
@@ -54,8 +60,12 @@ class AliTRDCalibraExbAltFit : public TObject {
   TObjArray       fFitterPArray;      // Array of result parameters from  fitters for the detectors
   TObjArray       fFitterEArray;      // Array of result errors from  fitters for the detectors
 
+  Bool_t          fRobustFit;         // Robust fit
+  TTreeSRedirector *fDebugStreamer;
+  Short_t         fDebugLevel;
+
   
-  ClassDef(AliTRDCalibraExbAltFit,1)  // Online ExB Calibration
+  ClassDef(AliTRDCalibraExbAltFit,2)  // Online ExB Calibration
 
 };
 
