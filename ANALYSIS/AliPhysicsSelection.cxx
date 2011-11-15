@@ -394,8 +394,10 @@ Bool_t AliPhysicsSelection::EvaluateTriggerLogic(const AliESDEvent* aEsd, AliTri
       //      if(fHistStatisticsTokens) 	      
     }
   }
-  
+
   TFormula formula("formula", trigger);
+  if (formula.Compile() > 0)
+    AliFatal(Form("Could not evaluate trigger logic %s (evaluated to %s)", triggerLogic, trigger.Data()));
   Bool_t result = formula.Eval(0);
   
   AliDebug(AliLog::kDebug, Form("%s --> %d", trigger.Data(), result));
@@ -848,7 +850,7 @@ Bool_t AliPhysicsSelection::Initialize(const AliESDEvent* aEsd)
   
   AliInfo(Form("Initializing for beam type: %s", aEsd->GetESDRun()->GetBeamType()));
   fIsPP = kTRUE;
-  if (strcmp(aEsd->GetESDRun()->GetBeamType(), "Pb-Pb") == 0)
+  if (strcmp(aEsd->GetESDRun()->GetBeamType(), "A-A") == 0)
     fIsPP = kFALSE;
 
   return Initialize(aEsd->GetRunNumber());
