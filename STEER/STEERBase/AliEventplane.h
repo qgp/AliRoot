@@ -1,5 +1,5 @@
-#ifndef ALIEventplane_H
-#define ALIEventplane_H
+#ifndef ALIEVENTPLANE_H
+#define ALIEVENTPLANE_H
 
 /* Copyright(c) 1998-2008, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
@@ -15,6 +15,7 @@ class TVector2;
 class AliVTrack;
 class TObjArray;
 class TArrayF;
+class AliVEvent;
 
 class AliEventplane : public TNamed
 {
@@ -36,25 +37,38 @@ class AliEventplane : public TNamed
   TVector2* GetQVector(); 
   Double_t  GetQContributionX(AliVTrack* track);
   Double_t  GetQContributionY(AliVTrack* track);
+  Double_t  GetQContributionXsub1(AliVTrack* track);
+  Double_t  GetQContributionYsub1(AliVTrack* track);
+  Double_t  GetQContributionXsub2(AliVTrack* track);
+  Double_t  GetQContributionYsub2(AliVTrack* track);
   TArrayF*  GetQContributionXArray() { return fQContributionX; }
   TArrayF*  GetQContributionYArray() { return fQContributionY; }
-  Double_t  GetEventplane(const char *method);
+  TArrayF*  GetQContributionXArraysub1() { return fQContributionXsub1; }
+  TArrayF*  GetQContributionYArraysub1() { return fQContributionYsub1; }
+  TArrayF*  GetQContributionXArraysub2() { return fQContributionXsub2; }
+  TArrayF*  GetQContributionYArraysub2() { return fQContributionYsub2; }
+  Double_t  GetEventplane(const char *x, const AliVEvent *event = NULL, Int_t harmonic = 2) const;
   TVector2* GetQsub1();
   TVector2* GetQsub2();
   Double_t  GetQsubRes();
   Bool_t    IsEventInEventplaneClass(Double_t a, Double_t b, const char *method);
+  Double_t  CalculateVZEROEventPlane(const AliVEvent *event, Int_t firstRing, Int_t lastRing, Int_t harmonic) const;
 
   void Reset();
 
  private:
-   TVector2* fQVector;		// Q-Vector of event
-   TArrayF* fQContributionX;	// array of the tracks' contributions to X component of Q-Vector - index = track ID
-   TArrayF* fQContributionY;	// array of the tracks' contributions to Y component of Q-Vector - index = track ID
-   Double_t fEventplaneQ;	// Event plane angle from Q-Vector
-   TVector2* fQsub1;		// Q-Vector of subevent 1
-   TVector2* fQsub2;		// Q-Vector of subevent 2
-   Double_t fQsubRes;		// Difference of EP angles of subevents
+   TVector2* fQVector;		 // Q-Vector of event
+   TArrayF* fQContributionX;	 // array of the tracks' contributions to X component of Q-Vector - index = track ID
+   TArrayF* fQContributionY;	 // array of the tracks' contributions to Y component of Q-Vector - index = track ID
+   TArrayF* fQContributionXsub1; // array of the tracks' contributions to X component of Q-Vectorsub1 - index = track ID
+   TArrayF* fQContributionYsub1; // array of the tracks' contributions to Y component of Q-Vectorsub1 - index = track ID
+   TArrayF* fQContributionXsub2; // array of the tracks' contributions to X component of Q-Vectorsub2 - index = track ID
+   TArrayF* fQContributionYsub2; // array of the tracks' contributions to Y component of Q-Vectorsub2 - index = track ID
+   Double_t fEventplaneQ;	 // Event plane angle from Q-Vector
+   TVector2* fQsub1;		 // Q-Vector of subevent 1
+   TVector2* fQsub2;		 // Q-Vector of subevent 2
+   Double_t fQsubRes;		 // Difference of EP angles of subevents
  
-  ClassDef(AliEventplane, 1)
+  ClassDef(AliEventplane, 3)
 };
 #endif //ALIEVENTPLANE_H
