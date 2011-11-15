@@ -149,16 +149,14 @@ void BrowseAndFillPhysicsSelectionOADB(Bool_t fill = kFALSE) {
 
   triggerCount++;
   oadbDefaultPbPb->AddCollisionTriggerClass   ( AliVEvent::kEMCEJE,"+CPBI2EJE-B-NOPF-CENTNOTRD","B",triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kEMCEJE,"+CPBI2EJE-AC-NOPF-CENTNOTRD","AC",triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kEMCEJE,"+CPBI2EJE-E-NOPF-CENTNOTRD","E",triggerCount);
+  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kEMCEJE,"+CPBI2EJE-ACE-NOPF-CENTNOTRD","ACE",triggerCount);
   oadbDefaultPbPb->SetHardwareTrigger         ( triggerCount,"V0A && V0C");
   // TODO EMC offline check missing, https://savannah.cern.ch/bugs/index.php?87104
   oadbDefaultPbPb->SetOfflineTrigger          ( triggerCount,"V0A && V0C && !V0ABG && !V0CBG && !TPCLaserWarmUp ");
   
   triggerCount++;
   oadbDefaultPbPb->AddCollisionTriggerClass   ( AliVEvent::kEMCEGA,"+CPBI2EGA-B-NOPF-CENTNOTRD","B",triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kEMCEGA,"+CPBI2EGA-AC-NOPF-CENTNOTRD","AC",triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kEMCEGA,"+CPBI2EGA-E-NOPF-CENTNOTRD","E",triggerCount);
+  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kEMCEGA,"+CPBI2EGA-ACE-NOPF-CENTNOTRD","ACE",triggerCount);
   oadbDefaultPbPb->SetHardwareTrigger         ( triggerCount,"V0A && V0C");
   // TODO EMC offline check missing, https://savannah.cern.ch/bugs/index.php?87104
   oadbDefaultPbPb->SetOfflineTrigger          ( triggerCount,"V0A && V0C && !V0ABG && !V0CBG && !TPCLaserWarmUp ");
@@ -177,15 +175,13 @@ void BrowseAndFillPhysicsSelectionOADB(Bool_t fill = kFALSE) {
     
   triggerCount++;
   oadbDefaultPbPb->AddCollisionTriggerClass   ( AliVEvent::kMuonUnlikePB,"+CPBI1MUL-B-NOPF-MUON","B",  triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kMuonUnlikePB,"+CPBI1MUL-AC-NOPF-MUON","AC",triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kMuonUnlikePB,"+CPBI1MUL-E-NOPF-MUON","E",  triggerCount);
+  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kMuonUnlikePB,"+CPBI1MUL-ACE-NOPF-MUON","ACE",triggerCount);
   oadbDefaultPbPb->SetHardwareTrigger         ( triggerCount,"V0A && V0C");                                         
   oadbDefaultPbPb->SetOfflineTrigger          ( triggerCount,"V0A && V0C && !V0ABG && !V0CBG && !TPCLaserWarmUp");
 
   triggerCount++;
   oadbDefaultPbPb->AddCollisionTriggerClass   ( AliVEvent::kMuonLikePB,"+CPBI1MLL-B-NOPF-MUON","B",  triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kMuonLikePB,"+CPBI1MLL-AC-NOPF-MUON","AC",triggerCount);
-  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kMuonLikePB,"+CPBI1MLL-E-NOPF-MUON","E",  triggerCount);
+  oadbDefaultPbPb->AddBGTriggerClass          ( AliVEvent::kMuonLikePB,"+CPBI1MLL-ACE-NOPF-MUON","ACE",triggerCount);
   oadbDefaultPbPb->SetHardwareTrigger         ( triggerCount,"V0A && V0C");                                         
   oadbDefaultPbPb->SetOfflineTrigger          ( triggerCount,"V0A && V0C && !V0ABG && !V0CBG && !TPCLaserWarmUp");
   
