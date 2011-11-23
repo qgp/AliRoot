@@ -39,7 +39,7 @@ public:
   Double_t  GetTimeResolution() const {return fTimeResolution;} // Get TOF Time Resolution
   void SetT0FillWidth(Float_t width){if(width > 50) fT0width = width; else fT0width=150;}; // in ps
   
-  void LoadChannelMap(char *filename="$ALICE_ROOT/TOF/enableMap.104892.root"); //load the enable channel map
+  void LoadChannelMap(const char *filename="$ALICE_ROOT/TOF/enableMap.104892.root"); //load the enable channel map
   void ApplyMask(AliESDEvent * const esd); // Apply the channel mask
   
   void SetNoTOFT0(Bool_t status=kTRUE){fNoTOFT0=status;}; // disable the TOF T0 info
