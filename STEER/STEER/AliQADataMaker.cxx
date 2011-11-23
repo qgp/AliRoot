@@ -351,6 +351,7 @@ Int_t AliQADataMaker::SetEventTrigClasses(const char* triggers)
   int nTrigs = tarr->GetEntriesFast();
   if (!nTrigs) {
     AliWarningClass("The string for event triggers is empty");
+    delete tarr;
     return 0;
   }
   int nTrClasses = 0;
