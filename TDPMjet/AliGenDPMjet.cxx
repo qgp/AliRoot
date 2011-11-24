@@ -348,7 +348,7 @@ void AliGenDPMjet::Generate()
 	      origin[1] = fVertex[1]+iparticle->Vy()/10; // [cm]
 	      origin[2] = fVertex[2]+iparticle->Vz()/10; // [cm]
 		    
-	      tof = kconv*iparticle->T();
+	      tof = fTime + kconv*iparticle->T();
 	      
 	      imo = -1;
 	      TParticle* mother = 0;
@@ -472,6 +472,7 @@ void AliGenDPMjet::MakeHeader()
     ((AliGenDPMjetEventHeader*) header)->SetTrials(fTrials);
     // Event Vertex
     header->SetPrimaryVertex(fVertex);
+    header->SetInteractionTime(fTime);
     gAlice->SetGenEventHeader(header);    
     AddHeader(header);
 }
