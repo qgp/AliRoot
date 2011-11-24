@@ -118,6 +118,8 @@ public:
   // CDB storage activation
   void SetDefaultStorage(const char* uri);
   void SetSpecificStorage(const char* calibType, const char* uri);
+  void SetFromCDBSnapshot(const char* snapshotFileName) {fFromCDBSnapshot = kTRUE; fSnapshotFileName=snapshotFileName;}
+  void UnSetFromCDBSnapshot() {fFromCDBSnapshot = kFALSE;}
 
   Bool_t MisalignGeometry(const TString& detectors);
 
@@ -314,6 +316,8 @@ private:
   TString	 fQARefUri;	    //! Uri of the default QA reference storage
   TObjArray      fSpecCDBUri;         //! Array with detector specific CDB storages
   Bool_t 	 fInitCDBCalled;               //! flag to check if CDB storages are already initialized
+  Bool_t 	 fFromCDBSnapshot;             //! flag to check if we are loading the CDB from a snapshot
+  TString        fSnapshotFileName;	       //! string for the file containing the CDB snapshot
   Bool_t 	 fSetRunNumberFromDataCalled;  //! flag to check if run number is already loaded from run loader
 
   //Quality Assurance

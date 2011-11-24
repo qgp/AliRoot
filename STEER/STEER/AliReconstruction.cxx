@@ -275,6 +275,8 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fQARefUri(),
   fSpecCDBUri(), 
   fInitCDBCalled(kFALSE),
+  fFromCDBSnapshot(kFALSE),
+  fSnapshotFileName(""),
   fSetRunNumberFromDataCalled(kFALSE),
   fQADetectors("ALL"), 
   fQATasks("ALL"), 
@@ -394,6 +396,8 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fQARefUri(rec.fQARefUri),
   fSpecCDBUri(), 
   fInitCDBCalled(rec.fInitCDBCalled),
+  fFromCDBSnapshot(rec.fFromCDBSnapshot),
+  fSnapshotFileName(rec.fSnapshotFileName),
   fSetRunNumberFromDataCalled(rec.fSetRunNumberFromDataCalled),
   fQADetectors(rec.fQADetectors), 
   fQATasks(rec.fQATasks), 
@@ -561,6 +565,8 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fQARefUri      = rec.fQARefUri;
   fSpecCDBUri.Delete();
   fInitCDBCalled               = rec.fInitCDBCalled;
+  fFromCDBSnapshot             = rec.fFromCDBSnapshot;
+  fSnapshotFileName            = rec.fSnapshotFileName;
   fSetRunNumberFromDataCalled  = rec.fSetRunNumberFromDataCalled;
   fQADetectors                 = rec.fQADetectors;
   fQATasks                     = rec.fQATasks; 
@@ -918,7 +924,6 @@ Bool_t AliReconstruction::MisalignGeometry(const TString& detectors)
     if(AliGeomManager::GetNalignable("GRP") != 0)
       loadAlObjsListOfDets.Prepend("GRP "); //add alignment objects for non-sensitive modules
     AliGeomManager::ApplyAlignObjsFromCDB(loadAlObjsListOfDets.Data());
-    AliCDBManager::Instance()->UnloadFromCache("*/Align/*");
   }else{
     // Check if the array with alignment objects was
     // provided by the user. If yes, apply the objects
@@ -1200,7 +1205,6 @@ Bool_t AliReconstruction::InitGRP() {
   if (entry) {
     fListOfCosmicTriggers = dynamic_cast<THashTable*>(entry->GetObject());
     entry->SetOwner(0);
-    AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
   }
 
   if (!fListOfCosmicTriggers) {
@@ -1500,11 +1504,30 @@ void AliReconstruction::Begin(TTree *)
     AliSysInfo::AddStamp("CheckGeom");
   }
 
+  Bool_t loadedFromSnapshot=kFALSE;
+  Bool_t toCDBSnapshot=kFALSE;
+  TString snapshotFileOut(""); // we could use fSnapshotFileName if we are not interested
+  // in reading from and writing to a snapshot file at the same time
+  if(TString(gSystem->Getenv("OCDB_SNAPSHOT_CREATE")) == TString("kTRUE")){
+      toCDBSnapshot=kTRUE;
+      //fFromCDBSnapshot=kFALSE;
+      TString snapshotFile(gSystem->Getenv("OCDB_SNAPSHOT_FILENAME"));
+      if(!(snapshotFile.IsNull() || snapshotFile.IsWhitespace()))
+	  snapshotFileOut = snapshotFile;
+      else
+	  snapshotFileOut="OCDB.root";
+  }
+  if(fFromCDBSnapshot){
+      AliDebug(2,"Initializing from a CDB snapshot");
+      loadedFromSnapshot = AliCDBManager::Instance()->InitFromSnapshot(fSnapshotFileName.Data());
+  }
+
   if (!MisalignGeometry(fLoadAlignData)) {
     Abort("MisalignGeometry", TSelector::kAbortProcess);
     return;
   }
   AliCDBManager::Instance()->UnloadFromCache("GRP/Geometry/Data");
+  if(!toCDBSnapshot) AliCDBManager::Instance()->UnloadFromCache("*/Align/*");
   AliSysInfo::AddStamp("MisalignGeom");
 
   if (!InitGRP()) {
@@ -1512,12 +1535,15 @@ void AliReconstruction::Begin(TTree *)
     return;
   }
   AliSysInfo::AddStamp("InitGRP");
+  if(!toCDBSnapshot) AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
 
-  if (!LoadCDB()) {
-    Abort("LoadCDB", TSelector::kAbortProcess);
-    return;
+  if(!loadedFromSnapshot){
+      if (!LoadCDB()) {
+	  Abort("LoadCDB", TSelector::kAbortProcess);
+	  return;
+      }
+      AliSysInfo::AddStamp("LoadCDB");
   }
-  AliSysInfo::AddStamp("LoadCDB");
 
   if (!LoadTriggerScalersCDB()) {
     Abort("LoadTriggerScalersCDB", TSelector::kAbortProcess);
@@ -1542,6 +1568,11 @@ void AliReconstruction::Begin(TTree *)
     AliWarning("Not all detectors have correct RecoParam objects initialized");
   }
   AliSysInfo::AddStamp("InitRecoParams");
+
+  if(toCDBSnapshot)
+      AliCDBManager::Instance()->DumpToSnapshotFile(snapshotFileOut.Data());
+  AliCDBManager::Instance()->UnloadFromCache("*/Align/*");
+  AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
 
   if (fInput && gProof) {
     if (reco) *reco = *this;
