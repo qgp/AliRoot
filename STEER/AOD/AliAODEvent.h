@@ -30,6 +30,7 @@
 #include "AliAODPmdCluster.h"
 #include "AliAODFmdCluster.h"
 #include "AliAODDimuon.h"
+#include "AliAODTZERO.h"
 #include "AliAODVZERO.h"
 #include "AliAODZDC.h"
 
@@ -54,6 +55,7 @@ class AliAODEvent : public AliVEvent {
 		       kAODFmdClusters,
 		       kAODPmdClusters,
 		       kAODDimuons,
+		       kAODTZERO,
 		       kAODVZERO,
 		       kAODZDC,
 		       kAODListN
@@ -243,6 +245,9 @@ class AliAODEvent : public AliVEvent {
   AliCentrality*       GetCentrality() {return fHeader->GetCentralityP();} 
   AliEventplane*       GetEventplane() {return fHeader->GetEventplaneP();}
 
+  // TZERO 
+  AliAODTZERO *GetTZEROData() const { return fAODTZERO; }
+ 
   // VZERO 
   AliAODVZERO *GetVZEROData() const { return fAODVZERO; }
   virtual const Float_t* GetVZEROEqFactors() const {return fHeader?fHeader->GetVZEROEqFactors():0x0;}
@@ -273,12 +278,13 @@ class AliAODEvent : public AliVEvent {
   TClonesArray    *fFmdClusters;  //! FMDclusters
   TClonesArray    *fPmdClusters;  //! PMDclusters
   TClonesArray    *fDimuons;      //! dimuons
+  AliAODTZERO     *fAODTZERO;     //! TZERO AOD
   AliAODVZERO     *fAODVZERO;     //! VZERO AOD
   AliAODZDC       *fAODZDC;       //! ZDC AOD
   
   static const char* fAODListName[kAODListN]; //!
 
-  ClassDef(AliAODEvent,88);
+  ClassDef(AliAODEvent,89);
 };
 
 #endif

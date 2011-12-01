@@ -48,6 +48,7 @@ ClassImp(AliAODEvent)
 						      "fmdClusters",
 						      "pmdClusters",
 						      "dimuons",
+						      "AliAODTZERO",
 						      "AliAODVZERO",
 						      "AliAODZDC"
 						      
@@ -71,6 +72,7 @@ AliAODEvent::AliAODEvent() :
   fFmdClusters(0),
   fPmdClusters(0),
   fDimuons(0),
+  fAODTZERO(0),
   fAODVZERO(0),
   fAODZDC(0)
 {
@@ -96,6 +98,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   fFmdClusters(new TClonesArray(*aod.fFmdClusters)),
   fPmdClusters(new TClonesArray(*aod.fPmdClusters)),
   fDimuons(new TClonesArray(*aod.fDimuons)),
+  fAODTZERO(new AliAODTZERO(*aod.fAODTZERO)),
   fAODVZERO(new AliAODVZERO(*aod.fAODVZERO)),
   fAODZDC(new AliAODZDC(*aod.fAODZDC))
 {
@@ -113,6 +116,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   AddObject(fFmdClusters);
   AddObject(fPmdClusters);
   AddObject(fDimuons);
+  AddObject(fAODTZERO);
   AddObject(fAODVZERO);
   AddObject(fAODZDC);
   fConnected = aod.fConnected;
@@ -272,6 +276,7 @@ void AliAODEvent::CreateStdContent()
   AddObject(new TClonesArray("AliAODFmdCluster", 0));
   AddObject(new TClonesArray("AliAODPmdCluster", 0));
   AddObject(new TClonesArray("AliAODDimuon", 0));
+  AddObject(new AliAODTZERO());
   AddObject(new AliAODVZERO());
   AddObject(new AliAODZDC());
   // set names
@@ -357,6 +362,7 @@ void AliAODEvent::GetStdContent()
   fFmdClusters   = (TClonesArray*)fAODObjects->FindObject("fmdClusters");
   fPmdClusters   = (TClonesArray*)fAODObjects->FindObject("pmdClusters");
   fDimuons       = (TClonesArray*)fAODObjects->FindObject("dimuons");
+  fAODTZERO      = (AliAODTZERO*)fAODObjects->FindObject("AliAODTZERO");
   fAODVZERO      = (AliAODVZERO*)fAODObjects->FindObject("AliAODVZERO");
   fAODZDC        = (AliAODZDC*)fAODObjects->FindObject("AliAODZDC");
 }

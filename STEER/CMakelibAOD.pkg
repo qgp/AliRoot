@@ -32,6 +32,7 @@ set ( SRCS
     AOD/AliAODpidUtil.cxx 
     AOD/AliAODCentrality.cxx 
     AOD/AliAODBranchReplicator.cxx 
+    AOD/AliAODTZERO.cxx
     AOD/AliAODVZERO.cxx
     AOD/AliAODZDC.cxx	
     )
