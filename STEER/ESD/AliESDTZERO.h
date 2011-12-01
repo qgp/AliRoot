@@ -71,7 +71,7 @@ public:
  
   Bool_t GetBackgroundFlag() const {return fBackground;}
   Bool_t GetPileupFlag()  const {return fPileup;}
-  Bool_t GetSatellite() {return fSattelite;}
+  Bool_t GetSatellite() const {return fSattelite;}
 
   void SetPileupTime (Int_t hit, Float_t time) { fPileupTime[hit] = time;}
   Float_t GetPileupTime(Int_t hit) {return fPileupTime[hit];}
