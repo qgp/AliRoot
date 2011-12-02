@@ -29,8 +29,8 @@ class TList;
 class TTree;
 class TObjArray;
 class AliESDEvent;
+class AliVCluster;
 class AliESDCaloCluster;
-class AliEMCALTrack;
 class AliEMCALRecPoint;
 class AliEMCALGeometry;
 
@@ -84,7 +84,7 @@ public:
 	};
    
 private:
-	Int_t FindMatchedCluster(AliESDtrack *track);
+	Int_t  FindMatchedCluster(AliESDtrack *track);
 	
 	enum ETrackCorr { 
 		kTrackCorrNone  = 0, // do not correct for energy loss
@@ -96,7 +96,8 @@ private:
 	Double_t    fCutNTPC;         // mimimum number of track hits in the TPC
 	
 	Float_t     fStep;            // Length of each step in propagation
-	ETrackCorr  fTrackCorrMode;   // Material budget correction mode	
+	ETrackCorr  fTrackCorrMode;   // Material budget correction mode
+	Double_t    fClusterWindow;   // Select clusters in the window to be matched to tracks
 	Double_t    fCutEta;	      // cut on eta difference
 	Double_t    fCutPhi;	      // cut on phi difference
 
@@ -105,7 +106,7 @@ private:
 	
 	AliEMCALGeometry *fGeom;      //! EMCAL geometry
 	
-	ClassDef(AliEMCALTracker, 4)  // EMCAL "tracker"
+	ClassDef(AliEMCALTracker, 6)  // EMCAL "tracker"
 };
 
 #endif

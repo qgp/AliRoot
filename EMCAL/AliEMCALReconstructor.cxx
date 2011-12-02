@@ -48,6 +48,7 @@
 #include "AliEMCALClusterizerNxN.h"
 #include "AliEMCALRecPoint.h"
 #include "AliEMCALPID.h"
+#include "AliEMCALRecoUtils.h"
 #include "AliRawReader.h"
 #include "AliCDBEntry.h"
 #include "AliCDBManager.h"
@@ -558,7 +559,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
       	  AliESDtrack * track = esd->GetTrack(itrack) ; // retrieve track
       	  if(track->GetEMCALcluster()==iClust)
       	    {
-      	      Double_t dEta=-999, dPhi=-999;
+      	      Float_t dEta=-999, dPhi=-999;
       	      Bool_t isMatch =  CalculateResidual(track, ec, dEta, dPhi);
       	      if(!isMatch) 
       		{
@@ -690,7 +691,7 @@ void AliEMCALReconstructor::ReadDigitsArrayFromTree(TTree *digitsTree) const
 }
 
 //==================================================================================
-Bool_t AliEMCALReconstructor::CalculateResidual(AliESDtrack *track, AliESDCaloCluster *cluster, Double_t &dEta, Double_t &dPhi)const
+Bool_t AliEMCALReconstructor::CalculateResidual(AliESDtrack *track, AliESDCaloCluster *cluster, Float_t &dEta, Float_t &dPhi)const
 {
   //
   // calculate the residual between track and cluster
@@ -698,6 +699,9 @@ Bool_t AliEMCALReconstructor::CalculateResidual(AliESDtrack *track, AliESDCaloCl
 
   // If the esdFriend is available, use the TPCOuter point as the starting point of extrapolation
   // Otherwise use the TPCInner point
+
+  dEta = -999, dPhi = -999;
+
   AliExternalTrackParam *trkParam = 0;
   const AliESDfriendTrack*  friendTrack = track->GetFriendTrack();
   if(friendTrack && friendTrack->GetTPCOut())
@@ -706,34 +710,8 @@ Bool_t AliEMCALReconstructor::CalculateResidual(AliESDtrack *track, AliESDCaloCl
     trkParam = const_cast<AliExternalTrackParam*>(track->GetInnerParam());
   if(!trkParam) return kFALSE;
 
-  //Perform extrapolation
-  Double_t trkPos[3];
-  Float_t  clsPos[3];
-
   AliExternalTrackParam trkParamTmp (*trkParam);
-  cluster->GetPosition(clsPos);
-  TVector3 vec(clsPos[0],clsPos[1],clsPos[2]);
-  Double_t alpha =  ((int)(vec.Phi()*TMath::RadToDeg()/20)+0.5)*20*TMath::DegToRad();
-  //Rotate to proper local coordinate
-  vec.RotateZ(-alpha); 
-  trkParamTmp.Rotate(alpha); 
-  //extrapolation is done here
-  if(!AliTrackerBase::PropagateTrackToBxByBz(&trkParamTmp, vec.X(), track->GetMass(), GetRecParam()->GetExtrapolateStep(), kFALSE, 0.8, -1)) 
-    return kFALSE; 
-
-  //Calculate the residuals
-  trkParamTmp.GetXYZ(trkPos); 
-   
-  TVector3 clsPosVec(clsPos[0],clsPos[1],clsPos[2]);
-  TVector3 trkPosVec(trkPos[0],trkPos[1],trkPos[2]);
-      
-  Double_t clsPhi = clsPosVec.Phi();
-  if(clsPhi<0) clsPhi+=2*TMath::Pi();
-  Double_t trkPhi = trkPosVec.Phi();
-  if(trkPhi<0) trkPhi+=2*TMath::Pi();
-
-  dPhi = clsPhi-trkPhi;
-  dEta = clsPosVec.Eta()-trkPosVec.Eta();
+  if(!AliEMCALRecoUtils::ExtrapolateTrackToCluster(&trkParamTmp, cluster, track->GetMass(), GetRecParam()->GetExtrapolateStep(), dEta, dPhi)) return kFALSE;
 
   return kTRUE;
 }
