@@ -3756,12 +3756,12 @@ void AliITSv11GeometrySupport::SPDCableTraysSideA(TGeoVolume *moth,
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALSERV$");
-  TGeoMedium *medIn    = mgr->GetMedium("ITS_INOXSERV$");
+  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium *medIn    = mgr->GetMedium("ITS_INOX$");
   TGeoMedium *medFreon = mgr->GetMedium("ITS_GASEOUS FREON$");
-  TGeoMedium *medFibs  = mgr->GetMedium("ITS_SDD OPTICFIBSERV$");//!TO BE CHECKED!
-  TGeoMedium *medCu    = mgr->GetMedium("ITS_CUSERV$");
-  TGeoMedium *medPUR   = mgr->GetMedium("ITS_POLYURESERV$");
+  TGeoMedium *medFibs  = mgr->GetMedium("ITS_SDD OPTICFIB$");//!TO BE CHECKED!
+  TGeoMedium *medCu    = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medPUR   = mgr->GetMedium("ITS_POLYURETHANE$");
   TGeoMedium *medMeg   = mgr->GetMedium("ITS_MEGOLON$");
 
   TGeoVolume *forwTrayABase = new TGeoVolume("ITSsuppSPDSideAForwTrayABase",
@@ -4681,12 +4681,12 @@ void AliITSv11GeometrySupport::SPDCableTraysSideC(TGeoVolume *moth,
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl   = mgr->GetMedium("ITS_ALSERV$");
-  TGeoMedium *medIn   = mgr->GetMedium("ITS_INOXSERV$");
+  TGeoMedium *medAl   = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium *medIn   = mgr->GetMedium("ITS_INOX$");
   TGeoMedium *medFr   = mgr->GetMedium("ITS_Freon$");
-  TGeoMedium *medFibs = mgr->GetMedium("ITS_SDD OPTICFIBSERV$");//!!TO BE CHECKED!!
-  TGeoMedium *medCu   = mgr->GetMedium("ITS_CUSERV$");
-  TGeoMedium *medPUR  = mgr->GetMedium("ITS_POLYURESERV$");
+  TGeoMedium *medFibs = mgr->GetMedium("ITS_SDD OPTICFIB$");//!!TO BE CHECKED!!
+  TGeoMedium *medCu   = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medPUR  = mgr->GetMedium("ITS_POLYURETHANE$");
   TGeoMedium *medMeg  = mgr->GetMedium("ITS_MEGOLON$");
 
   TGeoVolume *traySideCHorFace  = new TGeoVolume("ITSsuppSPDTraySideCHor",
@@ -5369,20 +5369,20 @@ void AliITSv11GeometrySupport::SDDCableTraysSideA(TGeoVolume *moth,
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl     = mgr->GetMedium("ITS_ALSERV$");
+  TGeoMedium *medAl     = mgr->GetMedium("ITS_ALUMINUM$");
   TGeoMedium *medAntic  = mgr->GetMedium("ITS_ANTICORODAL$");
   TGeoMedium *medPOM    = mgr->GetMedium("ITS_POLYOXYMETHYLENE$");
-  TGeoMedium *medSteel  = mgr->GetMedium("ITS_INOXSERV$");
-  TGeoMedium *medWater  = mgr->GetMedium("ITS_WATERSERV$");
-  TGeoMedium *medPUR    = mgr->GetMedium("ITS_POLYURESERV$");
+  TGeoMedium *medSteel  = mgr->GetMedium("ITS_INOX$");
+  TGeoMedium *medWater  = mgr->GetMedium("ITS_WATER$");
+  TGeoMedium *medPUR    = mgr->GetMedium("ITS_POLYURETHANE$");
   TGeoMedium *medAir    = mgr->GetMedium("ITS_AIR$");
   TGeoMedium *medPBT    = mgr->GetMedium("ITS_PBT$");
-  TGeoMedium *medOptFib = mgr->GetMedium("ITS_SDD OPTICFIBSERV$");
-  TGeoMedium *medCu     = mgr->GetMedium("ITS_CUSERV$");
-  TGeoMedium *medKapton = mgr->GetMedium("ITS_SDDKAPTONSERV$");
+  TGeoMedium *medOptFib = mgr->GetMedium("ITS_SDD OPTICFIB$");
+  TGeoMedium *medCu     = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medKapton = mgr->GetMedium("ITS_SDDKAPTON (POLYCH2)$");
   TGeoMedium *medPOLYAX = mgr->GetMedium("ITS_POLYAX$");
   TGeoMedium *medPPS    = mgr->GetMedium("ITS_PPS$");
-  TGeoMedium *medEpoxy  = mgr->GetMedium("ITS_EPOXYSERV$");
+  TGeoMedium *medEpoxy  = mgr->GetMedium("ITS_EPOXY$");
 
   TGeoVolume *forwardTrayCover = new TGeoVolume("ITSsuppSDDSideAForwTrayCover",
 						forwardCover, medAl);
@@ -6197,18 +6197,18 @@ void AliITSv11GeometrySupport::SDDCableTraysSideC(TGeoVolume *moth,
 
   // We have all shapes: now create the real volumes
   TGeoMedium *medPOM    = mgr->GetMedium("ITS_POLYOXYMETHYLENE$");
-  TGeoMedium *medSteel  = mgr->GetMedium("ITS_INOXSERV$");
-  TGeoMedium *medWater  = mgr->GetMedium("ITS_WATERSERV$");
-  TGeoMedium *medAl     = mgr->GetMedium("ITS_ALSERV$");
-  TGeoMedium *medCu     = mgr->GetMedium("ITS_CUSERV$");
-  TGeoMedium *medPUR    = mgr->GetMedium("ITS_POLYURESERV$");
+  TGeoMedium *medSteel  = mgr->GetMedium("ITS_INOX$");
+  TGeoMedium *medWater  = mgr->GetMedium("ITS_WATER$");
+  TGeoMedium *medAl     = mgr->GetMedium("ITS_ALUMINUM$");
+  TGeoMedium *medCu     = mgr->GetMedium("ITS_COPPER$");
+  TGeoMedium *medPUR    = mgr->GetMedium("ITS_POLYURETHANE$");
   TGeoMedium *medPOLYAX = mgr->GetMedium("ITS_POLYAX$");
-  TGeoMedium *medKapton = mgr->GetMedium("ITS_SDDKAPTONSERV$");
+  TGeoMedium *medKapton = mgr->GetMedium("ITS_SDDKAPTON (POLYCH2)$");
   TGeoMedium *medAir    = mgr->GetMedium("ITS_AIR$");
   TGeoMedium *medPBT    = mgr->GetMedium("ITS_PBT$");
-  TGeoMedium *medOptFib = mgr->GetMedium("ITS_SDD OPTICFIBSERV$");
+  TGeoMedium *medOptFib = mgr->GetMedium("ITS_SDD OPTICFIB$");
   TGeoMedium *medPPS    = mgr->GetMedium("ITS_PPS$");
-  TGeoMedium *medEpoxy  = mgr->GetMedium("ITS_EPOXYSERV$");
+  TGeoMedium *medEpoxy  = mgr->GetMedium("ITS_EPOXY$");
 
   TGeoVolume *pomCoolManif = new TGeoVolume("ITSsuppSDDSideCCoolManifPOM",
 					    coolManifPOM, medPOM);
@@ -6818,12 +6818,12 @@ void AliITSv11GeometrySupport::SSDCableTraysSideA(TGeoVolume *moth,
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALSERV$");
+  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALUMINUM$");
   TGeoMedium *medAntic = mgr->GetMedium("ITS_ANTICORODAL$");
-  TGeoMedium *medCu    = mgr->GetMedium("ITS_CUSERV$");
+  TGeoMedium *medCu    = mgr->GetMedium("ITS_COPPER$");
   TGeoMedium *medFEP   = mgr->GetMedium("ITS_SSD FEP$");
-  TGeoMedium *medH2O   = mgr->GetMedium("ITS_WATERSERV$");
-  TGeoMedium *medPUR   = mgr->GetMedium("ITS_POLYURESERV$");
+  TGeoMedium *medH2O   = mgr->GetMedium("ITS_WATER$");
+  TGeoMedium *medPUR   = mgr->GetMedium("ITS_POLYURETHANE$");
 
   TGeoVolume *forwTrayFirst = new TGeoVolume("ITSsuppSSDSideAForwTrayFirst",
 					     forwTrayPart1, medAl);
@@ -7234,10 +7234,10 @@ void AliITSv11GeometrySupport::SSDCableTraysSideC(TGeoVolume *moth,
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medCu    = mgr->GetMedium("ITS_CUSERV$");
+  TGeoMedium *medCu    = mgr->GetMedium("ITS_COPPER$");
   TGeoMedium *medFEP   = mgr->GetMedium("ITS_SSD FEP$");
-  TGeoMedium *medH2O   = mgr->GetMedium("ITS_WATERSERV$");
-  TGeoMedium *medPUR   = mgr->GetMedium("ITS_POLYURESERV$");
+  TGeoMedium *medH2O   = mgr->GetMedium("ITS_WATER$");
+  TGeoMedium *medPUR   = mgr->GetMedium("ITS_POLYURETHANE$");
 
   TGeoVolume *copperCable = new TGeoVolume("ITSsuppSSDSideCCableCu",
 					   copper, medCu);
@@ -7425,7 +7425,7 @@ void AliITSv11GeometrySupport::CreateSDDForwardTraySideA(TGeoVolumeAssembly *tra
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALSERV$");
+  TGeoMedium *medAl    = mgr->GetMedium("ITS_ALUMINUM$");
 
   TGeoVolume *forwTrayBase = new TGeoVolume("ITSsuppSDDSideAForwTrayBase",
 					    trayBase, medAl);
@@ -8122,7 +8122,7 @@ TGeoVolumeAssembly* AliITSv11GeometrySupport::CreateSDDSSDTraysSideC(
 
 
   // We have all shapes: now create the real volumes
-  TGeoMedium *medAl      = mgr->GetMedium("ITS_ALSERV$");
+  TGeoMedium *medAl      = mgr->GetMedium("ITS_ALUMINUM$");
 
   TGeoVolume *traySideCLowerFace  = new TGeoVolume("ITSsuppTraySideCLower",
 						   sideCLowerFace, medAl);
