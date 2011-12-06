@@ -26,23 +26,18 @@
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTOUT.h"
 #include "AliHLTOUTHandlerChain.h"
+#include "AliHLTMisc.h"
 #include "AliRunLoader.h"
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
 #include "AliTPCParam.h"
+#include "AliTPCRecoParam.h"
+#include "TObject.h"
 
 /** global instance for agent registration */
 AliHLTTPCAgent gAliHLTTPCAgent;
 
 // component headers
-#include "AliHLTTPCCompModelInflaterComponent.h"
-#include "AliHLTTPCCompModelDeflaterComponent.h"
-#include "AliHLTTPCCompModelDeconverterComponent.h"
-#include "AliHLTTPCCompModelConverterComponent.h"
-#include "AliHLTTPCCompDumpComponent.h"
-//#include "AliHLTTPCCalibCEComponent.h"
-//#include "AliHLTTPCCalibPulserComponent.h"
-//#include "AliHLTTPCCalibPedestalComponent.h"
 #include "AliHLTTPCCAInputDataCompressorComponent.h"
 #include "AliHLTTPCCATrackerComponent.h"
 #include "AliHLTTPCCATrackerOutputConverter.h"
@@ -50,8 +45,6 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCCAGlobalMergerComponent.h"
 #include "AliHLTTPCdEdxComponent.h"
 #include "AliHLTTPCdEdxMonitoringComponent.h"
-#include "AliHLTTPCGlobalMergerComponent.h"
-#include "AliHLTTPCSliceTrackerComponent.h"
 #include "AliHLTTPCClusterFinderComponent.h"
 #include "AliHLTTPCRawDataUnpackerComponent.h"
 #include "AliHLTTPCDigitPublisherComponent.h"
@@ -64,21 +57,17 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCOfflineCalibrationComponent.h" // to be added to the calibration library agent
 #include "AliHLTTPCClusterHistoComponent.h"
 #include "AliHLTTPCHistogramHandlerComponent.h"
-//#include "AliHLTTPCCalibTracksComponent.h"
 #include "AliHLTTPCTrackHistoComponent.h"
 #include "AliHLTTPCTrackDumpComponent.h"
 #include "AliHLTTPCHWCFDataReverterComponent.h"
 #include "AliHLTTPCHWClusterTransformComponent.h"
 #include "AliHLTTPCCFComparisonComponent.h"
-// #include "AliHLTTPCCalibSeedMakerComponent.h"
-// #include "AliHLTTPCCalibTimeComponent.h"
-// #include "AliHLTTPCCalibTimeGainComponent.h"
-// #include "AliHLTTPCCalibrationComponent.h"
 #include "AliHLTTPCDataCheckerComponent.h"
 #include "AliHLTTPCHWCFEmulatorComponent.h"
 #include "AliHLTTPCHWCFConsistencyControlComponent.h"
 #include "AliHLTTPCDataCompressionComponent.h"
 #include "AliHLTTPCDataCompressionMonitorComponent.h"
+#include "AliHLTTPCDataCompressionFilterComponent.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCAgent)
@@ -202,10 +191,20 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     // compression component
     if (compressorInput.Length()>0) compressorInput+=" ";
     compressorInput+="TPC-globalmerger";
-    handler->CreateConfiguration("TPC-compression-component", "TPCDataCompressor", compressorInput.Data(), " -cluster-verification 1");
+    handler->CreateConfiguration("TPC-compression", "TPCDataCompressor", compressorInput.Data(), "");
     handler->CreateConfiguration("TPC-compression-huffman-trainer", "TPCDataCompressor", compressorInput.Data(),"-deflater-mode 3");
-    handler->CreateConfiguration("TPC-compression", "BlockFilter", "TPC-compression-component TPC-hwcfdata", "");
-    handler->CreateConfiguration("TPC-compression-monitoring", "TPCDataCompressorMonitor", "TPC-compression","-histogram-file HLT.TPC-compression-statistics.root -publishing-mode off");
+    handler->CreateConfiguration("TPC-compression-monitoring-component", "TPCDataCompressorMonitor", "TPC-compression TPC-hwcfdata","-pushback-period=30");
+    handler->CreateConfiguration("TPC-compression-monitoring", "ROOTFileWriter", "TPC-compression-monitoring-component","-concatenate-events -overwrite -datafile HLT.TPCDataCompression-statistics.root");
+
+    // special configuration to run the emulation automatically if the compressed clusters
+    // of a particular partition is missing. This configuration is announced for reconstruction
+    // of raw data if the HLT mode of the TPC reconstruction is enabled. Compression component
+    // always needs to run in mode 1. Even if the recorded data is mode 3 (optimized partition
+    // clusters), 2 (track model compression), or 4. The emulation can not be in mode 2 or 4,
+    // since the track model block can not be identified with a partition. Have to duplicate the
+    // configuration of the compression component
+    handler->CreateConfiguration("TPC-auto-compression-component", "TPCDataCompressor", compressorInput.Data(), "-mode 1");
+    handler->CreateConfiguration("TPC-auto-compression", "TPCDataCompressorFilter", "TPC-auto-compression-component","");
 
     // the esd converter configuration
     TString converterInput="TPC-globalmerger";
@@ -313,6 +312,31 @@ const char* AliHLTTPCAgent::GetReconstructionChains(AliRawReader* /*rawReader*/,
     // 2010-10-26 TPC clusters not written to HLTOUT in order to make the simulation
     // closer to the real data 
     //return "TPC-clusters";
+  } else {
+    bool bAddEmulation=true; // add by default
+
+    // FIXME:
+    // tried to make the configuration optional depending on whether the
+    // TPC requires HLT clusters or not, bu the RecoParam OCDB object is a TObjArray
+    // and the event specie is not yet defined. Maybe it can be derived from
+    // the GRP. On the other hand, HLT data compression is expected to be the
+    // default mode from now on, so this block might be safely deleted after some
+    // time (today is 2011-11-18)
+    //
+    // AliTPCRecoParam* param=NULL;
+    // TObject* pObject=AliHLTMisc::Instance().ExtractObject(AliHLTMisc::Instance().LoadOCDBEntry("TPC/Calib/RecoParam"));
+    // if (pObject && (param=dynamic_cast<AliTPCRecoParam*>(pObject))!=NULL) {
+    //   bAddEmulation=param->GetUseHLTClusters()==3 || param->GetUseHLTClusters()==4;
+    //   HLTInfo("%s auto-compression for not existing TPC partitions, TPCRecoParam::GetUseHLTClusters %d",
+    // 	      bAddEmulation?"adding":"skipping",
+    // 	      param->GetUseHLTClusters());
+    // }
+    if (bAddEmulation) {
+      // 2011-11-23: not yet enabled
+      // testing required, furthermore a component publishing only the raw data for
+      // the missing links, to big impact to performance otherwise
+      //return "TPC-auto-compression";
+    }
   }
   return NULL;
 }
@@ -332,23 +356,13 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   // see header file for class documentation
   if (!pHandler) return -EINVAL;
 
-//   pHandler->AddComponent(new AliHLTTPCCalibCEComponent);
-//   pHandler->AddComponent(new AliHLTTPCCalibPulserComponent);
-//   pHandler->AddComponent(new AliHLTTPCCalibPedestalComponent);
-  pHandler->AddComponent(new AliHLTTPCCompModelInflaterComponent);
-  pHandler->AddComponent(new AliHLTTPCCompModelDeflaterComponent);
-  pHandler->AddComponent(new AliHLTTPCCompModelDeconverterComponent);
-  pHandler->AddComponent(new AliHLTTPCCompModelConverterComponent);
-  pHandler->AddComponent(new AliHLTTPCCompDumpComponent);
   pHandler->AddComponent(new AliHLTTPCCAInputDataCompressorComponent);
   pHandler->AddComponent(new AliHLTTPCCATrackerComponent);
   pHandler->AddComponent(new AliHLTTPCCATrackerOutputConverter);
   pHandler->AddComponent(new AliHLTTPCCAGlobalMergerComponent);
   pHandler->AddComponent(new AliHLTTPCTrackMCMarkerComponent);
-  pHandler->AddComponent(new AliHLTTPCGlobalMergerComponent);
   pHandler->AddComponent(new AliHLTTPCdEdxComponent);
   pHandler->AddComponent(new AliHLTTPCdEdxMonitoringComponent);
-  pHandler->AddComponent(new AliHLTTPCSliceTrackerComponent);
   pHandler->AddComponent(new AliHLTTPCClusterFinderComponent(AliHLTTPCClusterFinderComponent::kClusterFinderPacked));
   pHandler->AddComponent(new AliHLTTPCClusterFinderComponent(AliHLTTPCClusterFinderComponent::kClusterFinderUnpacked));
   pHandler->AddComponent(new AliHLTTPCClusterFinderComponent(AliHLTTPCClusterFinderComponent::kClusterFinderDecoder));
@@ -365,21 +379,17 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTTPCOfflineCalibrationComponent);
   pHandler->AddComponent(new AliHLTTPCClusterHistoComponent);
   pHandler->AddComponent(new AliHLTTPCHistogramHandlerComponent);
-  //pHandler->AddComponent(new AliHLTTPCCalibTracksComponent);
   pHandler->AddComponent(new AliHLTTPCTrackHistoComponent);
   pHandler->AddComponent(new AliHLTTPCTrackDumpComponent);
   pHandler->AddComponent(new AliHLTTPCHWCFDataReverterComponent);
   pHandler->AddComponent(new AliHLTTPCHWClusterTransformComponent);
   pHandler->AddComponent(new AliHLTTPCCFComparisonComponent);
-//   pHandler->AddComponent(new AliHLTTPCCalibSeedMakerComponent);
-//   pHandler->AddComponent(new AliHLTTPCCalibTimeComponent);
-//   pHandler->AddComponent(new AliHLTTPCCalibTimeGainComponent);
-//   pHandler->AddComponent(new AliHLTTPCCalibrationComponent);
   pHandler->AddComponent(new AliHLTTPCDataCheckerComponent);
   pHandler->AddComponent(new AliHLTTPCHWCFEmulatorComponent);
 //  pHandler->AddComponent(new AliHLTTPCHWCFConsistencyControlComponent);  //FIXME: Causes crash: https://savannah.cern.ch/bugs/?83677
   pHandler->AddComponent(new AliHLTTPCDataCompressionComponent);
   pHandler->AddComponent(new AliHLTTPCDataCompressionMonitorComponent);
+  pHandler->AddComponent(new AliHLTTPCDataCompressionFilterComponent);
   return 0;
 }
 
