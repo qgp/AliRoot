@@ -97,7 +97,7 @@ class AliHLTTPCHWCFData : public AliHLTLogging {
   const AliHLTUInt8_t*  GetRCUTrailer() const
   {
     if (fRCUTrailerSize<=0 || fpBuffer==NULL || fBufferSize<fRCUTrailerSize) return NULL;
-    return fpBuffer+fRCUTrailerSize;
+    return fpBuffer+(fBufferSize-fRCUTrailerSize);
   }
 
   // size of RCU trailer
@@ -191,8 +191,10 @@ class AliHLTTPCHWCFData : public AliHLTLogging {
       : fData(pData), fVersion(version), fElementSize(elementSize) {}
     iterator(const iterator& i)
       : fData(i.fData), fVersion(i.fVersion), fElementSize(i.fElementSize) {}
-    iterator& operator=(const iterator& i)
-      { fData=i.fData; fVersion=i.fVersion; fElementSize=i.fElementSize; return *this;}
+    iterator& operator=(const iterator& i) {
+      if (this==&i) return *this;
+      fData=i.fData; fVersion=i.fVersion; fElementSize=i.fElementSize; return *this;
+    }
     ~iterator() {fData=NULL;}
 
     bool operator==(const iterator& i) const  {return (fData!=NULL) && (fData==i.fData);}

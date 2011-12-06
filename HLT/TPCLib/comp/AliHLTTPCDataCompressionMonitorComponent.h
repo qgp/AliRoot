@@ -115,7 +115,8 @@ public:
     kHistogramQMaxSector,
     kHistogramSigmaY2Sector,
     kHistogramSigmaZ2Sector,
-    kHistogramXY,
+    kHistogramXYA,
+    kHistogramXYC,
     kNumberOfHistograms2D
   };
   enum {
@@ -130,6 +131,7 @@ public:
     int fBins; //!
     float fLowerBound; //!
     float fUpperBound; //!
+    const char* fDrawOptions; //!
   };
   struct AliHistogramDefinition2D {
     int fId; //!
@@ -141,6 +143,7 @@ public:
     int fBinsY; //!
     float fLowerBoundY; //!
     float fUpperBoundY; //!
+    const char* fDrawOptions; //!
   };
   struct AliHistogramDefinition3D {
     int fId; //!
@@ -155,6 +158,7 @@ public:
     int fBinsZ; //!
     float fLowerBoundZ; //!
     float fUpperBoundZ; //!
+    const char* fDrawOptions; //!
   };
 
   /**
@@ -180,6 +184,7 @@ public:
       iterator(AliDataContainer* pData) : fClusterNo(-1), fData(pData), fClusterId(fData?fData->GetClusterId(fClusterNo):kAliHLTVoidDataSpec), fSlice(-1), fPartition(-1) {}
       iterator(const iterator& other) : fClusterNo(other.fClusterNo), fData(other.fData), fClusterId(other.fClusterId), fSlice(other.fSlice), fPartition(other.fPartition) {}
       iterator& operator=(const iterator& other) {
+	if (this==&other) return *this;
 	fClusterNo=other.fClusterNo; fData=other.fData; fClusterId=other.fClusterId; fSlice=other.fSlice; fPartition=other.fPartition; return *this;
       }
       ~iterator() {}
@@ -260,6 +265,8 @@ public:
     AliHLTTPCRawCluster fCurrentCluster; //! current cluster
     int fSector; //! sector
     iterator fBegin; //!
+    int fMaxSigmaY2Scaled; //! maximum scaled sigmaY2 value determined by the available bit length
+    int fMaxSigmaZ2Scaled; //! maximum scaled sigmaZ2 value determined by the available bit length
   };
 
 protected:
@@ -292,8 +299,9 @@ private:
 
   TH2* fHistoHWCFDataSize;         //! hwcf data size vs. event size
   TH2* fHistoHWCFReductionFactor;  //! reduction factor vs. event size
+  TH2* fHistoTotalReductionFactor;  //! reduction factor vs. event size
   TH2* fHistoNofClusters; //! number of clusters vs. event size
-  TH2* fHistoNofClustersReductionFactor;  //! reduction factor vs. number of clusters
+  TH2* fHistoNofClustersReductionFactor;  //! reduction factor wrp to hwcf vs. number of clusters
   TString fHistogramFile; //! file to save histogram
   AliDataContainer* fMonitoringContainer; //! cluster read interface for monitoring
 
