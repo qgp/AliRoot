@@ -145,7 +145,7 @@
 	technical fixes without functional change
 	update of AliHLTTPCDataCompressionMonitorComponent
 
-	---> BASE: 51665 51978 52498 52502 52618 52619 52620 52624 52625 52636
+	--- BASE: 51665 51978 52498 52502 52618 52619 52620 52624 52625 52636
 	AliHLTHuffman: avoid compilation warning on some architectures
 	AliHLTTTreeProcessor: configurable histogram titles
 	bug #82052: CDB access of HLT components uses "forbidden" functions
@@ -166,10 +166,61 @@
 	update of AltroChannelSelectorComponent
 	postponed
 	
-	--- global: 52503 52525 52640
-	update of AliHLTMultiplicityCorrelations
-	included ITS-SPD-vertexer to the inputs of GLOBAL-esd-converter
+	--- QA: 52501
 	postponed
 
-	--- QA: 52501
+2011-11-21
+	--- BASE TPC: 52974 52984 52997 53053
+
+2011-12-05 updated to revision 53412
+	--- CALO: 53010 53073 53172 53236 53237 53255 53400
+	coverity changes
+	postponed
+
+	--- BASE: 53075 53080 53174 53247
+	helper method added
+
+	--- TPC: 52685 52776 52872 52874 52996 53052 53054
+	component update
+
+	--- TPC: 53173,53179,53180,53226,53333,53342,53378,53380,53393,53394,53404
+	cluster merging
+
+	--- TPC: 53181 53447 53448 53449 53450 53451
+	enable cluster merging in decoding for offline reconstruction
+	handle MC labels for merged clusters in decoding
+
+	--- TPC: 53043 53055 53102 53176 53217 53218 53219 53222 53224
+	coverity and minor bugfixes
+
+	--- TPC: 53103 53107
+	reverted change, ignore
+
+	--- TPC: 52995 53042 53110 53132
+	automatic cluster emulation (not yet enabled)
+	simulation chain layout
+
+	--- global: 52503 52525 52640 52730 52732 52771 52775 52785 52971 52976
+	update of AliHLTMultiplicityCorrelations
+	included ITS-SPD-vertexer to the inputs of GLOBAL-esd-converter
+
+	--- TPC: 53046 53111
+	code cleanup
+	postponed
+
+	--- BASE: 52731 52943 52944 53047 53048 53049 53050 53051 53074 53079 53101 53102
+	coverity and minor fixes
+	postponed
+
+	--- global: 53102
+	coverity
+	postponed
+
+	--- QA: 53056
+
+	--- TRD: 53045
+	coverity
+	postponed
+
+	--- MUON: 52987 52988 52989
 	postponed
