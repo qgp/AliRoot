@@ -94,9 +94,9 @@ void AliHLTHuffmanNode::AssignCode(bool bReverse) {
 
 void AliHLTHuffmanNode::Print(Option_t* /*option*/) const {
         /// print info
-	std::cout << "value=" << GetValue() << ", weight=" << GetWeight() << ", length="
-			<< GetBinaryCodeLength() << ", code=" << GetBinaryCode().to_string()
-			<< std::endl;
+//	std::cout << "value=" << GetValue() << ", weight=" << GetWeight() << ", length="
+//			<< GetBinaryCodeLength() << ", code=" << GetBinaryCode().to_string()
+//			<< std::endl;
 	if (GetLeftChild()) {
 		GetLeftChild()->Print();
 	}
