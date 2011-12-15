@@ -144,7 +144,8 @@ AliESDEvent::AliESDEvent():
   fUseOwnList(kFALSE),
   fTOFHeader(0),
   fCentrality(0),
-  fEventplane(0)
+  fEventplane(0),
+  fDetectorStatus(0xFFFFFFFF)
 {
 }
 //______________________________________________________________________________
@@ -185,7 +186,8 @@ AliESDEvent::AliESDEvent(const AliESDEvent& esd):
   fUseOwnList(esd.fUseOwnList),
   fTOFHeader(new AliTOFHeader(*esd.fTOFHeader)),
   fCentrality(new AliCentrality(*esd.fCentrality)),
-  fEventplane(new AliEventplane(*esd.fEventplane))
+  fEventplane(new AliEventplane(*esd.fEventplane)),
+  fDetectorStatus(esd.fDetectorStatus)
 {
   // CKB init in the constructor list and only add here ...
   AddObject(fESDRun);
@@ -314,6 +316,8 @@ AliESDEvent & AliESDEvent::operator=(const AliESDEvent& source) {
 
   fConnected  = source.fConnected;
   fUseOwnList = source.fUseOwnList;
+  
+  fDetectorStatus = source.fDetectorStatus;
 
   return *this;
 }

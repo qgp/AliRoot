@@ -30,6 +30,8 @@ class TTree;
 class AliESDkink;
 class TTreeSRedirector;
 class AliTrackPoint;
+class AliDCSSensorArray;
+class AliDCSSensor;
 
 
 
@@ -45,6 +47,7 @@ public:
   virtual Int_t LoadClusters (TTree * const tree);
   virtual Int_t LoadClusters (const TObjArray * arr); // another input
   virtual Int_t LoadClusters (const TClonesArray * arr); // another input
+  virtual Int_t PostProcess(AliESDEvent *esd); 
   Int_t  LoadClusters();
   void   UnloadClusters();
   Int_t LoadInnerSectors();
@@ -121,6 +124,8 @@ public:
    void  StopNotActive(const TObjArray * arr, Int_t row0, Float_t th0, Float_t th1, Float_t th2) const;
    void  StopNotActive(AliTPCseed * seed, Int_t row0, Float_t th0, Float_t th1, Float_t th2) const;
    Int_t AcceptCluster(AliTPCseed * seed, AliTPCclusterMI * cluster);
+
+   Bool_t IsTPCHVDipEvent(AliESDEvent const *esdEvent);
 
 private:
   Bool_t IsFindable(AliTPCseed & t);
