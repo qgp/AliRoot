@@ -484,6 +484,7 @@ void AliAnalysisTaskESDfilter::ConvertCascades(const AliESDEvent& esd)
                                                                            vtx->UsesTrack(esdCascadeBach->GetID()),
                                                                            AliAODTrack::kSecondary,
                                                                            selectInfo);
+	    aodTrack->SetTPCFitMap(esdCascadeBach->GetTPCFitMap());
 	    aodTrack->SetTPCClusterMap(esdCascadeBach->GetTPCClusterMap());
 	    aodTrack->SetTPCSharedMap (esdCascadeBach->GetTPCSharedMap());
 	    aodTrack->SetChi2perNDF(Chi2perNDF(esdCascadeBach));
@@ -568,6 +569,7 @@ void AliAnalysisTaskESDfilter::ConvertCascades(const AliESDEvent& esd)
                     vtx->UsesTrack(esdCascadePos->GetID()),
                     AliAODTrack::kSecondary,
                     selectInfo);
+        aodTrack->SetTPCFitMap(esdCascadePos->GetTPCFitMap());
         aodTrack->SetTPCClusterMap(esdCascadePos->GetTPCClusterMap());
         aodTrack->SetTPCSharedMap (esdCascadePos->GetTPCSharedMap());
         aodTrack->SetChi2perNDF(Chi2perNDF(esdCascadePos));
@@ -614,6 +616,7 @@ void AliAnalysisTaskESDfilter::ConvertCascades(const AliESDEvent& esd)
                                                       vtx->UsesTrack(esdCascadeNeg->GetID()),
                                                       AliAODTrack::kSecondary,
                                                       selectInfo);
+        aodTrack->SetTPCFitMap(esdCascadeNeg->GetTPCFitMap());
         aodTrack->SetTPCClusterMap(esdCascadeNeg->GetTPCClusterMap());
         aodTrack->SetTPCSharedMap (esdCascadeNeg->GetTPCSharedMap());
         aodTrack->SetChi2perNDF(Chi2perNDF(esdCascadeNeg));
@@ -856,6 +859,7 @@ void AliAnalysisTaskESDfilter::ConvertV0s(const AliESDEvent& esd)
                                                     vtx->UsesTrack(esdV0Pos->GetID()),
                                                     AliAODTrack::kSecondary,
                                                     selectInfo);
+	    aodTrack->SetTPCFitMap(esdV0Pos->GetTPCFitMap());
 	    aodTrack->SetTPCClusterMap(esdV0Pos->GetTPCClusterMap());
 	    aodTrack->SetTPCSharedMap (esdV0Pos->GetTPCSharedMap());
 	    aodTrack->SetChi2perNDF(Chi2perNDF(esdV0Pos));
@@ -900,6 +904,7 @@ void AliAnalysisTaskESDfilter::ConvertV0s(const AliESDEvent& esd)
                                                     vtx->UsesTrack(esdV0Neg->GetID()),
                                                     AliAODTrack::kSecondary,
                                                     selectInfo);
+	    aodTrack->SetTPCFitMap(esdV0Neg->GetTPCFitMap());
 	    aodTrack->SetTPCClusterMap(esdV0Neg->GetTPCClusterMap());
 	    aodTrack->SetTPCSharedMap (esdV0Neg->GetTPCSharedMap());
 	    aodTrack->SetChi2perNDF(Chi2perNDF(esdV0Neg));
@@ -1097,6 +1102,7 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
                                                             AliAODTrack::kPrimary, 
                                                             selectInfo);
     aodTrack->SetIsHybridTPCConstrainedGlobal(isHybridITSTPC);    
+    aodTrack->SetTPCFitMap(track->GetTPCFitMap());
     aodTrack->SetTPCClusterMap(track->GetTPCClusterMap());
     aodTrack->SetTPCSharedMap (track->GetTPCSharedMap());
     aodTrack->SetIsTPCConstrained(kTRUE);    
@@ -1239,6 +1245,7 @@ void AliAnalysisTaskESDfilter::ConvertGlobalConstrainedTracks(const AliESDEvent&
                                                             selectInfo);
     aodTrack->SetIsHybridGlobalConstrainedGlobal(isHybridGC);    
     aodTrack->SetIsGlobalConstrained(kTRUE);    
+    aodTrack->SetTPCFitMap(esdTrack->GetTPCFitMap());
     aodTrack->SetTPCClusterMap(esdTrack->GetTPCClusterMap());
     aodTrack->SetTPCSharedMap (esdTrack->GetTPCSharedMap());
     Float_t ndf = esdTrack->GetTPCNcls()+1 - 5 ;
@@ -1314,6 +1321,7 @@ void AliAnalysisTaskESDfilter::ConvertTracks(const AliESDEvent& esd)
                                                             AliAODTrack::kPrimary, 
                                                             selectInfo)
                          );
+    aodTrack->SetTPCFitMap(esdTrack->GetTPCFitMap());
     aodTrack->SetTPCClusterMap(esdTrack->GetTPCClusterMap());
     aodTrack->SetTPCSharedMap (esdTrack->GetTPCSharedMap());
     aodTrack->SetChi2perNDF(Chi2perNDF(esdTrack));
@@ -1571,6 +1579,7 @@ void AliAnalysisTaskESDfilter::ConvertKinks(const AliESDEvent& esd)
                                                vtx->UsesTrack(esdTrack->GetID()),
                                                AliAODTrack::kPrimary,
                                                selectInfo);
+            mother->SetTPCFitMap(esdTrackM->GetTPCFitMap());
             mother->SetTPCClusterMap(esdTrackM->GetTPCClusterMap());
             mother->SetTPCSharedMap (esdTrackM->GetTPCSharedMap());
             mother->SetChi2perNDF(Chi2perNDF(esdTrackM));
@@ -1635,6 +1644,7 @@ void AliAnalysisTaskESDfilter::ConvertKinks(const AliESDEvent& esd)
                                                vtx->UsesTrack(esdTrack->GetID()),
                                                AliAODTrack::kSecondary,
                                                selectInfo);
+            daughter->SetTPCFitMap(esdTrackD->GetTPCFitMap());
             daughter->SetTPCClusterMap(esdTrackD->GetTPCClusterMap());
             daughter->SetTPCSharedMap (esdTrackD->GetTPCSharedMap());
 	    daughter->SetTPCPointsF(esdTrackD->GetTPCNclsF());
