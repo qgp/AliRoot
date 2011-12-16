@@ -84,6 +84,8 @@ AliESDtrackCuts::AliESDtrackCuts(const Char_t* name, const Char_t* title) : AliA
   fCutMinNClusterITS(0),
   fCutMinNCrossedRowsTPC(0),
   fCutMinRatioCrossedRowsOverFindableClustersTPC(0),
+  f1CutMinNClustersTPCPtDep(0x0),
+  fCutMaxPtDepNClustersTPC(0),
   fCutMaxChi2PerClusterTPC(0),
   fCutMaxChi2PerClusterITS(0),
   fCutMaxChi2TPCConstrainedVsGlobal(0),
@@ -192,6 +194,8 @@ AliESDtrackCuts::AliESDtrackCuts(const AliESDtrackCuts &c) : AliAnalysisCuts(c),
   fCutMinNClusterITS(0),
   fCutMinNCrossedRowsTPC(0),
   fCutMinRatioCrossedRowsOverFindableClustersTPC(0),
+  f1CutMinNClustersTPCPtDep(0x0),
+  fCutMaxPtDepNClustersTPC(0),
   fCutMaxChi2PerClusterTPC(0),
   fCutMaxChi2PerClusterITS(0),
   fCutMaxChi2TPCConstrainedVsGlobal(0),
@@ -334,7 +338,11 @@ AliESDtrackCuts::~AliESDtrackCuts()
   if (fhCutStatistics)
     delete fhCutStatistics;             
   if (fhCutCorrelation)
-    delete fhCutCorrelation;            
+    delete fhCutCorrelation;    
+
+  if(f1CutMinNClustersTPCPtDep)
+    delete f1CutMinNClustersTPCPtDep;
+        
 }
 
 void AliESDtrackCuts::Init()
@@ -481,7 +489,10 @@ void AliESDtrackCuts::Copy(TObject &c) const
   target.fCutMinNClusterITS = fCutMinNClusterITS;
   target.fCutMinNCrossedRowsTPC = fCutMinNCrossedRowsTPC;
   target.fCutMinRatioCrossedRowsOverFindableClustersTPC = fCutMinRatioCrossedRowsOverFindableClustersTPC;
-
+  if(f1CutMinNClustersTPCPtDep){
+    target.f1CutMinNClustersTPCPtDep = (TFormula*) f1CutMinNClustersTPCPtDep->Clone("f1CutMinNClustersTPCPtDep");
+  }
+  target.fCutMaxPtDepNClustersTPC =   fCutMaxPtDepNClustersTPC;
 
   target.fCutMaxChi2PerClusterTPC = fCutMaxChi2PerClusterTPC;
   target.fCutMaxChi2PerClusterITS = fCutMaxChi2PerClusterITS;
@@ -664,6 +675,19 @@ Long64_t AliESDtrackCuts::Merge(TCollection* list) {
   return count+1;
 }
 
+void AliESDtrackCuts::SetMinNClustersTPCPtDep(TFormula *f1, Float_t ptmax) 
+{
+  //
+  // Sets the pT dependent NClustersTPC cut
+  //
+
+  if(f1){ 
+    delete f1CutMinNClustersTPCPtDep;
+    f1CutMinNClustersTPCPtDep = (TFormula*)f1->Clone("f1CutMinNClustersTPCPtDep"); 
+  }
+  fCutMaxPtDepNClustersTPC=ptmax; 
+}
+
 //____________________________________________________________________
 AliESDtrackCuts* AliESDtrackCuts::GetStandardTPCOnlyTrackCuts()
 {
@@ -706,11 +730,14 @@ AliESDtrackCuts* AliESDtrackCuts::GetStandardITSTPCTrackCuts2009(Bool_t selPrima
   if(selPrimaries) {
     // 7*(0.0050+0.0060/pt^0.9)
     esdTrackCuts->SetMaxDCAToVertexXYPtDep("0.0350+0.0420/pt^0.9");
+    esdTrackCuts->SetMaxChi2TPCConstrainedGlobal(36);
   }
   esdTrackCuts->SetMaxDCAToVertexZ(1.e6);
   esdTrackCuts->SetDCAToVertex2D(kFALSE);
   esdTrackCuts->SetRequireSigmaToVertex(kFALSE);
   //esdTrackCuts->SetEtaRange(-0.8,+0.8);
+  
+  esdTrackCuts->SetMaxChi2PerClusterITS(36);
   
   return esdTrackCuts;
 }
@@ -790,17 +817,16 @@ AliESDtrackCuts* AliESDtrackCuts::GetStandardITSTPCTrackCuts2010(Bool_t selPrima
   if(selPrimaries) {
     // 7*(0.0026+0.0050/pt^1.01)
     esdTrackCuts->SetMaxDCAToVertexXYPtDep("0.0182+0.0350/pt^1.01");
+    esdTrackCuts->SetMaxChi2TPCConstrainedGlobal(36);
   }
   esdTrackCuts->SetMaxDCAToVertexZ(2);
   esdTrackCuts->SetDCAToVertex2D(kFALSE);
   esdTrackCuts->SetRequireSigmaToVertex(kFALSE);
   
+  esdTrackCuts->SetMaxChi2PerClusterITS(36);
+
   return esdTrackCuts;
 }
-
-//____________________________________________________________________
-
-
 
 //____________________________________________________________________
 AliESDtrackCuts* AliESDtrackCuts::GetStandardITSPureSATrackCuts2009(Bool_t selPrimaries, Bool_t useForPid)
@@ -1010,7 +1036,7 @@ void AliESDtrackCuts::EnableNeededBranches(TTree* tree)
 }
 
 //____________________________________________________________________
-Bool_t AliESDtrackCuts::AcceptTrack(const AliESDtrack* esdTrack, const AliESDEvent* esdEvent) 
+Bool_t AliESDtrackCuts::AcceptTrack(const AliESDtrack* esdTrack) 
 {
   // 
   // figure out if the tracks survives all the track cuts defined
@@ -1049,6 +1075,15 @@ Bool_t AliESDtrackCuts::AcceptTrack(const AliESDtrack* esdTrack, const AliESDEve
   else {
     nClustersTPC = esdTrack->GetTPCclusters(0);
   }
+
+  //Pt dependent NClusters Cut
+  if(f1CutMinNClustersTPCPtDep) {
+    if(esdTrack->Pt()<fCutMaxPtDepNClustersTPC)
+      fCutMinNClusterTPC = f1CutMinNClustersTPCPtDep->Eval(esdTrack->Pt());
+    else
+      fCutMinNClusterTPC = f1CutMinNClustersTPCPtDep->Eval(fCutMaxPtDepNClustersTPC);
+  }
+
   Float_t nCrossedRowsTPC = esdTrack->GetTPCCrossedRows();
   Float_t  ratioCrossedRowsOverFindableClustersTPC = 1.0;
   if (esdTrack->GetTPCNclsF()>0) {
@@ -1264,8 +1299,10 @@ Bool_t AliESDtrackCuts::AcceptTrack(const AliESDtrack* esdTrack, const AliESDEve
     // max chi2 TPC constrained vs global track only if track passed the other cut
     if (fCutMaxChi2TPCConstrainedVsGlobal < 1e9)
     {
+      const AliESDEvent* esdEvent = esdTrack->GetESDEvent();
+      
       if (!esdEvent)
-	AliFatal("fCutMaxChi2TPCConstrainedVsGlobal set but ESD event not provided.");
+	AliFatal("fCutMaxChi2TPCConstrainedVsGlobal set but ESD event not set in AliESDTrack. Use AliESDTrack::SetESDEvent before calling AliESDtrackCuts.");
       
       // get vertex
       const AliESDVertex* vertex = 0;
@@ -1447,7 +1484,7 @@ TObjArray* AliESDtrackCuts::GetAcceptedTracks(const AliESDEvent* esd, Bool_t bTP
       if (!tpcTrack)
         continue;
 
-      if (AcceptTrack(tpcTrack, esd)) {
+      if (AcceptTrack(tpcTrack)) {
         acceptedTracks->Add(tpcTrack);
       }
       else
@@ -1456,7 +1493,7 @@ TObjArray* AliESDtrackCuts::GetAcceptedTracks(const AliESDEvent* esd, Bool_t bTP
     else
     {
       AliESDtrack* track = esd->GetTrack(iTrack);
-      if(AcceptTrack(track, esd))
+      if(AcceptTrack(track))
         acceptedTracks->Add(track);
     }
   } 
@@ -1476,7 +1513,7 @@ Int_t AliESDtrackCuts::CountAcceptedTracks(const AliESDEvent* const esd)
   // loop over esd tracks
   for (Int_t iTrack = 0; iTrack < esd->GetNumberOfTracks(); iTrack++) {
     AliESDtrack* track = esd->GetTrack(iTrack);
-    if (AcceptTrack(track, esd))
+    if (AcceptTrack(track))
       count++;
   }
 
