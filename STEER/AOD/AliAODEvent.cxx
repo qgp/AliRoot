@@ -44,7 +44,9 @@ ClassImp(AliAODEvent)
 						      "jets",
 						      "emcalCells",
 						      "phosCells",
-						      "caloClusters",
+									"caloClusters",
+									"emcalTrigger",
+									"phosTrigger",
 						      "fmdClusters",
 						      "pmdClusters",
 						      "dimuons",
@@ -69,6 +71,8 @@ AliAODEvent::AliAODEvent() :
   fEmcalCells(0),
   fPhosCells(0),
   fCaloClusters(0),
+  fEMCALTrigger(0),
+  fPHOSTrigger(0),
   fFmdClusters(0),
   fPmdClusters(0),
   fDimuons(0),
@@ -95,6 +99,8 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   fEmcalCells(new AliAODCaloCells(*aod.fEmcalCells)),
   fPhosCells(new AliAODCaloCells(*aod.fPhosCells)),
   fCaloClusters(new TClonesArray(*aod.fCaloClusters)),
+  fEMCALTrigger(new AliAODCaloTrigger(*aod.fEMCALTrigger)),
+  fPHOSTrigger(new AliAODCaloTrigger(*aod.fPHOSTrigger)),
   fFmdClusters(new TClonesArray(*aod.fFmdClusters)),
   fPmdClusters(new TClonesArray(*aod.fPmdClusters)),
   fDimuons(new TClonesArray(*aod.fDimuons)),
@@ -113,6 +119,8 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   AddObject(fEmcalCells);
   AddObject(fPhosCells);
   AddObject(fCaloClusters);
+  AddObject(fEMCALTrigger);
+  AddObject(fPHOSTrigger);
   AddObject(fFmdClusters);
   AddObject(fPmdClusters);
   AddObject(fDimuons);
@@ -273,6 +281,8 @@ void AliAODEvent::CreateStdContent()
   AddObject(new AliAODCaloCells());
   AddObject(new AliAODCaloCells());
   AddObject(new TClonesArray("AliAODCaloCluster", 0));
+  AddObject(new AliAODCaloTrigger()); // EMCAL 
+  AddObject(new AliAODCaloTrigger()); // PHOS
   AddObject(new TClonesArray("AliAODFmdCluster", 0));
   AddObject(new TClonesArray("AliAODPmdCluster", 0));
   AddObject(new TClonesArray("AliAODDimuon", 0));
@@ -359,6 +369,8 @@ void AliAODEvent::GetStdContent()
   fEmcalCells    = (AliAODCaloCells*)fAODObjects->FindObject("emcalCells");
   fPhosCells     = (AliAODCaloCells*)fAODObjects->FindObject("phosCells");
   fCaloClusters  = (TClonesArray*)fAODObjects->FindObject("caloClusters");
+	fEMCALTrigger  = (AliAODCaloTrigger*)fAODObjects->FindObject("emcalTrigger");
+	fPHOSTrigger   = (AliAODCaloTrigger*)fAODObjects->FindObject("phosTrigger");
   fFmdClusters   = (TClonesArray*)fAODObjects->FindObject("fmdClusters");
   fPmdClusters   = (TClonesArray*)fAODObjects->FindObject("pmdClusters");
   fDimuons       = (TClonesArray*)fAODObjects->FindObject("dimuons");
@@ -432,6 +444,11 @@ void AliAODEvent::ResetStd(Int_t trkArrSize,
     fPhosCells->DeleteContainer();  
   if (fEmcalCells)
     fEmcalCells->DeleteContainer();
+  
+  if (fEMCALTrigger)
+	fEMCALTrigger->DeAllocate();
+  if (fPHOSTrigger)
+	fPHOSTrigger->DeAllocate();
 }
 
 void AliAODEvent::ClearStd()
@@ -463,6 +480,11 @@ void AliAODEvent::ClearStd()
     fPmdClusters   ->Clear();
   if (fDimuons)
     fDimuons       ->Clear();
+	
+  if (fEMCALTrigger)
+	fEMCALTrigger->DeAllocate();
+  if (fPHOSTrigger)
+	fPHOSTrigger->DeAllocate();
 }
 
 //_________________________________________________________________
