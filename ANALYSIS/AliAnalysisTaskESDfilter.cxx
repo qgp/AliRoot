@@ -2015,6 +2015,7 @@ void AliAnalysisTaskESDfilter::ConvertESDtoAOD()
 	if ( fArePHOSTriggerEnabled )ConvertCaloTrigger(TString("PHOS"), *esd);
   
   if ( fAreTrackletsEnabled ) ConvertTracklets(*esd);
+  if ( fIsZDCEnabled ) ConvertZDC(*esd);
   
   delete fAODTrackRefs; fAODTrackRefs=0x0;
   delete fAODV0VtxRefs; fAODV0VtxRefs=0x0;
