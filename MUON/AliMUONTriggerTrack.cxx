@@ -139,6 +139,14 @@ theMUONTriggerTrack)
 }
 
 //__________________________________________________________________________
+void AliMUONTriggerTrack::Clear(Option_t* /*opt*/)
+{
+  /// Clean memory
+  delete fCovariances;
+  fCovariances = 0x0;
+}
+
+//__________________________________________________________________________
 void
 AliMUONTriggerTrack::Print(Option_t* opt) const
 {
