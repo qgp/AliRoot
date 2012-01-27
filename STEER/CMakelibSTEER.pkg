@@ -35,8 +35,6 @@ set ( SRCS
     STEER/AliGausCorr.cxx 
     STEER/AliMemoryWatcher.cxx 
     STEER/AliVertexer.cxx 
-    STEER/AliV0vertexer.cxx 
-    STEER/AliCascadeVertexer.cxx 
     STEER/AliMC.cxx 
     STEER/AliSimulation.cxx 
     STEER/AliReconstruction.cxx 

@@ -109,6 +109,9 @@
 #pragma link C++ class AliVariableExpression+;
 #pragma link C++ class AliTPCdEdxInfo+;
 
+#pragma link C++ class  AliV0vertexer+;
+#pragma link C++ class  AliCascadeVertexer+;
+
 #pragma link C++ function AliESDUtils::GetCorrV0(const AliESDEvent*,Float_t &);
 #pragma link C++ function AliESDUtils::GetCorrSPD2(Float_t,Float_t);
 #pragma link C++ function operator*(const AliFMDMap&,const AliFMDMap&);
