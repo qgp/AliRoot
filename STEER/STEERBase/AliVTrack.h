@@ -51,7 +51,7 @@ public:
 
   virtual Int_t    GetID() const = 0;
   virtual UChar_t  GetITSClusterMap() const = 0;
-  virtual Float_t  GetTPCClusterInfo(Int_t /*nNeighbours*/, Int_t /*type*/, Int_t /*row0*/=0, Int_t /*row1*/=159) const {return 0.;}
+  virtual Float_t  GetTPCClusterInfo(Int_t /*nNeighbours*/, Int_t /*type*/, Int_t /*row0*/=0, Int_t /*row1*/=159, Int_t /*type*/= 0) const {return 0.;}
   virtual UShort_t GetTPCNcls() const { return 0;}
   virtual UShort_t GetTPCNclsF() const { return 0;}
   virtual Double_t GetTRDslice(Int_t /*plane*/, Int_t /*slice*/) const { return -1.; }
