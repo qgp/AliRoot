@@ -10,8 +10,7 @@
 //_________________________________________________________________________
 void MergeTags(const char* fCollectionName) {
   //connect to AliEn's API services
-  TGrid::Connect("alien://pcapiserv01.cern.ch:10000","pchrist");  
-  //TGrid::Connect("alien://"); 
+  TGrid::Connect("alien://"); 
     
   //___________________________________//
   //__Create an AliTagCreator object___//
@@ -31,5 +30,5 @@ void MergeTags(const char* fCollectionName) {
   TAlienCollection *collection = TAlienCollection::Open(fCollectionName);
   TGridResult* result = collection->GetGridResult("");
   //Read the TGridResult and merge the tags
-  t->MergeTags(result);
+  t->MergeTags("ESD",result);
 }
