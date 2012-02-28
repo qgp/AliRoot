@@ -73,8 +73,9 @@ AliMuonForwardTrackFinder::AliMuonForwardTrackFinder():
   fSigmaClusterCut(0),
   fChi2GlobalCut(0),
   fSigmaSpectrometerCut(0),
-  fExtrapOriginTransvError(0),
-  fGaussianBlurZVert(0),
+  fVertexErrorX(0.015),
+  fVertexErrorY(0.015),
+  fVertexErrorZ(0.010),
   fNFinalCandidatesCut(0),
   fReadDir(0),
   fOutDir(0),
@@ -92,9 +93,6 @@ AliMuonForwardTrackFinder::AliMuonForwardTrackFinder():
   fEv(0),
   fLabelMC(0),
 
-  fHistPtSpectrometer(0), 
-  fHistPtMuonTrackWithGoodMatch(0),
-  fHistPtMuonTrackWithBadMatch(0),
   fHistRadiusEndOfAbsorber(0), 
   fHistNGoodClustersForFinalTracks(0),
   fHistDistanceGoodClusterFromTrackMinusDistanceBestClusterFromTrackAtLastPlane(0),
@@ -243,9 +241,6 @@ AliMuonForwardTrackFinder::~AliMuonForwardTrackFinder() {
   delete fNtuFinalCandidates;
   delete fNtuFinalBestCandidates;
 
-  delete fHistPtSpectrometer;
-  delete fHistPtMuonTrackWithGoodMatch;
-  delete fHistPtMuonTrackWithBadMatch;
   delete fHistRadiusEndOfAbsorber;
 
   delete fHistNGoodClustersForFinalTracks; 
@@ -333,10 +328,10 @@ void AliMuonForwardTrackFinder::Init(Int_t nRun,
   Char_t gAliceName[300];
   Char_t clusterName[300];
   
-  sprintf(geoFileName , "%s/geometry.root",      fReadDir.Data());
-  sprintf(esdFileName , "%s/AliESDs.root" ,      fReadDir.Data());
-  sprintf(gAliceName  , "%s/galice.root"  ,      fReadDir.Data());
-  sprintf(clusterName , "%s/MFT.RecPoints.root", fReadDir.Data());
+  snprintf(geoFileName , 300, "%s/geometry.root",      fReadDir.Data());
+  snprintf(esdFileName , 300, "%s/AliESDs.root" ,      fReadDir.Data());
+  snprintf(gAliceName  , 300, "%s/galice.root"  ,      fReadDir.Data());
+  snprintf(clusterName , 300, "%s/MFT.RecPoints.root", fReadDir.Data());
   
   // Import TGeo geometry (needed by AliMUONTrackExtrap::ExtrapToVertex)
   if (!gGeoManager) {
@@ -408,7 +403,6 @@ void AliMuonForwardTrackFinder::Init(Int_t nRun,
   SetNFinalCandidatesCut(10);
   SetRAbsorberCut(26.4);
   SetLowPtCut(0.5);
-  SetExtrapOriginTransvError(1.0);
 
 }
 
@@ -427,6 +421,7 @@ Bool_t AliMuonForwardTrackFinder::LoadNextEvent() {
   AliInfo(Form(" **** analyzing event # %d  \n", fEv));
   
   fTrackStore    = fMuonRecoCheck->ReconstructedTracks(fEv);
+  if (fTrackStore->IsEmpty()) return kFALSE;
   fTrackRefStore = fMuonRecoCheck->ReconstructibleTracks(fEv);
   
   fRunLoader->GetEvent(fEv);
@@ -497,9 +492,15 @@ Int_t AliMuonForwardTrackFinder::LoadNextTrack() {
   
   // ------------------------------------- ...done!
 
-  if (fMuonTrackReco->GetMCLabel()>=0) fCountRealTracksWithRefMC++;
-  
   fLabelMC = fMuonTrackReco->GetMCLabel();
+
+  Int_t motherPdg=0;
+  if (fLabelMC>=0) {
+    fCountRealTracksWithRefMC++;
+    if (fStack->Particle(fLabelMC)->GetFirstMother() != -1) {
+      motherPdg = fStack->Particle(fStack->Particle(fLabelMC)->GetFirstMother())->GetPdgCode();
+    }
+  }
 
   CheckCurrentMuonTrackable();
 
@@ -508,21 +509,35 @@ Int_t AliMuonForwardTrackFinder::LoadNextTrack() {
   // the track we are going to build, starting from fMuonTrackReco and adding the MFT clusters
   AliMuonForwardTrack *track = new ((*fCandidateTracks)[0]) AliMuonForwardTrack();
   track -> SetMUONTrack(fMuonTrackReco);
-  if (fLabelMC>=0 && fStack->Particle(fLabelMC)) track -> SetMCTrackRef(fStack->Particle(fLabelMC));
+  if (fLabelMC>=0 && fStack->Particle(fLabelMC)) track->SetMCTrackRef(fStack->Particle(fLabelMC));
   track -> SetMCLabel(fMuonTrackReco->GetMCLabel());
   track -> SetMatchTrigger(fMuonTrackReco->GetMatchTrigger());
+
+  // track origin
+  Double_t xVtx=-999., yVtx=-999., zVtx=-999999.;
+  if (track->GetMCTrackRef()) {
+    xVtx = track->GetMCTrackRef()->Vx();
+    yVtx = track->GetMCTrackRef()->Vy();
+    zVtx = track->GetMCTrackRef()->Vz();
+  }  
   
-  // track parameters at the first tracking station in the Muon Spectrometer
-  AliMUONTrackParam *param = (AliMUONTrackParam*) (fMuonTrackReco->GetTrackParamAtCluster()->First());
-  Double_t ptSpectrometer = TMath::Sqrt(param->Px()*param->Px() + param->Py()*param->Py());
-  Double_t thetaSpectrometer = TMath::ATan(ptSpectrometer/param->Pz());
-  if (thetaSpectrometer<0.) thetaSpectrometer += TMath::Pi();
-  Double_t etaSpectrometer = -1.*TMath::Log(TMath::Tan(0.5*thetaSpectrometer));
-  //  fOutputQAFile->cd();
-  fHistPtSpectrometer -> Fill(ptSpectrometer);
-  
-  // if the transverse momentum in the Muon Spectrometer is smaller than the threshold, skip to the next track
-  if (ptSpectrometer < fLowPtCut) return 3;
+  // track kinematics
+  Double_t pt=-999., theta=-999., eta=-999.;
+  if (track->GetMCTrackRef()) {
+    pt    = track->GetMCTrackRef()->Pt();
+    theta = track->GetMCTrackRef()->Theta();
+    if (theta<0.) theta += TMath::Pi();
+    eta   = track->GetMCTrackRef()->Eta();
+  }
+  else {
+    AliMUONTrackParam *param = (AliMUONTrackParam*) (fMuonTrackReco->GetTrackParamAtCluster()->First());
+    pt    = TMath::Sqrt(param->Px()*param->Px() + param->Py()*param->Py());
+    theta = TMath::ATan(pt/param->Pz());
+    if (theta<0.) theta += TMath::Pi();
+    eta   = -1.*TMath::Log(TMath::Tan(0.5*theta));
+  }  
+  // if the transverse momentum is smaller than the threshold, skip to the next track
+  if (pt < fLowPtCut) return 3;
   
   // track parameters linearly extrapolated from the first tracking station to the end of the absorber
   AliMUONTrackParam trackParamEndOfAbsorber(*((AliMUONTrackParam*)(fMuonTrackReco->GetTrackParamAtCluster()->First())));
@@ -530,11 +545,9 @@ Int_t AliMuonForwardTrackFinder::LoadNextTrack() {
   Double_t xEndOfAbsorber = trackParamEndOfAbsorber.GetNonBendingCoor();
   Double_t yEndOfAbsorber = trackParamEndOfAbsorber.GetBendingCoor();
   Double_t rAbsorber      = TMath::Sqrt(xEndOfAbsorber*xEndOfAbsorber + yEndOfAbsorber*yEndOfAbsorber);
-  //  fOutputQAFile->cd();
   fHistRadiusEndOfAbsorber -> Fill(rAbsorber);
   
-  // if the radial distance of the track at the end of the absorber is smaller than a radius corresponding to 
-  // 3 degrees as seen from the interaction point, skip to the next track
+  // if the radial distance of the track at the end of the absorber is smaller than a given radius, skip to the next track
   if (rAbsorber < fRAbsorberCut) return 4;
   
   //------------------------- NOW THE CYCLE OVER THE MFT PLANES STARTS ---------------------------------------
@@ -578,7 +591,7 @@ Int_t AliMuonForwardTrackFinder::LoadNextTrack() {
   
   AliDebug(1, "Finished cycle over planes");
 
-  Double_t momentum = ptSpectrometer * TMath::CosH(etaSpectrometer);
+  Double_t momentum = pt * TMath::CosH(eta);
   fTxtTrackMomentum = new TLatex(0.10, 0.70, Form("P_{spectro} = %3.1f GeV/c", momentum));
 
   if (fMatchingMode==kIdealMatching) {
@@ -674,11 +687,13 @@ Int_t AliMuonForwardTrackFinder::LoadNextTrack() {
 				     Double_t(fEv),
 				     Double_t(fCountRealTracksAnalyzedOfEvent),
 				     Double_t(nFinalTracks),
+				     Double_t(fLabelMC>=0),
+				     xVtx, yVtx, zVtx,
+				     motherPdg,
+				     Double_t(fMuonTrackReco->GetMatchTrigger()),
 				     Double_t(nClustersMC),
 				     Double_t(nGoodClusters),
-				     ptSpectrometer,
-				     thetaSpectrometer,
-				     etaSpectrometer, 
+				     pt, theta, eta, 
 				     chi2AtPlane[0],
 				     chi2AtPlane[1],
 				     chi2AtPlane[2],
@@ -733,11 +748,13 @@ Int_t AliMuonForwardTrackFinder::LoadNextTrack() {
 				       Double_t(fEv),
 				       Double_t(fCountRealTracksAnalyzedOfEvent),
 				       Double_t(nFinalTracks),
+				       Double_t(fLabelMC>=0),
+				       xVtx, yVtx, zVtx,
+				       motherPdg,
+				       Double_t(fMuonTrackReco->GetMatchTrigger()),
 				       Double_t(nClustersMC),
 				       Double_t(nGoodClustersBestCandidate),
-				       ptSpectrometer,
-				       thetaSpectrometer,
-				       etaSpectrometer,
+				       pt, theta, eta,
 				       chi2HistoryForBestCandidate[0],
 				       chi2HistoryForBestCandidate[1],
 				       chi2HistoryForBestCandidate[2],
@@ -762,12 +779,6 @@ Int_t AliMuonForwardTrackFinder::LoadNextTrack() {
   if (fDrawOption && bestCandidateExists) {
     fTxtTrackGoodClusters = new TLatex(0.20, 0.51, Form("N_{GoodClusters} = %d", nGoodClustersBestCandidate));
     DrawPlanes();
-  }
-
-  if (fIsCurrentMuonTrackable) {
-    //    fOutputQAFile->cd();
-    if (nGoodClustersBestCandidate==5) fHistPtMuonTrackWithGoodMatch -> Fill(ptSpectrometer);
-    else                               fHistPtMuonTrackWithBadMatch  -> Fill(ptSpectrometer);
   }
 
   // -------------------------------------------------------------------------------------------
@@ -800,10 +811,13 @@ void AliMuonForwardTrackFinder::FindClusterInPlane(Int_t planeId) {
     currentParamBack  = (*((AliMUONTrackParam*)(fMuonTrackReco->GetTrackParamAtCluster()->First())));
     currentParamForResearchFront = currentParamFront;
     currentParamForResearchBack  = currentParamBack;
-    AliMUONTrackExtrap::ExtrapToVertexWithoutBranson(&currentParamFront, 0.); 
-    AliMUONTrackExtrap::ExtrapToVertexWithoutBranson(&currentParamBack,  0.); 
-    AliMUONTrackExtrap::ExtrapToVertex(&currentParamForResearchFront, 0., 0., gRandom->Gaus(0,fGaussianBlurZVert), fExtrapOriginTransvError, fExtrapOriginTransvError); 
-    AliMUONTrackExtrap::ExtrapToVertex(&currentParamForResearchBack,  0., 0., gRandom->Gaus(0,fGaussianBlurZVert), fExtrapOriginTransvError, fExtrapOriginTransvError); 
+    Double_t xExtrap = gRandom->Gaus(0,fVertexErrorX);
+    Double_t yExtrap = gRandom->Gaus(0,fVertexErrorY);
+    Double_t zExtrap = gRandom->Gaus(0,fVertexErrorZ);
+    AliMUONTrackExtrap::ExtrapToVertex(&currentParamFront, xExtrap, yExtrap, zExtrap, fVertexErrorX, fVertexErrorY); 
+    AliMUONTrackExtrap::ExtrapToVertex(&currentParamBack,  xExtrap, yExtrap, zExtrap, fVertexErrorX, fVertexErrorY); 
+    AliMUONTrackExtrap::ExtrapToVertex(&currentParamForResearchFront, xExtrap, yExtrap, zExtrap, fVertexErrorX, fVertexErrorY); 
+    AliMUONTrackExtrap::ExtrapToVertex(&currentParamForResearchBack,  xExtrap, yExtrap, zExtrap, fVertexErrorX, fVertexErrorY); 
   }
   else {          // MFT planes others than the last one: mult. scattering correction because of the upstream MFT planes is performed
     currentParamFront = (*((AliMUONTrackParam*)(fCurrentTrack->GetTrackParamAtCluster()->First())));
@@ -1176,11 +1190,6 @@ void AliMuonForwardTrackFinder::BookHistos() {
   const Int_t nMaxNewTracks[]  = {150,     200,   250, 600, 1000};
   const Double_t radiusPlane[] = {0.010, 0.010, 0.050, 0.5,  1.5};
 
-  fHistPtSpectrometer = new TH1D("hPtSpectrometer", "p_{T} as given by the Muon Spectrometer", 200, 0, 20.); 
-
-  fHistPtMuonTrackWithGoodMatch = new TH1D("fHistPtMuonTrackWithGoodMatch", "p_{T} of muon track with good match", 200, 0, 20.); 
-  fHistPtMuonTrackWithBadMatch  = new TH1D("fHistPtMuonTrackWithBadMatch",  "p_{T} of muon track with bad match",  200, 0, 20.); 
-
   fHistRadiusEndOfAbsorber = new TH1D("hRadiusEndOfAbsorber", "Track radial distance at the end of the absorber",  1000, 0, 100.); 
 
   fHistNGoodClustersForFinalTracks = new TH1D("hNGoodClustersForFinalTracks", "Number of Good Clusters per Final Track", 20, -0.25, 9.75);
@@ -1222,9 +1231,6 @@ void AliMuonForwardTrackFinder::BookHistos() {
   
   //------------------------------------------
   
-  fHistPtSpectrometer               -> Sumw2();
-  fHistPtMuonTrackWithGoodMatch     -> Sumw2();
-  fHistPtMuonTrackWithBadMatch      -> Sumw2();
   fHistRadiusEndOfAbsorber          -> Sumw2();
   fHistNGoodClustersForFinalTracks  -> Sumw2();
 
@@ -1244,9 +1250,9 @@ void AliMuonForwardTrackFinder::BookHistos() {
     
   }
 
-  fNtuFinalCandidates     = new TNtuple("ntuFinalCandidates",     "Final Candidates (ALL)", "run:event:muonTrack:nFinalCandidates:nClustersMC:nGoodClusters:ptSpectrometer:thetaSpectrometer:etaSpectrometer:chi2AtPlane0:chi2AtPlane1:chi2AtPlane2:chi2AtPlane3:chi2AtPlane4:chi2AtPlane5:chi2AtPlane6:chi2AtPlane7:chi2AtPlane8");
+  fNtuFinalCandidates     = new TNtuple("ntuFinalCandidates",     "Final Candidates (ALL)", "run:event:muonTrack:nFinalCandidates:MCTrackRefExists:xVtx:yVtx:zVtx:motherPdg:triggerMatch:nClustersMC:nGoodClusters:pt:theta:eta:chi2AtPlane0:chi2AtPlane1:chi2AtPlane2:chi2AtPlane3:chi2AtPlane4:chi2AtPlane5:chi2AtPlane6:chi2AtPlane7:chi2AtPlane8");
 
-  fNtuFinalBestCandidates = new TNtuple("ntuFinalBestCandidates", "Final Best Candidates",  "run:event:muonTrack:nFinalCandidates:nClustersMC:nGoodClusters:ptSpectrometer:thetaSpectrometer:etaSpectrometer:chi2AtPlane0:chi2AtPlane1:chi2AtPlane2:chi2AtPlane3:chi2AtPlane4:chi2AtPlane5:chi2AtPlane6:chi2AtPlane7:chi2AtPlane8:nClustersAtPlane0:nClustersAtPlane1:nClustersAtPlane2:nClustersAtPlane3:nClustersAtPlane4:nClustersAtPlane5:nClustersAtPlane6:nClustersAtPlane7:nClustersAtPlane8");
+  fNtuFinalBestCandidates = new TNtuple("ntuFinalBestCandidates", "Final Best Candidates",  "run:event:muonTrack:nFinalCandidates:MCTrackRefExists:xVtx:yVtx:zVtx:motherPdg:triggerMatch:nClustersMC:nGoodClusters:pt:theta:eta:chi2AtPlane0:chi2AtPlane1:chi2AtPlane2:chi2AtPlane3:chi2AtPlane4:chi2AtPlane5:chi2AtPlane6:chi2AtPlane7:chi2AtPlane8:nClustersAtPlane0:nClustersAtPlane1:nClustersAtPlane2:nClustersAtPlane3:nClustersAtPlane4:nClustersAtPlane5:nClustersAtPlane6:nClustersAtPlane7:nClustersAtPlane8");
 
 }
 
@@ -1254,9 +1260,6 @@ void AliMuonForwardTrackFinder::BookHistos() {
 
 void AliMuonForwardTrackFinder::SetTitleHistos() {
 
-  fHistPtSpectrometer              -> SetXTitle("p_{T}  [GeV/c]");
-  fHistPtMuonTrackWithGoodMatch    -> SetXTitle("p_{T}  [GeV/c]");
-  fHistPtMuonTrackWithBadMatch     -> SetXTitle("p_{T}  [GeV/c]");
   fHistRadiusEndOfAbsorber         -> SetXTitle("R_{abs}  [cm]");
   fHistNGoodClustersForFinalTracks -> SetXTitle("N_{GoodClusters}");
 
@@ -1422,7 +1425,7 @@ void AliMuonForwardTrackFinder::PrintParticleHistory() {
 
 //===========================================================================================================================================
 
-Bool_t AliMuonForwardTrackFinder::IsMother(Char_t *nameMother) {
+Bool_t AliMuonForwardTrackFinder::IsMother(const Char_t *nameMother) {
   
   Bool_t result = kFALSE;
   
@@ -1563,9 +1566,6 @@ void AliMuonForwardTrackFinder::WriteHistos() {
   fOutputQAFile = new TFile(Form("MuonGlobalTracking.QA.run%d.root", fRun), "recreate");
   fOutputQAFile -> cd();
 
-  fHistPtSpectrometer              -> Write();
-  fHistPtMuonTrackWithGoodMatch    -> Write();
-  fHistPtMuonTrackWithBadMatch     -> Write();
   fHistRadiusEndOfAbsorber         -> Write();
   fHistNGoodClustersForFinalTracks -> Write();
 
@@ -1596,50 +1596,50 @@ void AliMuonForwardTrackFinder::WriteHistos() {
 
 void AliMuonForwardTrackFinder::PDGNameConverter(const Char_t *nameIn, Char_t *nameOut) {
 
-  if      (!strcmp(nameIn, "mu+"))     sprintf(nameOut, "#mu^{+}");
-  else if (!strcmp(nameIn, "mu-"))     sprintf(nameOut, "#mu^{-}");
-  else if (!strcmp(nameIn, "pi+"))     sprintf(nameOut, "#pi^{+}");
-  else if (!strcmp(nameIn, "pi-"))     sprintf(nameOut, "#pi^{-}");
-  else if (!strcmp(nameIn, "K+"))      sprintf(nameOut, "K^{+}");
-  else if (!strcmp(nameIn, "K-"))      sprintf(nameOut, "K^{-}");
-  else if (!strcmp(nameIn, "K*+"))     sprintf(nameOut, "K^{*+}");
-  else if (!strcmp(nameIn, "K*-"))     sprintf(nameOut, "K^{*-}");
-  else if (!strcmp(nameIn, "K_S0"))    sprintf(nameOut, "K_{S}^{0}");
-  else if (!strcmp(nameIn, "K_L0"))    sprintf(nameOut, "K_{L}^{0}");
-  else if (!strcmp(nameIn, "K0"))      sprintf(nameOut, "K^{0}");
-  else if (!strcmp(nameIn, "K0_bar"))  sprintf(nameOut, "#bar{K}^{0}");
-  else if (!strcmp(nameIn, "K*0"))     sprintf(nameOut, "K^{*0}");
-  else if (!strcmp(nameIn, "K*0_bar")) sprintf(nameOut, "#bar{K}^{*0}");
-  else if (!strcmp(nameIn, "rho0"))    sprintf(nameOut, "#rho^{0}");
-  else if (!strcmp(nameIn, "rho+"))    sprintf(nameOut, "#rho^{+}");
-  else if (!strcmp(nameIn, "rho-"))    sprintf(nameOut, "#rho^{-}");
-  else if (!strcmp(nameIn, "omega"))   sprintf(nameOut, "#omega");
-  else if (!strcmp(nameIn, "eta'"))    sprintf(nameOut, "#eta'");
-  else if (!strcmp(nameIn, "phi"))     sprintf(nameOut, "#phi");
+  if      (!strcmp(nameIn, "mu+"))     snprintf(nameOut, 50, "#mu^{+}");
+  else if (!strcmp(nameIn, "mu-"))     snprintf(nameOut, 50, "#mu^{-}");
+  else if (!strcmp(nameIn, "pi+"))     snprintf(nameOut, 50, "#pi^{+}");
+  else if (!strcmp(nameIn, "pi-"))     snprintf(nameOut, 50, "#pi^{-}");
+  else if (!strcmp(nameIn, "K+"))      snprintf(nameOut, 50, "K^{+}");
+  else if (!strcmp(nameIn, "K-"))      snprintf(nameOut, 50, "K^{-}");
+  else if (!strcmp(nameIn, "K*+"))     snprintf(nameOut, 50, "K^{*+}");
+  else if (!strcmp(nameIn, "K*-"))     snprintf(nameOut, 50, "K^{*-}");
+  else if (!strcmp(nameIn, "K_S0"))    snprintf(nameOut, 50, "K_{S}^{0}");
+  else if (!strcmp(nameIn, "K_L0"))    snprintf(nameOut, 50, "K_{L}^{0}");
+  else if (!strcmp(nameIn, "K0"))      snprintf(nameOut, 50, "K^{0}");
+  else if (!strcmp(nameIn, "K0_bar"))  snprintf(nameOut, 50, "#bar{K}^{0}");
+  else if (!strcmp(nameIn, "K*0"))     snprintf(nameOut, 50, "K^{*0}");
+  else if (!strcmp(nameIn, "K*0_bar")) snprintf(nameOut, 50, "#bar{K}^{*0}");
+  else if (!strcmp(nameIn, "rho0"))    snprintf(nameOut, 50, "#rho^{0}");
+  else if (!strcmp(nameIn, "rho+"))    snprintf(nameOut, 50, "#rho^{+}");
+  else if (!strcmp(nameIn, "rho-"))    snprintf(nameOut, 50, "#rho^{-}");
+  else if (!strcmp(nameIn, "omega"))   snprintf(nameOut, 50, "#omega");
+  else if (!strcmp(nameIn, "eta'"))    snprintf(nameOut, 50, "#eta'");
+  else if (!strcmp(nameIn, "phi"))     snprintf(nameOut, 50, "#phi");
 
-  else if (!strcmp(nameIn, "D-"))     sprintf(nameOut, "D^{-}");
-  else if (!strcmp(nameIn, "D+"))     sprintf(nameOut, "D^{+}");
-  else if (!strcmp(nameIn, "D0"))     sprintf(nameOut, "D^{0}");
-  else if (!strcmp(nameIn, "D0_bar")) sprintf(nameOut, "#bar{D}^{0}");
-  else if (!strcmp(nameIn, "D*-"))    sprintf(nameOut, "D^{*-}");
-  else if (!strcmp(nameIn, "D*+"))    sprintf(nameOut, "D^{*+}");
-  else if (!strcmp(nameIn, "D_s+"))   sprintf(nameOut, "D_{s}^{+}");
-  else if (!strcmp(nameIn, "D*_s+"))  sprintf(nameOut, "D_{s}^{*+}");
+  else if (!strcmp(nameIn, "D-"))     snprintf(nameOut, 50, "D^{-}");
+  else if (!strcmp(nameIn, "D+"))     snprintf(nameOut, 50, "D^{+}");
+  else if (!strcmp(nameIn, "D0"))     snprintf(nameOut, 50, "D^{0}");
+  else if (!strcmp(nameIn, "D0_bar")) snprintf(nameOut, 50, "#bar{D}^{0}");
+  else if (!strcmp(nameIn, "D*-"))    snprintf(nameOut, 50, "D^{*-}");
+  else if (!strcmp(nameIn, "D*+"))    snprintf(nameOut, 50, "D^{*+}");
+  else if (!strcmp(nameIn, "D_s+"))   snprintf(nameOut, 50, "D_{s}^{+}");
+  else if (!strcmp(nameIn, "D*_s+"))  snprintf(nameOut, 50, "D_{s}^{*+}");
 
-  else if (!strcmp(nameIn, "B-"))       sprintf(nameOut, "B^{-}");
-  else if (!strcmp(nameIn, "B+"))       sprintf(nameOut, "B^{+}");
-  else if (!strcmp(nameIn, "B_s0_bar")) sprintf(nameOut, "#bar{B}_{s}^{0}");
+  else if (!strcmp(nameIn, "B-"))       snprintf(nameOut, 50, "B^{-}");
+  else if (!strcmp(nameIn, "B+"))       snprintf(nameOut, 50, "B^{+}");
+  else if (!strcmp(nameIn, "B_s0_bar")) snprintf(nameOut, 50, "#bar{B}_{s}^{0}");
 
-  else if (!strcmp(nameIn, "antiproton"))  sprintf(nameOut, "#bar{p}");
-  else if (!strcmp(nameIn, "proton"))      sprintf(nameOut, "p");
-  else if (!strcmp(nameIn, "neutron"))     sprintf(nameOut, "n");
-  else if (!strcmp(nameIn, "Sigma+"))      sprintf(nameOut, "#Sigma^{+}");
-  else if (!strcmp(nameIn, "Delta+"))      sprintf(nameOut, "#Delta{+}");
-  else if (!strcmp(nameIn, "Delta--"))     sprintf(nameOut, "#Delta{--}");
-  else if (!strcmp(nameIn, "Lambda0"))     sprintf(nameOut, "#Lambda_0");
-  else if (!strcmp(nameIn, "Lambda0_bar")) sprintf(nameOut, "#bar{Lambda}_0");
+  else if (!strcmp(nameIn, "antiproton"))  snprintf(nameOut, 50, "#bar{p}");
+  else if (!strcmp(nameIn, "proton"))      snprintf(nameOut, 50, "p");
+  else if (!strcmp(nameIn, "neutron"))     snprintf(nameOut, 50, "n");
+  else if (!strcmp(nameIn, "Sigma+"))      snprintf(nameOut, 50, "#Sigma^{+}");
+  else if (!strcmp(nameIn, "Delta+"))      snprintf(nameOut, 50, "#Delta{+}");
+  else if (!strcmp(nameIn, "Delta--"))     snprintf(nameOut, 50, "#Delta{--}");
+  else if (!strcmp(nameIn, "Lambda0"))     snprintf(nameOut, 50, "#Lambda_0");
+  else if (!strcmp(nameIn, "Lambda0_bar")) snprintf(nameOut, 50, "#bar{Lambda}_0");
 
-  else sprintf(nameOut, "%s", nameIn);
+  else snprintf(nameOut, 50, "%s", nameIn);
 
 }
 

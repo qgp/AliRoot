@@ -102,7 +102,7 @@ AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter():
     fAreEMCALCellsEnabled(kTRUE),
     fArePHOSCellsEnabled(kTRUE),
 		fAreEMCALTriggerEnabled(kTRUE),
-		fArePHOSTriggerEnabled(kFALSE),
+		fArePHOSTriggerEnabled(kTRUE),
 		fAreTrackletsEnabled(kTRUE),
     fESDpid(0x0),
     fIsPidOwner(kFALSE),
@@ -172,7 +172,7 @@ AliAnalysisTaskESDfilter::AliAnalysisTaskESDfilter(const char* name):
     fAreEMCALCellsEnabled(kTRUE),
     fArePHOSCellsEnabled(kTRUE),
 		fAreEMCALTriggerEnabled(kTRUE),
-		fArePHOSTriggerEnabled(kFALSE),
+		fArePHOSTriggerEnabled(kTRUE),
 		fAreTrackletsEnabled(kTRUE),
     fESDpid(0x0),
     fIsPidOwner(kFALSE),
@@ -1482,8 +1482,22 @@ void AliAnalysisTaskESDfilter::ConvertCaloTrigger(TString calo, const AliESDEven
 		
 	if (calo == "PHOS") 
 	{
-		AliLog::Message(AliLog::kError, "PHOS ESD filter not yet implemented", MODULENAME(), "ConvertCaloTrigger", FUNCTIONNAME(), __FILE__, __LINE__);
-		return;
+	  AliAODCaloTrigger &aodTrigger = *(AODEvent()->GetCaloTrigger(calo));
+	  AliESDCaloTrigger &esdTrigger = *(esd.GetCaloTrigger(calo));
+
+	  aodTrigger.Allocate(esdTrigger.GetEntries());
+	  esdTrigger.Reset();
+
+	  Float_t a;
+	  Int_t tmod,tabsId;
+
+	  while (esdTrigger.Next()) {
+	    esdTrigger.GetPosition(tmod,tabsId);
+	    esdTrigger.GetAmplitude(a);
+	    aodTrigger.Add(tmod,tabsId,a,0.,(Int_t*)NULL,0,0,0);
+	  }
+
+	  return;
 	}
 			
 	AliAODHandler *aodHandler = dynamic_cast<AliAODHandler*>(AliAnalysisManager::GetAnalysisManager()->GetOutputEventHandler()); 
@@ -1882,6 +1896,33 @@ void AliAnalysisTaskESDfilter::ConvertTZERO(const AliESDEvent& esd)
   aodTzero->SetBackgroundFlag(esdTzero->GetBackgroundFlag());
   aodTzero->SetPileupFlag(esdTzero->GetPileupFlag());
   aodTzero->SetSatelliteFlag(esdTzero->GetSatellite()); 
+
+  Float_t rawTime[24];
+  for(Int_t ipmt=0; ipmt<24; ipmt++)
+    rawTime[ipmt] = esdTzero->GetTimeFull(ipmt,0);
+   
+  Int_t idxOfFirstPmtA = -1,       idxOfFirstPmtC = -1;
+  Float_t timeOfFirstPmtA = 9999, timeOfFirstPmtC = 9999;
+  for(int ipmt=0;  ipmt<12; ipmt++){
+    if( rawTime[ipmt] > -200 && rawTime[ipmt] < timeOfFirstPmtC && rawTime[ipmt]!=0){
+      timeOfFirstPmtC = rawTime[ipmt];
+      idxOfFirstPmtC  = ipmt;
+    }
+  }
+  for(int ipmt=12; ipmt<24; ipmt++){
+    if( rawTime[ipmt] > -200 && rawTime[ipmt] < timeOfFirstPmtA && rawTime[ipmt]!=0 ){
+      timeOfFirstPmtA = rawTime[ipmt];
+      idxOfFirstPmtA  = ipmt;
+    }
+  }
+
+  if(idxOfFirstPmtA != -1 && idxOfFirstPmtC != -1){
+    //speed of light in cm/ns   TMath::C()*1e-7 
+    Float_t vertexraw = TMath::C()*1e-7 * (rawTime[idxOfFirstPmtA] - rawTime[idxOfFirstPmtC])/2;
+    aodTzero->SetT0VertexRaw( vertexraw );
+  }else{
+    aodTzero->SetT0VertexRaw(99999);
+  }
 
 }
 

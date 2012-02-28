@@ -76,13 +76,25 @@ AliMUONPolygon::~AliMUONPolygon()
 //______________________________________________________________________________
 AliMUONPolygon::AliMUONPolygon(const AliMUONPolygon& rhs) 
 : TObject(rhs), 
-fN(0),
+fN(rhs.fN),
 fX(0x0),
 fY(0x0)
 {
   /// Copy constructor.
   
-  ((AliMUONPolygon&)rhs).Copy(*this);
+  if ( fN > 0 ) 
+  {
+    fX = new Double_t[fN];
+    fY = new Double_t[fN];
+    
+    for ( Int_t i = 0; i < fN; ++i )
+    {
+      fX[i] = rhs.fX[i];
+      fY[i] = rhs.fY[i];
+    }
+    
+  }
+  
 }
 
 //______________________________________________________________________________
@@ -92,7 +104,28 @@ AliMUONPolygon::operator=(const AliMUONPolygon& rhs)
   /// Assignment operator
   if ( this != &rhs ) 
   {
-    rhs.Copy(*this);
+    static_cast<TObject&>(*this)=rhs;
+
+    delete[] fX;
+    delete[] fY;
+    
+    fX = 0;
+    fY = 0;
+    
+    fN = rhs.fN;
+    
+    if ( fN > 0 ) 
+    {
+      fX = new Double_t[fN];
+      fY = new Double_t[fN];
+      
+      for ( Int_t i = 0; i < fN; ++i )
+      {
+        fX[i] = rhs.fX[i];
+        fY[i] = rhs.fY[i];
+      }
+      
+    }
   }
   return *this;
 }
@@ -107,39 +140,6 @@ AliMUONPolygon::Contains(Double_t x, Double_t y) const
   // must be identical), which should be the case here.
 
   return TMath::IsInside(x,y,fN,fX,fY);
-}
-
-//______________________________________________________________________________
-void AliMUONPolygon::Copy(TObject& obj) const
-{
-  /// Copy this to obj
-  
-  TObject::Copy(obj);
-
-  AliMUONPolygon& rhs = static_cast<AliMUONPolygon&>(obj);
-
-  Double_t* x(0x0);
-  Double_t* y(0x0);
-  
-  if ( fN > 0 )
-  {
-    x = new Double_t[fN];
-    y = new Double_t[fN];
-    
-    for ( Int_t i = 0; i < fN; ++i )
-    {
-      x[i] = fX[i];
-      y[i] = fY[i];
-    }
-  
-  }
-  
-  delete [] rhs.fX;
-  delete [] rhs.fY;
-  
-  rhs.fX = x;
-  rhs.fY = y;
-  rhs.fN = fN;  
 }
 
 //_____________________________________________________________________________

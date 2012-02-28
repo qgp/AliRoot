@@ -114,7 +114,7 @@ void AliMFTClusterQA::BookHistos() {
 
     fHistNClustersPerEvent[iPlane] = new TH1D(Form("fHistNClustersPerEvent_Pl%02d",iPlane), 
 					      Form("Number of clusters per event in Plane%02d",iPlane),
-					      10000, -0.5, 9999.5);
+					      25000, -0.5, 24999.5);
 
     fHistNPixelsPerCluster[iPlane] = new TH1D(Form("fHistNPixelsPerCluster_Pl%02d",iPlane), 
 					      Form("Number of pixels per cluster in Plane%02d",iPlane),

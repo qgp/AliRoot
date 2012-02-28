@@ -22,17 +22,17 @@ class AliACORDEAlign : public  TObject{
  public:
   AliACORDEAlign();
   AliACORDEAlign(/*Int_t reportloc,*/Int_t reportglob);
-  AliACORDEAlign(const AliACORDEAlign &align); // copy constructor
-  AliACORDEAlign &operator = (const AliACORDEAlign &align); //assignment operator
   void  ComputePosition();
   void Run();
   void LoadSurveyData();
 //  void CreateACORDEAlignObjs();
   void StoreAlignObj();
-  void SetDebug(Int_t debug){fDebug=debug;}
+ // void SetDebug(Int_t debug){fDebug=debug;}
   virtual ~AliACORDEAlign();
   //
  private:
+  AliACORDEAlign(const AliACORDEAlign &align); // copy constructor
+  AliACORDEAlign &operator = (const AliACORDEAlign &align); //assignment operator
 
   Char_t *fFileGlob;
   Int_t fRepLoc;

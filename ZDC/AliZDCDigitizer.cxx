@@ -21,7 +21,9 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+// --- Standard libraries
 #include <stdlib.h>
+#include <stdio.h>
 
 // --- ROOT system
 #include <TTree.h>
@@ -177,8 +179,13 @@ Bool_t AliZDCDigitizer::Init()
   }    
   printf("\t  AliZDCDigitizer ->  beam type %s  - beam energy = %f GeV\n", fBeamType.Data(), fBeamEnergy);
   
-  CalculatePMTGains();
-
+  if(fBeamEnergy>0.1){
+    ReadPMTGains();
+  }
+  else{
+    AliWarning("\n Beam energy is 0 -> ZDC PMT gains can't be set -> NO ZDC DIGITS!!!\n");
+  }
+  
   // ADC Caen V965
   fADCRes[0] = 0.0000008; // ADC Resolution high gain: 200 fC/adcCh
   fADCRes[1] = 0.0000064; // ADC Resolution low gain:  25  fC/adcCh
@@ -211,11 +218,11 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
   // ### Out of time ADC added (22 channels)
   // --- same codification as for signal PTMs (see above)
   // ------------------------------------------------------------
-  Float_t pmoot[5][5];
-  for(Int_t iSector1=0; iSector1<5; iSector1++) 
-    for(Int_t iSector2=0; iSector2<5; iSector2++){
-      pmoot[iSector1][iSector2] = 0;
-    }
+  // Float_t pmoot[5][5];
+  // for(Int_t iSector1=0; iSector1<5; iSector1++) 
+  //   for(Int_t iSector2=0; iSector2<5; iSector2++){
+  //     pmoot[iSector1][iSector2] = 0;
+  //   }
 
   // impact parameter and number of spectators
   Float_t impPar = 0;
@@ -424,6 +431,88 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
 
 
 //_____________________________________________________________________________
+void AliZDCDigitizer::ReadPMTGains()
+{
+// Read PMT gain from an external file
+
+  char *fname = gSystem->ExpandPathName("$ALICE_ROOT/ZDC/PMTGainsdata.txt");
+  FILE *fdata = fopen(fname,"r");
+  if(fdata==NULL){
+     AliWarning(" Can't open file $ALICE_ROOT/ZDC/PMTGainsdata.txt to read ZDC PMT Gains\n");
+     AliWarning("  -> ZDC signal will be pedestal!!!!!!!!!!!!\n\n");
+     return;
+  }
+  int read=1;
+  Float_t data[5];
+  Int_t beam[12], det[12];
+  Float_t gain[12], aEne[12], bEne[12];
+  for(int ir=0; ir<12; ir++){
+    for(int ic=0; ic<5; ic++){
+       read = fscanf(fdata,"%f ",&data[ic]);
+       if(read==0) AliDebug(3, " Error in reading PMT gains from external file ");
+    }
+    beam[ir] = data[0];
+    det[ir] = data[1];
+    gain[ir] = data[2];
+    aEne[ir] = data[3];
+    bEne[ir] = data[4];
+  }
+  fclose(fdata);
+  
+  if(((fBeamType.CompareTo("P-P")) == 0)){
+    for(int i=0; i<12; i++){
+      if(beam[i]==0 && fBeamEnergy!=0.){
+        if(det[i]!=31 && det[i]!=32){
+	  for(Int_t j=0; j<5; j++) fPMGain[det[i]-1][j] = gain[i]*(aEne[i]/fBeamEnergy+bEne[i]);
+	}
+        else if(det[i] == 31) fPMGain[2][1] = gain[i]*(aEne[i]-fBeamEnergy*bEne[i]);
+	else if(det[i] == 32) fPMGain[2][2] = gain[i]*(aEne[i]-fBeamEnergy*bEne[i]);
+      }
+    }
+    //
+    AliInfo(Form("\n    ZDC PMT gains for p-p @ %1.0f+%1.0f GeV: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
+      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]));     
+  }
+  else if(((fBeamType.CompareTo("A-A")) == 0)){
+    for(int i=0; i<12; i++){
+      if(beam[i]==1){
+        Float_t scalGainFactor = fBeamEnergy/2760.;
+        if(det[i]!=31 && det[i]!=32){
+	  for(Int_t j=0; j<5; j++) fPMGain[det[i]-1][j] = gain[i]/(aEne[i]*scalGainFactor);
+	}
+        else{
+	  for(int iq=1; iq<3; iq++) fPMGain[2][iq] = gain[i]/(aEne[i]*scalGainFactor);
+	}
+      }
+     }  
+     //
+     AliInfo(Form("\n    ZDC PMT gains for Pb-Pb @ %1.0f+%1.0f A GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
+      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1]));
+  }
+  else if(((fBeamType.CompareTo("p-A")) == 0)){
+    for(int i=0; i<12; i++){
+      if(beam[i]==0 && fBeamEnergy!=0.){
+        if(det[i]==1 || det[i]==2){
+	  for(Int_t j=0; j<5; j++) fPMGain[det[i]-1][j] = gain[i]*(aEne[i]/fBeamEnergy+bEne[i]);
+	}
+      }
+      if(beam[i]==1){
+        Float_t scalGainFactor = fBeamEnergy/2760.;
+	Float_t npartScalingFactor = 208./15.;
+        if(det[i]==4 || det[i]==5){
+	  for(Int_t j=0; j<5; j++) fPMGain[det[i]-1][j] = npartScalingFactor*gain[i]/(aEne[i]*scalGainFactor);
+	}
+        else if(det[i]==31 || det[i]==32){
+	  for(int iq=1; iq<3; iq++) fPMGain[2][iq] = npartScalingFactor*gain[i]/(aEne[i]*scalGainFactor);
+	}
+      }
+    }
+    AliInfo(Form("\n    ZDC PMT gains for p-Pb: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
+      	fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]));
+  }
+}
+
+//_____________________________________________________________________________
 void AliZDCDigitizer::CalculatePMTGains()
 {
 // Calculate PMT gain according to beam type and beam energy
@@ -467,14 +556,15 @@ void AliZDCDigitizer::CalculatePMTGains()
     // PTM gains for Pb-Pb @ 1.38+1.38 A TeV on side A
     // PTM gains rescaled to beam energy for p-p on side C
     // WARNING! Energies are set by hand for 2011 pA RUN!!!
-    Float_t scalGainFactor = fBeamEnergy*82/(208*2760.);
+    Float_t scalGainFactor = fBeamEnergy/2760.;
     
     for(Int_t j = 0; j < 5; j++){
        fPMGain[0][j] = 1.515831*(661.444/fBeamEnergy+0.000740671)*10000000; //ZNC (p)
        fPMGain[1][j] = 0.674234*(864.350/fBeamEnergy+0.00234375)*10000000;  //ZPC (p)
        fPMGain[2][j] = 100000./scalGainFactor; 	   // ZEM (Pb)
-       fPMGain[3][j] = 50000./(4*scalGainFactor);  // ZNA (Pb)  	     
-       fPMGain[4][j] = 100000./(5*scalGainFactor); // ZPA (Pb)  
+       // Npart max scales from 400 in Pb-Pb to ~8 in pPb -> *40.
+       fPMGain[3][j] = 10*50000./(4*scalGainFactor);  // ZNA (Pb)  	     
+       fPMGain[4][j] = 10*100000./(5*scalGainFactor); // ZPA (Pb)  
     }
     AliInfo(Form("\n    ZDC PMT gains for p-Pb: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
       	fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]));

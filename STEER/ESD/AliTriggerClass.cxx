@@ -40,12 +40,14 @@ AliTriggerClass::AliTriggerClass():
   fDescriptor(NULL),
   fCluster(NULL),
   fPFProtection(NULL),
-  fMask(NULL),
   fPrescaler(0),
   fAllRare(kFALSE),
-  fStatus(kFALSE)
+  fStatus(kFALSE),
+  fTimeGroup(0),
+  fTimeWindow(0)
 {
   // Default constructor
+  for(Int_t i = 0; i < kNMaxMasks; i++)fMask[i]=0; 
 }
 
 //_____________________________________________________________________________
@@ -59,12 +61,16 @@ AliTriggerClass::AliTriggerClass( TString & name, UChar_t index,
   fDescriptor( desc ),
   fCluster( clus ),
   fPFProtection( pfp ),
-  fMask( mask ),
   fPrescaler( prescaler ),
   fAllRare( allrare ),
-  fStatus(kFALSE)
+  fStatus(kFALSE),
+  fTimeGroup(0),
+  fTimeWindow(0)
 {
   // Constructor
+  // This should be used with old version of config
+  for(Int_t i = 0; i < kNMaxMasks; i++)fMask[i]=0; 
+  fMask[0]=mask;
 }
 
 //_____________________________________________________________________________
@@ -79,21 +85,51 @@ AliTriggerClass::AliTriggerClass( AliTriggerConfiguration *config,
   fDescriptor( NULL ),
   fCluster( NULL ),
   fPFProtection( NULL ),
-  fMask( NULL ),
   fPrescaler( prescaler ),
   fAllRare( allrare ),
-  fStatus(kFALSE)
+  fStatus(kFALSE),
+  fTimeGroup(0),
+  fTimeWindow(0)
+{
+  // This should be used with old version of config
+  fDescriptor = (AliTriggerDescriptor*)config->GetDescriptors().FindObject(desc);
+  fCluster = (AliTriggerCluster*)config->GetClusters().FindObject(clus);
+  pfp.ReplaceAll("{","");
+  pfp.ReplaceAll("}","");
+  fPFProtection = (AliTriggerPFProtection*)config->GetPFProtections().FindObject(pfp);
+  // BC masks
+  for(Int_t i = 0; i < kNMaxMasks; i++)fMask[i]=0;
+  mask.ReplaceAll("{","");
+  mask.ReplaceAll("}","");
+  fMask[0] = (AliTriggerBCMask*)config->GetMasks().FindObject(mask);
+}
+//_____________________________________________________________________________
+AliTriggerClass::AliTriggerClass( AliTriggerConfiguration *config,
+				  TString & name, UChar_t index,
+				  TString &desc, TString &clus,
+				  TString &pfp,
+				  UInt_t prescaler, Bool_t allrare,
+				  UInt_t timegroup,UInt_t timewindow) :
+  TNamed( name, name ),
+  fClassMask( 1ull << ULong64_t(index-1)),
+  fIndex(index),
+  fDescriptor( NULL ),
+  fCluster( NULL ),
+  fPFProtection( NULL ),
+  fPrescaler( prescaler ),
+  fAllRare( allrare ),
+  fStatus(kFALSE),
+  fTimeGroup(timegroup),
+  fTimeWindow(timewindow)
 {
   fDescriptor = (AliTriggerDescriptor*)config->GetDescriptors().FindObject(desc);
   fCluster = (AliTriggerCluster*)config->GetClusters().FindObject(clus);
   pfp.ReplaceAll("{","");
   pfp.ReplaceAll("}","");
   fPFProtection = (AliTriggerPFProtection*)config->GetPFProtections().FindObject(pfp);
-  mask.ReplaceAll("{","");
-  mask.ReplaceAll("}","");
-  fMask = (AliTriggerBCMask*)config->GetMasks().FindObject(mask);
+  // masks are added by seter
+  for(Int_t i = 0; i < kNMaxMasks; i++)fMask[i]=0;
 }
-
 //_____________________________________________________________________________
 AliTriggerClass::~AliTriggerClass() 
 { 
@@ -107,14 +143,15 @@ AliTriggerClass::AliTriggerClass( const AliTriggerClass& trclass ):
   fDescriptor(trclass.fDescriptor),
   fCluster(trclass.fCluster),
   fPFProtection(trclass.fPFProtection),
-  fMask(trclass.fMask),
   fPrescaler(trclass.fPrescaler),
   fAllRare(trclass.fAllRare),
-  fStatus(trclass.fStatus)
+  fStatus(trclass.fStatus),
+  fTimeGroup(trclass.fTimeGroup),
+  fTimeWindow(trclass.fTimeWindow)
 {
    // Copy constructor
+   for(Int_t i = 0; i < kNMaxMasks; i++)fMask[i]=trclass.fMask[i];
 }
-
 //______________________________________________________________________________
 AliTriggerClass& AliTriggerClass::operator=(const AliTriggerClass& trclass)
 {
@@ -127,14 +164,46 @@ AliTriggerClass& AliTriggerClass::operator=(const AliTriggerClass& trclass)
       fDescriptor = trclass.fDescriptor;
       fCluster = trclass.fCluster;
       fPFProtection = trclass.fPFProtection;
-      fMask = trclass.fMask;
+      for(Int_t i=0; i< kNMaxMasks; i++)fMask[i]=trclass.fMask[i];
       fPrescaler = trclass.fPrescaler;
       fAllRare = trclass.fAllRare;
       fStatus = trclass.fStatus;
+      fTimeGroup = trclass.fTimeGroup;
+      fTimeWindow = trclass.fTimeWindow;
    }
    return *this;
 }
-
+//_____________________________________________________________________________
+Bool_t AliTriggerClass::SetMasks(AliTriggerConfiguration* config,TString& masks)
+{
+ masks.ReplaceAll("{","");
+ masks.ReplaceAll("}","");
+ masks.ReplaceAll(" ","");
+ masks.ReplaceAll("\t","");
+ TObjArray *tokens = masks.Tokenize(",");
+ Int_t ntokens = tokens->GetEntriesFast();
+ if(ntokens==0){
+   delete tokens;
+   AliError(Form("The class (%s) has invalid mask pattern: (%s)",GetName(),masks.Data()));
+   return kFALSE;
+ }
+ Int_t nmask=0;
+ while(fMask[nmask])nmask++;
+ if(nmask+ntokens>=kNMaxMasks){
+   delete tokens;
+   AliError(Form("The class (%s) exceeds %i masks",GetName(),kNMaxMasks));
+   return kFALSE;
+ }
+ for(Int_t i=nmask; i<nmask+ntokens; i++){
+    fMask[i] = (AliTriggerBCMask*)config->GetMasks().FindObject(((TObjString*)tokens->At(i-nmask))->String());
+    if(!fMask[i]){
+      AliError(Form("The class (%s) unknown mask %s",GetName(),(((TObjString*)tokens->At(i-nmask))->String().Data())));
+      return kFALSE;
+    }
+ }
+ delete tokens;
+ return kTRUE;
+}
 //_____________________________________________________________________________
 Bool_t AliTriggerClass::CheckClass(AliTriggerConfiguration* config) const
 {
@@ -170,12 +239,15 @@ Bool_t AliTriggerClass::CheckClass(AliTriggerConfiguration* config) const
     AliError(Form("The class (%s) contains invalid past-future protection !",GetName()));
     return kFALSE;
   }
-
-  if (!config->GetMasks().FindObject(fMask)) {
-    AliError(Form("The class (%s) contains invalid BC mask !",GetName()));
-    return kFALSE;
+  
+  for(Int_t i=0; i< kNMaxMasks; i++){
+     if(fMask[i]){
+        if (!config->GetMasks().FindObject(fMask[i])) {
+           AliError(Form("The class (%s) contains invalid BC mask !",GetName()));
+           return kFALSE;
+       }
+     }
   }
-
   return kTRUE;
 }
 
@@ -207,9 +279,13 @@ void AliTriggerClass::Print( const Option_t* ) const
   cout << "  Descriptor:   " << fDescriptor->GetName() << endl;
   cout << "  Cluster:      " << fCluster->GetName() << endl;
   cout << "  PF Protection:" << fPFProtection->GetName() << endl;
-  cout << "  BC Mask:      " << fMask->GetName() << endl;
+  cout << "  BC Mask:      " ;
+  for(Int_t i=0; i< kNMaxMasks; i++)if(fMask[i])cout << fMask[i]->GetName() << " ";
+  cout << endl;
   cout << "  Prescaler:    " << fPrescaler << endl;
   cout << "  AllRare:      " << fAllRare << endl;
+  cout << "  Time Group:      " << fTimeGroup << endl;
+  cout << "  Time Window:      " << fTimeWindow << endl;
   if (fStatus)
      cout << "   Class is fired      " << endl;
    else

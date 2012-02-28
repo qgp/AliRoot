@@ -1262,13 +1262,13 @@ Int_t  AliTPCtrackerMI::LoadClusters(const TClonesArray *arr)
       if(row == 27 || row == 76) continue;
     }
 
-    Int_t left=0;
+    //    Int_t left=0;
     if (sec<fkNIS*2){
-      left = sec/fkNIS;
+      //      left = sec/fkNIS;
       fInnerSec[sec%fkNIS].InsertCluster(clust, count[sec][row], fkParam);    
     }
     else{
-      left = (sec-fkNIS*2)/fkNOS;
+      //      left = (sec-fkNIS*2)/fkNOS;
       fOuterSec[(sec-fkNIS*2)%fkNOS].InsertCluster(clust, count[sec][row], fkParam);
     }
   }
@@ -3218,12 +3218,12 @@ void AliTPCtrackerMI::MakeSeeds3(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2,
 	}
        
 
-	Double_t dym = 0;
-	Double_t dzm = 0;
-	if (cm){
-	  dym = ym - cm->GetY();
-	  dzm = zm - cm->GetZ();
-	}
+	// Double_t dym = 0;
+	// Double_t dzm = 0;
+	// if (cm){
+	//   dym = ym - cm->GetY();
+	//   dzm = zm - cm->GetZ();
+	// }
 	nin2++;
 
 
@@ -7643,6 +7643,9 @@ void AliTPCtrackerMI::AddCovariance(AliTPCseed * seed){
   factor[2]= TMath::Sqrt(TMath::Abs((covarS[5] + param[2]*param[2])/covarS[5]));
   factor[3]= TMath::Sqrt(TMath::Abs((covarS[9] + param[3]*param[3])/covarS[9]));
   factor[4]= TMath::Sqrt(TMath::Abs((covarS[14] + facC*facC*param[4]*param[4])/covarS[14]));
+  //
+  factor[0]=factor[2];
+  factor[4]=factor[2];
   // 0
   // 1    2
   // 3    4    5
@@ -7747,7 +7750,7 @@ void AliTPCtrackerMI::MarkSeedFree(TObject *sd)
 {
   // account that this seed is "deleted" 
   AliTPCseed* seed = dynamic_cast<AliTPCseed*>(sd);
-  if (!sd) {
+  if (!seed) {
     AliError(Form("Freeing of non-AliTPCseed %p from the pool is requested",sd)); 
     return;
   }

@@ -29,13 +29,25 @@ public:
   AliT0QAChecker& operator=(const AliT0QAChecker& qac);  
   // dtor
   virtual ~AliT0QAChecker();
+  Double_t CheckLaser(TObjArray *listrec ) const ;
+  Double_t CheckBCID(TObjArray *listrec ) const ;
   Double_t CheckRaw(TObjArray *listrec ) const ;
   Double_t CheckESD(TObjArray *listrec ) const ;
    
  
 private:
+
+  enum{
+    kT0Fatal=-1,  ///< error is really serious
+    kT0Error=0,   ///< normal error, i.e. something is wrong
+    kT0Warning=1, ///< warning, i.e. might become an error later on
+    kT0Info=2     ///< just so you know...
+  };
+
   virtual void Check(Double_t * test, AliQAv1::ALITASK_t, TObjArray ** list, const AliDetectorRecoParam * recoParam) ;
-  
+  void EraseOldMessages(TH1* h) const;
+  Double_t ConvertQualityFlagToDouble(int qualityFlag) const; 
+ 
   ClassDef(AliT0QAChecker,1)  // description 
 
 };

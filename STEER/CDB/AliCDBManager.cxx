@@ -920,8 +920,6 @@ Bool_t AliCDBManager::SetSnapshotMode(const char* snapshotFileName) {
 	return kFALSE;
     }
 
-    fSnapshotMode = kTRUE;
-
     //open snapshot file
     TString snapshotFile(snapshotFileName);
     if(snapshotFile.BeginsWith("alien://")){
@@ -940,33 +938,7 @@ Bool_t AliCDBManager::SetSnapshotMode(const char* snapshotFileName) {
 	return kFALSE;
     }
 
-    /*
-    // retrieve pointer to entries' map from snapshot file
-    TIter next(fSnapshotFile->GetListOfKeys());
-    TKey *key;
-    while ((key = (TKey*)next())) {
-	if (strcmp(key->GetClassName(),"TMap") != 0) continue;
-	fSnapshotCache = (TMap*)key->ReadObj();
-	break;
-    }
-    if (!fSnapshotCache || fSnapshotCache->GetEntries()==0){
-	AliError("Cannot get valid map of CDB entries from snapshot file");
-	return kFALSE;
-    }
-
-    // retrieve pointer to ids' list from snapshot file
-    TIter nextKey(fSnapshotFile->GetListOfKeys());
-    TKey *keyN;
-    while ((keyN = (TKey*)nextKey())) {
-	if (strcmp(keyN->GetClassName(),"TList") != 0) continue;
-	fSnapshotIdsList = (TList*)keyN->ReadObj();
-	break;
-    }
-    if (!fSnapshotIdsList || fSnapshotIdsList->GetEntries()==0){
-	AliError("Cannot get valid list of CDB entries from snapshot file");
-	return kFALSE;
-    }
-    */
+    fSnapshotMode = kTRUE;
     return kTRUE;
 
 }
@@ -1398,12 +1370,15 @@ void AliCDBManager::UnloadFromCache(const char* path){
 			AliDebug(2, Form("Unloading object \"%s\" from cache and from list of ids", path));
 			TObjString pathStr(path);
 			delete fEntryCache.Remove(&pathStr);
+			// we do not remove from the list of Id's (it's not very coherent but we leave the
+			// id for the benefit of the userinfo)
+			/*
 			TIter iter(fIds);
 			AliCDBId *id = 0;
 			while((id = dynamic_cast<AliCDBId*> (iter.Next()))){
 			    if(queryPath.Comprises(id->GetPath()))
 				delete fIds->Remove(id);
-			}
+			}*/
 		} else {
 		  AliError(Form("Cache does not contain object \"%s\"!", path));
 		}
@@ -1422,7 +1397,11 @@ void AliCDBManager::UnloadFromCache(const char* path){
 			AliDebug(2, Form("Unloading object \"%s\" from cache and from list of ids", entryPath.GetPath().Data()));
 			TObjString pathStr(entryPath.GetPath());
 			delete fEntryCache.Remove(&pathStr);
+			removed++;
 
+			// we do not remove from the list of Id's (it's not very coherent but we leave the
+			// id for the benefit of the userinfo)
+			/*
 			TIter iterids(fIds);
 			AliCDBId *anId = 0;
 			while((anId = dynamic_cast<AliCDBId*> (iterids.Next()))){
@@ -1430,9 +1409,8 @@ void AliCDBManager::UnloadFromCache(const char* path){
 			    TString aPathStr = aPath.GetPath();
 			    if(queryPath.Comprises(aPath)) {
 				delete fIds->Remove(anId);
-				removed++;
 			    }
-			}
+			}*/
 		}
 	}
 	AliDebug(2,Form("Cache entries and ids removed: %d   Remaining: %d",removed,fEntryCache.GetEntries()));

@@ -5,6 +5,7 @@ void SETUP()
    gSystem->Load("libNet");
    gSystem->Load("libTree");
    gSystem->Load("libPhysics");
+   gSystem->Load("libMinuit");
 
    // Load the STEERBase library
    TString dypath = gSystem->GetDynamicPath();
@@ -13,7 +14,7 @@ void SETUP()
    gSystem->Load("libSTEERBase");
 
    // Set the include paths
-   gROOT->ProcessLine(".include STEERBase");
+   gROOT->ProcessLine(".include STEERBase/STEERBase");
 
    // Set our location, so that other packages can find us
    gSystem->Setenv("STEERBase_INCLUDE", "STEERBase/STEERBase");
