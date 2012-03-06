@@ -774,6 +774,11 @@ void AliReconstruction::InitCDB()
 }
 
 //_____________________________________________________________________________
+void AliReconstruction::SetCDBSnapshotMode(const char* snapshotFileName) {
+    AliCDBManager::Instance()->SetSnapshotMode(snapshotFileName);
+}
+
+//_____________________________________________________________________________
 void AliReconstruction::SetDefaultStorage(const char* uri) {
 // Store the desired default CDB storage location
 // Activate it later within the Run() method
@@ -1483,6 +1488,11 @@ void AliReconstruction::InitRun(const char* input)
     return;
   }
 
+  if(fFromCDBSnapshot){
+      AliDebug(2,"Initializing from a CDB snapshot");
+      if(!AliCDBManager::Instance()->InitFromSnapshot(fSnapshotFileName.Data()))
+	  AliFatal("Was not able to initialize from the snapshot!");
+  }
   // Set CDB lock: from now on it is forbidden to reset the run number
   // or the default storage or to activate any further storage!
   SetCDBLock();
@@ -1524,7 +1534,6 @@ void AliReconstruction::Begin(TTree *)
     AliSysInfo::AddStamp("CheckGeom");
   }
 
-  Bool_t loadedFromSnapshot=kFALSE;
   Bool_t toCDBSnapshot=kFALSE;
   TString snapshotFileOut(""); // we could use fSnapshotFileName if we are not interested
   // in reading from and writing to a snapshot file at the same time
@@ -1536,10 +1545,6 @@ void AliReconstruction::Begin(TTree *)
 	  snapshotFileOut = snapshotFile;
       else
 	  snapshotFileOut="OCDB.root";
-  }
-  if(fFromCDBSnapshot){
-      AliDebug(2,"Initializing from a CDB snapshot");
-      loadedFromSnapshot = AliCDBManager::Instance()->InitFromSnapshot(fSnapshotFileName.Data());
   }
 
   if (!MisalignGeometry(fLoadAlignData)) {
@@ -1557,7 +1562,7 @@ void AliReconstruction::Begin(TTree *)
   AliSysInfo::AddStamp("InitGRP");
   if(!toCDBSnapshot) AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
 
-  if(!loadedFromSnapshot){
+  if(!fFromCDBSnapshot){
       if (!LoadCDB()) {
 	  Abort("LoadCDB", TSelector::kAbortProcess);
 	  return;
@@ -1590,7 +1595,7 @@ void AliReconstruction::Begin(TTree *)
   AliSysInfo::AddStamp("InitRecoParams");
 
   if(toCDBSnapshot)
-      AliCDBManager::Instance()->DumpToSnapshotFile(snapshotFileOut.Data());
+      AliCDBManager::Instance()->DumpToSnapshotFile(snapshotFileOut.Data(),kFALSE);
   AliCDBManager::Instance()->UnloadFromCache("*/Align/*");
   AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
 

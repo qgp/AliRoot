@@ -101,7 +101,7 @@ void AliCDBManager::InitFromCache(TMap *entryCache, Int_t run) {
 }
 
 //_____________________________________________________________________________
-void  AliCDBManager::DumpToSnapshotFile(const char* snapshotFileName){
+void  AliCDBManager::DumpToSnapshotFile(const char* snapshotFileName, Bool_t singleKeys){
 // 
 // dump the entries map and the ids list to
 // the output file
@@ -118,8 +118,27 @@ void  AliCDBManager::DumpToSnapshotFile(const char* snapshotFileName){
 
     f->cd();                                                                                           
 
-    f->WriteObject(&fEntryCache,"CDBentriesMap");
-    f->WriteObject(fIds,"CDBidsList");
+    if(singleKeys){
+	f->WriteObject(&fEntryCache,"CDBentriesMap");
+	f->WriteObject(fIds,"CDBidsList");
+    }else{
+	// We write the entries one by one named by their calibration path
+	/*
+	fEntryCache.Write("CDBentriesMap");
+	fIds->Write("CDBidsList");
+	*/
+	TIter iter(fEntryCache.GetTable());
+	TPair* pair = 0;
+	while((pair = dynamic_cast<TPair*> (iter.Next()))){
+	    TObjString *os = dynamic_cast<TObjString*>(pair->Key());
+	    if (!os) continue;
+	    TString path = os->GetString();
+	    AliCDBEntry *entry = dynamic_cast<AliCDBEntry*>(pair->Value());
+	    if (!entry) continue;
+	    path.ReplaceAll("/","*");
+	    entry->Write(path.Data());
+	}
+    }
     f->Close();
     delete f;
 
@@ -127,10 +146,16 @@ void  AliCDBManager::DumpToSnapshotFile(const char* snapshotFileName){
 }
 
 //_____________________________________________________________________________
-Bool_t AliCDBManager::InitFromSnapshot(const char* snapshotFileName){
+Bool_t AliCDBManager::InitFromSnapshot(const char* snapshotFileName, Bool_t overwrite){
 // initialize manager from a CDB snapshot, that is add the entries
 // to the entries map and the ids to the ids list taking them from
 // the map and the list found in the input file
+
+// if the manager is locked it cannot initialize from a snapshot
+    if(fLock) {
+	AliError("Being locked I cannot initialize from the snapshot!");
+	return kFALSE;
+    }	
 
     // open the file
     TString snapshotFile(snapshotFileName);
@@ -150,7 +175,7 @@ Bool_t AliCDBManager::InitFromSnapshot(const char* snapshotFileName){
 	return kFALSE;
     }
 
-    // retrieve entries map
+    // retrieve entries' map from snapshot file
     TMap *entriesMap = 0;
     TIter next(f->GetListOfKeys());
     TKey *key;
@@ -164,7 +189,7 @@ Bool_t AliCDBManager::InitFromSnapshot(const char* snapshotFileName){
 	return kFALSE;
     }
 
-    // retrieve ids list
+    // retrieve ids' list from snapshot file
     TList *idsList = 0;
     TIter nextKey(f->GetListOfKeys());
     TKey *keyN;
@@ -178,28 +203,70 @@ Bool_t AliCDBManager::InitFromSnapshot(const char* snapshotFileName){
 	return kFALSE;
     }
 
+    // Add each (entry,id) from the snapshot to the memory: entry to the cache, id to the list of ids.
+    // If "overwrite" is false: add the entry to the cache and its id to the list of ids
+    // only if neither of them is already there.
+    // If "overwrite" is true: write the snapshot entry,id in any case. If something
+    // was already there for that calibration type, remove it and issue a warning
     TIter iterObj(entriesMap->GetTable());
     TPair* pair = 0;
-
+    Int_t nAdded=0;
     while((pair = dynamic_cast<TPair*> (iterObj.Next()))){
-	fEntryCache.Add(pair->Key(),pair->Value());
+	TObjString* os = (TObjString*) pair->Key();
+	TString path = os->GetString();
+	TIter iterId(idsList);
+	AliCDBId* id=0;
+	AliCDBId* correspondingId=0;
+	while((id = dynamic_cast<AliCDBId*> (iterId.Next()))){
+	    TString idpath(id->GetPath());
+	    if(idpath==path){
+		correspondingId=id;
+		break;
+	    }
+	}
+	if(!correspondingId){
+	    AliError(Form("id for \"%s\" not found in the snapshot (while entry was). This entry is skipped!",path.Data()));
+	    break;
+	}
+	Bool_t cached = fEntryCache.Contains(path.Data());
+	Bool_t registeredId = kFALSE;
+	TIter iter(fIds);
+	AliCDBId *idT = 0;
+	while((idT = dynamic_cast<AliCDBId*> (iter.Next()))){
+	    if(idT->GetPath()==path){
+		registeredId = kTRUE;
+		break;
+	    }
+	}
+
+	if(overwrite){
+	    if(cached || registeredId){
+		AliWarning(Form("An entry was already cached for \"%s\". Removing it before caching from snapshot",path.Data()));
+		UnloadFromCache(path.Data());
+	    }
+	    fEntryCache.Add(pair->Key(),pair->Value());
+	    fIds->Add(id);
+	    nAdded++;
+	}else{
+	    if(cached || registeredId){
+		AliWarning(Form("An entry was already cached for \"%s\". Not adding this object from snapshot",path.Data()));
+	    }else{
+		fEntryCache.Add(pair->Key(),pair->Value());
+		fIds->Add(id);
+		nAdded++;
+	    }
+	}
     }
+
     // fEntry is the new owner of the cache
     fEntryCache.SetOwnerKeyValue(kTRUE,kTRUE);
     entriesMap->SetOwnerKeyValue(kFALSE,kFALSE);
-    AliInfo(Form("%d cache entries have been loaded",fEntryCache.GetEntries()));
-
-    TIter iterId(idsList);	 
-
-    AliCDBId* id=0;
-    while((id = dynamic_cast<AliCDBId*> (iterId.Next()))){	 
-	fIds->Add(id);	 
-    }	 
     fIds->SetOwner(kTRUE);
     idsList->SetOwner(kFALSE);
+    AliInfo(Form("%d new (entry,id) cached. Total number %d",nAdded,fEntryCache.GetEntries()));
+
     f->Close();
     delete f;
-    AliInfo(Form("%d cache ids loaded. Total number of ids is %d",idsList->GetEntries(),fIds->GetEntries()));
 
     return kTRUE;
 }
@@ -232,6 +299,10 @@ AliCDBManager::AliCDBManager():
   fRun(-1),
   fCache(kTRUE),
   fLock(kFALSE),
+  fSnapshotMode(kFALSE),
+  fSnapshotFile(0),
+//  fSnapshotCache(0),
+//  fSnapshotIdsList(0),
   fRaw(kFALSE),
   fStartRunLHCPeriod(-1),
   fEndRunLHCPeriod(-1),
@@ -264,6 +335,12 @@ AliCDBManager::~AliCDBManager() {
 	delete fCondParam;
 	delete fRefParam;
 	delete fShortLived; fShortLived = 0x0;
+	//fSnapshotCache = 0;
+	//fSnapshotIdsList = 0;
+	if(fSnapshotMode){
+	    fSnapshotFile->Close();
+	    fSnapshotFile = 0;
+	}
 }
 
 //_____________________________________________________________________________
@@ -464,7 +541,7 @@ void AliCDBManager::SetDefaultStorage(const char* dbString) {
 	}
 	
 	if (fStorageMap->Contains("default")) {
-		delete fStorageMap->Remove(fStorageMap->GetValue("default"));
+		delete fStorageMap->Remove(((TPair*)fStorageMap->FindObject("default"))->Key());
 	}
 	fStorageMap->Add(new TObjString("default"), new TObjString(fDefaultStorage->GetURI()));
 }
@@ -484,7 +561,7 @@ void AliCDBManager::SetDefaultStorage(const AliCDBParam* param) {
 	}
 
 	if (fStorageMap->Contains("default")) {
-		delete fStorageMap->Remove(fStorageMap->GetValue("default"));
+	        delete fStorageMap->Remove(((TPair*)fStorageMap->FindObject("default"))->Key());
 	}
 	fStorageMap->Add(new TObjString("default"), new TObjString(fDefaultStorage->GetURI()));
 }
@@ -516,7 +593,7 @@ void AliCDBManager::SetDefaultStorage(AliCDBStorage* storage) {
 	}
 
 	if (fStorageMap->Contains("default")) {
-		delete fStorageMap->Remove(fStorageMap->GetValue("default"));
+	        delete fStorageMap->Remove(((TPair*)fStorageMap->FindObject("default"))->Key());
 	}
 	fStorageMap->Add(new TObjString("default"), new TObjString(fDefaultStorage->GetURI()));
 }
@@ -765,27 +842,43 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBId& query) {
   	// first look into map of cached objects
   	if(fCache && query.GetFirstRun() == fRun)
 		entry = (AliCDBEntry*) fEntryCache.GetValue(query.GetPath());
-
   	if(entry) {
 		AliDebug(2, Form("Object %s retrieved from cache !!",query.GetPath().Data()));
 		return entry;
 	}
 
+  	// if snapshot flag is set, try getting from the snapshot
+	// but in the case a specific storage is specified for this path
+	AliCDBParam *aPar=SelectSpecificStorage(query.GetPath());
+	if(!aPar){
+	    if(fSnapshotMode && query.GetFirstRun() == fRun)
+		// entry = (AliCDBEntry*) fSnapshotCache->GetValue(query.GetPath()); // not possible,
+		// all the map would be charged in memory from the snapshot anyway.
+		entry = GetEntryFromSnapshot(query.GetPath());
+	    if(entry) {
+		AliDebug(2, Form("Object %s retrieved from the snapshot !!",query.GetPath().Data()));
+		if(query.GetFirstRun() == fRun) // no need to check fCache, fSnapshotMode not possible otherwise
+		    CacheEntry(query.GetPath(), entry);
+
+		if(!fIds->Contains(&entry->GetId()))
+		    fIds->Add(entry->GetId().Clone());
+
+		return entry;
+	    }
+	}
+
+	// Entry is not in cache (and, in case we are in snapshot mode, not in the snapshot either)
+	// => retrieve it from the storage and cache it!!
 	if(!fDefaultStorage) {
 		AliError("No storage set!");
 		return NULL;
 	}
-	// Entry is not in cache -> retrieve it from CDB and cache it!!
-	AliCDBStorage *aStorage=0;
-	AliCDBParam *aPar=SelectSpecificStorage(query.GetPath());
-//	Bool_t usedDefStorage=kTRUE;
 
+	AliCDBStorage *aStorage=0;
 	if(aPar) {
 		aStorage=GetStorage(aPar);
 		TString str = aPar->GetURI();
 		AliDebug(2,Form("Looking into storage: %s",str.Data()));
-//		usedDefStorage=kFALSE;
-
 	} else {
 		aStorage=GetDefaultStorage();
 		AliDebug(2,"Looking into default storage");
@@ -803,6 +896,53 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBId& query) {
 
 
   	return entry;
+
+}
+
+//_____________________________________________________________________________
+AliCDBEntry* AliCDBManager::GetEntryFromSnapshot(const char* path) {
+    // get the entry from the open snapshot file
+
+    TString sPath(path);
+    sPath.ReplaceAll("/","*");
+    AliCDBEntry *entry = dynamic_cast<AliCDBEntry*>(fSnapshotFile->Get(sPath.Data()));
+    if(!entry){
+	AliDebug(2,Form("Cannot get a CDB entry for \"%s\" from snapshot file",path));
+	return 0;
+    }
+
+    return entry;
+}
+
+//_____________________________________________________________________________
+Bool_t AliCDBManager::SetSnapshotMode(const char* snapshotFileName) {
+// set the manager in snapshot mode
+    
+    if(!fCache){
+	AliError("Cannot set the CDB manage in snapshot mode if the cache is not active!");
+	return kFALSE;
+    }
+
+    //open snapshot file
+    TString snapshotFile(snapshotFileName);
+    if(snapshotFile.BeginsWith("alien://")){
+	if(!gGrid) {
+	    TGrid::Connect("alien://","");
+	    if(!gGrid) {
+		AliError("Connection to alien failed!");
+		return kFALSE;
+	    }
+	}
+    }
+
+    fSnapshotFile = TFile::Open(snapshotFileName);
+    if (!fSnapshotFile || fSnapshotFile->IsZombie()){
+	AliError(Form("Cannot open file %s",snapshotFileName));
+	return kFALSE;
+    }
+
+    fSnapshotMode = kTRUE;
+    return kTRUE;
 
 }
 
@@ -1218,7 +1358,8 @@ void AliCDBManager::ClearCache(){
 //_____________________________________________________________________________
 void AliCDBManager::UnloadFromCache(const char* path){
 // unload cached object
-
+// that is remove the entry from the cache and the id from the list of ids
+//
 	if(!fActiveStorages.GetEntries()) {
 		AliDebug(2, Form("No active storages. Object \"%s\" is not unloaded from cache", path));
 		return;
@@ -1229,29 +1370,53 @@ void AliCDBManager::UnloadFromCache(const char* path){
 
 	if(!queryPath.IsWildcard()) { // path is not wildcard, get it directly from the cache and unload it!
 		if(fEntryCache.Contains(path)){
-			AliDebug(2, Form("Unloading object \"%s\" from cache", path));
+			AliDebug(2, Form("Unloading object \"%s\" from cache and from list of ids", path));
 			TObjString pathStr(path);
 			delete fEntryCache.Remove(&pathStr);
+			// we do not remove from the list of Id's (it's not very coherent but we leave the
+			// id for the benefit of the userinfo)
+			/*
+			TIter iter(fIds);
+			AliCDBId *id = 0;
+			while((id = dynamic_cast<AliCDBId*> (iter.Next()))){
+			    if(queryPath.Comprises(id->GetPath()))
+				delete fIds->Remove(id);
+			}*/
 		} else {
-		  AliErrorF("Cache does not contain object \"%s\"!", path);
+		  AliError(Form("Cache does not contain object \"%s\"!", path));
 		}
-		AliDebugF(2, "Cache entries: %d",fEntryCache.GetEntries());
+		AliDebug(2, Form("Cache entries: %d",fEntryCache.GetEntries()));
 		return;
 	}
 
 	// path is wildcard: loop on the cache and unload all comprised objects!
 	TIter iter(fEntryCache.GetTable());
 	TPair* pair = 0;
+	Int_t removed=0;
 
 	while((pair = dynamic_cast<TPair*> (iter.Next()))){
 		AliCDBPath entryPath = pair->Key()->GetName();
 		if(queryPath.Comprises(entryPath)) {
-			AliDebug(2, Form("Unloading object \"%s\" from cache", entryPath.GetPath().Data()));
-			TObjString pathStr(entryPath.GetPath().Data());
+			AliDebug(2, Form("Unloading object \"%s\" from cache and from list of ids", entryPath.GetPath().Data()));
+			TObjString pathStr(entryPath.GetPath());
 			delete fEntryCache.Remove(&pathStr);
+			removed++;
+
+			// we do not remove from the list of Id's (it's not very coherent but we leave the
+			// id for the benefit of the userinfo)
+			/*
+			TIter iterids(fIds);
+			AliCDBId *anId = 0;
+			while((anId = dynamic_cast<AliCDBId*> (iterids.Next()))){
+			    AliCDBPath aPath = anId->GetPath();
+			    TString aPathStr = aPath.GetPath();
+			    if(queryPath.Comprises(aPath)) {
+				delete fIds->Remove(anId);
+			    }
+			}*/
 		}
 	}
-	AliDebug(2,Form("Cache entries: %d",fEntryCache.GetEntries()));
+	AliDebug(2,Form("Cache entries and ids removed: %d   Remaining: %d",removed,fEntryCache.GetEntries()));
 }
 
 //_____________________________________________________________________________
