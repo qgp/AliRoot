@@ -207,7 +207,8 @@ AliTPCtrackerMI::AliTPCtrackerMI()
 		 fSeedsPool(0),
 		 fFreeSeedsID(500),
 		 fNFreeSeeds(0),
-		 fLastSeedID(-1)
+		 fLastSeedID(-1),
+		 fUseBug(kFALSE)
 {
   //
   // default constructor
@@ -422,7 +423,8 @@ AliTracker(),
                  fSeedsPool(0),
 		 fFreeSeedsID(500),
 		 fNFreeSeeds(0),
-		 fLastSeedID(-1)
+                 fLastSeedID(-1),
+                 fUseBug(kFALSE)
 {
   //---------------------------------------------------------------------
   // The main TPC tracker constructor
@@ -483,7 +485,8 @@ AliTPCtrackerMI::AliTPCtrackerMI(const AliTPCtrackerMI &t):
                  fSeedsPool(0),
 		 fFreeSeedsID(500),
 		 fNFreeSeeds(0),
-		 fLastSeedID(-1)
+                 fLastSeedID(-1),
+                 fUseBug(kFALSE)
 {
   //------------------------------------
   // dummy copy constructor
@@ -7678,11 +7681,19 @@ void AliTPCtrackerMI::AddCovariance(AliTPCseed * seed){
   //
   Double_t *covarS= (Double_t*)seed->GetCovariance();
   Double_t factor[5]={1,1,1,1,1};
+  Double_t facC =  AliTracker::GetBz()*kB2C;
   factor[0]= TMath::Sqrt(TMath::Abs((covarS[0] + param[0]*param[0])/covarS[0]));
   factor[1]= TMath::Sqrt(TMath::Abs((covarS[2] + param[1]*param[1])/covarS[2]));
   factor[2]= TMath::Sqrt(TMath::Abs((covarS[5] + param[2]*param[2])/covarS[5]));
   factor[3]= TMath::Sqrt(TMath::Abs((covarS[9] + param[3]*param[3])/covarS[9]));
-  factor[4]= TMath::Sqrt(TMath::Abs((covarS[14] +param[4]*param[4])/covarS[14]));
+  if (fUseBug)
+    factor[4]= TMath::Sqrt(TMath::Abs((covarS[14] + facC*facC*param[4]*param[4])/covarS[14]));
+  else {
+    factor[4]= TMath::Sqrt(TMath::Abs((covarS[14] +param[4]*param[4])/covarS[14]));
+    //
+    factor[0]=factor[2];
+    factor[4]=factor[2];
+  }
   // 0
   // 1    2
   // 3    4    5
@@ -7717,7 +7728,11 @@ void AliTPCtrackerMI::AddCovarianceAdd(AliTPCseed * seed){
   covar[2] = param[1]*param[1];
   covar[5] = param[2]*param[2];
   covar[9] = param[3]*param[3];
-  covar[14]= param[4]*param[4];
+  Double_t facC =  AliTracker::GetBz()*kB2C;
+  if (fUseBug)
+    covar[14]= param[4]*param[4]*facC*facC;
+  else
+    covar[14]= param[4]*param[4];
   //
   covar[1]=TMath::Sqrt((covar[0]*covar[2]))*covarIn[1]/TMath::Sqrt((covarIn[0]*covarIn[2]));
   //

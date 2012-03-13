@@ -190,5 +190,9 @@ void AliTPCReconstructor::ParseOptions( AliTPCtrackerMI* tracker ) const
   fClusterer->SetUseHLTClusters(useHLTClusters);
   tracker->SetUseHLTClusters(useHLTClusters);
 
+  if (option.Contains("IntroduceBug")) {
+    AliInfo("TPC reconstruction with re-introduced bug in AliTPCtrackerMI::AddCovariance/AddCovarianceAdd");
+    tracker->SetUseBug();
+  }
   return;
 }

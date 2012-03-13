@@ -10,6 +10,7 @@ void rec() {
   reco.SetRunPlaneEff(kTRUE);
 
   reco.SetFractionFriends(1.);
+  reco.SetOption("TPC","IntroduceBug");
 
   TStopwatch timer;
   timer.Start();

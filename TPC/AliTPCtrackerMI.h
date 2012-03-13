@@ -126,6 +126,8 @@ public:
    Int_t AcceptCluster(AliTPCseed * seed, AliTPCclusterMI * cluster);
 
    Bool_t IsTPCHVDipEvent(AliESDEvent const *esdEvent);
+   void SetUseBug(Bool_t flag=kTRUE) {fUseBug=flag;}
+   Bool_t GetUseBug() const {return fUseBug;}
 
 private:
   Bool_t IsFindable(AliTPCseed & t);
@@ -209,8 +211,9 @@ private:
    TArrayI fFreeSeedsID;                //! array of ID's of freed seeds
    Int_t fNFreeSeeds;                   //! number of seeds freed in the pool
    Int_t fLastSeedID;                   //! id of the pool seed on which is returned by the NextFreeSeed method
+   Bool_t fUseBug;                      // Flag to swith on the bug in the scaling of track covariance matrix
    //
-   ClassDef(AliTPCtrackerMI,3) 
+   ClassDef(AliTPCtrackerMI,4) 
 };
 
 
