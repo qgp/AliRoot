@@ -914,7 +914,7 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
       << "NCorrupted=" << nCorrupted
       << "\n";
   }
-  // if (TestBit(kLabels)) AddLabels();
+  if (TestBit(kLabels)) AddLabels();
 
   return kTRUE;
 
