@@ -60,6 +60,8 @@ class AliESDTrdTrigger;
 class AliESDTrdTrack;
 class AliESDTrdTracklet;
 class AliESDMuonTrack;
+class AliESDMuonCluster;
+class AliESDMuonPad;
 class AliESD;
 class AliESDcascade;
 class AliCentrality;
@@ -93,6 +95,8 @@ public:
 		       kTrkPileupVertices,
 		       kTracks,
 		       kMuonTracks,
+		       kMuonClusters,
+		       kMuonPads,
 		       kPmdTracks,
 		       kTrdTrigger,
 		       kTrdTracks,
@@ -353,12 +357,19 @@ public:
     //     new(fhlt[fHLTHoughTracks->GetEntriesFast()]) AliESDHLTtrack(*t);
   }
   
-  AliESDMuonTrack *GetMuonTrack(Int_t i) const {
-    return (AliESDMuonTrack *)(fMuonTracks?fMuonTracks->UncheckedAt(i):0x0);
-  }
-
-  void AddMuonTrack(const AliESDMuonTrack *t);
-
+  Bool_t MoveMuonObjects();
+  
+  AliESDMuonTrack* GetMuonTrack(Int_t i);
+  AliESDMuonTrack* NewMuonTrack();
+  
+  AliESDMuonCluster* GetMuonCluster(Int_t i);
+  AliESDMuonCluster* FindMuonCluster(UInt_t clusterId);
+  AliESDMuonCluster* NewMuonCluster();
+  
+  AliESDMuonPad* GetMuonPad(Int_t i);
+  AliESDMuonPad* FindMuonPad(UInt_t padId);
+  AliESDMuonPad* NewMuonPad();
+  
   AliESDPmdTrack *GetPmdTrack(Int_t i) const {
     return (AliESDPmdTrack *)(fPmdTracks?fPmdTracks->UncheckedAt(i):0x0);
   }
@@ -444,6 +455,8 @@ public:
   //  fHLTHoughTracks->GetEntriesFast();  }
 
   Int_t GetNumberOfMuonTracks() const {return fMuonTracks?fMuonTracks->GetEntriesFast():0;}
+  Int_t GetNumberOfMuonClusters();
+  Int_t GetNumberOfMuonPads();
   Int_t GetNumberOfPmdTracks() const {return fPmdTracks?fPmdTracks->GetEntriesFast():0;}
   Int_t GetNumberOfTrdTracks() const {return fTrdTracks?fTrdTracks->GetEntriesFast():0;}
   Int_t GetNumberOfTrdTracklets() const {return fTrdTracklets?fTrdTracklets->GetEntriesFast():0;}
@@ -474,6 +487,7 @@ public:
   void ResetStdContent();
   void CreateStdContent();
   void CreateStdContent(Bool_t bUseThisList);
+  void CompleteStdContent();
   void SetStdNames();
   void CopyFromOldESD();
   TList* GetList() const {return fESDObjects;}
@@ -493,6 +507,8 @@ protected:
   AliESDEvent(const AliESDEvent&);
   static Bool_t ResetWithPlacementNew(TObject *pObject);
 
+  void AddMuonTrack(const AliESDMuonTrack *t);
+  
   TList *fESDObjects;             // List of esd Objects
 
   AliESDRun       *fESDRun;           //! Run information tmp put in the Userdata
@@ -514,6 +530,8 @@ protected:
   TClonesArray *fTrkPileupVertices;//! Pileup primary vertices reconstructed using the tracks 
   TClonesArray *fTracks;           //! ESD tracks 
   TClonesArray *fMuonTracks;       //! MUON ESD tracks
+  TClonesArray *fMuonClusters;     //! MUON ESD clusters
+  TClonesArray *fMuonPads;         //! MUON ESD pads
   TClonesArray *fPmdTracks;        //! PMD ESD tracks
   TClonesArray *fTrdTracks;        //! TRD ESD tracks (triggered)
   TClonesArray *fTrdTracklets;     //! TRD tracklets (for trigger)
@@ -526,7 +544,7 @@ protected:
   TClonesArray *fCosmicTracks;     //! Tracks created by cosmics finder
   TClonesArray *fErrorLogs;        //! Raw-data reading error messages
  
-
+  Bool_t fOldMuonStructure;        //! Flag if reading ESD with old MUON structure
 
   AliESD       *fESDOld;           //! Old esd Structure
   AliESDfriend *fESDFriendOld;     //! Old friend esd Structure
