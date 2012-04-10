@@ -26,6 +26,7 @@
 #include <TChain.h>
 #include <TList.h>
 #include <TMap.h>
+#include <THashList.h>
 #include <TObjString.h>
 #include <TObjArray.h>
 #include <TGraph.h>
@@ -208,7 +209,8 @@ const Double_t kFitFraction = -1.;                 // Fraction of DCS sensor fit
 		   "(LHC Data Error)",
 		   "(LHC Clock Phase Error (from LHC Data))",
 		   "(LTU Configuration Error)",
-		   "(DQM Failure)"
+		   "(DQM Failure)",
+                   "(Trigger Aliases wrong or not found in DCS FXS - ERROR)"
   };
 
 //_______________________________________________________________
@@ -355,6 +357,9 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	} else  if (iDcsFxs ==1) {
 		Log(Form("Could not store CTP scalers!!!"));
 		error |= 4;
+	} else  if (iDcsFxs == 2) {
+		Log(Form("Could not store CTP aliases!!!"));
+		error |= 8192;
 	} else{
 		Log(Form("Incorrect field in DAQ logbook for partition = %s and detector = %s, going into error without CTP scalers...",partition.Data(),detector.Data()));
 		error |= 32;
@@ -692,7 +697,7 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 		Log("GRP Preprocessor Success");
 		return 0;
 	} else {
-		Log( Form("GRP Preprocessor FAILS!!! %s%s%s%s%s%s%s%s%s%s%s%s%s",
+		Log( Form("GRP Preprocessor FAILS!!! %s%s%s%s%s%s%s%s%s%s%s%s%s%s",
 			  kppError[(error&1)?1:0],
 			  kppError[(error&2)?2:0],
 			  kppError[(error&4)?3:0],
@@ -705,7 +710,8 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 			  kppError[(error&512)?10:0],
 			  kppError[(error&1024)?11:0],
 			  kppError[(error&2048)?12:0],
-			  kppError[(error&4096)?12:0]
+			  kppError[(error&4096)?13:0],
+			  kppError[(error&8192)?14:0]
 			  ));
 		return error;
 	}
@@ -1665,16 +1671,19 @@ UInt_t AliGRPPreprocessor::ProcessDcsFxs(TString partition, TString detector)
 	// coming from the trigger
 
 	// Get the CTP counters information
+	//              +
+	// Get the CTP aliases information
 
 	if (partition.IsNull() && !detector.IsNull()){ // standalone partition
-		Log("STANDALONE partition for current run, using Trigger Scalers dummy value");
-		AliCDBEntry *cdbEntry = GetFromOCDB("CTP","DummyScalers");
-		if (!cdbEntry) {
+		Log("STANDALONE partition for current run, using Trigger Scalers and Trigger Aliases dummy values");
+
+		AliCDBEntry *cdbEntryScalers = GetFromOCDB("CTP","DummyScalers");
+		if (!cdbEntryScalers) {
 			Log(Form("No dummy CTP scalers entry found, going into error..."));
 			return 1;
 		}
 		else{
-			AliTriggerRunScalers *scalers = (AliTriggerRunScalers*)cdbEntry->GetObject();
+			AliTriggerRunScalers *scalers = (AliTriggerRunScalers*)cdbEntryScalers->GetObject();
 			if (!scalers){
 				Log(Form("CTP dummy scalers not found in OCDB entry, going into error..."));
 				return 1;
@@ -1685,7 +1694,31 @@ UInt_t AliGRPPreprocessor::ProcessDcsFxs(TString partition, TString detector)
 				metaData.SetComment("CTP scalers from dummy entry in OCDB");
 				if (!Store("CTP","Scalers", scalers, &metaData, 0, 0)) {
 					Log("Unable to store the dummy CTP scalers object to OCDB!");
+					delete scalers;
 					return 1;
+				}
+			}
+		}
+
+		AliCDBEntry *cdbEntryAliases = GetFromOCDB("CTP","DummyAliases");
+		if (!cdbEntryAliases) {
+			Log(Form("No dummy CTP aliases entry found, going into error..."));
+			return 2;
+		}
+		else{
+			THashList *aliases = dynamic_cast<THashList*>(cdbEntryAliases->GetObject());
+			if (!aliases){
+				Log(Form("CTP dummy aliases not found in OCDB entry, going into error..."));
+				return 2;
+			}
+			else {
+				AliCDBMetaData metaData;
+				metaData.SetResponsible("Evgeny Kryshen");
+				metaData.SetComment("CTP mapping of trigger classes to trigger aliases");
+				if (!Store("CTP","Aliases", aliases, &metaData, 0, 0)) {
+					Log("Unable to store the dummy CTP aliases object to OCDB!");
+					delete aliases;					
+					return 2;
 				}
 			}
 		}
@@ -1718,19 +1751,103 @@ UInt_t AliGRPPreprocessor::ProcessDcsFxs(TString partition, TString detector)
 			}
 			delete scalers;
 		}
+
+
+
+		TString aliasesFile = GetFile(kDCS, "CTP_aliases","");
+		if (aliasesFile.IsNull()) {
+			Log("No CTP aliases files has been found: empty source!");
+			return 2;
+		}
+		else {
+			Log(Form("File with Id CTP_aliases found in DCS FXS! Copied to %s",aliasesFile.Data()));
+			// We build the THashList of TNamed("triggerclass","comma_separated_list_of_corresponding_aliases")
+			THashList* trClasses2Aliases = ProcessAliases(aliasesFile);
+			if (!trClasses2Aliases) {
+				Log("Bad CTP aliases file! The corresponding CDB entry will not be filled!");
+				return 2;
+			}
+			else {
+				AliCDBMetaData metaData;
+				metaData.SetBeamPeriod(0);
+				metaData.SetResponsible("Evgeny Kryshen");
+				metaData.SetComment("CTP mapping of trigger classes to trigger aliases");
+				if (!Store("CTP","Aliases", trClasses2Aliases, &metaData, 0, 0)) {
+					Log("Unable to store the CTP aliases object to OCDB!");
+					delete trClasses2Aliases;					
+					return 2;
+				}
+			}
+			delete trClasses2Aliases;
+		}
 	}
 	
 
 	else{	
 		Log(Form("Incorrect field in DAQ logbook for partition = %s and detector = %s, going into error...",partition.Data(),detector.Data()));
-		return 2;
+		return 3;
 	}
 
 	return 0;
 
 }
-//_______________________________________________________________
 
+//_______________________________________________________________
+THashList* AliGRPPreprocessor::ProcessAliases(const char* aliasesFile)
+{
+
+	//
+	// build the THashList of triggerclasses-to-triggeraliases from text file  
+	// each line of the file is supposed to be a string composed by
+	// triggerclass+spaces+commaseparatedlistofcorrespondingaliases\n
+	// it will add a TNamed("triggerclass","commaseparatedlistofcorrespondingaliases")
+	// to the hashlist
+	//
+
+	if (gSystem->AccessPathName(aliasesFile)) {
+		Printf("file (%s) not found", aliasesFile);
+		return 0;
+	}
+
+	ifstream *file = new ifstream(aliasesFile);
+	if (!*file) {
+		Printf("Error opening file (%s) !",aliasesFile);
+		file->close();
+		delete file;
+		return 0;
+	}
+
+	THashList *hList = new THashList(10);
+	hList->SetName("List of trigger classes to trigger aliases strings");
+
+	TString strLine;
+	while (strLine.ReadLine(*file)) {
+
+	    // safety for null lines, tabs instead of whitespaces, trailing carriage return, leading or trailing spaces/tabs
+		if (strLine.IsNull()) continue;
+		strLine.ReplaceAll('\t',' ');
+		strLine.Remove(TString::kLeading,' ');
+		strLine.Remove(TString::kTrailing,'\r');
+		strLine.Remove(TString::kTrailing,' ');
+
+		TObjArray* arr = strLine.Tokenize(' ');
+		if(arr->GetEntries() != 2){
+			Printf("The line:\n%s\nunexpectedly contains %d tokens, instead of two.",strLine.Data(),arr->GetEntries());
+			return 0;
+		}
+		TObjString *osTC = (TObjString*) arr->At(0);
+		TObjString *osTAlist = (TObjString*) arr->At(1);
+		TNamed *ctoa = new TNamed(osTC->GetName(),osTAlist->GetName());
+		hList->Add(ctoa);
+	}
+
+	file->close();
+	delete file;
+
+	return hList;
+}
+
+//_______________________________________________________________
 Int_t AliGRPPreprocessor::ProcessDcsDPs(TMap* valueMap, AliGRPObject* grpObj)
 {
 
