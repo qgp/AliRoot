@@ -70,7 +70,6 @@
 class AliTOFcluster;
 
 extern TROOT *gROOT;
-extern TVirtualMC *gMC;
 
 extern AliRun *gAlice;
 
