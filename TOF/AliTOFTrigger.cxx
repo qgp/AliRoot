@@ -433,10 +433,10 @@ void AliTOFTrigger::Trigger() {
 		      }	
 		      
 		      if(nchonTot >= 2 && nchonTot <= 6){
-			if(DeSlots >= mindeltaro && DeSlots <= maxdeltaro){
+			if(DeSlots >= 15 && DeSlots <= 18){
 			  SetInput("0OMU");
 			}
-			else if(AntiDeSlots >= mindeltaro && AntiDeSlots <= maxdeltaro){
+			else if(AntiDeSlots >= 15 && AntiDeSlots <= 18){
 			  SetInput("0OMU");
 			}	
 		      }		      
@@ -520,7 +520,8 @@ void AliTOFTrigger::CreateLTMMatrixFromDigits() {
     Int_t indexLTM[2] = {-1,-1};
     GetLTMIndex(detind,indexLTM);
 
-    Float_t timedigit = digit->GetTdc()*AliTOFGeometry::TdcBinWidth()*1E-3; // time digit in ns
+    //Float_t timedigit = digit->GetTdc()*AliTOFGeometry::TdcBinWidth()*1E-3; // decalibrated time digit in ns
+    Float_t timedigit = digit->GetTdcND()*AliTOFGeometry::TdcBinWidth()*1E-3; // time digit in ns
 
     Float_t pos[3];
     fgTofGeo->GetPosPar(detind, pos);
