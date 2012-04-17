@@ -701,39 +701,15 @@ Float_t AliTRDcalibDB::GetT0Average(Int_t det)
 }
 
 //_____________________________________________________________________________
-Float_t AliTRDcalibDB::GetGainFactor(Int_t det, Int_t col, Int_t row)
-{
-  //
-  // Returns the gain factor for the given pad.
-  //
-  
-  const AliTRDCalPad *calPad     = dynamic_cast<const AliTRDCalPad *> 
-                                   (GetCachedCDBObject(kIDGainFactorPad));
-  if (!calPad) {
-    return -1;
-  }
-
-  AliTRDCalROC       *roc        = calPad->GetCalROC(det);
-  if (!roc) {
-    return -1;
-  }
-
-  const AliTRDCalDet *calChamber = dynamic_cast<const AliTRDCalDet *> 
-                                   (GetCachedCDBObject(kIDGainFactorChamber));
-  if (!calChamber) {
-    return -1;
-  }
-
-  return calChamber->GetValue(det) * roc->GetValue(col,row);
-
-}
-
-//_____________________________________________________________________________
 AliTRDCalOnlineGainTableROC* AliTRDcalibDB::GetOnlineGainTableROC(Int_t det)
 {
   //
   // Returns the online gain factor table for a given ROC.
   //
+
+  if (!HasOnlineFilterGain()) {
+    return 0x0;
+  }
   
   const AliTRDCalOnlineGainTable *calOnline 
      = dynamic_cast<const AliTRDCalOnlineGainTable *> 
@@ -752,6 +728,10 @@ Float_t AliTRDcalibDB::GetOnlineGainFactor(Int_t det, Int_t col, Int_t row)
   //
   // Returns the online gain factor for the given pad.
   //
+
+  if (!HasOnlineFilterGain()) {
+    return 0x0;
+  }
   
   const AliTRDCalOnlineGainTable *calOnline 
      = dynamic_cast<const AliTRDCalOnlineGainTable *> 
@@ -784,6 +764,34 @@ AliTRDCalROC *AliTRDcalibDB::GetGainFactorROC(Int_t det)
   else {
     return roc;
   }
+
+}
+
+//_____________________________________________________________________________
+Float_t AliTRDcalibDB::GetGainFactor(Int_t det, Int_t col, Int_t row)
+{
+  //
+  // Returns the gain factor for the given pad.
+  //
+  
+  const AliTRDCalPad *calPad     = dynamic_cast<const AliTRDCalPad *> 
+                                   (GetCachedCDBObject(kIDGainFactorPad));
+  if (!calPad) {
+    return -1;
+  }
+
+  AliTRDCalROC       *roc        = calPad->GetCalROC(det);
+  if (!roc) {
+    return -1;
+  }
+
+  const AliTRDCalDet *calChamber = dynamic_cast<const AliTRDCalDet *> 
+                                   (GetCachedCDBObject(kIDGainFactorChamber));
+  if (!calChamber) {
+    return -1;
+  }
+
+  return calChamber->GetValue(det) * roc->GetValue(col,row);
 
 }
 
