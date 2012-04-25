@@ -330,7 +330,7 @@ TObject* AliLHCData::FindRecValidFor(int start,int nrec, double tstamp) const
 }
 
 //___________________________________________________________________
-Int_t AliLHCData::FillScalarRecord(int refs[2], const char* rec, const char* recErr, Double_t maxAbsVal)
+Int_t AliLHCData::FillScalarRecord(int refs[2], const char* rec, const char* recErr)
 {
   // fill record for scalar value, optionally accompanied by measurement error 
   //
@@ -355,13 +355,8 @@ Int_t AliLHCData::FillScalarRecord(int refs[2], const char* rec, const char* rec
     AliDCSArray *dcsVal = (AliDCSArray*) arr->At(iFirst++);
     double tstamp = dcsVal->GetTimeStamp();
     //
-    AliLHCDipValD* curValD = new AliLHCDipValD(dim,tstamp);  // start new period
-    double vcheck = ExtractDouble(dcsVal,0);     // value
-    if (TMath::Abs(vcheck) > maxAbsVal) {
-      AliError(Form("ANOMALOUS VALUE %e for slot %d of %s: exceeds %e",vcheck, 0, rec, maxAbsVal));
-      vcheck = 0.;
-    }    
-    (*curValD)[0] = vcheck;
+    AliLHCDipValF* curValF = new AliLHCDipValF(dim,tstamp);  // start new period
+    (*curValF)[0] = ExtractDouble(dcsVal,0);     // value
     //
     if (recErr) {
       double errVal = -1;
@@ -370,22 +365,18 @@ Int_t AliLHCData::FillScalarRecord(int refs[2], const char* rec, const char* rec
         double tstampE = dcsValE->GetTimeStamp();
         int tdif = TimeDifference(tstamp,tstampE);
         if (!tdif) { // error matches to value
-	  errVal = ExtractDouble(dcsVal,0);     // value
-	  if (TMath::Abs(errVal) > maxAbsVal) {
-	    AliError(Form("ANOMALOUS VALUE %e for slot %d of %s: exceeds %e",errVal, 0, recErr, maxAbsVal));
-	    errVal = 0.;
-	  }
+          errVal = ExtractDouble(dcsValE,0);
 	  iFirstE++; 
 	  break;
 	}
         else if (tdif>0) iFirstE++; // error time lags behind, read the next one
         else break;                 // error time is ahead of value, no error associated
       }
-      (*curValD)[dim-1] = errVal;   // error
-      curValD->SetLastSpecial();    // lable the last entry as an error
+      (*curValF)[dim-1] = errVal;   // error
+      curValF->SetLastSpecial();    // lable the last entry as an error
     }
     //
-    fData.Add(curValD);
+    fData.Add(curValF);
     refs[kNStor]++;
     // if (last) break;
   }
@@ -505,7 +496,7 @@ Int_t AliLHCData::FillStringRecord(int refs[2],const char* rec)
 }
 
 //___________________________________________________________________
-Int_t AliLHCData::FillBunchInfo(int refs[2],const char* rec, int ibm, Bool_t inRealSlots, Double_t maxAbsVal)
+Int_t AliLHCData::FillBunchInfo(int refs[2],const char* rec, int ibm, Bool_t inRealSlots)
 {
   // fill bunch properties for beam ibm
   // if inRealSlots = true, then the value is taken from bunchRFbucket/10, otherwise, the value 
@@ -540,23 +531,16 @@ Int_t AliLHCData::FillBunchInfo(int refs[2],const char* rec, int ibm, Bool_t inR
       continue;
     }
     double* dcsArr = dcsVal->GetDouble();
-    AliLHCDipValD* curValD = new AliLHCDipValD(nbunch,tstamp);
+    AliLHCDipValF* curValF = new AliLHCDipValF(nbunch,tstamp);
     for (int i=nbunch;i--;) {
       int ind = inRealSlots ? (*bconf)[i]/10 : i;
       if (ind>nSlots) {
 	AliError(Form("Bunch %d refers to wrong slot %d, set to -1",i,(*bconf)[i]));
-	(*curValD)[i] = -1;
+	(*curValF)[i] = -1;
       }
-      else {
-	double vcheck = dcsArr[ind];
-	if (TMath::Abs(vcheck) > maxAbsVal) {
-	  AliError(Form("ANOMALOUS VALUE %e for slot %d of %s: exceeds %e",vcheck, ind, rec, maxAbsVal));
-	  vcheck = 0.;
-	}
-	(*curValD)[i] = vcheck;
-      }
+      else (*curValF)[i] = dcsArr[ind];
     }
-    fData.Add(curValD);
+    fData.Add(curValF);
     refs[kNStor]++;
   }
   if (fkFile2Process) delete arr;
@@ -565,7 +549,7 @@ Int_t AliLHCData::FillBunchInfo(int refs[2],const char* rec, int ibm, Bool_t inR
 }
  
 //___________________________________________________________________
-Int_t AliLHCData::FillBCLuminosities(int refs[2],const char* rec, const char* recErr, int useBeam, Double_t maxAbsVal)
+Int_t AliLHCData::FillBCLuminosities(int refs[2],const char* rec, const char* recErr, int useBeam)
 {
   // fill luminosities per bunch crossing
   //
@@ -613,7 +597,7 @@ Int_t AliLHCData::FillBCLuminosities(int refs[2],const char* rec, const char* re
       arrE=GetDCSEntry(recErr,iFirstE,iLastE,fTMin,fTMax);
       dim += 1;
     }
-    AliLHCDipValD* curValD = new AliLHCDipValD(dim,tstamp);
+    AliLHCDipValF* curValF = new AliLHCDipValF(dim,tstamp);
     int cnt = 0;
     for (int i=0;i<nbunch;i++) {
       int slot = (*bconf)[i];
@@ -622,16 +606,9 @@ Int_t AliLHCData::FillBCLuminosities(int refs[2],const char* rec, const char* re
       int ind = TMath::Abs(slot)/10;
       if (ind>nSlots) {
 	AliError(Form("Bunch %d refers to wrong slot %d, set to -1",cnt,slot));
-	(*curValD)[cnt] = -1;
+	(*curValF)[cnt] = -1;
       }
-      else {
-	double vcheck = dcsArr[ind];
-	if (TMath::Abs(vcheck) > maxAbsVal) {
-	  AliError(Form("ANOMALOUS VALUE %e for slot %d of %s: exceeds %e",vcheck, ind, rec, maxAbsVal));
-	  vcheck = 0.;
-	}
-	(*curValD)[i] = vcheck;
-      }
+      else (*curValF)[cnt] = dcsArr[ind];
       cnt++;
     }
     //
@@ -643,21 +620,17 @@ Int_t AliLHCData::FillBCLuminosities(int refs[2],const char* rec, const char* re
 	int tdif = TimeDifference(tstamp,tstamp1);
 	if (!tdif) { // error matches to value
 	  errVal = dcsValE->GetDouble()[0];
-	  if (TMath::Abs(errVal) > maxAbsVal) {
-	    AliError(Form("ANOMALOUS VALUE %e for slot %d of %s: exceeds %e",errVal,0, rec, maxAbsVal));
-	    errVal = 0.;
-	  }	  
 	  iFirstE++; 
 	  break;
 	}
 	else if (tdif>0) iFirstE++; // error time lags behind, read the next one
 	else break;                 // error time is ahead of value, no error associated
       }
-      (*curValD)[dim-1] = errVal;   // error
-      curValD->SetLastSpecial();    // lable the last entry as an error
+      (*curValF)[dim-1] = errVal;   // error
+      curValF->SetLastSpecial();    // lable the last entry as an error
     }
     //
-    fData.Add(curValD);
+    fData.Add(curValF);
     refs[kNStor]++;
   }
   if (fkFile2Process) {
@@ -998,7 +971,7 @@ Int_t AliLHCData::GetMeanIntensity(int beamID, Double_t &colliding, Double_t &no
   //
   for (int irec=0;irec<nrec;irec++) {
     //
-    AliLHCDipValD* rInt = GetIntensityPerBunch(beamID,irec);
+    AliLHCDipValF* rInt = GetIntensityPerBunch(beamID,irec);
     for (int ib=0;ib<nb;ib++) {
       double val = rInt->GetValue(ib);
       if (val<0) continue;
