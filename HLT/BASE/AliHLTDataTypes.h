@@ -67,8 +67,11 @@
  *           Adding data block type for forwarded component table blocks
  *           Adding new event type for software triggers.
  *  15       Modifying data block types for trigger counter blocks.
+ *  16       Adding data type for the meta data block to be forwarded by the
+ *           TCPDumpSubscriber for the Common Data Header (CDH) and readout
+ *           list information.
  */
-#define ALIHLT_DATA_TYPES_VERSION 15
+#define ALIHLT_DATA_TYPES_VERSION 16
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -560,7 +563,10 @@ const int kAliHLTComponentDataTypefIDsize=8;
  */
 # define kAliHLTOutputTriggerCountersDataTypeID     {'O','T','T','R','G','C','N','T'}
 
-using namespace std;
+/** Generic meta data block type ID.
+ * @ingroup alihlt_component_datatypes
+ */
+# define kAliHLTMetaDataTypeID                      {'M','E','T','A','D','A','T','A'}
 
 extern "C" {
   //////////////////////////////////////////////////////////////////////////
@@ -710,6 +716,9 @@ extern "C" {
     AliHLTComponentDataType fDataType;
     /** data specification of the data block */
     AliHLTUInt32_t fSpecification;
+
+    AliHLTComponentDataType GetDataType() const {return fDataType;}
+    AliHLTUInt32_t GetSpecification() const {return fSpecification;}
   };
 
   /**
@@ -1170,6 +1179,12 @@ extern "C" {
    */
   extern const AliHLTComponentDataType kAliHLTDataTypeComponentFwdTable;
 
+  /**
+   * Data type for the Common Data Header and readout list information sent by TCPDumpSubscriber.
+   * @ingroup alihlt_component_datatypes
+   */
+  extern const AliHLTComponentDataType kAliHLTDataTypeTriggerMetaBlock;     // {METADATA:PRIV}
+
   //////////////////////////////////////////////////////////////////////////
   //
   // Data Types for Monitoring objects
@@ -1412,6 +1427,8 @@ extern "C" {
   typedef int (*AliHLTExtFctGetOutputSize)( AliHLTComponentHandle, unsigned long*, double* );
 
 }
+
+using namespace std;
 
 //////////////////////////////////////////////////////////////////////////
 //
