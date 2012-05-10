@@ -37,6 +37,8 @@
 
 #include "AliTRDPIDReference.h"
 #include "AliTRDcalibDB.h"
+#include "AliTRDtrapConfig.h"
+#include "AliTRDtrapConfigHandler.h"
 #include "AliTRDCommonParam.h"
 
 #include "Cal/AliTRDCalROC.h"
@@ -109,6 +111,9 @@ AliTRDcalibDB::AliTRDcalibDB()
   ,fPRFpad(0)
   ,fPIDResponse(NULL)
   ,fOnlineGainTableID(0)
+  ,fTrapConfig(0x0)
+  ,fTrapConfigName("")
+  ,fTrapConfigVersion("")
 {
   //
   // Default constructor
@@ -140,6 +145,9 @@ AliTRDcalibDB::AliTRDcalibDB(const AliTRDcalibDB &c)
   ,fPRFpad(0)
   ,fPIDResponse(NULL)
   ,fOnlineGainTableID(0)
+  ,fTrapConfig(0x0)
+  ,fTrapConfigName("")
+  ,fTrapConfigVersion("")
 {
   //
   // Copy constructor (not that it make any sense for a singleton...)
@@ -302,6 +310,9 @@ const TObject *AliTRDcalibDB::GetCachedCDBObject(Int_t id)
       break;
     case kIDFEE : 
       return CacheCDBEntry(kIDFEE               ,"TRD/Calib/FEE"); 
+      break;
+    case kIDTrapConfig :
+      return CacheCDBEntry(kIDFEE               ,"TRD/Calib/TrapConfig"); 
       break;
     case kIDDCS :
       return CacheCDBEntry(kIDDCS               ,"TRD/Calib/DCS");
@@ -1738,3 +1749,60 @@ Int_t AliTRDcalibDB::PadResponse(Double_t signal, Double_t dist
 }
 
 
+AliTRDtrapConfig* AliTRDcalibDB::GetTrapConfig()
+{
+  // return an existing TRAPconfig or load it from the OCDB
+  // in case of failure, a default TRAPconfig is created
+
+  if (fTrapConfig)
+    return fTrapConfig;
+  else {
+    if ((fTrapConfigName.Length() <= 0) || (fTrapConfigVersion.Length() <= 0)) {
+      // query the configuration to be used
+      TString configName;
+      this->GetGlobalConfiguration(configName);
+      TString configVersion;
+      this->GetGlobalConfigurationVersion(configVersion);
+    }
+
+    // try to load the requested configuration
+    this->LoadTrapConfig(fTrapConfigName, fTrapConfigVersion);
+
+    // if we still don't have a valid TRAPconfig, create a default one
+    if (!fTrapConfig) {
+      AliWarning("Falling back to default configuration");
+      fTrapConfig = new AliTRDtrapConfig("default", "default TRAP configuration");
+      AliTRDtrapConfigHandler cfgHandler(fTrapConfig);
+      cfgHandler.Init();
+      cfgHandler.LoadConfig();
+    }
+
+    AliInfo(Form("using TRAPconfig \"%s\"", fTrapConfig->GetTitle()));
+
+    return fTrapConfig;
+  }
+}
+
+
+AliTRDtrapConfig* AliTRDcalibDB::LoadTrapConfig(const TString &name, const TString &version)
+{
+  // try to load the specified configuration from the OCDB
+  // if it fails, or it does not exist, return null
+
+  AliInfo(Form("looking for TRAPconfig \"%s.%s\"", name.Data(), version.Data()));
+
+  const AliTRDCalTrapConfig *caltrap = dynamic_cast<const AliTRDCalTrapConfig*> (GetCachedCDBObject(kIDTrapConfig));
+
+  if (caltrap) {
+    TString configName(name);
+    configName.Append(".");
+    configName.Append(version);
+    fTrapConfig = caltrap->Get(configName);
+  }
+  else {
+    fTrapConfig = 0x0;
+    AliError("No TRAPconfig entry found!");
+  }
+
+  return fTrapConfig;
+}

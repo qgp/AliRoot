@@ -54,6 +54,7 @@
 #pragma link C++ class  AliTRDCalOnlineGainTable+;
 #pragma link C++ class  AliTRDCalOnlineGainTableROC+;
 #pragma link C++ class  AliTRDCalOnlineGainTableMCM+;
+#pragma link C++ class  AliTRDCalTrapConfig+;
 
 #pragma link C++ class  AliTRDCalChamberStatus+;
 #pragma link C++ class  AliTRDCalPadStatus+;
@@ -91,6 +92,9 @@
 #pragma link C++ class  AliTRDtrapConfigHandler+;
 #pragma link C++ class  AliTRDltuParam+;
 #pragma link C++ class  AliTRDtrapConfig+;
+#pragma link C++ class  AliTRDtrapConfig::AliTRDtrapValue+;
+#pragma link C++ class  AliTRDtrapConfig::AliTRDtrapRegister+;
+#pragma link C++ class  AliTRDtrapConfig::AliTRDtrapDmemWord+;
 #pragma link C++ class  AliTRDtrackletBase+;
 #pragma link C++ class  AliTRDtrackletGTU+;
 #pragma link C++ class  AliTRDtrackletMCM+;
