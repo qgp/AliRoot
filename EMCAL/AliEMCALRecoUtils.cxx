@@ -346,7 +346,7 @@ Bool_t AliEMCALRecoUtils::AcceptCalibrateCell(const Int_t absID, const Int_t bc,
   }
   
   geom->GetCellPhiEtaIndexInSModule(imod,iTower,iIphi, iIeta,iphi,ieta);	
-  
+
   // Do not include bad channels found in analysis,
   if( IsBadChannelsRemovalSwitchedOn() && GetEMCALChannelStatus(imod, ieta, iphi)) 
   {
@@ -499,30 +499,40 @@ Bool_t AliEMCALRecoUtils::IsExoticCell(const Int_t absID, AliVCaloCells* cells, 
   geom->GetCellPhiEtaIndexInSModule(imod,iTower,iIphi, iIeta,iphi,ieta);	
   
   //Get close cells index, energy and time, not in corners
+
+  Int_t absID1 = -1;
+  Int_t absID2 = -1;
   
-  Int_t absID1 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi+1, ieta);
-  Int_t absID2 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi-1, ieta);
+  if( iphi < AliEMCALGeoParams::fgkEMCALRows-1) absID1 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi+1, ieta);
+  if( iphi > 0 )                                absID2 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi-1, ieta);
   
   // In case of cell in eta = 0 border, depending on SM shift the cross cell index
+
   Int_t absID3 = -1;
   Int_t absID4 = -1;
   
-  if     ( ieta == AliEMCALGeoParams::fgkEMCALCols - 1 && !(imod%2) )
+  
+  if     ( ieta == AliEMCALGeoParams::fgkEMCALCols-1 && !(imod%2) )
   {
-    absID3 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, 0);
-    absID4 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, ieta-1); 
+    absID3 = geom-> GetAbsCellIdFromCellIndexes(imod+1, iphi, 0);
+    absID4 = geom-> GetAbsCellIdFromCellIndexes(imod,   iphi, ieta-1); 
   }
   else if( ieta == 0 && imod%2 )
   {
-    absID3 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, ieta+1);
-    absID4 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, AliEMCALGeoParams::fgkEMCALCols-1); 
+    absID3 = geom-> GetAbsCellIdFromCellIndexes(imod,   iphi, ieta+1);
+    absID4 = geom-> GetAbsCellIdFromCellIndexes(imod-1, iphi, AliEMCALGeoParams::fgkEMCALCols-1); 
   }
   else
   {
-    absID3 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, ieta+1);
-    absID4 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, ieta-1); 
+    if( ieta < AliEMCALGeoParams::fgkEMCALCols-1 ) 
+      absID3 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, ieta+1);
+    if( ieta > 0 )                                 
+      absID4 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, ieta-1); 
   }
 
+  //printf("IMOD %d, AbsId %d, a %d, b %d, c %d e %d \n",imod,absID,absID1,absID2,absID3,absID4);
+
+  
   Float_t  ecell  = 0, ecell1  = 0, ecell2  = 0, ecell3  = 0, ecell4  = 0;
   Double_t tcell  = 0, tcell1  = 0, tcell2  = 0, tcell3  = 0, tcell4  = 0;
   Bool_t   accept = 0, accept1 = 0, accept2 = 0, accept3 = 0, accept4 = 0;
@@ -1500,10 +1510,13 @@ void AliEMCALRecoUtils::RecalculateClusterPID(AliVCluster * cluster)
   cluster->SetPID(pidlist);
 }
 
-//____________________________________________________________________________________________
+//___________________________________________________________________________________________________________________
 void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(const AliEMCALGeometry * geom, 
                                                                 AliVCaloCells* cells, 
-                                                                AliVCluster * cluster)
+                                                                AliVCluster * cluster,
+                                                                Float_t & l0,   Float_t & l1,   
+                                                                Float_t & disp, Float_t & dEta, Float_t & dPhi,
+                                                                Float_t & sEta, Float_t & sPhi, Float_t & sEtaPhi)
 {
   // Calculates new center of gravity in the local EMCAL-module coordinates 
   // and tranfers into global ALICE coordinates
@@ -1515,28 +1528,24 @@ void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(const AliEMCALGe
     return;
   }
     
-  Int_t nstat  = 0;
-  Float_t wtot = 0. ;
   Double_t eCell       = 0.;
   Float_t  fraction    = 1.;
   Float_t  recalFactor = 1.;
 
-  Int_t iSupMod = -1;
-  Int_t iTower  = -1;
-  Int_t iIphi   = -1;
-  Int_t iIeta   = -1;
-  Int_t iphi    = -1;
-  Int_t ieta    = -1;
-  Double_t etai = -1.;
-  Double_t phii = -1.;
+  Int_t    iSupMod = -1;
+  Int_t    iTower  = -1;
+  Int_t    iIphi   = -1;
+  Int_t    iIeta   = -1;
+  Int_t    iphi    = -1;
+  Int_t    ieta    = -1;
+  Double_t etai    = -1.;
+  Double_t phii    = -1.;
   
-  Double_t w     = 0.;
-  Double_t d     = 0.;
-  Double_t dxx   = 0.;
-  Double_t dzz   = 0.;
-  Double_t dxz   = 0.;  
-  Double_t xmean = 0.;
-  Double_t zmean = 0.;
+  Int_t    nstat   = 0 ;
+  Float_t  wtot    = 0.;
+  Double_t w       = 0.;
+  Double_t etaMean = 0.;
+  Double_t phiMean = 0.;
     
   //Loop on cells
   for(Int_t iDigit=0; iDigit < cluster->GetNCells(); iDigit++) 
@@ -1564,17 +1573,18 @@ void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(const AliEMCALGe
       w  = GetCellWeight(eCell,cluster->E());
       
       etai=(Double_t)ieta;
-      phii=(Double_t)iphi;		
+      phii=(Double_t)iphi;	
+      
       if(w > 0.0) 
       {
         wtot += w ;
         nstat++;		        
         //Shower shape
-        dxx  += w * etai * etai ;
-        xmean+= w * etai ;
-        dzz  += w * phii * phii ;
-        zmean+= w * phii ; 
-        dxz  += w * etai * phii ; 
+        sEta     += w * etai * etai ;
+        etaMean  += w * etai ;
+        sPhi     += w * phii * phii ;
+        phiMean  += w * phii ; 
+        sEtaPhi  += w * etai * phii ; 
       }
     } 
     else
@@ -1584,8 +1594,8 @@ void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(const AliEMCALGe
   //Normalize to the weight	
   if (wtot > 0) 
   {
-    xmean /= wtot ;
-    zmean /= wtot ;
+    etaMean /= wtot ;
+    phiMean /= wtot ;
   }
   else
     AliError(Form("Wrong weight %f\n", wtot));
@@ -1612,7 +1622,12 @@ void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(const AliEMCALGe
       
       etai=(Double_t)ieta;
       phii=(Double_t)iphi;		
-      if(w > 0.0)  d +=  w*((etai-xmean)*(etai-xmean)+(phii-zmean)*(phii-zmean)); 
+      if(w > 0.0) 
+      { 
+        disp +=  w *((etai-etaMean)*(etai-etaMean)+(phii-phiMean)*(phii-phiMean)); 
+        dEta +=  w * (etai-etaMean)*(etai-etaMean) ; 
+        dPhi +=  w * (phii-phiMean)*(phii-phiMean) ; 
+      }
     }
     else
       AliError(Form("Wrong energy %f and/or amplitude %f\n", eCell, cluster->E()));
@@ -1621,28 +1636,51 @@ void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(const AliEMCALGe
   //Normalize to the weigth and set shower shape parameters
   if (wtot > 0 && nstat > 1) 
   {
-    d /= wtot ;
-    dxx /= wtot ;
-    dzz /= wtot ;
-    dxz /= wtot ;
-    dxx -= xmean * xmean ;
-    dzz -= zmean * zmean ;
-    dxz -= xmean * zmean ;
-    cluster->SetM02(0.5 * (dxx + dzz) + TMath::Sqrt( 0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz ));
-    cluster->SetM20(0.5 * (dxx + dzz) - TMath::Sqrt( 0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz ));
+    disp    /= wtot ;
+    dEta    /= wtot ;
+    dPhi    /= wtot ;
+    sEta    /= wtot ;
+    sPhi    /= wtot ;
+    sEtaPhi /= wtot ;
+    
+    sEta    -= etaMean * etaMean ;
+    sPhi    -= phiMean * phiMean ;
+    sEtaPhi -= etaMean * phiMean ;
+    
+    l0 = (0.5 * (sEta + sPhi) + TMath::Sqrt( 0.25 * (sEta - sPhi) * (sEta - sPhi) + sEtaPhi * sEtaPhi ));
+    l1 = (0.5 * (sEta + sPhi) - TMath::Sqrt( 0.25 * (sEta - sPhi) * (sEta - sPhi) + sEtaPhi * sEtaPhi ));
   }
   else
   {
-    d=0. ;
-    cluster->SetM20(0.) ;
-    cluster->SetM02(0.) ;
+    l0   = 0. ;
+    l1   = 0. ;
+    dEta = 0. ; dPhi = 0. ; disp    = 0. ;
+    sEta = 0. ; sPhi = 0. ; sEtaPhi = 0. ;
   }	
   
-  if (d>=0)
-    cluster->SetDispersion(TMath::Sqrt(d)) ;
-  else    
-    cluster->SetDispersion(0) ;
 }
+
+//____________________________________________________________________________________________
+void AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(const AliEMCALGeometry * geom, 
+                                                                AliVCaloCells* cells, 
+                                                                AliVCluster * cluster)
+{
+  // Calculates new center of gravity in the local EMCAL-module coordinates 
+  // and tranfers into global ALICE coordinates
+  // Calculates Dispersion and main axis and puts them into the cluster
+  
+  Float_t l0   = 0., l1   = 0.;
+  Float_t disp = 0., dEta = 0., dPhi    = 0.; 
+  Float_t sEta = 0., sPhi = 0., sEtaPhi = 0.;
+  
+  AliEMCALRecoUtils::RecalculateClusterShowerShapeParameters(geom,cells,cluster,l0,l1,disp,
+                                                             dEta, dPhi, sEta, sPhi, sEtaPhi);
+  
+  cluster->SetM02(l0);
+  cluster->SetM20(l1);
+  if(disp > 0. ) cluster->SetDispersion(TMath::Sqrt(disp)) ;
+  
+} 
 
 //____________________________________________________________________________
 void AliEMCALRecoUtils::FindMatches(AliVEvent *event,
