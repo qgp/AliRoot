@@ -489,7 +489,8 @@ void AliEMCALDigitizer::Digitize(Int_t event)
         }//absID==nextSig
         
         // add the noise now
-        energy += TMath::Abs(gRandom->Gaus(0., fPinNoise)) ;
+        energy += gRandom->Gaus(0., fPinNoise) ;
+        
         // JLK 26-June-2008
         //Now digitize the energy according to the sDigitizer method,
         //which merely converts the energy to an integer.  Later we will
