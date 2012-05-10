@@ -11,7 +11,7 @@
 # cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z/]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text;svn log -c $r https://alisoft.cern.ch/AliRoot/trunk/HLT; svn diff -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
 #
 # comparing modified files with another aliroot version
-# for f in `svn st HLT | grep Ali | sed -e 's|^M||'`; do diff -I '$Id' $f ../AliRoot_HEAD_2011-10-18/$f; done
+# for f in `svn st HLT | grep Ali | sed -e 's|^MM*||'`; do echo $f; diff -I '$Id' $f ../AliRoot_HEAD_2012-04-04/$f; done
 #
 # merged revisions:
 # for r in `cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/---/!d' -e 's|---[ >/:A-Za-z]*||'`; do echo $r; done | sort
@@ -52,6 +52,12 @@
 	--- TRD: 51027 51030 51238
 	new trigger monitoring components
 
+	--- rec: 51111
+	minor modification to tool macro, postponed
+
+	--- trigger: 51584
+	correction of warnings in Electron trigger, not ported?
+
 2011-09-19
 	--- BASE: 51292 51309 51310
 	ported in r51454
@@ -61,6 +67,12 @@
 
 	--- TPC: 51242 51289 51306 51319 51321 51408 51410 51411 51420 51421
 	ported in r51456
+
+	--- BASE: 51291
+	unit test disabled, postponed
+
+	--- QA: 51297
+	postponed
 
 2011-09-19 updated to r51577
 	--- BASE: 51532 51566 51592 51603 51621 51638 51644
@@ -87,6 +99,9 @@
 	--- BASE: 51409
 	postponed
 
+	--- TPC: 51371 51372 51375 51379
+	reverted revisions, not to be committed
+
 2011-09-26
 	--- global: 51392 51406 51407 51688 51689 51696
 
@@ -102,6 +117,15 @@
 	--- global: 51837 51838 51839
 	Preprocessor, postponed
 
+	--- BASE: 51666
+	minor change in DataDeflater, postponed
+
+	--- offline: 51746
+	package configuration, ported in 52310
+
+	--- MUON: 51870
+	changes related to offline MUON, ported in 51917
+
 2011-10-10 updated to r52017
 	--- TPC: 51926 51937 51953 51954 51955 51972 51973 51977 51997 51998 51999 52000 52019 52020 52021 52023 52024 52042 52047
 	decoding of compressed TPC data optimized, improved cluster verification
@@ -115,6 +139,9 @@
 	convenience methods
 	postponed
 
+	--- ITS: 52057
+	code cleanup, postponed
+
 	--- trigger: 52070
 	bugfix TString in root v5-30
 
@@ -127,7 +154,10 @@
 	memory leak in AliHLTTPCDataCompressionDecoder
 	committed r52295
 
-	--- EMCAL: 52150,52247,52248
+	--- EMCAL: 52148 52149
+	reverted revisions, not to be ported
+	
+	--- EMCAL: 52150 52247 52248
 	memory leak in AliHLTEMCALMapper
 	committed r52298
 
@@ -138,6 +168,9 @@
 	--- BASE: 52326
 	bug #88140: Request to port bugfix in HLTOUT unpacking
 	committed r52577
+
+	--- offline: 52237
+	new detector, not to be ported
 
 2011-11-08 updated to r52659
 	--- TPC: 52147 52327 52373 52374 52413 52426 52579
@@ -151,8 +184,15 @@
 	bug #82052: CDB access of HLT components uses "forbidden" functions
 	bug #83123: HLT simulation fails for raw data in ppbench
 
+	--- BASE: 52328 52329
+	bugfixes RawReaderHLT, HOMER library manager, to be ported
+
+	--- TPC: 52372
+	correction of error message, to be ported
+	
 	--- BASE: 52674
 	event modulo introduced in component base class
+	ported in r52676
 
 	--- TPC: 52507
 	update of dEdx monitoring component
@@ -183,14 +223,14 @@
 	--- TPC: 52685 52776 52872 52874 52996 53052 53054
 	component update
 
-	--- TPC: 53173,53179,53180,53226,53333,53342,53378,53380,53393,53394,53404
+	--- TPC: 53173 53179 53180 53226 53333 53342 53378 53380 53393 53394 53404
 	cluster merging
 
 	--- TPC: 53181 53447 53448 53449 53450 53451
 	enable cluster merging in decoding for offline reconstruction
 	handle MC labels for merged clusters in decoding
 
-	--- TPC: 53043 53055 53102 53176 53217 53218 53219 53222 53224
+	--- TPC: 53043 53055 53176 53217 53218 53219 53222 53224
 	coverity and minor bugfixes
 
 	--- TPC: 53103 53107
@@ -212,10 +252,6 @@
 	coverity and minor fixes
 	postponed
 
-	--- global: 53102
-	coverity
-	postponed
-
 	--- QA: 53056
 
 	--- TRD: 53045
@@ -224,3 +260,64 @@
 
 	--- MUON: 52987 52988 52989
 	postponed
+
+	--- CALO: 52643 52644
+	additional checks, postponed
+
+	--- BASE: 52714
+	bugfix for event modulo of component base class
+	ported in r52719
+
+	--- TPC: 53076
+	minor change, postponed
+
+	--- global: 53078
+	minor change, postponed
+
+	Last checked revision 53451
+
+2011-12-15
+	--- TPC: 53494
+	bugfix cluster merger
+	ported 53627
+	https://savannah.cern.ch/bugs/?89819
+
+2012-02-06
+	--- TPC: 54055 54056
+	additional checks in cluster decoding
+	ported 54432
+	https://savannah.cern.ch/bugs/?90320
+
+	--- TPC: 54011
+	one instance of decoder used in cluster access, postponed
+
+	--- TPC: 53176 53515 53519 53520 53521 53522 53523
+	CA tracking, code cleanup, postponed
+
+	--- development: 53514 53516 53517 5351853755 53756 53757 53758 53759 53760 53761 53762 53811 53813 53814 53815 53816 53818 53819 53820 53821 53822 53823 53824 53825 53826 53827 53828 53829 53830 53873 53999 54009 54036 54037
+
+	Last checked revision 54056
+
+2012-12-04
+	--- TPC: 55270 55281
+	optimized memory consumption in cluster decoding
+	ported 55603
+	https://savannah.cern.ch/bugs/?90625
+
+	--- development: 54057 54339 54484 54556 54557 54558 54559 54631 54632 54634 54636 54637 54805 54806 54824 54828 54847 54969
+
+	Last checked revision 55281
+
+2012-05-08 updated to revision 55898
+	--- TPC: 53812 53817 56142
+	bugfix CA tracking
+
+	--- trigger: 52046 52066 55427
+	trigger format: new bit in CDH, new HLTOUT links
+
+	--- BASE: 52710 52713 52753 52985 54633
+	bugfix: TString behaviour in ROOT 5.30, added data type
+
+	--- development: 55427 55431 55434 55484 55485 55489 55513 55548
+
+	Last checked revision 56142
