@@ -72,7 +72,7 @@ class AliCDBManager: public TObject {
 
 	void UnsetDrain(){fDrainStorage = 0x0;}
 
-	AliCDBEntry* Get(const AliCDBId& query);
+	AliCDBEntry* Get(const AliCDBId& query, Bool_t forceCaching=kFALSE);
 	AliCDBEntry* Get(const AliCDBPath& path, Int_t runNumber=-1,
 				Int_t version = -1, Int_t subVersion = -1);
 	AliCDBEntry* Get(const AliCDBPath& path, const AliCDBRunRange& runRange,
@@ -182,8 +182,6 @@ protected:
 	Bool_t fLock; 	//! Lock flag, if ON default storage and run number cannot be reset
 
         Bool_t fSnapshotMode;           //! flag saying if we are in snapshot mode
-	//TMap* fSnapshotCache;    	//! pointer to the cache of objects in the snapshot
-	//TList* fSnapshotIdsList;        //! pointer to the list of the object Id's in the snapshot
 	TFile *fSnapshotFile;
 
 	Bool_t fRaw;   // flag to say whether we are in the raw case

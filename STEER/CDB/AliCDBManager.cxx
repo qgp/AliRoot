@@ -301,8 +301,6 @@ AliCDBManager::AliCDBManager():
   fLock(kFALSE),
   fSnapshotMode(kFALSE),
   fSnapshotFile(0),
-//  fSnapshotCache(0),
-//  fSnapshotIdsList(0),
   fRaw(kFALSE),
   fStartRunLHCPeriod(-1),
   fEndRunLHCPeriod(-1),
@@ -814,7 +812,7 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBPath& path,
 }
 
 //_____________________________________________________________________________
-AliCDBEntry* AliCDBManager::Get(const AliCDBId& query) {
+AliCDBEntry* AliCDBManager::Get(const AliCDBId& query, Bool_t forceCaching) {
 // get an AliCDBEntry object from the database
 	
 	// check if query's path and runRange are valid
@@ -847,20 +845,24 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBId& query) {
 		return entry;
 	}
 
-  	// if snapshot flag is set, try getting from the snapshot
-  	if(fSnapshotMode && query.GetFirstRun() == fRun)
-	    // entry = (AliCDBEntry*) fSnapshotCache->GetValue(query.GetPath()); // not possible,
-	    // all the map would be charged in memory from the snapshot anyway.
-	    entry = GetEntryFromSnapshot(query.GetPath());
-  	if(entry) {
-		AliDebug(2, Form("Object %s retrieved from the snapshot !!",query.GetPath().Data()));
-		if(query.GetFirstRun() == fRun) // no need to check fCache, fSnapshotMode not possible otherwise
-		    CacheEntry(query.GetPath(), entry);
+	// if snapshot flag is set, try getting from the snapshot
+	// but in the case a specific storage is specified for this path
+	AliCDBParam *aPar=SelectSpecificStorage(query.GetPath());
+	if(!aPar){
+	    if(fSnapshotMode && query.GetFirstRun() == fRun)
+	    {
+		entry = GetEntryFromSnapshot(query.GetPath());
+		if(entry) {
+		    AliInfo(Form("Object \"%s\" retrieved from the snapshot.",query.GetPath().Data()));
+		    if(query.GetFirstRun() == fRun) // no need to check fCache, fSnapshotMode not possible otherwise
+			CacheEntry(query.GetPath(), entry);
 
-		if(!fIds->Contains(&entry->GetId()))
-		    fIds->Add(entry->GetId().Clone());
+		    if(!fIds->Contains(&entry->GetId()))
+			fIds->Add(entry->GetId().Clone());
 
-		return entry;
+		    return entry;
+		}
+	    }
 	}
 
 	// Entry is not in cache (and, in case we are in snapshot mode, not in the snapshot either)
@@ -869,9 +871,8 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBId& query) {
 		AliError("No storage set!");
 		return NULL;
 	}
-	AliCDBStorage *aStorage=0;
-	AliCDBParam *aPar=SelectSpecificStorage(query.GetPath());
 
+	AliCDBStorage *aStorage=0;
 	if(aPar) {
 		aStorage=GetStorage(aPar);
 		TString str = aPar->GetURI();
@@ -883,7 +884,7 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBId& query) {
 
 	entry = aStorage->Get(query);
 
- 	if(entry && fCache && (query.GetFirstRun() == fRun)){
+ 	if(entry && fCache && (query.GetFirstRun()==fRun || forceCaching)){
 		CacheEntry(query.GetPath(), entry);
 	}
 
@@ -938,6 +939,7 @@ Bool_t AliCDBManager::SetSnapshotMode(const char* snapshotFileName) {
 	return kFALSE;
     }
 
+    Printf("The CDB manager is set in snapshot mode: cache->snapshot->defaultstorage");
     fSnapshotMode = kTRUE;
     return kTRUE;
 
