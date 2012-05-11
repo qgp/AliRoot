@@ -1,5 +1,5 @@
-#ifndef ALIPIPEVGEO_H
-#define ALIPIPEVGEO_H
+#ifndef ALIPIPEV3_H
+#define ALIPIPEV3_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
@@ -30,12 +30,16 @@ class AliPIPEv3 : public AliPIPE {
   virtual void   CreateGeometry();
   virtual void   CreateMaterials();
   virtual Int_t  IsVersion() const {return 0;}
+  virtual void   SetBeamBackgroundSimulation() {fBeamBackground = kTRUE;}
+  virtual void   AddAlignableVolumes() const;
+	  
  private:
   virtual TGeoPcon*   MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin = -1, Int_t imax = -1, Float_t r0 = 0., Int_t nz =-1);
   virtual TGeoPcon*   MakeInsulationFromTemplate(TGeoPcon* shape);
   virtual TGeoVolume* MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rMax, Float_t dU, Float_t rPlie, Float_t dPlie);
- protected:
-  ClassDef(AliPIPEv3,1)  //Class for PIPE version using TGeo
+  Bool_t  fBeamBackground; // Flag for beam background simulations
+  
+  ClassDef(AliPIPEv3, 2)  //Class for PIPE version using TGeo
 };
  
 #endif

@@ -45,16 +45,17 @@
 #include "AliLog.h"
  
 ClassImp(AliPIPEv3)
+
  
 //_____________________________________________________________________________
-AliPIPEv3::AliPIPEv3()
+AliPIPEv3::AliPIPEv3() : fBeamBackground(0)
 {
 // Constructor
 }
 
 //_____________________________________________________________________________
 AliPIPEv3::AliPIPEv3(const char *name, const char *title)
-  : AliPIPE(name,title)
+  : AliPIPE(name,title), fBeamBackground(0)
 {
 // Constructor
 }
@@ -1616,7 +1617,7 @@ void AliPIPEv3::CreateGeometry()
     TGeoVolumeAssembly* voRB24 = new TGeoVolumeAssembly("RB24");
     // Cu Tube with two simplified flanges
     voRB24->AddNode(voRB24CuTubeM, 1, gGeoIdentity);
-    voRB24->AddNode(voRB24CuTubeA, 1, gGeoIdentity);
+    if (!fBeamBackground) voRB24->AddNode(voRB24CuTubeA, 1, gGeoIdentity);
     z = - kRB24CuTubeL/2 + kRB24CuTubeFL/2.;
     voRB24->AddNode(voRB24CuTubeF, 1, new TGeoTranslation(0., 0., z));
     z = + kRB24CuTubeL/2 - kRB24CuTubeFL/2.;
@@ -2978,6 +2979,31 @@ TGeoVolume* AliPIPEv3::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float
     }
     return voBellow;
 }
+
+//_______________________________________________________________________
+void AliPIPEv3::AddAlignableVolumes() const
+{
+  // 
+  AliInfo("Add PIPE alignable volume");
+
+  if (!gGeoManager) {
+    AliFatal("TGeoManager doesn't exist !");
+    return;
+  }
+
+  TString symname("CP1");
+  TString volpath("/ALIC_1/CP_1/Cp1_1");
+  if(!gGeoManager->SetAlignableEntry(symname.Data(),volpath.Data()))
+    AliFatal(Form("Alignable entry %s not created. Volume path %s not valid",
+		  symname.Data(),volpath.Data()));
+
+  TString symname2("CP3");
+  TString volpath2("/ALIC_1/CP_1/Cp3_1");
+  if(!gGeoManager->SetAlignableEntry(symname2.Data(),volpath2.Data()))
+    AliFatal(Form("Alignable entry %s not created. Volume path %s not valid",
+		  symname2.Data(),volpath2.Data()));
+}
+
 
 
 
