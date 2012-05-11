@@ -282,8 +282,6 @@ Bool_t AliEMCALTriggerSTURawStream::ReadPayLoad()
 			
 			break;
 		}
-		default:
-			AliError(Form("STU payload size not found! %d word32", iword));
 	}
 	
 //	jetSize += (fFwVersion >> 16);
@@ -476,7 +474,7 @@ Bool_t AliEMCALTriggerSTURawStream::GetL1GammaPatch(const Int_t i, const Int_t j
 {
 	// L1 gamma patch indexes
 	
-	if (j > 2 || i > fNL1GammaPatch[j]) return kFALSE;
+	if (j >= 2 || i > fNL1GammaPatch[j]) return kFALSE;
 	
 	tru =  fL1GammaPatchIndex[i][j] & 0x1F;
 	col = (fL1GammaPatchIndex[i][j] & 0x3E0) >> 5;
@@ -490,7 +488,7 @@ Bool_t AliEMCALTriggerSTURawStream::GetL1JetPatch(const Int_t i, const Int_t j, 
 {
 	// L1 jet patch indexes
 	
-	if (j > 2 || i > fNL1JetPatch[j]) return kFALSE;
+	if (j >= 2 || i > fNL1JetPatch[j]) return kFALSE;
 	
 	col =  fL1JetPatchIndex[i][j] & 0xFF;
 	row = (fL1JetPatchIndex[i][j] & 0xFF00) >> 8;

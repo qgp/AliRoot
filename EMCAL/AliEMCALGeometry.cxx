@@ -1448,7 +1448,7 @@ Bool_t AliEMCALGeometry::GetTRUIndexFromOnlineIndex(const Int_t id, Int_t& idx) 
 		AliError(Form("TRU index out of range: %d",id));
 		return kFALSE;
 	}
-
+	
 	idx = ((id % 6) < 3) ? 6 * int(id / 6) + 2 * (id % 3) : 6 * int(id / 6) + 2 * (2 - (id % 3)) + 1;
 
 	return kTRUE;
@@ -1464,7 +1464,7 @@ Int_t AliEMCALGeometry::GetTRUIndexFromOnlineIndex(const Int_t id) const
 		AliError(Form("TRU index out of range: %d",id));
 	}
 	
-	Int_t idx = (id > 15) ? 2 * (31 - id) : 2 * (15 - id) + 1;
+	Int_t idx = ((id % 6) < 3) ? 6 * int(id / 6) + 2 * (id % 3) : 6 * int(id / 6) + 2 * (2 - (id % 3)) + 1;
 	
 	return idx;
 }
@@ -1480,7 +1480,7 @@ Bool_t AliEMCALGeometry::GetOnlineIndexFromTRUIndex(const Int_t id, Int_t& idx) 
 		return kFALSE;
 	}
 	
-	idx = (id % 2) ? int((6 - (id % 6)) / 2) + 3 * (int(id / 6) + 1) : 3 * int(id / 6) + int(id / 2);
+	idx = (id % 2) ? int((6 - (id % 6)) / 2) + 3 * (2 * int(id / 6) + 1) : 3 * int(id / 6) + int(id / 2);
 	
 	return kTRUE;
 }
@@ -1495,7 +1495,7 @@ Int_t AliEMCALGeometry::GetOnlineIndexFromTRUIndex(const Int_t id) const
 		AliError(Form("TRU index out of range: %d",id));
 	}
 	
-	Int_t idx = (id % 2) ? int((6 - (id % 6)) / 2) + 3 * (int(id / 6) + 1) : 3 * int(id / 6) + int(id / 2);
+	Int_t idx = (id % 2) ? int((6 - (id % 6)) / 2) + 3 * (2 * int(id / 6) + 1) : 3 * int(id / 6) + int(id / 2);
 	
 	return idx;
 }
