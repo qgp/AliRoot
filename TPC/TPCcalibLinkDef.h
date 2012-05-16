@@ -27,14 +27,15 @@
 #pragma link C++ class AliTPCcalibCosmic+;
 #pragma link C++ class AliTPCcalibTime+;
 #pragma link C++ class AliTPCcalibTimeGain+;
-#pragma link C++ class AliTPCcalibPID+;
+//#pragma link C++ class AliTPCcalibPID+;
 #pragma link C++ class AliTPCMisAligner+;
 #pragma link C++ class AliTPCcalibTrigger+;
-#pragma link C++ class AliTPCcalibMaterial+;
+//#pragma link C++ class AliTPCcalibMaterial+;
 #pragma link C++ class AliTPCPreprocessorOffline+;
 #pragma link C++ class AliTPCcalibGainMult+;
 #pragma link C++ class AliTPCkalmanAlign+;
 #pragma link C++ class AliTPCcalibSummary;
+#pragma link C++ class AliTPCCorrectionFit;
 
 
 #endif

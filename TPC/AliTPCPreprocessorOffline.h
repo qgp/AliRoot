@@ -59,9 +59,11 @@ public:
   //
   void  MakeChainTime();
   void  MakePrimitivesTime();
+  //  static void RegisterPrimitiveTimes();
   void  CreateAlignTime(TString fstring, TVectorD paramC);  
   void  MakeFitTime();
   static Double_t EvalAt(Double_t phi, Double_t refX, Double_t theta, Int_t corr, Int_t ptype);
+  static Double_t EvalAtPar(Double_t phi, Double_t snp, Double_t refX, Double_t theta, Int_t corr, Int_t ptype, Int_t nstep);
 
   //
   // QA drawing part
@@ -79,7 +81,6 @@ public:
   //
   void SwitchOnValidation(Bool_t val = kTRUE) {fSwitchOnValidation = val;} 
   Bool_t IsSwitchOnValidation() { return fSwitchOnValidation; } 
-
 
 private:
   Int_t fMinEntries;                      // minimal number of entries for fit

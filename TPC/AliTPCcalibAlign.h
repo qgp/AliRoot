@@ -12,6 +12,8 @@ class TFile;
 class TGraphErrors;
 class TH1;
 class THnSparse;
+class THnBase;
+class THn;
 #include <TLinearFitter.h>
 #include <TMatrixDfwd.h>
 class TObjArray;
@@ -132,7 +134,7 @@ public:
   //
   void MakeResidualHistos();
   void MakeResidualHistosTracklet();
-  THnSparse * GetClusterDelta(Int_t index) const  { return fClusterDelta[index];}
+  THn * GetClusterDelta(Int_t index) const  { return fClusterDelta[index];}
   THnSparse * GetTrackletDelta(Int_t index) const  { return fTrackletDelta[index];}
 public:
   
@@ -143,9 +145,10 @@ public:
 		 AliExternalTrackParam *tp2,
 		 Int_t s1,Int_t s2);
 
+  static void SetMergeEntriesCut(Double_t entriesCut){fgkMergeEntriesCut = entriesCut;}
 protected:
-  THnSparse *fClusterDelta[2];  //clusters residuals
-  THnSparse *fTrackletDelta[4]; //track residuals
+  THn     *fClusterDelta[2];  //clusters residuals
+  THnSparse     *fTrackletDelta[4]; //track residuals
 
   TObjArray fDphiHistArray;    // array of residual histograms  phi      -kPhi
   TObjArray fDthetaHistArray;  // array of residual histograms  theta    -kTheta
@@ -199,6 +202,7 @@ protected:
   Bool_t    fUseInnerOuter;         // flag- use Inner Outer sector for left righ alignment
   
   static AliTPCcalibAlign*   fgInstance; //! Instance of this class (singleton implementation)
+  static Double_t            fgkMergeEntriesCut;  //maximal number of entries for merging  -can be modified via setter
 private:
   AliTPCcalibAlign&  operator=(const AliTPCcalibAlign&);// not implemented
 
