@@ -53,7 +53,7 @@
 #include "AliESDEvent.h"
 #include "AliESDMuonTrack.h"
 #include "AliMUONDigitStoreV2S.h"
-#include "AliMUONDigit.h"
+#include "AliMUONVDigit.h"
 #include "AliMpVSegmentation.h"
 #include "AliMpSegmentation.h"
 #include "AliMpPad.h"
@@ -185,16 +185,15 @@ void AliMUONRecoCheck::ResetStores()
 //_____________________________________________________________________________
 Bool_t AliMUONRecoCheck::InitCircuit()
 {
-
+  
   if ( fTriggerCircuit ) return kTRUE;
   
   if ( ! InitGeometryTransformer() ) return kFALSE;
   
-  fTriggerCircuit = new AliMUONTriggerCircuit(fGeometryTransformer);
-
   // reset tracker for local trigger to trigger track conversion
-  if ( ! AliMUONESDInterface::GetTracker() )
-    AliMUONESDInterface::ResetTracker();
+  if ( ! AliMUONESDInterface::GetTracker() ) AliMUONESDInterface::ResetTracker();
+  
+  fTriggerCircuit = new AliMUONTriggerCircuit(fGeometryTransformer);
   
   return kTRUE;
 }
@@ -599,11 +598,12 @@ void AliMUONRecoCheck::MakeTriggerableTracks()
         
           if ( cath == AliMp::kCath0 ) nboard = pad.GetLocalBoardId(0);
         
-          AliMUONDigit* digit = new AliMUONDigit(detElemId,nboard,
-                                                 pad.GetLocalBoardChannel(0),cath);
-          digit->SetPadXY(ix,iy);
-          digit->SetCharge(1.);
-          digitStore.Add(*digit,AliMUONVDigitStore::kDeny);
+          AliMUONVDigit* digit = digitStore.Add(detElemId, nboard, pad.GetLocalBoardChannel(0),
+						cath, AliMUONVDigitStore::kDeny);
+          if (digit) {
+	    digit->SetPadXY(ix,iy);
+	    digit->SetCharge(1.);
+	  }
         }
       }
     
@@ -903,7 +903,7 @@ Bool_t AliMUONRecoCheck::InitTriggerResponse()
   
   if ( ! InitGeometryTransformer() ) return kFALSE;
   
-  if ( ! AliMpDDLStore::Instance(false) ) AliMpCDB::LoadDDLStore();
+  if ( ! AliMpDDLStore::Instance(false) && ! AliMpCDB::LoadDDLStore()) return kFALSE;
   
   if ( ! InitCalibrationData() ) return kFALSE;
   
