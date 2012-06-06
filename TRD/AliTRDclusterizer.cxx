@@ -72,6 +72,7 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDReconstructor *const rec)
   ,fRawVersion(2)
   ,fTransform(new AliTRDtransform(0))
   ,fDigits(NULL)
+  ,fDigitsRaw(NULL)
   ,fIndexes(NULL)
   ,fMaxThresh(0)
   ,fMaxThreshTest(0)
@@ -88,7 +89,7 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDReconstructor *const rec)
   ,fCalNoiseROC(NULL)
   ,fCalNoiseDetValue(0)
   ,fCalPadStatusROC(NULL)
-  ,fCalOnGainROC(NULL)
+  ,fCalOnlGainROC(NULL)
   ,fClusterROC(0)
   ,firstClusterROC(0)
   ,fNoOfClusters(0)
@@ -133,6 +134,7 @@ AliTRDclusterizer::AliTRDclusterizer(const Text_t *name
   ,fRawVersion(2)
   ,fTransform(new AliTRDtransform(0))
   ,fDigits(NULL)
+  ,fDigitsRaw(NULL)
   ,fIndexes(NULL)
   ,fMaxThresh(0)
   ,fMaxThreshTest(0)
@@ -149,7 +151,7 @@ AliTRDclusterizer::AliTRDclusterizer(const Text_t *name
   ,fCalNoiseROC(NULL)
   ,fCalNoiseDetValue(0)
   ,fCalPadStatusROC(NULL)
-  ,fCalOnGainROC(NULL)
+  ,fCalOnlGainROC(NULL)
   ,fClusterROC(0)
   ,firstClusterROC(0)
   ,fNoOfClusters(0)
@@ -187,6 +189,7 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDclusterizer &c)
   ,fRawVersion(2)
   ,fTransform(NULL)
   ,fDigits(NULL)
+  ,fDigitsRaw(NULL)
   ,fIndexes(NULL)
   ,fMaxThresh(0)
   ,fMaxThreshTest(0)
@@ -203,7 +206,7 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDclusterizer &c)
   ,fCalNoiseROC(NULL)
   ,fCalNoiseDetValue(0)
   ,fCalPadStatusROC(NULL)
-  ,fCalOnGainROC(NULL)
+  ,fCalOnlGainROC(NULL)
   ,fClusterROC(0)
   ,firstClusterROC(0)
   ,fNoOfClusters(0)
@@ -249,6 +252,11 @@ AliTRDclusterizer::~AliTRDclusterizer()
     fDigitsManager = NULL;
   }
 
+  if (fDigitsRaw) {
+    delete fDigitsRaw;
+    fDigitsRaw = NULL;
+  }
+
   if (fTransform){
     delete fTransform;
     fTransform = NULL;
@@ -290,7 +298,8 @@ void AliTRDclusterizer::Copy(TObject &c) const
   ((AliTRDclusterizer &) c).fDigitsManager = NULL;
   ((AliTRDclusterizer &) c).fRawVersion    = fRawVersion;
   ((AliTRDclusterizer &) c).fTransform     = NULL;
-  ((AliTRDclusterizer &) c).fDigits      = NULL;
+  ((AliTRDclusterizer &) c).fDigits        = NULL;
+  ((AliTRDclusterizer &) c).fDigitsRaw     = NULL;
   ((AliTRDclusterizer &) c).fIndexes       = NULL;
   ((AliTRDclusterizer &) c).fMaxThresh     = 0;
   ((AliTRDclusterizer &) c).fMaxThreshTest = 0;
@@ -598,13 +607,20 @@ Bool_t AliTRDclusterizer::MakeClusters()
       fDigitsManager->BuildIndexes(i);
     }
   
-    Bool_t fR = kFALSE;
+    Bool_t fR(kFALSE);
     if (indexes->HasEntry()){
       if (TestBit(kLabels)){
+        Int_t nDict(0);
         for (Int_t iDict = 0; iDict < AliTRDdigitsManager::kNDict; iDict++){
-          AliTRDarrayDictionary *tracksIn = 0; //mod
+          AliTRDarrayDictionary *tracksIn(NULL); //mod
           tracksIn = (AliTRDarrayDictionary *) fDigitsManager->GetDictionary(i,iDict);  //mod
-          tracksIn->Expand();
+          // This is to take care of data reconstruction
+          if (!tracksIn->GetDim()) continue;
+          tracksIn->Expand(); nDict++; 
+        }
+        if(!nDict){
+          AliDebug(1, "MC labels not available. Switch them off.");
+          SetUseLabels(kFALSE);
         }
       }
       fR = MakeClusters(i);
@@ -800,9 +816,9 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
 
   const AliTRDrecoParam *const recoParam = fReconstructor->GetRecoParam();
 
-  fMaxThresh            = (Short_t)recoParam->GetClusMaxThresh();
-  fMaxThreshTest        = (Short_t)(recoParam->GetClusMaxThresh()/2+fBaseline);
-  fSigThresh            = (Short_t)recoParam->GetClusSigThresh();
+  fMaxThresh            = recoParam->GetClusMaxThresh();
+  fMaxThreshTest        = (recoParam->GetClusMaxThresh()/2+fBaseline);
+  fSigThresh            = recoParam->GetClusSigThresh();
   fMinMaxCutSigma       = recoParam->GetMinMaxCutSigma();
   fMinLeftRightCutSigma = recoParam->GetMinLeftRightCutSigma();
   const Int_t iEveryNTB = recoParam->GetRecEveryNTB();
@@ -881,9 +897,9 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
   // Calibration object with the pad status
   fCalPadStatusROC       = calibration->GetPadStatusROC(fDet);
   // Calibration object of the online gain
-  fCalOnGainROC          = 0x0;  
+  fCalOnlGainROC          = 0x0;  
   if (calibration->HasOnlineFilterGain()) {
-    fCalOnGainROC        = calibration->GetOnlineGainTableROC(fDet);
+    fCalOnlGainROC        = calibration->GetOnlineGainTableROC(fDet);
   }
 
   firstClusterROC = -1;
@@ -895,7 +911,16 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
   // Apply the gain and the tail cancelation via digital filter
   // Use the configuration from the DCS to find out whether online 
   // tail cancellation was applied
-  if(!calibration->HasOnlineTailCancellation()) TailCancelation(recoParam);
+  if(!calibration->HasOnlineTailCancellation()){
+    // save a copy of raw data
+    if(TestBit(kRawSignal)){
+      if(fDigitsRaw){
+        fDigitsRaw->~AliTRDarrayADC();
+        new(fDigitsRaw) AliTRDarrayADC(*fDigits);
+      } else fDigitsRaw = new AliTRDarrayADC(*fDigits);
+    }
+    TailCancelation(recoParam);
+  }
 
   MaxStruct curr, last;
   Int_t nMaximas = 0, nCorrupted = 0;
@@ -931,7 +956,7 @@ Bool_t AliTRDclusterizer::MakeClusters(Int_t det)
 }
 
 //_____________________________________________________________________________
-Bool_t AliTRDclusterizer::IsMaximum(const MaxStruct &Max, UChar_t &padStatus, Short_t *const Signals) 
+Bool_t AliTRDclusterizer::IsMaximum(const MaxStruct &Max, UChar_t &padStatus, Float_t *const Signals)
 {
   //
   // Returns true if this row,col,time combination is a maximum. 
@@ -939,13 +964,13 @@ Bool_t AliTRDclusterizer::IsMaximum(const MaxStruct &Max, UChar_t &padStatus, Sh
   //
 
   Float_t gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col,Max.row);
-  Float_t ongain = fCalOnGainROC ? fCalOnGainROC->GetGainCorrectionFactor(Max.row,Max.col) : 1;
-  Signals[1] = (Short_t)((fDigits->GetData(Max.row, Max.col, Max.time) - fBaseline) * ongain / gain + 0.5f);
+  Float_t onlcf = fCalOnlGainROC ? fCalOnlGainROC->GetGainCorrectionFactor(Max.row,Max.col) : 1;
+  Signals[1] = (fDigits->GetData(Max.row, Max.col, Max.time) - fBaseline) /(onlcf * gain) + 0.5f;
   if(Signals[1] <= fMaxThresh) return kFALSE;
 
   if(Max.col < 1 || Max.col + 1 >= fColMax) return kFALSE;
 
-  Short_t noiseMiddleThresh = (Short_t)(fMinMaxCutSigma*fCalNoiseDetValue*fCalNoiseROC->GetValue(Max.col, Max.row));
+  Float_t noiseMiddleThresh = fMinMaxCutSigma*fCalNoiseDetValue*fCalNoiseROC->GetValue(Max.col, Max.row);
   if (Signals[1] <= noiseMiddleThresh) return kFALSE;  
 
   UChar_t status[3]={
@@ -957,22 +982,22 @@ Bool_t AliTRDclusterizer::IsMaximum(const MaxStruct &Max, UChar_t &padStatus, Sh
   Short_t signal(0);
   if((signal = fDigits->GetData(Max.row, Max.col-1, Max.time))){
     gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col-1,Max.row);
-    ongain = fCalOnGainROC ? fCalOnGainROC->GetGainCorrectionFactor(Max.row,Max.col-1) : 1;
-    Signals[0] = (Short_t)((signal - fBaseline) * ongain / gain + 0.5f);
-  } else Signals[0] = 0;
+    onlcf = fCalOnlGainROC ? fCalOnlGainROC->GetGainCorrectionFactor(Max.row,Max.col-1) : 1;
+    Signals[0] = (signal - fBaseline) /( onlcf * gain) + 0.5f;
+  } else Signals[0] = 0.;
   if((signal = fDigits->GetData(Max.row, Max.col+1, Max.time))){
     gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(Max.col+1,Max.row);
-    ongain = fCalOnGainROC ? fCalOnGainROC->GetGainCorrectionFactor(Max.row,Max.col+1) : 1;
-    Signals[2] = (Short_t)((signal - fBaseline) * ongain / gain + 0.5f);
-  } else Signals[2] = 0;
+    onlcf = fCalOnlGainROC ? fCalOnlGainROC->GetGainCorrectionFactor(Max.row,Max.col+1) : 1;
+    Signals[2] = (signal - fBaseline) /( onlcf *  gain) + 0.5f;
+  } else Signals[2] = 0.;
 
   if(!(status[0] | status[1] | status[2])) {//all pads are good
     if ((Signals[2] <= Signals[1]) && (Signals[0] <  Signals[1])) {
       if ((Signals[2] > fSigThresh) || (Signals[0] > fSigThresh)) {
-	if(Signals[0]<0)Signals[0]=0;
-	if(Signals[2]<0)Signals[2]=0;
-        Short_t noiseSumThresh = (Short_t)(fMinLeftRightCutSigma * fCalNoiseDetValue
-					   * fCalNoiseROC->GetValue(Max.col, Max.row));
+        if(Signals[0]<0) Signals[0]=0.;
+        if(Signals[2]<0) Signals[2]=0.;
+        Float_t noiseSumThresh = fMinLeftRightCutSigma * fCalNoiseDetValue
+                               * fCalNoiseROC->GetValue(Max.col, Max.row);
         if ((Signals[2]+Signals[0]+Signals[1]) <= noiseSumThresh) return kFALSE;
         padStatus = 0;
         return kTRUE;
@@ -1010,14 +1035,17 @@ Bool_t AliTRDclusterizer::FivePadCluster(MaxStruct &ThisMax, MaxStruct &Neighbou
   
   if (ThisMax.col >= fColMax - 3) return kFALSE;
   Float_t gain;
+  Float_t onlcf;
   if (ThisMax.col < fColMax - 5){
     gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(ThisMax.col+4,ThisMax.row);
-    if (fDigits->GetData(ThisMax.row, ThisMax.col+4, ThisMax.time) - fBaseline >= fSigThresh * gain)
+    onlcf = fCalOnlGainROC ? fCalOnlGainROC->GetGainCorrectionFactor(ThisMax.row,ThisMax.col+4) : 1;
+    if (fDigits->GetData(ThisMax.row, ThisMax.col+4, ThisMax.time) - fBaseline >= fSigThresh * gain * onlcf)
       return kFALSE;
   }
   if (ThisMax.col > 1) {
     gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(ThisMax.col-2,ThisMax.row);
-    if (fDigits->GetData(ThisMax.row, ThisMax.col-2, ThisMax.time) - fBaseline >= fSigThresh * gain)
+    onlcf = fCalOnlGainROC ? fCalOnlGainROC->GetGainCorrectionFactor(ThisMax.row,ThisMax.col-2) : 1;
+    if (fDigits->GetData(ThisMax.row, ThisMax.col-2, ThisMax.time) - fBaseline >= fSigThresh * gain * onlcf)
       return kFALSE;
   }
   
@@ -1028,8 +1056,8 @@ Bool_t AliTRDclusterizer::FivePadCluster(MaxStruct &ThisMax, MaxStruct &Neighbou
   // Unfold the two maxima and set the signal on 
   // the overlapping pad to the ratio
   Float_t ratio = Unfold(kEpsilon,fLayer,padSignal);
-  ThisMax.signals[2] = (Short_t)(ThisMax.signals[2]*ratio + 0.5f);
-  NeighbourMax.signals[0] = (Short_t)(NeighbourMax.signals[0]*(1-ratio) + 0.5f);
+  ThisMax.signals[2] = ThisMax.signals[2]*ratio + 0.5f;
+  NeighbourMax.signals[0] = NeighbourMax.signals[0]*(1-ratio) + 0.5f;
   ThisMax.fivePad=kTRUE;
   NeighbourMax.fivePad=kTRUE;
   return kTRUE;
@@ -1044,11 +1072,12 @@ void AliTRDclusterizer::CreateCluster(const MaxStruct &Max)
   //
 
   Int_t nPadCount = 1;
-  Short_t signals[7] = { 0, 0, Max.signals[0], Max.signals[1], Max.signals[2], 0, 0 };
+  Short_t signals[7] = { 0, 0, (Short_t)Max.signals[0], (Short_t)Max.signals[1], (Short_t)Max.signals[2], 0, 0 };
   if(!fReconstructor->IsHLT()) CalcAdditionalInfo(Max, signals, nPadCount);
 
   AliTRDcluster cluster(fDet, ((UChar_t) Max.col), ((UChar_t) Max.row), ((UChar_t) Max.time), signals, fVolid);
   cluster.SetNPads(nPadCount);
+  cluster.SetQ(Max.signals[0]+Max.signals[1]+Max.signals[2]);
   if(TestBit(kLUT)) cluster.SetRPhiMethod(AliTRDcluster::kLUT);
   else if(TestBit(kGAUS)) cluster.SetRPhiMethod(AliTRDcluster::kGAUS);
   else cluster.SetRPhiMethod(AliTRDcluster::kCOG);
@@ -1066,7 +1095,24 @@ void AliTRDclusterizer::CreateCluster(const MaxStruct &Max)
   // space point positions defined in the local tracking system.
   // Here the calibration for T0, Vdrift and ExB is applied as well.
   if(!TestBit(kSkipTrafo)) if(!fTransform->Transform(&cluster)) return;
-
+  // Store raw signals in cluster. This MUST be called after position reconstruction !
+  // Xianguo Lu and Alex Bercuci 19.03.2012
+  if(TestBit(kRawSignal) && fDigitsRaw){
+    Float_t tmp(0.), kMaxShortVal(32767.); // protect against data overflow due to wrong gain calibration
+    Short_t rawSignal[7] = {0};
+    for(Int_t ipad(Max.col-3), iRawId(0); ipad<=Max.col+3; ipad++, iRawId++){
+      if(ipad<0 || ipad>=fColMax) continue;
+      if(!fCalOnlGainROC){
+        rawSignal[iRawId] = fDigitsRaw->GetData(Max.row, ipad, Max.time);
+        continue;
+      }
+      // Deconvolute online gain calibration when available
+      // Alex Bercuci 27.04.2012
+      tmp = (fDigitsRaw->GetData(Max.row, ipad, Max.time) - fBaseline)/fCalOnlGainROC->GetGainCorrectionFactor(Max.row, ipad) + 0.5f;
+      rawSignal[iRawId] = (Short_t)TMath::Min(tmp, kMaxShortVal);
+    }
+    cluster.SetSignals(rawSignal, kTRUE);
+  }
   // Temporarily store the Max.Row, column and time bin of the center pad
   // Used to later on assign the track indices
   cluster.SetLabel(Max.row, 0);
@@ -1090,7 +1136,7 @@ void AliTRDclusterizer::CalcAdditionalInfo(const MaxStruct &Max, Short_t *const 
 // ADC signals at position 0, 1, 5 and 6
 
   Float_t tmp(0.), kMaxShortVal(32767.); // protect against data overflow due to wrong gain calibration
-  Float_t gain(1.); Short_t signal(0);
+  Float_t gain(1.); Float_t onlcf(1.); Short_t signal(0);
   // Store the amplitudes of the pads in the cluster for later analysis
   // and check whether one of these pads is masked in the database
   signals[3]=Max.signals[1];
@@ -1099,7 +1145,8 @@ void AliTRDclusterizer::CalcAdditionalInfo(const MaxStruct &Max, Short_t *const 
   while((jpad = Max.col-ipad)){
     if(!(signal = fDigits->GetData(Max.row, jpad, Max.time))) break; // empty digit !
     gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(jpad, Max.row);
-    tmp = (signal - fBaseline) / gain + 0.5f;
+    onlcf = fCalOnlGainROC ? fCalOnlGainROC->GetGainCorrectionFactor(Max.row,jpad) : 1;
+    tmp = (signal - fBaseline) / (onlcf * gain) + 0.5f;
     signal = (Short_t)TMath::Min(tmp, kMaxShortVal);
     if(signal<fSigThresh) break; // signal under threshold
     nPadCount++;
@@ -1111,7 +1158,8 @@ void AliTRDclusterizer::CalcAdditionalInfo(const MaxStruct &Max, Short_t *const 
   while((jpad = Max.col+ipad)<fColMax){
     if(!(signal = fDigits->GetData(Max.row, jpad, Max.time))) break; // empty digit !
     gain = fCalGainFactorDetValue * fCalGainFactorROC->GetValue(jpad, Max.row);
-    tmp = (signal - fBaseline) / gain + 0.5f;
+    onlcf = fCalOnlGainROC ? fCalOnlGainROC->GetGainCorrectionFactor(Max.row,jpad) : 1;
+    tmp = (signal - fBaseline) / (onlcf * gain) + 0.5f;
     signal = (Short_t)TMath::Min(tmp, kMaxShortVal);
     if(signal<fSigThresh) break; // signal under threshold
     nPadCount++;
@@ -1158,7 +1206,7 @@ Bool_t AliTRDclusterizer::AddLabels()
 
   // Loop through the dictionary arrays one-by-one
   // to keep memory consumption low
-  AliTRDarrayDictionary *tracksIn = 0;  //mod
+  AliTRDarrayDictionary *tracksIn(NULL);  //mod
   for (Int_t iDict = 0; iDict < kNdict; iDict++) {
 
     // tracksIn should be expanded beforehand!

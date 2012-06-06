@@ -625,6 +625,9 @@ Bool_t AliTRDdigitizer::MakeDigits()
   }
   else {
     // Save the values for the raw data headers
+    if (calibration->GetNumberOfTimeBinsDCS() == -1) {
+      AliFatal("No useful DCS information available for this run!");
+    }
     fDigitsManager->GetDigitsParam()->SetNTimeBinsAll(calibration->GetNumberOfTimeBinsDCS());
   }
 
@@ -1239,7 +1242,7 @@ Bool_t AliTRDdigitizer::Signal2ADC(Int_t det, AliTRDarraySignal *signals)
   AliTRDCalROC       *calGainFactorROC      = 0x0;
   Float_t             calGainFactorDetValue = 0.0;
 
-  AliTRDarrayADC     *digits = 0x0;
+  AliTRDarrayADC     *digits                = 0x0;
 
   if (!signals) {
     AliError(Form("Signals array for detector %d does not exist\n",det));
@@ -1270,10 +1273,6 @@ Bool_t AliTRDdigitizer::Signal2ADC(Int_t det, AliTRDarraySignal *signals)
   calGainFactorROC      = calibration->GetGainFactorROC(det);
   calGainFactorDetValue = calGainFactorDet->GetValue(det);
 
-  // Get the online gain factors
-  //AliTRDCalOnlineGainTableROC *onlineGainFactorROC 
-  //  = calibration->GetOnlineGainTableROC(det);
-
   // Create the digits for this chamber
   for (row  = 0; row  <  nRowMax; row++ ) {
     for (col  = 0; col  <  nColMax; col++ ) {
@@ -1286,8 +1285,8 @@ Bool_t AliTRDdigitizer::Signal2ADC(Int_t det, AliTRDarraySignal *signals)
       }
 
       // The gain factors
-      Float_t padgain = calGainFactorDetValue 
-                      * calGainFactorROC->GetValue(col,row);
+      Float_t padgain    = calGainFactorDetValue 
+                         * calGainFactorROC->GetValue(col,row);
       if (padgain <= 0) {
         AliError(Form("Not a valid gain %f, %d %d %d",padgain,det,col,row));
       }
@@ -1426,6 +1425,7 @@ Bool_t AliTRDdigitizer::Digits2SDigits(AliTRDdigitsManager * const manDig
   //                      / convert;
 
   // The gainfactor calibration objects
+  // Not used since these digits are supposed to be from real raw data
   //const AliTRDCalDet *calGainFactorDet      = calibration->GetGainFactorDet();  
   //AliTRDCalROC       *calGainFactorROC      = 0;
   //Float_t             calGainFactorDetValue = 0.0;
@@ -1944,21 +1944,21 @@ void AliTRDdigitizer::RunDigitalProcessing(Int_t det)
     return;
 
   //Call the methods in the mcm class using the temporary array as input  
-  for(Int_t rob = 0; rob < digits->GetNrow() / 2; rob++)
-  {
-    for(Int_t mcm = 0; mcm < 16; mcm++)
-    {
-      fMcmSim->Init(det, rob, mcm); 
-      fMcmSim->SetDataByPad(digits, fDigitsManager);
-      fMcmSim->Filter();
-      if (feeParam->GetTracklet()) {
-        fMcmSim->Tracklet();
-        fMcmSim->StoreTracklets();
+  // process the data in the same order as in hardware
+  for (Int_t side = 0; side <= 1; side++) {
+    for(Int_t rob = side; rob < digits->GetNrow() / 2; rob += 2) {
+      for(Int_t mcm = 0; mcm < 16; mcm++) {
+	fMcmSim->Init(det, rob, mcm); 
+	fMcmSim->SetDataByPad(digits, fDigitsManager);
+	fMcmSim->Filter();
+	if (feeParam->GetTracklet()) {
+	  fMcmSim->Tracklet();
+	  fMcmSim->StoreTracklets();
+	}
+	fMcmSim->ZSMapping();
+	fMcmSim->WriteData(digits);
       }
-      fMcmSim->ZSMapping();
-      fMcmSim->WriteData(digits);
     }
   }
-
 }
 
