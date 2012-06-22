@@ -94,7 +94,7 @@ Int_t AliTRDrawStream::fgErrorDebugLevel[] = {
   0,
   1,
   1,
-  1,
+  0,
   1,
   2,
   1,
@@ -1307,7 +1307,9 @@ Int_t AliTRDrawStream::ReadTracklets()
 
   UInt_t *start = fPayloadCurr;
   while (*(fPayloadCurr) != fgkTrackletEndmarker &&
-	 fPayloadCurr - fPayloadStart < fPayloadSize) {
+	 *(fPayloadCurr) != fgkStackEndmarker[0] &&
+	 *(fPayloadCurr) != fgkStackEndmarker[1] &&
+	 fPayloadCurr - fPayloadStart < (fPayloadSize - 1)) {
     new ((*fTrackletArray)[fTrackletArray->GetEntriesFast()]) AliTRDtrackletWord(*(fPayloadCurr), fCurrHC);
 
     fPayloadCurr++;
@@ -1344,8 +1346,12 @@ Int_t AliTRDrawStream::ReadHcHeader()
   AliDebug(1, Form("HC header: 0x%08x", *fPayloadCurr));
   UInt_t *start = fPayloadCurr;
   // check not to be at the data endmarker
-  if (*fPayloadCurr == fgkDataEndmarker)
+  if (*fPayloadCurr == fgkDataEndmarker ||
+      *(fPayloadCurr) == fgkStackEndmarker[0] ||
+      *(fPayloadCurr) == fgkStackEndmarker[1]) {
+    LinkError(kHCmismatch, "found endmarker where HC header should be");
     return 0;
+  }
 
   fCurrSpecial    = (*fPayloadCurr >> 31) & 0x1;
   fCurrMajor      = (*fPayloadCurr >> 24) & 0x7f;
@@ -1548,6 +1554,8 @@ Int_t AliTRDrawStream::ReadZSData()
   timebins = fNtimebins;
 
   while (*(fPayloadCurr) != fgkDataEndmarker &&
+	 *(fPayloadCurr) != fgkStackEndmarker[0] &&
+	 *(fPayloadCurr) != fgkStackEndmarker[1] &&
 	 fPayloadCurr - fPayloadStart < fPayloadSize) {
 
     // ----- Checking MCM Header -----
@@ -1905,6 +1913,8 @@ Int_t AliTRDrawStream::SeekNextLink()
 
   // read until data endmarkers
   while (fPayloadCurr - fPayloadStart < fPayloadSize &&
+	 ((fPayloadCurr[0] != fgkStackEndmarker[0]) ||
+	  (fPayloadCurr[1] != fgkStackEndmarker[1])) &&
 	 *fPayloadCurr != fgkDataEndmarker)
     fPayloadCurr++;
 
@@ -2284,13 +2294,13 @@ void AliTRDrawStream::SortTracklets(TClonesArray *trklArray, TList &sortedTrackl
 	AliESDTrdTracklet *esdTracklet = new AliESDTrdTracklet(trklNext->GetTrackletWord(), trklNext->GetHCId(), label);
 	sortedTracklets.Add(esdTracklet);
       }
+    }
 
-      // updating tracklet indices as in output
-      if (sortedTracklets.GetEntries() != trklIndex) {
-	indices[2*iDet + 0] = indices[2*iDet + 1] = trklIndex;
-      }
-      else
-	indices[2*iDet + 0] = indices[2*iDet + 1] = -1;
+    // updating tracklet indices as in output
+    if (sortedTracklets.GetEntries() != trklIndex) {
+      indices[2*iDet + 0] = indices[2*iDet + 1] = trklIndex;
+    } else {
+      indices[2*iDet + 0] = indices[2*iDet + 1] = -1;
     }
   }
 }
