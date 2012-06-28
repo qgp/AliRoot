@@ -80,6 +80,12 @@ class AliCDBManager: public TObject {
 	AliCDBEntry* GetEntryFromSnapshot(const char* path);
 
 	const char* GetURI(const char* path);				 
+				 
+	AliCDBId* GetId(const AliCDBId& query);
+	AliCDBId* GetId(const AliCDBPath& path, Int_t runNumber=-1,
+				Int_t version = -1, Int_t subVersion = -1);
+	AliCDBId* GetId(const AliCDBPath& path, const AliCDBRunRange& runRange,
+				 Int_t version = -1, Int_t subVersion = -1);
 
 	TList* GetAll(const AliCDBId& query);
 	TList* GetAll(const AliCDBPath& path, Int_t runNumber=-1,
@@ -153,12 +159,6 @@ protected:
   	void CacheEntry(const char* path, AliCDBEntry* entry);
 
 	AliCDBParam* SelectSpecificStorage(const TString& path);
-				 
-	AliCDBId* GetId(const AliCDBId& query);
-	AliCDBId* GetId(const AliCDBPath& path, Int_t runNumber=-1,
-				Int_t version = -1, Int_t subVersion = -1);
-	AliCDBId* GetId(const AliCDBPath& path, const AliCDBRunRange& runRange,
-				 Int_t version = -1, Int_t subVersion = -1);
 	
 
 //	void Init();
