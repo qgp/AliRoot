@@ -58,6 +58,8 @@
 #include "TGeoCompositeShape.h"
 #include "TGeoPara.h"
 
+using std::ifstream;
+using std::ios_base;
 ClassImp(AliTPCv3)
 //_____________________________________________________________________________
 
@@ -179,7 +181,7 @@ void AliTPCv3::CreateGeometry()
   dvol->DefineSection(4,253.6,74.5,264.4);
   dvol->DefineSection(5,260.,74.5,264.4);
   //
-  TGeoMedium *m5 = gGeoManager->GetMedium("TPC_Ne-CO2-2");
+  TGeoMedium *m5 = gGeoManager->GetMedium("TPC_DriftGas2");
   TGeoVolume *v9 = new TGeoVolume("TPC_Drift",dvol,m5);
   //
   v1->AddNode(v9,1);

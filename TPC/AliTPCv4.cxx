@@ -55,6 +55,8 @@ TPC version for the krypton runs (Marek)
 #include "TGeoPara.h"
 #include "TGeoPhysicalNode.h"
 
+using std::ifstream;
+using std::ios_base;
 ClassImp(AliTPCv4)
  
 //_____________________________________________________________________________
@@ -170,7 +172,7 @@ void AliTPCv4::CreateGeometry()
   dvol->DefineSection(4,253.6,74.5,264.4);
   dvol->DefineSection(5,260.,74.5,264.4);
   //
-  TGeoMedium *m5 = gGeoManager->GetMedium("TPC_Ne-CO2-3");
+  TGeoMedium *m5 = gGeoManager->GetMedium("TPC_DriftGas3");
   TGeoVolume *v9 = new TGeoVolume("TPC_Drift",dvol,m5);
   //
   v1->AddNode(v9,1);
