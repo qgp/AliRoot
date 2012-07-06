@@ -71,24 +71,15 @@ namespace
 				
 
 //------------------------------------------------------------------   
-AliMUONResponseTriggerV1::AliMUONResponseTriggerV1() : AliMUONResponseTrigger(), fGenerCluster(0), fWorkCondition(2)
-{  
-  fHVvalues.Set(72);
-  SetHV();
-  
-  fBValues.Set(144);
-  SetBValues();
+AliMUONResponseTriggerV1::AliMUONResponseTriggerV1() : AliMUONResponseTrigger(), fGenerCluster(0), fHVvalues(), fBValues(), fWorkCondition(2)
+{
 }
 
 //------------------------------------------------------------------   
-AliMUONResponseTriggerV1::AliMUONResponseTriggerV1(Int_t mode) : AliMUONResponseTrigger(), fGenerCluster(0)
+AliMUONResponseTriggerV1::AliMUONResponseTriggerV1(Int_t mode) : AliMUONResponseTrigger(), fGenerCluster(0), fHVvalues(), fBValues(), fWorkCondition(mode)
 {
-  fWorkCondition = mode; // 1=streamer - 2=avalanche
-  
-  fHVvalues.Set(72);
+  //mode: 1=streamer - 2=avalanche
   SetHV();
-  
-  fBValues.Set(144);
   SetBValues();
 }
 
@@ -230,17 +221,25 @@ void AliMUONResponseTriggerV1::DisIntegrate(const AliMUONHit& hit, TList& digits
 //------------------------------------------------------------------
 void AliMUONResponseTriggerV1::SetHV()
 {
+  //
+  /// Set HV values from OCDB
+  //
+  fHVvalues.Set(72);
   TString side;
   Int_t newRPC=0,newPlane=0;
   
   AliCDBManager *manager = AliCDBManager::Instance();
   AliCDBPath path("MUON/Calib/TriggerDCS");
   AliCDBEntry *entry = manager->Get(path);
+  if (entry == NULL) {
+    AliWarning("No map found in MUON/Calib/TriggerDCS");
+    return;
+  }
   TMap *hvMap = dynamic_cast<TMap*>(entry->GetObject());
   TObjArray *objArr = 0x0;
   
   AliDCSValue *dcsValue = 0x0;
-  UInt_t time1,time2,timebegin,timeend;
+  UInt_t time1,time2,timebegin=0,timeend=0;
   Int_t nEntries;
   Float_t voltage = 0;
   
@@ -302,6 +301,12 @@ void AliMUONResponseTriggerV1::SetHV()
 //------------------------------------------------------------------  
 void AliMUONResponseTriggerV1::SetBValues()
 {
+  //
+  /// Set B values for cluster size function
+  //
+  
+  fBValues.Set(144);
+  
   Float_t bValues[2][4][18] =                												              {{{1.97,2.47,2.47,2.47,2.97,2.97,2.47,2.47,1.97,2.22,1.97,2.47,1.97,2.97,2.97,2.47,2.47,1.97},  //MT11BP
     {2.22,2.22,1.97,2.47,2.97,2.97,1.97,2.47,1.97,1.97,1.97,2.47,1.97,2.97,2.97,1.97,1.97,1.97},  //MT12BP
     {2.22,2.22,2.47,2.47,2.97,2.97,2.47,2.47,2.22,1.97,1.97,2.47,1.97,2.97,2.97,1.97,1.97,1.97},  //MT21BP
