@@ -78,6 +78,9 @@ using namespace std;
 #include "AliLog.h"
 
 #include "AliTRDCalibChamberStatus.h"
+#include "AliTRDdEdxBaseUtils.h"
+#include "AliTRDdEdxCalibHistArray.h"
+#include "AliTRDdEdxCalibUtils.h"
 
 #include "AliTRDCalibTask.h"
 
@@ -164,7 +167,8 @@ ClassImp(AliTRDCalibTask)
       fSubVersionExBUsed(-1),
       fCalDetGain(0x0),
       fMaxEvent(0),
-      fCounter(0)
+      fCounter(0),
+      fPHQon(kTRUE)
 {
   //
   // Default constructor
@@ -220,6 +224,10 @@ AliTRDCalibTask::~AliTRDCalibTask()
   if(fCH2dTest) delete fCH2dTest;
   if(fPH2dTest) delete fPH2dTest;
   if(fLinearVdriftTest) delete fLinearVdriftTest;
+  if(IsPHQon()){
+    AliTRDdEdxCalibUtils::DeleteHistArray();
+  }                                
+
   if(fCalDetGain) delete fCalDetGain;
   
   if(fSelectedTrigger) {
@@ -340,6 +348,15 @@ void AliTRDCalibTask::UserCreateOutputObjects()
   fAbsoluteGain->Sumw2();
   fListHist->Add(fAbsoluteGain);
   
+   if(IsPHQon()){
+    printf("\n        AliTRDCalibTask PHQ is on!!     \n\n");
+    AliTRDdEdxBaseUtils::PrintControl();
+    AliTRDdEdxCalibUtils::IniHistArray(fListHist, kTRUE);
+   }
+   else{
+    printf("\n        AliTRDCalibTask PHQ is off!!     \n\n");
+   }          
+
   /////////////////////////////////////////
   // First debug level
   ///////////////////////////////////////
@@ -785,7 +802,14 @@ void AliTRDCalibTask::UserExec(Option_t *)
       //printf("Fill fTRDCalibraFillHisto\n");
     }
       
-      
+    if(IsPHQon()){
+      const Double_t mag = AliTRDdEdxBaseUtils::IsExBOn() ? fESD->GetMagneticField() : -1;
+      const Int_t charge = AliTRDdEdxBaseUtils::IsExBOn() ? fkEsdTrack->Charge() : -1;
+      const Double_t toTPCscale = AliTRDdEdxCalibUtils::GetCalibTPCscale(fkEsdTrack->GetTPCncls(), fkEsdTrack->GetTPCsignal());
+      if(toTPCscale>0){
+        AliTRDdEdxCalibUtils::FillHist(fTrdTrack, 0, mag, charge, toTPCscale);
+      }
+    }     
 	  
     //////////////////////////////////
     // Debug 

@@ -23,7 +23,6 @@ class TH1I;
 class TH2F;
 class TString;
 
-
 class AliTRDPreprocessorOffline:public TNamed { 
 public:
   enum{ kGain = 0,
@@ -36,7 +35,8 @@ public:
 	kChamberStatus = 7,
 	kPRF = 8,
 	kExbAlt = 9,
-	kNumCalibObjs = 10
+        kPHQ = 10, 
+	kNumCalibObjs = 11
   };
   enum { kGainNotEnoughStatsButFill = 2,
 	 kVdriftNotEnoughStatsButFill = 4,
@@ -151,6 +151,7 @@ public:
   void CalibGain(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber,  TString  ocdbStorage="");
   void CalibPRF(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber,  TString  ocdbStorage="");
   void CalibChamberStatus(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage="");
+  void CalibPHQ(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage);
 
   Bool_t ReadStatusGlobal(const Char_t* fileName="CalibObjects.root");
   Bool_t ReadGainGlobal(const Char_t* fileName="CalibObjects.root");
@@ -158,6 +159,7 @@ public:
   Bool_t ReadVdriftLinearFitGlobal(const Char_t* fileName="CalibObjects.root");
   Bool_t ReadExbAltFitGlobal(const Char_t* fileName="CalibObjects.root");
   Bool_t ReadPRFGlobal(const Char_t* fileName="CalibObjects.root");
+  Bool_t ReadPHQGlobal(const Char_t* fileName);
 
   Bool_t AnalyzeGain(); 
   Bool_t AnalyzeVdriftT0(); 
@@ -165,7 +167,8 @@ public:
   Bool_t AnalyzeExbAltFit();
   Bool_t AnalyzePRF();
   Bool_t AnalyzeChamberStatus(); 
-  
+  Bool_t AnalyzePHQ(Int_t startRunNumber); 
+
   void CorrectFromDetGainUsed();
   void CorrectFromDetVdriftUsed();
   
@@ -176,6 +179,7 @@ public:
   void UpdateOCDBGain(Int_t  startRunNumber, Int_t endRunNumber, const char* storagePath);
   void UpdateOCDBPRF(Int_t  startRunNumber, Int_t endRunNumber, const char* storagePath);
   void UpdateOCDBChamberStatus(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath);
+  void UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath); 
 
   Bool_t ValidateGain();
   Bool_t ValidateVdrift();
@@ -188,7 +192,11 @@ public:
   Int_t    GetStatusPos() const                                      { return fStatusPos;              }
   Int_t    GetStatusNeg() const                                      { return fStatusNeg;              }
  
+  Bool_t IsPHQon() const { return fPHQon ;};
+  void SetPHQon(const Bool_t kphq){ fPHQon = kphq; }
 
+  Bool_t IsDebugPHQon() const { return fDebugPHQon ;};
+  void SetDebugPHQon(const Bool_t kphq){ fDebugPHQon = kphq; }                                                                     
   
  private:
   Bool_t fMethodSecond;                      // Second Method for drift velocity   
@@ -257,7 +265,11 @@ public:
 private:
   AliTRDPreprocessorOffline& operator=(const AliTRDPreprocessorOffline&); // not implemented
   AliTRDPreprocessorOffline(const AliTRDPreprocessorOffline&); // not implemented
-  ClassDef(AliTRDPreprocessorOffline,3)
+
+  Bool_t fPHQon;                 //switch of PHQ
+  Bool_t fDebugPHQon;                 //switch of DebugPHQ
+
+  ClassDef(AliTRDPreprocessorOffline,4)
 };
 
 #endif
