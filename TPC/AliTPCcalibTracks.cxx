@@ -1259,8 +1259,10 @@ Long64_t AliTPCcalibTracks::Merge(TCollection *collectionList) {
    if (collectionList->IsEmpty()) return -1;
    
    if (GetDebugLevel() > 1) cout << "the collectionList contains " << collectionList->GetEntries() << " entries." << endl;     //    REMOVE THIS LINE!!!!!!!!!!!!!!!!!1
-   if (GetDebugLevel() > 5) cout << " the list in the merge-function looks as follows: " << endl;
-   collectionList->Print();
+   if (GetDebugLevel() > 5) {
+     cout << " the list in the merge-function looks as follows: " << endl;
+     collectionList->Print();
+   }
    
    // create a list for each data member
    TList* deltaYList = new TList;
