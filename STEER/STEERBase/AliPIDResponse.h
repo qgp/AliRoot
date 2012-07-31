@@ -25,7 +25,6 @@
 
 class AliVEvent;
 class TF1;
-class AliTRDPIDResponseObject; 
 
 class AliPIDResponse : public TNamed {
 public:
@@ -76,8 +75,7 @@ public:
   EDetPidStatus ComputePHOSProbability (const AliVTrack *track, Int_t nSpecies, Double_t p[]) const;
   EDetPidStatus ComputeHMPIDProbability(const AliVTrack *track, Int_t nSpecies, Double_t p[]) const;
 
-  void SetTRDPIDmethod(AliTRDPIDResponse::ETRDPIDMethod method=AliTRDPIDResponse::kLQ1D);
-  
+
   void SetITSPIDmethod(ITSPIDmethod pmeth) { fITSPIDmethod = pmeth; }
   virtual void SetTOFResponse(AliVEvent */*event*/,EStartTimeType_t /*option*/) {;}
   void SetTRDslicesForPID(UInt_t slice1, UInt_t slice2) {fTRDslicesForPID[0]=slice1;fTRDslicesForPID[1]=slice2;}
@@ -131,7 +129,8 @@ private:
   TObjArray *fArrPidResponseMaster;    //!  TPC pid splines
   TF1       *fResolutionCorrection;    //! TPC resolution correction
 
-  AliTRDPIDResponseObject *fTRDPIDResponseObject; //! TRD PID Response Object
+  AliTRDPIDParams *fTRDPIDParams;       //! TRD PID Params
+  AliTRDPIDReference *fTRDPIDReference; //! TRD PID References
   UInt_t fTRDslicesForPID[2];           //! TRD PID slices
 
   Float_t fTOFtail;                    //! TOF tail effect used in TOF probability

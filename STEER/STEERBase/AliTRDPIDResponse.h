@@ -30,27 +30,24 @@
 
 class TObjArray;
 class AliVTrack;
-class AliTRDPIDResponseObject;
-
+class AliTRDPIDParams;
+class AliTRDPIDReference;
 class AliTRDPIDResponse : public TObject {
   public:
     enum ETRDPIDResponseStatus {
       kIsOwner = BIT(14)
     };
     enum ETRDPIDResponseDef {
-	kNlayer = 6
-	,kNPBins = 6
+      kNlayer = 6
+      ,kNPBins = 6
     };
     enum ETRDPIDMethod {
-	kNN   = 0,
-	kLQ2D = 1,
-	kLQ1D = 2
-    };
-    enum ETRDPIDNMethod {
-	kNMethod=3
+      kNN   = 0,
+      kLQ2D = 1,
+      kLQ1D = 2
     };
     enum ETRDNslices {
-	kNslicesLQ1D = 1,
+      kNslicesLQ1D = 1,
       kNslicesLQ2D = 2,
       kNslicesNN = 7
     };
@@ -68,18 +65,19 @@ class AliTRDPIDResponse : public TObject {
     void      SetOwner();
     void      SetPIDmethod(ETRDPIDMethod m) {fPIDmethod=m;}
     void      SetGainNormalisationFactor(Double_t gainFactor) { fGainNormalisationFactor = gainFactor; }
+    void      SetPIDParams(const AliTRDPIDParams * params) { fkPIDParams = params; }
 
-    Bool_t SetPIDResponseObject(const AliTRDPIDResponseObject * obj);
-    
-    Bool_t    Load(const Char_t *filename = NULL);
+    Bool_t    Load(const Char_t *filename = NULL, const Char_t *refName = "RefTRDLQ1D");
+    Bool_t    Load(const AliTRDPIDReference *ref) { fkPIDReference = ref; return kTRUE; }
   
     Bool_t    IdentifiedAsElectron(Int_t nTracklets, const Double_t *like, Double_t p, Double_t level) const;
   
   private:
     Bool_t    CookdEdx(Int_t nSlice, const Double_t * const in, Double_t *out) const;
-    Double_t  GetProbabilitySingleLayer(Int_t species, Double_t plocal, Double_t *dEdx) const;
+    Double_t  GetProbabilitySingleLayer(Int_t species, Double_t plocal, Double_t dEdx) const;
     
-    const AliTRDPIDResponseObject *fkPIDResponseObject;   // PID References and Params
+    const AliTRDPIDReference *fkPIDReference;   // PID References
+    const AliTRDPIDParams *fkPIDParams;         // PID Params
     Double_t  fGainNormalisationFactor;         // Gain normalisation factor
     ETRDPIDMethod   fPIDmethod;                 // PID method selector
       
@@ -98,4 +96,3 @@ AliTRDPIDResponse::ETRDNslices AliTRDPIDResponse::GetNumberOfSlices() const {
   return slices;
 }
 #endif
-

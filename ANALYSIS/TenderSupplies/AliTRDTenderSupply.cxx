@@ -47,7 +47,7 @@
 #include <AliESDInputHandler.h>
 #include <AliAnalysisManager.h>
 #include <AliTrackerBase.h>
-#include <AliTRDPIDResponseObject.h>
+#include <AliTRDPIDReference.h>
 #include <AliTRDPIDResponse.h>
 #include "AliTRDCalChamberStatus.h"
 #include <AliTender.h>
@@ -276,15 +276,15 @@ void AliTRDTenderSupply::LoadReferences(){
     // Get new references
     TIter refs(arr);
     TObject *o = NULL;
-    AliTRDPIDResponseObject *ref = NULL;
+    AliTRDPIDReference *ref = NULL;
     while((o = refs())){
-      if(!TString(o->IsA()->GetName()).CompareTo("AliTRDPIDResponseObject")){
-        ref = dynamic_cast<AliTRDPIDResponseObject *>(o);
+      if(!TString(o->IsA()->GetName()).CompareTo("AliTRDPIDReference")){
+        ref = dynamic_cast<AliTRDPIDReference *>(o);
         break;
       }
     }
     if(ref){
-      fESDpid->GetTRDResponse().SetPIDResponseObject(ref);
+      fESDpid->GetTRDResponse().Load(ref);
       fHasReferences = kTRUE;
       AliDebug(1, "Reference distributions loaded into the PID Response");
     } else {
