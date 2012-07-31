@@ -61,6 +61,8 @@
 #include "AliVTrack.h"
 #include "AliEventplane.h"
 
+using std::cout;
+using std::endl;
 ClassImp(AliEPSelectionTask)
 
 //________________________________________________________________________

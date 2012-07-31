@@ -39,19 +39,15 @@ AliAODPid::AliAODPid():
     fTRDntls(0),
     fTRDslices(0x0),
     fTOFesdsignal(0),
-    fHMPIDsignal(0),
     fTPCdEdxInfo(0)
 {
   // default constructor
     for(Int_t i=0; i<kSPECIES; i++) fIntTime[i]   = 0; 
-    for(Int_t i=0; i<5; i++) fHMPIDprobs[i] = 0.;
-    for(Int_t i=0; i<3; i++) fEMCALPosition[i]    = 0.;
     for(Int_t i=0; i<5; i++) fTOFpidResolution[i] = 0.;
     for(Int_t i=0; i<6; i++) {
       fTRDmomentum[i]      = 0.;
       fTRDncls[i]          = 0;
     }
-    for(Int_t i=0; i<3; i++) fEMCALMomentum[i]    = 0.;
     for(Int_t i=0; i<4; i++) fITSdEdxSamples[i]   = 0.;
 }
 
@@ -76,17 +72,12 @@ AliAODPid::AliAODPid(const AliAODPid& pid) :
   fTRDntls(pid.fTRDntls),
   fTRDslices(0x0),
   fTOFesdsignal(pid.fTOFesdsignal),
-  fHMPIDsignal(pid.fHMPIDsignal),
   fTPCdEdxInfo(0x0)
 {
   // Copy constructor
   SetTRDsignal(fTRDnSlices, pid.fTRDslices);
     for(Int_t i=0; i<kSPECIES; i++) fIntTime[i]=pid.fIntTime[i];
-    for(Int_t i=0; i<5; i++) fHMPIDprobs[i] = pid.fHMPIDprobs[i];
-    for(Int_t i=0; i<3; i++) {
-      fEMCALPosition[i]=pid.fEMCALPosition[i];
-      fEMCALMomentum[i]=pid.fEMCALMomentum[i];
-    }
+
     for(Int_t i=0; i<6; i++){ 
       fTRDmomentum[i]=pid.fTRDmomentum[i];
       fTRDncls[i] = 0;
@@ -135,15 +126,7 @@ AliAODPid& AliAODPid::operator=(const AliAODPid& pid)
     for (Int_t i = 0; i < 5; i++) fTOFpidResolution[i]=pid.fTOFpidResolution[i];
     for (Int_t i = 0; i < 5; i++) fIntTime[i]=pid.fIntTime[i];
     
-    fHMPIDsignal=pid.fHMPIDsignal;
-    
-    for(Int_t i = 0; i < 5; i++) fHMPIDprobs[i] = pid.fHMPIDprobs[i];
-    
-    for(Int_t i = 0; i < 3; i++) {
-	fEMCALPosition[i]=pid.fEMCALPosition[i];
-	fEMCALMomentum[i]=pid.fEMCALMomentum[i];
-    }
-    SetTPCdEdxInfo(pid.fTPCdEdxInfo);
+     SetTPCdEdxInfo(pid.fTPCdEdxInfo);
   }
 
   return *this;
@@ -160,30 +143,6 @@ void AliAODPid::SetIntegratedTimes(Double_t timeint[kSPECIES])
  // Returns the array with integrated times for each particle hypothesis
 for(Int_t i=0; i<kSPECIES; i++) fIntTime[i]=timeint[i];
 }
-//_______________________________________________________________________________
-void AliAODPid::GetEMCALPosition(Double_t emcalpos[3]) const
-{
- // Returns the array with extrapolated track position at the EMCAL surface
-  for(Int_t i=0; i<3; i++) emcalpos[i]=fEMCALPosition[i];
-}
-//_______________________________________________________________________________
-void AliAODPid::SetEMCALPosition(Double_t emcpos[3])
-{
- // Sets the array with extrapolated track position at the EMCAL surface
-  for(Int_t i=0; i<3; i++) fEMCALPosition[i]=emcpos[i];
-}
-//_______________________________________________________________________________
-void AliAODPid::GetEMCALMomentum(Double_t emcalmom[3]) const
-{
- // Returns the array with extrapolated track momentum at the EMCAL surface
-  for(Int_t i=0; i<3; i++) emcalmom[i]=fEMCALMomentum[i];
-}
-//_______________________________________________________________________________
-void AliAODPid::SetEMCALMomentum(Double_t emcmom[3])
-{
- // Sets the array with extrapolated track momentum at the EMCAL surface
-  for(Int_t i=0; i<3; i++) fEMCALMomentum[i]=emcmom[i];
-}
 //______________________________________________________________________________
 void AliAODPid::SetTOFpidResolution(Double_t tofPIDres[5])
 {
@@ -196,22 +155,6 @@ void AliAODPid::GetTOFpidResolution(Double_t tofRes[5]) const
   for (Int_t i=0; i<5; i++) tofRes[i]=fTOFpidResolution[i];
 }
 
-//______________________________________________________________________________
-void AliAODPid::SetHMPIDprobs(Double_t hmpPid[5]) 
-{
-  //
-  // Set the HMPID PID probablities that are read from ESD
-  //  
-  for(Int_t i = 0; i < 5; i++ ) fHMPIDprobs[i] =  hmpPid[i];
-}
-//______________________________________________________________________________
-void AliAODPid::GetHMPIDprobs(Double_t *p) const
-{
-  //
-  // Set the HMPID PID probablities that are read from ESD
-  //  
-  for(Int_t i = 0; i < AliPID::kSPECIES; i++ ) p[i] =  fHMPIDprobs[i];
-}
 //______________________________________________________________________________
 void AliAODPid::SetITSdEdxSamples(const Double_t s[4])
 {
@@ -242,5 +185,4 @@ void AliAODPid::SetTPCdEdxInfo(AliTPCdEdxInfo * dEdxInfo)
   if (!fTPCdEdxInfo) fTPCdEdxInfo=new AliTPCdEdxInfo;
   (*fTPCdEdxInfo)=(*dEdxInfo);
 }
-
 
