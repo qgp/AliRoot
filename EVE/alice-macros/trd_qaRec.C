@@ -20,6 +20,7 @@
 void trd_qaRec()
 {
   gSystem->Load("libANALYSIS.so");
+  gSystem->Load("libTENDER.so");
   gSystem->Load("libPWGPP.so");
 
   if(!TFile::Open("TRD.DebugInfoGen.root")){
