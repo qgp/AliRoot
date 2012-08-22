@@ -549,6 +549,7 @@ void AliAnalysisTaskESDfilter::ConvertCascades(const AliESDEvent& esd)
 	    aodTrack->SetTPCSharedMap (esdCascadeBach->GetTPCSharedMap());
 	    aodTrack->SetChi2perNDF(Chi2perNDF(esdCascadeBach));
 	    aodTrack->SetTPCPointsF(esdCascadeBach->GetTPCNclsF());
+	    aodTrack->SetTPCNCrossedRows(UShort_t(esdCascadeBach->GetTPCCrossedRows()));
 	    fAODTrackRefs->AddAt(aodTrack,idxBachFromCascade);
 	    
 	    if (esdCascadeBach->GetSign() > 0) ++fNumberOfPositiveTracks;
@@ -634,6 +635,7 @@ void AliAnalysisTaskESDfilter::ConvertCascades(const AliESDEvent& esd)
         aodTrack->SetTPCSharedMap (esdCascadePos->GetTPCSharedMap());
         aodTrack->SetChi2perNDF(Chi2perNDF(esdCascadePos));
 	aodTrack->SetTPCPointsF(esdCascadePos->GetTPCNclsF());
+	aodTrack->SetTPCNCrossedRows(UShort_t(esdCascadePos->GetTPCCrossedRows()));
         fAODTrackRefs->AddAt(aodTrack,idxPosFromV0Dghter);
         
         if (esdCascadePos->GetSign() > 0) ++fNumberOfPositiveTracks;
@@ -681,6 +683,7 @@ void AliAnalysisTaskESDfilter::ConvertCascades(const AliESDEvent& esd)
         aodTrack->SetTPCSharedMap (esdCascadeNeg->GetTPCSharedMap());
         aodTrack->SetChi2perNDF(Chi2perNDF(esdCascadeNeg));
 	aodTrack->SetTPCPointsF(esdCascadeNeg->GetTPCNclsF());
+	aodTrack->SetTPCNCrossedRows(UShort_t(esdCascadeNeg->GetTPCCrossedRows()));
         fAODTrackRefs->AddAt(aodTrack,idxNegFromV0Dghter);
         
         if (esdCascadeNeg->GetSign() > 0) ++fNumberOfPositiveTracks;
@@ -924,6 +927,7 @@ void AliAnalysisTaskESDfilter::ConvertV0s(const AliESDEvent& esd)
 	    aodTrack->SetTPCSharedMap (esdV0Pos->GetTPCSharedMap());
 	    aodTrack->SetChi2perNDF(Chi2perNDF(esdV0Pos));
 	    aodTrack->SetTPCPointsF(esdV0Pos->GetTPCNclsF());
+	    aodTrack->SetTPCNCrossedRows(UShort_t(esdV0Pos->GetTPCCrossedRows()));
 	    fAODTrackRefs->AddAt(aodTrack,posFromV0);
 	    //	    if (fDebug > 0) printf("-------------------Bo: pos track from original pt %.3f \n",aodTrack->Pt());
 	    if (esdV0Pos->GetSign() > 0) ++fNumberOfPositiveTracks;
@@ -969,6 +973,7 @@ void AliAnalysisTaskESDfilter::ConvertV0s(const AliESDEvent& esd)
 	    aodTrack->SetTPCSharedMap (esdV0Neg->GetTPCSharedMap());
 	    aodTrack->SetChi2perNDF(Chi2perNDF(esdV0Neg));
 	    aodTrack->SetTPCPointsF(esdV0Neg->GetTPCNclsF());
+	    aodTrack->SetTPCNCrossedRows(UShort_t(esdV0Neg->GetTPCCrossedRows()));
 	    
 	    fAODTrackRefs->AddAt(aodTrack,negFromV0);
 	    //	    if (fDebug > 0) printf("-------------------Bo: neg track from original pt %.3f \n",aodTrack->Pt());
@@ -1177,6 +1182,7 @@ void AliAnalysisTaskESDfilter::ConvertTPCOnlyTracks(const AliESDEvent& esd)
 
     aodTrack->SetFlags(track->GetStatus());
     aodTrack->SetTPCPointsF(track->GetTPCNclsF());
+    aodTrack->SetTPCNCrossedRows(UShort_t(track->GetTPCCrossedRows()));
 
     //Perform progagation of tracks if needed
     if(fDoPropagateTrackToEMCal) PropagateTrackToEMCal(esdTrack);
@@ -1323,6 +1329,7 @@ void AliAnalysisTaskESDfilter::ConvertGlobalConstrainedTracks(const AliESDEvent&
 
     aodTrack->SetFlags(esdTrack->GetStatus());
     aodTrack->SetTPCPointsF(esdTrack->GetTPCNclsF());
+    aodTrack->SetTPCNCrossedRows(UShort_t(esdTrack->GetTPCCrossedRows()));
 
     if(isHybridGC){
       // only copy AOD information for hybrid, no duplicate information
@@ -1396,6 +1403,7 @@ void AliAnalysisTaskESDfilter::ConvertTracks(const AliESDEvent& esd)
     aodTrack->SetTPCSharedMap (esdTrack->GetTPCSharedMap());
     aodTrack->SetChi2perNDF(Chi2perNDF(esdTrack));
     aodTrack->SetTPCPointsF(esdTrack->GetTPCNclsF());
+    aodTrack->SetTPCNCrossedRows(UShort_t(esdTrack->GetTPCCrossedRows()));
     if(esdTrack->IsEMCAL()) aodTrack->SetEMCALcluster(esdTrack->GetEMCALcluster());
     if(esdTrack->IsPHOS())  aodTrack->SetPHOScluster(esdTrack->GetPHOScluster());
 
@@ -1775,6 +1783,7 @@ void AliAnalysisTaskESDfilter::ConvertKinks(const AliESDEvent& esd)
             mother->SetTPCSharedMap (esdTrackM->GetTPCSharedMap());
             mother->SetChi2perNDF(Chi2perNDF(esdTrackM));
             mother->SetTPCPointsF(esdTrackM->GetTPCNclsF());
+	    mother->SetTPCNCrossedRows(UShort_t(esdTrackM->GetTPCCrossedRows()));
 
             fAODTrackRefs->AddAt(mother, imother);
             
@@ -1839,6 +1848,7 @@ void AliAnalysisTaskESDfilter::ConvertKinks(const AliESDEvent& esd)
             daughter->SetTPCClusterMap(esdTrackD->GetTPCClusterMap());
             daughter->SetTPCSharedMap (esdTrackD->GetTPCSharedMap());
 	    daughter->SetTPCPointsF(esdTrackD->GetTPCNclsF());
+	    daughter->SetTPCNCrossedRows(UShort_t(esdTrackD->GetTPCCrossedRows()));
             fAODTrackRefs->AddAt(daughter, idaughter);
             
             if (esdTrackD->GetSign() > 0) ++fNumberOfPositiveTracks;
@@ -2280,6 +2290,8 @@ void AliAnalysisTaskESDfilter::SetDetectorRawSignals(AliAODPid *aodpid, AliESDtr
  aodpid->SetTRDncls(track->GetTRDncls());
  aodpid->SetTRDntrackletsPID(track->GetTRDntrackletsPID());
  
+ aodpid->SetTRDChi2(track->GetTRDchi2());
+
  //TOF PID  
  Double_t times[AliAODPid::kSPECIES]; track->GetIntegratedTimes(times);
  aodpid->SetIntegratedTimes(times);

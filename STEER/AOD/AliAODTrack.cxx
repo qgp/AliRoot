@@ -45,6 +45,7 @@ AliAODTrack::AliAODTrack() :
   fTPCClusterMap(),
   fTPCSharedMap(),
   fTPCnclsF(0),
+  fTPCNCrossedRows(0),
   fID(-999),
   fCharge(-99),
   fType(kUndef),
@@ -96,6 +97,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   fTPCClusterMap(),
   fTPCSharedMap(),
   fTPCnclsF(0),
+  fTPCNCrossedRows(0),
   fID(id),
   fCharge(charge),
   fType(ttype),
@@ -151,6 +153,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   fTPCClusterMap(),
   fTPCSharedMap(),
   fTPCnclsF(0),
+  fTPCNCrossedRows(0),
   fID(id),
   fCharge(charge),
   fType(ttype),
@@ -200,6 +203,7 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   fTPCClusterMap(trk.fTPCClusterMap),
   fTPCSharedMap(trk.fTPCSharedMap),
   fTPCnclsF(trk.fTPCnclsF),
+  fTPCNCrossedRows(trk.fTPCNCrossedRows),
   fID(trk.fID),
   fCharge(trk.fCharge),
   fType(trk.fType),
@@ -250,6 +254,7 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     fTPCClusterMap     = trk.fTPCClusterMap;
     fTPCSharedMap      = trk.fTPCSharedMap;
     fTPCnclsF          = trk.fTPCnclsF;
+    fTPCNCrossedRows   = trk.fTPCNCrossedRows;
     fID                = trk.fID;
     fCharge            = trk.fCharge;
     fType              = trk.fType;

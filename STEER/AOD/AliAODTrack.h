@@ -249,8 +249,11 @@ class AliAODTrack : public AliVTrack {
   void    SetTPCSharedMap(const TBits amap) {fTPCSharedMap = amap;}
   void    SetTPCFitMap(const TBits amap) {fTPCFitMap = amap;}
   void    SetTPCPointsF(UShort_t  findable){fTPCnclsF = findable;}
+  void    SetTPCNCrossedRows(UInt_t n)     {fTPCNCrossedRows = n;}
 
   UShort_t GetTPCNclsF() const { return fTPCnclsF;}
+  UShort_t GetTPCNCrossedRows()  const { return fTPCNCrossedRows;}
+  Float_t  GetTPCFoundFraction() const { return fTPCNCrossedRows>0 ? float(GetTPCNcls())/fTPCNCrossedRows : 0;}
 
   // Calorimeter Cluster
   Int_t GetEMCALcluster() const {return fCaloIndex;}
@@ -277,6 +280,7 @@ class AliAODTrack : public AliVTrack {
   void      GetIntegratedTimes(Double_t *times) const {if (fDetPid) fDetPid->GetIntegratedTimes(times); }
   Double_t  GetTRDslice(Int_t plane, Int_t slice) const;
   Double_t  GetTRDmomentum(Int_t plane, Double_t */*sp*/=0x0) const;
+  Double_t  GetTRDChi2()                 const {return fDetPid ? fDetPid->GetTRDChi2() : -1;}
   UChar_t   GetTRDncls(Int_t layer = -1) const;
   UChar_t   GetTRDntrackletsPID() const;
   void      GetHMPIDpid(Double_t */*p*/) const { return; } // TODO: To be implemented properly with the new HMPID object
@@ -392,6 +396,7 @@ class AliAODTrack : public AliVTrack {
   TBits         fTPCSharedMap;      // Map of clusters, one bit per padrow; 1 if has a shared cluster on given padrow
 
   UShort_t      fTPCnclsF;          // findable clusters
+  UShort_t      fTPCNCrossedRows;   // n crossed rows
 
   Short_t       fID;                // unique track ID, points back to the ESD track
 
@@ -410,7 +415,7 @@ class AliAODTrack : public AliVTrack {
 
   const AliAODEvent* fAODEvent;     //! 
 
-  ClassDef(AliAODTrack, 17);
+  ClassDef(AliAODTrack, 18);
 };
 
 inline Bool_t  AliAODTrack::IsPrimaryCandidate() const
