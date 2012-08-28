@@ -66,31 +66,36 @@ Int_t AliAnalysisManager::fPBUpdateFreq = 1;
 //______________________________________________________________________________
 AliAnalysisManager::AliAnalysisManager(const char *name, const char *title)
                    :TNamed(name,title),
-                    fTree(NULL),
-                    fInputEventHandler(NULL),
-                    fOutputEventHandler(NULL),
-                    fMCtruthEventHandler(NULL),
-                    fEventPool(NULL),
+                    fTree(0),
+                    fInputEventHandler(0),
+                    fOutputEventHandler(0),
+                    fMCtruthEventHandler(0),
+                    fEventPool(0),
                     fCurrentEntry(-1),
                     fNSysInfo(0),
                     fMode(kLocalAnalysis),
                     fInitOK(kFALSE),
                     fMustClean(kFALSE),
                     fIsRemote(kFALSE),
+                    fLocked(kFALSE),
                     fDebug(0),
                     fSpecialOutputLocation(""), 
-                    fTasks(NULL),
-                    fTopTasks(NULL),
-                    fZombies(NULL),
-                    fContainers(NULL),
-                    fInputs(NULL),
-                    fOutputs(NULL),
-                    fParamCont(NULL),
-                    fCommonInput(NULL),
-                    fCommonOutput(NULL),
-                    fSelector(NULL),
-                    fGridHandler(NULL),
-                    fExtraFiles(""),
+                    fTasks(0),
+                    fTopTasks(0),
+                    fZombies(0),
+                    fContainers(0),
+                    fInputs(0),
+                    fOutputs(0),
+                    fParamCont(0),
+                    fDebugOptions(0),
+                    fFileDescriptors(new TObjArray()),
+                    fCurrentDescriptor(0),
+                    fCommonInput(0),
+                    fCommonOutput(0),
+                    fSelector(0),
+                    fGridHandler(0),
+                    fExtraFiles(),
+                    fFileInfoLog(),
                     fAutoBranchHandling(kTRUE), 
                     fTable(),
                     fRunFromPath(0),
@@ -131,6 +136,7 @@ AliAnalysisManager::AliAnalysisManager(const AliAnalysisManager& other)
                     fInitOK(other.fInitOK),
                     fMustClean(other.fMustClean),
                     fIsRemote(other.fIsRemote),
+                    fLocked(other.fLocked),
                     fDebug(other.fDebug),
                     fSpecialOutputLocation(""), 
                     fTasks(NULL),
@@ -140,11 +146,15 @@ AliAnalysisManager::AliAnalysisManager(const AliAnalysisManager& other)
                     fInputs(NULL),
                     fOutputs(NULL),
                     fParamCont(NULL),
+                    fDebugOptions(NULL),
+                    fFileDescriptors(new TObjArray()),
+                    fCurrentDescriptor(0),
                     fCommonInput(NULL),
                     fCommonOutput(NULL),
                     fSelector(NULL),
                     fGridHandler(NULL),
-                    fExtraFiles(),
+                    fExtraFiles(other.fExtraFiles),
+                    fFileInfoLog(other.fFileInfoLog),
                     fAutoBranchHandling(other.fAutoBranchHandling), 
                     fTable(),
                     fRunFromPath(0),
@@ -183,6 +193,7 @@ AliAnalysisManager& AliAnalysisManager::operator=(const AliAnalysisManager& othe
       fMode       = other.fMode;
       fInitOK     = other.fInitOK;
       fIsRemote   = other.fIsRemote;
+      fLocked     = other.fLocked;
       fDebug      = other.fDebug;
       fTasks      = new TObjArray(*other.fTasks);
       fTopTasks   = new TObjArray(*other.fTopTasks);
@@ -191,11 +202,15 @@ AliAnalysisManager& AliAnalysisManager::operator=(const AliAnalysisManager& othe
       fInputs     = new TObjArray(*other.fInputs);
       fOutputs    = new TObjArray(*other.fOutputs);
       fParamCont  = new TObjArray(*other.fParamCont);
+      fDebugOptions = NULL;
+      fFileDescriptors = new TObjArray();
+      fCurrentDescriptor = 0;
       fCommonInput = NULL;
       fCommonOutput = NULL;
       fSelector   = NULL;
       fGridHandler = NULL;
       fExtraFiles = other.fExtraFiles;
+      fFileInfoLog = other.fFileInfoLog;
       fgCommonFileName = "AnalysisResults.root";
       fgAnalysisManager = this;
       fAutoBranchHandling = other.fAutoBranchHandling;
@@ -222,6 +237,7 @@ AliAnalysisManager::~AliAnalysisManager()
    if (fInputs) delete fInputs;
    if (fOutputs) delete fOutputs;
    if (fParamCont) delete fParamCont;
+   if (fDebugOptions) delete fDebugOptions;
    if (fGridHandler) delete fGridHandler;
    if (fInputEventHandler) delete fInputEventHandler;
    if (fOutputEventHandler) delete fOutputEventHandler;
@@ -229,6 +245,7 @@ AliAnalysisManager::~AliAnalysisManager()
    if (fEventPool) delete fEventPool;
    if (fgAnalysisManager==this) fgAnalysisManager = NULL;
    if (fGlobals) {fGlobals->DeleteAll(); delete fGlobals;}
+   if (fFileDescriptors) {fFileDescriptors->Delete(); delete fFileDescriptors;}
 }
 
 //______________________________________________________________________________
@@ -238,7 +255,9 @@ Int_t AliAnalysisManager::GetEntry(Long64_t entry, Int_t getall)
    fCurrentEntry = entry;
    if (!fAutoBranchHandling)
      return 123456789;
-   return fTree ? fTree->GetTree()->GetEntry(entry, getall) : -1;
+   if (!fTree) return -1;  
+   Long64_t readbytes = fTree->GetTree()->GetEntry(entry, getall);
+   return (Int_t)readbytes;
 }
 
 //______________________________________________________________________________
@@ -359,6 +378,10 @@ void AliAnalysisManager::SlaveBegin(TTree *tree)
   // When running with PROOF SlaveBegin() is called on each slave server.
   // The tree argument is deprecated (on PROOF 0 is passed).
    if (fDebug > 1) printf("->AliAnalysisManager::SlaveBegin()\n");
+
+   // Apply debug options
+   ApplyDebugOptions();
+   
    if (!CheckTasks()) Fatal("SlaveBegin", "Not all needed libraries were loaded");
    static Bool_t isCalled = kFALSE;
    Bool_t init = kFALSE;
@@ -456,6 +479,11 @@ Bool_t AliAnalysisManager::Notify()
       Error("Notify","No current file");
       return kFALSE;
    }   
+   if (IsCollectThroughput()) {
+      if (fCurrentDescriptor) fCurrentDescriptor->Done();
+      fCurrentDescriptor = new AliAnalysisFileDescriptor(curfile);
+      fFileDescriptors->Add(fCurrentDescriptor);
+   }   
    
    if (fDebug > 1) printf("->AliAnalysisManager::Notify() file: %s\n", curfile->GetName());
    Int_t run = AliAnalysisManager::GetRunFromAlienPath(curfile->GetName());
@@ -518,6 +546,19 @@ void AliAnalysisManager::PackOutput(TList *target)
   // Pack all output data containers in the output list. Called at SlaveTerminate
   // stage in PROOF case for each slave.
    if (fDebug > 1) printf("->AliAnalysisManager::PackOutput()\n");
+   if (IsCollectThroughput()) {
+      if (fCurrentDescriptor) fCurrentDescriptor->Done();
+      fFileDescriptors->Print();
+      if (fFileInfoLog.IsNull()) fFileInfoLog = "fileinfo.log";
+      std::ofstream out;
+      out.open(fFileInfoLog, std::ios::out);
+      if (out.bad()) Error("SavePrimitive", "Bad file name: %s", fFileInfoLog.Data());
+      else {
+         TIter nextflog(fFileDescriptors);
+         TObject *log;
+         while ((log=nextflog())) log->SavePrimitive(out,"");
+      }
+   }   
    if (!target) {
       Error("PackOutput", "No target. Exiting.");
       return;
@@ -1449,7 +1490,9 @@ void AliAnalysisManager::CheckBranches(Bool_t load)
          }
       }   
       fTable.Add(br);
-      if (load && br->GetReadEntry()!=GetCurrentEntry()) br->GetEntry(GetCurrentEntry());
+      if (load && br->GetReadEntry()!=GetCurrentEntry()) {
+         br->GetEntry(GetCurrentEntry());
+      }      
    }
   delete arr;
 }
@@ -1565,7 +1608,7 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree,
    if (fDebug > 1) {
       printf("StartAnalysis %s\n",GetName());
       AliLog::SetGlobalLogLevel(AliLog::kInfo);
-   }   
+   }
    fMaxEntries = nentries;
    fIsRemote = kFALSE;
    TString anaType = type;
@@ -2110,6 +2153,7 @@ Bool_t AliAnalysisManager::IsPipe(std::ostream &out)
 void AliAnalysisManager::SetInputEventHandler(AliVEventHandler* const handler)
 {
 // Set the input event handler and create a container for it.
+   Changed();
    fInputEventHandler   = handler;
    if (!fCommonInput) fCommonInput = CreateContainer("cAUTO_INPUT", TChain::Class(), AliAnalysisManager::kInputContainer);
 }
@@ -2118,6 +2162,7 @@ void AliAnalysisManager::SetInputEventHandler(AliVEventHandler* const handler)
 void AliAnalysisManager::SetOutputEventHandler(AliVEventHandler* const handler)
 {
 // Set the input event handler and create a container for it.
+   Changed();
    fOutputEventHandler   = handler;
    if (!fCommonOutput) fCommonOutput = CreateContainer("cAUTO_OUTPUT", TTree::Class(), AliAnalysisManager::kOutputContainer, "default");
    fCommonOutput->SetSpecialOutput();
@@ -2372,8 +2417,8 @@ void AliAnalysisManager::DoLoadBranch(const char *name)
     fTable.Add(br);
   }
   if (br->GetReadEntry()==fCurrentEntry) return;
-  Int_t ret = br->GetEntry(GetCurrentEntry());
-  if (ret<0) {
+  Long64_t readbytes = br->GetEntry(GetCurrentEntry());
+  if (readbytes<0) {
     Error("DoLoadBranch", "Could not load entry %lld from branch %s",GetCurrentEntry(), name);
     if (crtEntry != fCurrentEntry) {
       CountEvent(1,0,1,0);
@@ -2555,4 +2600,83 @@ Double_t AliAnalysisManager::GetGlobalDbl(const char *key, Bool_t &valid)
    valid = kTRUE;
    TString s = value->GetName();
    return s.Atof();
+}
+
+//______________________________________________________________________________
+void AliAnalysisManager::AddClassDebug(const char *className, Int_t debugLevel)
+{
+// Sets Class debug level
+
+   if (!fDebugOptions) {
+      fDebugOptions = new TObjArray();
+      fDebugOptions->SetOwner(kTRUE);
+   }
+
+   // substracting DebugOffset, beacuse of AliLog::SetClassDebugLevel()
+   debugLevel -= AliLog::kDebug-1;
+
+   TNamed *debugOpt = (TNamed*)fDebugOptions->FindObject(className);
+   if (!debugOpt) {
+     AliInfo(TString::Format("Adding debug level %d for class %s",debugLevel+AliLog::kDebug-1,className).Data());
+     fDebugOptions->Add(new TNamed(className,TString::Format("%d",debugLevel).Data()));
+   } else {
+      TString oldDebugStr = debugOpt->GetTitle();
+      Int_t oldDebug = oldDebugStr.Atoi();
+      if (debugLevel > oldDebug) {
+         AliWarning(TString::Format("Overwriting debug level to %d class %s, because it is higher then previously set (%d).",debugLevel+AliLog::kDebug-1,className,oldDebug+AliLog::kDebug-1).Data());
+         debugOpt->SetTitle(TString::Format("%d",debugLevel).Data());
+      } else {
+         AliWarning(TString::Format("Ignoring debug level to %d class %s, because it is smaller then previously set (%d).",debugLevel+AliLog::kDebug-1,className,oldDebug+AliLog::kDebug-1).Data());
+      }
+   }
+}
+
+//______________________________________________________________________________
+void AliAnalysisManager::ApplyDebugOptions()
+{
+// Apply debug options
+
+   if (!fDebugOptions) return;
+   
+   TIter next(fDebugOptions);
+   TNamed *debug;
+   TString debugLevel;
+   while ((debug=dynamic_cast<TNamed*>(next()))) {
+      debugLevel = debug->GetTitle();
+      AliInfo(TString::Format("ApplyDebugOptions : Class=%s debulLevel=%d",debug->GetName(),debugLevel.Atoi()+AliLog::kDebug-1).Data());
+      AliLog::SetClassDebugLevel(debug->GetName(), debugLevel.Atoi());
+   }
+}
+
+//______________________________________________________________________________
+void AliAnalysisManager::Lock()
+{
+// Security lock. This is to detect NORMAL user errors and not really to
+// protect against intentional hacks.
+   if (fLocked) return;
+   fLocked = kTRUE;
+   if (fInputEventHandler)  fInputEventHandler->Lock();
+   if (fOutputEventHandler) fOutputEventHandler->Lock();
+   if (fMCtruthEventHandler) fMCtruthEventHandler->Lock();
+   Info("Lock","====== ANALYSIS MANAGER LOCKED ======");
+}
+
+//______________________________________________________________________________
+void AliAnalysisManager::UnLock()
+{
+// Verbose unlocking. Hackers will be punished ;-) ... 
+   if (!fLocked) return;
+   fLocked = kFALSE;
+   if (fInputEventHandler)  fInputEventHandler->UnLock();
+   if (fOutputEventHandler) fOutputEventHandler->UnLock();
+   if (fMCtruthEventHandler) fMCtruthEventHandler->UnLock();
+   Info("UnLock", "====== ANALYSIS MANAGER UNLOCKED ======");
+}
+
+//______________________________________________________________________________
+void AliAnalysisManager::Changed()
+{
+// All critical setters pass through the Changed method that throws an exception 
+// in case the lock was set.
+   if (fLocked) Fatal("Changed","Critical setter called in locked mode");
 }
