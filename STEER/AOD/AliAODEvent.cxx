@@ -26,8 +26,6 @@
 #include <TFriendElement.h>
 #include <TProcessID.h>
 #include <TCollection.h>
-#include <TObject.h>
-
 #include "Riostream.h"
 #include "AliAODEvent.h"
 #include "AliAODHeader.h"
@@ -51,6 +49,7 @@ ClassImp(AliAODEvent)
 									"phosTrigger",
 						      "fmdClusters",
 						      "pmdClusters",
+                                                      "hmpidRings",
 						      "dimuons",
 						      "AliAODTZERO",
 						      "AliAODVZERO",
@@ -81,6 +80,7 @@ AliAODEvent::AliAODEvent() :
   fPHOSTrigger(0),
   fFmdClusters(0),
   fPmdClusters(0),
+  fHMPIDrings(0),
   fDimuons(0),
   fAODTZERO(0),
   fAODVZERO(0),
@@ -114,6 +114,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   fPHOSTrigger(new AliAODCaloTrigger(*aod.fPHOSTrigger)),
   fFmdClusters(new TClonesArray(*aod.fFmdClusters)),
   fPmdClusters(new TClonesArray(*aod.fPmdClusters)),
+  fHMPIDrings(new TClonesArray(*aod.fHMPIDrings)),
   fDimuons(new TClonesArray(*aod.fDimuons)),
   fAODTZERO(new AliAODTZERO(*aod.fAODTZERO)),
   fAODVZERO(new AliAODVZERO(*aod.fAODVZERO)),
@@ -138,6 +139,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   AddObject(fPHOSTrigger);
   AddObject(fFmdClusters);
   AddObject(fPmdClusters);
+  AddObject(fHMPIDrings);
   AddObject(fDimuons);
   AddObject(fAODTZERO);
   AddObject(fAODVZERO);
@@ -312,6 +314,7 @@ void AliAODEvent::CreateStdContent()
   AddObject(new AliAODCaloTrigger()); // PHOS
   AddObject(new TClonesArray("AliAODFmdCluster", 0));
   AddObject(new TClonesArray("AliAODPmdCluster", 0));
+  AddObject(new TClonesArray("AliAODHMPIDrings", 0));
   AddObject(new TClonesArray("AliAODDimuon", 0));
   AddObject(new AliAODTZERO());
   AddObject(new AliAODVZERO());
@@ -400,10 +403,11 @@ void AliAODEvent::GetStdContent()
   fEmcalCells    = (AliAODCaloCells*)fAODObjects->FindObject("emcalCells");
   fPhosCells     = (AliAODCaloCells*)fAODObjects->FindObject("phosCells");
   fCaloClusters  = (TClonesArray*)fAODObjects->FindObject("caloClusters");
-	fEMCALTrigger  = (AliAODCaloTrigger*)fAODObjects->FindObject("emcalTrigger");
-	fPHOSTrigger   = (AliAODCaloTrigger*)fAODObjects->FindObject("phosTrigger");
+  fEMCALTrigger  = (AliAODCaloTrigger*)fAODObjects->FindObject("emcalTrigger");
+  fPHOSTrigger   = (AliAODCaloTrigger*)fAODObjects->FindObject("phosTrigger");
   fFmdClusters   = (TClonesArray*)fAODObjects->FindObject("fmdClusters");
   fPmdClusters   = (TClonesArray*)fAODObjects->FindObject("pmdClusters");
+  fHMPIDrings    = (TClonesArray*)fAODObjects->FindObject("hmpidRings");  
   fDimuons       = (TClonesArray*)fAODObjects->FindObject("dimuons");
   fAODTZERO      = (AliAODTZERO*)fAODObjects->FindObject("AliAODTZERO");
   fAODVZERO      = (AliAODVZERO*)fAODObjects->FindObject("AliAODVZERO");
@@ -423,6 +427,7 @@ void AliAODEvent::ResetStd(Int_t trkArrSize,
 			   Int_t caloClusSize, 
 			   Int_t fmdClusSize, 
 			   Int_t pmdClusSize,
+                           Int_t hmpidRingsSize,
 			   Int_t dimuonArrSize
 			   )
 {
@@ -466,6 +471,11 @@ void AliAODEvent::ResetStd(Int_t trkArrSize,
     fPmdClusters->Delete();
     if (pmdClusSize > fPmdClusters->GetSize()) 
       fPmdClusters->Expand(pmdClusSize);
+  }
+  if (fHMPIDrings) {
+     fHMPIDrings->Delete();
+    if (hmpidRingsSize > fHMPIDrings->GetSize()) 
+      fHMPIDrings->Expand(hmpidRingsSize);
   }
   if (fDimuons) {
     fDimuons->Delete();
@@ -512,7 +522,9 @@ void AliAODEvent::ClearStd()
   if (fFmdClusters)
     fFmdClusters   ->Clear();
   if (fPmdClusters)
-    fPmdClusters   ->Clear();
+    fPmdClusters   ->Clear();  
+  if (fHMPIDrings) 
+     fHMPIDrings   ->Clear();    
   if (fDimuons)
     fDimuons       ->Clear();
 	
@@ -656,31 +668,20 @@ void AliAODEvent::ReadFromTree(TTree *tree, Option_t* opt /*= ""*/)
       TFriendElement* fe;
       while ((fe = (TFriendElement*)next())){
         aodEvent = (AliAODEvent*)(fe->GetTree()->GetUserInfo()->FindObject("AliAODEvent"));
-
         if (!aodEvent) {
           printf("No UserInfo on tree \n");
         } else {
           
 	  //          TList* objL = (TList*)(aodEvent->GetList()->Clone());
-          TList* objL = aodEvent->GetList();
-          
-          if(objL == fAODObjects)
+          TList* objL = (TList*)aodEvent->GetList();
+          printf("Get list of object from tree %d !!\n", objL->GetEntries());
+          TIter nextobject(objL);
+          TObject* obj =  0;
+          while((obj = nextobject()))
           {
-             AliInfo("Adding object from friend. Same object friend list...skipping\n");
-            
-          } else {
-            
-            printf("Get list of object from tree %d !!\n", objL->GetEntries());
-           
-            TIter nextobject(objL);
-            TObject* obj =  0;
-            while((obj = nextobject()))
-            {
-              printf("Adding object from friend %s !\n", obj->GetName());
-              fAODObjects->Add(obj);
+            printf("Adding object from friend %s !\n", obj->GetName());
+            fAODObjects->Add(obj);
           } // object "branch" loop
-
-         }
         } // has userinfo  
       } // friend loop
     } // has friends	
@@ -877,6 +878,45 @@ Bool_t AliAODEvent::IsPileupFromSPDInMultBins() const {
     else return IsPileupFromSPD(5,0.8);
 }
 
+void AliAODEvent::Reset()
+{
+  // Handle the cases
+  // Std content + Non std content
+
+  ClearStd();
+
+  if(fAODObjects->GetSize()>kAODListN){
+    // we have non std content
+    // this also covers aodfriends
+    for(int i = kAODListN;i < fAODObjects->GetSize();++i){
+      TObject *pObject = fAODObjects->At(i);
+      // TClonesArrays
+      if(pObject->InheritsFrom(TClonesArray::Class())){
+       ((TClonesArray*)pObject)->Delete();
+      }
+      else if(!pObject->InheritsFrom(TCollection::Class())){
+       TClass *pClass = TClass::GetClass(pObject->ClassName());
+       if (pClass && pClass->GetListOfMethods()->FindObject("Clear")) {
+         AliDebug(1, Form("Clear for object %s class %s", pObject->GetName(), pObject->ClassName()));
+         pObject->Clear();
+       }
+       else {
+         AliDebug(1, Form("ResetWithPlacementNew for object %s class %s", pObject->GetName(), pObject->ClassName()));
+          Long_t dtoronly = TObject::GetDtorOnly();
+          TObject::SetDtorOnly(pObject);
+          delete pObject;
+          pClass->New(pObject);
+          TObject::SetDtorOnly((void*)dtoronly);
+       }
+      }
+      else{
+       AliWarning(Form("No reset for %s \n",
+                       pObject->ClassName()));
+      }
+    }
+  }
+}
+
 Float_t AliAODEvent::GetVZEROEqMultiplicity(Int_t i) const
 {
   // Get VZERO Multiplicity for channel i
@@ -914,3 +954,42 @@ void  AliAODEvent::SetTOFHeader(const AliTOFHeader *header)
   }
 
 }
+//------------------------------------------------------------
+AliAODHMPIDrings *AliAODEvent::GetHMPIDringForTrackID(Int_t trackID)
+{
+  //
+  // Returns the HMPID object if any for a given track ID
+  //
+  if(GetHMPIDrings())
+  {
+    for(Int_t ien = 0 ; ien < GetNHMPIDrings(); ien++)
+    {
+      if( ien == trackID ) return GetHMPIDring(ien);      
+    }//rings loop  
+  }
+  return 0;
+}
+//------------------------------------------------------------
+Int_t AliAODEvent::GetNHMPIDrings()   
+{ 
+  //
+  // If there is a list of HMPID rings in the given AOD event, return their number
+  //
+  if ( fHMPIDrings) return fHMPIDrings->GetEntriesFast(); 
+  else return -1;
+} 
+//------------------------------------------------------------
+AliAODHMPIDrings *AliAODEvent::GetHMPIDring(Int_t nRings)   
+{ 
+  //
+  // If there is a list of HMPID rings in the given AOD event, return corresponding ring
+  //
+  if(fHMPIDrings) {
+    if(   (AliAODHMPIDrings*)fHMPIDrings->UncheckedAt(nRings) ) {
+      return (AliAODHMPIDrings*)fHMPIDrings->UncheckedAt(nRings);
+    }
+    else return 0x0;
+  }
+  else return 0x0;  
+}
+//------------------------------------------------------------
