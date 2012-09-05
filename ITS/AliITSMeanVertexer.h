@@ -35,6 +35,7 @@ class AliITSMeanVertexer : public TObject {
     void SetCutOnErrX(Double_t cut=9.5){fErrXCut = cut;}
     void SetCutOnR(Double_t cut=0.5){fRCut = cut;}
     void SetCutOnCls(UInt_t vmin=50, UInt_t vmax=7000){fLowSPD0=vmin; fHighSPD0=vmax;}
+    void SetZFiducialRegion(Double_t zcut=40.){fZCutDiamond=zcut;}
     void   WriteVertices(const char *filename);
 
     const TH2F*GetVertexXY() const { return fVertexXY; }
@@ -55,7 +56,7 @@ class AliITSMeanVertexer : public TObject {
     Bool_t Filter(AliESDVertex *vert,UInt_t mult);
     void   AddToMean(AliESDVertex *vert);
     Bool_t ComputeMean(Bool_t killOutliers);
-    void Reset();
+    void Reset(Bool_t redefine2D,Bool_t complete);
     void ResetArray(){fAccEvents.ResetAllBits(kTRUE); fVertArray.Clear();
       fIndex=0; for(Int_t i=0;i<fgkMaxNumOfEvents;i++)fClu0[i]=0; }
 
@@ -86,6 +87,7 @@ class AliITSMeanVertexer : public TObject {
     Int_t fIndex;               //! current index on the arrays
     Double_t fErrXCut;          //! cut on error on X (error*1000<fErrXCut)
     Double_t fRCut;             //| cut on distance from first estimate (mm)
+    Double_t fZCutDiamond;      //! -/+ fZCutDiamond is the Z fiducial region
     UInt_t fLowSPD0;            //! low SPD0 cls value to accept event
     UInt_t fHighSPD0;           //! high SPD0 cls value to accept event
     TH1F *fMultH;               //! debug hist: mult. on SPD0 before Filter
@@ -93,6 +95,8 @@ class AliITSMeanVertexer : public TObject {
     TH1F *fMultHa;              //! debug hist: mult. on SPD0 after Filter
     TH1F *fErrXHa;              //! debug hist: error on X after Filter
     TH1F *fDistH;               //! debug hist: distance from peak
+    TH1F *fContrH;              //! debug hist: number of contributors
+    TH1F *fContrHa;             //! debug hist: number of contributors - after filter
 
     ClassDef(AliITSMeanVertexer,0)
 };
