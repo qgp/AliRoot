@@ -65,7 +65,8 @@ AliGenDPMjet::AliGenDPMjet()
      fTriggerMultiplicityEta(0),
      fTriggerMultiplicityPtMin(0),
      fkTuneForDiff(0),
-     fProcDiff(0)
+     fProcDiff(0),
+     fFragmentation(kFALSE)
 {
 // Constructor
     fEnergyCMS = 5500.;
@@ -97,7 +98,9 @@ AliGenDPMjet::AliGenDPMjet(Int_t npart)
      fTriggerMultiplicityEta(0),
      fTriggerMultiplicityPtMin(0),
      fkTuneForDiff(0),
-     fProcDiff(0)
+     fProcDiff(0),
+     fFragmentation(kFALSE)
+
 {
 // Default PbPb collisions at 5. 5 TeV
 //
@@ -133,7 +136,9 @@ AliGenDPMjet::AliGenDPMjet(const AliGenDPMjet &/*Dpmjet*/)
      fTriggerMultiplicityEta(0),
      fTriggerMultiplicityPtMin(0),
      fkTuneForDiff(0),
-     fProcDiff(0)
+     fProcDiff(0),
+     fFragmentation(kFALSE)
+
 {
     // Dummy copy constructor
     fEnergyCMS = 5500.;
@@ -159,13 +164,17 @@ void AliGenDPMjet::Init()
     // fICentr<0 && fICentr>-100 -> bmin = fMinImpactParam, bmax = fMaxImpactParam	  
     // fICentr<-99 -> fraction of x-sec. = XSFRAC		  
     // fICentr=-1. -> evaporation/fzc suppressed		  
-    // fICentr<-1. -> evaporation/fzc suppressed		  
+    // fICentr<-1. -> evaporation/fzc allowed		  
     if (fAProjectile == 1 && TMath::Abs(fZProjectile == 1)) fDPMjet->SetfIdp(1);
     
     fDPMjet->SetfFCentr(fICentr);  
     fDPMjet->SetbRange(fMinImpactParam, fMaxImpactParam); 
     fDPMjet->SetPi0Decay(fPi0Decay);
     fDPMjet->SetDecayAll(fDecayAll);
+    fDPMjet->SetFragmentProd(fFragmentation);
+
+    AliGenMC::Init();
+    
 //
 //  Initialize DPMjet  
 //    
@@ -278,7 +287,6 @@ void AliGenDPMjet::Generate()
 	  ks = iparticle->GetStatusCode();
 // No initial state partons
           if (ks==21) continue;
-	    
 	  if (!fSelectAll) selected = KinematicSelection(iparticle, 0) && 
 			       SelectFlavor(kf);
 
@@ -496,6 +504,7 @@ AliGenDPMjet& AliGenDPMjet::operator=(const  AliGenDPMjet& /*rhs*/)
 }
 
 
+//______________________________________________________________________________
 void AliGenDPMjet::FinishRun()
 {
     // Print run statistics
@@ -503,7 +512,7 @@ void AliGenDPMjet::FinishRun()
 }
 
 
-
+//______________________________________________________________________________
 Bool_t AliGenDPMjet::CheckDiffraction()
 {
 
