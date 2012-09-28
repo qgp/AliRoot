@@ -832,6 +832,7 @@ void AliPIDResponse::SetRecoInfo()
     if (reg12a17.MatchB(fCurrentFile)) fMCperiodTPC="LHC12A17";
   }
 
+  if (fRun >= 188356 /*&& fRun <= 188503*/ ) { fLHCperiod="LHC12G"; fBeamType="PPB"; /*fMCperiodTPC="";*/ }
 
   //exception new pp MC productions from 2011
   if (fBeamType=="PP" && reg.MatchB(fCurrentFile)) fMCperiodTPC="LHC11B2";
@@ -1020,6 +1021,11 @@ void AliPIDResponse::SetTPCParametrisation()
   if (fRun>=122195){
     fTPCResponse.SetSigma(2.30176e-02, 5.60422e+02);
   }
+  
+  if (fRun>=188356){
+    fTPCResponse.SetSigma(8.62022e-04, 9.08156e+05);
+  }
+  
   if (fArrPidResponseMaster)
   fResolutionCorrection=(TF1*)fArrPidResponseMaster->FindObject(Form("TF1_%s_ALL_%s_PASS%d_%s_SIGMA",datatype.Data(),period.Data(),fRecoPass,fBeamType.Data()));
   
