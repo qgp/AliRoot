@@ -144,6 +144,7 @@ ClassImp(AliTRDCalibTask)
       fCutWithVdriftCalib(kFALSE),
       fMinNbTRDtracklets(0),
       fMinTRDMomentum(0),
+      fScaleGainWithTPCSignal(kFALSE),
       fLow(0),
       fHigh(30),
       fFillZero(kFALSE),
@@ -284,6 +285,7 @@ void AliTRDCalibTask::UserCreateOutputObjects()
     fTRDCalibraFillHisto->SetLinearFitterOn(fVdriftLinear); // Other possibility vdrift VDRIFT
     fTRDCalibraFillHisto->SetLinearFitterDebugOn(fVdriftLinear); // Other possibility vdrift
     fTRDCalibraFillHisto->SetExbAltFitOn(fExbAlt); // Alternative method for exb
+    fTRDCalibraFillHisto->SetScaleWithTPCSignal(fScaleGainWithTPCSignal); // Scale Gain with TPC signal
     for(Int_t k = 0; k < 3; k++){
       if(((fNz[k] != 10) && (fNrphi[k] != 10)) && ((fNz[k] != 100) && (fNrphi[k] != 100))) {
 	fTRDCalibraFillHisto->SetNz(k,fNz[k]);                                    // Mode calibration
@@ -716,8 +718,9 @@ void AliTRDCalibTask::UserExec(Option_t *)
   /////////////////////////////////////
   // Loop on AliESDtrack
   ////////////////////////////////////
-  //printf("Nb of tracks %f\n",nbTracks);      
-  for(int itrk=0; itrk < nbTracks; ++itrk){
+  //printf("Nb of tracks %f\n",nbTracks); 
+  Int_t nbTracksfriends = fESDfriend->GetNumberOfTracks();     
+  for(int itrk=0; itrk < nbTracksfriends; ++itrk){
     
     // Get ESD track
     fkEsdTrack = fESD->GetTrack(itrk);
@@ -725,7 +728,10 @@ void AliTRDCalibTask::UserExec(Option_t *)
     ULong_t status = fkEsdTrack->GetStatus(); 
     if(status&(AliESDtrack::kTPCout)) ++nbtrackTPC;
     
+    // Fix suggested by Alex
     fFriendTrack = fESDfriend->GetTrack(itrk);
+    //printf("itrk %d\n",itrk);
+    //fFriendTrack = (fESDfriend->GetNumberOfTracks()>itrk)?fESDfriend->GetTrack(itrk):NULL;
     if(!fFriendTrack)  {
       //printf("No friend track %d\n",itrk);
       continue;
