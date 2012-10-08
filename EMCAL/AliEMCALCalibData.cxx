@@ -31,37 +31,36 @@
 
 ClassImp(AliEMCALCalibData)
 
-//________________________________________________________________
-AliEMCALCalibData::AliEMCALCalibData()
+//__________________________________________________________
+AliEMCALCalibData::AliEMCALCalibData() : 
+TNamed(), fADCchannelRef(0)
 {
   // Default constructor
   Reset();
 }
 
-//________________________________________________________________
-AliEMCALCalibData::AliEMCALCalibData(const char* name)
+//________________________________________________________________________
+AliEMCALCalibData::AliEMCALCalibData(const char* name) : 
+TNamed(name,name),fADCchannelRef(0)
 {
   // Constructor
-  TString namst = "Calib_";
-  namst += name;
-  SetName(namst.Data());
-  SetTitle(namst.Data());
   Reset();
 }
 
-//________________________________________________________________
+//______________________________________________________________________
 AliEMCALCalibData::AliEMCALCalibData(const AliEMCALCalibData& calibda) :
-  TNamed(calibda)
+TNamed(calibda), fADCchannelRef(calibda.fADCchannelRef)
 {
   // copy constructor
-  SetName(calibda.GetName());
+  SetName (calibda.GetName());
   SetTitle(calibda.GetName());
   Reset();
-
+  
   Int_t nSMod = AliEMCALGeoParams::fgkEMCALModules; //12
   Int_t nCol  = AliEMCALGeoParams::fgkEMCALCols;    //48
   Int_t nRow  = AliEMCALGeoParams::fgkEMCALRows;    //24
   Int_t nRow2 = AliEMCALGeoParams::fgkEMCALRows;    //12 - Modules 11 and 12 are half modules
+  // in reality they are 1/3 but leave them as 1/2
 
   for(Int_t supermodule = 0; supermodule < nSMod; supermodule++) {
     
@@ -81,31 +80,33 @@ AliEMCALCalibData::AliEMCALCalibData(const AliEMCALCalibData& calibda) :
         fADCpedestal[supermodule][column][row] = 
         calibda.GetADCpedestal(supermodule,column,row);
         
-        fTimeChannel[supermodule][column][row] = 
-        calibda.GetTimeChannel(supermodule,column,row);
-        
         fTimeChannelDecal[supermodule][column][row] = 
         calibda.GetTimeChannelDecal(supermodule,column,row);
         
+        for(Int_t bc = 0; bc < 4; bc++)
+          fTimeChannel[supermodule][column][row][bc] = 
+          calibda.GetTimeChannel(supermodule,column,row,bc);
         
       }
     }
   }
 }
-
 
 //________________________________________________________________
 AliEMCALCalibData &AliEMCALCalibData::operator =(const AliEMCALCalibData& calibda)
 {
   // assignment operator
-  SetName(calibda.GetName());
+  SetName (calibda.GetName());
   SetTitle(calibda.GetName());
   Reset();
-
+  
+  fADCchannelRef = calibda.GetADCchannelRef() ;
+  
   Int_t nSMod = AliEMCALGeoParams::fgkEMCALModules; //12
   Int_t nCol  = AliEMCALGeoParams::fgkEMCALCols;    //48
   Int_t nRow  = AliEMCALGeoParams::fgkEMCALRows;    //24
   Int_t nRow2 = AliEMCALGeoParams::fgkEMCALRows/2;  //12 - Modules 11 and 12 are half modules
+  // in reality they are 1/3 but leave them as 1/2
 
   for(Int_t supermodule = 0; supermodule < nSMod; supermodule++) {
     
@@ -125,35 +126,33 @@ AliEMCALCalibData &AliEMCALCalibData::operator =(const AliEMCALCalibData& calibd
         fADCpedestal[supermodule][column][row] = 
         calibda.GetADCpedestal(supermodule,column,row);
         
-        fTimeChannel[supermodule][column][row] = 
-        calibda.GetTimeChannel(supermodule,column,row);
-
         fTimeChannelDecal[supermodule][column][row] = 
         calibda.GetTimeChannelDecal(supermodule,column,row);
+        
+        for(Int_t bc = 0; bc < 4; bc++)
+          fTimeChannel[supermodule][column][row][bc] = 
+          calibda.GetTimeChannel(supermodule,column,row,bc);
         
       }
     }
   }
+  
   return *this;
 }
 
-//________________________________________________________________
-AliEMCALCalibData::~AliEMCALCalibData()
-{
-  // Destructor
-}
-
-//________________________________________________________________
+//_____________________________
 void AliEMCALCalibData::Reset()
 {
   // Set all pedestals to 0 and all ADC channels widths to 1
-  //memset(fADCchannel ,1,12*48*24*sizeof(Float_t));
-  //memset(fADCpedestal,0,12*48*24*sizeof(Float_t));
-
+  
+  fADCchannelRef = 0.0162;	
+  
   Int_t nSMod = AliEMCALGeoParams::fgkEMCALModules; //12
   Int_t nCol  = AliEMCALGeoParams::fgkEMCALCols;    //48
   Int_t nRow  = AliEMCALGeoParams::fgkEMCALRows;    //24
   Int_t nRow2 = AliEMCALGeoParams::fgkEMCALRows/2;  //12 - Modules 11 and 12 are half modules
+  // in reality they are 1/3 but leave them as 1/2
+
   for (Int_t supermodule=0; supermodule<nSMod; supermodule++){
     if(supermodule >= 10)
       nRow = nRow2;
@@ -166,17 +165,17 @@ void AliEMCALCalibData::Reset()
         fADCchannelDecal [supermodule][column][row]=1.;
         fADCchannel      [supermodule][column][row]=1.;
         
-        fTimeChannel     [supermodule][column][row]=0.;
         fTimeChannelDecal[supermodule][column][row]=0.;
-
+        
+        for(Int_t bc = 0; bc < 4; bc++)
+          fTimeChannel[supermodule][column][row][bc]=0;
+        
       }
     }
-  }
-	
-  fADCchannelRef = .0162;	
+  }	
 }
 
-//________________________________________________________________
+//____________________________________________________
 void  AliEMCALCalibData::Print(Option_t *option) const
 {
   // Print tables of pedestals and ADC channels widths
@@ -186,6 +185,8 @@ void  AliEMCALCalibData::Print(Option_t *option) const
   Int_t nCol  = AliEMCALGeoParams::fgkEMCALCols;    //48
   Int_t nRow  = AliEMCALGeoParams::fgkEMCALRows;    //24
   Int_t nRow2 = AliEMCALGeoParams::fgkEMCALRows/2;  //12 - Modules 11 and 12 are half modules
+  // in reality they are 1/3 but leave them as 1/2
+  
   if (strstr(option,"ped") || strstr(option,"all")) {
     printf("\n	----	Pedestal values	----\n\n");
     for (Int_t supermodule=0; supermodule<nSMod; supermodule++){
@@ -239,13 +240,13 @@ void  AliEMCALCalibData::Print(Option_t *option) const
       printf("============== Supermodule %d\n",supermodule+1);
       for (Int_t column=0; column<nCol; column++){
         for (Int_t row=0; row<nRow; row++){
-          printf(" %2.4f ",fTimeChannel[supermodule][column][row]);
+          for(Int_t bc = 0; bc < 4; bc++)
+            printf(" %2.4f ",fTimeChannel[supermodule][column][row][bc]);
         }
         printf("\n");
       }
     }   
   }
-  
   
   if (strstr(option,"time") || strstr(option,"all")) {
     printf("\n	----	time decalibration channel values	----\n\n");
@@ -261,8 +262,6 @@ void  AliEMCALCalibData::Print(Option_t *option) const
       }
     }   
   }
-  
-  
 }
 
 //________________________________________________________________
@@ -272,7 +271,7 @@ Float_t AliEMCALCalibData::GetADCchannel(Int_t supermodule, Int_t column, Int_t 
   // All indexes start from 0!
   // Supermodule, column,raw should follow the ALICE convention:
   // supermodule 0:11, column 0:47, row 0:23
-
+  
   return fADCchannel[supermodule][column][row];
 }
 
@@ -291,14 +290,14 @@ Float_t AliEMCALCalibData::GetADCchannelDecal(Int_t supermodule, Int_t column, I
 Float_t AliEMCALCalibData::GetADCpedestal(Int_t supermodule, Int_t column, Int_t row) const
 {
   // Get ADC pedestal values
- return fADCpedestal[supermodule][column][row];
+  return fADCpedestal[supermodule][column][row];
 }
 
 //________________________________________________________________
-Float_t AliEMCALCalibData::GetTimeChannel(Int_t supermodule, Int_t column, Int_t row) const
+Float_t AliEMCALCalibData::GetTimeChannel(Int_t supermodule, Int_t column, Int_t row, Int_t bc) const
 {
   // Set channel time witdth values
-  return fTimeChannel[supermodule][column][row];
+  return fTimeChannel[supermodule][column][row][bc];
 }
 
 //________________________________________________________________
@@ -330,10 +329,10 @@ void AliEMCALCalibData::SetADCpedestal(Int_t supermodule, Int_t column, Int_t ro
 }
 
 //________________________________________________________________
-void AliEMCALCalibData::SetTimeChannel(Int_t supermodule, Int_t column, Int_t row, Float_t value)
+void AliEMCALCalibData::SetTimeChannel(Int_t supermodule, Int_t column, Int_t row, Int_t bc, Float_t value)
 {
   // Set ADC pedestal values
-  fTimeChannel[supermodule][column][row] = value;
+  fTimeChannel[supermodule][column][row][bc] = value;
 }
 
 //________________________________________________________________
@@ -344,33 +343,4 @@ void AliEMCALCalibData::SetTimeChannelDecal(Int_t supermodule, Int_t column, Int
 }
 
 
-//________________________________________________________________
-void AliEMCALCalibData::Fill(const AliEMCALCalibData *cd1, const AliEMCALCalibData *cd2, Bool_t print)
-{
-  // Fill for (relative) recalibration to undo calibration 
-  // from 1 and apply calibration from 2.
-
-  Int_t nSMod = AliEMCALGeoParams::fgkEMCALModules; //12
-  Int_t nCol  = AliEMCALGeoParams::fgkEMCALCols;    //48
-  Int_t nRow  = AliEMCALGeoParams::fgkEMCALRows;    //24
-  Int_t nRow2 = AliEMCALGeoParams::fgkEMCALRows/2;  //12 - Modules 11 and 12 are half modules
-  for (Int_t supermodule=0; supermodule<nSMod; supermodule++) {
-    if(supermodule >= 10)
-      nRow = nRow2;
-    for (Int_t column=0; column<nCol; column++) {
-      for (Int_t row=0; row<nRow; row++){
-        Double_t adc1 = cd1->GetADCchannel(supermodule, column, row);
-        Double_t ped1 = cd1->GetADCpedestal(supermodule, column, row);
-        Double_t adc2 = cd2->GetADCchannel(supermodule, column, row);
-        Double_t ped2 = cd2->GetADCpedestal(supermodule, column, row);
-        Double_t adc = adc2/adc1;
-        Double_t ped = ped2-adc*ped1;
-        if (print)
-          printf("%d %d %d: %f %f %f %f -> %f %f\n",supermodule,column,row,adc1,ped1,adc2,ped2,adc,ped);
-        fADCchannel [supermodule][column][row]=adc;
-        fADCpedestal[supermodule][column][row]=ped;
-      }
-    }
-  } 
-}
 
