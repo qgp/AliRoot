@@ -163,6 +163,7 @@ void AliGenBox::GenerateN(Int_t ntimes)
     
  // Passes header either to the container or to gAlice
     if (fContainer) {
+        header->SetName(fName);
 	fContainer->AddHeader(header);
     } else {
 	gAlice->SetGenEventHeader(header);	
