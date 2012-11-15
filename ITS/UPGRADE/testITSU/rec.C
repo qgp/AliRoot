@@ -12,7 +12,7 @@ void rec() {
   gSystem->Exec("rm -rf *RecPoints* AliESD*");
 
   // Set ITS upgrade reconstructor
-  gPluginMgr->AddHandler("AliReconstructor", "*",
+  gPluginMgr->AddHandler("AliReconstructor", "ITS",
 			 "AliITSUReconstructor","ITS", "AliITSUReconstructor()");
   
   AliReconstruction rec;
@@ -28,6 +28,8 @@ void rec() {
   rec.SetSpecificStorage("GRP/GRP/Data",
 			 Form("local://%s",gSystem->pwd()));
   rec.SetSpecificStorage("ITS/Align/Data",
+			 Form("local://%s",gSystem->pwd()));
+  rec.SetSpecificStorage("ITS/Calib/RecoParam",
 			 Form("local://%s",gSystem->pwd()));
   
 
