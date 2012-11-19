@@ -1,0 +1,77 @@
+2012-02-03 branch v5-02-Release created, r54390
+# Syntax: revision numbers x y z preceded by key '---' and module/comment
+#
+#   revision log: '--- [module/comment]: x y z'
+#   merging:      '---> [module/comment]: x y z'
+#
+# merging of an entry of this file:
+# cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z/]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text; svn merge -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
+#
+# checking log message and diff of the selected revisions
+# cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/--->/!d' | while read line; do revisions=`echo $line | sed -e 's|---> [ A-Za-z/]*:||'`; text=`echo $line | sed -e 's|:[ 0-9]*||g'`; for r in $revisions; do echo $r $text;svn log -c $r https://alisoft.cern.ch/AliRoot/trunk/HLT; svn diff -c $r https://alisoft.cern.ch/AliRoot/trunk;done; done
+#
+# comparing modified files with another aliroot version
+# for f in `svn st HLT | grep Ali | sed -e 's|^MM*||'`; do echo $f; diff -I '$Id' $f ../AliRoot_HEAD_2012-04-04/$f; done
+#
+# merged revisions:
+# for r in `cat $ALICE_ROOT/HLT/ChangeLog | sed -e '/^#/d' -e '/---/!d' -e 's|---[ >/:A-Za-z]*||'`; do echo $r; done | sort
+#
+# changes in the trunk since creation of the branch
+# svn log -r 54390:HEAD https://alisoft.cern.ch/AliRoot/trunk/HLT/ | sed -e '/^r[0-9]/!d' -e 's|^r||' | cut -d ' ' -f 1
+#
+# check differences and sort
+# choice=port;for f in diff_*.diff; do kompare $f; echo port $f? "[$choice], n"; folder=$choice; read choice; if test "x$choice" == "x"; then choice=$folder; fi; if test "x$choice" != "xn"; then mkdir -p $choice;mv $f $choice; else choice=$folder; fi; done
+#
+2012-06-07 updated to 56939
+	--- TPC: 55270 55281
+	optimized memory consumption in cluster decoding
+	ported 55440
+	https://savannah.cern.ch/bugs/?90436
+
+	--- MUON: 55434
+	TClonesArray usage, ported 55446
+	https://savannah.cern.ch/bugs/?90436
+
+	--- BASE: 54484 54556 54557 54559 54633
+	added data type, updated helper methods, minor bugfix and code cleanup
+	ported 54863
+
+	--- CALO: 54805 54806 54824
+	ported 54863
+
+	--- build system: 54828 54847
+	ported 54863
+
+	--- TPC: 54558 54631 54632 54634 54636 54637
+	data publisher component, configurations
+	ported 54863
+
+	--- BASE: 55431 56959
+	minor code cleanup, bugfix and coding rules
+	https://savannah.cern.ch/bugs/index.php?95201
+	
+	--- MUON: 54969
+	minor compilation warning
+	https://savannah.cern.ch/bugs/index.php?95203
+
+	--- TPC: 56142
+	bugfix CA tracking
+	https://savannah.cern.ch/bugs/index.php?95200
+
+	--- TPC: 56960 56961 56963 56966
+	automatic emulation of cluster compression, to be ectivated in separate commit
+	https://savannah.cern.ch/bugs/index.php?95204
+
+	--- trigger: 55427
+	trigger format: new bit in CDH, new HLTOUT links
+	https://savannah.cern.ch/bugs/index.php?95202
+
+	--- rec: 55484 55485 55489 55513 55548
+	new recontruction sequence, coding rules
+	postponed
+
+	--- TPC: 56969
+	activating automatic emulation of TPC compressed clusters
+	postponed
+
+	Last checked revision 56969
