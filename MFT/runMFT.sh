@@ -19,6 +19,7 @@ cp $ALICE_ROOT/MFT/.rootrc \
    $ALICE_ROOT/MFT/runReconstruction.C \
    $ALICE_ROOT/MFT/runSimulation.C \
    $ALICE_ROOT/MFT/AliMuonForwardTrackFinder.C \
+   $ALICE_ROOT/MFT/FilterMuonGlobalTracks.C \
    $ALICE_ROOT/MFT/AliMFTClusterQA.C \
    $ALICE_ROOT/MFT/AliMFTGeometry.root \
    $OUTDIR 
@@ -41,9 +42,21 @@ cd $OUTDIR
   rm -f AliESD*.root *QA*.root
   echo "Running reconstruction  ..."
   cd $OUTDIR
+
   aliroot -l -b -q runReconstruction.C\($SEED,\""SAVEDIGITS"\"\) >$OUTDIR/testReco.out 2>$OUTDIR/testReco.err
-  aliroot -l -b -q AliMuonForwardTrackFinder.C\(\) >$OUTDIR/globalTracking.out 2>$OUTDIR/globalTracking.err
+
   aliroot -l -b -q AliMFTClusterQA.C\(\) >$OUTDIR/mftClusterQA.out 2>$OUTDIR/mftClusterQA.err
+
+  aliroot -l -b -q AliMuonForwardTrackFinder.C\($RUN,1\) >$OUTDIR/globalTracking.withBransonCorrection.out 2>$OUTDIR/globalTracking.withBransonCorrection.err
+  mv MuonGlobalTracking.QA.run$RUN.root MuonGlobalTracking.QA.run$RUN.withBransonCorrection.root 
+  mv MuonGlobalTracks.root MuonGlobalTracks.withBransonCorrection.root 
+
+  aliroot -l -b -q AliMuonForwardTrackFinder.C\($RUN,0\) >$OUTDIR/globalTracking.withoutBransonCorrection.out 2>$OUTDIR/globalTracking.withoutBransonCorrection.err
+  mv MuonGlobalTracking.QA.run$RUN.root MuonGlobalTracking.QA.run$RUN.withoutBransonCorrection.root 
+  mv MuonGlobalTracks.root MuonGlobalTracks.withoutBransonCorrection.root 
+
+  aliroot -l -b -q FilterMuonGlobalTracks.C+\(\) >$OUTDIR/filterGlobalTracks.out 2>$OUTDIR/filterGlobalTracks.err
+
 echo "Finished"  
 echo "... see results in $OUTDIR"
 ls -latr
