@@ -60,17 +60,19 @@ TGeoHMatrix* AliITSUClusterPix::GetMatrix(Bool_t ) const
 void AliITSUClusterPix::Print(Option_t* /*option*/) const
 {
   // Print cluster information.
-  printf("Cluster of module %5d, <nx>=%3d <nz>=%3d |Err^2:%.3e %.3e %+.3e |",GetVolumeId(),GetNx(),GetNz(),
+  printf("Cl.in mod %5d, nx:%3d nz:%3d |Err^2:%.3e %.3e %+.3e |",GetVolumeId(),GetNx(),GetNz(),
 	 GetSigmaY2(),GetSigmaZ2(),GetSigmaYZ());
-  printf("XYZ: %+.4e %+.4e %+.4e in frame ",GetX(),GetY(),GetZ());
-  if      (IsFrameLoc()) printf("LOC");
-  else if (IsFrameGlo()) printf("GLO");
-  else if (IsFrameTrk()) printf("TRK");
+  printf("XYZ: (%+.4e %+.4e %+.4e ",GetX(),GetY(),GetZ());
+  if      (IsFrameLoc()) printf("LOC)");
+  else if (IsFrameGlo()) printf("GLO)");
+  else if (IsFrameTrk()) printf("TRK)");
   if (!IsFrameGlo() && fgGeom) {
     Float_t g[3];
     GetGlobalXYZ(g);
-    printf(" (%+.4e %+.4e %+.4e in GLO)",g[0],g[1],g[2]);
+    printf(" (%+.4e %+.4e %+.4e GLO)",g[0],g[1],g[2]);
   }
+  printf(" MClb:");
+  for (int i=0;i<3;i++) printf(" %5d",GetLabel(i));
   printf("\n");
   //
 }
@@ -248,23 +250,29 @@ Int_t AliITSUClusterPix::Compare(const TObject* obj)  const
   // compare clusters accodring to specific mode
   const AliITSUClusterPix* px = dynamic_cast<const AliITSUClusterPix*>(obj);
   float xyz[3],xyz1[3];
-  if (fgMode & kSortLoc) { // sorting in local frame
-    GetLocalXYZ(xyz);
-    px->GetLocalXYZ(xyz1);
-    if (xyz[2]<xyz1[2]) return -1; // sort in Z then in X
-    if (xyz[2]>xyz1[2]) return  1;
-    if (xyz[0]<xyz1[0]) return -1;
-    if (xyz[0]>xyz1[0]) return  1;
-    return 0;
+  if (fgMode & kSortIdLocXZ) { // sorting in local frame
+    if (GetVolumeId()==px->GetVolumeId()) {
+      GetLocalXYZ(xyz);
+      px->GetLocalXYZ(xyz1);
+      if (xyz[0]<xyz1[0]) return -1; // sort in X
+      if (xyz[0]>xyz1[0]) return  1;
+      if (xyz[2]<xyz1[2]) return -1; // then in Z
+      if (xyz[2]>xyz1[2]) return  1;
+      return 0;
+    }
+    return int(GetVolumeId())-int(px->GetVolumeId());
   }
-  if (fgMode & kSortTrk) { // sorting in tracking frame
-    GetTrackingXYZ(xyz);
-    px->GetTrackingXYZ(xyz1);
-    if (xyz[2]<xyz1[2]) return -1; // sort in Z then in Y
-    if (xyz[2]>xyz1[2]) return  1;
-    if (xyz[1]<xyz1[1]) return -1;
-    if (xyz[1]>xyz1[1]) return  1;
-    return 0;    
+  if (fgMode & kSortIdTrkYZ) { // sorting in tracking frame
+    if (GetVolumeId()==px->GetVolumeId()) {
+      GetTrackingXYZ(xyz);
+      px->GetTrackingXYZ(xyz1);
+      if (xyz[1]<xyz1[1]) return -1; // sort in Y
+      if (xyz[1]>xyz1[1]) return  1;
+      if (xyz[2]<xyz1[2]) return -1; // then in Z
+      if (xyz[2]>xyz1[2]) return  1;
+      return 0;    
+    }
+    return int(GetVolumeId())-int(px->GetVolumeId());    
   }
   AliFatal(Form("Unknown modr for sorting: %d",fgMode));
   return 0;
@@ -277,17 +285,17 @@ Bool_t AliITSUClusterPix::IsEqual(const TObject* obj)  const
   const AliITSUClusterPix* px = dynamic_cast<const AliITSUClusterPix*>(obj);
   const Float_t kTol = 1e-5;
   float xyz[3],xyz1[3];
-  if (fgMode & kSortLoc) { // sorting in local frame
+  if (fgMode & kSortIdLocXZ) { // sorting in local frame
+    if (GetVolumeId()!=px->GetVolumeId()) return kFALSE;
     GetLocalXYZ(xyz);
     px->GetLocalXYZ(xyz1);
-    if (Abs(xyz[2]-xyz1[2])<kTol && Abs(xyz[0]-xyz1[0])<kTol) return kTRUE;
-    return kFALSE;
+    return (Abs(xyz[0]-xyz1[0])<kTol && Abs(xyz[2]-xyz1[2])<kTol) ? kTRUE : kFALSE;
   }
-  if (fgMode & kSortTrk) { // sorting in tracking frame
+  if (fgMode & kSortIdTrkYZ) { // sorting in tracking frame
+    if (GetVolumeId()!=px->GetVolumeId()) return kFALSE;
     GetTrackingXYZ(xyz);
     px->GetTrackingXYZ(xyz1);
-    if (Abs(xyz[2]-xyz1[2])<kTol && Abs(xyz[1]-xyz1[1])<kTol) return kTRUE;
-    return kFALSE;
+    return (Abs(xyz[1]-xyz1[1])<kTol && Abs(xyz[2]-xyz1[2])<kTol) ? kTRUE : kFALSE;
   }
   AliFatal(Form("Unknown modr for sorting: %d",fgMode));
   return kFALSE;

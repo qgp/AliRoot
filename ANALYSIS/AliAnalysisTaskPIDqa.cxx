@@ -69,7 +69,8 @@ fListQAemcal(0x0),
 fListQAhmpid(0x0),
 fListQAtofhmpid(0x0),
 fListQAtpctof(0x0),
-fListQAV0(0x0)
+fListQAV0(0x0),
+fListQAinfo(0x0)
 {
   //
   // Dummy constructor
@@ -96,7 +97,8 @@ fListQAemcal(0x0),
 fListQAhmpid(0x0),
 fListQAtofhmpid(0x0),
 fListQAtpctof(0x0),
-fListQAV0(0x0)
+fListQAV0(0x0),
+fListQAinfo(0x0)
 {
   //
   // Default constructor
@@ -195,6 +197,10 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   fListQAV0=new TList;
   fListQAV0->SetOwner();
   fListQAV0->SetName("V0decay");
+
+  fListQAinfo=new TList;
+  fListQAinfo->SetOwner();
+  fListQAinfo->SetName("QAinfo");
   
   fListQA->Add(fListQAits);
   fListQA->Add(fListQAitsSA);
@@ -207,6 +213,7 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   fListQA->Add(fListQAtpctof);
   fListQA->Add(fListQAtofhmpid);
   fListQA->Add(fListQAV0);
+  fListQA->Add(fListQAinfo);
 
   SetupITSqa();
   SetupTPCqa();
@@ -217,6 +224,7 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   SetupTPCTOFqa();
   SetupTOFHMPIDqa();
   SetupV0qa();
+  SetupQAinfo();
   
   PostData(1,fListQA);
 }
@@ -249,7 +257,8 @@ void AliAnalysisTaskPIDqa::UserExec(Option_t */*option*/)
   // Clear the V0 PID arrays
   ClearV0PIDlist();
 
-
+  //QA info
+  FillQAinfo();
   
   PostData(1,fListQA);
 }
@@ -528,13 +537,13 @@ void AliAnalysisTaskPIDqa::FillTOFqa()
     //
     ULong_t status=track->GetStatus();
     // TPC refit + ITS refit +
-    // TOF out + TOFpid +
+    // TOF out + kTIME
     // kTIME
-    // (we don't use kTOFmismatch because it depends on TPC....)
+    // (we don't use kTOFmismatch because it depends on TPC and kTOFpid because it prevents light nuclei
     if (!((status & AliVTrack::kTPCrefit) == AliVTrack::kTPCrefit) ||
         !((status & AliVTrack::kITSrefit) == AliVTrack::kITSrefit) ||
         !((status & AliVTrack::kTOFout  ) == AliVTrack::kTOFout  ) ||
-        !((status & AliVTrack::kTOFpid  ) == AliVTrack::kTOFpid  ) ||
+	//        !((status & AliVTrack::kTOFpid  ) == AliVTrack::kTOFpid  ) ||
         !((status & AliVTrack::kTIME    ) == AliVTrack::kTIME    ) ) continue;
 
     Float_t nCrossedRowsTPC = track->GetTPCClusterInfo(2,1);
@@ -581,16 +590,13 @@ void AliAnalysisTaskPIDqa::FillTOFqa()
     Double_t res = (Double_t)fPIDResponse->GetTOFResponse().GetStartTimeRes(mom);
     ((TH1F*)fListQAtof->FindObject("hStartTimeRes_TOF"))->Fill(res);
 
-    AliESDEvent *esd = dynamic_cast<AliESDEvent *>(event);
-    if (esd) {
-      Double_t startTime = esd->GetT0TOF(0);
-      if (startTime < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeAC_T0"))->Fill(startTime);
-      else {
-        startTime = esd->GetT0TOF(1);
-        if (startTime < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeA_T0"))->Fill(startTime);
-        startTime = esd->GetT0TOF(2);
-        if (startTime < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeC_T0"))->Fill(startTime);
-      }
+    Double_t startTimeT0 = event->GetT0TOF(0);
+    if (startTimeT0 < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeAC_T0"))->Fill(startTimeT0);
+    else {
+      startTimeT0 = event->GetT0TOF(1);
+      if (startTimeT0 < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeA_T0"))->Fill(startTimeT0);
+      startTimeT0 = event->GetT0TOF(2);
+      if (startTimeT0 < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeC_T0"))->Fill(startTimeT0);
     }
   }
   if (tracksAtTof > 0) {
@@ -939,6 +945,65 @@ void AliAnalysisTaskPIDqa::FillTPCTOFqa()
   }
 }
 
+//_____________________________________________________________________________
+void AliAnalysisTaskPIDqa::FillQAinfo()
+{
+  //
+  // Fill the QA information
+  //
+
+
+  //TPC QA info
+  TObjArray *arrTPC=static_cast<TObjArray*>(fListQAinfo->At(0));
+  if (fPIDResponse && arrTPC){
+    AliTPCPIDResponse &tpcResp=fPIDResponse->GetTPCResponse();
+    // fill spline names
+    if (!arrTPC->UncheckedAt(0)){
+      
+      TObjArray *arrTPCsplineNames=new TObjArray(AliPID::kSPECIESC);
+      arrTPCsplineNames->SetOwner();
+      arrTPCsplineNames->SetName("TPC_spline_names");
+      arrTPC->AddAt(arrTPCsplineNames,0);
+      
+      for (Int_t iresp=0; iresp<AliPID::kSPECIESC; ++iresp){
+        const TObject *o=tpcResp.GetResponseFunction((AliPID::EParticleType)iresp);
+        if (!o) continue;
+        arrTPCsplineNames->Add(new TObjString(Form("%02d: %s",iresp, o->GetName())));
+      }
+    }
+
+    // tpc response config
+    if (!arrTPC->UncheckedAt(1)){
+      
+      TObjArray *arrTPCconfigInfo=new TObjArray;
+      arrTPCconfigInfo->SetOwner();
+      arrTPCconfigInfo->SetName("TPC_config_info");
+      arrTPC->AddAt(arrTPCconfigInfo,1);
+
+      TObjString *ostr=0x0;
+      ostr=new TObjString;
+      ostr->String().Form("Eta Corr map: %s", tpcResp.GetEtaCorrMap()?tpcResp.GetEtaCorrMap()->GetName():"none");
+      arrTPCconfigInfo->Add(ostr);
+
+      ostr=new TObjString;
+      ostr->String().Form("Sigma Par map: %s", tpcResp.GetSigmaPar1Map()?tpcResp.GetSigmaPar1Map()->GetName():"none");
+      arrTPCconfigInfo->Add(ostr);
+
+      ostr=new TObjString;
+      ostr->String().Form("MIP: %.2f", tpcResp.GetMIP());
+      arrTPCconfigInfo->Add(ostr);
+      
+      ostr=new TObjString;
+      ostr->String().Form("Res: Def %.3g (%.3g) : AllHigh %.3g (%.3g) : OROC high %.3g (%.3g)",
+                          tpcResp.GetRes0(AliTPCPIDResponse::kDefault), tpcResp.GetResN2(AliTPCPIDResponse::kDefault),
+                          tpcResp.GetRes0(AliTPCPIDResponse::kALLhigh), tpcResp.GetResN2(AliTPCPIDResponse::kALLhigh),
+                          tpcResp.GetRes0(AliTPCPIDResponse::kOROChigh), tpcResp.GetResN2(AliTPCPIDResponse::kOROChigh)
+                         );
+      arrTPCconfigInfo->Add(ostr);
+    }
+  }
+}
+
 //______________________________________________________________________________
 void AliAnalysisTaskPIDqa::SetupITSqa()
 {
@@ -1235,6 +1300,17 @@ void AliAnalysisTaskPIDqa::SetupV0qa()
   TH2F *hArmenteros  = new TH2F("hArmenteros",  "Armenteros plot",200,-1.,1.,200,0.,0.4);
   fListQAV0->Add(hArmenteros);
  
+}
+
+//_____________________________________________________________________________
+void AliAnalysisTaskPIDqa::SetupQAinfo(){
+  //
+  // Setup the info of QA objects
+  //
+
+  TObjArray *arr=new TObjArray;
+  arr->SetName("TPC_info");
+  fListQAinfo->Add(arr);
 }
 
 //______________________________________________________________________________

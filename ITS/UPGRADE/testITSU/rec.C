@@ -9,16 +9,21 @@ void rec() {
   gSystem->Load("libITSUpgradeSim.so");
   gSystem->Load("libITSUpgradeRec.so");
 
-  gSystem->Exec("rm -rf *RecPoints* AliESD*");
+  //  gSystem->Exec("rm -rf *RecPoints* AliESD*");
 
   // Set ITS upgrade reconstructor
-  gPluginMgr->AddHandler("AliReconstructor", "*",
+  gPluginMgr->AddHandler("AliReconstructor", "ITS",
 			 "AliITSUReconstructor","ITS", "AliITSUReconstructor()");
   
   AliReconstruction rec;
 
-  rec.SetRunReconstruction("ITS"); // run cluster finder
-  rec.SetRunTracking(""); // Turn on with ITS when tracker is implemented
+  //rec.SetRunReconstruction("ITS TPC"); // run cluster finder
+  //rec.SetRunTracking(""); // Turn on with ITS when tracker is implemented
+
+  
+  rec.SetRunReconstruction("");//ITS TPC"); // run cluster finder
+  rec.SetRunTracking("ITS TPC"); // Turn on with ITS when tracker is implemented
+  
 
   rec.SetRunVertexFinder(kFALSE); // to be implemented - CreateVertexer
   rec.SetRunMultFinder(kFALSE);   // to be implemented - CreateMultFinder
@@ -28,6 +33,8 @@ void rec() {
   rec.SetSpecificStorage("GRP/GRP/Data",
 			 Form("local://%s",gSystem->pwd()));
   rec.SetSpecificStorage("ITS/Align/Data",
+			 Form("local://%s",gSystem->pwd()));
+  rec.SetSpecificStorage("ITS/Calib/RecoParam",
 			 Form("local://%s",gSystem->pwd()));
   
 

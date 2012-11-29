@@ -31,22 +31,33 @@ class AliITSURecoSens : public TObject
   //
   Int_t              GetNeighborID(int i)          const {return fNeighbors[i];}
   //
+  Int_t              GetNClusters()                const {return fNClusters;}
+  Int_t              GetFirstClusterId()           const {return fFirstClusterId;}
+  //
   void               SetID(Int_t i)                      {SetUniqueID(i);}
   void               SetXTF(double v)                    {fXTF = v;}
   void               SetPhiTF(double v)                  {fPhiTF = v;}
   void               SetNeighborID(int i, int id)        {fNeighbors[i] = id;}
   void               SetBoundaries(double phiMn,double phiMx, double zMn, double zMx);
   //
+  void               SetNClusters(Int_t ncl)             {fNClusters = ncl;}
+  void               IncNClusters()                      {fNClusters++;}
+  void               SetFirstClusterId(Int_t id)         {fFirstClusterId = id;}
+  void               ResetClusters(); 
+  void               ProcessClusters(Int_t mode=0);
+  //
   virtual void       Print(Option_t* option = "")  const;
 
  protected:
   Int_t              fNeighbors[kNNeighbors];      // id of neighbors  
+  Int_t              fNClusters;                   // number of clusters
+  Int_t              fFirstClusterId;              // index of the 1st cluster in the layer's clusters array
   Double_t           fXTF;                         // X in tracking frame
   Double_t           fPhiTF;                       // phi of tracking frame
   Double_t           fPhiMin;                      // lab phi min
   Double_t           fPhiMax;                      // lab phi max
-  Double_t           fZMin;                        // lab Z min
-  Double_t           fZMax;                        // lab Z max
+  Double_t           fZMin;                        // lab & trk Z min
+  Double_t           fZMax;                        // lab & trk Z max
   //
   ClassDef(AliITSURecoSens,1); // helper for sensor data used in reco
 };

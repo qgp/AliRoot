@@ -18,7 +18,7 @@ class AliITSURecoDet : public TNamed
 {
  public:
   //
-  AliITSURecoDet(const char* name="");
+  AliITSURecoDet(AliITSUGeomTGeo* geom, const char* name="");
   virtual ~AliITSURecoDet();
   //
   Double_t           GetRMin()                     const {return fRMin;}
@@ -28,15 +28,20 @@ class AliITSURecoDet : public TNamed
   Int_t              GetLrIDActive(Int_t lrActID)  const;
   AliITSURecoLayer*  GetLayer(Int_t i)             const;
   AliITSURecoLayer*  GetLayerActive(Int_t i)       const;
-  AliITSUGeomTGeo*   GetGeom()                     const {return fITSGeom;}
+  AliITSUGeomTGeo*   GetGeom()                     const {return fGeom;}
   //
   void               SetRMin(Double_t r)                 {fRMin = r;}
   void               SetRMax(Double_t r)                 {fRMax = r;}
   //
   void               AddLayer(const AliITSURecoLayer* lr);
-  Bool_t             Build();
+  //
+  void               ProcessClusters(Int_t mode=0);
   //
   virtual void       Print(Option_t* option = "")  const;
+  //
+ protected:
+  Bool_t             Build();
+  void               IndexLayers();
   //
  protected:
   Int_t              fNLayers;        // total number of layers
@@ -45,8 +50,11 @@ class AliITSURecoDet : public TNamed
   Double_t           fRMin;           // min  R
   TObjArray          fLayers;         // layers
   TObjArray          fLayersActive;   // active layers
-  AliITSUGeomTGeo*   fITSGeom;        // ITS geometry
+  AliITSUGeomTGeo*   fGeom;           // ITS geometry
   //
+ protected:
+  static const Char_t*     fgkBeamPipeVolName;    // name of the beam pipe volume
+
  private:
   AliITSURecoDet(const AliITSURecoDet &source); 
   AliITSURecoDet& operator=(const AliITSURecoDet &source); 
@@ -77,5 +85,11 @@ inline AliITSURecoLayer* AliITSURecoDet::GetLayerActive(Int_t i) const
   return i<fNLayersActive ? (AliITSURecoLayer*)fLayersActive.UncheckedAt(i):0;
 }
 
+//______________________________________________________
+inline void AliITSURecoDet::ProcessClusters(Int_t mode)
+{
+  // prepare clsuters for reconstrunction
+  for (int ilr=fNLayersActive;ilr--;) GetLayerActive(ilr)->ProcessClusters(mode);
+}
 
 #endif

@@ -28,22 +28,23 @@
 #include "AliESDEvent.h"
 
 #include "AliTracker.h"
-#include "AliITStrackerMI.h"
+#include "AliITSUTrackerGlo.h"
 
 #include "AliITSUGeomTGeo.h"
 #include "AliITSUSegmentationPix.h"
 #include "AliITSUDigitPix.h"
 #include "AliITSUClusterizer.h"
 #include "AliITSUClusterPix.h"
+#include "AliMagF.h"
 
 ClassImp(AliITSUReconstructor)
 
 //___________________________________________________________________________
 AliITSUReconstructor::AliITSUReconstructor() 
 :  AliReconstructor()
-  ,fGM(0)
+  ,fGeom(0)
   ,fClusterFinders(0)
-  ,fRecPoints(0)
+  ,fClusters(0)
 {
   // Default constructor
 
@@ -54,49 +55,45 @@ AliITSUReconstructor::~AliITSUReconstructor()
 {
   // destructor
   //
-  if (!fGM) return; // was not initialized
+  if (!fGeom) return; // was not initialized
   //
   // same cluster finders and recpoint arrays might be attached to different layers
-  for (int i=fGM->GetNLayers();i--;) {
+  for (int i=fGeom->GetNLayers();i--;) {
     TObject* clFinder = fClusterFinders.At(i);
     if (clFinder) {
       while (fClusterFinders.Remove(clFinder)) {}
       delete clFinder;
     }
     //
-    TObject* arrRP = fRecPoints.At(i);
-    if (arrRP) {
-      while (fRecPoints.Remove(arrRP)) {}
-      delete arrRP;
-    }
+    delete[] fClusters;
   }
   //
-  delete fGM;
+  delete fGeom;
 } 
 
 //______________________________________________________________________
 void AliITSUReconstructor::Init() 
 {
   // Initalize this constructor 
-  if (fGM) AliFatal("was already done, something is wrong...");
+  AliInfo("Initializing");
+  if (fGeom) AliFatal("was already done, something is wrong...");
   //
-  fGM = new AliITSUGeomTGeo(kTRUE,kTRUE);
-  AliITSUClusterPix::SetGeom(fGM);
+  fGeom = new AliITSUGeomTGeo(kTRUE,kTRUE);
+  AliITSUClusterPix::SetGeom(fGeom);
   //  
   AliITSUClusterizer* clusPIX = 0;
-  TClonesArray* rpArrayPix = 0;
+  fClusters = new TClonesArray*[fGeom->GetNLayers()];
   //
-  for (int ilr=fGM->GetNLayers();ilr--;) {
-    int tpDet = fGM->GetLayerDetTypeID(ilr)/AliITSUGeomTGeo::kMaxSegmPerDetType;
+  for (int ilr=fGeom->GetNLayers();ilr--;) {
+    fClusters[ilr] = 0;
+    int tpDet = fGeom->GetLayerDetTypeID(ilr)/AliITSUGeomTGeo::kMaxSegmPerDetType;
     if (tpDet == AliITSUGeomTGeo::kDetTypePix) {
       if (!clusPIX)    clusPIX    = new AliITSUClusterizer();
-      if (!rpArrayPix) rpArrayPix = new TClonesArray(AliITSUClusterPix::Class());
-      //
       fClusterFinders.AddAtAndExpand(clusPIX, ilr);
-      fRecPoints.AddAtAndExpand(rpArrayPix, ilr);
+      fClusters[ilr] = new TClonesArray(AliITSUClusterPix::Class());
       //
       // to expand the buffers to max.size
-      clusPIX->SetSegmentation((AliITSUSegmentationPix*)fGM->GetSegmentation(ilr)); 
+      clusPIX->SetSegmentation((AliITSUSegmentationPix*)fGeom->GetSegmentation(ilr)); 
       continue;
     }
     else {
@@ -111,8 +108,8 @@ void AliITSUReconstructor::Init()
 //_____________________________________________________________________________
 void AliITSUReconstructor::Reconstruct(TTree *digitsTree, TTree *clustersTree) const
 {
-  // reconstruct clusters
-  if (!digitsTree || !clustersTree) return;
+  // reconstruct clusters. If clustersTree is provided, write the tree
+  if (!digitsTree) return;
   AliDebug(1,"ITSU Cluster finder (from digits tree) is initiated here \n");
   //
   // At the moment only pixel digits
@@ -120,32 +117,38 @@ void AliITSUReconstructor::Reconstruct(TTree *digitsTree, TTree *clustersTree) c
   digitsTree->SetBranchAddress("ITSDigitsPix",&digArrPix);
   //
   // a new tree is created for each event: add each layer as separate branch
-  TBranch *lrBranch[fGM->GetNLayers()];
-  TClonesArray *rpClones[fGM->GetNLayers()];
+  TBranch *lrBranch[fGeom->GetNLayers()];
   //
-  for (int ilr=0;ilr<fGM->GetNLayers();ilr++) {
-    rpClones[ilr] = (TClonesArray*)fRecPoints.At(ilr);
-    int tp = fGM->GetLayerDetTypeID(ilr)/AliITSUGeomTGeo::kMaxSegmPerDetType;
-    if (tp==AliITSUGeomTGeo::kDetTypePix) {
-      lrBranch[ilr] = clustersTree->Bronch(Form("ITSRecPoints%d",ilr),"TClonesArray",&rpClones[ilr]);
-    }
-    else {
-      AliFatal(Form("Detector type %d is not defined",tp));
+  for (int ilr=0;ilr<fGeom->GetNLayers();ilr++) {
+    if (clustersTree) { // do we write clusters tree?
+      int tp = fGeom->GetLayerDetTypeID(ilr)/AliITSUGeomTGeo::kMaxSegmPerDetType;
+      if (tp==AliITSUGeomTGeo::kDetTypePix) {
+	lrBranch[ilr] = clustersTree->Bronch(Form("ITSRecPoints%d",ilr),"TClonesArray",&fClusters[ilr]);
+      }
+      else {
+	AliFatal(Form("Detector type %d is not defined",tp));
+      }
     }
   }
   //
   AliITSUClusterizer* clFinder = 0;
+  AliMagF* field = dynamic_cast<AliMagF*>(TGeoGlobalMagField::Instance()->GetField());
+  double bz = 0;
+  if (field == 0) AliError("Cannot get magnetic field from TGeoGlobalMagField");
+  else bz = field->SolenoidField();
   //
-  for (int ilr=0;ilr<fGM->GetNLayers();ilr++) {
+  for (int ilr=0;ilr<fGeom->GetNLayers();ilr++) {
     //
-    rpClones[ilr]->Clear();
+    fClusters[ilr]->Clear();
     clFinder = (AliITSUClusterizer*)fClusterFinders[ilr];
-    clFinder->SetSegmentation((AliITSUSegmentationPix*)fGM->GetSegmentation(ilr));
-    clFinder->SetClusters(rpClones[ilr]);
+    clFinder->SetSegmentation((AliITSUSegmentationPix*)fGeom->GetSegmentation(ilr));
+    clFinder->SetLayerID(ilr);
+    clFinder->SetClusters(fClusters[ilr]);
     clFinder->SetRecoParam(GetRecoParam()); // RS: Do we need to set it for every event?
+    clFinder->PrepareLorentzAngleCorrection(bz);
     //
-    int modF=fGM->GetFirstModIndex(ilr);
-    int modL=fGM->GetLastModIndex(ilr)+1;
+    int modF=fGeom->GetFirstModIndex(ilr);
+    int modL=fGeom->GetLastModIndex(ilr)+1;
     for (int imod=modF;imod<modL;imod++) {
       digitsTree->GetEntry(imod);   
       int ndig  = digArrPix->GetEntries();
@@ -155,12 +158,12 @@ void AliITSUReconstructor::Reconstruct(TTree *digitsTree, TTree *clustersTree) c
       clFinder->Clusterize();
     }
     //
-    AliITSUClusterPix::SetSortMode( AliITSUClusterPix::SortModeTrkID());
-    rpClones[ilr]->Sort();
-    AliDebug(1,Form(" -> Lr%d : %d Cluster",ilr,rpClones[ilr]->GetEntries()));
-    lrBranch[ilr]->Fill();
+    AliITSUClusterPix::SetSortMode( AliITSUClusterPix::SortModeIdTrkYZ());
+    fClusters[ilr]->Sort();
+    AliDebug(1,Form(" -> Lr%d : %d Cluster",ilr,fClusters[ilr]->GetEntries()));
+    if (clustersTree) lrBranch[ilr]->Fill();
   }
-  clustersTree->SetEntries();
+  if (clustersTree) clustersTree->SetEntries();
   //
 }
 
@@ -168,41 +171,10 @@ void AliITSUReconstructor::Reconstruct(TTree *digitsTree, TTree *clustersTree) c
 AliTracker* AliITSUReconstructor::CreateTracker() const
 {
   // create a ITS tracker
-
-  AliDebug(1,"ITSU tracking initialization will be done here\n");
+  AliITSUTrackerGlo* tracker = new AliITSUTrackerGlo((AliITSUReconstructor*)this);
  
-  return 0;
-
-  /* // from Current ITS
-  Int_t trackerOpt = GetRecoParam()->GetTracker();
-  AliTracker* tracker;    
-  if (trackerOpt==1) {
-    tracker = new AliITStrackerMI(0);
-    AliITStrackerMI *mit=(AliITStrackerMI*)tracker;
-    mit->SetDetTypeRec(fDetTypeRec);
-  }  
-  else if (trackerOpt==2) {
-    tracker = new AliITStrackerV2(0);
-  }
-  else {
-    tracker =  new AliITStrackerSA(0);  // inherits from AliITStrackerMI
-    AliITStrackerSA *sat=(AliITStrackerSA*)tracker;
-    sat->SetDetTypeRec(fDetTypeRec);
-    if(GetRecoParam()->GetTrackerSAOnly()) sat->SetSAFlag(kTRUE);
-    if(sat->GetSAFlag())AliDebug(1,"Tracking Performed in ITS only\n");
-    if(GetRecoParam()->GetInwardFindingSA()){
-      sat->SetInwardFinding();
-      sat->SetInnerStartLayer(GetRecoParam()->GetInnerStartLayerSA());
-    }else{
-      sat->SetOutwardFinding();
-      sat->SetOuterStartLayer(GetRecoParam()->GetOuterStartLayerSA());
-    }
-    sat->SetMinNPoints(GetRecoParam()->GetMinNPointsSA());
-  }
-
   return tracker;
-  */
-  
+ 
 }
 
 //_____________________________________________________________________________
@@ -238,3 +210,17 @@ AliTracker* AliITSUReconstructor::CreateTrackleter() const
 
 }
 
+//_____________________________________________________________________________
+Int_t AliITSUReconstructor::LoadClusters(TTree* treeRP) 
+{
+  // read clusters from the tree, if it is provided
+  if (!treeRP) return 0;
+  for (int ilr=fGeom->GetNLayers();ilr--;) {
+    if (!fClusters[ilr]) AliFatal(Form("Clusters array for layer %d is not defined",ilr)); 
+    TBranch* br = treeRP->GetBranch(Form("ITSRecPoints%d",ilr));
+    if (!br) AliFatal(Form("Provided cluster tree does not contain branch for layer %d",ilr));
+    br->SetAddress(&fClusters[ilr]);
+  }
+  treeRP->GetEntry(0); // we are still in 1 ev/tree mode...
+  return 1;
+}

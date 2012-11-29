@@ -22,6 +22,8 @@
 //      Dariusz Miskowiec, GSI, D.Miskowiec@gsi.de
 // ...and some modifications by
 //      Mikolaj Krzewicki, GSI, mikolaj.krzewicki@cern.ch
+// ...and some modifications plus eta correction functions by
+//      Benjamin Hess, University of Tuebingen, bhess@cern.ch
 //-----------------------------------------------------------------
 
 #include <TGraph.h>
@@ -29,6 +31,7 @@
 #include <TSpline.h>
 #include <TBits.h>
 #include <TMath.h>
+#include <TH2D.h>
 
 #include <AliLog.h>
 #include "AliExternalTrackParam.h"
@@ -65,11 +68,10 @@ AliTPCPIDResponse::AliTPCPIDResponse():
   fLowGainOROCthreshold(-40),
   fBadOROCthreshhold(-40),
   fMaxBadLengthFraction(0.5),
-  fCurrentResponseFunction(NULL),
-  fCurrentdEdx(0.0),
-  fCurrentNPoints(0),
-  fCurrentGainScenario(kGainScenarioInvalid),
-  fMagField(0.)
+  fMagField(0.),
+  fhEtaCorr(0x0),
+  fhEtaSigmaPar1(0x0),
+  fSigmaPar0(0.0)
 {
   //
   //  The default constructor
@@ -96,17 +98,32 @@ AliTPCPIDResponse::AliTPCPIDResponse(const Double_t *param):
   fLowGainOROCthreshold(-40),
   fBadOROCthreshhold(-40),
   fMaxBadLengthFraction(0.5),
-  fCurrentResponseFunction(NULL),
-  fCurrentdEdx(0.0),
-  fCurrentNPoints(0),
-  fCurrentGainScenario(kGainScenarioInvalid),
-  fMagField(0.)
+  fMagField(0.),
+  fhEtaCorr(0x0),
+  fhEtaSigmaPar1(0x0),
+  fSigmaPar0(0.0)
 {
   //
   //  The main constructor
   //
   for (Int_t i=0; i<fgkNumberOfGainScenarios; i++) {fRes0[i]=param[1];fResN2[i]=param[2];}
 }
+
+
+//_________________________________________________________________________
+AliTPCPIDResponse::~AliTPCPIDResponse()
+{
+  //
+  // Destructor
+  //
+  
+  delete fhEtaCorr;
+  fhEtaCorr = 0x0;
+  
+  delete fhEtaSigmaPar1;
+  fhEtaSigmaPar1 = 0x0;
+}
+
 
 //_________________________________________________________________________
 AliTPCPIDResponse::AliTPCPIDResponse(const AliTPCPIDResponse& that):
@@ -127,14 +144,24 @@ AliTPCPIDResponse::AliTPCPIDResponse(const AliTPCPIDResponse& that):
   fLowGainOROCthreshold(that.fLowGainOROCthreshold),
   fBadOROCthreshhold(that.fBadOROCthreshhold),
   fMaxBadLengthFraction(that.fMaxBadLengthFraction),
-  fCurrentResponseFunction(NULL),
-  fCurrentdEdx(0.0),
-  fCurrentNPoints(0),
-  fCurrentGainScenario(kGainScenarioInvalid),
-  fMagField(that.fMagField)
+  fMagField(that.fMagField),
+  fhEtaCorr(0x0),
+  fhEtaSigmaPar1(0x0),
+  fSigmaPar0(that.fSigmaPar0)
 {
   //copy ctor
   for (Int_t i=0; i<fgkNumberOfGainScenarios; i++) {fRes0[i]=that.fRes0[i];fResN2[i]=that.fResN2[i];}
+ 
+  // Copy eta maps
+  if (that.fhEtaCorr){
+    fhEtaCorr = new TH2D(*(that.fhEtaCorr));
+    fhEtaCorr->SetDirectory(0);
+  }
+  
+  if (that.fhEtaSigmaPar1){
+    fhEtaSigmaPar1 = new TH2D(*(that.fhEtaSigmaPar1));
+    fhEtaSigmaPar1->SetDirectory(0);
+  }
 }
 
 //_________________________________________________________________________
@@ -159,6 +186,23 @@ AliTPCPIDResponse& AliTPCPIDResponse::operator=(const AliTPCPIDResponse& that)
   fMaxBadLengthFraction=that.fMaxBadLengthFraction;
   fMagField=that.fMagField;
   for (Int_t i=0; i<fgkNumberOfGainScenarios; i++) {fRes0[i]=that.fRes0[i];fResN2[i]=that.fResN2[i];}
+
+  delete fhEtaCorr;
+  fhEtaCorr=0x0;
+  if (that.fhEtaCorr){
+    fhEtaCorr = new TH2D(*(that.fhEtaCorr));
+    fhEtaCorr->SetDirectory(0);
+  }
+  
+  delete fhEtaSigmaPar1;
+  fhEtaSigmaPar1=0x0;
+  if (that.fhEtaSigmaPar1){
+    fhEtaSigmaPar1 = new TH2D(*(that.fhEtaSigmaPar1));
+    fhEtaSigmaPar1->SetDirectory(0);
+  }
+  
+  fSigmaPar0 = that.fSigmaPar0;
+
   return *this;
 }
 
@@ -210,6 +254,12 @@ void AliTPCPIDResponse::SetSigma(Float_t res0, Float_t resN2) {
 Double_t AliTPCPIDResponse::GetExpectedSignal(const Float_t mom,
 					      AliPID::EParticleType n) const {
   //
+  // Deprecated function (for backward compatibility). Please use 
+  // GetExpectedSignal(const AliVTrack* track, AliPID::EParticleType species, ETPCdEdxSource dedxSource,
+  //                   Bool_t correctEta = kTRUE);
+  // instead!
+  //
+  //
   // Calculates the expected PID signal as the function of 
   // the information stored in the track, for the specified particle type 
   //  
@@ -219,23 +269,30 @@ Double_t AliTPCPIDResponse::GetExpectedSignal(const Float_t mom,
   // assigned clusters and/or the track dip angle, for example.  
   //
   
-  Double_t mass=AliPID::ParticleMassZ(n);
-  if (!fUseDatabase) return Bethe(mom/mass);
-  //
-  const TSpline3 * responseFunction = (TSpline3 *) fResponseFunctions.UncheckedAt(n);
-
-  if (!responseFunction) return Bethe(mom/mass);
   //charge factor. BB goes with z^2, however in reality it is slightly larger (calibration, threshold effects, ...)
   // !!! Splines for light nuclei need to be normalised to this factor !!!
   const Double_t chargeFactor = TMath::Power(AliPID::ParticleCharge(n),2.3);
+  
+  Double_t mass=AliPID::ParticleMassZ(n);
+  if (!fUseDatabase) return Bethe(mom/mass) * chargeFactor;
+  //
+  const TSpline3 * responseFunction = (TSpline3 *) fResponseFunctions.UncheckedAt(n);
+
+  if (!responseFunction) return Bethe(mom/mass) * chargeFactor;
+  
   return fMIP*responseFunction->Eval(mom/mass)*chargeFactor;
 
 }
 
 //_________________________________________________________________________
 Double_t AliTPCPIDResponse::GetExpectedSigma(const Float_t mom, 
-			                     const Int_t nPoints,
+                                             const Int_t nPoints,
                                              AliPID::EParticleType n) const {
+  //
+  // Deprecated function (for backward compatibility). Please use 
+  // GetExpectedSigma(onst AliVTrack* track, AliPID::EParticleType species, 
+  // ETPCdEdxSource dedxSource, Bool_t correctEta) instead!
+  //
   //
   // Calculates the expected sigma of the PID signal as the function of 
   // the information stored in the track, for the specified particle type 
@@ -259,52 +316,80 @@ void AliTPCPIDResponse::SetSigma(Float_t res0, Float_t resN2, ETPCgainScenario g
   fResN2[gainScenario]=resN2;
 }
 
-//_________________________________________________________________________
-Double_t AliTPCPIDResponse::GetExpectedSignal(Double_t mom,
-                                              AliPID::EParticleType species,
-                                              const TSpline3* responseFunction) const 
-{
-  // Calculates the expected PID signal as the function of 
-  // the information stored in the track, for the specified particle type 
-  //  
-  // At the moment, these signals are just the results of calling the 
-  // Bethe-Bloch formula. 
-  // This can be improved. By taking into account the number of
-  // assigned clusters and/or the track dip angle, for example.  
-  //
-  
-  
-  Double_t mass=AliPID::ParticleMass(species);
-  
-  if (!fUseDatabase) return Bethe(mom/mass);
-  
-  if (!responseFunction) return Bethe(mom/mass);
-  return fMIP*responseFunction->Eval(mom/mass);
-}
 
 //_________________________________________________________________________
 Double_t AliTPCPIDResponse::GetExpectedSignal(const AliVTrack* track,
                                               AliPID::EParticleType species,
-                                              ETPCdEdxSource dedxSource) 
+                                              Double_t /*dEdx*/,
+                                              const TSpline3* responseFunction,
+                                              Bool_t correctEta) const 
+{
+  // Calculates the expected PID signal as the function of 
+  // the information stored in the track and the given parameters,
+  // for the specified particle type 
+  //  
+  // At the moment, these signals are just the results of calling the 
+  // Bethe-Bloch formula plus, if desired, taking into account the eta dependence. 
+  // This can be improved. By taking into account the number of
+  // assigned clusters and/or the track dip angle, for example.  
+  //
+  
+  Double_t mom=track->GetTPCmomentum();
+  Double_t mass=AliPID::ParticleMass(species);
+  
+  //charge factor. BB goes with z^2, however in reality it is slightly larger (calibration, threshold effects, ...)
+  // !!! Splines for light nuclei need to be normalised to this factor !!!
+  const Double_t chargeFactor = TMath::Power(AliPID::ParticleCharge(species),2.3);
+  
+  if (!responseFunction)
+    return Bethe(mom/mass) * chargeFactor;
+  
+  Double_t dEdxSplines = fMIP*responseFunction->Eval(mom/mass) * chargeFactor;
+  
+  if (!correctEta)
+    return dEdxSplines;
+  
+  //TODO Alternatively take current track dEdx
+  //return dEdxSplines * GetEtaCorrection(track, dEdx);
+  return dEdxSplines * GetEtaCorrection(track, dEdxSplines);
+}
+
+
+//_________________________________________________________________________
+Double_t AliTPCPIDResponse::GetExpectedSignal(const AliVTrack* track,
+                                              AliPID::EParticleType species,
+                                              ETPCdEdxSource dedxSource,
+                                              Bool_t correctEta) const
 {
   // Calculates the expected PID signal as the function of 
   // the information stored in the track, for the specified particle type 
   //  
   // At the moment, these signals are just the results of calling the 
-  // Bethe-Bloch formula. 
+  // Bethe-Bloch formula plus, if desired, taking into account the eta dependence. 
   // This can be improved. By taking into account the number of
   // assigned clusters and/or the track dip angle, for example.  
   //
   
-  Double_t mom = track->GetTPCmomentum();
-  Double_t mass=AliPID::ParticleMass(species);
+  if (!fUseDatabase) {
+    //charge factor. BB goes with z^2, however in reality it is slightly larger (calibration, threshold effects, ...)
+    // !!! Splines for light nuclei need to be normalised to this factor !!!
+    const Double_t chargeFactor = TMath::Power(AliPID::ParticleCharge(species),2.3);
   
-  if (!fUseDatabase) return Bethe(mom/mass);
+    return Bethe(track->GetTPCmomentum() / AliPID::ParticleMass(species)) * chargeFactor;
+  }
   
-  const TSpline3* responseFunction = GetResponseFunction(track,species,dedxSource);
-  if (!responseFunction) return Bethe(mom/mass);
-  return fMIP*responseFunction->Eval(mom/mass);
-
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+    
+  if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction)) {
+    // Something is wrong with the track -> Return obviously invalid value
+    return -999;
+  }
+  
+  // Charge factor already taken into account inside the following function call
+  return GetExpectedSignal(track, species, dEdx, responseFunction, correctEta);
 }
   
 //_________________________________________________________________________
@@ -318,14 +403,17 @@ TSpline3* AliTPCPIDResponse::GetResponseFunction( AliPID::EParticleType type,
 //_________________________________________________________________________
 TSpline3* AliTPCPIDResponse::GetResponseFunction( const AliVTrack* track,
                                AliPID::EParticleType species,
-                               ETPCdEdxSource dedxSource ) 
+                               ETPCdEdxSource dedxSource) const 
 {
   //the splines are stored in an array, different scenarios
 
-  if (ResponseFunctiondEdxN(track,
-                            species,
-                            dedxSource))
-    return fCurrentResponseFunction;
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+  
+  if (ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
+    return responseFunction;
   
   return NULL;
 }
@@ -355,74 +443,103 @@ void AliTPCPIDResponse::SetResponseFunction( TObject* o,
   fResponseFunctions.AddAtAndExpand(o,ResponseFunctionIndex(species,gainScenario));
 }
 
-//_________________________________________________________________________
-Double_t AliTPCPIDResponse::GetExpectedSigma( Double_t mom,
-                                              Int_t nPoints,
-                                              AliPID::EParticleType species,
-                                              ETPCgainScenario gainScenario,
-                                              const TSpline3* responseFunction) const
-{
-  // Calculates the expected sigma of the PID signal as the function of 
-  // the information stored in the track, for the specified particle type 
-  // and dedx scenario
-  //
-  
-  if (!responseFunction) return 999;
-  if (nPoints != 0) 
-    return GetExpectedSignal(mom,species,responseFunction) *
-           fRes0[gainScenario] * sqrt(1. + fResN2[gainScenario]/nPoints);
-  else
-    return GetExpectedSignal(mom,species,responseFunction)*fRes0[gainScenario];
-}
 
 //_________________________________________________________________________
 Double_t AliTPCPIDResponse::GetExpectedSigma(const AliVTrack* track, 
                                              AliPID::EParticleType species,
-                                             ETPCdEdxSource dedxSource) 
+                                             ETPCgainScenario gainScenario,
+                                             Double_t dEdx,
+                                             Int_t nPoints,
+                                             const TSpline3* responseFunction,
+                                             Bool_t correctEta) const 
+{
+  // Calculates the expected sigma of the PID signal as the function of 
+  // the information stored in the track and the given parameters,
+  // for the specified particle type 
+  //
+  
+  if (!responseFunction)
+    return 999;
+  
+  // If no sigma map is available or if no eta correction is requested (sigma maps only for corrected eta!), use the old parametrisation
+  if (!fhEtaSigmaPar1 || !correctEta) {  
+    if (nPoints != 0) 
+      return GetExpectedSignal(track, species, dEdx, responseFunction, kFALSE) *
+               fRes0[gainScenario] * sqrt(1. + fResN2[gainScenario]/nPoints);
+    else
+      return GetExpectedSignal(track, species, dEdx, responseFunction, kFALSE)*fRes0[gainScenario];
+  }
+    
+  if (nPoints > 0) {
+    Double_t sigmaPar1 = GetSigmaPar1(track, species, dEdx, responseFunction);
+    
+    return GetExpectedSignal(track, species, dEdx, responseFunction, kTRUE)*sqrt(fSigmaPar0 * fSigmaPar0 + sigmaPar1 * sigmaPar1 / nPoints);
+  }
+  else { 
+    // One should never have/take tracks with 0 dEdx clusters!
+    return 999;
+  }
+}
+
+
+//_________________________________________________________________________
+Double_t AliTPCPIDResponse::GetExpectedSigma(const AliVTrack* track, 
+                                             AliPID::EParticleType species,
+                                             ETPCdEdxSource dedxSource,
+                                             Bool_t correctEta) const 
 {
   // Calculates the expected sigma of the PID signal as the function of 
   // the information stored in the track, for the specified particle type 
   // and dedx scenario
   //
   
-  if (!ResponseFunctiondEdxN(track,
-                             species,
-                             dedxSource)) return 998; //TODO: better handling!
-
-  return GetExpectedSigma( track->GetTPCmomentum(),
-                           fCurrentNPoints,
-                           species,
-                           fCurrentGainScenario,
-                           fCurrentResponseFunction );
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+  
+  if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
+    return 999; //TODO: better handling!
+  
+  return GetExpectedSigma(track, species, gainScenario, dEdx, nPoints, responseFunction, correctEta);
 }
+
 
 //_________________________________________________________________________
 Float_t AliTPCPIDResponse::GetNumberOfSigmas(const AliVTrack* track, 
                              AliPID::EParticleType species,
-                             ETPCdEdxSource dedxSource) 
+                             ETPCdEdxSource dedxSource,
+                             Bool_t correctEta) const
 {
-  //calculates the number of sigmas of the PID signal from the expected value
-  //for a gicven particle species in the presence of multiple gain scenarios
+  //Calculates the number of sigmas of the PID signal from the expected value
+  //for a given particle species in the presence of multiple gain scenarios
   //inside the TPC
-
-  if (!ResponseFunctiondEdxN(track,
-                             species,
-                             dedxSource)) return 997; //TODO: better handling!
-
-  Double_t mom = track->GetTPCmomentum();
-  Double_t bethe=GetExpectedSignal(mom,species,fCurrentResponseFunction);
-  Double_t sigma=GetExpectedSigma( mom,
-                                   fCurrentNPoints,
-                                   species,
-                                   fCurrentGainScenario,
-                                   fCurrentResponseFunction );
-  return (fCurrentdEdx-bethe)/sigma;
+                             
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+  
+  if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
+    return -999; //TODO: Better handling!
+                             
+  Double_t bethe = GetExpectedSignal(track, species, dEdx, responseFunction, correctEta);
+  Double_t sigma = GetExpectedSigma(track, species, gainScenario, dEdx, nPoints, responseFunction, correctEta);
+  // 999 will be returned by GetExpectedSigma e.g. in case of 0 dEdx clusters
+  if (sigma >= 998) 
+    return -999;
+  else
+    return (dEdx-bethe)/sigma;
 }
 
 //_________________________________________________________________________
 Bool_t AliTPCPIDResponse::ResponseFunctiondEdxN( const AliVTrack* track, 
                                                  AliPID::EParticleType species,
-                                                 ETPCdEdxSource dedxSource ) 
+                                                 ETPCdEdxSource dedxSource,
+                                                 Double_t& dEdx, 
+                                                 Int_t& nPoints, 
+                                                 ETPCgainScenario& gainScenario, 
+                                                 TSpline3** responseFunction) const 
 {
   // Calculates the right parameters for PID
   //   dEdx parametrization for the proper gain scenario, dEdx 
@@ -431,42 +548,57 @@ Bool_t AliTPCPIDResponse::ResponseFunctiondEdxN( const AliVTrack* track,
   // and preferred source of dedx.
   // returns true on success
   
+  
+  if (dedxSource == kdEdxDefault) {
+    // Fast handling for default case. In addition: Keep it simple (don't call additional functions) to
+    // avoid possible bugs
+    
+    // GetTPCsignalTunedOnData will be non-positive, if it has not been set (i.e. in case of MC NOT tuned to data).
+    // If this is the case, just take the normal signal
+    dEdx = track->GetTPCsignalTunedOnData();
+    if (dEdx <= 0) {
+      dEdx = track->GetTPCsignal();
+    }
+    
+    nPoints = track->GetTPCsignalN();
+    gainScenario = kDefault;
+    
+    TObject* obj = fResponseFunctions.UncheckedAt(ResponseFunctionIndex(species,gainScenario));
+    *responseFunction = dynamic_cast<TSpline3*>(obj); //TODO:maybe static cast?
+  
+    return kTRUE;
+  }
+  
+  //TODO Proper handle of tuneMConData for other dEdx sources
+  
   Double32_t signal[4]; //0: IROC, 1: OROC medium, 2:OROC long, 3: OROC all (def. truncation used)
   Char_t ncl[3];        //same
   Char_t nrows[3];      //same
-  AliTPCdEdxInfo* dEdxInfo = track->GetTPCdEdxInfo();
+  const AliTPCdEdxInfo* dEdxInfo = track->GetTPCdEdxInfo();
   
   if (!dEdxInfo && dedxSource!=kdEdxDefault)  //in one case its ok if we dont have the info
   {
     AliError("AliTPCdEdxInfo not available");
-    InvalidateCurrentValues();
     return kFALSE;
   }
 
   if (dEdxInfo) dEdxInfo->GetTPCSignalRegionInfo(signal,ncl,nrows);
 
   //check if we cross a bad OROC in which case we reject
-  EChamberStatus trackStatus = TrackStatus(track,2);
-  if (trackStatus==kChamberOff || trackStatus==kChamberLowGain)
+  EChamberStatus trackOROCStatus = TrackStatus(track,2);
+  if (trackOROCStatus==kChamberOff || trackOROCStatus==kChamberLowGain)
   {
-    InvalidateCurrentValues();
     return kFALSE;
   }
 
   switch (dedxSource)
   {
-    case kdEdxDefault:
-      {
-        fCurrentdEdx = track->GetTPCsignal();
-        fCurrentNPoints = track->GetTPCsignalN();
-        fCurrentGainScenario = kDefault;
-        break;
-      }
     case kdEdxOROC:
       {
-        fCurrentdEdx = signal[3];
-        fCurrentNPoints = ncl[2]+ncl[1];
-        fCurrentGainScenario = kOROChigh;
+        if (trackOROCStatus==kChamberInvalid) return kFALSE; //never reached OROC
+        dEdx = signal[3];
+        nPoints = ncl[2]+ncl[1];
+        gainScenario = kOROChigh;
         break;
       }
     case kdEdxHybrid:
@@ -475,89 +607,275 @@ Bool_t AliTPCPIDResponse::ResponseFunctiondEdxN( const AliVTrack* track,
         EChamberStatus status = TrackStatus(track,1);
         if (status!=kChamberHighGain)
         {
-          fCurrentdEdx = signal[3];
-          fCurrentNPoints = ncl[2]+ncl[1];
-          fCurrentGainScenario = kOROChigh;
+          dEdx = signal[3];
+          nPoints = ncl[2]+ncl[1];
+          gainScenario = kOROChigh;
         }
         else
         {
-          fCurrentdEdx = track->GetTPCsignal();
-          fCurrentNPoints = track->GetTPCsignalN();
-          fCurrentGainScenario = kALLhigh;
+          dEdx = track->GetTPCsignal();
+          nPoints = track->GetTPCsignalN();
+          gainScenario = kALLhigh;
         }
         break;
       }
     default:
       {
-         fCurrentdEdx = 0.;
-         fCurrentNPoints = 0;
-         fCurrentGainScenario = kGainScenarioInvalid;
+         dEdx = 0.;
+         nPoints = 0;
+         gainScenario = kGainScenarioInvalid;
          return kFALSE;
       }
   }
-  TObject* obj = fResponseFunctions.UncheckedAt(ResponseFunctionIndex(species,fCurrentGainScenario));
-  fCurrentResponseFunction = dynamic_cast<TSpline3*>(obj); //TODO:maybe static cast?
+  TObject* obj = fResponseFunctions.UncheckedAt(ResponseFunctionIndex(species,gainScenario));
+  *responseFunction = dynamic_cast<TSpline3*>(obj); //TODO:maybe static cast?
+  
+  return kTRUE;
+}
+
+
+//_________________________________________________________________________
+Double_t AliTPCPIDResponse::GetEtaCorrection(const AliVTrack *track, Double_t dEdxSplines) const
+{
+  //
+  // Get eta correction for the given parameters.
+  //
+  
+  if (!fhEtaCorr)
+    return 1.;
+  
+  Double_t tpcSignal = dEdxSplines;
+  
+  if (tpcSignal < 1.)
+    return 1.;
+  
+  // For ESD tracks, the local tanTheta could be used (esdTrack->GetInnerParam()->GetTgl()).
+  // However, this value is not available for AODs and, thus, not for AliVTrack.
+  // Fortunately, the following formula allows to approximate the local tanTheta with the 
+  // global theta angle -> This is for by far most of the tracks the same, but gives at
+  // maybe the percent level differences within +- 0.2 in tanTheta -> Which is still ok.
+  Double_t tanTheta = TMath::Tan(-track->Theta() + TMath::Pi() / 2.0);
+  Int_t binX = fhEtaCorr->GetXaxis()->FindBin(tanTheta);
+  Int_t binY = fhEtaCorr->GetYaxis()->FindBin(1. / tpcSignal);
+  
+  if (binX == 0) 
+    binX = 1;
+  if (binX > fhEtaCorr->GetXaxis()->GetNbins())
+    binX = fhEtaCorr->GetXaxis()->GetNbins();
+  
+  if (binY == 0)
+    binY = 1;
+  if (binY > fhEtaCorr->GetYaxis()->GetNbins())
+    binY = fhEtaCorr->GetYaxis()->GetNbins();
+  
+  return fhEtaCorr->GetBinContent(binX, binY);
+}
+
+
+//_________________________________________________________________________
+Double_t AliTPCPIDResponse::GetEtaCorrection(const AliVTrack *track, AliPID::EParticleType species, ETPCdEdxSource dedxSource) const
+{
+  //
+  // Get eta correction for the given track.
+  //
+  
+  if (!fhEtaCorr)
+    return 1.;
+  
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+  
+  if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
+    return 1.; 
+  
+  Double_t dEdxSplines = GetExpectedSignal(track, species, dEdx, responseFunction, kFALSE);
+  
+  //TODO Alternatively take current track dEdx
+  //return GetEtaCorrection(track, dEdx);
+  
+  return GetEtaCorrection(track, dEdxSplines);
+}
+
+
+//_________________________________________________________________________
+Double_t AliTPCPIDResponse::GetEtaCorrectedTrackdEdx(const AliVTrack *track, AliPID::EParticleType species, ETPCdEdxSource dedxSource) const
+{
+  //
+  // Get eta corrected dEdx for the given track. For the correction, the expected dEdx of
+  // the specified species will be used. If the species is set to AliPID::kUnknown, the
+  // dEdx of the track is used instead.
+  // WARNING: In the latter case, the eta correction might not be as good as if the
+  // expected dEdx is used, which is the way the correction factor is designed
+  // for.
+  // In any case, one has to decide carefully to which expected signal one wants to
+  // compare the corrected value - to the corrected or uncorrected.
+  // Anyhow, a safer way of looking e.g. at the n-sigma is to call
+  // the corresponding function GetNumberOfSigmas!
+  //
+  
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+  
+  // Note: In case of species == AliPID::kUnknown, the responseFunction might not be set. However, in this case
+  // it is not used anyway, so this causes no trouble.
+  if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
+    return -1.;
+  
+  Double_t etaCorr = 0.;
+  
+  if (species < AliPID::kUnknown) {
+    Double_t dEdxSplines = GetExpectedSignal(track, species, dEdx, responseFunction, kFALSE);
+    etaCorr = GetEtaCorrection(track, dEdxSplines);
+  }
+  else {
+    etaCorr = GetEtaCorrection(track, dEdx);
+  }
+    
+  if (etaCorr <= 0)
+    return -1.;
+  
+  return dEdx / etaCorr; 
+}
+
+
+
+//_________________________________________________________________________
+Double_t AliTPCPIDResponse::GetSigmaPar1(const AliVTrack *track, AliPID::EParticleType species, Double_t dEdx, const TSpline3* responseFunction) const
+{
+  //
+  // Get parameter 1 of sigma parametrisation of TPC dEdx from the histogram for the given track.
+  //
+  
+  if (!fhEtaSigmaPar1)
+    return 999;
+  
+  // The sigma maps are created with data sets that are already eta corrected and for which the 
+  // splines have been re-created. Therefore, the value for the lookup needs to be the value of
+  // the splines without any additional eta correction.
+  // NOTE: This is due to the method the maps are created. The track dEdx (not the expected one!)
+  // is corrected to uniquely related a momemtum bin with an expected dEdx, where the expected dEdx
+  // equals the track dEdx for all eta (thanks to the correction and the re-fit of the splines).
+  // Consequently, looking up the uncorrected expected dEdx at a given tanTheta yields the correct
+  // sigma parameter!
+  // Also: It has to be the spline dEdx, since one wants to get the sigma for the assumption(!)
+  // of such a particle, which by assumption then has this dEdx value
+    
+  Double_t dEdxExpected = GetExpectedSignal(track, species, dEdx, responseFunction, kFALSE);
+  
+  if (dEdxExpected < 1.)
+    return 999;
+  
+  // For ESD tracks, the local tanTheta could be used (esdTrack->GetInnerParam()->GetTgl()).
+  // However, this value is not available for AODs and, thus, not or AliVTrack.
+  // Fortunately, the following formula allows to approximate the local tanTheta with the 
+  // global theta angle -> This is for by far most of the tracks the same, but gives at
+  // maybe the percent level differences within +- 0.2 in tanTheta -> Which is still ok.
+  Double_t tanTheta = TMath::Tan(-track->Theta() + TMath::Pi() / 2.0);
+  Int_t binX = fhEtaSigmaPar1->GetXaxis()->FindBin(tanTheta);
+  Int_t binY = fhEtaSigmaPar1->GetYaxis()->FindBin(1. / dEdxExpected);
+    
+  if (binX == 0) 
+    binX = 1;
+  if (binX > fhEtaSigmaPar1->GetXaxis()->GetNbins())
+    binX = fhEtaSigmaPar1->GetXaxis()->GetNbins();
+    
+  if (binY == 0)
+    binY = 1;
+  if (binY > fhEtaSigmaPar1->GetYaxis()->GetNbins())
+    binY = fhEtaSigmaPar1->GetYaxis()->GetNbins();
+    
+  return fhEtaSigmaPar1->GetBinContent(binX, binY);
+}
+
+
+//_________________________________________________________________________
+Double_t AliTPCPIDResponse::GetSigmaPar1(const AliVTrack *track, AliPID::EParticleType species, ETPCdEdxSource dedxSource) const
+{
+  //
+  // Get eta correction for the given track.
+  //
+  
+  if (!fhEtaSigmaPar1)
+    return 999;
+  
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+  
+  if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
+    return 999; 
+  
+  return GetSigmaPar1(track, species, dEdx, responseFunction);
+}
+
+
+//_________________________________________________________________________
+Bool_t AliTPCPIDResponse::SetEtaCorrMap(TH2D* hMap)
+{
+  //
+  // Load map for TPC eta correction (a copy is stored and will be deleted automatically).
+  // If hMap is 0x0,the eta correction will be disabled and kFALSE is returned. 
+  // If the map can be set, kTRUE is returned.
+  //
+  
+  delete fhEtaCorr;
+  
+  if (!hMap) {
+    fhEtaCorr = 0x0;
+    
+    return kFALSE;
+  }
+  
+  fhEtaCorr = (TH2D*)(hMap->Clone());
+  fhEtaCorr->SetDirectory(0);
+      
   return kTRUE;
 }
 
 //_________________________________________________________________________
-Bool_t AliTPCPIDResponse::sectorNumbersInOut(const AliVTrack* track,
-                                             Double_t innerRadius,
-                                             Double_t outerRadius,
-                                             Float_t& inphi, 
+Bool_t AliTPCPIDResponse::SetSigmaParams(TH2D* hSigmaPar1Map, Double_t sigmaPar0)
+{
+  //
+  // Load map for TPC sigma map (a copy is stored and will be deleted automatically):
+  // Parameter 1 is stored as a 2D map (1/dEdx vs. tanTheta_local) and parameter 0 is
+  // a constant. If hSigmaPar1Map is 0x0, the old sigma parametrisation will be used
+  // (and sigmaPar0 is ignored!) and kFALSE is returned. 
+  // If the map can be set, sigmaPar0 is also set and kTRUE will be returned.
+  //
+  
+  delete fhEtaSigmaPar1;
+  
+  if (!hSigmaPar1Map) {
+    fhEtaSigmaPar1 = 0x0;
+    fSigmaPar0 = 0.0;
+    
+    return kFALSE;
+  }
+  
+  fhEtaSigmaPar1 = (TH2D*)(hSigmaPar1Map->Clone());
+  fhEtaSigmaPar1->SetDirectory(0);
+  fSigmaPar0 = sigmaPar0;
+  
+  return kTRUE;
+}
+
+
+//_________________________________________________________________________
+Bool_t AliTPCPIDResponse::sectorNumbersInOut(Double_t* trackPositionInner,
+                                             Double_t* trackPositionOuter,
+                                             Float_t& inphi,
                                              Float_t& outphi,
-                                             Int_t& in, 
-                                             Int_t& out ) const
+                                             Int_t& in,
+                                                                                                                                                                                                                                     Int_t& out ) const
 {
   //calculate the sector numbers (equivalent to IROC chamber numbers) a track crosses
   //for OROC chamber numbers add 36
   //returned angles are between (0,2pi)
-  
-  Double_t trackPositionInner[3]; 
-  Double_t trackPositionOuter[3]; 
-
-  Bool_t trackAtInner=kTRUE;
-  Bool_t trackAtOuter=kTRUE;
-  const AliExternalTrackParam* ip = track->GetInnerParam();
-  
-  //if there is no inner param this could mean we're using the AOD track,
-  //we still can extrapolate from the vertex - so use those params.
-  if (ip) track=ip;
-
-  if (!track->GetXYZAt(innerRadius, fMagField, trackPositionInner))
-    trackAtInner=kFALSE;
-
-  if (!track->GetXYZAt(outerRadius, fMagField, trackPositionOuter))
-    trackAtOuter=kFALSE;
-
-  if (!trackAtInner)
-  {
-    //if we dont even enter inner radius we do nothing
-    inphi=0.0;
-    outphi=0.0;
-    in=0;
-    out=0;
-    return kFALSE;
-  }
-
-  if (!trackAtOuter)
-  {
-    //if we don't reach the outer radius check that the apex is indeed within the outer radius and use apex position
-    Bool_t haveApex = TrackApex(track, fMagField, trackPositionOuter);
-    Float_t apexRadius = TMath::Sqrt(trackPositionOuter[0]*trackPositionOuter[0]+trackPositionOuter[1]*trackPositionOuter[1]);
-    if ( haveApex && apexRadius<=outerRadius && apexRadius>innerRadius)
-    {
-      //printf("pt: %.2f, apexRadius: %.2f(%s), x: %.2f, y: %.2f\n",track->Pt(),apexRadius,(haveApex)?"OK":"BAD",trackPositionOuter[0],trackPositionOuter[1]);
-    }
-    else
-    {
-      inphi=0.0;
-      outphi=0.0;
-      in=0;
-      out=0;
-      return kFALSE;
-    }
-  }
 
   inphi = TMath::ATan2(trackPositionInner[1],trackPositionInner[0]);
   outphi = TMath::ATan2(trackPositionOuter[1], trackPositionOuter[0]);
@@ -576,7 +894,8 @@ Bool_t AliTPCPIDResponse::sectorNumbersInOut(const AliVTrack* track,
   }
   return kTRUE;
 }
-
+    
+    
 //_____________________________________________________________________________
 Int_t AliTPCPIDResponse::sectorNumber(Double_t phi) const
 {
@@ -604,14 +923,62 @@ AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack
   Float_t outphi=0.;
   Float_t innerRadius = (layer==1)?83.0:133.7;
   Float_t outerRadius = (layer==1)?133.5:247.7;
-  if (!sectorNumbersInOut(track, 
-                          innerRadius, 
-                          outerRadius, 
+
+  /////////////////////////////////////////////////////////////////////////////
+  //find out where track enters and leaves the layer.
+  //
+  Double_t trackPositionInner[3]; 
+  Double_t trackPositionOuter[3]; 
+  
+  //if there is no inner param this could mean we're using the AOD track,
+  //we still can extrapolate from the vertex - so use those params.
+  const AliExternalTrackParam* ip = track->GetInnerParam();
+  if (ip) track=ip;
+
+  Bool_t trackAtInner = track->GetXYZAt(innerRadius, fMagField, trackPositionInner);
+  Bool_t trackAtOuter = track->GetXYZAt(outerRadius, fMagField, trackPositionOuter);
+
+  if (!trackAtInner)
+  {
+    //if we dont even enter inner radius we do nothing and return invalid
+    inphi=0.0;
+    outphi=0.0;
+    in=0;
+    out=0;
+    return kChamberInvalid;
+  }
+
+  if (!trackAtOuter)
+  {
+    //if we don't reach the outer radius check that the apex is indeed within the outer radius and use apex position
+    Bool_t haveApex = TrackApex(track, fMagField, trackPositionOuter);
+    Float_t apexRadius = TMath::Sqrt(trackPositionOuter[0]*trackPositionOuter[0]+trackPositionOuter[1]*trackPositionOuter[1]);
+    if ( haveApex && apexRadius<=outerRadius && apexRadius>innerRadius)
+    {
+      //printf("pt: %.2f, apexRadius: %.2f(%s), x: %.2f, y: %.2f\n",track->Pt(),apexRadius,(haveApex)?"OK":"BAD",trackPositionOuter[0],trackPositionOuter[1]);
+    }
+    else
+    {
+      inphi=0.0;
+      outphi=0.0;
+      in=0;
+      out=0;
+      return kChamberInvalid;
+    }
+  }
+
+
+  if (!sectorNumbersInOut(trackPositionInner, 
+                          trackPositionOuter, 
                           inphi, 
                           outphi, 
                           in, 
-                          out)) return kChamberOff;
+                          out)) return kChamberInvalid;
 
+  /////////////////////////////////////////////////////////////////////////////
+  //now we have the location of the track we can check 
+  //if it is in a good/bad chamber
+  //
   Bool_t sideA = kTRUE;
   
   if (((in/18)%2==1) && ((out/18)%2==1)) sideA=kFALSE;
@@ -649,6 +1016,7 @@ AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack
   Float_t trackLengthInBad = 0.;
   Float_t trackLengthInLowGain = 0.;
   Float_t trackLengthTotal = TMath::Abs(outphi-inphi);
+  Float_t lengthFractionInBadSectors = 0.;
 
   const Float_t sectorWidth = TMath::TwoPi()/18.;  
   
@@ -665,12 +1033,21 @@ AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack
     else {deltaPhi=sectorWidth;}
     
     Float_t v = fVoltageMap[(layer==1)?(j):(j+36)];
-    if (v<=fBadIROCthreshhold) trackLengthInBad+=deltaPhi;
-    if (v<=fLowGainIROCthreshold && v>fBadIROCthreshhold) trackLengthInLowGain+=deltaPhi;
+    if (v<=fBadIROCthreshhold) 
+    { 
+      trackLengthInBad+=deltaPhi; 
+      lengthFractionInBadSectors=1.;
+    }
+    if (v<=fLowGainIROCthreshold && v>fBadIROCthreshhold) 
+    {
+      trackLengthInLowGain+=deltaPhi;
+      lengthFractionInBadSectors=1.;
+    }
   }
 
   //for now low gain and bad (off) chambers are treated equally
-  Float_t lengthFractionInBadSectors = (trackLengthInLowGain+trackLengthInBad)/trackLengthTotal;
+  if (trackLengthTotal>0)
+    lengthFractionInBadSectors = (trackLengthInLowGain+trackLengthInBad)/trackLengthTotal;
 
   //printf("### side: %s, pt: %.2f, pz: %.2f, in: %i, out: %i, phiIN: %.2f, phiOUT: %.2f, rIN: %.2f, rOUT: %.2f\n",(sideA)?"A":"C",track->Pt(),track->Pz(),in,out,inphi,outphi,innerRadius,outerRadius);
   
@@ -708,16 +1085,6 @@ Float_t AliTPCPIDResponse::MaxClusterRadius(const AliVTrack* track) const
 }
 
 //_____________________________________________________________________________
-void AliTPCPIDResponse::InvalidateCurrentValues()
-{
-  //make the "current" stored values from the last processed track invalid
-  fCurrentResponseFunction=NULL;
-  fCurrentdEdx=0.;
-  fCurrentNPoints=0;
-  fCurrentGainScenario=kGainScenarioInvalid;
-}
-
-//_____________________________________________________________________________
 Bool_t AliTPCPIDResponse::TrackApex(const AliVTrack* track, Float_t magField, Double_t position[3]) const
 {
   //calculate the coordinates of the apex of the track
@@ -751,4 +1118,3 @@ Bool_t AliTPCPIDResponse::TrackApex(const AliVTrack* track, Float_t magField, Do
   position[2]=0.;
   return kTRUE;
 }
-

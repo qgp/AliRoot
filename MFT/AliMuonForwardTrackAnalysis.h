@@ -17,6 +17,7 @@
 #include "TTree.h"
 #include "TH1D.h"
 #include "TH2D.h"
+#include "TH3D.h"
 #include "AliLog.h"
 #include "TFile.h"
 #include "TParticle.h"
@@ -72,6 +73,7 @@ public:
 
   void SetMaxNWrongClustersMC(Int_t nClusters) { fMaxNWrongClustersMC = nClusters; }
   void SetMinPtSingleMuons(Double_t ptMin) { fMinPtSingleMuons = ptMin; }
+  void SetEtaRangeSingleMuons(Double_t min, Double_t max) { fMinEtaSingleMuons=min; fMaxEtaSingleMuons=max; }
   void SetMaxChi2SingleMuons(Double_t chi2Max) { fMaxChi2SingleMuons = chi2Max; }
   void SetMaxOffsetSingleMuons(Double_t offsetMax) { fMaxOffsetSingleMuons = offsetMax; }
   void CorrelateCutOnOffsetChi2(Bool_t option) { fCorrelateCutOnOffsetChi2 = option; }
@@ -107,10 +109,10 @@ private:
   Int_t fEv, fEvMix, fFirstEvent, fLastEvent, fNTracksOfEvent, fNTracksAnalyzedOfEvent, fNTracksAnalyzed, fNPairsOfEvent, fNPairsAnalyzedOfEvent;
   Int_t fNTracksAnalyzedOfEventAfterCut, fNPairsAnalyzedOfEventAfterCut;
   
-  TH2D *fHistXOffsetSingleMuonsVsP,  *fHistYOffsetSingleMuonsVsP,  *fHistOffsetSingleMuonsVsP,  *fHistWOffsetSingleMuonsVsP;      //!
-  TH2D *fHistXOffsetSingleMuonsVsPt, *fHistYOffsetSingleMuonsVsPt, *fHistOffsetSingleMuonsVsPt, *fHistWOffsetSingleMuonsVsPt;     //!
-  TH2D *fHistXErrorSingleMuonsVsP,   *fHistYErrorSingleMuonsVsP;                                                                  //!
-  TH2D *fHistXErrorSingleMuonsVsPt,  *fHistYErrorSingleMuonsVsPt;                                                                 //!
+  TH3D *fHistXOffsetSingleMuonsVsEtaVsP,  *fHistYOffsetSingleMuonsVsEtaVsP,  *fHistOffsetSingleMuonsVsEtaVsP,  *fHistWOffsetSingleMuonsVsEtaVsP;      //!
+  TH3D *fHistXOffsetSingleMuonsVsEtaVsPt, *fHistYOffsetSingleMuonsVsEtaVsPt, *fHistOffsetSingleMuonsVsEtaVsPt, *fHistWOffsetSingleMuonsVsEtaVsPt;     //!
+  TH3D *fHistXErrorSingleMuonsVsEtaVsP,   *fHistYErrorSingleMuonsVsEtaVsP;                                                                  //!
+  TH3D *fHistXErrorSingleMuonsVsEtaVsPt,  *fHistYErrorSingleMuonsVsEtaVsPt;                                                                 //!
   TH1D *fHistZOriginSingleMuonsMC;
   
   TH2D *fHistZROriginSingleMuonsMC, *fHistSingleMuonsPtRapidity, *fHistSingleMuonsOffsetChi2;   //!
@@ -121,7 +123,7 @@ private:
   TH2D *fHistDimuonVtxResolutionZVsPt;    //!
 
   TH2D *fHistRapidityPtMuonPairs[2];              //!
-   TH2D *fHistMassMuonPairsVsPt[2];               //!
+  TH2D *fHistMassMuonPairsVsPt[2];                //!
   TH2D *fHistMassMuonPairsWithoutMFTVsPt[2];      //!
   TH2D *fHistMassMuonPairsVsPtLSp[2];             //!
   TH2D *fHistMassMuonPairsWithoutMFTVsPtLSp[2];   //!
@@ -144,7 +146,7 @@ private:
   Double_t fXVertResMC, fYVertResMC, fZVertResMC;
   Double_t fPrimaryVtxX, fPrimaryVtxY, fPrimaryVtxZ;
   Int_t fMaxNWrongClustersMC;
-  Double_t fMinPtSingleMuons;
+  Double_t fMinPtSingleMuons, fMinEtaSingleMuons, fMaxEtaSingleMuons;
 
   Bool_t fUseBransonForCut, fUseBransonForKinematics, fCorrelateCutOnOffsetChi2;
 
