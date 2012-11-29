@@ -27,6 +27,7 @@ class AliITSUSeed: public AliExternalTrackParam
   Int_t           GetClusterID()                   const {return UnpackCluster(fClID);}
   Bool_t          HasClusterOnLayer(Int_t lr)      const {return fHitsPattern&(0x1<<lr);}
   Int_t           GetNLayersHit()                  const {return NumberOfBitsSet(fHitsPattern);}
+  UShort_t        GetHitsPattern()                 const {return fHitsPattern;}
   Float_t         GetChi2Cl()                      const {return fChi2Cl;}
   Float_t         GetChi2Glo()                     const {return fChi2Glo;}
   //
@@ -47,7 +48,7 @@ inline void AliITSUSeed::SetLrClusterID(Int_t lr, Int_t cl)
 {
   // assign layer, cluster (if -1 - no hit on this layer)
   fClID = PackCluster(lr,cl);
-  if (cl>=0) fHitsPattern &= 0x1<<lr;
+  if (cl>=0) fHitsPattern |= 0x1<<lr;
 }
 
 
