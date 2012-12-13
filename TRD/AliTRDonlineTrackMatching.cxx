@@ -102,7 +102,7 @@ Short_t AliTRDonlineTrackMatching::EstimateSector(const Double_t globalCoords[3]
   }
 }
 
-Short_t AliTRDonlineTrackMatching::EstimateLayer(const Double_t radius) {
+Short_t AliTRDonlineTrackMatching::EstimateLayer(Double_t radius) {
 
   // estimates layer by radial distance (for virtual stack at phi = 0)
 
@@ -170,7 +170,7 @@ Short_t AliTRDonlineTrackMatching::EstimateStack(const Double_t globalCoords[3])
     return 5*sec + st;
 }
 
-Bool_t AliTRDonlineTrackMatching::StackToTrack(const AliExternalTrackParam *track, Short_t &stack, UShort_t &layersWithTracklet, const Double_t magFieldinKiloGauss){
+Bool_t AliTRDonlineTrackMatching::StackToTrack(const AliExternalTrackParam *track, Short_t &stack, UShort_t &layersWithTracklet, Double_t magFieldinKiloGauss){
 
   // returns stack to track param
 
@@ -225,7 +225,7 @@ Bool_t AliTRDonlineTrackMatching::StackToTrack(const AliExternalTrackParam *trac
   return kFALSE;
 }
 
-Bool_t AliTRDonlineTrackMatching::StackToTrack(const AliESDtrack* track, Short_t &stack, UShort_t &layersWithTracklet, const Double_t magFieldinKiloGauss){
+Bool_t AliTRDonlineTrackMatching::StackToTrack(const AliESDtrack* track, Short_t &stack, UShort_t &layersWithTracklet, Double_t magFieldinKiloGauss){
 
   // returns stack to ESD track
 
@@ -241,7 +241,10 @@ Bool_t AliTRDonlineTrackMatching::AcceptTrack(const AliESDtrack* esdTrack, const
 
   // returns result ESD track cuts
 
-  UInt_t status = (esdTrack) ? esdTrack->GetStatus() : 0;
+  if (!esdTrack)
+    return kFALSE;
+
+  UInt_t status = esdTrack->GetStatus();
 
   if (fEsdTrackCutMinimal){
     return ((status & AliESDtrack::kTPCout) > 0);
@@ -681,7 +684,7 @@ Int_t AliTRDonlineTrackMatching::EstimateTrackDistance(AliESDtrack *esd_track, A
     return -4;
 }
 
-Double_t AliTRDonlineTrackMatching::PtDiffRel(const Double_t refPt, const Double_t gtuPt){
+Double_t AliTRDonlineTrackMatching::PtDiffRel(Double_t refPt, Double_t gtuPt){
 
   // return relative pt difference
 
@@ -692,7 +695,7 @@ Double_t AliTRDonlineTrackMatching::PtDiffRel(const Double_t refPt, const Double
 }
 
 
-Double_t AliTRDonlineTrackMatching::RateTrackMatch(const Double_t distY, const Double_t distZ, const Double_t rpt, const Double_t gpt){
+Double_t AliTRDonlineTrackMatching::RateTrackMatch(Double_t distY, Double_t distZ, Double_t rpt, Double_t gpt){
 
   // returns a match rating derived from Y and Z distance as well as pt difference
 
