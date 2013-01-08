@@ -130,7 +130,7 @@ void AliGenEvtGen::Generate()
   //check if particle is already decayed by Pythia  
   if(part->GetStatusCode() != 1 || part->GetNDaughters()>0) 
     {
-    Info("AliGenEvtGen","Attention: particle %d is already decayed by Pythia!",pdg); 
+    AliDebug(1,Form("Attention: particle %d is already decayed by Pythia!",pdg));
     continue;
     }
   
@@ -156,7 +156,7 @@ void AliGenEvtGen::Generate()
          }
   //select trackable particle  
   if (np >1) {
-  TParticle* iparticle =  (TParticle *) particles->At(0);//parent particle
+    TParticle* iparticle =  0;//(TParticle *) particles->At(0);//parent particle
    for (int i = 1; i<np ; i++) { 
      iparticle = (TParticle*) particles->At(i);
      Int_t ks = iparticle->GetStatusCode();
