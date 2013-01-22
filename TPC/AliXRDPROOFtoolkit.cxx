@@ -389,6 +389,7 @@ Bool_t  AliXRDPROOFtoolkit::FilterList(const char*inputList, const char*fileList
     counter++;    
   }
   finput.close();
+  delete array;
   return kTRUE;
 }
 
@@ -462,6 +463,7 @@ Bool_t  AliXRDPROOFtoolkit::FilterListZip(const char*inputList, const char*fileL
     counter++;    
   }
   finput.close();
+  delete array;
   return kTRUE;
 }
 
@@ -494,6 +496,7 @@ Bool_t  AliXRDPROOFtoolkit::XRDCopyDir(const char * idir, const char * files, co
     Bool_t result = TFile::Cp(infile,outfile); 
     succes &= result;
   }
+  delete array;
   return succes;
 }
 
