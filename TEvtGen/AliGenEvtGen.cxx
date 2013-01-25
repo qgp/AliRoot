@@ -26,6 +26,7 @@
 #include "AliStack.h"
 #include "AliGenEvtGen.h"
 #include "AliRun.h"
+#include "AliLog.h"
 #include <TParticle.h>
 
 ClassImp(AliGenEvtGen)
@@ -129,12 +130,14 @@ void AliGenEvtGen::Generate()
   //check if particle is already decayed by Pythia  
   if(part->GetStatusCode() != 1 || part->GetNDaughters()>0) 
     {
-    Info("AliGenEvtGen","Attention: particle %d is already decayed by Pythia!",pdg); 
+    AliDebug(1,Form("Attention: particle %d is already decayed by Pythia!",pdg)); 
     continue;
     }
   
   part->SetStatusCode(11); //Set particle as decayed : change the status code
-  
+  part->SetBit(kDoneBit);
+  part->ResetBit(kTransportBit);
+
   mom->SetPxPyPzE(part->Px(),part->Py(),part->Pz(),part->Energy());
   Int_t np;
 

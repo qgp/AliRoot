@@ -152,6 +152,7 @@ void AliGenMC::Init()
 	fChildSelect[0]=kKPlus;
 	break;
     case kBJpsi:
+    case kBJpsiUndecayed:
 	fChildSelect[0]= 443;
 	break;
    case kChiToJpsiGammaToMuonMuon:
