@@ -756,6 +756,7 @@ TString* TStatToolkit::FitPlane(TTree *tree, const char* drawCommand, const char
      TObjArray* valTokens = strVal.Tokenize(":");
      drawStr = valTokens->At(0)->GetName();
      ferr       = valTokens->At(1)->GetName();     
+     delete valTokens;
    }
 
       
@@ -771,12 +772,16 @@ TString* TStatToolkit::FitPlane(TTree *tree, const char* drawCommand, const char
    fitter->ClearPoints();
    
    Int_t entries = tree->Draw(drawStr.Data(), cutStr.Data(), "goff",  stop-start, start);
-   if (entries == -1) return new TString("An ERROR has occured during fitting!");
+   if (entries == -1) {
+     delete formulaTokens;
+     return new TString("An ERROR has occured during fitting!");
+   }
    Double_t **values = new Double_t*[dim+1] ;
    for (Int_t i=0; i<dim+1; i++) values[i]=NULL; 
    //
    entries = tree->Draw(ferr.Data(), cutStr.Data(), "goff",  stop-start, start);
    if (entries == -1) {
+     delete formulaTokens;
      delete []values;
      return new TString("An ERROR has occured during fitting!");
    }
@@ -853,6 +858,7 @@ TString* TStatToolkit::FitPlaneConstrain(TTree *tree, const char* drawCommand, c
      TObjArray* valTokens = strVal.Tokenize(":");
      drawStr = valTokens->At(0)->GetName();
      ferr       = valTokens->At(1)->GetName();     
+     delete valTokens;
    }
 
       
@@ -868,12 +874,16 @@ TString* TStatToolkit::FitPlaneConstrain(TTree *tree, const char* drawCommand, c
    fitter->ClearPoints();
    
    Int_t entries = tree->Draw(drawStr.Data(), cutStr.Data(), "goff",  stop-start, start);
-   if (entries == -1) return new TString("An ERROR has occured during fitting!");
+   if (entries == -1) {
+     delete formulaTokens;
+     return new TString("An ERROR has occured during fitting!");
+   }
    Double_t **values = new Double_t*[dim+1] ; 
    for (Int_t i=0; i<dim+1; i++) values[i]=NULL; 
    //
    entries = tree->Draw(ferr.Data(), cutStr.Data(), "goff",  stop-start, start);
    if (entries == -1) {
+     delete formulaTokens;
      delete [] values;
      return new TString("An ERROR has occured during fitting!");
    }
@@ -888,6 +898,7 @@ TString* TStatToolkit::FitPlaneConstrain(TTree *tree, const char* drawCommand, c
       if (entries != centries) {
 	delete []errors;
 	delete []values;
+	delete formulaTokens;
 	return new TString("An ERROR has occured during fitting!");
       }
       values[i] = new Double_t[entries];
@@ -956,7 +967,8 @@ TString* TStatToolkit::FitPlaneFixed(TTree *tree, const char* drawCommand, const
    if (strVal.Contains(":")){
      TObjArray* valTokens = strVal.Tokenize(":");
      drawStr = valTokens->At(0)->GetName();
-     ferr       = valTokens->At(1)->GetName();     
+     ferr       = valTokens->At(1)->GetName();
+     delete valTokens;
    }
 
       
@@ -973,13 +985,17 @@ TString* TStatToolkit::FitPlaneFixed(TTree *tree, const char* drawCommand, const
    fitter->ClearPoints();
    
    Int_t entries = tree->Draw(drawStr.Data(), cutStr.Data(), "goff",  stop-start, start);
-   if (entries == -1) return new TString("An ERROR has occured during fitting!");
+   if (entries == -1) {
+     delete formulaTokens;
+     return new TString("An ERROR has occured during fitting!");
+   }
    Double_t **values = new Double_t*[dim+1] ; 
    for (Int_t i=0; i<dim+1; i++) values[i]=NULL; 
    //
    entries = tree->Draw(ferr.Data(), cutStr.Data(), "goff",  stop-start, start);
    if (entries == -1) {
      delete []values;
+     delete formulaTokens;
      return new TString("An ERROR has occured during fitting!");
    }
    Double_t *errors = new Double_t[entries];
@@ -993,6 +1009,7 @@ TString* TStatToolkit::FitPlaneFixed(TTree *tree, const char* drawCommand, const
       if (entries != centries) {
 	delete []errors;
 	delete []values;
+	delete formulaTokens;
 	return new TString("An ERROR has occured during fitting!");
       }
       values[i] = new Double_t[entries];
@@ -1055,6 +1072,8 @@ Int_t TStatToolkit::GetFitIndex(const TString fString, const TString subString){
     }
     if (isOK) index=i;
   }
+  delete arrFit;
+  delete arrSub;
   return index;
 }
 
@@ -1080,6 +1099,8 @@ TString  TStatToolkit::FilterFit(const TString &input, const TString filter, TVe
     }
   }
   result+="-0.)";
+  delete array0;
+  delete array1;
   return result;
 }
 
@@ -1167,6 +1188,8 @@ void   TStatToolkit::Constrain1D(const TString &input, const TString filter, TVe
   for (Int_t i=0; i<=array0->GetEntries(); i++){
     param(i)=paramM(i,0);
   }
+  delete array0;
+  delete array1;
 }
 
 TString  TStatToolkit::MakeFitString(const TString &input, const TVectorD &param, const TMatrixD & covar, Bool_t verbose){
@@ -1183,15 +1206,21 @@ TString  TStatToolkit::MakeFitString(const TString &input, const TVectorD &param
     if (verbose) printf("%f\t%f\t%s\n", param[i+1], TMath::Sqrt(covar(i+1,i+1)),str.Data());    
   }
   result+="-0.)";
+  delete array0;
   return result;
 }
 
 
-TGraph * TStatToolkit::MakeGraphSparse(TTree * tree, const char * expr, const char * cut, Int_t mstyle, Int_t mcolor){
+TGraph * TStatToolkit::MakeGraphSparse(TTree * tree, const char * expr, const char * cut, Int_t mstyle, Int_t mcolor, Float_t msize){
   //
   // Make a sparse draw of the variables
   // Writen by Weilin.Yu
   const Int_t entries =  tree->Draw(expr,cut,"goff");
+  if (entries<=0) {
+    TStatToolkit t;
+    t.Error("TStatToolkit::MakeGraphSparse",Form("Empty or Not valid expression (%s) or cut *%s)", expr,cut));
+    return 0;
+  }
   //  TGraph * graph = (TGraph*)gPad->GetPrimitive("Graph"); // 2D
   TGraph * graph = 0;
   if (tree->GetV3()) graph = new TGraphErrors (entries, tree->GetV2(),tree->GetV1(),0,tree->GetV3());
@@ -1241,6 +1270,7 @@ TGraph * TStatToolkit::MakeGraphSparse(TTree * tree, const char * expr, const ch
   graphNew->GetHistogram()->SetTitle("");
   graphNew->SetMarkerStyle(mstyle); 
   graphNew->SetMarkerColor(mcolor);
+  if (msize>0) graphNew->SetMarkerSize(msize);
   delete [] tempArray;
   delete [] index;
   delete [] newBins;

@@ -45,12 +45,12 @@ class AliInputEventHandler : public AliVEventHandler {
 
     // Setters
     virtual void         SetInputTree(TTree* tree)                    {fTree = tree;}
-    virtual void         SetEventSelection(AliVCuts* cuts)            {fEventCuts = cuts;}
+    virtual void         SetEventSelection(AliVCuts* cuts)            {if (fEventCuts) Changed(); fEventCuts = cuts;}
     virtual void         SetUserCallSelectionMask(Bool_t flag=kTRUE)  {TObject::SetBit(kUserCallSelectionMask,flag);}
-    virtual void         SetCheckStatistics(Bool_t flag=kTRUE)        {TObject::SetBit(kCheckStatistics,flag);}
+    virtual void         SetCheckStatistics(Bool_t flag=kTRUE)        {Changed(); TObject::SetBit(kCheckStatistics,flag);}
     //
-    void SetInactiveBranches(const char* branches) {fBranches   = branches;}
-    void SetActiveBranches  (const char* branches) {fBranchesOn = branches;}
+    void SetInactiveBranches(const char* branches) {Changed(); fBranches   = branches;}
+    void SetActiveBranches  (const char* branches) {Changed(); fBranchesOn = branches;}
      // Getters
     virtual AliVEvent   *GetEvent()        const                      {return 0;}
     virtual const AliEventTag   *GetEventTag() const                  {return 0;}
@@ -67,14 +67,13 @@ class AliInputEventHandler : public AliVEventHandler {
 	{Bool_t ne = fNewEvent; fNewEvent = kFALSE; return ne;}
     virtual UInt_t       IsEventSelected() 
         {return fIsSelectedResult;}
+    TList       *GetUserInfo() const                         {return fUserInfo;}
     // Mixing
-    void SetMixingHandler(AliInputEventHandler* mixing) 
-    {fMixingHandler = mixing;}
-    AliInputEventHandler* MixingHandler()
-    {return fMixingHandler;}
+    void SetMixingHandler(AliInputEventHandler* mixing) {Changed(); fMixingHandler = mixing;}
+    AliInputEventHandler* MixingHandler()               {return fMixingHandler;}
     // Parent Handler
-    void SetParentHandler(AliInputEventHandler* parent) {fParentHandler = parent;}
-    AliInputEventHandler* ParentHandler() {return fParentHandler;}
+    void SetParentHandler(AliInputEventHandler* parent) {Changed(); fParentHandler = parent;}
+    AliInputEventHandler* ParentHandler()               {return fParentHandler;}
 
     //PID response
     virtual AliPIDResponse* GetPIDResponse() {return 0x0;}
@@ -95,6 +94,7 @@ class AliInputEventHandler : public AliVEventHandler {
     UInt_t          fIsSelectedResult; //  Selection result
     AliInputEventHandler* fMixingHandler; // Optionla plugin for mixing
     AliInputEventHandler* fParentHandler; // optional pointer to parent handlers (used in AliMultiInputEventHandler)
+    TList           *fUserInfo;     //! transient user info for current tree
     ClassDef(AliInputEventHandler, 6);
 };
 

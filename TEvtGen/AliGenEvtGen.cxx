@@ -130,12 +130,14 @@ void AliGenEvtGen::Generate()
   //check if particle is already decayed by Pythia  
   if(part->GetStatusCode() != 1 || part->GetNDaughters()>0) 
     {
-    Info("AliGenEvtGen","Attention: particle %d is already decayed by Pythia!",pdg); 
+    AliDebug(1,Form("Attention: particle %d is already decayed by Pythia!",pdg));
     continue;
     }
   
   part->SetStatusCode(11); //Set particle as decayed : change the status code
-  
+  part->SetBit(kDoneBit);
+  part->ResetBit(kTransportBit);
+
   mom->SetPxPyPzE(part->Px(),part->Py(),part->Pz(),part->Energy());
   Int_t np;
 
@@ -154,7 +156,7 @@ void AliGenEvtGen::Generate()
          }
   //select trackable particle  
   if (np >1) {
-  TParticle* iparticle =  (TParticle *) particles->At(0);//parent particle
+    TParticle* iparticle =  0;//(TParticle *) particles->At(0);//parent particle
    for (int i = 1; i<np ; i++) { 
      iparticle = (TParticle*) particles->At(i);
      Int_t ks = iparticle->GetStatusCode();
@@ -179,13 +181,13 @@ void AliGenEvtGen::Generate()
          Int_t jpa  = iparticle->GetFirstMother()-1; //jpa = 0 for daughters of beauty particles
          Int_t iparent = (jpa > 0) ? pParent[jpa] : iTrack;      
 
-         och[0] = origin0[0]+iparticle->Vx()/10; //[cm]
-         och[1] = origin0[1]+iparticle->Vy()/10; //[cm]
-         och[2] = origin0[2]+iparticle->Vz()/10; //[cm]
+         och[0] = origin0[0]+iparticle->Vx(); //[cm]
+         och[1] = origin0[1]+iparticle->Vy(); //[cm]
+         och[2] = origin0[2]+iparticle->Vz(); //[cm]
          pc[0]  = iparticle->Px(); //[GeV/c]
          pc[1]  = iparticle->Py(); //[GeV/c]
          pc[2]  = iparticle->Pz(); //[GeV/c]
-         tof = part->T()+kconv*iparticle->T(); 
+         tof = part->T()+iparticle->T(); 
 
          AliDebug(1,Form("FirstMother = %d e indicePart = %d e pdg = %d \n",jpa,i,kf));         
           

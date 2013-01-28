@@ -21,6 +21,7 @@
 #include "TClonesArray.h"
 #include "TParticle.h"
 #include "AliMFTConstants.h"
+#include "TLorentzVector.h"
 
 //====================================================================================================================================================
 
@@ -36,12 +37,15 @@ public:
   AliMuonForwardTrack(const AliMuonForwardTrack&);
   AliMuonForwardTrack &operator=(const AliMuonForwardTrack&);
   
-  virtual ~AliMuonForwardTrack();
+  virtual ~AliMuonForwardTrack(); 
+  virtual void Clear(const Option_t* /*opt*/);
 
   void SetMUONTrack(AliMUONTrack *MUONTrack);
   void SetMCTrackRef(TParticle *MCTrackRef);
   AliMUONTrack* GetMUONTrack() { return fMUONTrack; }
   TParticle* GetMCTrackRef() { return fMCTrackRef; }
+
+  Int_t GetCharge() { return TMath::Nint(GetTrackParamAtMUONCluster(0)->GetCharge()); }
 
   AliMUONVCluster* GetMUONCluster(Int_t iMUONCluster);
   AliMFTCluster*   GetMFTCluster(Int_t iMFTCluster);
@@ -75,11 +79,28 @@ public:
   void SetNWrongClustersMC(Int_t nClusters) { fNWrongClustersMC = nClusters; }
   Int_t GetNWrongClustersMC() { return fNWrongClustersMC; }
 
-  Double_t Pt() { return TMath::Sqrt(TMath::Power(GetTrackParamAtMFTCluster(0)->Px(),2)+TMath::Power(GetTrackParamAtMFTCluster(0)->Py(),2)); }
+  Double_t Pt()       { return fKinem.Pt(); }
+  Double_t Eta()      { return fKinem.Eta(); }
+  Double_t Rapidity() { return fKinem.Rapidity(); }
+  Double_t Px()       { return fKinem.Px(); }
+  Double_t Py()       { return fKinem.Py(); }
+  Double_t Pz()       { return fKinem.Pz(); }
+  Double_t P()        { return fKinem.P();  }
+
+  TMatrixD GetParamCovMatrix() { return fParamCovMatrix; }
+
+  void EvalKinem(Double_t z);
 
   void SetTrackMCId(Int_t id) { fTrackMCId = id; }
   Int_t GetTrackMCId() { return fTrackMCId; }
   
+  Bool_t IsFromResonance();
+  Bool_t IsFromCharm();
+  Bool_t IsFromBeauty();
+  Bool_t IsPDGCharm(Int_t pdg);
+  Bool_t IsPDGBeauty(Int_t pdg);
+  Bool_t IsFromBackground();
+
 protected:
 
   static const Int_t fNMaxPlanes = AliMFTConstants::fNMaxPlanes;        // max number of MFT planes
@@ -98,7 +119,11 @@ protected:
 
   Int_t fTrackMCId;   // this number will identify the track within a MC simulation: run, event, MUON track
 
-  ClassDef(AliMuonForwardTrack,1)
+  TLorentzVector fKinem;
+
+  TMatrixD fParamCovMatrix;
+
+  ClassDef(AliMuonForwardTrack,2)
     
 };
 

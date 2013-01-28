@@ -45,10 +45,10 @@ ClassImp(AliMUONHVSubprocessor)
 /// \endcond
 
 //_____________________________________________________________________________
-AliMUONHVSubprocessor::AliMUONHVSubprocessor(AliMUONPreprocessor* master)
+AliMUONHVSubprocessor::AliMUONHVSubprocessor(AliMUONPreprocessor* master, Bool_t includeHVcurrents)
 : AliMUONVSubprocessor(master,
                        "HV",
-                       "Get MUON Tracker HV values from DCS")
+                       "Get MUON Tracker HV values from DCS"), fIncludeHVCurrents(includeHVcurrents)
 {
   /// ctor
 }
@@ -89,16 +89,24 @@ AliMUONHVSubprocessor::Process(TMap* dcsAliasMap)
       {
         for ( int i = 0; i <3; ++i)
         {
-          aliases.Add(new TObjString(hvNamer.DCSChannelName(detElemId,i)));
+          aliases.Add(new TObjString(hvNamer.DCSAliasName(detElemId,i)));
+          if ( fIncludeHVCurrents )
+          {
+            aliases.Add(new TObjString(hvNamer.DCSAliasName(detElemId,i,AliMpDCSNamer::kDCSI)));
+          }
         }
       }
       break;
       case AliMp::kStation345:
       {
-        aliases.Add(new TObjString(hvNamer.DCSChannelName(detElemId)));
+        aliases.Add(new TObjString(hvNamer.DCSAliasName(detElemId)));
+        if ( fIncludeHVCurrents )
+        {
+          aliases.Add(new TObjString(hvNamer.DCSAliasName(detElemId,0,AliMpDCSNamer::kDCSI)));
+        }
         for ( int i = 0; i < hvNamer.NumberOfPCBs(detElemId); ++i)
         {
-          aliases.Add(new TObjString(hvNamer.DCSSwitchName(detElemId,i)));
+          aliases.Add(new TObjString(hvNamer.DCSSwitchAliasName(detElemId,i)));
         }
       }
       break;
@@ -115,9 +123,45 @@ AliMUONHVSubprocessor::Process(TMap* dcsAliasMap)
   Int_t aliasNotFound(0);
   Int_t valueNotFound(0);
   
+  TObjArray temporaryOut; // due to a bug in PVSS some iMon aliases cause problem
+  // we remove them for the moment.
+  temporaryOut.SetOwner(kTRUE);
+  
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber06Left/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber06Left/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber06Left/Slat12.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber07Left/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber07Left/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber07Left/Slat12.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber08Left/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber08Left/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber08Left/Slat12.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber09Left/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber09Left/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvLeft/Chamber09Left/Slat12.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber06Right/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber06Right/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber06Right/Slat12.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber07Right/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber07Right/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber07Right/Slat12.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber08Right/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber08Right/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber08Right/Slat12.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber09Right/Slat10.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber09Right/Slat11.actual.iMon"));
+  temporaryOut.Add(new TObjString("MchHvLvRight/Chamber09Right/Slat12.actual.iMon"));
+  
   while ( ( alias = static_cast<TObjString*>(next()) ) ) 
   {
     TString aliasName(alias->String());
+    
+    if ( temporaryOut.FindObject(alias->String().Data() ) )
+    {
+      // skip problematic aliases
+      continue;
+    }
+    
     TPair* hvPair = static_cast<TPair*>(dcsAliasMap->FindObject(aliasName.Data()));
     if (!hvPair)
     {
@@ -133,8 +177,7 @@ AliMUONHVSubprocessor::Process(TMap* dcsAliasMap)
       }
       else
       {
-	RemoveValuesOutsideRun(values);
-
+        RemoveValuesOutsideRun(values);
         hv.Add(new TObjString(aliasName.Data()),values);
       }
     }

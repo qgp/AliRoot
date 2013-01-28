@@ -104,7 +104,7 @@ public:
 				       const char* rootFileName = "");
   virtual Bool_t ConvertDateToRoot(const char* dateFileName = "raw.date",
 				   const char* rootFileName = "raw.root");
-  virtual Int_t ConvertRaw2SDigits(const char* rawDirectory, const char* esdFile = "", Int_t N=-1);
+  virtual Int_t ConvertRaw2SDigits(const char* rawDirectory, const char* esdFile = "", Int_t N=-1, Int_t nSkip=0);
 
   // Sets the name of the file from which the geometry is loaded
   virtual void SetGeometryFile(const Char_t* filename) {fGeometryFile=filename;}
@@ -191,7 +191,7 @@ private:
   Bool_t         fEmbeddingFlag;       // Flag for embedding
   AliLego       *fLego;                //! Pointer to aliLego object if it exists
   // OCDB
-  ULong_t         fKey;                //! current CDB key
+  ULong64_t       fKey;                //! current CDB key
   Bool_t          fUseVertexFromCDB;   // Flag to use Vertex from CDB
   Bool_t          fUseMagFieldFromGRP; // Use magnetic field settings from GRP
   TString         fGRPWriteLocation;   // Location to write the GRP entry from simulation
@@ -222,7 +222,7 @@ private:
 
   Bool_t         fWriteGRPEntry;      // Write or not GRP entry corresponding to the settings in Config.C
 
-  ClassDef(AliSimulation, 12)  // class for running generation, simulation and digitization
+  ClassDef(AliSimulation, 13)  // class for running generation, simulation and digitization
 };
 
 #endif

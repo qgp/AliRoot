@@ -28,6 +28,7 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <TROOT.h>
 #include <TClonesArray.h>
 #include <TObjArray.h>
 
@@ -36,6 +37,7 @@
 #include "AliLog.h"
 
 #include "AliTRDPIDReference.h"
+#include "AliTRDPIDResponseObject.h"
 #include "AliTRDcalibDB.h"
 #include "AliTRDtrapConfig.h"
 #include "AliTRDtrapConfigHandler.h"
@@ -279,7 +281,11 @@ const TObject *AliTRDcalibDB::GetCachedCDBObject(Int_t id)
           break;
         case 7:
 	  // Online gain table ID 7
-          return CacheCDBEntry(kIDOnlineGainFactor  ,"TRD/Calib/Gaintbl_Uniform_FGAN8_2012-01"); 
+          return CacheCDBEntry(kIDOnlineGainFactor  ,"TRD/Calib/Gaintbl_Uniform_FGAN8_2012-01");
+          break; 
+        case 8:
+	  // Online gain table ID 8
+          return CacheCDBEntry(kIDOnlineGainFactor  ,"TRD/Calib/Krypton_2012-01"); 
           break;
       }
       break;
@@ -754,7 +760,7 @@ Float_t AliTRDcalibDB::GetOnlineGainFactor(Int_t det, Int_t col, Int_t row)
   //
 
   if (!HasOnlineFilterGain()) {
-    return 0x0;
+    return -1;
   }
   
   const AliTRDCalOnlineGainTable *calOnline 
@@ -902,81 +908,49 @@ Float_t AliTRDcalibDB::GetPRFWidth(Int_t det, Int_t col, Int_t row)
 }
   
 //_____________________________________________________________________________
+Int_t AliTRDcalibDB::ExtractTimeBinsFromString(TString tbstr)
+{
+  // Check if there is any content in the string first
+  if (tbstr.Length() == 0) {
+    AliError("Parameter for number of timebins is empty!");
+    return -1;
+  }
+
+  // Check if we have the correct config parameter
+  TString tbident  = "tb";
+  TString tbsubstr = tbstr(0,2);
+  if (!tbsubstr.EqualTo(tbident)) {
+    AliError(Form("Parameter for number of timebins is corrupted (%s)!", tbstr.Data()));
+    return -1;
+  }
+
+  tbstr.Remove(0,2);
+  // check if there is more than a number
+  if (!tbstr.IsDigit()) {
+    AliError(Form("Parameter for number of timebins is corrupted (%s)!", tbstr.Data()));
+    return -1;
+  }
+
+  return tbstr.Atoi();
+
+}
+
+//_____________________________________________________________________________
 Int_t AliTRDcalibDB::GetNumberOfTimeBinsDCS()
 {
   //
-  // Returns Number of time bins from the DCS
+  // Returns number of time bins from the DCS
   //
 
-  Int_t nMixed = -2; // not the same number for all chambers
-  Int_t nUndef = -1; // default value - has not been set!
-  Int_t nTbSor = nUndef;
-  Int_t nTbEor = nUndef;
-  Int_t calver = 0; // Check CalDCS version
-
-  const TObjArray *dcsArr = dynamic_cast<const TObjArray *>(GetCachedCDBObject(kIDDCS));
-  if (!dcsArr) {
-    AliError("No DCS object found!");
-    return nUndef;
-  }
-
-  if (!strcmp(dcsArr->At(0)->ClassName(),"AliTRDCalDCS"))   calver = 1;
-  if (!strcmp(dcsArr->At(0)->ClassName(),"AliTRDCalDCSv2")) calver = 2;
-
-  if (calver == 1) {
-    // DCS object
-    const AliTRDCalDCS *calDCSsor = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(0));
-    const AliTRDCalDCS *calDCSeor = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(1));
-    if (!calDCSsor) {
-      // the SOR file is mandatory
-      AliError("NO SOR AliTRDCalDCS object found in CDB file!");
-      return nUndef;
-    }
-    if (!calDCSeor) {
-      // this can happen if the run is shorter than a couple of seconds.
-      AliWarning("NO EOR AliTRDCalDCS object found in CDB file.");
-    }
-
-    // get the numbers
-    nTbSor = calDCSsor->GetGlobalNumberOfTimeBins();
-    if (calDCSeor) nTbEor = calDCSeor->GetGlobalNumberOfTimeBins();
-
-  } else if (calver == 2) {
-    // DCSv2 object
-    const AliTRDCalDCSv2 *calDCSsorv2 = dynamic_cast<const AliTRDCalDCSv2 *>(dcsArr->At(0));
-    const AliTRDCalDCSv2 *calDCSeorv2 = dynamic_cast<const AliTRDCalDCSv2 *>(dcsArr->At(1));
-    if (!calDCSsorv2) {
-      // the SOR file is mandatory
-      AliError("NO SOR AliTRDCalDCSv2 object found in CDB file!");
-      return nUndef;
-    }
-    if (!calDCSeorv2) {
-      // this can happen if the run is shorter than a couple of seconds.
-      AliWarning("NO EOR AliTRDCalDCSv2 object found in CDB file.");
-    }
-
-    // get the numbers
-    nTbSor = calDCSsorv2->GetGlobalNumberOfTimeBins();
-    if (calDCSeorv2) nTbEor = calDCSeorv2->GetGlobalNumberOfTimeBins();
-
-  } else AliError("NO DCS/DCSv2 OCDB entry found!");
-
-  // if they're the same return the value
-  // -2 means mixed, -1: no data, >= 0: good number of time bins
-  if (nTbSor == nTbEor) return nTbSor;
-
-  // if they're differing:
-  if (nTbSor == nMixed || nTbEor == nMixed) {
-    AliWarning("Inconsistent number of time bins found!");
-    return nMixed;
-  }
-
-  // one is undefined, the other ok -> return that one
-  if (nTbSor == nUndef) return nTbEor;
-  if (nTbEor == nUndef) return nTbSor;
-
-  // only remains: two different numbers >= 0
-  return nMixed;
+  // Get the corresponding parameter
+  TString cfgstr = "", cfgname = "";
+  GetGlobalConfiguration(cfgname);
+  if(cfgname.Length()==0)
+    return -1;
+  GetDCSConfigParOption(cfgname, kTimebin, 0, cfgstr);
+  if(cfgstr.Length()==0)
+    return -1;
+  return ExtractTimeBinsFromString(cfgstr);
 
 }
 
@@ -987,7 +961,9 @@ void AliTRDcalibDB::GetFilterType(TString &filterType)
   // Returns the filter type
   //
 
-  GetDCSConfigParOption(kFltrSet, 0, filterType);
+  TString cfgname = "";
+  GetGlobalConfiguration(cfgname);
+  GetDCSConfigParOption(cfgname, kFltrSet, 0, filterType);
 
 }
 
@@ -1062,6 +1038,10 @@ Int_t AliTRDcalibDB::GetOnlineGainTableID()
       fOnlineGainTableID = 7;
       return fOnlineGainTableID;
     }
+    if (tableName.CompareTo("Krypton_2011-03")               == 0) {
+      fOnlineGainTableID = 8;
+      return fOnlineGainTableID;
+    }
 
   } 
   else {
@@ -1084,42 +1064,70 @@ void AliTRDcalibDB::GetGlobalConfiguration(TString &config)
 
   const TObjArray *dcsArr = dynamic_cast<const TObjArray *>(GetCachedCDBObject(kIDDCS));
   if(!dcsArr){
+    AliError("No DCS CDB Object available!");
     config = "";
     return;
   }
 
-  Int_t esor   = 0; // Take SOR
-  Int_t calver = 0; // Check CalDCS version
-  if (!strcmp(dcsArr->At(0)->ClassName(),"AliTRDCalDCS"))   calver = 1;
-  if (!strcmp(dcsArr->At(0)->ClassName(),"AliTRDCalDCSv2")) calver = 2;
+  Int_t idSOR = 0, idEOR=1; // The index of SOR and EOR
+  Bool_t hasSOR = (dcsArr->At(idSOR));
+  Bool_t hasEOR = (dcsArr->At(idEOR));
+  TString cfgSOR = "", cfgEOR = ""; // The configuration at SOR/EOR
 
-  if      (calver == 1) {
+  // The SOR object is mandatory
+  if (!hasSOR) {
+    AliError("NO SOR object found in CDB file!");
+    config = "";
+    return;
+  }
+  if (!hasEOR) AliWarning("NO EOR object found in CDB file!");
 
+  // Check CalDCS version
+  Int_t calver = 0;
+  if (!strcmp(dcsArr->At(idSOR)->ClassName(),"AliTRDCalDCS")) calver = 1;
+  else if (!strcmp(dcsArr->At(idSOR)->ClassName(),"AliTRDCalDCSv2")) calver = 2;
+
+  // Get the configuration strings
+  if (calver == 1) {
     // DCS object
-    const AliTRDCalDCS   *calDCS   = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(esor));
-    if(!calDCS){
-      config = "";
-      return;
-    } 
-    config = calDCS->GetGlobalConfigName();
-
+    const AliTRDCalDCS *calSOR = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(idSOR));
+    cfgSOR = calSOR->GetGlobalConfigName();
+    if (hasEOR) {
+      const AliTRDCalDCS *calEOR = dynamic_cast<const AliTRDCalDCS *>(dcsArr->At(idEOR));
+      cfgEOR = calEOR->GetGlobalConfigName();
+    }
   } 
   else if (calver == 2) {
-
     // DCSv2 object
-    const AliTRDCalDCSv2 *calDCSv2 = dynamic_cast<const AliTRDCalDCSv2 *>(dcsArr->At(esor));
-    if(!calDCSv2){
-      config = "";
-      return;
-    } 
-    config = calDCSv2->GetGlobalConfigName();
-
+    const AliTRDCalDCSv2 *calv2SOR = dynamic_cast<const AliTRDCalDCSv2 *>(dcsArr->At(idSOR));
+    cfgSOR = calv2SOR->GetGlobalConfigName();
+    if (hasEOR) {
+      const AliTRDCalDCSv2 *calv2EOR = dynamic_cast<const AliTRDCalDCSv2 *>(dcsArr->At(idEOR));
+      cfgEOR = calv2EOR->GetGlobalConfigName();
+    }
   } 
   else {
-
     AliError("NO DCS/DCSv2 OCDB entry found!");
-
+    config = "";
+    return;
   }
+
+  // If there is no EOR entry, return the SOR value
+  if (!hasEOR || cfgEOR.Length()==0) {
+    config = cfgSOR;
+    return;
+  }
+
+  // Check if the configuration is the same for both
+  if (cfgSOR.EqualTo(cfgEOR)) {
+    config = cfgSOR;
+    return;
+  }
+
+  // When both SOR and EOR have an entry but are different, the config is not defined
+  AliError("Inconsistent configuration at start and end of run found!");
+  config = "";
+  return;
 
 }
 
@@ -1172,7 +1180,40 @@ void AliTRDcalibDB::GetGlobalConfigurationVersion(TString &version)
 }
 
 //_____________________________________________________________________________
-void AliTRDcalibDB::GetDCSConfigParOption(Int_t cfgType, Int_t option, TString &cfgo)
+Int_t AliTRDcalibDB::GetNumberOfParsDCS(TString cname, Char_t delimiter)
+{
+  // Get the number of configuration parameters from the DCS config
+
+  //AliInfo(Form("\"%s\" tokenized by \"%c\"", cname.Data(), delimiter));
+  if(!cname.Length()) return -1;  // -1 for the "cf"
+  Int_t nconf(0);
+  for(Int_t ich(1); ich<cname.Length()-1; ich++){ if(cname[ich]==delimiter) nconf++;}
+  return nconf;
+}
+
+//_____________________________________________________________________________
+Int_t AliTRDcalibDB::GetNumberOfOptsDCS(TString cname, Int_t cfgType)
+{
+  // Get the number of options of a given configuration parameter from DCS
+
+  Char_t cdelim = '_', // define the delimiters
+         odelim = '-';
+  Int_t nconfig = GetNumberOfParsDCS(cname, cdelim);
+
+  // protect
+  if ((nconfig == -1) || (nconfig < cfgType)) {
+    AliError("Not enough parameters in DCS configuration name!");
+    return 0;
+  }
+
+  TObjArray *carr = cname.Tokenize(cdelim);
+  Int_t nopt = GetNumberOfParsDCS(((TObjString*)carr->At(cfgType))->GetString(), odelim);
+  carr->Delete(); delete carr;
+  return nopt;
+}
+
+//_____________________________________________________________________________
+void AliTRDcalibDB::GetDCSConfigParOption(TString cname, Int_t cfgType, Int_t option, TString &cfgo)
 {
   //
   // Get a configuration (see enum in header file) or the options of a configuration
@@ -1180,56 +1221,36 @@ void AliTRDcalibDB::GetDCSConfigParOption(Int_t cfgType, Int_t option, TString &
   // option >  0 returns the optional parameter Nr. (option) of the configuration (cfgType)
   //
 
-  // define the delimiters
-  TString cdelim = "_";
-  TString odelim = "-";
+  Char_t cdelim = '_', // define the delimiters
+         odelim = '-';
 
-  // get the full configuration name
-  TString cname;
-  GetGlobalConfiguration(cname);
-  TObjArray *carr = cname.Tokenize(cdelim);
-  Int_t nconfig = carr->GetEntries();
-
+  Int_t nconfig = GetNumberOfParsDCS(cname, cdelim);
   // protect
-  if (nconfig == 0) {
-    AliError("Bad DCS configuration name!");
+  if (nconfig == -1) {
+    AliError("DCS configuration name empty!");
     cfgo = "";
     return;
-  } else if ((nconfig-1) < cfgType) {
-    AliError("Not enough DCS configuration parameters!");
+  } else if (nconfig < cfgType) {
+    AliError("Not enough parameters in DCS configuration name!");
     cfgo = "";
     return;
   }
 
-  TString fullcfg = ((TObjString*)carr->At(cfgType))->GetString();
-
-  if (fullcfg.Contains(odelim)) {
-
-    TObjArray *oarr = fullcfg.Tokenize(odelim);
-    Int_t noptions = oarr->GetEntries();
-
-    // protect
-    if ((noptions-1) < option) {
-      AliError("Not enough DCS configuration options defined!");
-      cfgo = "";
-      return;
-    }
-
-    cfgo = ((TObjString*)oarr->At(option))->GetString();
+  TObjArray *carr = cname.Tokenize(cdelim);
+  TString cfgString(((TObjString*)carr->At(cfgType))->GetString());
+  Int_t noptions = GetNumberOfParsDCS(cfgString, odelim);
+  // protect
+  if (noptions < option) {
+    AliError("Not enough options in DCS configuration name!");
+    cfgo = "";
+    carr->Delete(); delete carr;
     return;
-
   }
-  else {
-
-    if (option != 0) {
-      AliError("Not enough DCS configuration options defined!");
-      cfgo = "";
-      return;
-    }
-    cfgo = fullcfg;
-    return;
-
-  }
+  TObjArray *oarr = cfgString.Tokenize(odelim);
+  cfgo = ((TObjString*)oarr->At(option))->GetString();
+  carr->Delete(); delete carr;
+  oarr->Delete(); delete oarr;
+  return;
 
 }
 
@@ -1491,6 +1512,23 @@ Bool_t AliTRDcalibDB::IsChamberBadCalibrated(Int_t det)
 }
 
 //_____________________________________________________________________________
+Bool_t AliTRDcalibDB::IsChamberNotCalibrated(Int_t det)
+{
+  //
+  // Returns status, see name of functions for details ;-)
+  //
+
+  const AliTRDCalChamberStatus     * cal = dynamic_cast<const AliTRDCalChamberStatus *> 
+                                           (GetCachedCDBObject(kIDChamberStatus));
+  if (!cal) {
+    return -1;
+  }
+
+  return cal->IsNotCalibrated(det);
+
+}
+
+//_____________________________________________________________________________
 const AliTRDCalPID *AliTRDcalibDB::GetPIDObject(AliTRDpidUtil::ETRDPIDMethod method)
 {
   //
@@ -1511,18 +1549,20 @@ const AliTRDCalPID *AliTRDcalibDB::GetPIDObject(AliTRDpidUtil::ETRDPIDMethod met
 }
 
 //_____________________________________________________________________________
-AliTRDPIDResponse *AliTRDcalibDB::GetPIDResponse(AliTRDPIDResponse::ETRDPIDMethod method)
+AliTRDPIDResponse *AliTRDcalibDB::GetPIDResponse(AliTRDPIDResponse::ETRDPIDMethod /*method*/)
 {
   //
   // Returns the PID response object for 1D-LQ
   //
 
   if (!fPIDResponse) {
+    AliDebug(2, "Setting new PID response.");
 
     fPIDResponse = new AliTRDPIDResponse;
 
     // Load Reference Histos from OCDB
-    fPIDResponse->SetPIDmethod(method);
+//    if(method == AliTRDPIDResponse::kLQ1D){
+    //fPIDResponse->SetPIDmethod(AliTRDPIDResponse::kLQ1D);
     const TObjArray *references = dynamic_cast<const TObjArray *>(GetCachedCDBObject(kIDPIDLQ1D));
 
     TIter refs(references);
@@ -1531,8 +1571,14 @@ AliTRDPIDResponse *AliTRDcalibDB::GetPIDResponse(AliTRDPIDResponse::ETRDPIDMetho
     Bool_t hasReference = kFALSE;
     while ((obj = refs())){
       if ((ref = dynamic_cast<AliTRDPIDReference *>(obj))){
-        fPIDResponse->Load(ref);
+        AliDebug(2, "Setting new PID response object.");
+        TDirectory *bkpdir = gDirectory;
+        gROOT->cd();
+        AliTRDPIDResponseObject *ro = new AliTRDPIDResponseObject;
+        ro->SetPIDReference(ref);
+        fPIDResponse->SetPIDResponseObject(ro);
         hasReference = kTRUE;
+        gDirectory = bkpdir;
         break;
       }
     }
@@ -1540,8 +1586,9 @@ AliTRDPIDResponse *AliTRDcalibDB::GetPIDResponse(AliTRDPIDResponse::ETRDPIDMetho
     if (!hasReference) {
       AliError("Reference histograms not found in the OCDB");
     }
-
   }
+
+//  }
 
   return fPIDResponse;
 

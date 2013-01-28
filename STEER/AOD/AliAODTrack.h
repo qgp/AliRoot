@@ -20,6 +20,7 @@
  
 
 class AliVVertex;
+class AliDetectorPID;
 class AliTPCdEdxInfo;
 class AliAODEvent;
 
@@ -154,10 +155,10 @@ class AliAODTrack : public AliVTrack {
   void ConvertAliPIDtoAODPID();
   void SetDetPID(AliAODPid *aodpid) {fDetPid = aodpid;}
 
-  template <class T> void GetPID(T *pid) const {
+  template <typename T> void GetPID(T *pid) const {
     for(Int_t i=0; i<10; ++i) pid[i]=fPID[i];}
  
-  template <class T> void SetPID(const T *pid) {
+  template <typename T> void SetPID(const T *pid) {
     if(pid) for(Int_t i=0; i<10; ++i) fPID[i]=pid[i];
     else {for(Int_t i=0; i<10; fPID[i++]=0.) ; fPID[AliAODTrack::kUnknown]=1.;}}
 
@@ -180,22 +181,22 @@ class AliAODTrack : public AliVTrack {
   //
   Int_t   GetTOFBunchCrossing(Double_t b=0, Bool_t tpcPIDonly=kFALSE) const;
   //
-  template <class T> void GetP(T *p) const {
+  template <typename T> void GetP(T *p) const {
     p[0]=fMomentum[0]; p[1]=fMomentum[1]; p[2]=fMomentum[2];}
 
-//  template <class T> void GetPxPyPz(T *p) const {
+//  template <typename T> void GetPxPyPz(T *p) const {
 //    p[0] = Px(); p[1] = Py(); p[2] = Pz();}
   Bool_t GetPxPyPz(Double_t *p) const;
 
-  template <class T> Bool_t GetPosition(T *x) const {
+  template <typename T> Bool_t GetPosition(T *x) const {
     x[0]=fPosition[0]; x[1]=fPosition[1]; x[2]=fPosition[2];
     return TestBit(kIsDCA);}
 
-  template <class T> void SetCovMatrix(const T *covMatrix) {
+  template <typename T> void SetCovMatrix(const T *covMatrix) {
     if(!fCovMatrix) fCovMatrix=new AliAODRedCov<6>();
     fCovMatrix->SetCovMatrix(covMatrix);}
 
-  template <class T> Bool_t GetCovMatrix(T *covMatrix) const {
+  template <typename T> Bool_t GetCovMatrix(T *covMatrix) const {
     if(!fCovMatrix) return kFALSE;
     fCovMatrix->GetCovMatrix(covMatrix); return kTRUE;}
 
@@ -245,15 +246,20 @@ class AliAODTrack : public AliVTrack {
   const TBits& GetTPCClusterMap() const {return fTPCClusterMap;}
   const TBits* GetTPCClusterMapPtr() const {return &fTPCClusterMap;}
   const TBits& GetTPCFitMap() const {return fTPCFitMap;}
+  const TBits* GetTPCFitMapPtr() const {return &fTPCFitMap;}
   Float_t GetTPCClusterInfo(Int_t nNeighbours=3, Int_t type=0, Int_t row0=0, Int_t row1=159, Int_t /*type*/=0) const;
   
   const TBits& GetTPCSharedMap() const {return fTPCSharedMap;}
+  const TBits* GetTPCSharedMapPtr() const {return &fTPCSharedMap;}
   void    SetTPCClusterMap(const TBits amap) {fTPCClusterMap = amap;}
   void    SetTPCSharedMap(const TBits amap) {fTPCSharedMap = amap;}
   void    SetTPCFitMap(const TBits amap) {fTPCFitMap = amap;}
   void    SetTPCPointsF(UShort_t  findable){fTPCnclsF = findable;}
+  void    SetTPCNCrossedRows(UInt_t n)     {fTPCNCrossedRows = n;}
 
   UShort_t GetTPCNclsF() const { return fTPCnclsF;}
+  UShort_t GetTPCNCrossedRows()  const { return fTPCNCrossedRows;}
+  Float_t  GetTPCFoundFraction() const { return fTPCNCrossedRows>0 ? float(GetTPCNcls())/fTPCNCrossedRows : 0;}
 
   // Calorimeter Cluster
   Int_t GetEMCALcluster() const {return fCaloIndex;}
@@ -270,21 +276,27 @@ class AliAODTrack : public AliVTrack {
 
   //pid signal interface
   Double_t  GetITSsignal()       const { return fDetPid?fDetPid->GetITSsignal():0.;    }
+  void      GetITSdEdxSamples(Double_t s[4]) const;
   Double_t  GetTPCsignal()       const { return fDetPid?fDetPid->GetTPCsignal():0.;    }
+  Double_t  GetTPCsignalTunedOnData() const { return fTPCsignalTuned;}
+  void      SetTPCsignalTunedOnData(Double_t signal) {fTPCsignalTuned = signal;}
   UShort_t  GetTPCsignalN()      const { return fDetPid?fDetPid->GetTPCsignalN():0;    }
   virtual AliTPCdEdxInfo* GetTPCdEdxInfo() const {return fDetPid?fDetPid->GetTPCdEdxInfo():0;}
   Double_t  GetTPCmomentum()     const { return fDetPid?fDetPid->GetTPCmomentum():0.;  }
   Double_t  GetTOFsignal()       const { return fDetPid?fDetPid->GetTOFsignal():0.;    }
-  Double_t  GetHMPIDsignal()     const { return fDetPid?fDetPid->GetHMPIDsignal():0.;  }
+  Double_t  GetHMPIDsignal()     const { return 0.;  } // TODO: To be implemented properly with the new HMPID object
   
   void      GetIntegratedTimes(Double_t *times) const {if (fDetPid) fDetPid->GetIntegratedTimes(times); }
   Double_t  GetTRDslice(Int_t plane, Int_t slice) const;
   Double_t  GetTRDmomentum(Int_t plane, Double_t */*sp*/=0x0) const;
-  UChar_t   GetTRDncls(Int_t layer = -1) const;
+  Double_t  GetTRDchi2()                 const {return fDetPid ? fDetPid->GetTRDChi2() : -1;}
+  UChar_t   GetTRDncls(Int_t layer)      const;
+  UChar_t   GetTRDncls()                 const {return GetTRDncls(-1);}
   UChar_t   GetTRDntrackletsPID() const;
-  void      GetHMPIDpid(Double_t *p) const { if (fDetPid) fDetPid->GetHMPIDprobs(p); }
+  Int_t     GetNumberOfTRDslices() const { return fDetPid?fDetPid->GetTRDnSlices():0; }
+  void      GetHMPIDpid(Double_t */*p*/) const { return; } // TODO: To be implemented properly with the new HMPID object
 
-  const AliAODEvent* GetAODEvent(){return fAODEvent;}
+  const AliAODEvent* GetAODEvent() const {return fAODEvent;}
   void SetAODEvent(const AliAODEvent* ptr){fAODEvent = ptr;}
 
   AliAODPid    *GetDetPid() const { return fDetPid; }
@@ -301,7 +313,7 @@ class AliAODTrack : public AliVTrack {
   void SetID(Short_t id) { fID = id; }
   void SetLabel(Int_t label) { fLabel = label; }
 
-  template <class T> void SetPosition(const T *x, Bool_t isDCA = kFALSE);
+  template <typename T> void SetPosition(const T *x, Bool_t isDCA = kFALSE);
   void SetDCA(Double_t d, Double_t z);
   void SetUsedForVtxFit(Bool_t used = kTRUE) { used ? SetBit(kUsedForVtxFit) : ResetBit(kUsedForVtxFit); }
   void SetUsedForPrimVtxFit(Bool_t used = kTRUE) { used ? SetBit(kUsedForPrimVtxFit) : ResetBit(kUsedForPrimVtxFit); }
@@ -320,7 +332,7 @@ class AliAODTrack : public AliVTrack {
   void SetPt(Double_t pt) { fMomentum[0] = pt; };
   void SetPhi(Double_t phi) { fMomentum[1] = phi; }
   void SetTheta(Double_t theta) { fMomentum[2] = theta; }
-  template <class T> void SetP(const T *p, Bool_t cartesian = kTRUE);
+  template <typename T> void SetP(const T *p, Bool_t cartesian = kTRUE);
   void SetP() {fMomentum[0]=fMomentum[1]=fMomentum[2]=-999.;}
 
   void SetXYAtDCA(Double_t x, Double_t y) {fPositionAtDCA[0] = x; fPositionAtDCA[1] = y;}
@@ -361,7 +373,9 @@ class AliAODTrack : public AliVTrack {
   void     SetProdVertex(TObject *vertex) { fProdVertex = vertex; }
   void     SetType(AODTrk_t ttype) { fType=ttype; }
 
-
+  // Trasient PID object, is owned by the track
+  virtual void  SetDetectorPID(const AliDetectorPID *pid);
+  virtual const AliDetectorPID* GetDetectorPID() const { return fDetectorPID; }
 
   // Dummy
   Int_t    PdgCode() const {return 0;}
@@ -395,6 +409,7 @@ class AliAODTrack : public AliVTrack {
   TBits         fTPCSharedMap;      // Map of clusters, one bit per padrow; 1 if has a shared cluster on given padrow
 
   UShort_t      fTPCnclsF;          // findable clusters
+  UShort_t      fTPCNCrossedRows;   // n crossed rows
 
   Short_t       fID;                // unique track ID, points back to the ESD track
 
@@ -405,15 +420,18 @@ class AliAODTrack : public AliVTrack {
 
   
   AliAODRedCov<6> *fCovMatrix;      // covariance matrix (x, y, z, px, py, pz)
-  AliAODPid    *fDetPid;            // more detailed or detector specific pid information
+  AliAODPid    *fDetPid;            // more detailed or detector specific raw pid information
+  mutable const AliDetectorPID* fDetectorPID; //! transient object to cache calibrated PID information
   TRef          fProdVertex;        // vertex of origin
 
   Double_t      fTrackPhiOnEMCal;   // phi of track after being propagated to 430cm
   Double_t      fTrackEtaOnEMCal;   // eta of track after being propagated to 430cm
 
+  Double_t      fTPCsignalTuned;    //! TPC signal tuned on data when using MC
+
   const AliAODEvent* fAODEvent;     //! 
 
-  ClassDef(AliAODTrack, 17);
+  ClassDef(AliAODTrack, 19);
 };
 
 inline Bool_t  AliAODTrack::IsPrimaryCandidate() const
@@ -434,5 +452,36 @@ inline Int_t AliAODTrack::GetITSNcls() const
   for(Int_t i=0;i<6;i++) if(HasPointOnITSLayer(i)) n++;
   return n;
 }
+
+//______________________________________________________________________________
+template <typename T> 
+void AliAODTrack::SetPosition(const T *x, const Bool_t dca) 
+{
+  // set the position
+
+  if (x) {
+    if (!dca) {
+      ResetBit(kIsDCA);
+
+      fPosition[0] = x[0];
+      fPosition[1] = x[1];
+      fPosition[2] = x[2];
+    } else {
+      SetBit(kIsDCA);
+      // don't know any better yet
+      fPosition[0] = -999.;
+      fPosition[1] = -999.;
+      fPosition[2] = -999.;
+    }
+  } else {
+    ResetBit(kIsDCA);
+
+    fPosition[0] = -999.;
+    fPosition[1] = -999.;
+    fPosition[2] = -999.;
+  }
+}
+
+//template<> void AliAODTrack::SetPosition(const double *, Bool_t);
 
 #endif

@@ -80,12 +80,6 @@ class AliCDBManager: public TObject {
 	AliCDBEntry* GetEntryFromSnapshot(const char* path);
 
 	const char* GetURI(const char* path);				 
-				 
-	AliCDBId* GetId(const AliCDBId& query);
-	AliCDBId* GetId(const AliCDBPath& path, Int_t runNumber=-1,
-				Int_t version = -1, Int_t subVersion = -1);
-	AliCDBId* GetId(const AliCDBPath& path, const AliCDBRunRange& runRange,
-				 Int_t version = -1, Int_t subVersion = -1);
 
 	TList* GetAll(const AliCDBId& query);
 	TList* GetAll(const AliCDBPath& path, Int_t runNumber=-1,
@@ -93,14 +87,14 @@ class AliCDBManager: public TObject {
 	TList* GetAll(const AliCDBPath& path, const AliCDBRunRange& runRange,
 				 Int_t version = -1, Int_t subVersion = -1); 
 
-	Bool_t Put(TObject* object, const AliCDBId& id,
-			AliCDBMetaData* metaData, const DataType type=kPrivate);
-	Bool_t Put(AliCDBEntry* entry, DataType type=kPrivate);
+	Bool_t Put(TObject* object, const AliCDBId& id, AliCDBMetaData* metaData,
+			const char* mirrors="", DataType type=kPrivate);
+	Bool_t Put(AliCDBEntry* entry, const char* mirrors="", DataType type=kPrivate);
 
 	void SetCacheFlag(Bool_t cacheFlag) {fCache=cacheFlag;}
 	Bool_t GetCacheFlag() const {return fCache;}
 	
-	ULong_t SetLock(Bool_t lockFlag=kTRUE, ULong_t key=0);
+	ULong64_t SetLock(Bool_t lockFlag=kTRUE, ULong64_t key=0);
 	Bool_t GetLock() const {return fLock;}
 
 	void SetRaw(Bool_t rawFlag){fRaw=rawFlag;}
@@ -108,6 +102,9 @@ class AliCDBManager: public TObject {
 
 	void SetRun(Int_t run);
 	Int_t GetRun() const {return fRun;}
+
+	void SetMirrorSEs(const char* mirrors);
+	const char* GetMirrorSEs() const;
 
 	void DestroyActiveStorages();
 	void DestroyActiveStorage(AliCDBStorage* storage);
@@ -134,6 +131,12 @@ class AliCDBManager: public TObject {
 	void UnsetSnapshotMode() {fSnapshotMode=kFALSE;}
 	void DumpToSnapshotFile(const char* snapshotFileName, Bool_t singleKeys);
   
+	Int_t GetStartRunLHCPeriod();
+	Int_t GetEndRunLHCPeriod();
+	TString GetLHCPeriod();
+
+	Bool_t DiffObjects(const char *cdbFile1, const char *cdbFile2) const;
+
 protected:
 
 	static TString fgkCondUri;	// URI of the Conditions data base folder
@@ -155,6 +158,12 @@ protected:
   	void CacheEntry(const char* path, AliCDBEntry* entry);
 
 	AliCDBParam* SelectSpecificStorage(const TString& path);
+				 
+	AliCDBId* GetId(const AliCDBId& query);
+	AliCDBId* GetId(const AliCDBPath& path, Int_t runNumber=-1,
+				Int_t version = -1, Int_t subVersion = -1);
+	AliCDBId* GetId(const AliCDBPath& path, const AliCDBRunRange& runRange,
+				 Int_t version = -1, Int_t subVersion = -1);
 	
 
 //	void Init();
@@ -190,7 +199,7 @@ protected:
 	TString fLHCPeriod;       // LHC period alien folder
 
 private:
-   ULong_t fKey;  //! Key for locking/unlocking
+	ULong64_t fKey;  //! Key for locking/unlocking
 
 
 	ClassDef(AliCDBManager, 0);

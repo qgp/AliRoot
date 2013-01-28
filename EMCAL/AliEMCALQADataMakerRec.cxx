@@ -477,8 +477,8 @@ void AliEMCALQADataMakerRec::InitRaws()
   Add2RawsList(h15, k2DRatioAmp, expert, image, !saveCorr) ;
 
   TH1F * h16 = new TH1F("hRatioDist", "Amplitude_{current run}/Amplitude_{reference run} ratio distribution", nTot, 0., 2.);
-  h16->SetMinimum(0.1); 
-  h16->SetMaximum(100.);
+  // h16->SetMinimum(0.1); 
+  // h16->SetMaximum(100.);
   gStyle->SetOptStat(0);
   h16->UseCurrentStyle();
   h16->SetDirectory(0);
@@ -498,7 +498,7 @@ void AliEMCALQADataMakerRec::InitRaws()
   Add2RawsList(hL10, kLEDMonRatio, expert, image, !saveCorr) ;
 
   TH1F * hL11 = new TH1F("hMaxMinusMinLEDMonRatioDist", "LEDMon amplitude, Ratio distribution", nTotLEDMon, 0, 2);
-  hL11->SetMinimum(0.1) ;
+  // hL11->SetMinimum(0.1) ;
   gStyle->SetOptStat(0);
   hL11->UseCurrentStyle();
   hL11->SetDirectory(0);
@@ -518,7 +518,7 @@ void AliEMCALQADataMakerRec::InitRaws()
  TProfile2D *hS0 = new TProfile2D("hL1Amp", "Mean STU signal per Row and Column", nSTUCols, -0.5, nSTUCols-0.5, nSTURows, -0.5, nSTURows-0.5);
  Add2RawsList(hS0, kAmpL1, expert, !image, !saveCorr) ;
 	
- TH2F *hS1 = new TH2F("hL1Gamma", "L1 Gamma patch position (FastOR top-left)", nSTUCols, -0.50, nSTUCols-0.5, nSTURows, -0.5, nSTURows-0.5);
+ TH2F *hS1 = new TH2F("hL1Gamma", "L1 Gamma patch position (FastOR top-left)", nSTUCols, -0.50, nSTUCols-0.5, nSTURows + 5, -0.5, nSTURows-0.5 + 5); //+5 for better visible error box
  Add2RawsList(hS1, kGL1, !expert, image, !saveCorr) ;
 	
  TH2F *hS2 = new TH2F("hL1Jet", "L1 Jet patch position (FastOR top-left)", 12, -0.5, nSTUCols-0.5, 16, 0, nSTURows-0.5);

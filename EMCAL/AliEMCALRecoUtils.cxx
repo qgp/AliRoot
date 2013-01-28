@@ -58,7 +58,6 @@
 #include "AliTrackerBase.h"
 #include "AliEMCALPIDUtils.h"
 
-
 ClassImp(AliEMCALRecoUtils)
   
 //_____________________________________
@@ -78,10 +77,12 @@ AliEMCALRecoUtils::AliEMCALRecoUtils():
   fCutR(0),                               fCutEta(0),                             fCutPhi(0),
   fClusterWindow(0),                      fMass(0),                           
   fStepSurface(0),                        fStepCluster(0),
+  fITSTrackSA(kFALSE),
   fTrackCutsType(0),                      fCutMinTrackPt(0),                      fCutMinNClusterTPC(0), 
   fCutMinNClusterITS(0),                  fCutMaxChi2PerClusterTPC(0),            fCutMaxChi2PerClusterITS(0),
   fCutRequireTPCRefit(kFALSE),            fCutRequireITSRefit(kFALSE),            fCutAcceptKinkDaughters(kFALSE),
-  fCutMaxDCAToVertexXY(0),                fCutMaxDCAToVertexZ(0),                 fCutDCAToVertex2D(kFALSE)
+  fCutMaxDCAToVertexXY(0),                fCutMaxDCAToVertexZ(0),                 fCutDCAToVertex2D(kFALSE),
+  fCutRequireITSStandAlone(kFALSE),       fCutRequireITSpureSA(kFALSE) 
 {
 //
   // Constructor.
@@ -99,7 +100,6 @@ AliEMCALRecoUtils::AliEMCALRecoUtils():
   fResidualEta           = new TArrayF();
   fPIDUtils              = new AliEMCALPIDUtils();
 
-  InitTrackCuts();
 }
 
 //______________________________________________________________________
@@ -127,12 +127,14 @@ AliEMCALRecoUtils::AliEMCALRecoUtils(const AliEMCALRecoUtils & reco)
   fCutR(reco.fCutR),        fCutEta(reco.fCutEta),           fCutPhi(reco.fCutPhi),
   fClusterWindow(reco.fClusterWindow),
   fMass(reco.fMass),        fStepSurface(reco.fStepSurface), fStepCluster(reco.fStepCluster),
+  fITSTrackSA(reco.fITSTrackSA),
   fTrackCutsType(reco.fTrackCutsType),                       fCutMinTrackPt(reco.fCutMinTrackPt), 
   fCutMinNClusterTPC(reco.fCutMinNClusterTPC),               fCutMinNClusterITS(reco.fCutMinNClusterITS), 
   fCutMaxChi2PerClusterTPC(reco.fCutMaxChi2PerClusterTPC),   fCutMaxChi2PerClusterITS(reco.fCutMaxChi2PerClusterITS),
   fCutRequireTPCRefit(reco.fCutRequireTPCRefit),             fCutRequireITSRefit(reco.fCutRequireITSRefit),
   fCutAcceptKinkDaughters(reco.fCutAcceptKinkDaughters),     fCutMaxDCAToVertexXY(reco.fCutMaxDCAToVertexXY),    
-  fCutMaxDCAToVertexZ(reco.fCutMaxDCAToVertexZ),             fCutDCAToVertex2D(reco.fCutDCAToVertex2D)
+  fCutMaxDCAToVertexZ(reco.fCutMaxDCAToVertexZ),             fCutDCAToVertex2D(reco.fCutDCAToVertex2D),
+  fCutRequireITSStandAlone(reco.fCutRequireITSStandAlone),   fCutRequireITSpureSA(reco.fCutRequireITSpureSA) 
 {
   //Copy ctor
   
@@ -200,7 +202,8 @@ AliEMCALRecoUtils & AliEMCALRecoUtils::operator = (const AliEMCALRecoUtils & rec
   fMass                      = reco.fMass;
   fStepSurface               = reco.fStepSurface;
   fStepCluster               = reco.fStepCluster;
-
+  fITSTrackSA                = reco.fITSTrackSA;  
+  
   fTrackCutsType             = reco.fTrackCutsType;
   fCutMinTrackPt             = reco.fCutMinTrackPt;
   fCutMinNClusterTPC         = reco.fCutMinNClusterTPC;
@@ -213,7 +216,8 @@ AliEMCALRecoUtils & AliEMCALRecoUtils::operator = (const AliEMCALRecoUtils & rec
   fCutMaxDCAToVertexXY       = reco.fCutMaxDCAToVertexXY;
   fCutMaxDCAToVertexZ        = reco.fCutMaxDCAToVertexZ;
   fCutDCAToVertex2D          = reco.fCutDCAToVertex2D;
-  
+  fCutRequireITSStandAlone   = reco.fCutRequireITSStandAlone; 
+  fCutRequireITSpureSA       = reco.fCutRequireITSpureSA; 
   if(reco.fResidualEta)
   {
     // assign or copy construct
@@ -481,13 +485,12 @@ Bool_t AliEMCALRecoUtils::ClusterContainsBadChannel(const AliEMCALGeometry* geom
   return kFALSE;
 }
 
-//_____________________________________________________________________________________________
-Bool_t AliEMCALRecoUtils::IsExoticCell(const Int_t absID, AliVCaloCells* cells, const Int_t bc)
-{
-  // Look to cell neighbourhood and reject if it seems exotic
-  // Do before recalibrating the cells
 
-  if(!fRejectExoticCells) return kFALSE;
+//___________________________________________________________________________
+Float_t AliEMCALRecoUtils::GetECross(const Int_t absID, const Double_t tcell,
+                                     AliVCaloCells* cells, const Int_t bc)
+{
+  //Calculate the energy in the cross around the energy given cell
   
   AliEMCALGeometry * geom = AliEMCALGeometry::GetInstance();
   
@@ -496,7 +499,7 @@ Bool_t AliEMCALRecoUtils::IsExoticCell(const Int_t absID, AliVCaloCells* cells, 
   geom->GetCellPhiEtaIndexInSModule(imod,iTower,iIphi, iIeta,iphi,ieta);  
   
   //Get close cells index, energy and time, not in corners
-
+  
   Int_t absID1 = -1;
   Int_t absID2 = -1;
   
@@ -504,10 +507,9 @@ Bool_t AliEMCALRecoUtils::IsExoticCell(const Int_t absID, AliVCaloCells* cells, 
   if( iphi > 0 )                                absID2 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi-1, ieta);
   
   // In case of cell in eta = 0 border, depending on SM shift the cross cell index
-
+  
   Int_t absID3 = -1;
   Int_t absID4 = -1;
-  
   
   if     ( ieta == AliEMCALGeoParams::fgkEMCALCols-1 && !(imod%2) )
   {
@@ -526,19 +528,12 @@ Bool_t AliEMCALRecoUtils::IsExoticCell(const Int_t absID, AliVCaloCells* cells, 
     if( ieta > 0 )                                 
       absID4 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi, ieta-1); 
   }
-
+  
   //printf("IMOD %d, AbsId %d, a %d, b %d, c %d e %d \n",imod,absID,absID1,absID2,absID3,absID4);
-
   
-  Float_t  ecell  = 0, ecell1  = 0, ecell2  = 0, ecell3  = 0, ecell4  = 0;
-  Double_t tcell  = 0, tcell1  = 0, tcell2  = 0, tcell3  = 0, tcell4  = 0;
-  Bool_t   accept = 0, accept1 = 0, accept2 = 0, accept3 = 0, accept4 = 0;
-  
-  accept  = AcceptCalibrateCell(absID, bc, ecell ,tcell ,cells); 
-    
-  if(!accept) return kTRUE; // reject this cell
-  
-  if(ecell < fExoticCellMinAmplitude) return kFALSE; // do not reject low energy cells
+  Float_t  ecell1  = 0, ecell2  = 0, ecell3  = 0, ecell4  = 0;
+  Double_t tcell1  = 0, tcell2  = 0, tcell3  = 0, tcell4  = 0;
+  Bool_t   accept1 = 0, accept2 = 0, accept3 = 0, accept4 = 0;
   
   accept1 = AcceptCalibrateCell(absID1,bc, ecell1,tcell1,cells); 
   accept2 = AcceptCalibrateCell(absID2,bc, ecell2,tcell2,cells); 
@@ -546,26 +541,44 @@ Bool_t AliEMCALRecoUtils::IsExoticCell(const Int_t absID, AliVCaloCells* cells, 
   accept4 = AcceptCalibrateCell(absID4,bc, ecell4,tcell4,cells); 
   
   /*
-    printf("Cell absID %d \n",absID);
-    printf("\t  accept1 %d, accept2 %d, accept3 %d, accept4 %d\n",
-           accept1,accept2,accept3,accept4);
-    printf("\t id %d: id1 %d, id2 %d, id3 %d, id4 %d\n",
-           absID,absID1,absID2,absID3,absID4);
-    printf("\t e %f: e1 %f, e2 %f, e3 %f, e4 %f\n",
-           ecell,ecell1,ecell2,ecell3,ecell4);
-    printf("\t t %f: t1 %f, t2 %f, t3 %f, t4 %f;\n dt1 %f, dt2 %f, dt3 %f, dt4 %f\n",
-           tcell*1.e9,tcell1*1.e9,tcell2*1.e9,tcell3*1.e9,tcell4*1.e9,
-           TMath::Abs(tcell-tcell1)*1.e9, TMath::Abs(tcell-tcell2)*1.e9, TMath::Abs(tcell-tcell3)*1.e9, TMath::Abs(tcell-tcell4)*1.e9);
-  */
+   printf("Cell absID %d \n",absID);
+   printf("\t  accept1 %d, accept2 %d, accept3 %d, accept4 %d\n",
+   accept1,accept2,accept3,accept4);
+   printf("\t id %d: id1 %d, id2 %d, id3 %d, id4 %d\n",
+   absID,absID1,absID2,absID3,absID4);
+   printf("\t e %f: e1 %f, e2 %f, e3 %f, e4 %f\n",
+   ecell,ecell1,ecell2,ecell3,ecell4);
+   printf("\t t %f: t1 %f, t2 %f, t3 %f, t4 %f;\n dt1 %f, dt2 %f, dt3 %f, dt4 %f\n",
+   tcell*1.e9,tcell1*1.e9,tcell2*1.e9,tcell3*1.e9,tcell4*1.e9,
+   TMath::Abs(tcell-tcell1)*1.e9, TMath::Abs(tcell-tcell2)*1.e9, TMath::Abs(tcell-tcell3)*1.e9, TMath::Abs(tcell-tcell4)*1.e9);
+   */
   
   if(TMath::Abs(tcell-tcell1)*1.e9 > fExoticCellDiffTime) ecell1 = 0 ;
   if(TMath::Abs(tcell-tcell2)*1.e9 > fExoticCellDiffTime) ecell2 = 0 ;
   if(TMath::Abs(tcell-tcell3)*1.e9 > fExoticCellDiffTime) ecell3 = 0 ;
   if(TMath::Abs(tcell-tcell4)*1.e9 > fExoticCellDiffTime) ecell4 = 0 ;
+  
+  return ecell1+ecell2+ecell3+ecell4;
+  
+}
 
-  Float_t eCross = ecell1+ecell2+ecell3+ecell4;
+//_____________________________________________________________________________________________
+Bool_t AliEMCALRecoUtils::IsExoticCell(const Int_t absID, AliVCaloCells* cells, const Int_t bc)
+{
+  // Look to cell neighbourhood and reject if it seems exotic
+  // Do before recalibrating the cells
 
-  //printf("\t eCell %f, eCross %f, 1-eCross/eCell %f\n",ecell,eCross,1-eCross/ecell);
+  if(!fRejectExoticCells) return kFALSE;
+  
+  Float_t  ecell  = 0;
+  Double_t tcell  = 0;
+  Bool_t   accept = AcceptCalibrateCell(absID, bc, ecell ,tcell ,cells); 
+  
+  if(!accept) return kTRUE; // reject this cell
+  
+  if(ecell < fExoticCellMinAmplitude) return kFALSE; // do not reject low energy cells
+
+  Float_t eCross = GetECross(absID,tcell,cells,bc);
   
   if(1-eCross/ecell > fExoticCellFraction) 
   {
@@ -639,29 +652,63 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
   
   Float_t energy = cluster->E();
 
+  if(energy < 0.05)
+  {
+    // Clusters with less than 50 MeV or negative are not possible
+    AliInfo(Form("Too Low Cluster energy!, E = %f < 0.05 GeV",energy));
+    return 0;
+  }
+  
   switch (fNonLinearityFunction) 
   {
       
     case kPi0MC:
     {
       //Non-Linearity correction (from MC with function ([0]*exp(-[1]/E))+(([2]/([3]*2.*TMath::Pi())*exp(-(E-[4])^2/(2.*[3]^2)))))
-      //Double_t fNonLinearityParams[0] = 1.014;
-      //Double_t fNonLinearityParams[1] = -0.03329;
-      //Double_t fNonLinearityParams[2] = -0.3853;
-      //Double_t fNonLinearityParams[3] = 0.5423;
-      //Double_t fNonLinearityParams[4] = -0.4335;
+      //fNonLinearityParams[0] = 1.014;
+      //fNonLinearityParams[1] =-0.03329;
+      //fNonLinearityParams[2] =-0.3853;
+      //fNonLinearityParams[3] = 0.5423;
+      //fNonLinearityParams[4] =-0.4335;
        energy *= (fNonLinearityParams[0]*exp(-fNonLinearityParams[1]/energy))+
                   ((fNonLinearityParams[2]/(fNonLinearityParams[3]*2.*TMath::Pi())*
                     exp(-(energy-fNonLinearityParams[4])*(energy-fNonLinearityParams[4])/(2.*fNonLinearityParams[3]*fNonLinearityParams[3]))));
       break;
     }
      
+    case kPi0MCv2:
+    {
+      //Non-Linearity correction (from MC with function [0]/((x+[1])^[2]))+1;
+      //fNonLinearityParams[0] = 3.11111e-02;
+      //fNonLinearityParams[1] =-5.71666e-02; 
+      //fNonLinearityParams[2] = 5.67995e-01;      
+      
+      energy *= fNonLinearityParams[0]/TMath::Power(energy+fNonLinearityParams[1],fNonLinearityParams[2])+1;
+      break;
+    }
+    
+    case kPi0MCv3:
+    {
+      //Same as beam test corrected, change parameters
+      //fNonLinearityParams[0] =  9.81039e-01
+      //fNonLinearityParams[1] =  1.13508e-01;
+      //fNonLinearityParams[2] =  1.00173e+00; 
+      //fNonLinearityParams[3] =  9.67998e-02;
+      //fNonLinearityParams[4] =  2.19381e+02;
+      //fNonLinearityParams[5] =  6.31604e+01;
+      //fNonLinearityParams[6] =  1;
+      energy *= fNonLinearityParams[6]/(fNonLinearityParams[0]*(1./(1.+fNonLinearityParams[1]*exp(-energy/fNonLinearityParams[2]))*1./(1.+fNonLinearityParams[3]*exp((energy-fNonLinearityParams[4])/fNonLinearityParams[5]))));
+      
+      break;
+    }
+      
+      
     case kPi0GammaGamma:
     {
       //Non-Linearity correction (from Olga Data with function p0+p1*exp(-p2*E))
-      //Double_t fNonLinearityParams[0] = 1.04;
-      //Double_t fNonLinearityParams[1] = -0.1445;
-      //Double_t fNonLinearityParams[2] = 1.046;
+      //fNonLinearityParams[0] = 1.04;
+      //fNonLinearityParams[1] = -0.1445;
+      //fNonLinearityParams[2] = 1.046;
       energy /= (fNonLinearityParams[0]+fNonLinearityParams[1]*exp(-fNonLinearityParams[2]*energy)); //Olga function
       break;
     }
@@ -728,6 +775,24 @@ void AliEMCALRecoUtils::InitNonLinearityParam()
     fNonLinearityParams[4] = -0.4335;
   }
   
+  if(fNonLinearityFunction == kPi0MCv2) 
+  {
+    fNonLinearityParams[0] = 3.11111e-02;
+    fNonLinearityParams[1] =-5.71666e-02; 
+    fNonLinearityParams[2] = 5.67995e-01;      
+  }
+  
+  if(fNonLinearityFunction == kPi0MCv3) 
+  {
+    fNonLinearityParams[0] =  9.81039e-01;
+    fNonLinearityParams[1] =  1.13508e-01;
+    fNonLinearityParams[2] =  1.00173e+00; 
+    fNonLinearityParams[3] =  9.67998e-02;
+    fNonLinearityParams[4] =  2.19381e+02;
+    fNonLinearityParams[5] =  6.31604e+01;
+    fNonLinearityParams[6] =  1;
+  }
+  
   if(fNonLinearityFunction == kPi0GammaGamma) 
   {
     fNonLinearityParams[0] = 1.04;
@@ -787,15 +852,22 @@ Float_t  AliEMCALRecoUtils::GetDepth(const Float_t energy,
   Float_t x0    = 1.31;
   Float_t ecr   = 8;
   Float_t depth = 0;
+  Float_t arg   = energy*1000/ ecr; //Multiply energy by 1000 to transform to MeV
   
   switch ( iParticle )
   {
     case kPhoton:
-      depth = x0 * (TMath::Log(energy*1000/ ecr) + 0.5); //Multiply energy by 1000 to transform to MeV
+      if (arg < 1) 
+	depth = 0;
+      else
+	depth = x0 * (TMath::Log(arg) + 0.5); 
       break;
       
     case kElectron:
-      depth = x0 * (TMath::Log(energy*1000/ ecr) - 0.5); //Multiply energy by 1000 to transform to MeV
+      if (arg < 1) 
+	depth = 0;
+      else
+	depth = x0 * (TMath::Log(arg) - 0.5); 
       break;
       
     case kHadron:
@@ -818,13 +890,19 @@ Float_t  AliEMCALRecoUtils::GetDepth(const Float_t energy,
       }
       else
       {//electron
-        depth = x0 * (TMath::Log(energy*1000 / ecr)  - 0.5); //Multiply energy by 1000 to transform to MeV
+	if (arg < 1) 
+	  depth = 0;
+	else
+	  depth = x0 * (TMath::Log(arg) - 0.5); 
       }
         
       break;
       
     default://photon
-      depth = x0 * (TMath::Log(energy*1000 / ecr) + 0.5); //Multiply energy by 1000 to transform to MeV
+      if (arg < 1) 
+	depth = 0;
+      else
+	depth = x0 * (TMath::Log(arg) + 0.5);
   }  
   
   return depth;
@@ -948,6 +1026,8 @@ void AliEMCALRecoUtils::InitParameters()
   fCutMaxDCAToVertexZ  = 1e10;              
   fCutDCAToVertex2D    = kFALSE;
   
+  fCutRequireITSStandAlone = kFALSE; //MARCEL
+  fCutRequireITSpureSA     = kFALSE; //Marcel
   
   //Misalignment matrices
   for(Int_t i = 0; i < 15 ; i++) 
@@ -1126,17 +1206,16 @@ void AliEMCALRecoUtils::RecalibrateClusterEnergy(const AliEMCALGeometry* geom,
 
   cluster->SetE(energy);
 
-  // Recalculate time of cluster   
+  // Recalculate time of cluster
   Double_t timeorg = cluster->GetTOF();
+
+  Double_t time = cells->GetCellTime(absIdMax);
   if(!fCellsRecalibrated && IsTimeRecalibrationOn())
-  {
-    Double_t time = timeorg;
     RecalibrateCellTime(absIdMax,bc,time);
-    cluster->SetTOF(time);
-  } 
+
+  cluster->SetTOF(time);
 
   AliDebug(2,Form("AliEMCALRecoUtils::RecalibrateClusterEnergy - Time before %f, after %f \n",timeorg,cluster->GetTOF()));
-
 }
 
 //_____________________________________________________________
@@ -1147,7 +1226,7 @@ void AliEMCALRecoUtils::RecalibrateCells(AliVCaloCells * cells,
   // of the cells that compose the cluster.
   // bc= bunch crossing number returned by esdevent->GetBunchCrossNumber();
 
-  if(!IsRecalibrationOn() && !IsTimeRecalibrationOn()) return;
+  if(!IsRecalibrationOn() && !IsTimeRecalibrationOn() && !IsBadChannelsRemovalSwitchedOn()) return;
   
   if(!cells)
   {
@@ -1234,6 +1313,8 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCAL
   Bool_t shared = kFALSE;
 
   Float_t  clEnergy = clu->E(); //Energy already recalibrated previously
+  if (clEnergy <= 0)
+    return;
   GetMaxEnergyCell(geom, cells, clu, absId,  iSupModMax, ieta, iphi,shared);
   Double_t depth = GetDepth(clEnergy,fParticleType,iSupModMax) ;
   
@@ -1317,6 +1398,8 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerIndex(const AliEMCALG
   Bool_t shared = kFALSE;
 
   Float_t clEnergy = clu->E(); //Energy already recalibrated previously.
+  if (clEnergy <= 0)
+    return;
   GetMaxEnergyCell(geom, cells, clu, absId,  iSupModMax, ieta, iphi,shared);
   Float_t  depth = GetDepth(clEnergy,fParticleType,iSupMod) ;
 
@@ -1474,8 +1557,8 @@ void AliEMCALRecoUtils::RecalculateClusterPID(AliVCluster * cluster)
   if ( cluster->GetM02() != 0)
     fPIDUtils->ComputePID(cluster->E(),cluster->GetM02());
   
-  Float_t pidlist[AliPID::kSPECIESN+1];
-  for(Int_t i = 0; i < AliPID::kSPECIESN+1; i++) pidlist[i] = fPIDUtils->GetPIDFinal(i);
+  Float_t pidlist[AliPID::kSPECIESCN+1];
+  for(Int_t i = 0; i < AliPID::kSPECIESCN+1; i++) pidlist[i] = fPIDUtils->GetPIDFinal(i);
         
   cluster->SetPID(pidlist);
 }
@@ -1697,6 +1780,19 @@ void AliEMCALRecoUtils::FindMatches(AliVEvent *event,
     
   } // Init mag field
   
+  if (esdevent) {
+    UInt_t mask1 = esdevent->GetESDRun()->GetDetectorsInDAQ();
+    UInt_t mask2 = esdevent->GetESDRun()->GetDetectorsInReco();
+    Bool_t desc1 = (mask1 >> 3) & 0x1;
+    Bool_t desc2 = (mask2 >> 3) & 0x1;
+    if (desc1==0 || desc2==0) { 
+      AliError(Form("TPC not in DAQ/RECO: %u (%u)/%u (%u)", 
+      mask1, esdevent->GetESDRun()->GetDetectorsInReco(),
+      mask2, esdevent->GetESDRun()->GetDetectorsInDAQ()));
+      fITSTrackSA=kTRUE;
+    }
+  }
+
   TObjArray *clusterArray = 0x0;
   if(!clusterArr)
     {
@@ -1727,7 +1823,10 @@ void AliEMCALRecoUtils::FindMatches(AliVEvent *event,
       if(esdTrack->Pt()<fCutMinTrackPt) continue;
       Double_t phi = esdTrack->Phi()*TMath::RadToDeg();
       if(TMath::Abs(esdTrack->Eta())>0.8 || phi <= 20 || phi >= 240 ) continue;
-      trackParam =  const_cast<AliExternalTrackParam*>(esdTrack->GetInnerParam());
+      if(!fITSTrackSA)
+	trackParam =  const_cast<AliExternalTrackParam*>(esdTrack->GetInnerParam());  // if TPC Available
+      else
+	trackParam =  new AliExternalTrackParam(*esdTrack); // If ITS Track Standing alone		
     }
     
     //If the input event is AOD, the starting point for extrapolation is at vertex
@@ -1831,7 +1930,12 @@ Int_t AliEMCALRecoUtils::FindMatchedClusterInEvent(const AliESDtrack *track,
   Int_t index = -1;
   Double_t phiV = track->Phi()*TMath::RadToDeg();
   if(TMath::Abs(track->Eta())>0.8 || phiV <= 20 || phiV >= 240 ) return index;
-  AliExternalTrackParam *trackParam = const_cast<AliExternalTrackParam*>(track->GetInnerParam());
+  AliExternalTrackParam *trackParam = 0;
+  if(!fITSTrackSA)
+    trackParam = const_cast<AliExternalTrackParam*>(track->GetInnerParam());  // If TPC
+  else
+    trackParam = new AliExternalTrackParam(*track);
+    
   if(!trackParam) return index;
   AliExternalTrackParam emcalParam(*trackParam);
   Float_t eta, phi;
@@ -2244,6 +2348,21 @@ Bool_t AliEMCALRecoUtils::IsAccepted(AliESDtrack *esdTrack)
   cuts[10] = kTRUE;
     }
 
+      // ITS
+  if(fCutRequireITSStandAlone || fCutRequireITSpureSA){
+    if ((status & AliESDtrack::kITSin) == 0 || (status & AliESDtrack::kTPCin)){
+      // TPC tracks
+      cuts[11] = kTRUE; 
+    }else{
+      // ITS standalone tracks
+      if(fCutRequireITSStandAlone && !fCutRequireITSpureSA){
+	if(status & AliESDtrack::kITSpureSA) cuts[11] = kTRUE;
+      }else if(fCutRequireITSpureSA){
+	if(!(status & AliESDtrack::kITSpureSA)) cuts[11] = kTRUE;
+      }
+    }
+  }
+  
   Bool_t cut=kFALSE;
   for (Int_t i=0; i<kNCuts; i++)
     if (cuts[i]) { cut = kTRUE ; }
@@ -2308,6 +2427,16 @@ void AliEMCALRecoUtils::InitTrackCuts()
       
       break;
     }
+
+    case kITSStandAlone:
+    {
+      AliInfo(Form("Track cuts for matching: ITS Stand Alone tracks cut w/o DCA cut"));
+      SetRequireITSRefit(kTRUE);
+      SetRequireITSStandAlone(kTRUE);
+      SetITSTrackSA(kTRUE);
+      break;
+    }
+    
   }
 }
 

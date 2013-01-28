@@ -52,6 +52,7 @@ AliAODInputHandler::AliAODInputHandler() :
 	fMergePHOSCells(kTRUE),	
 	fMergeEMCALTrigger(kTRUE), 
 	fMergePHOSTrigger(kTRUE),
+   fMergeHMPIDrings(kTRUE),
     fFriendsConnected(kFALSE),
     fFileToMerge(0),
     fTreeToMerge(0),
@@ -77,6 +78,7 @@ AliAODInputHandler::AliAODInputHandler(const char* name, const char* title):
   fMergePHOSCells(kTRUE),
   fMergeEMCALTrigger(kTRUE), 
   fMergePHOSTrigger(kTRUE),
+  fMergeHMPIDrings(kTRUE),
   fFriendsConnected(kFALSE),
   fFileToMerge(0),
   fTreeToMerge(0),
@@ -153,6 +155,7 @@ Bool_t AliAODInputHandler::Notify(const char* path)
       fEvent->ReadFromTree(fTree, "reconnect");
   }
   fFriendsConnected = kFALSE;
+  fUserInfo=fTree->GetTree()->GetUserInfo();
     
   TTree *ttree = fTree->GetTree();
   if (!ttree) ttree = fTree;

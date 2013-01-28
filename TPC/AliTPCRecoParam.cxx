@@ -58,6 +58,7 @@ Bool_t AliTPCRecoParam::fgUseTimeCalibration=kTRUE; // flag usage the time depen
 AliTPCRecoParam::AliTPCRecoParam():
   AliDetectorRecoParam(),
   fUseHLTClusters(4),  // use HLTorRAW data
+  fUseHLTPreSeeding(0), // no pre-seeding for now
   fBClusterSharing(kTRUE),
   fCtgRange(1.05),       
   fMaxSnpTracker(0.95),
@@ -98,6 +99,7 @@ AliTPCRecoParam::AliTPCRecoParam():
   fUseExBCorrection(1),  // use ExB correction
   fUseMultiplicityCorrectionDedx(kTRUE), // use Dedx multiplicity correction
   fUseAlignmentTime(kTRUE),              // use time dependent alignment correction
+  fUseIonTailCorrection(0),   // no ion tail correction for now
   //
   fUseTotCharge(kTRUE),          // switch use total or max charge
   fMinFraction(0.01),           // truncated mean - lower threshold
@@ -112,6 +114,10 @@ AliTPCRecoParam::AliTPCRecoParam():
   SetName("TPC");
   SetTitle("TPC");
   for (Int_t i=0;i<5;i++) fSystematicErrors[i]=0;
+  // systematic error parameterization at INNER wall of the TPC
+  fSystematicErrorClusterInner[0]=0.5;   // 0.5 cm
+  fSystematicErrorClusterInner[1]=5;     // 5 cm slope  
+  //
   fCutSharedClusters[0]=0.5; // maximal allowed fraction of shared clusters - shorter track
   fCutSharedClusters[1]=0.25; // maximal allowed fraction of shared clusters - longer  track
   fClusterMaxRange[0]=1;     // y - pad      range

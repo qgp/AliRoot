@@ -38,13 +38,12 @@ AliAODPid::AliAODPid():
     fTRDnSlices(0),
     fTRDntls(0),
     fTRDslices(0x0),
+    fTRDChi2(0x0),
     fTOFesdsignal(0),
-    fHMPIDsignal(0),
     fTPCdEdxInfo(0)
 {
   // default constructor
-    for(Int_t i=0; i<kSPECIES; i++) fIntTime[i]   = 0; 
-    for(Int_t i=0; i<5; i++) fHMPIDprobs[i] = 0.;
+    for(Int_t i=0; i<AliPID::kSPECIES; i++) fIntTime[i]   = 0; 
     for(Int_t i=0; i<5; i++) fTOFpidResolution[i] = 0.;
     for(Int_t i=0; i<6; i++) {
       fTRDmomentum[i]      = 0.;
@@ -73,14 +72,13 @@ AliAODPid::AliAODPid(const AliAODPid& pid) :
   fTRDnSlices(pid.fTRDnSlices),
   fTRDntls(pid.fTRDntls),
   fTRDslices(0x0),
+  fTRDChi2(pid.fTRDChi2),
   fTOFesdsignal(pid.fTOFesdsignal),
-  fHMPIDsignal(pid.fHMPIDsignal),
   fTPCdEdxInfo(0x0)
 {
   // Copy constructor
   SetTRDsignal(fTRDnSlices, pid.fTRDslices);
-    for(Int_t i=0; i<kSPECIES; i++) fIntTime[i]=pid.fIntTime[i];
-    for(Int_t i=0; i<5; i++) fHMPIDprobs[i] = pid.fHMPIDprobs[i];
+    for(Int_t i=0; i<AliPID::kSPECIES; i++) fIntTime[i]=pid.fIntTime[i];
 
     for(Int_t i=0; i<6; i++){ 
       fTRDmomentum[i]=pid.fTRDmomentum[i];
@@ -126,13 +124,11 @@ AliAODPid& AliAODPid::operator=(const AliAODPid& pid)
 	fTRDncls[i]     = pid.fTRDncls[i];
     }
 
+    fTRDChi2 = pid.fTRDChi2;
+
     fTOFesdsignal=pid.fTOFesdsignal;
     for (Int_t i = 0; i < 5; i++) fTOFpidResolution[i]=pid.fTOFpidResolution[i];
     for (Int_t i = 0; i < 5; i++) fIntTime[i]=pid.fIntTime[i];
-    
-    fHMPIDsignal=pid.fHMPIDsignal;
-    
-    for(Int_t i = 0; i < 5; i++) fHMPIDprobs[i] = pid.fHMPIDprobs[i];
     
      SetTPCdEdxInfo(pid.fTPCdEdxInfo);
   }
@@ -140,16 +136,16 @@ AliAODPid& AliAODPid::operator=(const AliAODPid& pid)
   return *this;
 }
 //_______________________________________________________________________________
-void AliAODPid::GetIntegratedTimes(Double_t timeint[kSPECIES]) const
+void AliAODPid::GetIntegratedTimes(Double_t timeint[AliPID::kSPECIES]) const
 {
  // Returns the array with integrated times for each particle hypothesis
-for(Int_t i=0; i<kSPECIES; i++) timeint[i]=fIntTime[i];
+ for(Int_t i=0; i<AliPID::kSPECIES; i++) timeint[i]=fIntTime[i];
 }
 //_______________________________________________________________________________
-void AliAODPid::SetIntegratedTimes(Double_t timeint[kSPECIES])
+void AliAODPid::SetIntegratedTimes(Double_t timeint[AliPID::kSPECIES])
 {
  // Returns the array with integrated times for each particle hypothesis
-for(Int_t i=0; i<kSPECIES; i++) fIntTime[i]=timeint[i];
+ for(Int_t i=0; i<AliPID::kSPECIES; i++) fIntTime[i]=timeint[i];
 }
 //______________________________________________________________________________
 void AliAODPid::SetTOFpidResolution(Double_t tofPIDres[5])
@@ -163,22 +159,6 @@ void AliAODPid::GetTOFpidResolution(Double_t tofRes[5]) const
   for (Int_t i=0; i<5; i++) tofRes[i]=fTOFpidResolution[i];
 }
 
-//______________________________________________________________________________
-void AliAODPid::SetHMPIDprobs(Double_t hmpPid[5]) 
-{
-  //
-  // Set the HMPID PID probablities that are read from ESD
-  //  
-  for(Int_t i = 0; i < 5; i++ ) fHMPIDprobs[i] =  hmpPid[i];
-}
-//______________________________________________________________________________
-void AliAODPid::GetHMPIDprobs(Double_t *p) const
-{
-  //
-  // Set the HMPID PID probablities that are read from ESD
-  //  
-  for(Int_t i = 0; i < AliPID::kSPECIES; i++ ) p[i] =  fHMPIDprobs[i];
-}
 //______________________________________________________________________________
 void AliAODPid::SetITSdEdxSamples(const Double_t s[4])
 {
@@ -209,5 +189,4 @@ void AliAODPid::SetTPCdEdxInfo(AliTPCdEdxInfo * dEdxInfo)
   if (!fTPCdEdxInfo) fTPCdEdxInfo=new AliTPCdEdxInfo;
   (*fTPCdEdxInfo)=(*dEdxInfo);
 }
-
 

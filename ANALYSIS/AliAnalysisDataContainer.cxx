@@ -46,6 +46,7 @@
 #include <TMethodCall.h>
 
 #include <TClass.h>
+#include <TSystem.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1.h>
@@ -56,6 +57,11 @@
 #include "AliAnalysisDataSlot.h"
 #include "AliAnalysisTask.h"
 
+using std::endl;
+using std::cout;
+using std::ios;
+using std::setiosflags;
+using std::setprecision;
 ClassImp(AliAnalysisDataContainer)
 
 //______________________________________________________________________________
@@ -401,7 +407,7 @@ AliAnalysisDataWrapper *AliAnalysisDataContainer::ExportData() const
       return pack;
    } 
    AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
-   if (mgr->GetDebugLevel() > 1) printf("   ExportData: Wrapping data %s for container %s\n", fData->GetName(),GetName());
+   if (mgr && mgr->GetDebugLevel() > 1) printf("   ExportData: Wrapping data %s for container %s\n", fData->GetName(),GetName());
    pack = new AliAnalysisDataWrapper(fData);
    pack->SetName(fName.Data());
    return pack;
@@ -418,7 +424,7 @@ void AliAnalysisDataContainer::ImportData(AliAnalysisDataWrapper *pack)
          return;
       }   
       AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
-      if (mgr->GetDebugLevel() > 1) printf("   ImportData: Unwrapping data %s for container %s\n", fData->GetName(),GetName());
+      if (mgr && mgr->GetDebugLevel() > 1) printf("   ImportData: Unwrapping data %s for container %s\n", fData->GetName(),GetName());
       fDataReady = kTRUE;
       // Imported wrappers do not own data anymore (AG 13-11-07)
       pack->SetDeleteData(kFALSE);
@@ -493,3 +499,140 @@ Long64_t AliAnalysisDataWrapper::Merge(TCollection *list)
 
    return count+1;
 }
+
+ClassImp(AliAnalysisFileDescriptor)
+
+//______________________________________________________________________________
+AliAnalysisFileDescriptor::AliAnalysisFileDescriptor()
+                          :TObject(), fLfn(), fGUID(), fUrl(), fPfn(), fSE(),
+                           fIsArchive(kFALSE), fImage(0), fNreplicas(0), 
+                           fStartBytes(0), fReadBytes(0), fSize(0), fOpenedAt(0), 
+                           fOpenTime(0.), fProcessingTime(0.), fThroughput(0.), fTimer()
+{
+// I/O constructor
+}
+
+//______________________________________________________________________________
+AliAnalysisFileDescriptor::AliAnalysisFileDescriptor(const TFile *file)
+                          :TObject(), fLfn(), fGUID(), fUrl(), fPfn(), fSE(),
+                           fIsArchive(kFALSE), fImage(0), fNreplicas(0), 
+                           fStartBytes(0), fReadBytes(0), fSize(0), fOpenedAt(0), 
+                           fOpenTime(0.), fProcessingTime(0.), fThroughput(0.), fTimer()
+{
+// Normal constructor
+   if (file->InheritsFrom("TAlienFile")) {
+      fLfn =(const char*)gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetLfn();", file));
+      fGUID =(const char*)gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetGUID();", file));
+      fUrl =(const char*)gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetUrl();", file));
+      fPfn =(const char*)gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetPfn();", file));
+      fSE = (const char*)gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetSE();", file));
+      fImage = (Int_t)gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetImage();", file));
+      fNreplicas = (Int_t)gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetNreplicas();", file));
+      fOpenedAt = gROOT->ProcessLine(Form("((TAlienFile*)%p)->GetOpenTime();", file));
+      gROOT->ProcessLine(Form("((AliAnalysisFileDescriptor*)%p)->SetOpenTime(((TAlienFile*)%p)->GetElapsed());", this, file));
+   } else {
+      fLfn = file->GetName();
+      fPfn = file->GetName();
+      fUrl = file->GetName();
+      fSE = "local";
+      if (!fPfn.BeginsWith("/")) fPfn.Prepend(Form("%s/",gSystem->WorkingDirectory()));
+      fOpenedAt = time(0);
+   }
+   fStartBytes = TFile::GetFileBytesRead();
+   fIsArchive = file->IsArchive();
+   fSize = file->GetSize();
+}
+
+//______________________________________________________________________________
+AliAnalysisFileDescriptor::AliAnalysisFileDescriptor(const AliAnalysisFileDescriptor &other)
+                          :TObject(other), fLfn(other.fLfn), fGUID(other.fGUID),
+                           fUrl(other.fUrl), fPfn(other.fPfn), fSE(other.fSE),
+                           fIsArchive(other.fIsArchive), fImage(other.fImage),
+                           fNreplicas(other.fNreplicas), fStartBytes(other.fStartBytes), fReadBytes(other.fReadBytes),
+                           fSize(other.fSize), fOpenedAt(other.fOpenedAt), fOpenTime(other.fOpenTime),
+                           fProcessingTime(other.fProcessingTime), fThroughput(other.fThroughput), fTimer()
+{
+// CC
+}
+
+//______________________________________________________________________________
+AliAnalysisFileDescriptor &AliAnalysisFileDescriptor::operator=(const AliAnalysisFileDescriptor &other)
+{
+// Assignment.
+   if (&other == this) return *this;
+   TObject::operator=(other);
+   fLfn       = other.fLfn;
+   fGUID      = other.fGUID;
+   fUrl       = other.fUrl; 
+   fPfn       = other.fPfn;
+   fSE        = other.fSE;
+   fIsArchive = other.fIsArchive;
+   fImage     = other.fImage;
+   fNreplicas = other.fNreplicas;
+   fStartBytes = other.fStartBytes;;
+   fReadBytes = other.fReadBytes;
+   fSize      = other.fSize;
+   fOpenedAt  = other.fOpenedAt;
+   fOpenTime  = other.fOpenTime;
+   fProcessingTime = other.fProcessingTime;
+   fThroughput = other.fThroughput;
+   return *this;
+}
+
+//______________________________________________________________________________
+AliAnalysisFileDescriptor::~AliAnalysisFileDescriptor()
+{
+// Destructor
+}
+
+//______________________________________________________________________________
+void AliAnalysisFileDescriptor::Done()
+{
+// Must be called at the end of processing, providing file->GetBytesRead() as argument.
+   fTimer.Stop();
+   const Double_t megabyte = 1048576.;
+//   Long64_t stampnow = time(0);
+   fReadBytes = TFile::GetFileBytesRead()-fStartBytes;
+//   fProcessingTime = stampnow-fOpenedAt;
+   fProcessingTime = fTimer.RealTime();
+   Double_t readsize = fReadBytes/megabyte;
+   fThroughput = readsize/fProcessingTime;
+}   
+
+//______________________________________________________________________________
+void AliAnalysisFileDescriptor::Print(Option_t*) const
+{
+// Print info about the file descriptor
+   const Double_t megabyte = 1048576.;
+   printf("===== Logical file name: %s =====\n", fLfn.Data());
+   printf("      Pfn: %s\n", fPfn.Data());
+   printf("      url: %s\n", fUrl.Data());
+   printf("      access time: %lld from SE: %s  image %d/%d\n", fOpenedAt, fSE.Data(), fImage, fNreplicas);
+   printf("      open time: %g [sec]\n", fOpenTime);
+   printf("      file size: %g [MB],  read size: %g [MB]\n", fSize/megabyte, fReadBytes/megabyte);
+   printf("      processing time [sec]: %g\n", fProcessingTime);
+   printf("      average throughput: %g [MB/sec]\n", fThroughput);
+}
+
+//______________________________________________________________________________
+void AliAnalysisFileDescriptor::SavePrimitive(std::ostream &out, Option_t *)
+{
+// Stream info to file
+   const Double_t megabyte = 1048576.;
+   out << "#################################################################" << endl;
+   out << "pfn          " << fPfn.Data() << endl;
+   out << "url          " << fUrl.Data() << endl;
+   out << "se           " << fSE.Data() << endl;
+   out << "image        " << fImage << endl;
+   out << "nreplicas    " << fNreplicas << endl;
+   out << "openstamp    " << fOpenedAt << endl;
+   std::ios_base::fmtflags original_flags = out.flags();
+   out << setiosflags(std::ios::fixed) << std::setprecision(3);
+   out << "opentime     " << fOpenTime << endl;
+   out << "runtime      " << fProcessingTime << endl;
+   out << "filesize     " << fSize/megabyte << endl;
+   out << "readsize     " << fReadBytes/megabyte << endl;
+   out << "throughput   " << fThroughput << endl;
+   out.flags(original_flags);
+}
+

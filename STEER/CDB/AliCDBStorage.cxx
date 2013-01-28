@@ -375,7 +375,7 @@ AliCDBId* AliCDBStorage::GetId(const AliCDBPath& path,
 }
 
 //_____________________________________________________________________________
-Bool_t AliCDBStorage::Put(TObject* object, AliCDBId& id, AliCDBMetaData* metaData, AliCDBManager::DataType type) {
+Bool_t AliCDBStorage::Put(TObject* object, AliCDBId& id, AliCDBMetaData* metaData, const char* mirrors, AliCDBManager::DataType type) {
 // store an AliCDBEntry object into the database
 	
 	if (object==0x0) {
@@ -385,11 +385,11 @@ Bool_t AliCDBStorage::Put(TObject* object, AliCDBId& id, AliCDBMetaData* metaDat
 
 	AliCDBEntry anEntry(object, id, metaData);
 
-	return Put(&anEntry, type);
+	return Put(&anEntry, mirrors, type);
 }
 
 //_____________________________________________________________________________
-Bool_t AliCDBStorage::Put(AliCDBEntry* entry, AliCDBManager::DataType type) {
+Bool_t AliCDBStorage::Put(AliCDBEntry* entry, const char* mirrors, AliCDBManager::DataType type) {
 // store an AliCDBEntry object into the database
 
 	if (!entry){
@@ -423,7 +423,12 @@ Bool_t AliCDBStorage::Put(AliCDBEntry* entry, AliCDBManager::DataType type) {
 			return 0;
 	}
 
-	return PutEntry(entry);
+	
+	TString strMirrors(mirrors);
+	if(!strMirrors.IsNull() && !strMirrors.IsWhitespace())
+	    return PutEntry(entry, mirrors);
+	else
+	    return PutEntry(entry);
 }
 
 //_____________________________________________________________________________
@@ -496,6 +501,34 @@ AliCDBManager::DataType AliCDBStorage::GetDataType() const {
 	if(GetBaseFolder().Contains(refFolder)) return AliCDBManager::kReference;
 
 	return AliCDBManager::kPrivate;
+}
+
+//_____________________________________________________________________________
+void AliCDBStorage::SetMirrorSEs(const char* mirrors) {
+// if the current storage is not of "alien" type, just issue a warning
+// AliCDBGrid implements its own SetMirrorSEs method, classes for other storage types do not
+
+        TString storageType = GetType();
+	if(storageType != "alien"){
+	    AliWarning(Form("The current storage is of type \"%s\". Setting of SEs to \"%s\" skipped!",storageType.Data(),mirrors));
+	    return;
+	}
+	AliError("We should never get here!! AliCDBGrid must have masked this virtual method!");
+	return;
+}
+
+//_____________________________________________________________________________
+const char* AliCDBStorage::GetMirrorSEs() const {
+// if the current storage is not of "alien" type, just issue a warning
+// AliCDBGrid implements its own GetMirrorSEs method, classes for other storage types do not
+
+        TString storageType = GetType();
+	if(storageType != "alien"){
+	    AliWarning(Form("The current storage is of type \"%s\" and cannot handle SEs. Returning empty string!",storageType.Data()));
+	    return "";
+	}
+	AliError("We should never get here!! AliCDBGrid must have masked this virtual method!");
+	return "";
 }
 
 //_____________________________________________________________________________

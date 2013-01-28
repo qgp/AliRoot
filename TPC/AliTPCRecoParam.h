@@ -23,6 +23,8 @@ class AliTPCRecoParam : public AliDetectorRecoParam
 
   void     SetUseHLTClusters(Int_t useHLTClusters){fUseHLTClusters=useHLTClusters;}
   Int_t    GetUseHLTClusters() const {return fUseHLTClusters;}
+  void     SetUseHLTPreSeeding(Int_t useHLTPreSeeding){fUseHLTPreSeeding=useHLTPreSeeding;}
+  Int_t    GetUseHLTPreSeeding() const {return fUseHLTPreSeeding;}
   void     SetClusterSharing(Bool_t sharing){fBClusterSharing=sharing;}
   Bool_t   GetClusterSharing() const {return fBClusterSharing;}
   Double_t GetCtgRange() const     { return fCtgRange;}
@@ -97,6 +99,7 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   void  SetUseGainCorrectionTime(Int_t flag){fUseGainCorrectionTime=flag;}
   void  SetUseExBCorrection(Int_t flag){fUseExBCorrection=flag;}
   void  SetUseTOFCorrection(Bool_t flag) {fUseTOFCorrection = flag;}
+  void  SetUseIonTailCorrection(Int_t flag) {fUseIonTailCorrection = flag;}
   //
   Int_t GetUseFieldCorrection() const {return fUseFieldCorrection;}
   Int_t GetUseComposedCorrection() const {return fUseComposedCorrection;}
@@ -108,6 +111,9 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Int_t GetUseDriftCorrectionGY() const {return fUseDriftCorrectionGY;}
   Int_t GetUseGainCorrectionTime() const {return fUseGainCorrectionTime;}
   Int_t GetUseExBCorrection() const {return fUseExBCorrection;}
+  Bool_t GetUseTOFCorrection() {return fUseTOFCorrection;}
+  Int_t GetUseIonTailCorrection() const {return fUseIonTailCorrection;}
+
   Bool_t GetUseMultiplicityCorrectionDedx() const {return fUseMultiplicityCorrectionDedx;}
   Bool_t GetUseAlignmentTime() const {return fUseAlignmentTime;}
   //
@@ -116,11 +122,11 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Float_t  GetMaxFraction() const {return fMaxFaction;}            // truncated mean - upper threshold
   Int_t    GetNeighborRowsDedx() const {return fNeighborRowsDedx;} 
 
-  Bool_t   GetUseTOFCorrection() {return fUseTOFCorrection;}
-
   //
   void     SetSystematicError(Double_t *systematic){ for (Int_t i=0; i<5;i++) fSystematicErrors[i]=systematic[i];}
   const Double_t * GetSystematicError() const { return fSystematicErrors;}
+  const Double_t * GetSystematicErrorClusterInner() const { return fSystematicErrorClusterInner;}
+
   void    SetUseSystematicCorrelation(Bool_t useCorrelation)  {fUseSystematicCorrelation=useCorrelation;}
   Bool_t  GetUseSystematicCorrelation() const { return fUseSystematicCorrelation;}
 
@@ -131,7 +137,9 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   static   AliTPCRecoParam *GetCosmicTestParam(Bool_t bPedestal); // special setting for cosmic  
   //
  protected:
+
   Int_t    fUseHLTClusters;  // allows usage of HLT clusters instead of RAW data
+  Int_t    fUseHLTPreSeeding; // Usage of HLT pre-seeding 
   Bool_t   fBClusterSharing; // allows or disable cluster sharing during tracking 
   Double_t fCtgRange;        // +-fCtgRange is the ctg(Theta) window used for clusterization and tracking (MI) 
   Double_t fMaxSnpTracker;   // max sin of local angle  - for TPC tracker
@@ -184,6 +192,7 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Int_t fUseExBCorrection;       // use ExB correction
   Bool_t fUseMultiplicityCorrectionDedx; // use Dedx multiplicity correction
   Bool_t fUseAlignmentTime;              // use time dependent alignment correction
+  Int_t fUseIonTailCorrection;   // use ion tail correction
   //
   // dEdx switches
   //
@@ -197,13 +206,14 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   //  misscalibration 
   //
   Double_t fSystematicErrors[5];  //systematic errors in the track parameters - to be added to TPC covariance matrix 
+  Double_t fSystematicErrorClusterInner[2];  // systematic error of the cluster - used to downscale the information
   Bool_t fUseSystematicCorrelation;         // switch to use the correlation for the sys
 public:   
   static Bool_t fgUseTimeCalibration; // flag usage the time dependent calibration
                                       // to be switched off for pass 0 reconstruction
                                       // Use static function, other option will be to use 
                                       // additional specific storage ?
-  ClassDef(AliTPCRecoParam, 16)
+  ClassDef(AliTPCRecoParam, 17)
 };
 
 

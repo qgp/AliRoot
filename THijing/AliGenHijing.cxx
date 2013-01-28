@@ -74,7 +74,9 @@ AliGenHijing::AliGenHijing()
      fLHC(kFALSE),
      fRandomPz(kFALSE),
      fNoHeavyQuarks(kFALSE),
-     fHeader(AliGenHijingEventHeader("Hijing"))
+     fHeader(AliGenHijingEventHeader("Hijing")),
+     fSigmaNN(-1),
+     fNoElas(0)
 {
   // Constructor
   fEnergyCMS = 5500.;
@@ -118,7 +120,9 @@ AliGenHijing::AliGenHijing(Int_t npart)
      fLHC(kFALSE),
      fRandomPz(kFALSE),
      fNoHeavyQuarks(kFALSE),
-     fHeader(AliGenHijingEventHeader("Hijing"))
+     fHeader(AliGenHijingEventHeader("Hijing")),
+     fSigmaNN(-1),
+     fNoElas(0)
 {
 // Default PbPb collisions at 5. 5 TeV
 //
@@ -158,8 +162,14 @@ void AliGenHijing::Init()
     fHijing->SetIHPR2(21, fKeep);
     fHijing->SetHIPR1(8,  fPtHardMin); 	
     fHijing->SetHIPR1(9,  fPtHardMax); 	
-    fHijing->SetHIPR1(10, fPtMinJet); 	
+    fHijing->SetHIPR1(10, fPtMinJet); 
+    if (fSigmaNN>0)
+      fHijing->SetHIPR1(31, fSigmaNN/2.); 	
     fHijing->SetHIPR1(50, fSimpleJet);
+    //
+    // Switching off elastic scattering
+    if (fNoElas)
+      fHijing->SetIHPR2(14, 0);
 //
 //  Quenching
 //
@@ -400,6 +410,7 @@ void AliGenHijing::Generate()
 	  }
       }
   } // event loop
+
   MakeHeader();
   SetHighWaterMark(nt);
 }
@@ -563,6 +574,7 @@ void AliGenHijing::MakeHeader()
     fHeader.SetSpectators(fProjectileSpecn, fProjectileSpecp,
 			  fTargetSpecn,fTargetSpecp);
     fHeader.SetReactionPlaneAngle(fHijing->GetHINT1(20));
+    fHeader.SetTrueNPart(fHijing->GetNPART());
 
 // 4-momentum vectors of the triggered jets.
 //
@@ -592,6 +604,23 @@ void AliGenHijing::MakeHeader()
 // Event Vertex
     fHeader.SetPrimaryVertex(fVertex);
     fHeader.SetInteractionTime(fTime);
+
+    Int_t nsd1 = 0,nsd2 = 0,ndd = 0;
+    Int_t nT = fHijing->GetNT();
+    Int_t nP = fHijing->GetNP();
+    for (Int_t i = 1; i <= nP; ++i) {
+      for (Int_t j = 1; j <= nT; ++j) {
+      Int_t tp = fHijing->GetNFP(i, 5);
+      Int_t tt = fHijing->GetNFT(j, 5);
+      if (tp == 2)
+        nsd1++;
+      if (tt == 2)
+        nsd2++;
+      if (tp == 2 && tt == 2)
+        ndd++;
+      }
+    }
+    fHeader.SetNDiffractive(nsd1, nsd2, ndd);
     AddHeader(&fHeader);
     fCollisionGeometry = &fHeader;
 }

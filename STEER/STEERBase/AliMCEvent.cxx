@@ -594,6 +594,39 @@ void AliMCEvent::AddSubsidiaryEvent(AliMCEvent* event)
     fSubsidiaryEvents->Add(event);
 }
 
+AliGenEventHeader *AliMCEvent::FindHeader(Int_t ipart) {
+  //
+  // Get Header belonging to this track; 
+  // only works for primaries (i.e. particles coming from the Generator)
+  // Also sorts out the case of Cocktail event (get header of subevent in cocktail generetor header)  
+  //
+
+  AliMCEvent *event = this;
+
+  if (fSubsidiaryEvents) {
+    // Get pointer to subevent if needed
+    ipart = FindIndexAndEvent(ipart,event); 
+  }
+
+  AliGenEventHeader* header = event->GenEventHeader();
+  if (ipart >= header->NProduced()) {
+    AliWarning(Form("Not a primary -- returning 0 (idx %d, nPrimary %d)",ipart,header->NProduced()));
+    return 0;
+  }
+  AliGenCocktailEventHeader *coHeader = dynamic_cast<AliGenCocktailEventHeader*>(header);
+  if (coHeader) { // Cocktail event
+    TList* headerList = coHeader->GetHeaders();
+    TIter headIt(headerList);
+    Int_t nproduced = 0;
+    do { // Go trhough all headers and look for the correct one
+      header = (AliGenEventHeader*) headIt();
+      nproduced += header->NProduced();
+    } while (header && ipart >= nproduced);
+  }
+
+  return header;
+}
+
 Int_t AliMCEvent::FindIndexAndEvent(Int_t oldidx, AliMCEvent*& event) const
 {
     // Find the index and event in case of composed events like signal + background
@@ -651,6 +684,33 @@ Bool_t AliMCEvent::IsPhysicalPrimary(Int_t i) const
     }
 }
 
+Bool_t AliMCEvent::IsSecondaryFromWeakDecay(Int_t i)
+{
+//
+// Delegate to subevent if necesarry 
+    if (!fSubsidiaryEvents) {
+	return fStack->IsSecondaryFromWeakDecay(i);
+    } else {
+	AliMCEvent* evt = 0;
+	Int_t idx = FindIndexAndEvent(i, evt);
+	return (evt->IsSecondaryFromWeakDecay(idx));
+    }
+}
+
+Bool_t AliMCEvent::IsSecondaryFromMaterial(Int_t i)
+{
+//
+// Delegate to subevent if necesarry 
+    if (!fSubsidiaryEvents) {
+	return fStack->IsSecondaryFromMaterial(i);
+    } else {
+	AliMCEvent* evt = 0;
+	Int_t idx = FindIndexAndEvent(i, evt);
+	return (evt->IsSecondaryFromMaterial(idx));
+    }
+}
+
+
 void AliMCEvent::InitEvent()
 {
 //
@@ -683,7 +743,6 @@ void AliMCEvent::PreReadAll()
 {
     // Preread the MC information
     Int_t i;
-    AliInfo(Form("AliMCEvent::PreReadAll: %d tracks\n", fStack->GetNtrack()));
     // secondaries
     for (i = fStack->GetNprimary(); i < fStack->GetNtrack(); i++) 
     {
@@ -694,7 +753,6 @@ void AliMCEvent::PreReadAll()
     {
 	GetTrack(i);
     }
-    AliInfo("AliMCEvent::PreReadAll done\n");
 }
 
 const AliVVertex * AliMCEvent::GetPrimaryVertex() const 

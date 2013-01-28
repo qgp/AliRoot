@@ -14,7 +14,6 @@
 
 #include <AliTenderSupply.h>
 
-class AliTRDpidRecalculator;
 class AliTRDCalDet;
 class AliESDEvent;
 class AliOADBContainer;
@@ -32,10 +31,11 @@ public:
   virtual ~AliTRDTenderSupply();
 
   void SetRunByRunCorrection(const char *filename) { fNameRunByRunCorrection = filename; }
-  void SetLoadReferencesFromCDB() { fLoadReferences = kTRUE; fLoadReferencesFromCDB = kTRUE; }
-  void SetLoadReferencesFromFile() { fLoadReferences = kTRUE; fLoadReferencesFromCDB = kFALSE; }
+//  void SetLoadReferencesFromCDB() { fLoadReferences = kTRUE; fLoadReferencesFromCDB = kTRUE; }
+//  void SetLoadReferencesFromFile() { fLoadReferences = kTRUE; fLoadReferencesFromCDB = kFALSE; }
   void SetLoadDeadChambersFromCDB(){ fLoadDeadChambers = kTRUE;} ;
   void SetPIDmethod(Int_t pidMethod) { fPIDmethod = pidMethod; }
+  void SetNormalizationFactor(Double_t norm, Int_t runMin, Int_t runMax);
   void SetNormalizationFactor(Double_t norm) { fNormalizationFactor = norm; }
   void SetCalibLowpThreshold(Double_t pmin) { fPthreshold = pmin; };
   void SetGeoFile(const char *filename) { fGeoFile = filename; }
@@ -65,6 +65,7 @@ private:
   void LoadDeadChambersFromCDB();
   void LoadRunByRunCorrection(const char *filename);
   Bool_t IsBadChamber(Int_t chamberID);
+  Double_t GetNormalizationFactor(Int_t runnumber);
   
   AliESDEvent           *fESD;       //! the ESD Event
   AliESDpid             *fESDpid;    //! ESD PID object
@@ -83,13 +84,14 @@ private:
   UInt_t fNBadChambers;              // Number of bad chambers
   const char *fGeoFile;              // File with geometry.root
   Bool_t fGainCorrection;            // Apply gain correction 
-  Bool_t fLoadReferences;            // Tender Load references
-  Bool_t fLoadReferencesFromCDB;     // Load References from CDB
+//  Bool_t fLoadReferences;            // Tender Load references
+//  Bool_t fLoadReferencesFromCDB;     // Load References from CDB
   Bool_t fLoadDeadChambers;          // Load dead chambers
   Bool_t fHasReferences;             // has references loaded
   Bool_t fHasNewCalibration;         // has new calibration
   Bool_t fDebugMode;                 // Run in debug mode
   TString fNameRunByRunCorrection;   // filename with the run-by-run gain correction
+  TObjArray *fNormalizationFactorArray; // Array with normalisation Factors
   
   AliTRDTenderSupply(const AliTRDTenderSupply&c);
   AliTRDTenderSupply& operator= (const AliTRDTenderSupply&c);

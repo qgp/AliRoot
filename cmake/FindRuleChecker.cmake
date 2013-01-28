@@ -42,7 +42,7 @@ if(RULECHECKER_JAR AND RULECHECKER_RULES AND RULECHECKER_SRCML AND JAVA_RUNTIME 
       endif(NOT EXISTS ${CMAKE_BINARY_DIR}/roothxml/${_rel_root_header_path})
       list(APPEND _factfile_deps ${_root_hxml})
       add_custom_command(OUTPUT  ${_root_hxml}
-        COMMAND ${RULECHECKER_SRCML} ${_root_header} ${_root_hxml}
+        COMMAND ${RULECHECKER_SRCML} ${_root_header} -o ${_root_hxml}
         DEPENDS ${_root_header})
     endif(NOT _root_header MATCHES ".*G__ci.h")
   endforeach(_root_header ${_root_headers})
@@ -69,7 +69,7 @@ macro(ALICE_CheckModule)
     set(_smellfiles)
     set(_module_factfile_deps)
     foreach(_srcfile ${_sources})
-      if(NOT _srcfile MATCHES "^.*LinkDef$" AND NOT _srcfile MATCHES ".*PYTHIA8/pythia8.*")
+      if(NOT _srcfile MATCHES "^.*LinkDef$" AND NOT _srcfile MATCHES ".*PYTHIA8/pythia8.*" AND NOT _srcfile MATCHES "#.*" AND NOT _srcfile MATCHES ".*~")
 	set(_violdeps)
 	string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/" "" _srcfile_short ${_srcfile})
 	set(_viol ${CHECKDIR}/${_srcfile_short}.viol)
@@ -80,7 +80,7 @@ macro(ALICE_CheckModule)
 	if(EXISTS ${_srcfile}.h)
 	  add_custom_command(OUTPUT ${CHECKDIR}/${_srcfile_short}.h.xml
 	                     COMMAND ${CMAKE_COMMAND} -E make_directory ${_viol_path}
-                             COMMAND ${RULECHECKER_SRCML} ${_srcfile}.h ${CHECKDIR}/${_srcfile_short}.h.xml
+                             COMMAND ${RULECHECKER_SRCML} ${_srcfile}.h -o ${CHECKDIR}/${_srcfile_short}.h.xml
 			     COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/check-hxml-touchfile
 			     DEPENDS ${_srcfile}.h)
 	  list(APPEND _violdeps ${CHECKDIR}/${_srcfile_short}.h.xml)
@@ -89,10 +89,11 @@ macro(ALICE_CheckModule)
 	if(EXISTS ${_srcfile}.cxx)
 	  add_custom_command(OUTPUT ${CHECKDIR}/${_srcfile_short}.cxx.xml
 	                     COMMAND ${CMAKE_COMMAND} -E make_directory ${_viol_path}
-                             COMMAND ${RULECHECKER_SRCML} ${_srcfile}.cxx ${CHECKDIR}/${_srcfile_short}.cxx.xml
+                             COMMAND ${RULECHECKER_SRCML} ${_srcfile}.cxx -o ${CHECKDIR}/${_srcfile_short}.cxx.xml
 			     DEPENDS ${_srcfile}.cxx)
 	  list(APPEND _violdeps ${CHECKDIR}/${_srcfile_short}.cxx.xml)
 	endif(EXISTS ${_srcfile}.cxx)
+	# message("Violations are ${_viol}")
 	add_custom_command( OUTPUT ${_viol}
                             COMMAND ${JAVA_RUNTIME} -Xmx1024M -jar ${RULECHECKER_JAR} ${CHECKDIR}/${_srcfile_short}.cxx.xml ${CHECKDIR}/${_srcfile_short}.h.xml ${FACTFILE} ${RULECHECKER_RULES} > ${_viol}
                             DEPENDS ${_violdeps}
@@ -101,23 +102,38 @@ macro(ALICE_CheckModule)
                             COMMAND ${JAVA_RUNTIME} -Xmx1024M -jar ${SMELLDETECTOR_JAR} ${CHECKDIR}/${_srcfile_short}.cxx.xml ${CHECKDIR}/${_srcfile_short}.h.xml > ${_smell}
                             DEPENDS ${_violdeps}
                             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-      endif(NOT _srcfile MATCHES "^.*LinkDef$" AND NOT _srcfile MATCHES ".*PYTHIA8/pythia8.*")
+      endif(NOT _srcfile MATCHES "^.*LinkDef$" AND NOT _srcfile MATCHES ".*PYTHIA8/pythia8.*" AND NOT _srcfile MATCHES "#.*" AND NOT _srcfile MATCHES ".*~")
     endforeach(_srcfile ${_sources})
 
     if(_violfiles)
-      add_custom_target(${MODULE}-check DEPENDS ${_violfiles})
-      add_dependencies(${MODULE}-check factfile)
-      add_dependencies(check-all ${MODULE}-check)
-
-      add_custom_target(${MODULE}-smell DEPENDS ${_smellfiles})
-      add_dependencies(smell-all ${MODULE}-smell)
-
+      #
+      if(TARGET ${MODULE}-check)
+	message("Target ${MODULE}-check already exist, apparently created in nested CMakeLists. Skipping")
+      else()
+	add_custom_target(${MODULE}-check DEPENDS ${_violfiles})
+	add_dependencies(${MODULE}-check factfile)
+	add_dependencies(check-all ${MODULE}-check)	
+      endif(TARGET ${MODULE}-check)
+      #
+      if(TARGET ${MODULE}-smell)      
+	message("Target ${MODULE}-smell already exist, apparently created in nested CMakeLists. Skipping")
+      else()
+	add_custom_target(${MODULE}-smell DEPENDS ${_smellfiles})
+	add_dependencies(smell-all ${MODULE}-smell)	
+      endif(TARGET ${MODULE}-smell)
+      #
       if(_module_factfile_deps)
-	add_custom_target(${MODULE}-hxml DEPENDS ${_module_factfile_deps})
-	add_dependencies(check-hxml ${MODULE}-hxml)
+	#
+	if(TARGET ${MODULE}-hxml)
+	  message("Target ${MODULE}-hxml already exist, apparently created in nested CMakeLists. Skipping")
+	else()
+	  add_custom_target(${MODULE}-hxml DEPENDS ${_module_factfile_deps})
+	  add_dependencies(check-hxml ${MODULE}-hxml)	  
+	endif(TARGET ${MODULE}-hxml)
+	#
       endif(_module_factfile_deps)
     endif(_violfiles)
-
+    
 
   endif(RULECHECKER_FOUND)
 endmacro(ALICE_CheckModule)

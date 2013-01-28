@@ -62,14 +62,18 @@ set ( SRCS
     STEERBase/AliITSPidParams.cxx 
     STEERBase/AliTRDPIDReference.cxx 
     STEERBase/AliTRDPIDParams.cxx 
-    STEERBase/AliTOFPIDParams.cxx 
+    STEERBase/AliTRDPIDResponseObject.cxx
+    STEERBase/AliTRDTKDInterpolator.cxx
     STEERBase/AliPIDResponse.cxx 
     STEERBase/AliITSPIDResponse.cxx 
     STEERBase/AliTPCPIDResponse.cxx 
     STEERBase/AliTOFPIDResponse.cxx 
+    STEERBase/AliTOFPIDParams.cxx 
     STEERBase/AliTRDPIDResponse.cxx 
     STEERBase/AliEMCALPIDResponse.cxx 
     STEERBase/AliPIDCombined.cxx
+    STEERBase/AliPIDValues.cxx
+    STEERBase/AliDetectorPID.cxx
     STEERBase/AliDAQ.cxx 
     STEERBase/AliRefArray.cxx
     STEERBase/AliOADBContainer.cxx	
@@ -79,7 +83,10 @@ set ( SRCS
     STEERBase/AliTPCdEdxInfo.cxx
     STEERBase/AliCounterCollection.cxx
     STEERBase/AliTOFHeader.cxx
+    STEERBase/AliTOFTriggerMask.cxx
     STEERBase/AliVCaloTrigger.cxx
+    STEERBase/AliProdInfo.cxx
+    STEERBase/AliVTrdTrack.cxx
   )
 
 string(REPLACE ".cxx" ".h" HDRS  "${SRCS}")

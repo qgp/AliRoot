@@ -103,6 +103,7 @@ AliTenderSupply()
 ,fExoticCellFraction(-1)
 ,fExoticCellDiffTime(-1)
 ,fExoticCellMinAmplitude(-1)
+,fSetCellMCLabelFromCluster(kFALSE)
 {
   // Default constructor.
 
@@ -160,6 +161,7 @@ AliTenderSupply(name,tender)
 ,fExoticCellFraction(-1)
 ,fExoticCellDiffTime(-1)
 ,fExoticCellMinAmplitude(-1)
+,fSetCellMCLabelFromCluster(kFALSE)
 {
   // Named constructor
   
@@ -217,6 +219,7 @@ AliTenderSupply(name)
 ,fExoticCellFraction(-1)
 ,fExoticCellDiffTime(-1)
 ,fExoticCellMinAmplitude(-1)
+,fSetCellMCLabelFromCluster(kFALSE)
 {
   // Named constructor.
   
@@ -228,15 +231,20 @@ AliEMCALTenderSupply::~AliEMCALTenderSupply()
 {
   //Destructor
   
-  delete fEMCALRecoUtils;
-  delete fRecParam;
-  delete fUnfolder;
-  if (!fClusterizer) {
-    fDigitsArr->Clear("C");
-    delete fDigitsArr; 
-  } else {
-    delete fClusterizer;
-    fDigitsArr = 0;
+  if (!AliAnalysisManager::GetAnalysisManager()->IsProofMode()) 
+  {
+    delete fEMCALRecoUtils;
+    delete fRecParam;
+    delete fUnfolder;
+    if (!fClusterizer) 
+    {
+      fDigitsArr->Clear("C");
+      delete fDigitsArr; 
+    } else 
+    {
+      delete fClusterizer;
+      fDigitsArr = 0;
+    }
   }
 }
 
@@ -356,7 +364,9 @@ void AliEMCALTenderSupply::Init()
   }
 
   // init reco utils
-  fEMCALRecoUtils  = new AliEMCALRecoUtils;
+  
+  if(!fEMCALRecoUtils)
+    fEMCALRecoUtils  = new AliEMCALRecoUtils;
 
   // init geometry if requested
   if (fEMCALGeoName.Length()>0) 
@@ -509,8 +519,6 @@ void AliEMCALTenderSupply::ProcessEvent()
         AliWarning("InitRecalib OK");
       if (fInitRunDepRecalib>1)
         AliWarning(Form("No Temperature recalibration available: %d - %s", event->GetRunNumber(), fFilepass.Data()));
-      
-      fReCalibCluster = kFALSE;
       
     }
     
@@ -733,9 +741,14 @@ void AliEMCALTenderSupply::ProcessEvent()
     // CLUSTER ENERGY ---------------------------------------------
     // does process local cell recalibration energy and time without replacing
     // the global cell values, in case of no cell recalib done yet
-    if( fReCalibCluster ) 
+    if( fReCalibCluster ) {
       fEMCALRecoUtils->RecalibrateClusterEnergy(fEMCALGeo, clust, cells);
-
+      if (clust->E() < 1e-9) {
+        delete clusArr->RemoveAt(icluster);
+        continue;
+      }
+    }
+    
     // CLUSTER POSITION -------------------------------------------
     // does process local cell energy recalibration, if enabled and cells
     // not calibrated yet
@@ -1093,8 +1106,25 @@ Int_t AliEMCALTenderSupply::InitRunDepRecalib()
   TH1S *rundeprecal=(TH1S*)contRF->GetObject(runRC);
   if (!rundeprecal)
   {
-    AliError(Form("No Objects for run: %d",runRC));
-    return 2;
+    AliWarning(Form("No TemperatureCorrCalib Objects for run: %d",runRC));
+    // let's get the closest runnumber instead then..
+    Int_t lower = 0;
+    Int_t ic = 0;
+    Int_t maxEntry = contRF->GetNumberOfEntries();
+
+    while ( (ic < maxEntry) && (contRF->UpperLimit(ic) < runRC) ) {
+      lower = ic;
+      ic++; 
+    }
+
+    Int_t closest = lower;
+    if ( (ic<maxEntry) && 
+	 (contRF->LowerLimit(ic)-runRC) < (runRC - contRF->UpperLimit(lower)) ) {
+	 closest = ic;
+    }
+
+    AliWarning(Form("TemperatureCorrCalib Objects found closest id %d from run: %d", closest, contRF->LowerLimit(closest)));
+    rundeprecal = (TH1S*) contRF->GetObjectByIndex(closest);  
   } 
   
   if (fDebugLevel>0) rundeprecal->Print();
@@ -1389,6 +1419,32 @@ void AliEMCALTenderSupply::FillDigitsArray()
 
  if (!event)
     return;
+    
+  // In case of MC productions done before aliroot tag v5-02-Rev09
+  // assing the cluster label to all the cells belonging to this cluster
+  // very rough
+  Int_t cellLabels[12672];
+  if(fSetCellMCLabelFromCluster)
+  {
+    for (Int_t i = 0; i < 12672; i++) cellLabels[i] = 0;
+    
+    Int_t nClusters = event->GetNumberOfCaloClusters();
+    for (Int_t i = 0; i < nClusters; i++)
+    {
+      AliVCluster *clus =  event->GetCaloCluster(i);
+      
+      if(!clus) continue;
+      
+      if(!clus->IsEMCAL()) continue ;
+      
+      Int_t      label = clus->GetLabel();
+      UShort_t * index = clus->GetCellsAbsId() ;
+      
+      for(Int_t icell=0; icell < clus->GetNCells(); icell++ )
+        cellLabels[index[icell]] = label;
+      
+    }// cluster loop
+  }
   
   fDigitsArr->Clear("C");
   AliVCaloCells *cells = event->GetEMCALCells();
@@ -1401,21 +1457,19 @@ void AliEMCALTenderSupply::FillDigitsArray()
     if (cells->GetCell(icell, cellNumber, cellAmplitude, cellTime, mcLabel, efrac) != kTRUE)
       break;
 
-    // Do not add if already too low (some cells set to 0 if bad channels)
-    if (cellAmplitude < fRecParam->GetMinECut() ) 
+    // Do not add if energy already too low (some cells set to 0 if bad channels)
+    if (cellAmplitude < fRecParam->GetMinECut())
       continue;
 
     // If requested, do not include exotic cells
    if (fEMCALRecoUtils->IsExoticCell(cellNumber,cells,event->GetBunchCrossNumber())) 
       continue;
-        
-    AliEMCALDigit *digit = static_cast<AliEMCALDigit*>(fDigitsArr->New(idigit));
-    digit->SetId(cellNumber);
-    digit->SetTime((Float_t)cellTime);
-    digit->SetTimeR((Float_t)cellTime);
-    digit->SetIndexInList(idigit);
-    digit->SetType(AliEMCALDigit::kHG);
-    digit->SetAmplitude((Float_t)cellAmplitude);
+    
+    if(fSetCellMCLabelFromCluster) mcLabel = cellLabels[cellNumber];
+    
+    new((*fDigitsArr)[idigit]) AliEMCALDigit(mcLabel, mcLabel, cellNumber,
+                                             (Float_t)cellAmplitude, (Float_t)cellTime,
+                                             AliEMCALDigit::kHG,idigit, 0, 0, 1);
     idigit++;
   }
 }
@@ -1550,6 +1604,7 @@ void AliEMCALTenderSupply::GetPass()
   if      (fname.Contains("pass1")) fFilepass = TString("pass1");
   else if (fname.Contains("pass2")) fFilepass = TString("pass2");
   else if (fname.Contains("pass3")) fFilepass = TString("pass3");
+  else if (fname.Contains("pass4")) fFilepass = TString("pass4");
   else 
   {
     AliError(Form("Pass number string not found: %s", fname.Data()));

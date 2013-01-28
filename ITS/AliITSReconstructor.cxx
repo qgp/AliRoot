@@ -36,6 +36,7 @@
 #include "AliITSVertexerFixed.h"
 #include "AliITSVertexer3D.h"
 #include "AliITSVertexerZ.h"
+#include "AliITSVertexerZD.h"
 #include "AliITSVertexerCosmics.h"
 #include "AliITSInitGeometry.h"
 #include "AliITSTrackleterSPDEff.h"
@@ -218,9 +219,16 @@ AliVertexer* AliITSReconstructor::CreateVertexer() const
     AliDebug(1,"Vertex is fixed in the position of the TED\n");
     vptr = new AliITSVertexerFixed("TED");
   }
+  else if(vtxOpt==7){
+    AliDebug(1,"VertexerZD:  reconstruction of the Z coordinate with SDD \n");
+    AliITSVertexerZD*vtxrz = new AliITSVertexerZD();
+    vtxrz->SetSearchForPileup(kFALSE);
+    vptr = vtxrz;
+  }
   else {
   // by default an AliITSVertexer3D object is instatiated
-    AliITSVertexer3D*  vtxr = new AliITSVertexer3D();
+    AliITSVertexer3D*  vtxr = 
+       new AliITSVertexer3D(GetRecoParam()->GetVertexer3DWideFiducialRegionZ());
     Float_t dzw=GetRecoParam()->GetVertexer3DWideFiducialRegionZ();
     Float_t drw=GetRecoParam()->GetVertexer3DWideFiducialRegionR();
     vtxr->SetWideFiducialRegion(dzw,drw);

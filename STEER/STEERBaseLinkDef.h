@@ -87,6 +87,10 @@
 #pragma link C++ class AliTRDPIDReference+;
 #pragma link C++ class AliTRDPIDParams+;
 #pragma link C++ class AliTRDPIDParams::AliTRDPIDThresholds+;
+#pragma link C++ class AliTRDPIDParams::AliTRDPIDCentrality+;
+#pragma link C++ class AliTRDPIDResponseObject+;
+#pragma link C++ class AliTRDTKDInterpolator+;
+#pragma link C++ class AliTRDTKDInterpolator::AliTRDTKDNodeInfo+;
 #pragma link C++ class AliITSPidParams+;
 #pragma link C++ class AliPIDResponse+;
 #pragma link C++ class AliITSPIDResponse+;
@@ -96,7 +100,10 @@
 #pragma link C++ class AliTRDPIDResponse+;
 #pragma link C++ class AliEMCALPIDResponse+;
 #pragma link C++ class AliPIDCombined+;
+#pragma link C++ class AliPIDValues+;
+#pragma link C++ class AliDetectorPID+;
 #pragma link C++ class AliTOFHeader+;
+#pragma link C++ class AliTOFTriggerMask+;
 
 #pragma link C++ class AliDAQ+;
 #pragma link C++ class AliRefArray+;
@@ -114,5 +121,9 @@
 #pragma link C++ class AliVCaloTrigger+;
 
 #pragma link C++ class AliTOFPIDParams+;
+#pragma link C++ class AliProdInfo+;
+
+#pragma link C++ class AliVTrdTrack+;
 
 #endif
+

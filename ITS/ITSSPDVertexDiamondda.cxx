@@ -33,6 +33,7 @@ extern "C" {
 #include <TPaveText.h>
 #include <TSystem.h>
 #include <TGeoGlobalMagField.h>
+#include <TTimeStamp.h>
 
 #include "AliLog.h"
 #include "AliMagF.h"
@@ -66,13 +67,19 @@ int main(int argc, char **argv) {
  UInt_t maxClInner = 999 ;
  Int_t nEvFirstLoop = 0;
  Int_t nEvAUTOSAVE = 0; 
+ Int_t zFiducialRegion=0;
+ Int_t timeWindowExport=0; 
+ Int_t timeErrWindowExport=0; 
+
+
  char name[10][10];
 
  FILE *fpConfig = fopen("ITSSPD_VertexQualityTuning_DA.config","r");
- fscanf(fpConfig,"%s %f\n %s %f\n %s %d\n %s %d \n %s %d \n %s %d ",&name[0], &errX, &name[1], &r, &name[2], &minClInner,&name[3], &maxClInner, &name[4],&nEvFirstLoop,&name[5],&nEvAUTOSAVE);
+ fscanf(fpConfig,"%s %f\n %s %f\n %s %d\n %s %d \n %s %d \n %s %d \n %s %d \n %s %d \n %s %d",&name[0], &errX, &name[1], &r, &name[2], &minClInner,&name[3], &maxClInner, &name[4],&nEvFirstLoop,&name[5],&nEvAUTOSAVE,&name[6],&zFiducialRegion, &name[7], &timeWindowExport, &name[8], &timeErrWindowExport);
+
  fclose(fpConfig);
 
- printf("\n\n Mean Vertex quality cuts : \n- errX = %f\n- r = %f\n- minSPD0 = %d maxSPD0 = %d\n- nEventsFirstLoop = %d nEventsAUTOSAVE = %d \n\n\n",errX,r,minClInner,maxClInner,nEvFirstLoop,nEvAUTOSAVE);
+ printf("\n\n Mean Vertex quality cuts : \n- errX = %f\n- r = %f\n- minSPD0 = %d maxSPD0 = %d\n- nEventsFirstLoop = %d nEventsAUTOSAVE = %d \n- zFiducialRegion = %d\n- timeWindowExport = %d \n- timeErrWindowExport = %d \n\n\n",errX,r,minClInner,maxClInner,nEvFirstLoop,nEvAUTOSAVE,zFiducialRegion, timeWindowExport, timeErrWindowExport);
 
  /* define data source : this is argument 1 */  
  status=monitorSetDataSource( argv[1] );
@@ -202,6 +209,10 @@ int main(int argc, char **argv) {
 
  // Init mean vertexer
  AliITSMeanVertexer *mv = new AliITSMeanVertexer();
+
+ // Optionally change the Z fiducial region here (default +/- 40 cm
+  mv->SetZFiducialRegion(zFiducialRegion);
+
  if (!mv->Init()) {
   printf("Initialization of mean vertexer object failed ! Check the log for details");
   return -1;
@@ -211,7 +222,14 @@ int main(int argc, char **argv) {
  mv->SetCutOnR(r);
  mv->SetCutOnCls(minClInner,maxClInner);
 
- // Initialization of AMORE sender
+ gSystem->Exec(Form("rm %s",OUTPUT_FILE));
+
+ TTimeStamp *timeStamp;
+ timeStamp->Set();
+ Int_t t1 = timeStamp->GetSec(); 
+ Int_t t2=0; 
+
+// Initialization of AMORE sender
 #ifdef ALI_AMORE
  amore::da::AmoreDA vtxAmore(amore::da::AmoreDA::kSender);
 #endif
@@ -276,20 +294,32 @@ int main(int argc, char **argv) {
       }
      }
      mv->WriteVertices(OUTPUT_FILE);
+
+     timeStamp->Set();
+     t2 = timeStamp->GetSec();
+     
+     
+    
 #ifdef ALI_AMORE
-     // send the histos to AMORE pool
-     amore_status=vtxAmore.Send(mv->GetVertexXY()->GetName(),mv->GetVertexXY());
-     if(amore_status) printf("AMORE XY send status: %d\n",amore_status);
-     TH1D *hProj = mv->GetVertexXY()->ProjectionX();
-     amore_status=vtxAmore.Send(Form("%s_ProjX",mv->GetVertexXY()->GetName()),hProj); 
-     if(amore_status) printf("AMORE X send status: %d\n",amore_status);
-     if(hProj) delete hProj;
-     hProj = mv->GetVertexXY()->ProjectionY();
-     amore_status=vtxAmore.Send(Form("%s_ProjY",mv->GetVertexXY()->GetName()),hProj); 
-     if(amore_status) printf("AMORE Y send status: %d\n",amore_status);
-     if(hProj) hProj->Delete();
-     amore_status=vtxAmore.Send(mv->GetVertexZ()->GetName(),mv->GetVertexZ());
-     if(amore_status) printf("AMORE Z  send status: %d\n",amore_status);
+
+     if (TMath::Abs((t2-t1)-timeWindowExport) < timeErrWindowExport){
+       t1=t2;
+       // send the histos to AMORE pool
+       amore_status=vtxAmore.Send(mv->GetVertexXY()->GetName(),mv->GetVertexXY());
+       if(amore_status) printf("AMORE XY send status: %d\n",amore_status);
+       TH1D *hProj = mv->GetVertexXY()->ProjectionX();
+       amore_status=vtxAmore.Send(Form("%s_ProjX",mv->GetVertexXY()->GetName()),hProj); 
+       if(amore_status) printf("AMORE X send status: %d\n",amore_status);
+       if(hProj) delete hProj;
+       hProj = mv->GetVertexXY()->ProjectionY();
+       amore_status=vtxAmore.Send(Form("%s_ProjY",mv->GetVertexXY()->GetName()),hProj); 
+       if(amore_status) printf("AMORE Y send status: %d\n",amore_status);
+       if(hProj) hProj->Delete();
+       amore_status=vtxAmore.Send(mv->GetVertexZ()->GetName(),mv->GetVertexZ());
+       if(amore_status) printf("AMORE Z  send status: %d\n",amore_status);
+     }
+     if (TMath::Abs(t2-t1)> timeWindowExport) t1=t2;
+
 #endif
     }
 
@@ -323,21 +353,26 @@ int main(int argc, char **argv) {
  mv->WriteVertices(OUTPUT_FILE);
 
 #ifdef ALI_AMORE
- // send the histos to AMORE pool
- amore_status=vtxAmore.Send(mv->GetVertexXY()->GetName(),mv->GetVertexXY());  
- if(amore_status) printf("AMORE XY send status: %d\n",amore_status);
- TH1D *hProj = mv->GetVertexXY()->ProjectionX();
- amore_status=vtxAmore.Send(Form("%s_ProjX",mv->GetVertexXY()->GetName()),hProj);
- if(amore_status) printf("AMORE X send status: %d\n",amore_status);
- if(hProj) delete hProj;
- hProj = mv->GetVertexXY()->ProjectionY();
- amore_status=vtxAmore.Send(Form("%s_ProjY",mv->GetVertexXY()->GetName()),hProj);
- if(amore_status) printf("AMORE Y send status: %d\n",amore_status);
- if(hProj) hProj->Delete();
- amore_status=vtxAmore.Send(mv->GetVertexZ()->GetName(),mv->GetVertexZ());
- if(amore_status) printf("AMORE Z  send status: %d\n",amore_status);
-#endif
+ if (TMath::Abs((t2-t1)-timeWindowExport) < timeErrWindowExport){
+       t1=t2;
+       // send the histos to AMORE pool
+       amore_status=vtxAmore.Send(mv->GetVertexXY()->GetName(),mv->GetVertexXY());  
+       if(amore_status) printf("AMORE XY send status: %d\n",amore_status);
+       TH1D *hProj = mv->GetVertexXY()->ProjectionX();
+       amore_status=vtxAmore.Send(Form("%s_ProjX",mv->GetVertexXY()->GetName()),hProj);
+       if(amore_status) printf("AMORE X send status: %d\n",amore_status);
+       if(hProj) delete hProj;
+       hProj = mv->GetVertexXY()->ProjectionY();
+       amore_status=vtxAmore.Send(Form("%s_ProjY",mv->GetVertexXY()->GetName()),hProj);
+       if(amore_status) printf("AMORE Y send status: %d\n",amore_status);
+       if(hProj) hProj->Delete();
+       amore_status=vtxAmore.Send(mv->GetVertexZ()->GetName(),mv->GetVertexZ());
+       if(amore_status) printf("AMORE Z  send status: %d\n",amore_status);
+ }
+ if (TMath::Abs(t2-t1)> timeWindowExport) t1=t2;
 
+#endif
+       
  delete mv;
 
  /* write report */

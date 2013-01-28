@@ -188,6 +188,7 @@ class AliExternalTrackParam: public AliVTrack {
   Bool_t Rotate(Double_t alpha);
   Bool_t Invert();
   Bool_t PropagateTo(Double_t x, Double_t b);
+  Bool_t PropagateParamOnlyTo(Double_t xk, Double_t b);
   Bool_t Propagate(Double_t alpha, Double_t x, Double_t b);
   Bool_t PropagateBxByBz(Double_t alpha, Double_t x, Double_t b[3]);
   void   Propagate(Double_t len,Double_t x[3],Double_t p[3],Double_t bz) const;
@@ -216,6 +217,7 @@ class AliExternalTrackParam: public AliVTrack {
   Bool_t GetZAt(Double_t x,  Double_t b,  Double_t &z) const;
   void Print(Option_t* option = "") const;
   Double_t GetSnpAt(Double_t x,Double_t b) const;
+  Bool_t GetXatLabR(Double_t r,Double_t &x, Double_t bz, Int_t dir=0) const;
 
   //Deprecated
   Bool_t CorrectForMaterial(Double_t d, Double_t x0, Double_t mass,
@@ -246,7 +248,7 @@ class AliExternalTrackParam: public AliVTrack {
  private:
   Double_t &Par(Int_t i) {return fP[i];}
   Double_t &Cov(Int_t i) {return fC[i];}
- private:
+ protected:
   Double32_t           fX;     // X coordinate for the point of parametrisation
   Double32_t           fAlpha; // Local <-->global coor.system rotation angle
   Double32_t           fP[5];  // The track parameters

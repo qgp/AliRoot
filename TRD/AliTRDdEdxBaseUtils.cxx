@@ -41,27 +41,22 @@
 
 #include "TTreeStream.h"
 
-#include "AliCDBId.h"
-#include "AliCDBMetaData.h"
-#include "AliCDBStorage.h"
 #include "AliESDEvent.h"
 #include "AliESDfriendTrack.h"
 #include "AliESDtrack.h"
-#include "AliTRDcalibDB.h"
-#include "AliTRDCalROC.h"
 #include "AliTRDtrackV1.h"
 
 #include "AliTRDdEdxBaseUtils.h"
 
-#define EPSILON 1e-12
+#define EPSILON 1e-8
 
-Double_t AliTRDdEdxBaseUtils::fgQ0Frac = 0.3;
+Double_t AliTRDdEdxBaseUtils::fgQ0Frac = 0.55;
 Double_t AliTRDdEdxBaseUtils::fgQ1Frac = 0.5;
 Double_t AliTRDdEdxBaseUtils::fgTimeBinCountCut = 0.0; 
 Int_t    AliTRDdEdxBaseUtils::fgCalibTPCnclsCut = 70;
 Bool_t   AliTRDdEdxBaseUtils::fgExBOn = kTRUE; 
 Bool_t   AliTRDdEdxBaseUtils::fgPadGainOn = kTRUE;
-Double_t AliTRDdEdxBaseUtils::fgQScale = 45;
+Double_t AliTRDdEdxBaseUtils::fgQScale = 50;
 
 //===================================================================================
 //                                   Math and Histogram
@@ -76,7 +71,11 @@ void AliTRDdEdxBaseUtils::BinLogX(TAxis *axis)
 
   const Double_t from = axis->GetXmin();
   const Double_t to = axis->GetXmax();
-  if (from<EPSILON) return;
+  if (from<EPSILON){
+    //printf("AliTRDdEdxBaseUtils::BinLogX warning xmin < epsilon! nothing done, axis not set. %e\n", from);  exit(1);
+    return;
+  }
+
   Double_t *new_bins = new Double_t[bins + 1];
 
   new_bins[0] = from;
@@ -294,6 +293,12 @@ void AliTRDdEdxBaseUtils::FitSlicesY(const TH2D *hh, TH1D *&hnor, TH1D *&hmpv, T
   hwid = new TH1D(Form("%s_wid",hh->GetName()), "", nx, xmin, xmax);
   hres = new TH1D(Form("%s_res",hh->GetName()), "", nx, xmin, xmax);
 
+  Double_t newbins[ny+1];
+  for(Int_t ii=1; ii<=ny+1; ii++){
+    const Double_t lowx= hh->GetYaxis()->GetBinLowEdge(ii);
+    newbins[ii-1]=lowx;
+  }
+
   for(Int_t ix=x0; ix<=x1; ix++){
     //to speed up
     const Double_t rawcount = hh->Integral(ix,ix,0, ny+1);
@@ -302,6 +307,7 @@ void AliTRDdEdxBaseUtils::FitSlicesY(const TH2D *hh, TH1D *&hnor, TH1D *&hmpv, T
     }
 
     TH1D *htmp = new TH1D(Form("FitSlicesY_%s_%d", hh->GetName(), ix),"",ny, ymin, ymax);
+    htmp->GetXaxis()->Set(ny, newbins);
     Double_t ntot = 0;
     for(Int_t iy=y0; iy<=y1; iy++){
       const Double_t be = hh->GetBinError(ix,iy);
@@ -424,7 +430,89 @@ Bool_t AliTRDdEdxBaseUtils::IsInSameStack(const AliTRDtrackV1 *trdtrack)
     return kTRUE;
 }
 
-Bool_t AliTRDdEdxBaseUtils::GetFirstSectorStackMomentum(const AliTRDtrackV1 *trdtrack, Int_t & isec, Int_t & istk, Double_t & mom)
+Double_t AliTRDdEdxBaseUtils::GetRedefinedPhi(Double_t phi)
+{
+  //
+  //redefine phi in pi/2 - pi/2 + 2pi
+  //
+
+  if(phi>0 && phi < TMath::Pi()/2){
+    phi += 2*TMath::Pi();
+  }
+
+  return phi;
+}
+
+Double_t AliTRDdEdxBaseUtils::Getdydx(const AliTRDseedV1 *tracklet)
+{
+  //
+  //get dydx
+  //
+  if(tracklet)
+    return tracklet->GetYref(1);
+  else
+    return -999;
+}
+
+Double_t AliTRDdEdxBaseUtils::Getdzdx(const AliTRDseedV1 *tracklet)
+{
+  //
+  //get dzdx
+  //
+  if(tracklet)
+    return tracklet->GetZref(1);
+  else
+    return -999;
+}
+
+Double_t AliTRDdEdxBaseUtils::Getdldx(const AliTRDseedV1 *tracklet)
+{
+  //
+  //return angular normalization factor = dldx
+  //
+  if(tracklet)
+    return TMath::Sqrt(1+tracklet->GetYref(1)*tracklet->GetYref(1)+tracklet->GetZref(1)*tracklet->GetZref(1));
+  else
+    return -999;
+}
+
+AliTRDseedV1 * AliTRDdEdxBaseUtils::GetFirstTracklet(const AliTRDtrackV1 *trdtrack)
+{
+  //
+  //as function name
+  //
+
+  AliTRDseedV1 *tracklet = 0x0;
+  for(Int_t ilayer = 0; ilayer < 6; ilayer++){
+    tracklet=trdtrack->GetTracklet(ilayer);
+    if(!tracklet)
+      continue;
+    
+    break;
+  }
+
+  return tracklet;
+}
+
+AliTRDseedV1 * AliTRDdEdxBaseUtils::GetLastTracklet(const AliTRDtrackV1 *trdtrack)
+{
+  //
+  //get last tracklet
+  //
+  AliTRDseedV1 *tracklet = 0x0;
+  
+  for(Int_t ilayer = 5; ilayer >= 0; ilayer--){
+    tracklet=trdtrack->GetTracklet(ilayer);
+    if(!tracklet)
+      continue;
+
+    break;
+  }
+
+  return tracklet;
+}
+
+void AliTRDdEdxBaseUtils::GetFirstSectorStackMomentum(const AliTRDtrackV1 *trdtrack, Int_t & isec, Int_t & istk, Double_t & mom)
 {
   //
   //as function name
@@ -432,24 +520,16 @@ Bool_t AliTRDdEdxBaseUtils::GetFirstSectorStackMomentum(const AliTRDtrackV1 *trd
   isec = istk = -999;
   mom = -999;
 
-  for(Int_t ilayer = 0; ilayer < 6; ilayer++){
-    AliTRDseedV1 *tracklet=trdtrack->GetTracklet(ilayer);
-    if(!tracklet)
-      continue;
-    
+  AliTRDseedV1 *tracklet = GetFirstTracklet(trdtrack);
+  if(tracklet){
     const Int_t det = tracklet->GetDetector();
     isec = AliTRDgeometry::GetSector(det);
     istk = AliTRDgeometry::GetStack(det);
-
+    
     mom = tracklet->GetMomentum();
-
-    break;
   }
 
-  if(isec<0)
-    return kFALSE;
-  else 
-    return kTRUE;
+  return;
 }
 
 //===================================================================================
@@ -495,6 +575,19 @@ Int_t  AliTRDdEdxBaseUtils::ToLayer(const Int_t gtb)
   return AliTRDgeometry::GetLayer(ToDetector(gtb));
 }
 
+void AliTRDdEdxBaseUtils::CheckRunB(const TString listrun1kg, const Int_t run, TString & type)
+{
+  //
+  //check run b field
+  //
+  if(listrun1kg.Contains(Form("%d",run))){
+    type+="1kG"; 
+  }
+  else {
+    type+="5kG";
+  }
+}
+
 TString AliTRDdEdxBaseUtils::GetRunType(const Int_t run)
 {
   //
@@ -503,24 +596,22 @@ TString AliTRDdEdxBaseUtils::GetRunType(const Int_t run)
 
   TString type;
   if(run>=121527 && run<= 126460)//LHC10d
-    type="pp2010LHC10d";
+    type="2010ppLHC10d";
   else if(run>=126461 && run<= 130930)//LHC10e
-    type="pp2010LHC10e";
+    type="2010ppLHC10e";
   else if(run>=136782 && run <= 139846)//LHC10h
-    type="PbPb2010LHC10h";
+    type="2010PbPbLHC10h";
   else if(run>= 143224 && run<= 143237)//2011Feb
-    type="cosmic2011Feb";
+    type="2011cosmicFeb";
   else if(run>= 150587 && run<= 154930){
-    type="cosmic2011MayJun";
+    type="2011cosmicMayJun";
 
-    TString runstr(Form("%d",run));
-    const TString listrun1kg("154601 154602 154629 154634 154636 154639 154643");
-    if(listrun1kg.Contains(runstr)){
-      type+="1kG";
-    }
-    else{
-      type+="5kG";
-    }      
+    CheckRunB("154601 154602 154629 154634 154636 154639 154643", run,  type);
+  }
+  else if(run>=173047 && run<=180164){
+    type="2012cosmic";
+
+    CheckRunB("173047 173049 173050 173065 173070 173092 173095 173113 173131 173160 174154 174156 174192 174194", run, type);
   }
   else{
     type="unknown";
@@ -535,12 +626,45 @@ void AliTRDdEdxBaseUtils::PrintControl()
   //
   //print out control variable
   //
-  printf("\nAliTRDdEdxBaseUtils::PrintControl Q0Frac %.1f, Q1Frac %.1f, TimeBinCountCut %.2f, CalibTPCnclsCut %d, IsExBOn %d, IsPadGainOn %d, QScale %.2f\n\n", Q0Frac(), Q1Frac(), TimeBinCountCut(), CalibTPCnclsCut(), IsExBOn(), IsPadGainOn(), QScale());
+  printf("\nAliTRDdEdxBaseUtils::PrintControl Q0Frac %.2f, Q1Frac %.2f, TimeBinCountCut %.2f, CalibTPCnclsCut %d, IsExBOn %d, IsPadGainOn %d, QScale %.2f\n\n", Q0Frac(), Q1Frac(), TimeBinCountCut(), CalibTPCnclsCut(), IsExBOn(), IsPadGainOn(), QScale());
 }
 
 //===================================================================================
 //                                 dEdx Parameterization
 //===================================================================================
+void AliTRDdEdxBaseUtils::FastFitdEdxTR(TH1 * hh)
+{
+  //
+  //fit dedx tr from mean
+  //
+
+  TF1 *ff=new TF1("ff", MeandEdxTRLogx, -0.5, 4.5, 8);
+  Double_t par[8];
+  par[0]=   2.397001e-01;
+  par[1]=   1.334697e+00;
+  par[2]=   6.967470e+00;
+  par[3]=   9.055289e-02;
+  par[4]=   9.388760e+00;
+  par[5]=   9.452742e-04;
+  par[6]=  -1.866091e+00;
+  par[7]=   1.403545e+00;
+
+  ff->SetParameters(par);
+  hh->Fit(ff,"N");
+
+  for(int ii=0; ii<8; ii++){
+    printf("par[%d]=%e;\n", ii, ff->GetParameter(ii));
+  }
+
+  TFile *fout=new TFile("fastfit.root","recreate");
+  hh->Write();
+  ff->Write();
+  fout->Save();
+  fout->Close();
+
+  delete fout;
+  delete ff;
+}
 
 Double_t AliTRDdEdxBaseUtils::Q0MeanTRDpp(const Double_t bg)
 {
@@ -549,19 +673,20 @@ Double_t AliTRDdEdxBaseUtils::Q0MeanTRDpp(const Double_t bg)
   //
  
   Double_t par[8];
-  //03132012161150
-  //opt: ppQ0
-par[0]=   2.397001e-01;
-par[1]=   1.334697e+00;
-par[2]=   6.967470e+00;
-par[3]=   9.055289e-02;
-par[4]=   9.388760e+00;
-par[5]=   9.452742e-04;
-par[6]=  -1.866091e+00;
-par[7]=   1.403545e+00;
+  Double_t scale = 1;
+  
+  //2012-0605 /u/xlu/.task/CommondEdx/myAnaData/newTune_r56595/inuse/plot/fastFit
+  scale = 0.9257;
+par[0]=8.316476e-01;
+par[1]=1.600907e+00;
+par[2]=7.728447e+00;
+par[3]=6.235622e-02;
+par[4]=1.136209e+01;
+par[5]=-1.495764e-06;
+par[6]=-2.536119e+00;
+par[7]=3.416031e+00;
 
-  ///u/xlu/.task/CommondEdx/myAnaData/Optimum/check11/Merged/LHC10e_plot/Separation/see2.log:hhtype2Q0b2c2 scale        0.428543 at ltbg        0.650000
-  return   0.428543*MeandEdxTR(&bg, par);
+  return   scale*MeandEdxTR(&bg, par);
 }
 
 Double_t AliTRDdEdxBaseUtils::Q0MeanTRDPbPb(const Double_t bg)
@@ -653,7 +778,7 @@ Double_t AliTRDdEdxBaseUtils::QMeanTPC(const Double_t bg)
   return MeandEdx(&bg, par);
 }
 
-Double_t AliTRDdEdxBaseUtils::MeandEdxTR(const Double_t * xx, const Double_t * pin)
+Double_t AliTRDdEdxBaseUtils::MeandEdxTR(const Double_t * xx,  const Double_t * pin)
 {
   //
   //ALEPH+LOGISTIC parametrization for dEdx+TR, in unit of MIP
@@ -666,7 +791,7 @@ Double_t AliTRDdEdxBaseUtils::MeandEdxTR(const Double_t * xx, const Double_t * p
   return MeanTR(xx,ptr) + MeandEdx(xx,&(pin[3]));
 }
 
-Double_t AliTRDdEdxBaseUtils::MeanTR(const Double_t * xx, const Double_t * par)
+Double_t AliTRDdEdxBaseUtils::MeanTR(const Double_t * xx,  const Double_t * par)
 {
   //
   //ALEPH+LOGISTIC parametrization for dEdx+TR, in unit of MIP
@@ -686,7 +811,12 @@ Double_t AliTRDdEdxBaseUtils::MeanTR(const Double_t * xx, const Double_t * par)
   return par[0]+tryield;
 }
 
-Double_t AliTRDdEdxBaseUtils::MeandEdx(const Double_t * xx, const Double_t * par)
+Double_t AliTRDdEdxBaseUtils::MeandEdx(const Double_t * xx,  const Double_t * par)
+{
+  return ALEPH(xx, par);
+}
+
+Double_t AliTRDdEdxBaseUtils::ALEPH(const Double_t * xx,  const Double_t * par)
 {
   //
   //ALEPH parametrization for dEdx
@@ -698,19 +828,40 @@ Double_t AliTRDdEdxBaseUtils::MeandEdx(const Double_t * xx, const Double_t * par
 
   const Double_t p0 = TMath::Abs(par[0]);
   const Double_t p1 = TMath::Abs(par[1]);
+
+  //after redefining p2 (<0) -> ln P2
+  //const Double_t p2 = par[2];
+
+  //restore back
   const Double_t p2 = TMath::Abs(par[2]);
+
   const Double_t p3 = TMath::Abs(par[3]);
   const Double_t p4 = TMath::Abs(par[4]);
 
   const Double_t aa = TMath::Power(beta, p3);
+
+  //numerically very bad when p2~1e-15, bg~1e3, p4~5.
   const Double_t bb = TMath::Log( p2 + TMath::Power(1./bg, p4) );
 
+  //+1 to avoid the singularity when bg<1 and p4>>1
+  //very^inf important! with this hesse NOTPOS->OK and no nan or inf in migrad
+  //i.e. numerically very stable
+  //the reason is when bg<1 ln blows up very fast with p4>>1 and nan/inf appears in migrad search
+  //the fitting will adjust the parameters as if bg is not shifted, the fitted curve looks fine!!
+  //-- 2012 Aug 8
+  //----> fail for 10h, not used, restore back!
+  //const Double_t lbg = TMath::Log(bg);
+
+  //redefine p2(<0) -> ln P2
+  //corresponds to alephFit.C fAlephOPt = 11
+  //const Double_t bb = p2 + TMath::Log( 1 + TMath::Exp(-p2-p4*lbg) );
+  
   //printf("test----- %f %f -- %f %f %f %f %f --- %f %f %f\n", bg, beta, p0, p1, p2, p3, p4, p0/aa, aa, bb);
 
   return (p1-aa-bb)*p0/aa;
 }
 
-Double_t AliTRDdEdxBaseUtils::ToLogx(FFunc func, const Double_t * xx, const Double_t * par)
+Double_t AliTRDdEdxBaseUtils::ToLogx(FFunc func, const Double_t * xx,  const Double_t * par)
 {
   //
   //f(x)-> f(y) with y=log10(x)

@@ -24,10 +24,12 @@
 #include <TArrayI.h>
 #include <TPolyLine.h>
 #include <TPolyMarker.h>
-#include <AliITSv11Geometry.h>
+#include "AliITSv11Geometry.h"
 
 class TGeoVolume;
 class TGeoCompositeShape;
+
+using std::istream;
 
 class AliITSv11GeometrySPD : public AliITSv11Geometry
 {
@@ -99,6 +101,7 @@ class AliITSv11GeometrySPD : public AliITSv11Geometry
     virtual TList* CreateConeModule(Bool_t sideC, const Double_t angle,
 				    TGeoManager *mgr = gGeoManager) const;
     virtual void CreateCones(TGeoVolume *moth) const;
+/*    virtual*/ void CreateServices(TGeoVolume *moth) const;
     // a half-stave (put together ladders + MCM + bus, and add clips
     // if requested)
     virtual TGeoVolumeAssembly* CreateHalfStave(Bool_t isRight, Int_t layer,

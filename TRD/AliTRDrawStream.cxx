@@ -30,6 +30,7 @@
 
 #include "AliLog.h"
 #include "AliRawReader.h"
+#include "AliTRDcalibDB.h"
 #include "AliTRDdigitsManager.h"
 #include "AliTRDdigitsParam.h"
 #include "AliTRDcalibDB.h"
@@ -72,6 +73,7 @@ const char* AliTRDrawStream::fgkErrorMessages[] = {
   "not a TRD equipment (1024-1041)",
   "Invalid Stack header",
   "Invalid detector number",
+  "Invalid pad row",
   "No digits could be retrieved from the digitsmanager",
   "HC header mismatch",
   "HC check bits wrong",
@@ -95,8 +97,9 @@ Int_t AliTRDrawStream::fgErrorDebugLevel[] = {
   1,
   0,
   1,
+  0,
   1,
-  1,
+  0,
   1,
   2,
   1,
@@ -118,6 +121,7 @@ AliTRDrawStream::ErrorBehav_t AliTRDrawStream::fgErrorBehav[] = {
   AliTRDrawStream::kAbort,
   AliTRDrawStream::kAbort,
   AliTRDrawStream::kAbort,
+  AliTRDrawStream::kDiscardMCM,
   AliTRDrawStream::kAbort,
   AliTRDrawStream::kDiscardHC,
   AliTRDrawStream::kDiscardHC,
@@ -429,8 +433,14 @@ Int_t AliTRDrawStream::NextChamber(AliTRDdigitsManager *digMgr)
     while ((fCurrSlot < fgkNstacks) &&
 	   (((fCurrStackMask & (1 << fCurrSlot)) == 0) ||
 	    ((fCurrLinkMask[fCurrSlot] & (1 << fCurrLink))) == 0)) {
+      if ((fCurrStackMask & (1 << fCurrSlot)) == 0) {
+	++fCurrSlot;
+	fCurrSlot = 0;
+	continue;
+      }
       fCurrLink++;
       if (fCurrLink >= fgkNlinks) {
+	SeekNextStack();
 	fCurrLink = 0;
 	fCurrSlot++;
       }
@@ -1021,7 +1031,8 @@ Int_t AliTRDrawStream::ReadTrackingHeader(Int_t stack)
 	  AliESDTrdTrack *trk = (AliESDTrdTrack*) (*fTracks)[trackIndex];
 
 	  trk->SetFlags((trackWord >> 52) & 0x7ff);
-	  trk->SetReserved((trackWord >> 49) & 0x7);
+	  trk->SetFlagsTiming((trackWord >> 51) & 0x1);
+	  trk->SetReserved((trackWord >> 49) & 0x3);
 	  trk->SetY((trackWord >> 36) & 0x1fff);
 	  trk->SetTrackletIndex((trackWord >>  0) & 0x3f, 0);
 	  trk->SetTrackletIndex((trackWord >>  6) & 0x3f, 1);
@@ -1101,6 +1112,7 @@ Int_t AliTRDrawStream::ReadStackHeader(Int_t stack)
 
   switch (fCurrStackHeaderVersion[stack]) {
   case 0xa:
+  case 0xb:
     if (fCurrStackHeaderSize[stack] < 8) {
       LinkError(kStackHeaderInvalid, "Stack header smaller than expected!");
       return -1;
@@ -1138,8 +1150,10 @@ Int_t AliTRDrawStream::ReadGTUTrailer()
   UInt_t* trailer = fPayloadStart + fPayloadSize -1;
 
   // look for the trailer index word from the end
-  for (Int_t iWord = 0; iWord < fPayloadSize; iWord++) {
-    if ((fPayloadStart[fPayloadSize-1-iWord] & 0xffff) == 0x1f51) {
+  for (Int_t iWord = 0; iWord < fPayloadSize-2; iWord++) {
+    if ((fPayloadStart[fPayloadSize-3-iWord] == fgkStackEndmarker[0]) &&
+	(fPayloadStart[fPayloadSize-2-iWord] == fgkStackEndmarker[1]) &&
+	((fPayloadStart[fPayloadSize-1-iWord] & 0xfff) == 0xf51)) {
       trailer = fPayloadStart + fPayloadSize - 1 - iWord;
       break;
     }
@@ -1309,7 +1323,9 @@ Int_t AliTRDrawStream::ReadTracklets()
 
   UInt_t *start = fPayloadCurr;
   while (*(fPayloadCurr) != fgkTrackletEndmarker &&
-	 fPayloadCurr - fPayloadStart < fPayloadSize) {
+	 *(fPayloadCurr) != fgkStackEndmarker[0] &&
+	 *(fPayloadCurr) != fgkStackEndmarker[1] &&
+	 fPayloadCurr - fPayloadStart < (fPayloadSize - 1)) {
     new ((*fTrackletArray)[fTrackletArray->GetEntriesFast()]) AliTRDtrackletWord(*(fPayloadCurr), fCurrHC);
 
     fPayloadCurr++;
@@ -1346,8 +1362,12 @@ Int_t AliTRDrawStream::ReadHcHeader()
   AliDebug(1, Form("HC header: 0x%08x", *fPayloadCurr));
   UInt_t *start = fPayloadCurr;
   // check not to be at the data endmarker
-  if (*fPayloadCurr == fgkDataEndmarker)
+  if (*fPayloadCurr == fgkDataEndmarker ||
+      *(fPayloadCurr) == fgkStackEndmarker[0] ||
+      *(fPayloadCurr) == fgkStackEndmarker[1]) {
+    LinkError(kHCmismatch, "found endmarker where HC header should be");
     return 0;
+  }
 
   fCurrSpecial    = (*fPayloadCurr >> 31) & 0x1;
   fCurrMajor      = (*fPayloadCurr >> 24) & 0x7f;
@@ -1432,7 +1452,7 @@ Int_t AliTRDrawStream::ReadTPData(Int_t mode)
       MCMError(kPosUnexp, Form("#%i after #%i in readout order", GetMCMReadoutPos(MCM(*fPayloadCurr)), lastmcmpos));
     }
 
-    if (EvNo(*fPayloadCurr) != evno) {
+    if (EvNo(*fPayloadCurr) != (evno & 0xfffff)) {
       if (evno == -1) {
 	evno = EvNo(*fPayloadCurr);
       }
@@ -1550,6 +1570,8 @@ Int_t AliTRDrawStream::ReadZSData()
   timebins = fNtimebins;
 
   while (*(fPayloadCurr) != fgkDataEndmarker &&
+	 *(fPayloadCurr) != fgkStackEndmarker[0] &&
+	 *(fPayloadCurr) != fgkStackEndmarker[1] &&
 	 fPayloadCurr - fPayloadStart < fPayloadSize) {
 
     // ----- Checking MCM Header -----
@@ -1578,9 +1600,10 @@ Int_t AliTRDrawStream::ReadZSData()
 			       GetMCMReadoutPos(MCM(*fPayloadCurr)), lastmcmpos, GetMCMReadoutPos(fCurrMcmPos)));
     }
 
-    if (EvNo(*fPayloadCurr) != evno) {
-      if (evno == -1)
+    if (EvNo(*fPayloadCurr) != (evno & 0xfffff)) {
+      if (evno == -1) {
 	evno = EvNo(*fPayloadCurr);
+      }
       else {
 	MCMError(kEvCntMismatch, "%i <-> %i", evno, EvNo(*fPayloadCurr));
       }
@@ -1591,8 +1614,11 @@ Int_t AliTRDrawStream::ReadZSData()
     fPayloadCurr++;
 
     if ((row > 11) && (fCurrStack == 2)) {
-      MCMError(kUnknown, "Data in padrow > 11 for stack 2");
+      MCMError(kInvalidPadRow, "Data in padrow > 11 for stack 2");
     }
+
+    if (fErrorFlags & (kDiscardHC | kDiscardDDL))
+      break;
 
     // ----- Reading ADC channels -----
     AliDebug(2, DumpAdcMask("ADC mask: ", *fPayloadCurr));
@@ -1672,16 +1698,20 @@ Int_t AliTRDrawStream::ReadZSData()
 	  }
 	}
 
-	// filling the actual timebin data
-	int tb2 = 0x3ff & *fPayloadCurr >> 22;
-	int tb1 = 0x3ff & *fPayloadCurr >> 12;
-	int tb0 = 0x3ff & *fPayloadCurr >> 2;
-	if (adcwc != 0 || fCurrNtimebins <= 30)
-	  fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb0);
-	else
-	  tb0 = -1;
-	fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb1);
-	fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb2);
+	if ((fErrorFlags & kDiscardMCM) == 0) {
+	  // filling the actual timebin data
+	  int tb2 = 0x3ff & (*fPayloadCurr >> 22);
+	  int tb1 = 0x3ff & (*fPayloadCurr >> 12);
+	  int tb0 = 0x3ff & (*fPayloadCurr >>  2);
+	  if (adcwc != 0 || fCurrNtimebins <= 30)
+	    fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb0);
+	  else
+	    tb0 = -1;
+	  if (currentTimebin < fCurrNtimebins)
+	    fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb1);
+	  if (currentTimebin < fCurrNtimebins)
+	    fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb2);
+	}
 
 	adcwc++;
 	fPayloadCurr++;
@@ -1781,9 +1811,10 @@ Int_t AliTRDrawStream::ReadNonZSData()
       MCMError(kPosUnexp, Form("#%i after #%i in readout order", GetMCMReadoutPos(MCM(*fPayloadCurr)), lastmcmpos));
     }
 
-    if (EvNo(*fPayloadCurr) != evno) {
-      if (evno == -1)
+    if (EvNo(*fPayloadCurr) != (evno & 0xfffff)) {
+      if (evno == -1) {
 	evno = EvNo(*fPayloadCurr);
+      }
       else {
 	MCMError(kEvCntMismatch, "%i <-> %i", evno, EvNo(*fPayloadCurr));
       }
@@ -1796,8 +1827,14 @@ Int_t AliTRDrawStream::ReadNonZSData()
     Int_t adccoloff = AdcColOffset(*fPayloadCurr);
     Int_t padcoloff = PadColOffset(*fPayloadCurr);
     Int_t row = Row(*fPayloadCurr);
-
     fPayloadCurr++;
+
+    if ((row > 11) && (fCurrStack == 2)) {
+      MCMError(kInvalidPadRow, "Data in padrow > 11 for stack 2");
+    }
+
+    if (fErrorFlags & (kDiscardHC | kDiscardDDL))
+      break;
 
     // ----- reading marked ADC channels -----
     while (channelcount < channelcountExp &&
@@ -1831,16 +1868,20 @@ Int_t AliTRDrawStream::ReadNonZSData()
 	  }
 	}
 
-	// filling the actual timebin data
-	int tb2 = 0x3ff & *fPayloadCurr >> 22;
-	int tb1 = 0x3ff & *fPayloadCurr >> 12;
-	int tb0 = 0x3ff & *fPayloadCurr >> 2;
-	if (adcwc != 0 || fCurrNtimebins <= 30)
-	  fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb0);
-	else
-	  tb0 = -1;
-	fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb1);
-	fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb2);
+	if ((fErrorFlags & kDiscardMCM) == 0) {
+	  // filling the actual timebin data
+	  int tb2 = 0x3ff & (*fPayloadCurr >> 22);
+	  int tb1 = 0x3ff & (*fPayloadCurr >> 12);
+	  int tb0 = 0x3ff & (*fPayloadCurr >>  2);
+	  if (adcwc != 0 || fCurrNtimebins <= 30)
+	    fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb0);
+	  else
+	    tb0 = -1;
+	  if (currentTimebin < fCurrNtimebins)
+	    fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb1);
+	  if (currentTimebin < fCurrNtimebins)
+	    fAdcArray->SetDataByAdcCol(row, adccol, currentTimebin++, tb2);
+	}
 
 	adcwc++;
 	fPayloadCurr++;
@@ -1907,6 +1948,8 @@ Int_t AliTRDrawStream::SeekNextLink()
 
   // read until data endmarkers
   while (fPayloadCurr - fPayloadStart < fPayloadSize &&
+	 ((fPayloadCurr[0] != fgkStackEndmarker[0]) ||
+	  (fPayloadCurr[1] != fgkStackEndmarker[1])) &&
 	 *fPayloadCurr != fgkDataEndmarker)
     fPayloadCurr++;
 
@@ -2220,6 +2263,9 @@ void AliTRDrawStream::SortTracklets(TClonesArray *trklArray, TList &sortedTrackl
 {
   // sort tracklets for referencing from GTU tracks
 
+  if (!trklArray)
+    return;
+
   Int_t nTracklets = trklArray->GetEntriesFast();
 
   Int_t lastHC = -1;
@@ -2263,8 +2309,7 @@ void AliTRDrawStream::SortTracklets(TClonesArray *trklArray, TList &sortedTrackl
 	  trklA = 0x0;
       }
       else {
-	if ((trklA->GetZbin() < trklB->GetZbin()) ||
-	    ((trklA->GetZbin() == trklB->GetZbin()) && (trklA->GetYbin() < trklB->GetYbin()))) {
+	if (trklA->GetZbin() <= trklB->GetZbin()) {
 	  trklNext = trklA;
 	  trklIndexA++;
 	  trklA = trklIndexA < nTracklets ? (AliTRDtrackletBase*) ((*trklArray)[trklIndexA]) : 0x0;
@@ -2280,19 +2325,48 @@ void AliTRDrawStream::SortTracklets(TClonesArray *trklArray, TList &sortedTrackl
 	}
       }
       if (trklNext) {
-	Int_t label = -2; // mark raw tracklets with label -2
- 	if (AliTRDtrackletMCM *trklMCM = dynamic_cast<AliTRDtrackletMCM*> (trklNext))
- 	  label = trklMCM->GetLabel();
-	AliESDTrdTracklet *esdTracklet = new AliESDTrdTracklet(trklNext->GetTrackletWord(), trklNext->GetHCId(), label);
-	sortedTracklets.Add(esdTracklet);
-      }
+	sortedTracklets.Add(trklNext);
 
-      // updating tracklet indices as in output
-      if (sortedTracklets.GetEntries() != trklIndex) {
-	indices[2*iDet + 0] = indices[2*iDet + 1] = trklIndex;
       }
-      else
-	indices[2*iDet + 0] = indices[2*iDet + 1] = -1;
+    }
+
+    // updating tracklet indices as in output
+    if (sortedTracklets.GetEntries() != trklIndex) {
+      indices[2*iDet + 0] = trklIndex;
+      indices[2*iDet + 1] = sortedTracklets.GetEntries();
+    } else {
+      indices[2*iDet + 0] = indices[2*iDet + 1] = -1;
+    }
+  }
+}
+
+void AliTRDrawStream::AssignTracklets(AliESDTrdTrack *trdTrack, Int_t *trackletIndex, Int_t refIndex[6])
+{
+  UInt_t mask  = trdTrack->GetLayerMask();
+  UInt_t stack = trdTrack->GetStack();
+
+  for (Int_t iLayer = 0; iLayer < 6; iLayer++) {
+    refIndex[iLayer] = -1;
+
+    if (mask & (1 << iLayer)) {
+
+      Int_t det = trdTrack->GetSector()*30 + stack*6 + iLayer;
+      Int_t idx = trdTrack->GetTrackletIndex(iLayer);
+
+      if ((det < 0) || (det > 539)) {
+	AliErrorClass(Form("Invalid detector no. from track: %i", 2*det));
+	continue;
+      }
+      if (trackletIndex[2*det] >= 0) {
+	if ((trackletIndex[2*det] + idx > -1) &&
+	    (trackletIndex[2*det] + idx < trackletIndex[2*det+1])) {
+	  refIndex[iLayer] = trackletIndex[2*det] + idx;
+	} else {
+	  AliErrorClass(Form("Requested tracklet index %i out of range", idx));
+	}
+      } else {
+	AliErrorClass(Form("Non-existing tracklets requested in det %i", det));
+      }
     }
   }
 }

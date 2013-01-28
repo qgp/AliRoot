@@ -22,9 +22,6 @@
     @brief 
 */
 
-#if __GNUC__>= 3
-using namespace std;
-#endif
 #include "AliHLTTPCHWClusterTransformComponent.h"
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCTransform.h"
@@ -35,6 +32,7 @@ using namespace std;
 #include "AliHLTTPCHWCFEmulator.h"
 #include "AliHLTTPCHWCFData.h"
 #include "AliHLTErrorGuard.h"
+#include "AliTPCTransform.h"
 
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
@@ -46,14 +44,18 @@ using namespace std;
 #include <cerrno>
 #include <sys/time.h>
 
+using namespace std;
+
 ClassImp(AliHLTTPCHWClusterTransformComponent) //ROOT macro for the implementation of ROOT specific class methods
 
 const char* AliHLTTPCHWClusterTransformComponent::fgkOCDBEntryHWTransform="HLT/ConfigTPC/TPCHWClusterTransform";
 
+AliHLTTPCClusterTransformation AliHLTTPCHWClusterTransformComponent::fgTransform;
+Bool_t AliHLTTPCHWClusterTransformComponent::fgTimeInitialisedFromEvent = 0;
+
 AliHLTTPCHWClusterTransformComponent::AliHLTTPCHWClusterTransformComponent()
 :
 fDataId(kFALSE),
-fTransform(),
 fPublishRawClusters(kFALSE),
 fpDecoder(NULL),
 fBenchmark("HWClusterTransform")
@@ -116,8 +118,9 @@ AliHLTComponent* AliHLTTPCHWClusterTransformComponent::Spawn() {
   return new AliHLTTPCHWClusterTransformComponent();
 }
 	
-int AliHLTTPCHWClusterTransformComponent::DoInit( int argc, const char** argv ) { 
-// see header file for class documentation
+int AliHLTTPCHWClusterTransformComponent::DoInit( int argc, const char** argv ) 
+{ 
+  // see header file for class documentation
   
   AliTPCcalibDB *calib=AliTPCcalibDB::Instance();  
   if(!calib){
@@ -126,12 +129,13 @@ int AliHLTTPCHWClusterTransformComponent::DoInit( int argc, const char** argv ) 
   }
   calib->SetRun(GetRunNo());
   calib->UpdateRunInformations(GetRunNo());
-
-  int err = fTransform.Init( GetBz(), GetTimeStamp() );
-
-  if( err!=0 ){
-    HLTError("Cannot retrieve offline transform from AliTPCcalibDB");
-    return -ENOENT;
+  
+  if( !fgTransform.IsInitialised() ){
+    int err = fgTransform.Init( GetBz(), GetTimeStamp() );
+    if( err!=0 ){
+      HLTError(Form("Cannot retrieve offline transform from AliTPCcalibDB, AliHLTTPCClusterTransformation returns %d",err));
+      return -ENOENT;
+    }
   }
 
   int iResult=0;
@@ -152,7 +156,7 @@ int AliHLTTPCHWClusterTransformComponent::DoDeinit() {
   // see header file for class documentation   
   if (!fpDecoder) delete fpDecoder;
   fpDecoder=NULL;
-
+  fgTransform.DeInit();
   return 0;
 }
 
@@ -162,20 +166,37 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 					          AliHLTUInt32_t& size, 
 					          vector<AliHLTComponentBlockData>& outputBlocks ){
   // see header file for class documentation
-   
+ 
   UInt_t maxOutSize = size;
   size = 0;
   int iResult = 0;
   if(!IsDataEvent()) return 0;
 
   if (!fpDecoder) return -ENODEV;
+  if( !fgTransform.IsInitialised() ){
+    HLTError(" TPC Transformation is not initialised ");
+    return -ENOENT;    
+  }
 
   fBenchmark.StartNewEvent();
   fBenchmark.Start(0);
 
-  fTransform.SetCurrentTimeStamp( GetTimeStamp() );
-  
-  for( unsigned long ndx=0; ndx<evtData.fBlockCnt; ndx++ ){
+  // Initialise the transformation here once more for the case of off-line reprocessing
+  if( !fgTimeInitialisedFromEvent ){
+    Long_t currentTime = static_cast<AliHLTUInt32_t>(time(NULL));
+    Long_t eventTimeStamp = GetTimeStamp();
+    if( TMath::Abs( fgTransform.GetCurrentTimeStamp() - eventTimeStamp )>60 && 
+	TMath::Abs( currentTime - eventTimeStamp)>60*60*5 ){
+      int err = fgTransform.SetCurrentTimeStamp( eventTimeStamp );
+      if( err!=0 ){
+	HLTError(Form("Cannot set time stamp, AliHLTTPCClusterTransformation returns %d",err));
+	return -ENOENT;
+      }
+    }
+    fgTimeInitialisedFromEvent = 1;
+  }
+
+ for( unsigned long ndx=0; ndx<evtData.fBlockCnt; ndx++ ){
      
     const AliHLTComponentBlockData *iter   = blocks+ndx;
     
@@ -272,7 +293,11 @@ int AliHLTTPCHWClusterTransformComponent::DoEvent(const AliHLTComponentEventData
 	 c.SetQMax(cl.GetQMax());
 
 	 Float_t xyz[3];
-	 fTransform.Transform( minSlice, padrow, pad, time, xyz );
+	 int err = fgTransform.Transform( minSlice, padrow, pad, time, xyz );	 
+	 if( err!=0 ){
+	   HLTWarning(Form("Cannot transform the cluster, AliHLTTPCClusterTransformation returns error %d, %s",err, fgTransform.GetLastError()));
+	   continue;
+	 }
 	 c.SetX(xyz[0]);
 	 c.SetY(xyz[1]);
 	 c.SetZ(xyz[2]);
@@ -467,10 +492,13 @@ void AliHLTTPCHWClusterTransformComponent::GetOCDBObjectDescription( TMap* const
   // OCDB entries to be fetched by the TAXI (access via the AliTPCcalibDB class)
   targetMap->Add(new TObjString("TPC/Calib/Parameters"),    new TObjString("unknown content"));
   targetMap->Add(new TObjString("TPC/Calib/TimeDrift"),     new TObjString("drift velocity calibration"));
+  targetMap->Add(new TObjString("TPC/Calib/TimeGain"),     new TObjString("time gain  calibration"));
   targetMap->Add(new TObjString("TPC/Calib/Temperature"),   new TObjString("temperature map"));
   targetMap->Add(new TObjString("TPC/Calib/PadGainFactor"), new TObjString("gain factor pad by pad"));
   targetMap->Add(new TObjString("TPC/Calib/ClusterParam"),  new TObjString("cluster parameters"));
-  
+  targetMap->Add(new TObjString("TPC/Calib/Correction"),  new TObjString("coreection"));
+  targetMap->Add(new TObjString("TPC/Calib/RecoParam"),  new TObjString("reconstruction parameters"));
+ 
   // OCDB entries needed to be fetched by the Pendolino
   targetMap->Add(new TObjString("TPC/Calib/AltroConfig"), new TObjString("contains the altro config, e.g. info about the L0 trigger timing"));
   targetMap->Add(new TObjString("GRP/CTP/CTPtiming"),     new TObjString("content used in the cluster coordinate transformation in relation to the L0 trigger timing"));
@@ -479,6 +507,8 @@ void AliHLTTPCHWClusterTransformComponent::GetOCDBObjectDescription( TMap* const
   targetMap->Add(new TObjString("GRP/GRP/Data"), new TObjString("contains magnetic field info"));  
  
   // OCDB entries needed to suppress fatals/errors/warnings during reconstruction
+  targetMap->Add(new TObjString("TPC/Calib/Distortion"),  new TObjString("distortion map"));
+  targetMap->Add(new TObjString("TPC/Calib/GainFactorDedx"), new TObjString("gain factor dedx"));
   targetMap->Add(new TObjString("TPC/Calib/PadTime0"),    new TObjString("time0 offset pad by pad"));
   targetMap->Add(new TObjString("TPC/Calib/PadNoise"),    new TObjString("pad noise values"));
   targetMap->Add(new TObjString("TPC/Calib/Pedestals"),   new TObjString("pedestal info"));

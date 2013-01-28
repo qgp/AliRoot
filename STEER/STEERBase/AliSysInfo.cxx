@@ -82,7 +82,7 @@
 
 
 #include <Riostream.h>
-#include "AliLog.h"
+//#include "AliLog.h"
 #include "TStopwatch.h"
 #include "TSystem.h"
 #include "TTree.h"
@@ -95,6 +95,10 @@
 //#include "TMemStatManager.h"  //USE IFDEF
 
 
+using std::endl;
+using std::cout;
+using std::ios_base;
+using std::setprecision;
 ClassImp(AliSysInfo)
 
 AliSysInfo* AliSysInfo::fInstance=0;
@@ -118,6 +122,7 @@ AliSysInfo::AliSysInfo():
                <<"id0"<<"/I:"                // 0 id
                <<"id1"<<"/I:"                // 1 id
                <<"id2"<<"/I:"                // 1 id
+               <<"id3"<<"/I:"                // 1 id
                <<"first"<<"/D:"              // first stamp
     //
 	       <<"stampSec"<<"/D:"         // time  - time stamp in seconds
@@ -125,6 +130,9 @@ AliSysInfo::AliSysInfo():
 	       <<"mi.fSwapUsed"<<"/D:"      //
 	       <<"cI.fUser"<<"/D:"         //
 	       <<"cI.fSys"<<"/D:"         //
+	       <<"cI.fLoad1m"<<"/D:"         //
+	       <<"cI.fLoad5m"<<"/D:"         //
+	       <<"cI.fLoad15m"<<"/D:"         //
     // 
 	       <<"pI.fMemResident"<<"/D:"  // process info
 	       <<"pI.fMemVirtual"<<"/D:"   //    
@@ -164,7 +172,7 @@ AliSysInfo * AliSysInfo::Instance(){
 }
 
 
-void AliSysInfo::AddStamp(const char *sname, Int_t id0, Int_t id1, Int_t id2){
+void AliSysInfo::AddStamp(const char *sname, Int_t id0, Int_t id1, Int_t id2, Int_t id3){
   //
   // 
   //
@@ -200,6 +208,7 @@ void AliSysInfo::AddStamp(const char *sname, Int_t id0, Int_t id1, Int_t id2){
     << id0      <<"\t"
     << id1      <<"\t"
     << id2      <<"\t"
+    << id3      <<"\t"
     <<setprecision(15)<< first    <<"\t"              // first stamp               
     //
     <<setprecision(15)<< stamp.GetSec()+stamp.GetNanoSec()/1000000000.<<"\t"         // time  - time stamp in seconds
@@ -207,6 +216,9 @@ void AliSysInfo::AddStamp(const char *sname, Int_t id0, Int_t id1, Int_t id2){
     << memInfo.fSwapUsed<<"\t"      //
     << cpuInfo.fUser <<"\t"         //
     << cpuInfo.fSys  <<"\t"         //
+    << cpuInfo.fLoad1m  <<"\t"         //
+    << cpuInfo.fLoad5m  <<"\t"         //
+    << cpuInfo.fLoad15m  <<"\t"         //
     // 
     <<setprecision(15)<< procInfo.fMemResident/1024.<<"\t"  // process info
     <<setprecision(15)<< procInfo.fMemVirtual/1024.<<"\t"   //    

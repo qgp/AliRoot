@@ -1,6 +1,6 @@
 // $Id$
 //**************************************************************************
-//* This file is property of and copyright by the ALICE HLT Project        * 
+//* This file is property of and copyright by the                          * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //*                                                                        *
 //* Primary Authors: Matthias Richter <Matthias.Richter@ift.uib.no>        *
@@ -15,15 +15,11 @@
 //* provided "as is" without express or implied warranty.                  *
 //**************************************************************************
 
-/** @file   AliHLTSystem.cxx
-    @author Matthias Richter
-    @date   
-    @brief  Implementation of HLT module management.
-*/
-
-#if __GNUC__>= 3
-using namespace std;
-#endif
+/// @file   AliHLTSystem.cxx
+/// @author Matthias Richter
+/// @date   
+/// @brief  Implementation of HLT module management.
+///
 
 #include <cassert>
 #include "AliHLTStdIncludes.h"
@@ -824,7 +820,7 @@ int AliHLTSystem::Reconstruct(int nofEvents, AliRunLoader* runLoader,
       } else {
       if ((iResult=AliHLTOfflineInterface::SetParamsToComponents(runLoader, rawReader))>=0) {
 	AliHLTUInt64_t trgMask=0x1;
-	AliHLTUInt32_t timestamp=0;
+	AliHLTUInt32_t timestamp=kMaxUInt;
 	AliHLTUInt32_t eventtype=0;
 	if (runLoader==NULL) {
 	  // this is a quick workaround for the case of simulation

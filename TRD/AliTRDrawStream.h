@@ -26,6 +26,7 @@ class AliTRDdigitsParam;
 class AliTRDarrayADC;
 class AliTRDSignalIndex;
 class AliTRDtrackletContainer;
+class AliESDTrdTrack;
 
 class AliTRDrawStream : public TObject
 {
@@ -71,6 +72,7 @@ class AliTRDrawStream : public TObject
     kNonTrdEq,
     kStackHeaderInvalid,
     kInvalidDetector,
+    kInvalidPadRow,
     kNoDigits,
     kHCmismatch,
     kHCcheckFailed,
@@ -90,9 +92,10 @@ class AliTRDrawStream : public TObject
 
   enum ErrorBehav_t {
     kTolerate = 0,
-    kAbort = 1,
-    kDiscardMCM = 2,
-    kDiscardHC = 4
+    kDiscardMCM = 1,
+    kDiscardHC = 2,
+    kDiscardDDL = 4,
+    kAbort = 8
   };
 
   enum MarkerCode_t {
@@ -158,11 +161,18 @@ class AliTRDrawStream : public TObject
 
   AliTRDrawStats* GetStats() { return &fStats; }
   Int_t GetEventSize(Int_t sector)  const { return fStats.fStatsSector[sector].fBytes; }
+  Int_t GetEventSize(Int_t sector, Int_t stack)  const {
+    Int_t size = 0;
+    for (Int_t iHC = 0; iHC < 12; iHC++) {
+      size += fStats.fStatsSector[sector].fStatsHC[12*stack + iHC].fBytes;
+    }
+    return size;
+  }
   Int_t GetNTracklets(Int_t sector) const { return fStats.fStatsSector[sector].fNTracklets; }
   Int_t GetNMCMs(Int_t sector)      const { return fStats.fStatsSector[sector].fNMCMs; }
   Int_t GetNChannels(Int_t sector)  const { return fStats.fStatsSector[sector].fNChannels; }
 
-  ULong64_t GetTrkFlags(Int_t sector, Int_t stack) const { return fCurrTrkFlags[sector*fgkNstacks + stack]; }
+  ULong64_t GetTrkFlags(Int_t sector, Int_t stack) const { return (fCurrTrgFlags[sector] & (1 << (27 + stack))) ? fCurrTrkFlags[sector*fgkNstacks + stack] : 0; }
   UInt_t GetTriggerFlags(Int_t sector) const { return fCurrTrgFlags[sector]; }
 
   // raw data dumping
@@ -176,6 +186,7 @@ class AliTRDrawStream : public TObject
   TString DumpAdcMask(TString title, UInt_t word);
 
   static void SortTracklets(TClonesArray *trklArray, TList &sortedTracklets, Int_t *indices);
+  static void AssignTracklets(AliESDTrdTrack *trdTrack, Int_t *trackletIndex, Int_t refIndex[6]);
 
   // temporary: allow to change expected readout order
   static void SetMCMReadoutPos(Int_t mcm, Int_t pos) { if (mcm > -1 && mcm < 16) fgMcmOrder[mcm] = pos; }

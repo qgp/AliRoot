@@ -43,7 +43,7 @@ AliHLTRawReaderPublisherComponent::AliHLTRawReaderPublisherComponent()
   fSpecification(kAliHLTVoidDataSpec),
   fSkipEmpty(kFALSE)
 {
-  // contructor
+  // constructor
 }
 
 AliHLTRawReaderPublisherComponent::~AliHLTRawReaderPublisherComponent()
@@ -95,7 +95,7 @@ int AliHLTRawReaderPublisherComponent::DoInit( int argc, const char** argv )
     if (fMinEquId<0) fMinEquId=ddloffset;
     else fMinEquId+=ddloffset;
 
-    if (fMaxEquId<0 || fMaxEquId>ddlcount) fMaxEquId=ddloffset+ddlcount;
+    if (fMaxEquId<0 || fMaxEquId>ddlcount) fMaxEquId=ddloffset+ddlcount-1;
     else fMaxEquId+=ddloffset;
   }
 

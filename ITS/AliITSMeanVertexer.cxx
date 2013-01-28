@@ -49,6 +49,7 @@ fClu0(NULL),
 fIndex(0),
 fErrXCut(0.),
 fRCut(0.),
+fZCutDiamond(0.),
 fLowSPD0(0),
 fHighSPD0(0),
 fMultH(NULL),
@@ -60,6 +61,7 @@ fContrH(NULL),
 fContrHa(NULL)
 {
   // Default Constructor
+  SetZFiducialRegion();   //  sets fZCutDiamond to its default value
   Reset(kFALSE,kFALSE);
 
   // Histograms initialization
@@ -179,7 +181,7 @@ Bool_t AliITSMeanVertexer::Init() {
     fVertexer = new AliITSVertexer3D();
     fVertexer->SetDetTypeRec(fDetTypeRec);
     AliITSVertexer3D* alias = (AliITSVertexer3D*)fVertexer;
-    alias->SetWideFiducialRegion(40.,0.5);
+    alias->SetWideFiducialRegion(fZCutDiamond,0.5);
     alias->SetNarrowFiducialRegion(0.5,0.5);
     alias->SetDeltaPhiCuts(0.5,0.025);
     alias->SetDCACut(0.1);
@@ -280,11 +282,16 @@ void AliITSMeanVertexer::WriteVertices(const char *filename){
       cov[3] =  fAverPosSq[0][2];  // cov xz
       cov[4] =  fAverPosSq[1][2];  // cov yz
       cov[5] =  fAverPosSq[2][2];  // variance z
-      AliMeanVertex mv(fWeighPos,fWeighSig,cov,fNoEventsContr,0,0.,0.);
+      // We use standard average and not weighed averag now
+      // AliMeanVertex is apparently not taken by the preprocessor; only
+      // the AliESDVertex object is retrieved
+      //      AliMeanVertex mv(fWeighPos,fWeighSig,cov,fNoEventsContr,0,0.,0.);
+      AliMeanVertex mv(fAverPos,fWeighSig,cov,fNoEventsContr,0,0.,0.);
       mv.SetTitle("Mean Vertex");
       mv.SetName("MeanVertex");
       // we have to add chi2 here
-      AliESDVertex vtx(fWeighPos,cov,0,TMath::Nint(fAverContributors),"MeanVertexPos");
+      //      AliESDVertex vtx(fWeighPos,cov,0,TMath::Nint(fAverContributors),"MeanVertexPos");
+      AliESDVertex vtx(fAverPos,cov,0,TMath::Nint(fAverContributors),"MeanVertexPos");
 
       mv.Write(mv.GetName(),TObject::kOverwrite);
       vtx.Write(vtx.GetName(),TObject::kOverwrite);

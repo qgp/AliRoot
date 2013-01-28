@@ -40,7 +40,7 @@ class AliESDEvent;
 class AliKalmanTrack;
 class AliTrackPointArray;
 class TPolyMarker3D;
-
+class AliDetectorPID;
 
 class AliESDtrack : public AliExternalTrackParam {
 public:
@@ -169,7 +169,7 @@ public:
 
   Double_t GetITSsignal() const {return fITSsignal;}
   void    SetITSdEdxSamples(const Double_t s[4]);
-  void    GetITSdEdxSamples(Double_t *s) const;
+  void    GetITSdEdxSamples(Double_t s[4]) const;
 
   Double_t GetITSchi2() const {return fITSchi2;}
   Double_t GetITSchi2Std(Int_t step) const {return (step>-1&&step<kNITSchi2Std) ? fITSchi2Std[step] : -1;}
@@ -218,10 +218,14 @@ public:
   void    SetTPCsignal(Float_t signal, Float_t sigma, UChar_t npoints){ 
      fTPCsignal = signal; fTPCsignalS = sigma; fTPCsignalN = npoints;
   }
+  void    SetTPCsignalTunedOnData(Float_t signal){
+      fTPCsignalTuned = signal;
+  }
   void  SetTPCdEdxInfo(AliTPCdEdxInfo * dEdxInfo); 
 
   AliTPCdEdxInfo * GetTPCdEdxInfo() const {return fTPCdEdxInfo;}
   Double_t GetTPCsignal() const {return fTPCsignal;}
+  Double_t GetTPCsignalTunedOnData() const {return fTPCsignalTuned;}
   Double_t GetTPCsignalSigma() const {return fTPCsignalS;}
   UShort_t GetTPCsignalN() const {return fTPCsignalN;}
   Double_t GetTPCmomentum() const {return fIp?fIp->GetP():GetP();}
@@ -233,9 +237,11 @@ public:
   Int_t   GetKinkIndex(Int_t i) const { return fKinkIndexes[i];}
   Int_t   GetV0Index(Int_t i) const { return fV0Indexes[i];}
   const TBits& GetTPCFitMap() const {return fTPCFitMap;}
+  const TBits* GetTPCFitMapPtr() const {return &fTPCFitMap;}
   const TBits& GetTPCClusterMap() const {return fTPCClusterMap;}
   const TBits* GetTPCClusterMapPtr() const {return &fTPCClusterMap;}
   const TBits& GetTPCSharedMap() const {return fTPCSharedMap;}
+  const TBits* GetTPCSharedMapPtr() const {return &fTPCSharedMap;}
   void    SetTPCFitMap(const TBits &amap) {fTPCFitMap = amap;}
   void    SetTPCClusterMap(const TBits &amap) {fTPCClusterMap = amap;}
   void    SetTPCSharedMap(const TBits &amap) {fTPCSharedMap = amap;}
@@ -391,7 +397,12 @@ public:
   }
   virtual void Print(Option_t * opt) const ;
   const AliESDEvent* GetESDEvent() const {return fESDEvent;}
-  void         SetESDEvent(const AliESDEvent* evt) {fESDEvent = evt;}  
+  void         SetESDEvent(const AliESDEvent* evt) {fESDEvent = evt;}
+
+  // Trasient PID object, is owned by the track
+  virtual void  SetDetectorPID(const AliDetectorPID *pid);
+  virtual const AliDetectorPID* GetDetectorPID() const { return fDetectorPID; }
+  
   //
   // visualization (M. Ivanov)
   //
@@ -477,6 +488,7 @@ protected:
   Double32_t  fITSdEdxSamples[4]; // [0.,0.,10] ITS dE/dx samples
 
   Double32_t  fTPCsignal;        // [0.,0.,10] detector's PID signal
+  Double32_t  fTPCsignalTuned;   //! [0.,0.,10] detector's PID signal tuned on data when using MC
   Double32_t  fTPCsignalS;       // [0.,0.,10] RMS of dEdx measurement
   AliTPCdEdxInfo * fTPCdEdxInfo; // object containing dE/dx information for different pad regions
   Double32_t  fTPCPoints[4];     // [0.,0.,10] TPC points -first, max. dens, last and max density
@@ -529,6 +541,8 @@ protected:
   mutable Float_t fCacheChi2TPCConstrainedVsGlobal; //! Cache for the chi2 of constrained TPC vs global track
   mutable const AliESDVertex* fCacheChi2TPCConstrainedVsGlobalVertex; //! Vertex for which the cache is valid
 
+  mutable const AliDetectorPID* fDetectorPID; //! transient object to cache PID information
+
   Double_t fTrackPhiOnEMCal;   // phi of track after being propagated to 430cm
   Double_t fTrackEtaOnEMCal;   // eta of track after being propagated to 430cm
   
@@ -536,7 +550,7 @@ protected:
   static bool fgkOnlineMode; //! indicate the online mode to skip some of the functionality
 
   AliESDtrack & operator=(const AliESDtrack & );
-  ClassDef(AliESDtrack,65)  //ESDtrack 
+  ClassDef(AliESDtrack,66)  //ESDtrack 
 };
 
 

@@ -26,6 +26,7 @@
 #include "AliExternalTrackParam.h"
 #include "AliVVertex.h"
 #include "AliAODTrack.h"
+#include "AliDetectorPID.h"
 #include "AliAODEvent.h"
 
 ClassImp(AliAODTrack)
@@ -46,15 +47,18 @@ AliAODTrack::AliAODTrack() :
   fTPCClusterMap(),
   fTPCSharedMap(),
   fTPCnclsF(0),
+  fTPCNCrossedRows(0),
   fID(-999),
   fCharge(-99),
   fType(kUndef),
   fCaloIndex(kEMCALNoMatch),
   fCovMatrix(NULL),
   fDetPid(NULL),
+  fDetectorPID(NULL),
   fProdVertex(NULL),
   fTrackPhiOnEMCal(-999),
   fTrackEtaOnEMCal(-999),
+  fTPCsignalTuned(0),
   fAODEvent(NULL)
 {
   // default constructor
@@ -97,15 +101,18 @@ AliAODTrack::AliAODTrack(Short_t id,
   fTPCClusterMap(),
   fTPCSharedMap(),
   fTPCnclsF(0),
+  fTPCNCrossedRows(0),
   fID(id),
   fCharge(charge),
   fType(ttype),
   fCaloIndex(kEMCALNoMatch),
   fCovMatrix(NULL),
   fDetPid(NULL),
+  fDetectorPID(NULL),
   fProdVertex(prodVertex),
   fTrackPhiOnEMCal(-999),
   fTrackEtaOnEMCal(-999),
+  fTPCsignalTuned(0),
   fAODEvent(NULL)
 {
   // constructor
@@ -152,15 +159,18 @@ AliAODTrack::AliAODTrack(Short_t id,
   fTPCClusterMap(),
   fTPCSharedMap(),
   fTPCnclsF(0),
+  fTPCNCrossedRows(0),
   fID(id),
   fCharge(charge),
   fType(ttype),
   fCaloIndex(kEMCALNoMatch),
   fCovMatrix(NULL),
   fDetPid(NULL),
+  fDetectorPID(NULL),
   fProdVertex(prodVertex),
   fTrackPhiOnEMCal(-999),
   fTrackEtaOnEMCal(-999),
+  fTPCsignalTuned(0),
   fAODEvent(NULL)
 {
   // constructor
@@ -182,6 +192,7 @@ AliAODTrack::~AliAODTrack()
   // destructor
   delete fCovMatrix;
   delete fDetPid;
+  delete fDetectorPID;
 }
 
 
@@ -201,15 +212,18 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   fTPCClusterMap(trk.fTPCClusterMap),
   fTPCSharedMap(trk.fTPCSharedMap),
   fTPCnclsF(trk.fTPCnclsF),
+  fTPCNCrossedRows(trk.fTPCNCrossedRows),
   fID(trk.fID),
   fCharge(trk.fCharge),
   fType(trk.fType),
   fCaloIndex(trk.fCaloIndex),
   fCovMatrix(NULL),
   fDetPid(NULL),
+  fDetectorPID(NULL),
   fProdVertex(trk.fProdVertex),
   fTrackPhiOnEMCal(trk.fTrackPhiOnEMCal),
   fTrackEtaOnEMCal(trk.fTrackEtaOnEMCal),
+  fTPCsignalTuned(trk.fTPCsignalTuned),
   fAODEvent(trk.fAODEvent)
 {
   // Copy constructor
@@ -223,6 +237,7 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   if(trk.fCovMatrix) fCovMatrix=new AliAODRedCov<6>(*trk.fCovMatrix);
   if(trk.fDetPid) fDetPid=new AliAODPid(*trk.fDetPid);
   SetPID(trk.fPID);
+  if (trk.fDetectorPID) fDetectorPID = new AliDetectorPID(*trk.fDetectorPID);
 }
 
 //______________________________________________________________________________
@@ -251,12 +266,14 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     fTPCClusterMap     = trk.fTPCClusterMap;
     fTPCSharedMap      = trk.fTPCSharedMap;
     fTPCnclsF          = trk.fTPCnclsF;
+    fTPCNCrossedRows   = trk.fTPCNCrossedRows;
     fID                = trk.fID;
     fCharge            = trk.fCharge;
     fType              = trk.fType;
     fCaloIndex         = trk.fCaloIndex;
     fTrackPhiOnEMCal   = trk.fTrackPhiOnEMCal;
     fTrackEtaOnEMCal   = trk.fTrackEtaOnEMCal;
+    fTPCsignalTuned    = trk.fTPCsignalTuned;
 
     delete fCovMatrix;
     if(trk.fCovMatrix) fCovMatrix=new AliAODRedCov<6>(*trk.fCovMatrix);
@@ -267,11 +284,15 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     SetUsedForVtxFit(trk.GetUsedForVtxFit());
     SetUsedForPrimVtxFit(trk.GetUsedForPrimVtxFit());
 
+    //detector raw signals
     delete fDetPid;
     if(trk.fDetPid) fDetPid=new AliAODPid(*trk.fDetPid);
     else fDetPid=NULL;
 
-
+    //calibrated PID cache
+    delete fDetectorPID;
+    fDetectorPID=0x0;
+    if (trk.fDetectorPID) fDetectorPID = new AliDetectorPID(*trk.fDetectorPID);
   }
 
   return *this;
@@ -421,7 +442,7 @@ void AliAODTrack::ConvertAliPIDtoAODPID()
 
 
 //______________________________________________________________________________
-template <class T> void AliAODTrack::SetP(const T *p, const Bool_t cartesian) 
+template <typename T> void AliAODTrack::SetP(const T *p, const Bool_t cartesian) 
 {
   // Set the momentum
 
@@ -445,8 +466,9 @@ template <class T> void AliAODTrack::SetP(const T *p, const Bool_t cartesian)
   }
 }
 
+/*
 //______________________________________________________________________________
-template <class T> void AliAODTrack::SetPosition(const T *x, const Bool_t dca) 
+template <typename T> void AliAODTrack::SetPosition(const T *x, const Bool_t dca) 
 {
   // set the position
 
@@ -472,7 +494,7 @@ template <class T> void AliAODTrack::SetPosition(const T *x, const Bool_t dca)
     fPosition[2] = -999.;
   }
 }
-
+*/
 //______________________________________________________________________________
 void AliAODTrack::SetDCA(Double_t d, Double_t z) 
 {
@@ -714,7 +736,7 @@ Double_t AliAODTrack::GetTRDmomentum(Int_t plane, Double_t */*sp*/) const
   // in TRD layer "plane".
 
   if (!fDetPid) return -1;
-  const Float_t *trdMomentum=fDetPid->GetTRDmomentum();
+  const Double_t *trdMomentum=fDetPid->GetTRDmomentum();
 
   if (!trdMomentum) {
     return -1.;
@@ -760,6 +782,16 @@ Int_t AliAODTrack::GetTOFBunchCrossing(Double_t b, Bool_t) const
   }
   bcid = TMath::Nint((tdif - kShift)/kSpacing);
   return bcid;
+}
+
+void AliAODTrack::SetDetectorPID(const AliDetectorPID *pid)
+{
+  //
+  // Set the detector PID
+  //
+  if (fDetectorPID) delete fDetectorPID;
+  fDetectorPID=pid;
+  
 }
 
 //_____________________________________________________________________________
@@ -836,4 +868,10 @@ Bool_t AliAODTrack::GetXYZAt(Double_t x, Double_t b, Double_t *r) const
 }
 
 
-
+//_______________________________________________________
+void  AliAODTrack::GetITSdEdxSamples(Double_t s[4]) const
+{
+  // get ITS dedx samples
+  if (!fDetPid) for (int i=4;i--;) s[i]=0;
+  else          for (int i=4;i--;) s[i] = fDetPid->GetITSdEdxSample(i);
+}

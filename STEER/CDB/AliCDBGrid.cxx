@@ -49,6 +49,7 @@ fGridUrl(gridUrl),
 fUser(user),
 fDBFolder(dbFolder),
 fSE(se),
+fMirrorSEs(""),
 fCacheFolder(cacheFolder),
 fOperateDisconnected(operateDisconnected),
 fCacheSize(cacheSize),
@@ -462,7 +463,10 @@ AliCDBId* AliCDBGrid::GetEntryId(const AliCDBId& queryId) {
 						validFileIds.AddLast(validFileId.Clone());
 			}
 			delete res;
-		}	
+		}else{
+		    return 0; // this should be only in case of file catalogue glitch
+		}
+
 		dataId = GetId(validFileIds, selectedId);
 	}
 
@@ -709,8 +713,8 @@ TList* AliCDBGrid::GetEntries(const AliCDBId& queryId) {
 }
 
 //_____________________________________________________________________________
-Bool_t AliCDBGrid::PutEntry(AliCDBEntry* entry) {
-// put an AliCDBEntry object into the database
+Bool_t AliCDBGrid::PutEntry(AliCDBEntry* entry, const char* mirrors) {
+	// put an AliCDBEntry object into the database
 
 	AliCDBId& id = entry->GetId();
 
@@ -725,57 +729,114 @@ Bool_t AliCDBGrid::PutEntry(AliCDBEntry* entry) {
 	}
 
 	TString folderToTag = Form("%s%s",
-					fDBFolder.Data(),
-					id.GetPath().Data());
+			fDBFolder.Data(),
+			id.GetPath().Data());
 
 	TDirectory* saveDir = gDirectory;
 
 	TString fullFilename = Form("/alien%s", filename.Data());
+	TString seMirrors(mirrors);
+	if(seMirrors.IsNull() || seMirrors.IsWhitespace()) seMirrors=GetMirrorSEs();
 	// specify SE to filename
-	if (fSE != "default") fullFilename += Form("?se=%s",fSE.Data());
+	// if a list of SEs was passed to this method or set via SetMirrorSEs, set the first as SE for opening the file.
+	// The other SEs will be used in cascade in case of failure in opening the file.
+	// The remaining SEs will be used to create replicas.
+	TObjArray *arraySEs = seMirrors.Tokenize(',');
+	Int_t nSEs = arraySEs->GetEntries();
+	Int_t remainingSEs = 1;
+	if(nSEs == 0){
+		if (fSE != "default") fullFilename += Form("?se=%s",fSE.Data());
+	}else{
+		remainingSEs = nSEs;
+	}
 
-	Int_t nsleep = fInitRetrySeconds;
 	// open file
 	TFile *file=0;
 	AliDebug(2, Form("fNretry = %d, fInitRetrySeconds = %d",fNretry,fInitRetrySeconds));
-	for(Int_t i=0; i<=fNretry; ++i) {
-		AliDebug(2, Form("Putting the file in the OCDB: Retry n. %d",i));
-		file = TFile::Open(fullFilename,"CREATE");
-		if(!file || !file->IsWritable()){
-			AliError(Form("Can't open file <%s>!", filename.Data()));
-			if(file && !file->IsWritable()) file->Close(); delete file; file=0;
-			if(i==fNretry) {
-				AliError(Form("After %d retries, failing putting the object in the OCDB - returning...",i));
-				return kFALSE;
+	TString targetSE("");
+
+	Bool_t result = kFALSE;
+	Bool_t reOpenResult = kFALSE;
+	Int_t reOpenAttempts=0;
+	while( !reOpenResult && reOpenAttempts<2){ //loop to check the file after closing it, to catch the unlikely but possible case when the file
+		// is cleaned up by alien just before closing as a consequence of a network disconnection while writing
+
+		while( !file && remainingSEs>0){
+			if(nSEs!=0){
+				TObjString *target = (TObjString*) arraySEs->At(nSEs-remainingSEs);
+				targetSE=target->String();
+				if ( !(targetSE.BeginsWith("ALICE::") && targetSE.CountChar(':')==4) ) {
+					AliError(Form("\"%s\" is an invalid storage element identifier.",targetSE.Data()));
+					continue;
+				}
+				if(fullFilename.Contains('?')) fullFilename.Remove(fullFilename.Last('?'));
+				fullFilename += Form("?se=%s",targetSE.Data());
 			}
-			else {
-				AliDebug(2,Form("Retry %d failed, sleeping for %d seconds",i,nsleep));
-				sleep(nsleep);
+			Int_t remainingAttempts=fNretry;
+			Int_t nsleep = fInitRetrySeconds; // number of seconds between attempts. We let it increase exponentially
+			AliDebug(2, Form("Uploading file into SE #%d: %s",nSEs-remainingSEs+1,targetSE.Data()));
+			while(remainingAttempts > 0) {
+				AliDebug(2, Form("Uploading file into OCDB at %s - Attempt #%d",targetSE.Data(),fNretry-remainingAttempts+1));
+				remainingAttempts--;
+				file = TFile::Open(fullFilename,"CREATE");
+				if(!file || !file->IsWritable()){
+					if(file) file->Close(); delete file; file=0; // file is not writable
+					TString message(TString::Format("Attempt %d failed.",fNretry-remainingAttempts));
+					if(remainingAttempts>0) {
+						message += " Sleeping for "; message += nsleep; message += " seconds";
+					}else{
+						if(remainingSEs>0) message += " Trying to upload at next SE";
+					}
+					AliDebug(2, message.Data());
+					if(remainingAttempts>0) sleep(nsleep);
+				}else{
+					remainingAttempts=0;
+				}
+				nsleep*=fInitRetrySeconds;
 			}
-		} 
-		else {
-			AliDebug(2, " Successful!");
-			break;
+			remainingSEs--;
 		}
-		nsleep*=fInitRetrySeconds;
+		if(!file){
+			AliError(Form("All %d attempts have failed on all %d SEs. Returning...",fNretry,nSEs));
+			return kFALSE;
+		}
+
+		file->cd();
+
+		//SetTreeToFile(entry, file);
+		entry->SetVersion(id.GetVersion());
+
+		// write object (key name: "AliCDBEntry")
+		result = (file->WriteTObject(entry, "AliCDBEntry") != 0);
+		if (!result) AliError(Form("Can't write entry to file <%s>!", filename.Data()));
+		file->Close();
+
+		if(result)
+		{
+			AliDebug(2, Form("Reopening file %s for checking its correctness",fullFilename.Data()));
+			TFile* ffile = TFile::Open(fullFilename.Data(),"READ");
+			if(!ffile){
+				reOpenResult = kFALSE;
+				AliInfo(Form("The file %s was closed successfully but cannot be reopened. Trying now to regenerate it (regeneration attempt number %d)",
+							fullFilename.Data(),++reOpenAttempts));
+				delete file; file=0;
+				AliDebug(2, Form("Removing file %s", filename.Data()));
+				if(!gGrid->Rm(filename.Data()))
+					AliError("Can't delete file!");
+				remainingSEs++;
+			}else{
+				reOpenResult = kTRUE;
+				ffile->Close();
+			}
+			delete ffile; ffile=0;
+		}
 	}
 
-	file->cd();
-
-	//SetTreeToFile(entry, file);
-
-	entry->SetVersion(id.GetVersion());
-
-	// write object (key name: "AliCDBEntry")
-	Bool_t result = (file->WriteTObject(entry, "AliCDBEntry") != 0);
-	if (!result) AliError(Form("Can't write entry to file <%s>!", filename.Data()));
-
-
 	if (saveDir) saveDir->cd(); else gROOT->cd();
-	file->Close(); delete file; file=0;
+	delete file; file=0;
 
-	if(result) {
-	
+	if(result && reOpenResult) {
+
 		if(!TagFileId(filename, &id)){
 			AliInfo(Form("CDB tagging failed. Deleting file %s!",filename.Data()));
 			if(!gGrid->Rm(filename.Data()))
@@ -784,12 +845,37 @@ Bool_t AliCDBGrid::PutEntry(AliCDBEntry* entry) {
 		}
 
 		TagFileMetaData(filename, entry->GetMetaData());
+	}else{
+		AliError("The file could not be opend or the object could not be written");
+		if(!gGrid->Rm(filename.Data()))
+			AliError("Can't delete file!");
+		return kFALSE;
 	}
 
 	AliInfo(Form("CDB object stored into file %s", filename.Data()));
-	AliInfo(Form("Storage Element: %s", fSE.Data()));
-	return result;
+	if(nSEs==0)
+		AliInfo(Form("Storage Element: %s", fSE.Data()));
+	else
+		AliInfo(Form("Storage Element: %s", targetSE.Data()));
+
+	//In case of other SEs specified by the user, mirror the file to the remaining SEs
+	for(Int_t i=0; i<nSEs; i++){
+		if(i==nSEs-remainingSEs-1) continue; // skip mirroring to the SE where the file was saved
+		TString mirrorCmd("mirror ");
+		mirrorCmd += filename;
+		mirrorCmd += " ";
+		TObjString *target = (TObjString*) arraySEs->At(i);
+		TString mirrorSE(target->String());
+		mirrorCmd += mirrorSE;
+		AliDebug(5,Form("mirror command: \"%s\"",mirrorCmd.Data()));
+		AliInfo(Form("Mirroring to storage element: %s", mirrorSE.Data()));
+		gGrid->Command(mirrorCmd.Data());
+	}
+	arraySEs->Delete(); arraySEs=0;
+
+	return kTRUE;
 }
+
 //_____________________________________________________________________________
 Bool_t AliCDBGrid::AddTag(TString& folderToTag, const char* tagname){
 // add "tagname" tag (CDB or CDB_MD) to folder where object will be stored

@@ -13,6 +13,7 @@
 //-------------------------------------------------------
 #include <Rtypes.h>
 #include "AliESDtrack.h" // Needed for inline functions
+#include "AliMCEventHandler.h"
 
 //#include "HMPID/AliHMPID.h"
 //#include "TRD/AliTRDpidESD.h"
@@ -25,7 +26,9 @@ class AliVParticle;
 
 class AliESDpid : public AliPIDResponse  {
 public:
-  AliESDpid(Bool_t forMC=kFALSE): AliPIDResponse(forMC), fRangeTOFMismatch(5.) {;}
+  AliESDpid(Bool_t forMC=kFALSE): AliPIDResponse(forMC), fRangeTOFMismatch(5.), fEventHandler(NULL) {;}
+AliESDpid(const AliESDpid&a): AliPIDResponse(a), fRangeTOFMismatch(a.fRangeTOFMismatch), fEventHandler(NULL){;};
+    AliESDpid& operator=(const AliESDpid& a){AliPIDResponse::operator=(a); fRangeTOFMismatch=a.fRangeTOFMismatch; fEventHandler=NULL; return *this;};
   virtual ~AliESDpid() {}
   
   Int_t MakePID(AliESDEvent *event, Bool_t TPCOnly = kFALSE, Float_t timeZeroTOF=9999) const;
@@ -36,26 +39,27 @@ public:
   //  void MakeHMPIDPID(AliESDtrack *track);
   void MakeTRDPID(AliESDtrack *track) const;
   void CombinePID(AliESDtrack *track) const;
-  
-  virtual Float_t NumberOfSigmasTOF(const AliVParticle *vtrack, AliPID::EParticleType type, const Float_t timeZeroTOF) const;
-  virtual Float_t NumberOfSigmasTOF(const AliVParticle *vtrack, AliPID::EParticleType type) const {return NumberOfSigmasTOF(vtrack,type,0); }
+
+//   Float_t NumberOfSigmasTOF(const AliVParticle *track, AliPID::EParticleType type) const {return AliPIDResponse::NumberOfSigmasTOF(track,type);}
+//   Float_t GetNumberOfSigmasTOF(const AliVParticle *track, AliPID::EParticleType type, const Float_t timeZeroTOF) const;
   
   void SetNMaxSigmaTOFTPCMismatch(Float_t range) {fRangeTOFMismatch=range;}
   Float_t GetNMaxSigmaTOFTPCMismatch() const {return fRangeTOFMismatch;}
 
-private:
-  Float_t           fRangeTOFMismatch; // nSigma max for TOF matching with TPC
+  Float_t GetTPCsignalTunedOnData(const AliVTrack *t) const;
 
-  ClassDef(AliESDpid,6)  // PID calculation class
+  void SetEventHandler(AliVEventHandler *event){fEventHandler=event;};
+protected:
+  virtual Float_t GetNumberOfSigmasTOFold(const AliVParticle *track, AliPID::EParticleType type) const;
+
+private:
+
+  Float_t           fRangeTOFMismatch; // nSigma max for TOF matching with TPC
+  AliVEventHandler *fEventHandler; //! MC event handler
+  
+  ClassDef(AliESDpid,7)  // PID calculation class
 };
 
-
-inline Float_t AliESDpid::NumberOfSigmasTOF(const AliVParticle *vtrack, AliPID::EParticleType type, const Float_t /*timeZeroTOF*/) const {
-  AliESDtrack *track=(AliESDtrack*)vtrack;
-  Double_t times[AliPID::kSPECIES];
-  track->GetIntegratedTimes(times);
-  return (track->GetTOFsignal() - fTOFResponse.GetStartTime(track->GetP()) - times[type])/fTOFResponse.GetExpectedSigma(track->GetP(),times[type],AliPID::ParticleMass(type));
-}
 
 #endif
 

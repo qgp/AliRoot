@@ -26,12 +26,16 @@
 #include "TArrayI.h"
 #include "TArrayF.h"
 
+#include "TRandom.h"
 #include "AliLog.h"
 #include "AliPID.h"
 #include "AliTOFHeader.h"
 #include "AliESDpid.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
+#include "AliMCEvent.h"
+
+#include <AliDetectorPID.h>
 
 ClassImp(AliESDpid)
 
@@ -63,6 +67,72 @@ Int_t AliESDpid::MakePID(AliESDEvent *event, Bool_t TPConly, Float_t timeZeroTOF
     CombinePID(track);
   }
   return 0;
+}
+//_________________________________________________________________________
+Float_t AliESDpid::GetTPCsignalTunedOnData(const AliVTrack *t) const {
+    AliESDtrack *track = (AliESDtrack *) t;
+    Float_t dedx = track->GetTPCsignalTunedOnData();
+
+    if(dedx > 0) return dedx;
+
+    dedx = t->GetTPCsignal();
+    track->SetTPCsignalTunedOnData(dedx);
+    if(dedx < 20) return dedx;
+
+    AliPID::EParticleType type = AliPID::kPion;
+
+    AliMCEventHandler* eventHandler=dynamic_cast<AliMCEventHandler*>(fEventHandler);
+    if (eventHandler) {
+	AliMCEvent* mcEvent = eventHandler->MCEvent();
+	if(mcEvent){
+	    Bool_t kGood = kTRUE;
+	    AliMCParticle *MCpart = (AliMCParticle *) mcEvent->GetTrack(TMath::Abs(t->GetLabel()));
+	    TParticle *part = MCpart->Particle();
+	    
+	    Int_t iS = TMath::Abs(part->GetPdgCode());
+
+	    if(iS==AliPID::ParticleCode(AliPID::kElectron)){
+		type = AliPID::kElectron;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kMuon)){
+		type = AliPID::kMuon;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kPion)){
+		type = AliPID::kPion;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kKaon)){
+		type = AliPID::kKaon;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kProton)){
+		type = AliPID::kProton;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kDeuteron)){ // d
+		type = AliPID::kDeuteron;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kTriton)){ // t
+		type = AliPID::kTriton;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kHe3)){ // 3He
+		type = AliPID::kHe3;
+	    }
+	    else if(iS==AliPID::ParticleCode(AliPID::kAlpha)){ // 4He
+		type = AliPID::kAlpha;
+	    }
+	    else
+		kGood = kFALSE;
+
+	    if(kGood){
+        //TODO maybe introduce different dEdxSources?
+        Double_t bethe = fTPCResponse.GetExpectedSignal(track, type, AliTPCPIDResponse::kdEdxDefault, this->UseTPCEtaCorrection());
+        Double_t sigma = fTPCResponse.GetExpectedSigma(track, type, AliTPCPIDResponse::kdEdxDefault, this->UseTPCEtaCorrection());
+		dedx = gRandom->Gaus(bethe,sigma);
+		if(iS == AliPID::ParticleCode(AliPID::kHe3) || iS == AliPID::ParticleCode(AliPID::kAlpha)) dedx *= 5;
+	    }
+	}
+    }
+
+    track->SetTPCsignalTunedOnData(dedx);
+    return dedx;
 }
 //_________________________________________________________________________
 void AliESDpid::MakeTPCPID(AliESDtrack *track) const
@@ -186,7 +256,7 @@ void AliESDpid::MakeTOFPID(AliESDtrack *track, Float_t /*timeZeroTOF*/) const
   Int_t ibin = fTOFResponse.GetMomBin(track->GetP());
   Float_t timezero = fTOFResponse.GetT0bin(ibin);
 
-  Double_t time[AliPID::kSPECIESN];
+  Double_t time[AliPID::kSPECIES];
   track->GetIntegratedTimes(time);
 
   Double_t sigma[AliPID::kSPECIES];
@@ -214,7 +284,8 @@ void AliESDpid::MakeTOFPID(AliESDtrack *track, Float_t /*timeZeroTOF*/) const
   Double_t tof = track->GetTOFsignal() - timezero;
 
   Double_t p[AliPID::kSPECIES];
-  Bool_t mismatch = kTRUE, heavy = kTRUE;
+//   Bool_t mismatch = kTRUE;
+  Bool_t heavy = kTRUE;
   for (Int_t j=0; j<AliPID::kSPECIES; j++) {
     Double_t sig = sigma[j];
     if (TMath::Abs(tof-time[j]) > (fRange+2)*sig) {
@@ -224,9 +295,9 @@ void AliESDpid::MakeTOFPID(AliESDtrack *track, Float_t /*timeZeroTOF*/) const
 
     // Check the mismatching
     
-    Double_t mass = AliPID::ParticleMass(j);
-    Double_t pm = fTOFResponse.GetMismatchProbability(track->GetP(),mass);
-    if (p[j]>pm) mismatch = kFALSE;
+//     Double_t mass = AliPID::ParticleMass(j);
+//     Double_t pm = fTOFResponse.GetMismatchProbability(track->GetP(),mass);
+//     if (p[j]>pm) mismatch = kFALSE;
 
     // Check for particles heavier than (AliPID::kSPECIES - 1)
     if (tof < (time[j] + fRange*sig)) heavy=kFALSE;
@@ -252,7 +323,7 @@ void AliESDpid::MakeTRDPID(AliESDtrack *track) const
   // Method to recalculate the TRD PID probabilities
   //
   Double_t prob[AliPID::kSPECIES];
-  ComputeTRDProbability(track, AliPID::kSPECIES, prob);
+  GetComputeTRDProbability(track, AliPID::kSPECIES, prob);
   track->SetTRDpid(prob);
 }
 //_________________________________________________________________________
@@ -336,4 +407,16 @@ Bool_t AliESDpid::CheckTOFMatching(AliESDtrack *track) const{
     
     
     return status;
+}
+
+Float_t AliESDpid::GetNumberOfSigmasTOFold(const AliVParticle *track, AliPID::EParticleType type) const
+{
+  //
+  // Number of sigma implementation for the TOF
+  //
+
+  AliVTrack *vtrack=(AliVTrack*)track;
+  
+  Double_t expTime = fTOFResponse.GetExpectedSignal(vtrack,type);
+  return (vtrack->GetTOFsignal() - fTOFResponse.GetStartTime(vtrack->P()) - expTime)/fTOFResponse.GetExpectedSigma(vtrack->P(),expTime,AliPID::ParticleMassZ(type));
 }

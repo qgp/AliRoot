@@ -116,7 +116,8 @@ ClassImp(TDPMjet)
 	fFCentr(0),
 	fPi0Decay(0),
 	fDecayAll(0),
-	fProcess(kDpmMb)
+	fProcess(kDpmMb),
+	fFragmentation(kFALSE)
 {
 // Default Constructor
 }
@@ -139,7 +140,8 @@ TDPMjet::TDPMjet(DpmProcess_t  iproc, Int_t Ip=208, Int_t Ipz=82, Int_t It=208, 
       fFCentr(0),
       fPi0Decay(0),
       fDecayAll(0),
-      fProcess(iproc)
+      fProcess(iproc),
+      fFragmentation(kFALSE)
 {  
     printf("TDPMJet Constructor %d %d %d %d \n", Ip, Ipz, It, Itz);
 }
@@ -266,6 +268,8 @@ void TDPMjet::Initialize()
 //
 //  Write standard DPMJET input cards 
 //
+    if(fFragmentation) printf("\tTDPMJet fragmentation/evaporation applied\n");
+
     FILE* out = fopen("dpmjet.inp","w");
 //  Projectile and Target definition 
     if (fIp == 1 && fIpz ==1) {
@@ -285,9 +289,25 @@ void TDPMjet::Initialize()
     }
 
 //  Beam energy and crossing-angle
-    fprintf(out, "BEAM      %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n",fEpn, fEpn, 0., 0., 0., 0.);
+    fprintf(out, "CMENERGY      %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n",fCMEn, 0., 0., 0., 0., 0.);      
+    if(fIt == 1 && fIp ==1){ 
+      fprintf(out, "BEAM      %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n",fEpn, fEpn, 0., 0., 0., 0.); //p-p
+    }
+    else if(fIp > 1 || fIt > 1){ 
+      if(fIp>1 && fIt>1) fprintf(out, "BEAM      %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n",fEpn, fEpn, 0., 0., 0., 0.);//A-A
+      else if(fIp==1 && fIt>1){ // proton towards A side (directed z>0)
+        fprintf(out, "BEAM      %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n", fEpn,fEpn*fItz/fIt, 0., 0., 0., 0.);//pA
+	printf("\n  TDPMjet::Initialize() -> p-A: projectile (p) energy =  %10.1f, CMS energy = %10.1f\n\n",fEpn,fCMEn);
+      }
+      else if(fIt==1 && fIp>1){ // proton towards C side (directed z<0)
+        fprintf(out, "BEAM      %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n", fEpn, fEpn*fIp/fIpz, 0., 0., 0., 0.);//A-p
+	printf("\n  TDPMjet::Initialize() -> A-p: projectile (A) energy =  %10.1f, CMS energy = %10.1f\n\n",fEpn,fCMEn);
+      }
+    }
 //  Centrality
-    if (fIp > 1. && fIt > 1) 
+    if((fIp > 1 || fIt > 1) && fFragmentation)
+	fprintf(out, "CENTRAL   %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n",-2., fBmin, fBmax, 0., 0., 0.);
+    else if((fIp > 1 || fIt > 1) && !fFragmentation)
 	fprintf(out, "CENTRAL   %10.1f%10.1f%10.1f%10.1f%10.1f%10.1f\n",-1., fBmin, fBmax, 0., 0., 0.);
 //  Particle decays
     if (fPi0Decay) 

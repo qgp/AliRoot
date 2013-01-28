@@ -30,6 +30,7 @@ class TStopwatch;
 class TMap;
 class AliAnalysisSelector;
 class AliAnalysisDataContainer;
+class AliAnalysisFileDescriptor;
 class AliAnalysisTask;
 class AliVEventHandler;
 class AliVEventPool;
@@ -64,8 +65,9 @@ enum EAliAnalysisFlags {
    kSkipTerminate    = BIT(19),
    kUseProgressBar   = BIT(20),
    kTrueNotify       = BIT(21),
-   kTasksInitialized = BIT(22)
-};   
+   kTasksInitialized = BIT(22),
+   kCollectThroughput= BIT(23)
+};
 
    AliAnalysisManager(const char *name = "mgr", const char *title="");
    virtual            ~AliAnalysisManager();
@@ -92,10 +94,12 @@ enum EAliAnalysisFlags {
 
    // Getters/Setters
    static AliAnalysisManager *GetAnalysisManager() {return fgAnalysisManager;}
+   static Int_t        LoadMacro(const char *filename, Int_t *error = 0, Bool_t check = kFALSE);
    EAliAnalysisExecMode 
                        GetAnalysisType() const    {return fMode;}
    void                GetAnalysisTypeString(TString &type) const;                    
    Bool_t              GetAutoBranchLoading() const {return fAutoBranchHandling;} 
+   Long64_t            GetCacheSize() const       {return fCacheSize;}
    static const char  *GetCommonFileName()        {return fgCommonFileName.Data();}
    AliAnalysisDataContainer *
                        GetCommonInputContainer() const  {return fCommonInput;}
@@ -104,9 +108,11 @@ enum EAliAnalysisFlags {
    TObjArray          *GetContainers() const      {return fContainers;}
    Long64_t            GetCurrentEntry() const    {return fCurrentEntry;}
    UInt_t              GetDebugLevel() const      {return fDebug;}
+   Bool_t              GetAsyncReading() const {return fAsyncReading;}
    TString             GetExtraFiles() const      {return fExtraFiles;}
    AliVEventPool*      GetEventPool()  const      {return fEventPool;}
    Bool_t              GetFileFromWrapper(const char *filename, const TList *source);
+   const char         *GetFileInfoLog() const     {return fFileInfoLog.Data();}
    static Int_t        GetRunFromAlienPath(const char *path);
    AliAnalysisGrid*    GetGridHandler()           {return fGridHandler;}
    TObjArray          *GetInputs() const          {return fInputs;}
@@ -126,24 +132,30 @@ enum EAliAnalysisFlags {
    static Int_t        GetGlobalInt(const char *key, Bool_t &valid);
    static Double_t     GetGlobalDbl(const char *key, Bool_t &valid);
    TMap               *GetGlobals()               {return fGlobals;}
+   static Bool_t       IsMacroLoaded(const char filename);
    static Bool_t       IsPipe(std::ostream &out);
    Bool_t              IsProofMode() const        {return (fMode==kProofAnalysis)?kTRUE:kFALSE;}
    Bool_t              IsRemote() const           {return fIsRemote;}
+   Bool_t              IsCollectThroughput()      {return TObject::TestBit(kCollectThroughput);}
    Bool_t              IsUsingDataSet() const     {return TObject::TestBit(kUseDataSet);}
    void                LoadBranch(const char *n)  { if(fAutoBranchHandling) return; DoLoadBranch(n); }
    void                RunLocalInit();
    void                SetAnalysisType(EAliAnalysisExecMode mode) {fMode = mode;}
    void                SetAutoBranchLoading(Bool_t b) { fAutoBranchHandling = b; }
    void                SetCurrentEntry(Long64_t entry)            {fCurrentEntry = entry;}
+   void                SetCacheSize(Long64_t size)                {fCacheSize = size;}
    void                SetCollectSysInfoEach(Int_t nevents=0)     {fNSysInfo = nevents;}
+   void                SetCollectThroughput(Bool_t flag)          {Changed(); TObject::SetBit(kCollectThroughput,flag);}
    static void         SetCommonFileName(const char *name)        {fgCommonFileName = name;}
    void                SetDebugLevel(UInt_t level);
-   void                SetDisableBranches(Bool_t disable=kTRUE)   {TObject::SetBit(kDisableBranches,disable);}
-   void                SetExternalLoop(Bool_t flag)               {TObject::SetBit(kExternalLoop,flag);}
-   void                SetEventPool(AliVEventPool* const epool)   {fEventPool = epool;}
-   void                SetGridHandler(AliAnalysisGrid * const handler) {fGridHandler = handler;}
+   void                SetDisableBranches(Bool_t disable=kTRUE)   {Changed(); TObject::SetBit(kDisableBranches,disable);}
+   void                SetAsyncReading(Bool_t flag=kTRUE)    {fAsyncReading = flag;}
+   void                SetExternalLoop(Bool_t flag)               {Changed(); TObject::SetBit(kExternalLoop,flag);}
+   void                SetEventPool(AliVEventPool* const epool)   {Changed(); fEventPool = epool;}
+   void                SetFileInfoLog(const char *name) {TObject::SetBit(kCollectThroughput,kTRUE); fFileInfoLog = name;}
+   void                SetGridHandler(AliAnalysisGrid * const handler) {Changed(); fGridHandler = handler;}
    void                SetInputEventHandler(AliVEventHandler* const handler);
-   void                SetMCtruthEventHandler(AliVEventHandler* const handler) {fMCtruthEventHandler = handler;}
+   void                SetMCtruthEventHandler(AliVEventHandler* const handler) {Changed(); fMCtruthEventHandler = handler;}
    void                SetNSysInfo(Long64_t nevents)              {fNSysInfo = nevents;}
    void                SetOutputEventHandler(AliVEventHandler* const handler);
    void                SetRunFromPath(Int_t run)                  {fRunFromPath = run;}
@@ -206,8 +218,14 @@ enum EAliAnalysisFlags {
 
    void                 ApplyDebugOptions();
    void                 AddClassDebug(const char *className, Int_t debugLevel);
-
+   
+   // Security
+   Bool_t               IsLocked() const {return fLocked;}
+   void                 Lock();
+   void                 UnLock();
+   void                 Changed();
 protected:
+   void                 CreateReadCache();
    void                 ImportWrappers(TList *source);
    void                 SetEventLoop(Bool_t flag=kTRUE) {TObject::SetBit(kEventLoop,flag);}
    void                 DoLoadBranch(const char *name);
@@ -224,6 +242,7 @@ private:
    Bool_t                  fInitOK;              // Initialisation done
    Bool_t                  fMustClean;           // Flag to let ROOT do cleanup
    Bool_t                  fIsRemote;            //! Flag is set for remote analysis
+   Bool_t                  fLocked;              //! Lock for the manager and handlers
    UInt_t                  fDebug;               // Debug level
    TString                 fSpecialOutputLocation; // URL/path where the special outputs will be copied
    TObjArray              *fTasks;               // List of analysis tasks
@@ -234,23 +253,35 @@ private:
    TObjArray              *fOutputs;             // List of containers with results
    TObjArray              *fParamCont;           // List of containers with results
    TObjArray              *fDebugOptions;        // List of debug options
+   TObjArray              *fFileDescriptors;     //! List of file descriptors
+   AliAnalysisFileDescriptor *fCurrentDescriptor; //! Current file descriptor
    AliAnalysisDataContainer *fCommonInput;       // Common input container
    AliAnalysisDataContainer *fCommonOutput;      // Common output container
    AliAnalysisSelector    *fSelector;            //! Current selector
    AliAnalysisGrid        *fGridHandler;         //! Grid handler plugin
    TString                 fExtraFiles;          // List of extra files to be merged
+   TString                 fFileInfoLog;         // File name for fileinfo logs
    Bool_t                  fAutoBranchHandling;  // def=kTRUE, turn off if you use LoadBranch
+   Bool_t                  fAsyncReading;        // Enable async reading
    THashTable              fTable;               // keep branch ptrs in case of manual branch loading
    Int_t                   fRunFromPath;         // Run number retrieved from path to input data
    Int_t                   fNcalls;              // Total number of calls (events) of ExecAnalysis
    Long64_t                fMaxEntries;          // Maximum number of entries
+   Long64_t                fCacheSize;           // Cache size in bytes
    static Int_t            fPBUpdateFreq;        // Progress bar update freq.
    TString                 fStatisticsMsg;       // Statistics user message
    TString                 fRequestedBranches;   // Requested branch names
    AliAnalysisStatistics  *fStatistics;          // Statistics info about input events
    TMap                   *fGlobals;             // Map with global variables
+   TStopwatch             *fIOTimer;             //! Timer for I/O + deserialization
+   TStopwatch             *fCPUTimer;            //! Timer for useful processing
+   TStopwatch             *fInitTimer;           //! Timer for initialization
+   Double_t                fIOTime;              //! Cumulated time in IO
+   Double_t                fCPUTime;             //! Cumulated time in Exec
+   Double_t                fInitTime;            //! Cumulated time in initialization
    static TString          fgCommonFileName;     //! Common output file name (not streamed)
+   static TString          fgMacroNames;         //! Loaded macro names
    static AliAnalysisManager *fgAnalysisManager; //! static pointer to object instance
-   ClassDef(AliAnalysisManager,16)  // Analysis manager class
+   ClassDef(AliAnalysisManager,18)  // Analysis manager class
 };   
 #endif

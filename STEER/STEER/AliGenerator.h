@@ -53,6 +53,7 @@ class AliGenerator : public TNamed, public AliRndm
     virtual void SetNumberParticles(Int_t npart=100) {fNpart=npart;}
     virtual Int_t NumberParticles() const {return fNpart;}
     virtual void SetThetaRange(Float_t thetamin=0, Float_t thetamax=180);
+    virtual void GenerateN(Int_t ntimes);
     virtual void Generate()=0;
     virtual void SetParentWeight(Float_t wgt) {fParentWeight=wgt;}
     virtual void SetChildWeight(Float_t wgt)  {fChildWeight=wgt;}    
@@ -79,6 +80,7 @@ class AliGenerator : public TNamed, public AliRndm
     virtual TGenerator* GetMC() const {return fMCEvGen;}
     virtual void AddHeader(AliGenEventHeader* /*header*/) {;}
     virtual void SetContainer(AliGenerator* container) {fContainer = container;}
+    virtual void SetEventPlane(Float_t evPlane) {fEvPlane = evPlane; }
 
   // Getters
 
@@ -150,6 +152,7 @@ class AliGenerator : public TNamed, public AliRndm
     
     Float_t     fTimeOrigin; // Time0 origin in a run or event sample
     Float_t     fTime;       // Event time smeared around time0 origin using sigma vertex
+    Float_t     fEvPlane;    // the event plane 
 
     AliStack*   fStack;         //! Local pointer to stack
     AliGenerator* fContainer;   //! Local pointer to container

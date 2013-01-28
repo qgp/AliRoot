@@ -35,6 +35,8 @@
 #include <TKey.h>
 #include <TUUID.h>
 #include <TGrid.h>
+#include "TMessage.h"
+#include "TObject.h"
 
 ClassImp(AliCDBParam)
 
@@ -113,8 +115,8 @@ void  AliCDBManager::DumpToSnapshotFile(const char* snapshotFileName, Bool_t sin
 	return;
     }
 
-    Printf("\ndumping entriesMap (entries'cache) with %d entries!\n", fEntryCache.GetEntries()); 
-    Printf("\ndumping entriesList with %d entries!\n", fIds->GetEntries());
+    AliInfo(Form("Dumping entriesMap (entries'cache) with %d entries!\n", fEntryCache.GetEntries())); 
+    AliInfo(Form("Dumping entriesList with %d entries!\n", fIds->GetEntries()));
 
     f->cd();                                                                                           
 
@@ -623,7 +625,9 @@ void AliCDBManager::SetDefaultStorage(const char* mcString, const char* simType)
 		}
 
 		SetDefaultStorage(dbString.Data());
-		if(!fDefaultStorage) AliFatal(Form("%s storage not there! Please check!",fLHCPeriod.Data()));
+		fStartRunLHCPeriod=0;
+		fEndRunLHCPeriod=AliCDBRunRange::Infinity();
+		if(!fDefaultStorage) AliFatal(Form("%s storage not there! Please check!",dbString.Data()));
 	}
 }
 //_____________________________________________________________________________
@@ -903,6 +907,10 @@ AliCDBEntry* AliCDBManager::GetEntryFromSnapshot(const char* path) {
 
     TString sPath(path);
     sPath.ReplaceAll("/","*");
+    if(!fSnapshotFile){
+	AliError("No snapshot file is open!");
+	return 0;
+    }
     AliCDBEntry *entry = dynamic_cast<AliCDBEntry*>(fSnapshotFile->Get(sPath.Data()));
     if(!entry){
 	AliDebug(2,Form("Cannot get a CDB entry for \"%s\" from snapshot file",path));
@@ -939,7 +947,7 @@ Bool_t AliCDBManager::SetSnapshotMode(const char* snapshotFileName) {
 	return kFALSE;
     }
 
-    Printf("The CDB manager is set in snapshot mode: cache->snapshot->defaultstorage");
+    AliInfo("The CDB manager is set in snapshot mode!");
     fSnapshotMode = kTRUE;
     return kTRUE;
 
@@ -961,6 +969,35 @@ const char* AliCDBManager::GetURI(const char* path) {
 	}
 	
 	return 0;
+}
+
+//_____________________________________________________________________________
+Int_t AliCDBManager::GetStartRunLHCPeriod(){
+    // get the first run of validity
+    // for the current period
+    // if set
+    if(fStartRunLHCPeriod==-1)
+	AliWarning("Run-range not yet set for the current LHC period.");
+    return fStartRunLHCPeriod;
+}
+
+//_____________________________________________________________________________
+Int_t AliCDBManager::GetEndRunLHCPeriod(){
+    // get the last run of validity
+    // for the current period
+    // if set
+    if(fEndRunLHCPeriod==-1)
+	AliWarning("Run-range not yet set for the current LHC period.");
+    return fEndRunLHCPeriod;
+}
+
+//_____________________________________________________________________________
+TString AliCDBManager::GetLHCPeriod(){
+    // get the current LHC period string
+    //
+    if(fLHCPeriod.IsWhitespace() || fLHCPeriod.IsNull())
+	AliWarning("LHC period (OCDB folder) not yet set");
+    return fLHCPeriod;
 }
 
 //_____________________________________________________________________________
@@ -1177,7 +1214,7 @@ TList* AliCDBManager::GetAll(const AliCDBId& query) {
 }
 
 //_____________________________________________________________________________
-Bool_t AliCDBManager::Put(TObject* object, const AliCDBId& id, AliCDBMetaData* metaData, const DataType type){
+Bool_t AliCDBManager::Put(TObject* object, const AliCDBId& id, AliCDBMetaData* metaData, const char* mirrors, DataType type){
 // store an AliCDBEntry object into the database
 
 	if (object==0x0) {
@@ -1186,13 +1223,13 @@ Bool_t AliCDBManager::Put(TObject* object, const AliCDBId& id, AliCDBMetaData* m
 	} 
 
 	AliCDBEntry anEntry(object, id, metaData);
-	return Put(&anEntry, type);
+	return Put(&anEntry, mirrors, type);
 
 }
 
 
 //_____________________________________________________________________________
-Bool_t AliCDBManager::Put(AliCDBEntry* entry, DataType type){
+Bool_t AliCDBManager::Put(AliCDBEntry* entry, const char* mirrors, DataType type){
 // store an AliCDBEntry object into the database
 
 	if(type == kPrivate && !fDefaultStorage) {
@@ -1245,13 +1282,39 @@ Bool_t AliCDBManager::Put(AliCDBEntry* entry, DataType type){
 
 	AliDebug(2,Form("Storing object into storage: %s", aStorage->GetURI().Data()));
 
-	Bool_t result = aStorage->Put(entry, type);
+	TString strMirrors(mirrors);
+	Bool_t result = kFALSE;
+	if(!strMirrors.IsNull() && !strMirrors.IsWhitespace())
+	    result = aStorage->Put(entry, mirrors, type);
+	else
+	    result = aStorage->Put(entry, "", type);
 
 	if(fRun >= 0) QueryCDB();
 
 	return result;
 
 
+}
+
+//_____________________________________________________________________________
+void AliCDBManager::SetMirrorSEs(const char* mirrors)
+{
+// set mirror Storage Elements for the default storage, if it is of type "alien"
+    if(fDefaultStorage->GetType() != "alien"){
+	AliInfo("The default storage is not of type \"alien\". Settings for Storage Elements are not taken into account!");
+	return;
+    }
+    fDefaultStorage->SetMirrorSEs(mirrors);
+}
+
+//_____________________________________________________________________________
+const char* AliCDBManager::GetMirrorSEs() const {
+// get mirror Storage Elements for the default storage, if it is of type "alien"
+    if(fDefaultStorage->GetType() != "alien"){
+	AliInfo("The default storage is not of type \"alien\". Settings for Storage Elements are not taken into account!");
+	return "";
+    }
+    return fDefaultStorage->GetMirrorSEs();
 }
 
 //_____________________________________________________________________________
@@ -1493,6 +1556,73 @@ const char* AliCDBManager::GetDataTypeName(DataType type)
 }
 
 //______________________________________________________________________________________________
+Bool_t AliCDBManager::DiffObjects(const char *cdbFile1, const char *cdbFile2) const
+{
+    // Compare byte-by-byte the objects contained in the CDB entry in two different files,
+    // whose name is passed as input
+    // Return value:
+    //   kTRUE - in case the content of the OCDB object (persistent part) is exactly the same 
+    //   kFALSE - otherwise
+
+    TString f1Str(cdbFile1);
+    TString f2Str(cdbFile2);
+    if (!gGrid && ( f1Str.BeginsWith("alien://") || f2Str.BeginsWith("alien://") ))
+	    TGrid::Connect("alien://");
+
+    TFile * f1 = TFile::Open(cdbFile1);
+    if (!f1){
+	Printf("Cannot open file \"%s\"",cdbFile1);
+	return kFALSE;
+    }
+    TFile * f2 = TFile::Open(cdbFile2);
+    if (!f2){
+	Printf("Cannot open file \"%s\"",cdbFile2);
+	return kFALSE;
+    }
+
+    AliCDBEntry * entry1 = (AliCDBEntry*)f1->Get("AliCDBEntry");
+    if (!entry1){
+	Printf("Cannot get CDB entry from file \"%s\"",cdbFile1);
+	return kFALSE; 
+    }
+    AliCDBEntry * entry2 = (AliCDBEntry*)f2->Get("AliCDBEntry");
+    if (!entry2){
+	Printf("Cannot get CDB entry from file \"%s\"",cdbFile2);
+	return kFALSE; 
+    }
+
+    // stream the two objects in the buffer of two TMessages
+    TObject* object1 = entry1->GetObject();
+    TObject* object2 = entry2->GetObject();
+    TMessage * file1 = new TMessage(TBuffer::kWrite);
+    file1->WriteObject(object1);
+    Int_t size1 = file1->Length();  
+    TMessage * file2 = new TMessage(TBuffer::kWrite);
+    file2->WriteObject(object2);
+    Int_t size2 = file2->Length(); 
+    if (size1!=size2){
+	Printf("Problem 2:  OCDB entry of different size (%d,%d)",size1,size2);
+	return kFALSE;
+    }
+    
+    // if the two buffers have the same size, check that they are the same byte-by-byte
+    Int_t countDiff=0;
+    char* buf1 = file1->Buffer();
+    char* buf2 = file2->Buffer();
+    //for (Int_t i=0; i<size1; i++)    if (file1->Buffer()[i]!=file2->Buffer()[i]) countDiff++;
+    for(Int_t i=0; i<size1; i++)
+	if (buf1[i]!=buf2[i]) countDiff++;
+
+    if (countDiff>0){
+	Printf("The CDB objects differ by %d bytes.", countDiff);
+	return kFALSE;
+    }
+
+    Printf("The CDB objects are the same in the two files.");
+    return kTRUE;
+}
+
+//______________________________________________________________________________________________
 void AliCDBManager::InitShortLived()
 {
   // Init the list of short-lived objects
@@ -1548,7 +1678,7 @@ Bool_t AliCDBManager::IsShortLived(const char* path)
 }
 
 //______________________________________________________________________________________________
-ULong_t AliCDBManager::SetLock(Bool_t lock, ULong_t key){
+ULong64_t AliCDBManager::SetLock(Bool_t lock, ULong64_t key){
   // To lock/unlock user must provide the key. A new key is provided after
   // each successful lock. User should always backup the returned key and
   // use it on next access.

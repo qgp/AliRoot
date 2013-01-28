@@ -57,6 +57,11 @@ class AliTRDCalibTask : public AliAnalysisTaskSE {
   void SetExbAlt(Bool_t exbalt)                                     {fExbAlt = exbalt;};
   void SetNbTimeBins(Int_t nbTimeBins)                              {fNbTimeBins=nbTimeBins;};  
   void SetNumberBinCharge(Short_t nbBinCharge)                      {fNumberBinCharge=nbBinCharge;};  
+  void SetRangeCharge(Float_t rangeCharge)                          {fRangeCharge=rangeCharge;};
+  void SetVdBindx(Short_t vdBindx)                                  {fVdBindx=vdBindx;};  
+  void SetVdBindy(Short_t vdBindy)                                  {fVdBindy=vdBindy;};    
+  void SetVdRangedx(Double_t vdRangex)                               {fVdRangex=vdRangex;};  
+  void SetVdRangedy(Double_t vdRangey)                               {fVdRangey=vdRangey;};    
   void SetDebugLevelTRDCalibraFillHisto(Short_t debugLevelTRDCalibraFillHisto) {fDebugLevelTRDCalibraFillHisto = debugLevelTRDCalibraFillHisto;};
 
   
@@ -73,6 +78,7 @@ class AliTRDCalibTask : public AliAnalysisTaskSE {
   void SetUseSPDVertex()                                               {fVtxTPC=kFALSE; fVtxSPD=kTRUE ;} 
   void SetMinNbOfContributors(Int_t minNbOfContributors)               {fMinNbContributors = minNbOfContributors;};  
   void SetRangePrimaryVertexZ(Double_t rangePrimaryVertexZ)            {fRangePrimaryVertexZ = TMath::Abs(rangePrimaryVertexZ);}; 
+  void SetRejectPileUpWithSPD(Bool_t rejectPileUpWithSPD)              {fRejectPileUpWithSPD = rejectPileUpWithSPD;};
   void SetMinNbTracks(Int_t minNbTracks)                               {fMinNbTracks = minNbTracks;};
   void SetMaxNbTracks(Int_t maxNbTracks)                               {fMaxNbTracks = maxNbTracks;};
   void SetCutWithVdriftCalib(Bool_t cutWithVdriftCalib)                {fCutWithVdriftCalib = cutWithVdriftCalib;};
@@ -157,6 +163,11 @@ class AliTRDCalibTask : public AliAnalysisTaskSE {
   Short_t     fDebugLevelTRDCalibraFillHisto;    // Debug Level Fill Histo
   Int_t       fNbTimeBins;                       // number of timebins 
   Short_t     fNumberBinCharge;                  // Number of bins for the gain factor
+  Float_t     fRangeCharge;                      // Range Charge
+  Short_t     fVdBindx;                          // Nb of bin in vd histos x
+  Short_t     fVdBindy;                          // Nb of bin in vd histos y
+  Double_t    fVdRangex;                         // Range vd histos x
+  Double_t    fVdRangey;                         // Range vd histos y
 
   Short_t     fNz[3];                            // Nz mode 
   Short_t     fNrphi[3];                         // Nrphi mode
@@ -171,6 +182,7 @@ class AliTRDCalibTask : public AliAnalysisTaskSE {
   Bool_t      fVtxSPD;                           // Flag for use of SPD vertex
   Int_t       fMinNbContributors;                // Min number of contributors
   Double_t    fRangePrimaryVertexZ;              // Were the primary vertex is
+  Bool_t      fRejectPileUpWithSPD;              // Reject pile-up events with SPD
   Int_t       fMinNbTracks;                      // Min Nb Tracks
   Int_t       fMaxNbTracks;                      // Max Nb Tracks
   Bool_t      fCutWithVdriftCalib;               // CutWithVdriftCalib for the gain and PH
@@ -211,7 +223,7 @@ class AliTRDCalibTask : public AliAnalysisTaskSE {
   AliTRDCalibTask(const AliTRDCalibTask&); 
   AliTRDCalibTask& operator=(const AliTRDCalibTask&); 
 
-  ClassDef(AliTRDCalibTask, 3); 
+  ClassDef(AliTRDCalibTask, 5); 
 };
 
 #endif

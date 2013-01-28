@@ -48,6 +48,8 @@
 #include <TRandom.h>
 #include <Riostream.h>
 
+using std::endl;
+using std::cout;
 /// \cond CLASSIMP
 ClassImp(AliMUONClusterSplitterMLEM)
 /// \endcond
@@ -234,7 +236,7 @@ AliMUONClusterSplitterMLEM::Fcn1(const AliMUONCluster& cluster,
     chi2 += delta;
   } // for (Int_t j=0;
   if (iflag == 0 && npads) qAver = qTot / npads;
-  if (!npads)
+  if (!npads && iflag==0)
   {
     AliError(Form("Got npads=0. Please check"));
   }

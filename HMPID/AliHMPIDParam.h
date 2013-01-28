@@ -139,10 +139,12 @@ public:
   void     SetThreshold   (Int_t thres                                         ) {fgThreshold = thres;}                 //set sigma cut        
   void     SetInstanceType(Bool_t inst                                         ) {fgInstanceType = inst;}             //kTRUE if from geomatry kFALSE if from ideal geometry
   //For PID
-  Double_t SigLoc      (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh,Double_t beta);//error due to cathode segmetation
-  Double_t SigGeom     (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh,Double_t beta);//error due to unknown photon origin
-  Double_t SigCrom     (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh,Double_t beta);//error due to unknonw photon energy
-  Double_t Sigma2      (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh              );//photon candidate sigma^2
+  Double_t SigLoc         (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh,Double_t beta);//error due to cathode segmetation
+  Double_t SigGeom        (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh,Double_t beta);//error due to unknown photon origin
+  Double_t SigCrom        (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh,Double_t beta);//error due to unknonw photon energy
+  Double_t Sigma2         (Double_t trkTheta,Double_t trkPhi,Double_t ckovTh,Double_t ckovPh              );//photon candidate sigma^2
+  
+  static Double_t SigmaCorrFact(Int_t iPart, Double_t occupancy                                         );//correction factor for theoretical resolution
 
   //Mathieson Getters
   

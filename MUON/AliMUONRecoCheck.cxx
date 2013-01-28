@@ -53,7 +53,7 @@
 #include "AliESDEvent.h"
 #include "AliESDMuonTrack.h"
 #include "AliMUONDigitStoreV2S.h"
-#include "AliMUONDigit.h"
+#include "AliMUONVDigit.h"
 #include "AliMpVSegmentation.h"
 #include "AliMpSegmentation.h"
 #include "AliMpPad.h"
@@ -191,11 +191,7 @@ Bool_t AliMUONRecoCheck::InitCircuit()
   if ( ! InitGeometryTransformer() ) return kFALSE;
   
   // reset tracker for local trigger to trigger track conversion
-  if ( ! AliMUONESDInterface::GetTracker() ) {
-    AliMUONRecoParam* recoParam = AliMUONCDB::LoadRecoParam();
-    if (!recoParam) return kFALSE;
-    AliMUONESDInterface::ResetTracker(recoParam);
-  }
+  if ( ! AliMUONESDInterface::GetTracker() ) AliMUONESDInterface::ResetTracker();
   
   fTriggerCircuit = new AliMUONTriggerCircuit(fGeometryTransformer);
   
@@ -412,12 +408,12 @@ void AliMUONRecoCheck::MakeTriggeredTracks()
 }
 
 //_____________________________________________________________________________
-void AliMUONRecoCheck::TriggerToTrack(const AliMUONLocalTrigger& locTrg, AliMUONTriggerTrack& triggerTrack)
+Bool_t AliMUONRecoCheck::TriggerToTrack(const AliMUONLocalTrigger& locTrg, AliMUONTriggerTrack& triggerTrack)
 {
   /// Make trigger track from local trigger info
-  if ( ! InitCircuit() ) return;
+  if ( ! InitCircuit() ) return kFALSE;
   AliMUONVTrackReconstructor* tracker = AliMUONESDInterface::GetTracker();
-  tracker->TriggerToTrack(*fTriggerCircuit, locTrg, triggerTrack);
+  return tracker->TriggerToTrack(*fTriggerCircuit, locTrg, triggerTrack);
 }
 
 
@@ -907,7 +903,7 @@ Bool_t AliMUONRecoCheck::InitTriggerResponse()
   
   if ( ! InitGeometryTransformer() ) return kFALSE;
   
-  if ( ! AliMpDDLStore::Instance(false) ) AliMpCDB::LoadDDLStore();
+  if ( ! AliMpDDLStore::Instance(false) && ! AliMpCDB::LoadDDLStore()) return kFALSE;
   
   if ( ! InitCalibrationData() ) return kFALSE;
   

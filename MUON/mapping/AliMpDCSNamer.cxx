@@ -45,6 +45,8 @@
 /// \author: Laurent Aphecetche and Diego Stocco, Subatech
 //-----------------------------------------------------------------------------
 
+using std::cout;
+using std::endl;
 /// \cond CLASSIMP
 ClassImp(AliMpDCSNamer)
 /// \endcond
@@ -57,7 +59,19 @@ const char* AliMpDCSNamer::fgkDCSChannelSt345Pattern[] =
 const char* AliMpDCSNamer::fgkDCSChannelSt12Pattern[] = 
 {
   "MchHvLvLeft/Chamber%02dLeft/Quad%dSect%d.actual.vMon",
-  "MchHvLvRight/Chamber%02dRight/Quad%dSect%d.actual.vMon",
+  "MchHvLvRight/Chamber%02dRight/Quad%dSect%d.actual.vMon"
+};
+
+const char* AliMpDCSNamer::fgkDCSQuadrantPattern[] =
+{
+  "MchHvLvLeft/Chamber%02dLeft/Quad%d",
+  "MchHvLvRight/Chamber%02dRight/Quad%d"  
+};
+
+const char* AliMpDCSNamer::fgkDCSChamberPattern[] =
+{
+  "MchHvLvLeft/Chamber%02dLeft",
+  "MchHvLvRight/Chamber%02dRight"
 };
 
 const char* AliMpDCSNamer::fgkDCSSideTrackerName[] = { "Left", "Right" };
@@ -372,51 +386,180 @@ AliMpDCSNamer::DetElemId2DCS(Int_t detElemId, Int_t& side, Int_t &chId) const
   return dcsNumber;
 }
 
-
 //_____________________________________________________________________________
-const char* 
-  AliMpDCSNamer::DCSChannelName(Int_t detElemId, Int_t sector, Int_t dcsMeasure) const
+TString
+AliMpDCSNamer::DCSNameFromAlias(const char* dcsAlias) const
 {
-  /// Return the alias name of the DCS Channel for a given DCS area 
-  /// \param detElemId 
-  /// \param sector = 0,1 or 2 for St12, and is unused for st345 and trigger
-  /// \param dcsMeasure = kDCSHV, kDCSI and is unused for tracker
+  /// Convert a (possibly partial) aliasname to a name (only for MCH)
   
-  Int_t chamberId = AliMpDEManager::GetChamberId(detElemId);
-  if ( chamberId < 0 ) return 0x0;
-
-  Int_t side(-1), chId(-1);
-  Int_t dcsNumber = DetElemId2DCS(detElemId,side,chId);
-
-  switch (AliMpDEManager::GetStationType(detElemId))
+  TString salias(dcsAlias);
+  
+  if ( !salias.Contains("MchHvLv") ) return dcsAlias;
+  
+  Int_t quadrantNumber(-1);
+  Int_t chamberNumber(-1);
+  Int_t side(-1);
+  
+  if ( salias.Contains("Left")) side = 0;
+  if ( salias.Contains("Right")) side = 1;
+  
+  if ( side < 0 ) return "";
+  
+  TString channelName;
+  
+  if ( salias.Contains("Slat") )
   {
-    case AliMp::kStation12:
-      return Form(fgkDCSChannelSt12Pattern[side],chamberId,dcsNumber,sector);
-      break;
-    case AliMp::kStation345:
-      return Form(fgkDCSChannelSt345Pattern[side],chamberId,dcsNumber);
-      break;
-    case AliMp::kStationTrigger:
-      return Form(fgkDCSChannelTriggerPattern[side],fgkDCSSideTriggerName[side],chId,dcsNumber,fgkDCSMeasureName[dcsMeasure]);
-      break;
-    default:
-      return 0x0;
-      break;
+    Int_t slatNumber(-1);
+    sscanf(salias.Data(),fgkDCSChannelSt345Pattern[side],&chamberNumber,&slatNumber);
+    ++chamberNumber;
+    ++slatNumber;
+    channelName = TString::Format(fgkDCSChannelSt345Pattern[side],chamberNumber,slatNumber);
   }
+  else if ( salias.Contains("Sect") )
+  {
+    Int_t sectorNumber(-1);
+    sscanf(salias.Data(),fgkDCSChannelSt12Pattern[side],&chamberNumber,&quadrantNumber,&sectorNumber);
+    ++chamberNumber;
+    ++quadrantNumber;
+    ++sectorNumber;
+    channelName =  TString::Format(fgkDCSChannelSt12Pattern[side],chamberNumber,quadrantNumber,sectorNumber);
+  }
+  else if ( salias.Contains("Quad") )
+  {
+    sscanf(salias.Data(),fgkDCSQuadrantPattern[side],&chamberNumber,&quadrantNumber);
+    ++chamberNumber;
+    ++quadrantNumber;
+    channelName =  TString::Format(fgkDCSQuadrantPattern[side],chamberNumber,quadrantNumber);
+  }
+  else if ( salias.Contains("Chamber") )
+  {
+    sscanf(salias.Data(),fgkDCSChamberPattern[side],&chamberNumber);
+    ++chamberNumber;
+    channelName =  TString::Format(fgkDCSChamberPattern[side],chamberNumber);
+  }
+
+  if ( TString(dcsAlias).Contains("iMon") )
+  {
+    channelName.ReplaceAll("vMon","iMon");
+  }
+  
+  return channelName;
 }
 
 //_____________________________________________________________________________
-const char* 
-AliMpDCSNamer::DCSSwitchName(Int_t detElemId, Int_t pcbNumber) const
+TString
+AliMpDCSNamer::DCSAliasFromName(const char* dcsName) const
+{
+  /// Convert a (possibly partial) dcsname to an alias (only for MCH)
+  
+  TString sname(dcsName);
+  
+  if ( !sname.Contains("MchHvLv") ) return dcsName;
+  
+  Int_t quadrantNumber(-1);
+  Int_t chamberNumber(-1);
+  Int_t side(-1);
+  
+  if ( sname.Contains("Left")) side = 0;
+  if ( sname.Contains("Right")) side = 1;
+  
+  if ( side < 0 ) return "";
+  
+  TString channelName;
+  
+  if ( sname.Contains("Slat") )
+  {
+    Int_t slatNumber(-1);
+    sscanf(sname.Data(),fgkDCSChannelSt345Pattern[side],&chamberNumber,&slatNumber);
+    --chamberNumber;
+    --slatNumber;
+    channelName = TString::Format(fgkDCSChannelSt345Pattern[side],chamberNumber,slatNumber);
+  }
+  else if ( sname.Contains("Sect") )
+  {
+    Int_t sectorNumber(-1);
+    sscanf(sname.Data(),fgkDCSChannelSt12Pattern[side],&chamberNumber,&quadrantNumber,&sectorNumber);
+    --chamberNumber;
+    --quadrantNumber;
+    --sectorNumber;
+    channelName =  TString::Format(fgkDCSChannelSt12Pattern[side],chamberNumber,quadrantNumber,sectorNumber);
+  }
+  else if ( sname.Contains("Quad") )
+  {
+    sscanf(sname.Data(),fgkDCSQuadrantPattern[side],&chamberNumber,&quadrantNumber);
+    --chamberNumber;
+    --quadrantNumber;
+    channelName =  TString::Format(fgkDCSQuadrantPattern[side],chamberNumber,quadrantNumber);
+  }
+  else if ( sname.Contains("Chamber") )
+  {
+    sscanf(sname.Data(),fgkDCSChamberPattern[side],&chamberNumber);
+    --chamberNumber;
+    channelName =  TString::Format(fgkDCSChamberPattern[side],chamberNumber);
+  }
+  
+  if ( TString(dcsName).Contains("iMon") )
+  {
+    channelName.ReplaceAll("vMon","iMon");
+  }
+  
+  return channelName;
+}
+
+//_____________________________________________________________________________
+TString
+AliMpDCSNamer::DCSAliasName(Int_t detElemId, Int_t sector, Int_t dcsMeasure) const
+{
+  /// Return the alias name of the DCS Channel for a given DCS area
+  /// \param detElemId
+  /// \param sector = 0,1 or 2 for St12, and is unused for st345 and trigger
+  /// \param dcsMeasure = kDCSHV, kDCSI
+  
+  Int_t chamberId = AliMpDEManager::GetChamberId(detElemId);
+  if ( chamberId < 0 ) return "";
+  
+  Int_t side(-1), chId(-1);
+  Int_t dcsNumber = DetElemId2DCS(detElemId,side,chId);
+  
+  TString aliasName;
+  
+  switch (AliMpDEManager::GetStationType(detElemId))
+  {
+    case AliMp::kStation12:
+      aliasName.Form(fgkDCSChannelSt12Pattern[side],chamberId,dcsNumber,sector);
+      break;
+    case AliMp::kStation345:
+      aliasName.Form(fgkDCSChannelSt345Pattern[side],chamberId,dcsNumber);
+      break;
+    case AliMp::kStationTrigger:
+      return TString::Format(fgkDCSChannelTriggerPattern[side],fgkDCSSideTriggerName[side],chId,dcsNumber,fgkDCSMeasureName[dcsMeasure]);
+      break;
+    default:
+      return "";
+      break;
+  }
+  
+  if ( dcsMeasure == AliMpDCSNamer::kDCSI )
+  {
+    aliasName.ReplaceAll("vMon","iMon");
+  }
+  
+  return aliasName;
+  
+}
+
+//_____________________________________________________________________________
+TString
+AliMpDCSNamer::DCSSwitchAliasName(Int_t detElemId, Int_t pcbNumber) const
 {
   /// Return the alias name of the DCS Switch for a given PCB 
   /// within a slat of St345
   
   if (AliMpDEManager::GetStationType(detElemId) == AliMp::kStation345)
   {
-    return Form(fgkDCSSwitchSt345Pattern,detElemId,pcbNumber);
+    return TString::Format(fgkDCSSwitchSt345Pattern,detElemId,pcbNumber);
   }
-  return 0x0;
+  return "";
 }
 
 //_____________________________________________________________________________
@@ -582,59 +725,61 @@ AliMpDCSNamer::GenerateAliases() const
   
   TObjArray* aliases = new TObjArray;
   aliases->SetOwner(kTRUE);
-
+  
   Int_t nMeasures = (fDetector == kTriggerDet) ? kNDCSMeas : 1;
   
   for(Int_t iMeas=0; iMeas<nMeasures; iMeas++){
-
+    
     AliMpDEIterator it;
-  
+    
     it.First();
-  
+    
     while (!it.IsDone())
     {
       Int_t detElemId = it.CurrentDEId();
       switch (fDetector){
-      case kTrackerDet:
-      {
-	switch ( AliMpDEManager::GetStationType(detElemId) )
-	{
-	case AliMp::kStation12:
-	  for ( int sector = 0; sector < 3; ++sector)
-	  {
-	    aliases->Add(new TObjString(DCSChannelName(detElemId,sector)));
-	  }
-	  break;
-	case AliMp::kStation345:
-	  aliases->Add(new TObjString(DCSChannelName(detElemId)));
-	  for ( Int_t i = 0; i < NumberOfPCBs(detElemId); ++i )
-	  {
-	    aliases->Add(new TObjString(DCSSwitchName(detElemId,i)));
-	  }
-	  break;
-	default:
-	  break;
-	}
-      }
-      break;
-      case kTriggerDet:
-      {
-	switch ( AliMpDEManager::GetStationType(detElemId) )
-	{
-	case AliMp::kStationTrigger:
-	  AliDebug(10,Form("Current DetElemId %i",detElemId));
-	  aliases->Add(new TObjString(DCSChannelName(detElemId,0,iMeas)));
-	  break;
-	default:
-	  break;
-	}
-      }
-      break;
+        case kTrackerDet:
+        {
+          switch ( AliMpDEManager::GetStationType(detElemId) )
+          {
+            case AliMp::kStation12:
+              for ( int sector = 0; sector < 3; ++sector)
+              {
+                aliases->Add(new TObjString(DCSAliasName(detElemId,sector)));
+                aliases->Add(new TObjString(DCSAliasName(detElemId,sector,AliMpDCSNamer::kDCSI)));
+              }
+              break;
+            case AliMp::kStation345:
+              aliases->Add(new TObjString(DCSAliasName(detElemId)));
+              aliases->Add(new TObjString(DCSAliasName(detElemId,0,AliMpDCSNamer::kDCSI)));
+              for ( Int_t i = 0; i < NumberOfPCBs(detElemId); ++i )
+              {
+                aliases->Add(new TObjString(DCSSwitchAliasName(detElemId,i)));
+              }
+              break;
+            default:
+              break;
+          }
+        }
+          break;
+        case kTriggerDet:
+        {
+          switch ( AliMpDEManager::GetStationType(detElemId) )
+          {
+            case AliMp::kStationTrigger:
+              AliDebug(10,Form("Current DetElemId %i",detElemId));
+              aliases->Add(new TObjString(DCSAliasName(detElemId,0,iMeas)));
+              break;
+            default:
+              break;
+          }
+        }
+          break;
       }
       it.Next();
     } // loop on detElemId
   } // Loop on measurement type
-
+  
   return aliases;
 }
 

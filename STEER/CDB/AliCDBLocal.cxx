@@ -720,7 +720,7 @@ TList* AliCDBLocal::GetEntries(const AliCDBId& queryId) {
 }
 
 //_____________________________________________________________________________
-Bool_t AliCDBLocal::PutEntry(AliCDBEntry* entry) {
+Bool_t AliCDBLocal::PutEntry(AliCDBEntry* entry, const char* mirrors) {
 // put an AliCDBEntry object into the database
 
 	AliCDBId& id = entry->GetId();
@@ -736,6 +736,10 @@ Bool_t AliCDBLocal::PutEntry(AliCDBEntry* entry) {
 		AliDebug(2,Form("Bad ID encountered! Subnormal error!"));
 		return kFALSE;
 	}
+
+	TString mirrorsString(mirrors);
+	if(!mirrorsString.IsNull())
+		AliWarning("AliCDBLocal storage cannot take mirror SEs into account. They will be ignored.");
 
 	// open file
 	TFile file(filename, "CREATE");

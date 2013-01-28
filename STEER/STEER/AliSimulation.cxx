@@ -115,6 +115,7 @@
 #include <TVirtualMC.h>
 #include <TVirtualMCApplication.h>
 #include <TDatime.h>
+#include <TInterpreter.h>
 
 #include "AliAlignObj.h"
 #include "AliCDBEntry.h"
@@ -151,6 +152,7 @@
 #include "AliSysInfo.h"
 #include "AliVertexGenFile.h"
 
+using std::ofstream;
 ClassImp(AliSimulation)
 
 AliSimulation *AliSimulation::fgInstance = 0;
@@ -376,7 +378,7 @@ void AliSimulation::SetCDBLock() {
   // Set CDB lock: from now on it is forbidden to reset the run number
   // or the default storage or to activate any further storage!
   
-  ULong_t key = AliCDBManager::Instance()->SetLock(1);
+  ULong64_t key = AliCDBManager::Instance()->SetLock(1);
   if (key) fKey = key;
 }
 
@@ -1021,8 +1023,12 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
   }
 //
 // Execute Config.C
+  TInterpreter::EErrorCode interpreterError=TInterpreter::kNoError;
   gROOT->LoadMacro(fConfigFileName.Data());
-  gInterpreter->ProcessLine(gAlice->GetConfigFunction());
+  Long_t interpreterResult=gInterpreter->ProcessLine(gAlice->GetConfigFunction(), &interpreterError);
+  if (interpreterResult!=0 || interpreterError!=TInterpreter::kNoError) {
+    AliFatal(Form("execution of config file \"%s\" failed with error %d", fConfigFileName.Data(), (int)interpreterError));
+  }
   AliSysInfo::AddStamp("RunSimulation_Config");
 
 //
@@ -1085,7 +1091,6 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
 
    gMC->SetMagField(TGeoGlobalMagField::Instance()->GetField());
    AliSysInfo::AddStamp("RunSimulation_GetField");
-   
    gAlice->GetMCApp()->Init();
    AliSysInfo::AddStamp("RunSimulation_InitMCApp");
 
@@ -1205,7 +1210,6 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
 
   // Create the Root Tree with one branch per detector
   //Hits moved to begin event -> now we are crating separate tree for each event
-
   gMC->ProcessRun(nEvents);
 
   // End of this run, close files
@@ -1838,7 +1842,7 @@ Bool_t AliSimulation::IsSelected(TString detName, TString& detectors) const
 }
 
 //_____________________________________________________________________________
-Int_t AliSimulation::ConvertRaw2SDigits(const char* rawDirectory, const char* esdFileName, Int_t N) 
+Int_t AliSimulation::ConvertRaw2SDigits(const char* rawDirectory, const char* esdFileName, Int_t N, Int_t nSkip)
 {
 //
 // Steering routine  to convert raw data in directory rawDirectory/ to fake SDigits. 
@@ -1908,7 +1912,14 @@ Int_t AliSimulation::ConvertRaw2SDigits(const char* rawDirectory, const char* es
       if (esdFile) {
         esd = new AliESDEvent();
         esdFile->GetObject("esdTree", treeESD);
-        if (treeESD) esd->ReadFromTree(treeESD);
+		  if (treeESD) {
+			  esd->ReadFromTree(treeESD);
+			  if (nSkip>0) {
+				  AliInfo(Form("Asking to skip first %d ESDs events",nSkip));
+			  } else {
+				  nSkip=0;
+			  }
+		  }
       }
     }
 
@@ -1952,8 +1963,8 @@ Int_t AliSimulation::ConvertRaw2SDigits(const char* rawDirectory, const char* es
 	//
 	//  If ESD information available obtain reconstructed vertex and store in header.
 	if (treeESD) {
-		AliInfo(Form("Selected event %d correspond to event %d ins raw and esd",nev,rawReader->GetEventIndex()));
-	    treeESD->GetEvent(rawReader->GetEventIndex());
+		AliInfo(Form("Selected event %d correspond to event %d in raw and to %d in esd",nev,rawReader->GetEventIndex(),nSkip+rawReader->GetEventIndex()));
+	    treeESD->GetEvent(nSkip+rawReader->GetEventIndex());
 	    const AliESDVertex* esdVertex = esd->GetPrimaryVertex();
 	    Double_t position[3];
 	    esdVertex->GetXYZ(position);

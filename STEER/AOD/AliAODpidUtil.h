@@ -14,6 +14,7 @@
 //-------------------------------------------------------
 #include <Rtypes.h>
 #include <TMatrixD.h>
+#include <AliLog.h>
 #include "AliAODEvent.h" // Needed for inline functions
 #include "AliAODTrack.h" // Needed for inline functions
 #include "AliAODPid.h" // Needed for inline functions
@@ -31,40 +32,17 @@ public:
   AliAODpidUtil(Bool_t isMC = kFALSE): AliPIDResponse(isMC) {;}
   virtual ~AliAODpidUtil() {;}
 
-  Int_t MakePID(const AliAODTrack *track,Double_t *p) const;
-  void MakeTPCPID(const AliAODTrack *track,Double_t *p) const;
-  void MakeITSPID(const AliAODTrack *track,Double_t *p) const;
-  void MakeTOFPID(const AliAODTrack *track,Double_t *p) const;
-  //  void MakeHMPIDPID(AliESDtrack *track);
-  void MakeTRDPID(const AliAODTrack *track,Double_t *p) const;
 
-  virtual Float_t NumberOfSigmasTOF(const AliVParticle *vtrack, AliPID::EParticleType type) const;
+  Float_t GetTPCsignalTunedOnData(const AliVTrack *t) const;
+
+protected:
+  virtual Float_t GetNumberOfSigmasTOFold(const AliVParticle *vtrack, AliPID::EParticleType type) const;
   
 private:
   
   ClassDef(AliAODpidUtil,3)  // PID calculation class
 };
 
-inline Float_t AliAODpidUtil::NumberOfSigmasTOF(const AliVParticle *vtrack, AliPID::EParticleType type) const {
-  AliAODTrack *track=(AliAODTrack*)vtrack;
-  Double_t times[AliPID::kSPECIES];
-  Double_t sigmaTOFPid[AliPID::kSPECIES];
-  AliAODPid *pidObj = track->GetDetPid();
-  if (!pidObj) return -999.;
-  Double_t tofTime=pidObj->GetTOFsignal();
-  pidObj->GetIntegratedTimes(times);
-  pidObj->GetTOFpidResolution(sigmaTOFPid);
-  AliAODEvent *event=(AliAODEvent*)track->GetAODEvent();
-  if (event) {
-    AliTOFHeader* tofH=(AliTOFHeader*)event->GetTOFHeader();
-    if (tofH) { 
-      sigmaTOFPid[type]=fTOFResponse.GetExpectedSigma(track->P(),times[type],AliPID::ParticleMass(type)); //fTOFResponse is set in InitialiseEvent
-      tofTime -= fTOFResponse.GetStartTime(vtrack->P());
-    } 
-  }
-  if (sigmaTOFPid[type]>0) return (tofTime - times[type])/sigmaTOFPid[type];
-  else return (tofTime - times[type])/fTOFResponse.GetExpectedSigma(track->P(),times[type],AliPID::ParticleMass(type));
-}
 
 #endif
 

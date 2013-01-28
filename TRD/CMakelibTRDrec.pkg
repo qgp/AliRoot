@@ -57,12 +57,15 @@ string ( REPLACE ".cxx" ".h" HDRS "${SRCS}" )
 
 set ( EXPORT AliTRDpidUtil.h 
   AliTRDcluster.h
+  AliTRDtrackV1.h
   AliTRDtrackerV1.h 
   AliTRDtransform.h 
-  AliTRDtrackingSector.h )
+  AliTRDtrackingSector.h 
+  AliTRDReconstructor.h
+  )
 
 
 set ( DHDR  TRDrecLinkDef.h)
 
-set ( EINCLUDE  RAW STAT STEER/STEER STEER/ESD STEER/STEERBase)
+set ( EINCLUDE  TRD/Cal RAW STAT STEER/STEER STEER/ESD STEER/STEERBase)
 

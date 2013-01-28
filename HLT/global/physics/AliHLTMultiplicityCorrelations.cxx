@@ -27,10 +27,6 @@
 // or
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
-#if __GNUC__>= 3
-   using namespace std;
-#endif
-
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TList.h"
@@ -39,6 +35,10 @@
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTMultiplicityCorrelations)
+
+#if __GNUC__>= 3
+   using namespace std;
+#endif
 
 /*
  * ---------------------------------------------------------------------------------
@@ -576,9 +576,9 @@ Int_t AliHLTMultiplicityCorrelations::ProcessZDC() {
 Int_t AliHLTMultiplicityCorrelations::ProcessSPD() {
   // see header file for class documentation
   
-  (static_cast<TH2F*>(fHistList->FindObject("fSpdNClusters")))->Fill(fSpdNClusters);
-  (static_cast<TH2F*>(fHistList->FindObject("fSpdNClustersInner")))->Fill(fSpdNClustersInner);
-  (static_cast<TH2F*>(fHistList->FindObject("fSpdNClustersOuter")))->Fill(fSpdNClustersOuter);
+  (static_cast<TH1F*>(fHistList->FindObject("fSpdNClusters")))->Fill(fSpdNClusters);
+  (static_cast<TH1F*>(fHistList->FindObject("fSpdNClustersInner")))->Fill(fSpdNClustersInner);
+  (static_cast<TH1F*>(fHistList->FindObject("fSpdNClustersOuter")))->Fill(fSpdNClustersOuter);
 
   
   // -- SPD vs TPC correlations

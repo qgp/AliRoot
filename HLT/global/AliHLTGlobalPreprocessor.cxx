@@ -1,7 +1,7 @@
 // $Id$
 
 //**************************************************************************
-//* This file is property of and copyright by the ALICE HLT Project        * 
+//* This file is property of and copyright by the                          * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //*                                                                        *
 //* Primary Authors: Matthias Richter <Matthias.Richter@ift.uib.no         *
@@ -23,7 +23,8 @@
 // 
 
 #include "AliHLTGlobalPreprocessor.h"
-#include "AliHLTRootSchemaEvolutionComponent.h"
+#include "AliPreprocessor.h"
+#include "AliHLTMisc.h"
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
 #include "AliGRPObject.h"
@@ -45,11 +46,12 @@ AliHLTGlobalPreprocessor::AliHLTGlobalPreprocessor()
   : AliHLTModulePreprocessor()
 {
   // constructor
-  // see header file for class documentation
-  // or
-  // refer to README to build package
-  // or
-  // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+  // HLT preprocessor for global HLT objects
+  //
+  // Produced OCDB objects:
+  // - HLT/Calib/Streamerinfo
+  //   The streamer info object is produced by the ROOTSchemaEvolutionComponent
+  //   See ProcessStreamerInfo() for details.
 }
 
 const char* AliHLTGlobalPreprocessor::fgkStreamerInfoAlias="StreamerInfo";
@@ -69,79 +71,120 @@ void AliHLTGlobalPreprocessor::Initialize(Int_t /*run*/, UInt_t /*startTime*/,
 
 }
 
-
-UInt_t AliHLTGlobalPreprocessor::Process(TMap* dcsAliasMap)
+UInt_t AliHLTGlobalPreprocessor::Process(TMap* /*dcsAliasMap*/)
 {
-  // processes the DCS value map
-  
-  if (!dcsAliasMap) return -EINVAL;
-  if (dcsAliasMap->GetEntries() == 0 ) return 0;
-  
-  TObject* streamerinfo=GetFromMap(dcsAliasMap, fgkStreamerInfoAlias);
-  if (streamerinfo) ProcessStreamerInfo(streamerinfo);
-
-  return 0;
+  Int_t returnValue = ProcessStreamerInfo();
+  if (returnValue < 0) {
+	AliInfo(Form("Processing for %s failed with return code %d", fgkStreamerInfoAlias, returnValue));
+  }
+  return 0; // return success
 }
 
-Int_t AliHLTGlobalPreprocessor::GetModuleNumber() {
+Int_t AliHLTGlobalPreprocessor::GetModuleNumber()
+{
+  // get module number of this preprocessor, corresponds to the position
+  // in the detector bit field, or 0 if no corresponding detector existing
   Int_t modulenumber = 0;
   //modulenumber = AliHLTModulePreprocessor::DetectorBitMask("GRP");
   return modulenumber;
-};
-
-int AliHLTGlobalPreprocessor::ProcessStreamerInfo(TObject* object)
-{
-  /// process the StreamerInfo object
-  int iResult=0;
-  if (!object) return -EINVAL;
-
-  TObjArray* streamerinfos=dynamic_cast<TObjArray*>(object);
-  if (!streamerinfos) {
-    AliError(Form("StreamerInfo object has wrong class type %s, expecting TObjArray", object->ClassName()));
-    return -EINVAL;
-  }
-  if (streamerinfos->GetEntriesFast()==0) return 0;
-
-  //bool bStore=false;
-  AliCDBEntry* entry = GetFromOCDB(fgkStreamerInfoType, fgkStreamerInfoName);
-  TObjArray* clone=NULL;
-  if (entry && entry->GetObject()) {
-    TObject* cloneObj=entry->GetObject()->Clone();
-    if (cloneObj) clone=dynamic_cast<TObjArray*>(cloneObj);
-    //bStore=AliHLTRootSchemaEvolutionComponent::MergeStreamerInfo(clone, streamerinfos)>0;
-  } else {
-    TObject* cloneObj=streamerinfos->Clone();
-    if (cloneObj) clone=dynamic_cast<TObjArray*>(cloneObj);
-    //bStore=true;
-  }
-
-  if (clone) {
-    AliCDBMetaData* metaData=entry?entry->GetMetaData():NULL;
-    AliCDBMetaData* newMetaData=NULL;
-    if (!metaData) {
-      newMetaData=new AliCDBMetaData;
-      if (newMetaData) {
-	metaData=newMetaData;
-	metaData->SetBeamPeriod(0);
-	metaData->SetResponsible("ALICE HLT Matthias.Richter@cern.ch");
-	metaData->SetComment("Streamer info for HLTOUT payload");
-	//metaData->SetAliRootVersion(ALIROOT_SVN_BRANCH);
-      } else {
-	iResult=-ENOMEM;
-      }
-    }
-    Store(fgkStreamerInfoType, fgkStreamerInfoName, clone, metaData, GetRun(), kFALSE);
-    delete clone;
-    if (newMetaData) delete newMetaData;
-    newMetaData=NULL;
-    metaData=NULL;
-    // TODO
-    // - what to do with variable 'entry', to be deleted?
-
-  } else {
-    AliError("failed to clone streamer info object array");
-    return -ENOMEM;
-  }
-
-  return iResult;
 }
+
+Int_t AliHLTGlobalPreprocessor::ProcessStreamerInfo() {
+	// get file sources
+	TList* list = GetFileSources(AliPreprocessor::kHLT, fgkStreamerInfoAlias);
+	if ((!list) || (list->GetEntries() == 0)) {
+		AliInfo(Form("No sources for %s found",fgkStreamerInfoAlias));
+		return -1; // no sources
+	}
+	bool bStore = false;
+    TObjArray* clone = NULL;
+	// get existing object or create new one
+    AliCDBEntry* entry = GetFromOCDB(fgkStreamerInfoType, fgkStreamerInfoName);
+    if (entry && entry->GetObject()) {
+    	TObject* cloneObj = entry->GetObject()->Clone();
+    	if (cloneObj) clone = dynamic_cast<TObjArray*>(cloneObj);
+    } else {
+    	clone = new TObjArray();
+    	bStore = true;
+    }
+    if (!clone) {
+    	AliError(Form("Could not clone %s, %s", fgkStreamerInfoType, fgkStreamerInfoName));
+    	return -2; // no clone
+    }
+	// loop over all sources
+	TObjLink *lnk = list->FirstLink();
+	while (lnk) {
+		TObject* obj = lnk->GetObject();
+		TObjString* objStr = dynamic_cast<TObjString*>(obj);
+		if (!objStr) {
+			AliError(Form("GetFileSources returned TList with no TObjString entry?! %s", obj->ClassName()));
+			// continue with next list entry
+			lnk = lnk->Next();
+			continue;
+		}
+	  	TString fileName = GetFile(AliPreprocessor::kHLT,fgkStreamerInfoAlias ,objStr->GetString().Data());
+	  	if (fileName.Length() == 0) {
+	    		AliError(Form("Could not get %d-%s-%s", AliPreprocessor::kHLT,fgkStreamerInfoAlias ,objStr->GetString().Data()));
+	  	}
+	  	// time to process the file...
+	  	TFile* f = new TFile(fileName.Data(), "READ");
+	  	if (!f || !f->IsOpen()) {
+	  		AliError(Form("Could not open %s", objStr->GetString().Data()));
+	  		return -3;
+	  	}
+	  	// loop over objects and create new TObjArrary to feed into merger...
+	  	TObjArray* streamerinfos = new TObjArray(100);
+	  	TList* keys = f->GetListOfKeys();
+	  	TObjLink *lnkFile = keys->FirstLink();
+	  	while (lnkFile) {
+	  		// processing
+	  		TObject* streamerobj = f->Get(lnkFile->GetObject()->GetName());
+	  		TStreamerInfo* streamer=dynamic_cast<TStreamerInfo*>(streamerobj);
+	  		if (!streamer) {
+	  			AliError(Form("StreamerInfo object has wrong class type %s, expecting TStreamerInfo", streamerobj->ClassName()));
+	  		} else {
+	  			streamerinfos->Add(streamer);
+	  		}
+	  		lnkFile = lnkFile->Next();
+	  	}
+	  	if (streamerinfos->GetEntriesFast()!=0) {
+	  		bStore |= AliHLTMisc::Instance().MergeStreamerInfo(clone, streamerinfos, 1)>0;
+	  	}
+	  	delete streamerinfos;
+	  	f->Close();
+	  	delete f;
+	  	lnk = lnk->Next();
+	}
+	// store if necessary
+	if (bStore) {
+	    AliCDBMetaData* metaData=entry?entry->GetMetaData():NULL;
+	    AliCDBMetaData* newMetaData=NULL;
+	    if (!metaData) {
+	    	newMetaData=new AliCDBMetaData;
+	    	if (newMetaData) {
+	    		metaData=newMetaData;
+	    		metaData->SetBeamPeriod(0);
+	    		metaData->SetResponsible("ALICE HLT alice-hlt-core@cern.ch");
+	    		metaData->SetComment("Streamer info for HLTOUT payload");
+	    		//metaData->SetAliRootVersion(ALIROOT_SVN_BRANCH);
+	    	} else {
+	    		return -ENOMEM;
+	    	}
+	    }
+	     Store(fgkStreamerInfoType, fgkStreamerInfoName, clone, metaData, 0, kTRUE);
+	     if (newMetaData) {
+	     	delete newMetaData;
+	        newMetaData=NULL;
+	        metaData=NULL;
+	     }
+	} else {
+		if (entry) {
+	      AliInfo(Form("StreamerInfo object in OCDB is already up-to-date, skipping new object"));
+	      //entry->PrintId();
+		}
+	}
+    delete clone;
+	return 0;
+}
+
+

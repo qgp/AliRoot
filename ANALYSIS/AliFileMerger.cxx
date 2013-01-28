@@ -68,6 +68,10 @@
 #include "AliFileMerger.h"
 #include "AliLog.h"
 
+using std::cerr;
+using std::endl;
+using std::cout;
+using std::ifstream;
 ClassImp(AliFileMerger)
 
 ProcInfo_t procInfo;//TMP
@@ -369,15 +373,13 @@ void AliFileMerger::AddAccept(const char *accept){
 }
 
 //___________________________________________________________________________
-int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist)
+int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist, Bool_t nameFiltering)
 {
   // Merge all objects in a directory
   // modified version of root's hadd.cxx
   gSystem->GetProcInfo(&procInfo);
   AliInfo(Form(">> memory usage %ld %ld", procInfo.fMemResident, procInfo.fMemVirtual));
-
-
-  Int_t counterF = -1;
+  //
   int status = 0;
   cout << "Target path: " << target->GetPath() << endl;
   TString path( (char*)strstr( target->GetPath(), ":" ) );
@@ -395,7 +397,7 @@ int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist)
   listHargs.Form("((TCollection*)0x%lx)", (ULong_t)&listH);
   //
   while(first_source) {
-    counterF++;
+    //
     TDirectory *current_sourcedir = first_source->GetDirectory(path);
     if (!current_sourcedir) {
       first_source = (TDirectory*)sourcelist->After(first_source);
@@ -409,13 +411,14 @@ int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist)
     TH1::AddDirectory(kFALSE);
     //
     int counterK = 0;
+    int counterF=0;
     //
     while ( (key = (TKey*)nextkey())) {
       if (current_sourcedir == target) break;
       //
       // check if we don't reject this name
       TString nameK(key->GetName());
-      if (!IsAccepted(nameK)) {
+      if (!IsAccepted(nameK) && nameFiltering) {
 	if (!counterF) printf("Object %s is in rejection list, skipping...\n",nameK.Data());
 	continue;
       }
@@ -431,7 +434,7 @@ int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist)
 	continue;
       }
       allNames.Add(new TObjString(key->GetName()));
-      AliSysInfo::AddStamp(nameK.Data(),1,counterK++,counterF-1); 
+      AliSysInfo::AddStamp(nameK.Data(),1,++counterK,counterF++); 
       // read object from first source file
       //current_sourcedir->cd();
 
@@ -486,7 +489,7 @@ int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist)
 	// newdir is now the starting point of another round of merging
 	// newdir still knows its depth within the target file via
 	// GetPath(), so we can still figure out where we are in the recursion
-	status = MergeRootfile( newdir, sourcelist);
+	status = MergeRootfile( newdir, sourcelist, kFALSE);
 	if (status) return status;
 	
       } else if ( obj->InheritsFrom(TObject::Class())
@@ -519,6 +522,14 @@ int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist)
 		     << " with the corresponding object in " << nextsource->GetName() << endl;
 	      }
 	      listH.Delete();
+        // get the number of processed entries to be put in the syswatch.log
+        Double_t numberOfEntries = -1;
+        if (obj->IsA()->GetMethodAllAny("GetEntries"))
+        {
+          TMethodCall getEntries(obj->IsA(), "GetEntries", "");
+          getEntries.Execute(obj, numberOfEntries);
+        }
+	      AliSysInfo::AddStamp(nameK.Data(),1,counterK,counterF++,numberOfEntries); 
 	    }
 	  }
 	  nextsource = (TFile*)sourcelist->After( nextsource );
@@ -540,6 +551,7 @@ int AliFileMerger::MergeRootfile( TDirectory *target, TList *sourcelist)
 	      THStack *hstack2 = (THStack*) key2->ReadObj();
 	      l->Add(hstack2->GetHists()->Clone());
 	      delete hstack2;
+	      AliSysInfo::AddStamp(nameK.Data(),1,counterK,counterF++); 
 	    }
 	  }
 	  

@@ -93,11 +93,14 @@ class AliTRDcalibDB : public TObject {
   Float_t                             GetPRFlo() const      { return fPRFlo;  };
   Float_t                             GetPRFhi() const      { return fPRFhi;  };
 
+  Int_t                               ExtractTimeBinsFromString(TString tbstr);
   Int_t                               GetNumberOfTimeBinsDCS();
   void                                GetFilterType(TString &filterType);
   void                                GetGlobalConfiguration(TString &config);
   void                                GetGlobalConfigurationVersion(TString &version);
-  void                                GetDCSConfigParOption(Int_t cfgType, Int_t option, TString &cfgo);
+  Int_t                               GetNumberOfParsDCS(TString cname, Char_t delimiter='_');
+  Int_t                               GetNumberOfOptsDCS(TString cname, Int_t cfgType);
+  void                                GetDCSConfigParOption(TString cname, Int_t cfgType, Int_t option, TString &cfgo);
 
   Int_t                               GetOnlineGainTableID();
 
@@ -121,6 +124,7 @@ class AliTRDcalibDB : public TObject {
   Bool_t                              IsChamberNoData(Int_t det);
   Bool_t                              IsHalfChamberNoData(Int_t det, Int_t side);
   Bool_t                              IsChamberBadCalibrated(Int_t det);
+  Bool_t                              IsChamberNotCalibrated(Int_t det);
 
   const AliTRDCalMonitoring          *GetMonitoringObject();
   const AliTRDCalPID                 *GetPIDObject(AliTRDpidUtil::ETRDPIDMethod m);

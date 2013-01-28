@@ -8,19 +8,18 @@
 
 #include "AliGenMC.h"
 #include "TDPMjet.h"
+#include "AliGenDPMjetEventHeader.h"
 #include <TString.h>
 #include <TArrayI.h>
 
 class TDPMjet;
-class TArrayI;
 class TParticle;
 class TClonesArray;
-class TGraph;
 class AliGenEventHeader;
 class AliStack;
 class AliRunLoader;
 class AliGenDPMjetEventHeader;
-
+class AliIonPDGCodes;
 
 
 class AliGenDPMjet : public AliGenMC
@@ -34,7 +33,8 @@ class AliGenDPMjet : public AliGenMC
     virtual void    Generate();
     virtual void    Init();
     virtual void    FinishRun();
-    virtual void    SetEnergyCMS(Float_t energy = 14000.) {fEnergyCMS = energy; fBeamEn = energy / 2.;}
+    virtual void    SetEnergyCMS(Float_t energy = 14000.) {fEnergyCMS = energy;}
+    virtual void    SetProjectileBeamEnergy(Float_t benergy = 7000.) {fBeamEn = benergy;}
     virtual void    SetImpactParameterRange(Float_t bmin=0., Float_t bmax=1.)
 			{fMinImpactParam=bmin; fMaxImpactParam=bmax;}
     virtual void    SetProcess(DpmProcess_t iproc) {fProcess = iproc;}
@@ -45,6 +45,7 @@ class AliGenDPMjet : public AliGenMC
     virtual void    SetBoostLHC(Int_t flag=0)         {fLHC        = flag;}
     virtual void    SetPi0Decay(Int_t iPi0)  {fPi0Decay = iPi0;}
     virtual void    SetDecayAll(Int_t iDec)  {fDecayAll = iDec;}
+    virtual void    SetIonPDGCodes();
     virtual void    GetImpactParameterRange(Float_t& bmin, Float_t& bmax)
 			{bmin = fMinImpactParam; bmax = fMaxImpactParam;}
     virtual Int_t   GetSpectators()        {return fSpectators;}
@@ -58,13 +59,16 @@ class AliGenDPMjet : public AliGenMC
       fTriggerMultiplicityPtMin = ptmin;}
 
     AliGenDPMjet &  operator=(const AliGenDPMjet & rhs);
-    void     AddHeader(AliGenEventHeader* header);
+    //void     AddHeader(AliGenEventHeader* header);
 
    void SetTuneForDiff(Bool_t a=kTRUE) {fkTuneForDiff=a;}
 
+   virtual void  SetFragmentProd(Bool_t val) {fFragmentation = val;}
+   virtual Bool_t ProvidesCollisionGeometry() const {return kTRUE;}
+
  protected:
-    Bool_t SelectFlavor(Int_t pid);
-    void   MakeHeader();
+   Bool_t SelectFlavor(Int_t pid);
+   void   MakeHeader();
 
  protected:
     Float_t       fBeamEn; 	   // beam energy
@@ -91,6 +95,9 @@ class AliGenDPMjet : public AliGenMC
 
     Bool_t fkTuneForDiff;    // Phojet tune 
     Int_t  fProcDiff;
+    
+    Bool_t fFragmentation; // Allows evaporation and fragments production
+    AliGenDPMjetEventHeader fHeader; // MC header
 
  private:
     // adjust the weight from kinematic cuts
@@ -104,7 +111,7 @@ class AliGenDPMjet : public AliGenMC
    Bool_t GetWeightsDiffraction(Double_t M, Double_t &Mmin, Double_t &Mmax, 
 					       Double_t &wSD, Double_t &wDD, Double_t &wND);
 
-    ClassDef(AliGenDPMjet,4) // AliGenerator interface to DPMJET
+    ClassDef(AliGenDPMjet,6) // AliGenerator interface to DPMJET
 };
 #endif
 

@@ -47,6 +47,11 @@ public:
     //
     // Added by Chiara to take into account angular distribution 4 gray tracks
     virtual void   SetThetaDist(Int_t flag=0) {fThetaDistribution = flag;}
+    //
+    virtual Int_t  GetNGrayProtons()   {return fNgp;}
+    virtual Int_t  GetNGrayNeutrons()  {return fNgn;}
+    virtual Int_t  GetNBlackProtons()  {return fNbp;}
+    virtual Int_t  GetNBlackNeutrons() {return fNbn;}    
     
  protected:
     void     GenerateSlow(Int_t charge, Double_t T, Double_t beta, Float_t* q, Float_t &theta);
@@ -54,8 +59,8 @@ public:
     void     Lorentz(Double_t m, Double_t beta, Float_t* q);
  protected:
     Float_t  fCMS;             // Center of mass energy
-    Float_t  fMomentum;        // Target nucleus momentum
-    Float_t  fBeta;            // Target nucleus beta
+    Double_t fMomentum;        // Target nucleus momentum
+    Double_t fBeta;            // Target nucleus beta
     Float_t  fPmax;            // Maximum slow nucleon momentum
     Int_t    fCharge;          // Slow nucleon charge
     Float_t  fProtonDirection; // Direction of the proton
@@ -85,6 +90,7 @@ public:
     ClassDef(AliGenSlowNucleons,2) // Slow Nucleon Generator
 };
 #endif
+
 
 
 

@@ -1,7 +1,7 @@
 // $Id$
 
 //**************************************************************************
-//* This file is property of and copyright by the ALICE                    * 
+//* This file is property of and copyright by the                          * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //*                                                                        *
 //* Primary Authors: Matthias Richter <Matthias.Richter@ift.uib.no>        *
@@ -24,6 +24,7 @@
 #include "AliHLTRootSchemaEvolutionComponent.h"
 #include "AliHLTMessage.h"
 #include "AliHLTReadoutList.h"
+#include "AliHLTMisc.h"
 #include "TObjArray.h"
 #include "TStreamerInfo.h"
 #include "TList.h"
@@ -40,7 +41,7 @@
 #include "AliCDBEntry.h"
 
 #include <numeric>
-using std::accumulate;
+using namespace std;
 
 namespace
 {
@@ -70,12 +71,16 @@ AliHLTRootSchemaEvolutionComponent::AliHLTRootSchemaEvolutionComponent()
   , fFXSPrescaler(0)
   , fFileName()
 {
-  // see header file for class documentation
-  // or
-  // refer to README to build package
-  // or
-  // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
-
+  // Collects streamer info for all input objects and produces the corresponding
+  // calibration object for reconstruction of HLT. The component runs with a
+  // configurable rate constraint and skips the processing of known data blocks
+  // for the sake of performance. New data blocks are always processed and added
+  // to the list.
+  //
+  // Component ID: \b ROOTSchemaEvolutionComponent                        <br>
+  // Library: \b libAliHLTUtil.so						<br>
+  // Input Data Types: ::kAliHLTAnyDataType				<br>
+  // Output Data Types: none						<br>
 }
 
 // FIXME: read below when defining an OCDB object here
@@ -84,7 +89,7 @@ const AliHLTUInt32_t AliHLTRootSchemaEvolutionComponent::fgkTimeScale=1000000;
 
 AliHLTRootSchemaEvolutionComponent::~AliHLTRootSchemaEvolutionComponent()
 {
-  // see header file for class documentation
+  // destructor
   if (fpStreamerInfos) {
     fpStreamerInfos->Clear();
     delete fpStreamerInfos;
@@ -94,19 +99,19 @@ AliHLTRootSchemaEvolutionComponent::~AliHLTRootSchemaEvolutionComponent()
 
 void AliHLTRootSchemaEvolutionComponent::GetInputDataTypes(AliHLTComponentDataTypeList& list)
 {
-  // see header file for class documentation
+  // overloaded from AliHLTComponent
   list.push_back(kAliHLTAnyDataType);
 }
 
 AliHLTComponentDataType AliHLTRootSchemaEvolutionComponent::GetOutputDataType()
 {
-  // see header file for class documentation
+  // overloaded from AliHLTComponent
   return kAliHLTDataTypeStreamerInfo;
 }
 
 void AliHLTRootSchemaEvolutionComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
 {
-  // see header file for class documentation
+  // overloaded from AliHLTComponent
 
   // this is nothing more than an assumption, in fact it's very difficult to predict how
   // much output the component produces
@@ -116,7 +121,7 @@ void AliHLTRootSchemaEvolutionComponent::GetOutputDataSize(unsigned long& constB
 
 int AliHLTRootSchemaEvolutionComponent::InitCalibration()
 {
-  // see header file for class documentation
+  // overloaded from AliHLTCalibrationProcessor: initialization
 
   int iResult=0;
 
@@ -145,7 +150,7 @@ int AliHLTRootSchemaEvolutionComponent::InitCalibration()
 
 int AliHLTRootSchemaEvolutionComponent::DeinitCalibration()
 {
-  // see header file for class documentation
+  // overloaded from AliHLTCalibrationProcessor: termination and cleanup
   if (fFileName.IsNull()==0) {
     WriteToFile(fFileName, fpStreamerInfos);
     fFileName.Clear();
@@ -171,7 +176,7 @@ int AliHLTRootSchemaEvolutionComponent::DeinitCalibration()
 int AliHLTRootSchemaEvolutionComponent::ProcessCalibration( const AliHLTComponentEventData& /*evtData*/,
 							    AliHLTComponentTriggerData& /*trigData*/ )
 {
-  // see header file for class documentation
+  // overloaded from AliHLTCalibrationProcessor: event processing
   int iResult=0;
   AliHLTUInt32_t eventType=gkAliEventTypeUnknown;
   if (!IsDataEvent(&eventType) && 
@@ -266,7 +271,7 @@ int AliHLTRootSchemaEvolutionComponent::ProcessCalibration( const AliHLTComponen
 int AliHLTRootSchemaEvolutionComponent::ShipDataToFXS( const AliHLTComponentEventData& /*evtData*/,
 						       AliHLTComponentTriggerData& /*trigData*/)
 {
-  // see header file for class documentation
+  // overloaded from AliHLTCalibrationProcessor: ship data
   if (TestBits(kFXS)) {
     // push to FXS
     AliHLTReadoutList rdList(AliHLTReadoutList::kHLT);
@@ -300,7 +305,7 @@ int AliHLTRootSchemaEvolutionComponent::ShipDataToFXS( const AliHLTComponentEven
 
 int AliHLTRootSchemaEvolutionComponent::UpdateStreamerInfos(const TList* list, TObjArray* infos) const
 {
-  // see header file for class documentation
+  // update streamer infos
   int iResult=0;
   if (!list || !infos) {
     return -EINVAL;
@@ -333,7 +338,7 @@ int AliHLTRootSchemaEvolutionComponent::UpdateStreamerInfos(const TList* list, T
 
 int AliHLTRootSchemaEvolutionComponent::ScanConfigurationArgument(int argc, const char** argv)
 {
-  // see header file for class documentation
+  // overloaded from AliHLTComponent
   int iResult=0;
   if (argc<=0) return 0;
   int i=0;
@@ -434,7 +439,7 @@ int AliHLTRootSchemaEvolutionComponent::WriteToFile(const char* filename, const 
   if (existingEntry && existingEntry->GetObject()) {
     TObject* cloneObj=existingEntry->GetObject()->Clone();
     if (cloneObj) clone=dynamic_cast<TObjArray*>(cloneObj);
-    if (MergeStreamerInfo(clone, infos)==0) {
+    if (AliHLTMisc::Instance().MergeStreamerInfo(clone, infos)==0) {
       // no change, store with identical version
       version=existingEntry->GetId().GetVersion();
     }
@@ -464,54 +469,6 @@ int AliHLTRootSchemaEvolutionComponent::WriteToFile(const char* filename, const 
   out.Close();
 
   return 0;
-}
-
-int AliHLTRootSchemaEvolutionComponent::MergeStreamerInfo(TObjArray* tgt, const TObjArray* src)
-{
-  /// merge streamer info entries from source array to target array
-  /// return 1 if target array has been changed
-
-  // add all existing infos if not existing in the current one, or having
-  // different class version
-  int iResult=0;
-  if (!tgt || !src) return -EINVAL;
-
-  {
-    // check if all infos from the existing entry are in the new entry and with
-    // identical class version
-    TIter next(src);
-    TObject* nextobj=NULL;
-    while ((nextobj=next())) {
-      TStreamerInfo* srcInfo=dynamic_cast<TStreamerInfo*>(nextobj);
-      if (!srcInfo) continue;
-      TString srcInfoName=srcInfo->GetName();
-
-      int i=0;
-      for (; i<tgt->GetEntriesFast(); i++) {
-	if (tgt->At(i)==NULL) continue;
-	if (srcInfoName.CompareTo(tgt->At(i)->GetName())!=0) continue;
-	// TODO: 2010-08-23 some more detailed investigation is needed.
-	// Structures used for data exchange, e.g. AliHLTComponentDataType
-	// or AliHLTEventDDLV1 do not have a class version, but need to be stored in the
-	// streamer info. Strictly speaking not, because those structures are not supposed
-	// to be changed at all, so they should be the same in all versions in the future.
-	// There has been a problem with detecting whether the streamer info is already in
-	// the target array if the srcInfo has class version -1. As it just concerns
-	// structures not going to be changed we can safely skip checking the class version,
-	// as long as the entry is already in the target streamer infos it does not need
-	// to be copied again.
-	if (srcInfo->GetClassVersion()<0) break;
-	TStreamerInfo* tgtInfo=dynamic_cast<TStreamerInfo*>(tgt->At(i));
-	if (tgtInfo && tgtInfo->GetClassVersion()==srcInfo->GetClassVersion()) break;
-      }
-      if (i<tgt->GetEntriesFast()) continue;
-
-      iResult=1;
-      tgt->Add(srcInfo);
-    }
-  }
-
-  return iResult;
 }
 
 AliHLTRootSchemaEvolutionComponent::AliHLTDataBlockItem*

@@ -25,6 +25,8 @@
 #include <AliVTrack.h>
 #include <AliLog.h>
 #include <AliPIDResponse.h>
+#include <AliESDpid.h>
+#include <AliProdInfo.h>
 
 #include "AliAnalysisTaskPIDResponse.h"
 
@@ -34,11 +36,16 @@ ClassImp(AliAnalysisTaskPIDResponse)
 AliAnalysisTaskPIDResponse::AliAnalysisTaskPIDResponse():
 AliAnalysisTaskSE(),
 fIsMC(kFALSE),
+fCachePID(kTRUE),
 fOADBPath(),
+fSpecialDetResponse(),
 fPIDResponse(0x0),
 fRun(0),
 fOldRun(0),
-fRecoPass(0)
+fRecoPass(0),
+fIsTunedOnData(kFALSE),
+fRecoPassTuned(0),
+fUseTPCEtaCorrection(kFALSE)//TODO: In future, default kTRUE  
 {
   //
   // Dummy constructor
@@ -49,11 +56,16 @@ fRecoPass(0)
 AliAnalysisTaskPIDResponse::AliAnalysisTaskPIDResponse(const char* name):
 AliAnalysisTaskSE(name),
 fIsMC(kFALSE),
+fCachePID(kTRUE),
 fOADBPath(),
+fSpecialDetResponse(),
 fPIDResponse(0x0),
 fRun(0),
 fOldRun(0),
-fRecoPass(0)
+fRecoPass(0),
+fIsTunedOnData(kFALSE),
+fRecoPassTuned(0),
+fUseTPCEtaCorrection(kFALSE)//TODO: In future, default kTRUE
 {
   //
   // Default constructor
@@ -89,7 +101,23 @@ void AliAnalysisTaskPIDResponse::UserCreateOutputObjects()
   if (!fPIDResponse) AliFatal("PIDResponse object was not created");
 
   fPIDResponse->SetOADBPath(AliAnalysisManager::GetOADBPath());
+  fPIDResponse->SetCachePID(fCachePID);
   if (!fOADBPath.IsNull()) fPIDResponse->SetOADBPath(fOADBPath.Data());
+
+  if(fIsTunedOnData) fPIDResponse->SetTunedOnData(kTRUE,fRecoPassTuned);
+
+  if (!fSpecialDetResponse.IsNull()){
+    TObjArray *arr=fSpecialDetResponse.Tokenize("; ");
+    for (Int_t i=0; i<arr->GetEntriesFast();++i){
+      TString resp(arr->At(i)->GetName());
+      if (resp.BeginsWith("TPC:")){
+        resp.ReplaceAll("TPC:","");
+        fPIDResponse->SetCustomTPCpidResponse(resp.Data());
+        AliInfo(Form("Setting custom TPC response file: '%s'",resp.Data()));
+      }
+    }
+    delete arr;
+  }
 }
 
 //______________________________________________________________________________
@@ -106,7 +134,16 @@ void AliAnalysisTaskPIDResponse::UserExec(Option_t */*option*/)
     fOldRun=fRun;
   }
 
+  fPIDResponse->SetUseTPCEtaCorrection(fUseTPCEtaCorrection);
   fPIDResponse->InitialiseEvent(event,fRecoPass);
+  AliESDpid *pidresp = dynamic_cast<AliESDpid*>(fPIDResponse);
+  if(pidresp && AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler()){
+      pidresp->SetEventHandler(AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler());
+  }
+  //create and attach transient PID object
+//   if (fCachePID) {
+//     fPIDResponse->FillTrackDetectorPID();
+//   }
 }
 
 //______________________________________________________________________________
@@ -119,28 +156,46 @@ void AliAnalysisTaskPIDResponse::SetRecoInfo()
   //reset information
   fRecoPass=0;
   
-  //Get the current file to check the reconstruction pass (UGLY, but not stored in ESD... )
+  //Get UserInfo from the current tree 
   AliAnalysisManager *mgr=AliAnalysisManager::GetAnalysisManager();
   AliVEventHandler *inputHandler=mgr->GetInputEventHandler();
   if (!inputHandler) return;
-  
+
+  TList *uiList = inputHandler->GetUserInfo();
+  AliProdInfo prodInfo(uiList);
+  prodInfo.List();
+
   TTree *tree= (TTree*)inputHandler->GetTree();
   TFile *file= (TFile*)tree->GetCurrentFile();
-  
   if (!file) {
     AliError("Current file not found, cannot set reconstruction information");
     return;
-  }
-  
-  //find pass from file name (UGLY, but not stored in ESD... )
-  TString fileName(file->GetName());
-  if (fileName.Contains("pass1") ) {
-    fRecoPass=1;
-  } else if (fileName.Contains("pass2") ) {
-    fRecoPass=2;
-  } else if (fileName.Contains("pass3") ) {
-    fRecoPass=3;
+  } else {
+    TString fileName(file->GetName());
+    fPIDResponse->SetCurrentFile(fileName.Data());
   }
 
-  fPIDResponse->SetCurrentFile(fileName.Data());
+  if (!(prodInfo.IsMC())) {      // reco pass is needed only for data
+    fRecoPass = prodInfo.GetRecoPass();
+    if (fRecoPass < 0) {   // as last resort we find pass from file name (UGLY, but not stored in ESDs/AODs before LHC12d )
+      TString fileName(file->GetName());
+      if (fileName.Contains("pass1") ) {
+	fRecoPass=1;
+      } else if (fileName.Contains("pass2") ) {
+	fRecoPass=2;
+      } else if (fileName.Contains("pass3") ) {
+	fRecoPass=3;
+      } else if (fileName.Contains("pass4") ) {
+	fRecoPass=4;
+      } else if (fileName.Contains("pass5") ) {
+	fRecoPass=5;
+      }
+    } 
+    if (fRecoPass <= 0) {
+      AliError(" ******** Failed to find reconstruction pass number *********");
+      AliError(" ******** Insert pass number inside the path of your local file ******");
+      AliError(" ******** PID information loaded for 'pass 0': parameters unreliable ******");
+    }
+  }
+
 }

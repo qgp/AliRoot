@@ -27,13 +27,16 @@ public:
 	virtual Int_t  GetLatestSubVersion(const char* path, Int_t run, Int_t version);
 	virtual Bool_t IdToFilename(const AliCDBId& id, TString& filename) const;
 	virtual void SetRetry(Int_t nretry, Int_t initsec);
+	virtual void SetMirrorSEs(const char* mirrors) {fMirrorSEs=mirrors;}
+	virtual const char* GetMirrorSEs() const {return fMirrorSEs;}
+
 
 protected:
 
 	virtual AliCDBEntry*	GetEntry(const AliCDBId& queryId);
 	virtual AliCDBId*	GetEntryId(const AliCDBId& queryId);
 	virtual TList* 		GetEntries(const AliCDBId& queryId);
-	virtual Bool_t          PutEntry(AliCDBEntry* entry);
+	virtual Bool_t          PutEntry(AliCDBEntry* entry, const char* mirrors="");
 	virtual TList* 		GetIdListFromFile(const char* fileName);
 
 private:
@@ -67,6 +70,7 @@ private:
 	TString    fUser;	 // User
 	TString    fDBFolder;    // path of the DB folder
 	TString    fSE;	  	 // Storage Element
+	TString    fMirrorSEs;	 // Mirror Storage Elements
 	TString    fCacheFolder; // local cache folder
 	Bool_t     fOperateDisconnected; // Operate disconnected flag
 	Long64_t   fCacheSize;           // local cache size (in bytes)

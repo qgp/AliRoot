@@ -32,6 +32,8 @@
 #include "TParticle.h"
 #include "AliMuonForwardTrack.h"
 #include "AliMFTConstants.h"
+#include "TLorentzVector.h"
+#include "TDatabasePDG.h"
 
 ClassImp(AliMuonForwardTrack)
 
@@ -43,7 +45,9 @@ AliMuonForwardTrack::AliMuonForwardTrack():
   fMCTrackRef(0),
   fMFTClusters(0),
   fNWrongClustersMC(-1),
-  fTrackMCId(-1)
+  fTrackMCId(-1),
+  fKinem(0,0,0,0),
+  fParamCovMatrix(5,5)
 {
 
   // default constructor
@@ -54,6 +58,7 @@ AliMuonForwardTrack::AliMuonForwardTrack():
     fParentPDGCode[iParent] =  0;
   }
   fMFTClusters = new TClonesArray("AliMFTCluster");
+  fMFTClusters -> SetOwner(kTRUE);
 
 }
 
@@ -65,7 +70,9 @@ AliMuonForwardTrack::AliMuonForwardTrack(AliMUONTrack *MUONTrack):
   fMCTrackRef(0),
   fMFTClusters(0),
   fNWrongClustersMC(-1),
-  fTrackMCId(-1)
+  fTrackMCId(-1),
+  fKinem(0,0,0,0),
+  fParamCovMatrix(5,5)
 {
 
   SetMUONTrack(MUONTrack);
@@ -75,6 +82,7 @@ AliMuonForwardTrack::AliMuonForwardTrack(AliMUONTrack *MUONTrack):
     fParentPDGCode[iParent] =  0;
   }
   fMFTClusters = new TClonesArray("AliMFTCluster");
+  fMFTClusters -> SetOwner(kTRUE);
 
 }
 
@@ -86,13 +94,16 @@ AliMuonForwardTrack::AliMuonForwardTrack(const AliMuonForwardTrack& track):
   fMCTrackRef(0x0),
   fMFTClusters(0x0),
   fNWrongClustersMC(track.fNWrongClustersMC),
-  fTrackMCId(track.fTrackMCId)
+  fTrackMCId(track.fTrackMCId),
+  fKinem(track.fKinem),
+  fParamCovMatrix(track.fParamCovMatrix)
 {
 
   // copy constructor
   fMUONTrack        = new AliMUONTrack(*(track.fMUONTrack));
   if (track.fMCTrackRef) fMCTrackRef = new TParticle(*(track.fMCTrackRef));
   fMFTClusters      = new TClonesArray(*(track.fMFTClusters));
+  fMFTClusters->SetOwner(kTRUE);
   for (Int_t iPlane=0; iPlane<AliMFTConstants::fNMaxPlanes; iPlane++) fPlaneExists[iPlane] = (track.fPlaneExists)[iPlane];
   for (Int_t iParent=0; iParent<fgkNParentsMax; iParent++) {
     fParentMCLabel[iParent] = (track.fParentMCLabel)[iParent];
@@ -114,13 +125,16 @@ AliMuonForwardTrack& AliMuonForwardTrack::operator=(const AliMuonForwardTrack& t
   AliMUONTrack::operator=(track);
   
   // clear memory
-  Clear();
+  Clear("");
   
   fMUONTrack        = new AliMUONTrack(*(track.fMUONTrack));
   if (track.fMCTrackRef) fMCTrackRef = new TParticle(*(track.fMCTrackRef));
   fMFTClusters      = new TClonesArray(*(track.fMFTClusters));
+  fMFTClusters->SetOwner(kTRUE);
   fNWrongClustersMC = track.fNWrongClustersMC;
   fTrackMCId        = track.fTrackMCId;
+  fKinem            = track.fKinem;
+  fParamCovMatrix   = track.fParamCovMatrix;
 
   for (Int_t iPlane=0; iPlane<AliMFTConstants::fNMaxPlanes; iPlane++) fPlaneExists[iPlane] = (track.fPlaneExists)[iPlane];
   for (Int_t iParent=0; iParent<fgkNParentsMax; iParent++) {
@@ -134,10 +148,23 @@ AliMuonForwardTrack& AliMuonForwardTrack::operator=(const AliMuonForwardTrack& t
 
 //====================================================================================================================================================
 
+void AliMuonForwardTrack::Clear(const Option_t* /*opt*/) {
+
+  // Clear arrays
+  fMFTClusters -> Delete(); 
+  delete fMFTClusters; fMFTClusters = 0x0;
+  delete fMUONTrack;   fMUONTrack   = 0x0;
+  delete fMCTrackRef;  fMCTrackRef  = 0x0;
+  
+}
+
+//====================================================================================================================================================
+
 AliMuonForwardTrack::~AliMuonForwardTrack() {
 
   delete fMUONTrack;
   delete fMCTrackRef;
+  fMFTClusters -> Delete();
   delete fMFTClusters;
   
 }
@@ -399,6 +426,150 @@ Double_t AliMuonForwardTrack::GetOffset(Double_t x, Double_t y, Double_t z) {
   Double_t dX = param->GetNonBendingCoor() - x;
   Double_t dY = param->GetBendingCoor()    - y;
   return TMath::Sqrt(dX*dX + dY*dY);
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromResonance() {
+
+  Bool_t result = kFALSE;
+
+  if ( GetParentPDGCode(0) ==    113 ||
+       GetParentPDGCode(0) ==    221 ||
+       GetParentPDGCode(0) ==    223 ||
+       GetParentPDGCode(0) ==    331 ||
+       GetParentPDGCode(0) ==    333 ||
+       GetParentPDGCode(0) ==    443 ||
+       GetParentPDGCode(0) == 100443 ||
+       GetParentPDGCode(0) ==    553 ||
+       GetParentPDGCode(0) == 100553 ) result = kTRUE;
+  
+  if (result) AliDebug(1, Form("Muon comes from a resonance %d", GetParentPDGCode(0)));
+  
+  return result; 
+  
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromCharm() {
+
+  Bool_t result = kFALSE;
+
+  if (IsPDGCharm(GetParentPDGCode(0)) && !IsPDGBeauty(GetParentPDGCode(1))) result = kTRUE;
+  
+  if (result) AliDebug(1, Form("Muon comes from a charmed hadron %d", GetParentPDGCode(0)));
+  
+  return result; 
+  
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromBeauty() {
+
+  Bool_t result = kFALSE;
+
+  if (IsPDGBeauty(GetParentPDGCode(0))) result = kTRUE;
+  
+  if (result) AliDebug(1, Form("Muon comes from a beauty hadron %d", GetParentPDGCode(0)));
+  
+  return result; 
+  
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsPDGCharm(Int_t pdg) {
+
+  Bool_t result = kFALSE;
+
+  if ( TMath::Abs(pdg) ==   411 ||
+       TMath::Abs(pdg) ==   421 ||
+       TMath::Abs(pdg) == 10411 ||
+       TMath::Abs(pdg) == 10421 ||
+       TMath::Abs(pdg) ==   413 ||
+       TMath::Abs(pdg) ==   423 ||
+       TMath::Abs(pdg) == 10413 ||
+       TMath::Abs(pdg) == 10423 ||
+       TMath::Abs(pdg) == 20413 ||
+       TMath::Abs(pdg) == 20423 ||
+       TMath::Abs(pdg) ==   415 ||
+       TMath::Abs(pdg) ==   425 ||
+       TMath::Abs(pdg) ==   431 ||
+       TMath::Abs(pdg) == 10431 ||
+       TMath::Abs(pdg) ==   433 ||
+       TMath::Abs(pdg) == 10433 ||
+       TMath::Abs(pdg) == 20433 ||
+       TMath::Abs(pdg) ==   435 ) result = kTRUE;
+  
+  return result; 
+  
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsPDGBeauty(Int_t pdg) {
+
+  Bool_t result = kFALSE;
+
+  if ( TMath::Abs(pdg) ==   511 ||
+       TMath::Abs(pdg) ==   521 ||
+       TMath::Abs(pdg) == 10511 ||
+       TMath::Abs(pdg) == 10521 ||
+       TMath::Abs(pdg) ==   513 ||
+       TMath::Abs(pdg) ==   523 ||
+       TMath::Abs(pdg) == 10513 ||
+       TMath::Abs(pdg) == 10523 ||
+       TMath::Abs(pdg) == 20513 ||
+       TMath::Abs(pdg) == 20523 ||
+       TMath::Abs(pdg) ==   515 ||
+       TMath::Abs(pdg) ==   525 ||
+       TMath::Abs(pdg) ==   531 ||
+       TMath::Abs(pdg) == 10531 ||
+       TMath::Abs(pdg) ==   533 ||
+       TMath::Abs(pdg) == 10533 ||
+       TMath::Abs(pdg) == 20533 ||
+       TMath::Abs(pdg) ==   535 ||
+       TMath::Abs(pdg) ==   541 ||
+       TMath::Abs(pdg) == 10541 ||
+       TMath::Abs(pdg) ==   543 ||
+       TMath::Abs(pdg) == 10543 ||
+       TMath::Abs(pdg) == 20543 ||
+       TMath::Abs(pdg) ==   545 ) result = kTRUE;
+  
+  return result; 
+  
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromBackground() {
+
+  Bool_t result = kFALSE;
+
+  if (!IsFromResonance() && !IsFromCharm() && !IsFromBeauty()) result = kTRUE;
+
+  if (result) AliDebug(1, Form("Muon comes from a background source %d", GetParentPDGCode(0)));
+
+  return result;
+
+}
+
+//====================================================================================================================================================
+
+void AliMuonForwardTrack::EvalKinem(Double_t z) {
+
+  AliMUONTrackParam *param = GetTrackParamAtMFTCluster(0);
+  AliMUONTrackExtrap::ExtrapToZCov(param, z);
+
+  Double_t mMu = TDatabasePDG::Instance()->GetParticle("mu-")->Mass();
+  Double_t energy = TMath::Sqrt(param->P()*param->P() + mMu*mMu);
+  fKinem.SetPxPyPzE(param->Px(), param->Py(), param->Pz(), energy);
+
+  TMatrixD cov(5,5);
+  fParamCovMatrix = param->GetCovariances();
 
 }
 

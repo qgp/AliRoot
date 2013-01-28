@@ -26,7 +26,7 @@
 #include "STRUCT/AliFRAMEv2.h"
 #include "STRUCT/AliSHILv3.h"
 #include "STRUCT/AliPIPEv3.h"
-#include "ITS/AliITSvPPRasymmFMD.h"
+#include "ITS/AliITSv11.h"
 #include "TPC/AliTPCv2.h"
 #include "TOF/AliTOFv6T0.h"
 #include "HMPID/AliHMPIDv2.h"
@@ -44,6 +44,7 @@
 
 Float_t EtaToTheta(Float_t arg);
 void    LoadPythia();
+AliGenerator *GenParamCalo(Int_t nPart, Int_t type, TString calo);
 
 Int_t  year = 2012;
 Bool_t checkGeoAndRun = kFALSE;
@@ -82,7 +83,7 @@ void Config()
     return;
   }
   rl->SetCompressionLevel(2);
-  rl->SetNumberOfEventsPerFile(100);
+  rl->SetNumberOfEventsPerFile(10000);
   gAlice->SetRunLoader(rl);
   
   // Set the trigger configuration
@@ -133,7 +134,7 @@ void Config()
   gMC->SetCut("TOFMAX", tofmax); 
   
   
-  int     nParticles = 5;
+  int     nParticles = 1;
   if (gSystem->Getenv("CONFIG_NPARTICLES"))
   {
     nParticles = atoi(gSystem->Getenv("CONFIG_NPARTICLES"));
@@ -156,9 +157,37 @@ void Config()
   
   gener->SetThetaRange(EtaToTheta(0.7), EtaToTheta(-0.7));
   
-  gener->SetOrigin(0,0,0);        //vertex position
-  gener->SetSigma(0,0,0);         //Sigma in (X,Y,Z) (cm) on IP position
-  gener->SetPart(kGamma);
+//  AliGenLib* lib   = new AliGenPHOSlib();
+//  Int_t      type  = AliGenPHOSlib::kEtaFlat;
+//  AliGenParam *gener = new AliGenParam(1,lib,type,"");
+//	gener->SetMomentumRange(0,999);
+//	gener->SetPtRange(1,30);
+//	gener->SetPhiRange(80, 200.);
+//	gener->SetYRange(-2,2);
+//	gener->SetThetaRange(EtaToTheta(0.7),EtaToTheta(-0.7));
+//	gener->SetCutOnChild(1);
+//  gener->SetChildPtRange(0.1,30);
+//	gener->SetChildThetaRange(EtaToTheta(0.7),EtaToTheta(-0.7));
+//  gener->SetChildPhiRange(80, 180.);
+//	gener->SetOrigin(0,0,0);        //vertex position
+//	gener->SetSigma(0,0,5.3);       //Sigma in (X,Y,Z) (cm) on IP position
+//	gener->SetForceDecay(kGammaEM);
+//
+//  //gener->SetTrackingFlag(0);
+  
+//  AliGenCocktail *gener = new AliGenCocktail();
+//  gener->SetProjectile("A", 208, 82);
+//  gener->SetTarget    ("A", 208, 82);
+//  
+//  // 1 Pi0 in EMCAL, 2010 configuration, 4 SM
+//  AliGenParam *gEMCPi0 = GenParamCalo(1, AliGenPHOSlib::kPi0Flat, "EMCAL");
+//  gener->AddGenerator(gEMCPi0,"pi0EMC", 1);
+//  
+//  // 1 Eta in EMCAL, 2010 configuration, 4 SM
+//  AliGenParam *gEMCEta = GenParamCalo(1, AliGenPHOSlib::kEtaFlat, "EMCAL");
+//  gener->AddGenerator(gEMCEta,"etaEMC", 1);
+//  
+ 
   gener->Init();
   
   // 
@@ -250,7 +279,7 @@ void Config()
     
     //=================== ITS parameters ============================
     
-    AliITSvPPRasymmFMD *ITS  = new AliITSvPPRasymmFMD("ITS","ITS PPR detailed version with asymmetric services");
+    AliITS *ITS  = new AliITSv11("ITS","ITS v11");
   }
   
   if (iTPC)
@@ -269,7 +298,7 @@ void Config()
   if (iHMPID)
   {
     //=================== HMPID parameters ===========================
-    AliHMPID *HMPID = new AliHMPIDv2("HMPID", "normal HMPID");
+    AliHMPID *HMPID = new AliHMPIDv3("HMPID", "normal HMPID");
     
   }
   
@@ -286,6 +315,30 @@ void Config()
     //=================== TRD parameters ============================
     
     AliTRD *TRD = new AliTRDv1("TRD", "TRD slow simulator");
+    AliTRDgeometry *geoTRD = TRD->GetGeometry();
+    // starting at 3h in positive direction
+    if(year==2011 || year == 2010)
+    { // not sure if good for 2010
+      // Partial geometry: modules at 0,1,7,8,9,10,11,15,16,17
+      printf("*** TRD configuration for 2011\n");
+      geoTRD->SetSMstatus(2,0);
+      geoTRD->SetSMstatus(3,0);
+      geoTRD->SetSMstatus(4,0);
+      geoTRD->SetSMstatus(5,0);
+      geoTRD->SetSMstatus(6,0);
+      geoTRD->SetSMstatus(12,0);
+      geoTRD->SetSMstatus(13,0);
+      geoTRD->SetSMstatus(14,0);
+    }
+    else if(year==2012)
+    {
+      printf("*** TRD configuration for 2012\n");
+      geoTRD->SetSMstatus(4,0);
+      geoTRD->SetSMstatus(5,0);
+      geoTRD->SetSMstatus(12,0);
+      geoTRD->SetSMstatus(13,0);
+      geoTRD->SetSMstatus(14,0); 
+    }
   }
   
   if (iFMD)
@@ -304,7 +357,7 @@ void Config()
   
   if (iPHOS)
   {
-    AliPHOS *PHOS = new AliPHOSv1("PHOS", "IHEP");
+    AliPHOS *PHOS = new AliPHOSv1("PHOS", "noCPV_Modules123");
   }
   
   
@@ -362,3 +415,45 @@ void LoadPythia()
   gSystem->Load("libAliPythia6.so");  // ALICE specific
   // implementations                           
 }
+
+
+AliGenerator * GenParamCalo(Int_t nPart, Int_t type, TString calo)
+{
+  // nPart of type (Pi0, Eta, Pi0Flat, EtaFlat, ...) in EMCAL or PHOS
+  // CAREFUL EMCAL year 2010 configuration
+  AliGenParam *gener = new AliGenParam(nPart,new AliGenPHOSlib(),type,"");
+  
+  // meson cuts
+  gener->SetMomentumRange(0,999);
+  gener->SetYRange(-2,2);
+  gener->SetPtRange(1,30);
+  // photon cuts
+  gener->SetForceDecay(kGammaEM); // Ensure the decays are photons
+  gener->SetCutOnChild(1);
+  gener->SetChildPtRange(0.,30);
+  
+  if(calo=="EMCAL")
+  {
+    //meson acceptance
+    gener->SetPhiRange(80., 100.); // year 2010
+    //gener->SetPhiRange(80., 180.); // year 2011
+    gener->SetThetaRange(EtaToTheta(0.7),EtaToTheta(-0.7));
+    //decay acceptance
+    gener->SetChildThetaRange(EtaToTheta(0.7),EtaToTheta(-0.7));
+    gener->SetChildPhiRange(80., 100.); // year 2010
+    //gener->SetChildPhiRange(80., 180.); // year 2011
+  }
+  else if(calo=="PHOS")
+  {
+    //meson acceptance
+    gener->SetPhiRange(260., 320.);
+    gener->SetThetaRange(EtaToTheta(0.13),EtaToTheta(-0.13));
+    //decay acceptance
+    gener->SetChildThetaRange(EtaToTheta(0.13),EtaToTheta(-0.13));
+    gener->SetChildPhiRange(260., 320.);
+  }
+  
+  return gener;
+  
+}
+

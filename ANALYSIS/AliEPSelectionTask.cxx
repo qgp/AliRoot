@@ -62,6 +62,8 @@
 #include "AliVTrack.h"
 #include "AliEventplane.h"
 
+using std::cout;
+using std::endl;
 ClassImp(AliEPSelectionTask)
 
 //________________________________________________________________________
@@ -529,6 +531,33 @@ void AliEPSelectionTask::GetQsub(TVector2 &Q1, TVector2 &Q2, TObjArray* tracklis
         }
       }
     }
+  } else if (fSplitMethod == AliEPSelectionTask::kCharge) {
+     
+    for (Int_t i = 0; i < nt; i++) {
+      weight = 1;
+      track = dynamic_cast<AliVTrack*> (tracklist->At(i));
+      if (!track) continue;
+      weight = GetWeight(track);
+      Short_t cha = track->Charge();
+      idtemp = track->GetID(); 
+      if ((fAnalysisInput.CompareTo("AOD")==0) && (fAODfilterbit == 128)) idtemp = idtemp*(-1) - 1;
+
+      if (cha > 0) {  
+        mQx1 += (weight*cos(2*track->Phi()));
+        mQy1 += (weight*sin(2*track->Phi()));
+        if (fSaveTrackContribution){
+          EP->GetQContributionXArraysub1()->AddAt(weight*cos(2*track->Phi()),idtemp);
+          EP->GetQContributionYArraysub1()->AddAt(weight*sin(2*track->Phi()),idtemp);
+        }
+      } else if (cha < 0) {
+        mQx2 += (weight*cos(2*track->Phi()));
+        mQy2 += (weight*sin(2*track->Phi()));
+        if (fSaveTrackContribution){
+          EP->GetQContributionXArraysub2()->AddAt(weight*cos(2*track->Phi()),idtemp);
+          EP->GetQContributionYArraysub2()->AddAt(weight*sin(2*track->Phi()),idtemp);
+        }
+      }
+    }
   } else {
     printf("plane resolution determination method not available!\n\n ");
     return;
@@ -558,7 +587,7 @@ void AliEPSelectionTask::SetPersonalESDtrackCuts(AliESDtrackCuts* trackcuts){
 }
 
 //________________________________________________________________________
-void AliEPSelectionTask::SetPersonalAODtrackCuts(UInt_t filterbit, Float_t etalow, Float_t etaup, Float_t ptlow, Float_t ptup){
+void AliEPSelectionTask::SetPersonalAODtrackCuts(UInt_t filterbit, Float_t etalow, Float_t etaup, Float_t ptlow, Float_t ptup, Int_t ntpc){
   
   if(fESDtrackCuts){ 
     delete fESDtrackCuts;
@@ -573,6 +602,7 @@ void AliEPSelectionTask::SetPersonalAODtrackCuts(UInt_t filterbit, Float_t etalo
   fUsercuts = kTRUE;
   fESDtrackCuts = new AliESDtrackCuts();
   fESDtrackCuts->SetPtRange(ptlow,ptup);
+  fESDtrackCuts->SetMinNClustersTPC(ntpc);
   fESDtrackCuts->SetEtaRange(etalow,etaup);
   fAODfilterbit = filterbit;
 }
@@ -739,6 +769,7 @@ TObjArray* AliEPSelectionTask::GetAODTracksAndMaxID(AliAODEvent* aod, Int_t& max
   Float_t etaup = 0;
   fESDtrackCuts->GetPtRange(ptlow,ptup);
   fESDtrackCuts->GetEtaRange(etalow,etaup);
+  Int_t ntpc = fESDtrackCuts->GetMinNClusterTPC(); 
   
   for (Int_t i = 0; i < aod->GetNumberOfTracks() ; i++){
      tr = aod->GetTrack(i);
@@ -747,7 +778,7 @@ TObjArray* AliEPSelectionTask::GetAODTracksAndMaxID(AliAODEvent* aod, Int_t& max
      if(maxidtemp > -1 && fAODfilterbit == 128) continue;
      if (fAODfilterbit == 128) maxidtemp = maxidtemp*(-1) - 1;
      if (maxidtemp > maxid1) maxid1 = maxidtemp;
-     if(tr->TestFilterBit(fAODfilterbit) && tr->Pt() < ptup && tr->Pt() > ptlow && tr->Eta() < etaup && tr->Eta() > etalow){
+     if(tr->TestFilterBit(fAODfilterbit) && tr->Pt() < ptup && tr->Pt() > ptlow && tr->Eta() < etaup && tr->Eta() > etalow && tr->GetTPCNcls() > ntpc){
      acctracks->Add(tr);
      }
   }

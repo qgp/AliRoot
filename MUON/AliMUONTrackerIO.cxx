@@ -16,6 +16,7 @@
 // $Id$
 
 #include <cstdlib>
+#include <iostream>
 #include "AliMUONTrackerIO.h"
 
 /// \class AliMUONTrackerIO
@@ -26,6 +27,10 @@
 ///
 /// \author Laurent Aphecetche, Subatech
 
+using std::ostringstream;
+using std::istringstream;
+using std::cout;
+using std::endl;
 /// \cond CLASSIMP
 ClassImp(AliMUONTrackerIO)
 /// \endcond
@@ -316,6 +321,7 @@ AliMUONTrackerIO::DecodeGains(const char* data, AliMUONVStore& gainStore,
           runNumber = s.Atoi();
           AliDebugClass(1,Form("runNumber is %d",runNumber));
         }            
+	delete a;
       }
       if ( sline.Contains("DAC values") )
       {

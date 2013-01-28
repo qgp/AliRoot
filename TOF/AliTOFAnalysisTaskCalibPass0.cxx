@@ -389,14 +389,13 @@ AliTOFAnalysisTaskCalibPass0::GetStatus()
 
 //_______________________________________________________
 
-Bool_t
-AliTOFAnalysisTaskCalibPass0::ProcessOutput(const Char_t *filename, const Char_t *dbString)
+void
+AliTOFAnalysisTaskCalibPass0::PrintStatus()
 {
   /*
-   * process output
+   * print status
    */
 
-  Int_t ret = DoProcessOutput(filename, dbString);
   Int_t status = GetStatus();
   if (status == 0) {
     AliInfo(Form("TOF calibration successful: %s (status=%d)", fgkStatusCodeName[fStatus], status));
@@ -408,13 +407,26 @@ AliTOFAnalysisTaskCalibPass0::ProcessOutput(const Char_t *filename, const Char_t
     AliInfo(Form("TOF calibration failed (expected): %s (status=%d)", fgkStatusCodeName[fStatus], status));
   }
   
+}
+
+//_______________________________________________________
+
+Bool_t
+AliTOFAnalysisTaskCalibPass0::ProcessOutput(const Char_t *filename, AliCDBStorage* db)
+{
+  /*
+   * process output
+   */
+
+  Int_t ret = DoProcessOutput(filename, db);
+  PrintStatus();
   return ret;
 }
 
 //_______________________________________________________
 
 Bool_t
-AliTOFAnalysisTaskCalibPass0::DoProcessOutput(const Char_t *filename, const Char_t *dbString)
+AliTOFAnalysisTaskCalibPass0::DoProcessOutput(const Char_t *filename, AliCDBStorage *db)
 {
   /*
    * do process output
@@ -494,7 +506,7 @@ AliTOFAnalysisTaskCalibPass0::DoProcessOutput(const Char_t *filename, const Char
     return kFALSE;
   }
   /* calibrate and store */
-  if (!CalibrateAndStore(histoVertexTimestamp, histoDeltatTimestamp, dbString)) {
+  if (!CalibrateAndStore(histoVertexTimestamp, histoDeltatTimestamp, db)) {
     AliError("error while calibrating and storing");
     return kFALSE;
   }
@@ -522,7 +534,7 @@ AliTOFAnalysisTaskCalibPass0::CheckMatchingPerformance(const TH2F *histoDeltazCo
 //_______________________________________________________
 
 Bool_t
-AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F *histoDeltatTimestamp, const Char_t *dbString)
+AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F *histoDeltatTimestamp, AliCDBStorage *db)
 {
   /*
    * calibrate and store
@@ -550,12 +562,14 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   if (!ostr) {
     AliError("problems while getting run number from histogram title");
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   str = ostr->GetString();
   if (!str.BeginsWith("run:")) {
     AliError("problems while getting run number from histogram title");
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   str.Remove(0, 5);
@@ -563,6 +577,7 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   if (runNb <= 0) {
     AliError(Form("bad run number: %d", runNb));
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   AliInfo(Form("got run number: %d", runNb));
@@ -572,6 +587,7 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   if (!ostr) {
     AliError("problems while getting start timestamp from histogram title");
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   str = ostr->GetString();
@@ -579,6 +595,7 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   if (!str.BeginsWith("startTimestamp:")) {
     AliError("problems while getting start timestamp from histogram title");
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   str.Remove(0, 16);
@@ -586,6 +603,7 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   if (startTimestamp <= 0) {
     AliError(Form("bad start timestamp: %d", startTimestamp));
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   TTimeStamp ts = startTimestamp;
@@ -596,6 +614,7 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   if (!ostr) {
     AliError("problems while getting BPTX from histogram title");
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   str = ostr->GetString();
@@ -603,11 +622,14 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   if (!str.BeginsWith("BPTX:")) {
     AliError("problems while getting BPTX from histogram title");
     fStatus = kDataError;
+    delete strarr;
     return kFALSE;
   }
   str.Remove(0, 6);
   Bool_t useBPTX = atoi(str.Data());
   AliInfo(Form("got BPTX: %d", useBPTX));
+
+  delete strarr;
 
   /*** CALIBRATION STAGE ***/
 
@@ -771,29 +793,22 @@ AliTOFAnalysisTaskCalibPass0::CalibrateAndStore(TH2F *histoVertexTimestamp, TH2F
   
   /*** CREATE OCDB ENTRY ***/
 
-  if (!dbString) {
-    AliError("cannot store object because of NULL string");
+  if (!db) {
+    AliError("cannot store object because of NULL storage");
     fStatus = kStoreError;
     return kFALSE;
   }
 
   /* install run params object in OCDB */
-  AliCDBManager *cdb = AliCDBManager::Instance();
-  AliCDBStorage *sto = cdb->GetStorage(dbString);
-  if (!sto) {
-    AliError(Form("cannot get storage %s", dbString));
-    fStatus = kStoreError;
-    return kFALSE;
-  }
   AliCDBId id("TOF/Calib/RunParams", runNb, runNb);
   AliCDBMetaData md;
   md.SetResponsible("Roberto Preghenella");
   md.SetComment("offline TOF run parameters");
   md.SetAliRootVersion(gSystem->Getenv("ARVERSION"));
   md.SetBeamPeriod(0);
-  if (!sto->Put(&obj, id, &md)) {
+  if (!db->Put(&obj, id, &md)) {
     fStatus = kStoreError;
-    AliError(Form("error while putting object in storage %s", dbString));
+    AliError(Form("error while putting object in storage %s", db->GetURI().Data()));
     return kFALSE;
   }
 

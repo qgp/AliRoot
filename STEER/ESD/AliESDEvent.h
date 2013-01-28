@@ -171,7 +171,8 @@ public:
   Bool_t      IsUniformBMap()                     const  {return fESDRun?fESDRun->TestBit(AliESDRun::kUniformBMap):kFALSE;}
   //
   Bool_t      InitMagneticField()                 const  {return fESDRun?fESDRun->InitMagneticField():kFALSE;} 
-  void      SetT0spread(Float_t *t)               const  {if(fESDRun) fESDRun->SetT0spread(t);} 
+  void        SetT0spread(Float_t *t)             const  {if(fESDRun) fESDRun->SetT0spread(t);} 
+  Float_t     GetT0spread(Int_t i)                const  {return fESDRun?fESDRun->GetT0spread(i):0;}
   virtual void      SetVZEROEqFactors(Float_t factors[64]) const {if(fESDRun) fESDRun->SetVZEROEqFactors(factors);}
   // HEADER
   AliESDHeader* GetHeader() const {return fHeader;}
@@ -201,7 +202,7 @@ public:
   Int_t     GetEventNumberInFile() const {return fHeader?fHeader->GetEventNumberInFile():-1;}
   UShort_t  GetBunchCrossNumber() const {return fHeader?fHeader->GetBunchCrossNumber():0;}
   UChar_t   GetTriggerCluster() const {return fHeader?fHeader->GetTriggerCluster():0;}
-
+  Bool_t IsDetectorInTriggerCluster(TString detector, AliTriggerConfiguration* trigConf) const;
   // ZDC CKB: put this in the header?
   AliESDZDC*    GetESDZDC()  const {return fESDZDC;}
   AliESDZDC*    GetZDCData() const {return fESDZDC;}
@@ -288,7 +289,7 @@ public:
 
 
   void SetTOFHeader(const AliTOFHeader * tofEventTime);
-  const AliTOFHeader *GetTOFHeader() const {return fTOFHeader;}
+  AliTOFHeader *GetTOFHeader() const {return fTOFHeader;}
   Float_t GetEventTimeSpread() const {if (fTOFHeader) return fTOFHeader->GetT0spread(); else return 0.;}
   Float_t GetTOFTimeResolution() const {if (fTOFHeader) return fTOFHeader->GetTOFResolution(); else return 0.;}
 
@@ -501,6 +502,7 @@ public:
   ULong_t GetDetectorStatus() const {return fDetectorStatus;}
   Bool_t IsDetectorOn(ULong_t detMask) const {return (fDetectorStatus&detMask)>0;}
 
+  
 protected:
   AliESDEvent(const AliESDEvent&);
   static Bool_t ResetWithPlacementNew(TObject *pObject);

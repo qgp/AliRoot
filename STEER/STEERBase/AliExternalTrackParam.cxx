@@ -213,14 +213,16 @@ void AliExternalTrackParam::Set(Double_t xyz[3],Double_t pxpypz[3],
   Double_t cs=TMath::Cos(fAlpha), sn=TMath::Sin(fAlpha);
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (TMath::Abs(sn)<kSafe) {
-    fAlpha = kSafe;
+    if (fAlpha>0) fAlpha += fAlpha< TMath::Pi()/2. ?  kSafe : -kSafe;
+    else          fAlpha += fAlpha>-TMath::Pi()/2. ? -kSafe :  kSafe;
     cs=TMath::Cos(fAlpha);
     sn=TMath::Sin(fAlpha);
   }
-  else if (cs<kSafe) {
-    fAlpha -= TMath::Sign(kSafe, fAlpha);
+  else if (TMath::Abs(cs)<kSafe) {
+    if (fAlpha>0) fAlpha += fAlpha> TMath::Pi()/2. ? kSafe : -kSafe;
+    else          fAlpha += fAlpha>-TMath::Pi()/2. ? kSafe : -kSafe;
     cs=TMath::Cos(fAlpha);
-    sn=TMath::Sin(fAlpha);    
+    sn=TMath::Sin(fAlpha);
   }
   // Get the vertex of origin and the momentum
   TVector3 ver(xyz[0],xyz[1],xyz[2]);
@@ -804,14 +806,23 @@ Bool_t AliExternalTrackParam::PropagateTo(Double_t xk, Double_t b) {
   }
 
   //f = F - 1
-   
+  /*
   Double_t f02=    dx/(r1*r1*r1);            Double_t cc=crv/fP4;
   Double_t f04=0.5*dx*dx/(r1*r1*r1);         f04*=cc;
   Double_t f12=    dx*fP3*f1/(r1*r1*r1);
   Double_t f14=0.5*dx*dx*fP3*f1/(r1*r1*r1);  f14*=cc;
   Double_t f13=    dx/r1;
   Double_t f24=    dx;                       f24*=cc;
-  
+  */
+  Double_t rinv = 1./r1;
+  Double_t r3inv = rinv*rinv*rinv;
+  Double_t f24=    x2r/fP4;
+  Double_t f02=    dx*r3inv;
+  Double_t f04=0.5*f24*f02;
+  Double_t f12=    f02*fP3*f1;
+  Double_t f14=0.5*f24*f02*fP3*f1;
+  Double_t f13=    dx*rinv;
+
   //b = C*ft
   Double_t b00=f02*fC20 + f04*fC40, b01=f12*fC20 + f14*fC40 + f13*fC30;
   Double_t b02=f24*fC40;
@@ -844,6 +855,37 @@ Bool_t AliExternalTrackParam::PropagateTo(Double_t xk, Double_t b) {
   fC42 += b42;
 
   CheckCovariance();
+
+  return kTRUE;
+}
+
+Bool_t AliExternalTrackParam::PropagateParamOnlyTo(Double_t xk, Double_t b) {
+  //----------------------------------------------------------------
+  // Propagate this track to the plane X=xk (cm) in the field "b" (kG)
+  // Only parameters are propagated, not the matrix. To be used for small 
+  // distances only (<mm, i.e. misalignment)
+  //----------------------------------------------------------------
+  Double_t dx=xk-fX;
+  if (TMath::Abs(dx)<=kAlmost0)  return kTRUE;
+
+  Double_t crv=GetC(b);
+  if (TMath::Abs(b) < kAlmost0Field) crv=0.;
+
+  Double_t x2r = crv*dx;
+  Double_t f1=fP[2], f2=f1 + x2r;
+  if (TMath::Abs(f1) >= kAlmost1) return kFALSE;
+  if (TMath::Abs(f2) >= kAlmost1) return kFALSE;
+  if (TMath::Abs(fP[4])< kAlmost0) return kFALSE;
+
+  Double_t r1=TMath::Sqrt((1.-f1)*(1.+f1)), r2=TMath::Sqrt((1.-f2)*(1.+f2));
+  if (TMath::Abs(r1)<kAlmost0)  return kFALSE;
+  if (TMath::Abs(r2)<kAlmost0)  return kFALSE;
+
+  fX=xk;
+  double dy2dx = (f1+f2)/(r1+r2);
+  fP[0] += dx*dy2dx;
+  fP[1] += dx*(r2 + f2*dy2dx)*fP[3];  // Many thanks to P.Hristov !
+  fP[2] += x2r;
 
   return kTRUE;
 }
@@ -1238,7 +1280,7 @@ Bool_t AliExternalTrackParam::Update(Double_t p[2], Double_t cov[3]) {
 
   fC33-=k30*c03+k31*c13;
   fC43-=k30*c04+k31*c14; 
-
+  
   fC44-=k40*c04+k41*c14; 
 
   CheckCovariance();
@@ -1995,13 +2037,23 @@ Bool_t AliExternalTrackParam::PropagateToBxByBz(Double_t xk, const Double_t b[3]
   Double_t r1=TMath::Sqrt((1.-f1)*(1.+f1)), r2=TMath::Sqrt((1.-f2)*(1.+f2));
 
   //f = F - 1
+  /*
   Double_t f02=    dx/(r1*r1*r1);            Double_t cc=crv/fP4;
   Double_t f04=0.5*dx*dx/(r1*r1*r1);         f04*=cc;
   Double_t f12=    dx*fP3*f1/(r1*r1*r1);
   Double_t f14=0.5*dx*dx*fP3*f1/(r1*r1*r1);  f14*=cc;
   Double_t f13=    dx/r1;
   Double_t f24=    dx;                       f24*=cc;
-  
+  */
+  Double_t rinv = 1./r1;
+  Double_t r3inv = rinv*rinv*rinv;
+  Double_t f24=    x2r/fP4;
+  Double_t f02=    dx*r3inv;
+  Double_t f04=0.5*f24*f02;
+  Double_t f12=    f02*fP3*f1;
+  Double_t f14=0.5*f24*f02*fP3*f1;
+  Double_t f13=    dx*rinv;
+ 
   //b = C*ft
   Double_t b00=f02*fC20 + f04*fC40, b01=f12*fC20 + f14*fC40 + f13*fC30;
   Double_t b02=f24*fC40;
@@ -2296,5 +2348,123 @@ Bool_t AliExternalTrackParam::ConstrainToVertex(const AliVVertex* vtx, Double_t 
   if (!Update(p,c)) 
     return kFALSE; 
 
+  return kTRUE;
+}
+
+//___________________________________________________________________________________________
+Bool_t AliExternalTrackParam::GetXatLabR(Double_t r,Double_t &x, Double_t bz, Int_t dir) const
+{
+  // Get local X of the track position estimated at the radius lab radius r. 
+  // The track curvature is accounted exactly
+  //
+  // The flag "dir" can be used to remove the ambiguity of which intersection to take (out of 2 possible)
+  // 0  - take the intersection closest to the current track position
+  // >0 - go along the track (increasing fX)
+  // <0 - go backward (decreasing fX)
+  //
+  const Double_t &fy=fP[0], &sn = fP[2];
+  //
+  double crv = GetC(bz);
+  if (TMath::Abs(crv)<=kAlmost0) { // this is a straight track
+    if (TMath::Abs(sn)>=kAlmost1) { // || to Y axis
+      double det = (r-fX)*(r+fX);
+      if (det<0) return kFALSE;     // does not reach raduis r
+      x = fX;
+      if (dir==0) return kTRUE;
+      det = TMath::Sqrt(det);
+      if (dir>0) {                       // along the track direction
+	if (sn>0) {if (fy>det)  return kFALSE;} // track is along Y axis and above the circle
+	else      {if (fy<-det) return kFALSE;} // track is against Y axis amd belo the circle
+      }
+      else {                                    // agains track direction
+	if (sn>0) {if (fy<-det) return kFALSE;} // track is along Y axis
+        else if (fy>det)  return kFALSE;        // track is against Y axis
+      }
+    }
+    else if (TMath::Abs(sn)<=kAlmost0) { // || to X axis
+      double det = (r-fy)*(r+fy);
+      if (det<0) return kFALSE;     // does not reach raduis r
+      det = TMath::Sqrt(det);
+      if (!dir) {
+	x = fX>0  ? det : -det;    // choose the solution requiring the smalest step
+	return kTRUE;
+      }
+      else if (dir>0) {                    // along the track direction
+	if      (fX > det) return kFALSE;  // current point is in on the right from the circle
+	else if (fX <-det) x = -det;       // on the left
+	else               x =  det;       // within the circle
+      }
+      else {                               // against the track direction
+	if      (fX <-det) return kFALSE;  
+	else if (fX > det) x =  det;
+	else               x = -det;
+      }
+    }
+    else {                                 // general case of straight line
+      double cs = TMath::Sqrt((1-sn)*(1+sn));
+      double xsyc = fX*sn-fy*cs;
+      double det = (r-xsyc)*(r+xsyc);
+      if (det<0) return kFALSE;    // does not reach raduis r
+      det = TMath::Sqrt(det);
+      double xcys = fX*cs+fy*sn;
+      double t = -xcys;
+      if (dir==0) t += t>0 ? -det:det;  // chose the solution requiring the smalest step
+      else if (dir>0) {                 // go in increasing fX direction. ( t+-det > 0)
+	if (t>=-det) t += -det;         // take minimal step giving t>0
+	else return kFALSE;             // both solutions have negative t
+      }
+      else {                            // go in increasing fX direction. (t+-det < 0)
+	if (t<det) t -= det;            // take minimal step giving t<0
+	else return kFALSE;             // both solutions have positive t
+      }
+      x = fX + cs*t;
+    }
+  }
+  else {                                 // helix
+    // get center of the track circle
+    double tR = 1./crv;   // track radius (for the moment signed)
+    double cs = TMath::Sqrt((1-sn)*(1+sn));
+    double x0 = fX - sn*tR;
+    double y0 = fy + cs*tR;
+    double r0 = TMath::Sqrt(x0*x0+y0*y0);
+    //    printf("Xc:%+e Yc:%+e\n",x0,y0);
+    //
+    if (r0<=kAlmost0) return kFALSE;            // the track is concentric to circle
+    tR = TMath::Abs(tR);
+    double tR2r0 = tR/r0;
+    double g = 0.5*(r*r/(r0*tR) - tR2r0 - 1./tR2r0);
+    double det = (1.-g)*(1.+g);
+    if (det<0) return kFALSE;         // does not reach raduis r
+    det = TMath::Sqrt(det);
+    //
+    // the intersection happens in 2 points: {x0+tR*C,y0+tR*S} 
+    // with C=f*c0+-|s0|*det and S=f*s0-+c0 sign(s0)*det
+    // where s0 and c0 make direction for the circle center (=x0/r0 and y0/r0)
+    //
+    double tmp = 1.+g*tR2r0;
+    x = x0*tmp; 
+    double y = y0*tmp;
+    if (TMath::Abs(y0)>kAlmost0) { // when y0==0 the x,y is unique
+      double dfx = tR2r0*TMath::Abs(y0)*det;
+      double dfy = tR2r0*x0*TMath::Sign(det,y0);
+      if (dir==0) {                    // chose the one which corresponds to smallest step 
+	double delta = (x-fX)*dfx-(y-fy)*dfy; // the choice of + in C will lead to smaller step if delta<0
+	if (delta<0) x += dfx;
+	else         x -= dfx;
+      }
+      else if (dir>0) {  // along track direction: x must be > fX
+	x -= dfx; // try the smallest step (dfx is positive)
+	if (x<fX && (x+=dfx+dfx)<fX) return kFALSE;
+      }
+      else { // backward: x must be < fX
+	x += dfx; // try the smallest step (dfx is positive)
+	if (x>fX && (x-=dfx+dfx)>fX) return kFALSE;
+      }
+    }
+    else { // special case: track touching the circle just in 1 point
+      if ( (dir>0&&x<fX) || (dir<0&&x>fX) ) return kFALSE; 
+    }
+  }
+  //
   return kTRUE;
 }

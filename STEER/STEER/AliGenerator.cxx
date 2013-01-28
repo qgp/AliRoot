@@ -81,6 +81,7 @@ AliGenerator::AliGenerator():
   fVertex(3),
   fTimeOrigin(0.),
   fTime(0.),
+  fEvPlane(0),
   fStack(0),
   fContainer(0),
   fCollisionGeometry(0),
@@ -151,6 +152,7 @@ AliGenerator::AliGenerator(Int_t npart):
   fVertex(3),
   fTimeOrigin(0.),
   fTime(0.),
+  fEvPlane(0),
   fStack(0),
   fContainer(0),
   fCollisionGeometry(0),
@@ -213,6 +215,20 @@ void AliGenerator::Init()
   //
 }
 
+//_______________________________________________________________________
+void AliGenerator::GenerateN(Int_t ntimes)
+{
+// 
+//  Run generator n times
+//    Used by AliGenCocktail for adding extra signals in proportion to 
+//    multiplicity/centrality
+//  By default generates one AliGenHeader for each call to Generate()
+//   Can be overloaded (e.g. AliGenBox and AliGenParam) to consolidate headers
+//
+  for (Int_t i=0; i < ntimes; i++) {
+    Generate();
+  }
+}
 //_______________________________________________________________________
 void AliGenerator::SetOrigin(Float_t ox, Float_t oy, Float_t oz)
 {

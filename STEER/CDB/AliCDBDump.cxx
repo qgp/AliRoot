@@ -648,7 +648,7 @@ TList* AliCDBDump::GetEntries(const AliCDBId& queryId) {
 }
 
 //_____________________________________________________________________________
-Bool_t AliCDBDump::PutEntry(AliCDBEntry* entry) {
+Bool_t AliCDBDump::PutEntry(AliCDBEntry* entry, const char* mirrors) {
 // put an AliCDBEntry object into the database
 
 	TDirectory::TContext context(gDirectory, fFile);
@@ -662,6 +662,10 @@ Bool_t AliCDBDump::PutEntry(AliCDBEntry* entry) {
 		AliError("AliCDBDump storage is read only!");
 		return kFALSE;
 	}
+
+	TString mirrorsString(mirrors);
+	if(!mirrorsString.IsNull())
+		AliWarning("AliCDBLocal storage cannot take mirror SEs into account. They will be ignored.");
 
 	AliCDBId& id = entry->GetId();
 	

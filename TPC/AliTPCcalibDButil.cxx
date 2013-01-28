@@ -2068,6 +2068,7 @@ Double_t  AliTPCcalibDButil::GetVDriftTPCITS(Double_t &dist, Int_t run, Int_t ti
   if (!array) return 0;
   //array->ls();
   graph = (TGraphErrors*)array->FindObject("ALIGN_ITSB_TPC_DRIFTVD");
+  if (!graph) graph = (TGraphErrors*)array->FindObject("ALIGN_TOFB_TPC_DRIFTVD");
   if (!graph) return 0;
   Double_t deltaY;
   AliTPCcalibDButil::GetNearest(graph,timeStamp,dist,deltaY); 
@@ -2088,7 +2089,8 @@ Double_t AliTPCcalibDButil::GetTime0TPCITS(Double_t &dist, Int_t run, Int_t time
   TGraphErrors *graph=0;
   dist=0;
   if (!array) return 0;
-  graph = (TGraphErrors*)array->FindObject("ALIGN_ITSM_TPC_T0");
+  graph = (TGraphErrors*)array->FindObject("ALIGN_ITSB_TPC_T0");
+  if (!graph) graph = (TGraphErrors*)array->FindObject("ALIGN_ITSB_TPC_T0");
   if (!graph) return 0;
   Double_t deltaY;
   AliTPCcalibDButil::GetNearest(graph,timeStamp,dist,deltaY); 
@@ -2133,6 +2135,7 @@ Int_t  AliTPCcalibDButil::MakeRunList(Int_t startRun, Int_t stopRun){
       runs[naccept]=irunN;
       naccept++;
     }}
+  delete arr;
   fRuns.Set(naccept);
   fRunsStart.Set(fRuns.fN);
   fRunsStop.Set(fRuns.fN);

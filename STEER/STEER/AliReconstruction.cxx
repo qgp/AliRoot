@@ -207,6 +207,8 @@
 #include <sys/resource.h>
 ClassImp(AliReconstruction)
 
+using std::endl;
+
 //_____________________________________________________________________________
 const char* AliReconstruction::fgkStopEvFName = "_stopEvent_";
 const char* AliReconstruction::fgkDetectorName[AliReconstruction::kNDetectors] = {"ITS", "TPC", "TRD", "TOF", "PHOS", "HMPID", "EMCAL", "MUON", "FMD", "ZDC", "PMD", "T0", "VZERO", "ACORDE"
@@ -222,12 +224,12 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   TSelector(),
   fRunVertexFinder(kTRUE),
   fRunVertexFinderTracks(kTRUE),
-  fRunHLTTracking(kFALSE),
   fRunMuonTracking(kFALSE),
   fRunV0Finder(kTRUE),
   fRunCascadeFinder(kTRUE),
   fRunMultFinder(kTRUE),
   fStopOnError(kTRUE),
+  fStopOnMissingTriggerFile(kTRUE),
   fWriteAlignmentData(kFALSE),
   fWriteESDfriend(kFALSE),
   fFillTriggerESD(kTRUE),
@@ -347,12 +349,12 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   TSelector(),
   fRunVertexFinder(rec.fRunVertexFinder),
   fRunVertexFinderTracks(rec.fRunVertexFinderTracks),
-  fRunHLTTracking(rec.fRunHLTTracking),
   fRunMuonTracking(rec.fRunMuonTracking),
   fRunV0Finder(rec.fRunV0Finder),
   fRunCascadeFinder(rec.fRunCascadeFinder),
   fRunMultFinder(rec.fRunMultFinder),
   fStopOnError(rec.fStopOnError),
+  fStopOnMissingTriggerFile(rec.fStopOnMissingTriggerFile),
   fWriteAlignmentData(rec.fWriteAlignmentData),
   fWriteESDfriend(rec.fWriteESDfriend),
   fFillTriggerESD(rec.fFillTriggerESD),
@@ -488,12 +490,12 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
 
   fRunVertexFinder       = rec.fRunVertexFinder;
   fRunVertexFinderTracks = rec.fRunVertexFinderTracks;
-  fRunHLTTracking        = rec.fRunHLTTracking;
   fRunMuonTracking       = rec.fRunMuonTracking;
   fRunV0Finder           = rec.fRunV0Finder;
   fRunCascadeFinder      = rec.fRunCascadeFinder;
   fRunMultFinder         = rec.fRunMultFinder;
   fStopOnError           = rec.fStopOnError;
+  fStopOnMissingTriggerFile = rec.fStopOnMissingTriggerFile;
   fWriteAlignmentData    = rec.fWriteAlignmentData;
   fWriteESDfriend        = rec.fWriteESDfriend;
   fFillTriggerESD        = rec.fFillTriggerESD;
@@ -659,6 +661,8 @@ void AliReconstruction::InitQA()
 
 
   AliQAManager * qam = AliQAManager::QAManager(AliQAv1::kRECMODE) ; 
+  qam->SetSaveData(kTRUE); 
+  qam->SetCycleLength(AliQAv1::kITS, 5) ; 
   if (fWriteQAExpertData)
     qam->SetWriteExpert() ; 
  
@@ -685,7 +689,9 @@ void AliReconstruction::InitQA()
   }
   
   if (fRunQA) {
-  qam->SetActiveDetectors(fQADetectors) ; 
+  qam->SetActiveDetectors(fQADetectors) ;
+  qam->SetActiveOnlineDetectors(fRunInfo->GetActiveDetectors());
+    
   for (Int_t det = 0 ; det < AliQAv1::kNDET ; det++) {
     qam->SetCycleLength(AliQAv1::DETECTORINDEX_t(det), fQACycles[det]) ;  
     qam->SetWriteExpert(AliQAv1::DETECTORINDEX_t(det)) ;
@@ -862,6 +868,7 @@ Bool_t AliReconstruction::SetRunNumberFromData()
   	AliWarning("Run number is taken from raw-event header! Ignoring settings in AliCDBManager!");
       } 
       man->SetRun(fRawReader->GetRunNumber());
+      GetEventInfo();
       fRawReader->RewindEvents();
     }
     else {
@@ -1118,6 +1125,7 @@ Bool_t AliReconstruction::InitGRP() {
     fRunTracking = MatchDetectorList(fRunTracking,detMask);
     fFillESD = MatchDetectorList(fFillESD,detMask);
     fQADetectors = MatchDetectorList(fQADetectors,detMask);
+    AliInfo(Form("fQADetectors=%s",fQADetectors.Data()));
     fDeleteRecPoints = MatchDetectorList(fDeleteRecPoints,detMask);
     fDeleteDigits    = MatchDetectorList(fDeleteDigits,detMask);
     fLoadCDB.Form("%s %s %s %s",
@@ -1431,6 +1439,7 @@ Bool_t AliReconstruction::Run(const char* input)
       }
       iEvent++;
     }
+    if (!iEvent) AliWarning("No events passed trigger selection");
     SlaveTerminate();
     if (GetAbort() != TSelector::kContinue) return kFALSE;
     Terminate();
@@ -1540,10 +1549,10 @@ void AliReconstruction::Begin(TTree *)
   Bool_t toCDBSnapshot=kFALSE;
   TString snapshotFileOut(""); // we could use fSnapshotFileName if we are not interested
   // in reading from and writing to a snapshot file at the same time
-  if(TString(gSystem->Getenv("OCDB_SNAPSHOT_CREATE")) == TString("kTRUE")){
+  if(TString(getenv("OCDB_SNAPSHOT_CREATE")) == TString("kTRUE")){
       toCDBSnapshot=kTRUE;
       //fFromCDBSnapshot=kFALSE;
-      TString snapshotFile(gSystem->Getenv("OCDB_SNAPSHOT_FILENAME"));
+      TString snapshotFile(getenv("OCDB_SNAPSHOT_FILENAME"));
       if(!(snapshotFile.IsNull() || snapshotFile.IsWhitespace()))
 	  snapshotFileOut = snapshotFile;
       else
@@ -1767,32 +1776,21 @@ void AliReconstruction::SlaveBegin(TTree*)
   // order to create all branches. Initialization is done from an
   // ESD layout template in CDB
   AliCDBManager* man = AliCDBManager::Instance();
-  AliCDBPath hltESDConfigPath("HLT/Calib/esdLayout");
-  AliCDBEntry* hltESDConfig=NULL;
-  if (man->GetId(hltESDConfigPath)!=NULL)
-    hltESDConfig=man->Get(hltESDConfigPath);
-  if (!hltESDConfig) {
-    // try the alternative path
-    // in Feb 2012 the object has been moved from ConfigHLT to Calib
-    AliCDBPath hltESDConfigLegacyPath("HLT/ConfigHLT/esdLayout");
-    AliInfo(Form("can not find HLT ESD config object in %s, trying legacy path %s",
-		 hltESDConfigPath.GetPath().Data(),
-		 hltESDConfigLegacyPath.GetPath().Data()));
-    hltESDConfig=man->Get(hltESDConfigLegacyPath);
+  AliCDBEntry* hltESDConfig = man->Get("HLT/Calib/esdLayout");
+  if(!hltESDConfig){
+      AliError(Form("Error getting \"HLT/Calib/esdLayout\""));
+      return;
   }
-  if (hltESDConfig) {
-    AliESDEvent* pESDLayout=dynamic_cast<AliESDEvent*>(hltESDConfig->GetObject());
-    if (pESDLayout) {
+  AliESDEvent* pESDLayout=dynamic_cast<AliESDEvent*>(hltESDConfig->GetObject());
+  if (pESDLayout) {
       // init all internal variables from the list of objects
       pESDLayout->GetStdContent();
 
       // copy content and create non-std objects
       *fhltesd=*pESDLayout;
       fhltesd->Reset();
-    } else {
-      AliError(Form("error setting hltEsd layout from %s: invalid object type",
-		    hltESDConfigPath.GetPath().Data()));
-    }
+  } else {
+      AliError(Form("error setting hltEsd layout from \"HLT/Calib/esdLayout\": invalid object type"));
   }
 
   fhltesd->WriteToTree(fhlttree);
@@ -1962,26 +1960,7 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     AliQAManager::QAManager()->RunOneEvent(fRawReader) ;  
     AliSysInfo::AddStamp(Form("RawQA_%d",iEvent), 0,0,iEvent);
   }
-    // local single event reconstruction
-    if (!fRunLocalReconstruction.IsNull()) {
-      TString detectors=fRunLocalReconstruction;
-      // run HLT event reconstruction first
-      // ;-( IsSelected changes the string
-      if (IsSelected("HLT", detectors) &&
-	  !RunLocalEventReconstruction("HLT")) {
-	if (fStopOnError) {CleanUp(); return kFALSE;}
-      }
-      detectors=fRunLocalReconstruction;
-      detectors.ReplaceAll("HLT", "");
-      if (!RunLocalEventReconstruction(detectors)) {
-        if (fStopOnError) {
-          CleanUp(); 
-          return kFALSE;
-        }
-      }
-    }
 
-  
     // fill Event header information from the RawEventHeader
     if (fRawReader){FillRawEventHeaderESD(fesd);}
     if (fRawReader){FillRawEventHeaderESD(fhltesd);}
@@ -2036,6 +2015,43 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
       fhltesd->SetUniformBMap(fld->IsUniform());
       fhltesd->SetBInfoStored();
     }
+
+    //
+    // run full HLT reconstruction first
+    //
+    {
+      TString detectors=fRunLocalReconstruction;
+      if (IsSelected("HLT", detectors) &&
+	  !RunLocalEventReconstruction("HLT")) {
+	if (fStopOnError) {CleanUp(); return kFALSE;}
+      }
+      detectors=fFillESD;
+      // run HLT on hltesd
+      if (IsSelected("HLT", detectors) &&
+	  !FillESD(fhltesd, "HLT")) {
+	if (fStopOnError) {CleanUp(); return kFALSE;}
+      }
+    }
+
+    // local single event reconstruction
+    if (!fRunLocalReconstruction.IsNull()) {
+      TString detectors=fRunLocalReconstruction;
+      // the logic for selection and correct sequence of reconstruction relies on the
+      // full list of detectors. Keyword 'ALL' should have been replaced at this point.
+      if (detectors.Contains("ALL")) {
+	AliFatal("Keyword 'ALL' needs to be replaced by the full list of detectors in "
+		 "fRunLocalReconstruction. This should have been done by the framework");
+      }
+      detectors.ReplaceAll("HLT", "");
+      if (!RunLocalEventReconstruction(detectors)) {
+        if (fStopOnError) {
+          CleanUp(); 
+          return kFALSE;
+        }
+      }
+    }
+
+  
     //
     // Set most probable pt, for B=0 tracking
     // Get the global reco-params. They are atposition 16 inside the array of detectors in fRecoParam
@@ -2083,27 +2099,18 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     // fill ESD
     if (!fFillESD.IsNull()) {
       TString detectors=fFillESD;
-      // run HLT first and on hltesd
-      // ;-( IsSelected changes the string
-      if (IsSelected("HLT", detectors) &&
-	  !FillESD(fhltesd, "HLT")) {
-	if (fStopOnError) {CleanUp(); return kFALSE;}
-      }
-      detectors=fFillESD;
-      // Temporary fix to avoid problems with HLT that overwrites the offline ESDs
+      // the logic for selection and correct sequence of reconstruction relies on the
+      // full list of detectors. Keyword 'ALL' should have been replaced at this point.
       if (detectors.Contains("ALL")) {
-	detectors="";
-	for (Int_t idet=0; idet<kNDetectors; ++idet){
-	  detectors += fgkDetectorName[idet];
-	  detectors += " ";
-	}
+	AliFatal("Keyword 'ALL' needs to be replaced by the full list of detectors in "
+		 "fFillESD. This should have been done by the framework");
       }
+      // remove HLT as this has been executed at the beginning of the event reconstruction
       detectors.ReplaceAll("HLT", "");
       if (!FillESD(fesd, detectors)) {
 	if (fStopOnError) {CleanUp(); return kFALSE;}
       }
     }
-    
 
     ffile->cd();
 
@@ -2365,6 +2372,10 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
       fesdf->~AliESDfriend();
       new (fesdf) AliESDfriend(); // Reset...
     }
+
+    for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
+      if (fReconstructor[iDet]) fReconstructor[iDet]->FinishEvent();
+    }
  
     gSystem->GetProcInfo(&procInfo);
     Long_t dMres=(procInfo.fMemResident-oldMres)/1024;
@@ -2458,7 +2469,7 @@ void AliReconstruction::SlaveTerminate()
    sVersion += ":";
    sVersion += ROOT_SVN_REVISION;
    sVersion += "; metadata ";
-   sVersion += gSystem->Getenv("PRODUCTION_METADATA");
+   sVersion += getenv("PRODUCTION_METADATA");
 		    
 
    TNamed * alirootVersion = new TNamed("alirootVersion",sVersion.Data());
@@ -2563,7 +2574,7 @@ Bool_t AliReconstruction::RunLocalEventReconstruction(const TString& detectors)
   // execute HLT reconstruction first since other detector reconstruction
   // might depend on HLT data
   // key 'HLT' is removed from detStr by IsSelected
-  if (!IsSelected("HLT", detStr)) {
+  if (IsSelected("HLT", detStr)) {
     AliReconstructor* reconstructor = GetReconstructor(kNDetectors-1);
     if (reconstructor) {
       // there is no AliLoader for HLT, see
@@ -2809,62 +2820,6 @@ Bool_t AliReconstruction::RunMultFinder(AliESDEvent*& esd)
 }
 
 //_____________________________________________________________________________
-Bool_t AliReconstruction::RunHLTTracking(AliESDEvent*& esd)
-{
-// run the HLT barrel tracking
-
-  AliCodeTimerAuto("",0)
-
-  if (!fRunLoader) {
-    AliError("Missing runLoader!");
-    return kFALSE;
-  }
-
-  AliInfo("running HLT tracking");
-
-  // Get a pointer to the HLT reconstructor
-  AliReconstructor *reconstructor = GetReconstructor(kNDetectors-1);
-  if (!reconstructor) return kFALSE;
-
-  // TPC + ITS
-  for (Int_t iDet = 1; iDet >= 0; iDet--) {
-    TString detName = fgkDetectorName[iDet];
-    AliDebug(1, Form("%s HLT tracking", detName.Data()));
-    reconstructor->SetOption(detName.Data());
-    AliTracker *tracker = reconstructor->CreateTracker();
-    if (!tracker) {
-      AliWarning(Form("couldn't create a HLT tracker for %s", detName.Data()));
-      if (fStopOnError) return kFALSE;
-      continue;
-    }
-    Double_t vtxPos[3];
-    Double_t vtxErr[3]={0.005,0.005,0.010};
-    const AliESDVertex *vertex = esd->GetVertex();
-    vertex->GetXYZ(vtxPos);
-    tracker->SetVertex(vtxPos,vtxErr);
-    if(iDet != 1) {
-      fLoader[iDet]->LoadRecPoints("read");
-      TTree* tree = fLoader[iDet]->TreeR();
-      if (!tree) {
-	AliError(Form("Can't get the %s cluster tree", detName.Data()));
-	return kFALSE;
-      }
-      tracker->LoadClusters(tree);
-    }
-    if (tracker->Clusters2Tracks(esd) != 0) {
-      AliError(Form("HLT %s Clusters2Tracks failed", fgkDetectorName[iDet]));
-      return kFALSE;
-    }
-    if(iDet != 1) {
-      tracker->UnloadClusters();
-    }
-    delete tracker;
-  }
-
-  return kTRUE;
-}
-
-//_____________________________________________________________________________
 Bool_t AliReconstruction::RunMuonTracking(AliESDEvent*& esd)
 {
 // run the muon spectrometer tracking
@@ -2955,7 +2910,7 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd,AliESDpid &PID)
     fTracker[iDet]->LoadClusters(tree);
     AliSysInfo::AddStamp(Form("TLoadCluster%s_%d",fgkDetectorName[iDet],eventNr), iDet,2, eventNr);
     // run tracking
-    if (fTracker[iDet]->Clusters2Tracks(esd) != 0) {
+    if (fTracker[iDet]->Clusters2TracksHLT(esd, fhltesd) != 0) {
       AliError(Form("%s Clusters2Tracks failed", fgkDetectorName[iDet]));
       return kFALSE;
     }
@@ -3301,7 +3256,6 @@ Bool_t AliReconstruction::InitRunLoader()
     TString libs = gSystem->GetLibraries();
     for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
       TString detName = fgkDetectorName[iDet];
-      if (detName == "HLT") continue;
       if (libs.Contains("lib" + detName + "base.so")) continue;
       gSystem->Load("lib" + detName + "base.so");
     }
@@ -3400,6 +3354,7 @@ AliReconstructor* AliReconstruction::GetReconstructor(Int_t iDet)
     TObject* obj = fOptions.FindObject(detName.Data());
     if (obj) reconstructor->SetOption(obj->GetTitle());
     reconstructor->SetRunInfo(fRunInfo);
+    reconstructor->SetHLTESD(fhltesd);
     reconstructor->Init();
     fReconstructor[iDet] = reconstructor;
   }
@@ -3506,10 +3461,6 @@ Bool_t AliReconstruction::CreateTrackers(const TString& detectors)
     AliReconstructor* reconstructor = GetReconstructor(iDet);
     if (!reconstructor) continue;
     TString detName = fgkDetectorName[iDet];
-    if (detName == "HLT") {
-      fRunHLTTracking = kTRUE;
-      continue;
-    }
     if (detName == "MUON") {
       fRunMuonTracking = kTRUE;
       continue;
@@ -3530,7 +3481,6 @@ Bool_t AliReconstruction::CreateTrackers(const TString& detectors)
 void AliReconstruction::CleanUp()
 {
 // delete trackers and the run loader and close and delete the file
-/*
   for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
     delete fReconstructor[iDet];
     fReconstructor[iDet] = NULL;
@@ -3538,7 +3488,6 @@ void AliReconstruction::CleanUp()
     delete fTracker[iDet];
     fTracker[iDet] = NULL;
   }
-*/
 
   delete fRunInfo;
   fRunInfo = NULL;
@@ -3787,7 +3736,7 @@ Bool_t AliReconstruction::InitAliEVE()
   // The return flag shows whenever the
   // AliEVE initialization was successful or not.
 
-  TString macroStr(gSystem->Getenv("ALIEVE_ONLINE_MACRO"));
+  TString macroStr(getenv("ALIEVE_ONLINE_MACRO"));
 
   if (macroStr.IsNull())
     macroStr.Form("%s/EVE/macros/alieve_online.C",gSystem->ExpandPathName("$ALICE_ROOT"));
@@ -3978,10 +3927,12 @@ Bool_t AliReconstruction::GetEventInfo()
     aCTP->SetClassMask(mask);
     aCTP->SetClusterMask(clmask);
 
-    AliCentralTrigger* rlCTP = fRunLoader->GetTrigger();
-    if (rlCTP) {
-      rlCTP->SetClassMask(mask);
-      rlCTP->SetClusterMask(clmask);
+    if (fRunLoader) {
+      AliCentralTrigger* rlCTP = fRunLoader->GetTrigger();
+      if (rlCTP) {
+	rlCTP->SetClassMask(mask);
+	rlCTP->SetClusterMask(clmask);
+      }
     }
   }
   else {
@@ -3998,6 +3949,7 @@ Bool_t AliReconstruction::GetEventInfo()
       fEventInfo.SetTriggerCluster(AliDAQ::ListOfTriggeredDetectors(aCTP->GetClusterMask()));
     }
     else {
+      if (fStopOnMissingTriggerFile) AliFatal("No trigger can be loaded! Stopping reconstruction!");
       AliWarning("No trigger can be loaded! The trigger information will not be used!");
       return kFALSE;
     }
@@ -4011,6 +3963,9 @@ Bool_t AliReconstruction::GetEventInfo()
   }
 
   // Load trigger aliases and declare the trigger classes included in aliases
+  //PH Why do we do it in each event and not only once in the beginning of the chunk??
+  //PH Temporary fix for #99725: AliReconstruction::GetEventInfo bug
+  fDeclTriggerClasses.Clear();
   AliCDBEntry * entry = AliCDBManager::Instance()->Get("GRP/CTP/Aliases");
   if (entry) {
     THashList * lst = dynamic_cast<THashList*>(entry->GetObject());
@@ -4042,7 +3997,7 @@ Bool_t AliReconstruction::GetEventInfo()
     AliTriggerClass* trclass = (AliTriggerClass*)classesArray.At(iclass);
     if (trclass && trclass->GetMask()>0) {
       Int_t trindex = TMath::Nint(TMath::Log2(trclass->GetMask()));
-      fesd->SetTriggerClass(trclass->GetName(),trindex);
+      if (fesd) fesd->SetTriggerClass(trclass->GetName(),trindex);
       if (fRawReader) fRawReader->LoadTriggerClass(trclass->GetName(),trindex);
       if (trmask & (1ull << trindex)) {
 	trclasses += " ";
@@ -4071,17 +4026,22 @@ Bool_t AliReconstruction::GetEventInfo()
     AliTriggerInput* trginput = (AliTriggerInput*)inputsArray.At(iinput);
     if (trginput && trginput->GetMask()>0) {
       Int_t inputIndex = (Int_t)TMath::Nint(TMath::Log2(trginput->GetMask()));
-      AliESDHeader* headeresd = fesd->GetHeader();
-      Int_t trglevel = (Int_t)trginput->GetLevel();
-      if (trglevel == 0) headeresd->SetActiveTriggerInputs(trginput->GetInputName(), inputIndex);
-      if (trglevel == 1) headeresd->SetActiveTriggerInputs(trginput->GetInputName(), inputIndex+24);
-      if (trglevel == 2) headeresd->SetActiveTriggerInputs(trginput->GetInputName(), inputIndex+48);
+      AliESDHeader* headeresd = 0x0;
+      if (fesd) headeresd = fesd->GetHeader();
+      if (headeresd) {
+	Int_t trglevel = (Int_t)trginput->GetLevel();
+	if (trglevel == 0) headeresd->SetActiveTriggerInputs(trginput->GetInputName(), inputIndex);
+	if (trglevel == 1) headeresd->SetActiveTriggerInputs(trginput->GetInputName(), inputIndex+24);
+	if (trglevel == 2) headeresd->SetActiveTriggerInputs(trginput->GetInputName(), inputIndex+48);
+      }
     }
   }
 
   // Set the information in ESD
-  fesd->SetTriggerMask(trmask);
-  fesd->SetTriggerCluster(clustmask);
+  if (fesd) {
+    fesd->SetTriggerMask(trmask);
+    fesd->SetTriggerCluster(clustmask);
+  }
 
   if (!aCTP->CheckTriggeredDetectors()) {
     if (fRawReader) delete aCTP;
@@ -4396,8 +4356,8 @@ void AliReconstruction::DeleteDigits(const TString& detectors)
   AliInfo(Form("Deleting Digits: %s",detectors.Data()));
 
   for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
-    gSystem->Exec(Form("if [ -e %s.Digits.root ]; then\nrm %s.Digits.root\nfi",
-		       fgkDetectorName[iDet],fgkDetectorName[iDet]));
+    if(!IsSelected(fgkDetectorName[iDet], detStr)) continue;
+    unlink(Form("%s.Digits.root",fgkDetectorName[iDet]));
   }
   AliSysInfo::AddStamp(Form("DelDigits_%d",iEvent), 0,0,iEvent);
   iEvent++;
@@ -4413,8 +4373,8 @@ void AliReconstruction::DeleteRecPoints(const TString& detectors)
   AliInfo(Form("Deleting Recpoints: %s",detectors.Data()));
   //
   for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
-    gSystem->Exec(Form("if [ -e %s.RecPoints.root ]; then\nrm %s.RecPoints.root\nfi",
-		       fgkDetectorName[iDet],fgkDetectorName[iDet]));
+    if(!IsSelected(fgkDetectorName[iDet], detStr)) continue;
+    unlink(Form("%s.RecPoints.root",fgkDetectorName[iDet]));
   }
   AliSysInfo::AddStamp(Form("DelRecPoints_%d",iEvent), 0,0,iEvent);
   iEvent++;
@@ -4476,7 +4436,10 @@ Bool_t AliReconstruction::HasEnoughResources(int ev)
 		 int(procInfo.fMemResident/kKB2MB),fMaxRSS,
 		 int(procInfo.fMemVirtual/kKB2MB) ,fMaxVMEM));
     //
-    gSystem->Exec(Form("if [ -e %s ]; then\nrm %s\nfi\necho %d > %s",fgkStopEvFName,fgkStopEvFName,ev,fgkStopEvFName));
+    unlink(Form("%s",fgkStopEvFName));
+    ofstream outfile(fgkStopEvFName);
+    outfile << ev << std::endl;
+    outfile.close();
     fStopped = kTRUE;
   }
   return res;

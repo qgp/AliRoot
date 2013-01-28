@@ -32,7 +32,9 @@ public:
   AliAnalysisTaskPIDResponse(const char *name);
   virtual ~AliAnalysisTaskPIDResponse();
 
-  void SetIsMC(Bool_t isMC=kTRUE) { fIsMC=isMC; }
+  void SetIsMC(Bool_t isMC=kTRUE)   { fIsMC=isMC; }
+  void SetCachePID(Bool_t cachePID) { fCachePID=cachePID; }
+  Bool_t GetCachePID() const { return fCachePID; }
   
   virtual void UserCreateOutputObjects();
   
@@ -40,15 +42,28 @@ public:
 
   void SetOADBPath(const char* path) {fOADBPath=path;}
   const char* GetOADBPath() const { return fOADBPath.Data(); }
+  void SetTuneOnData(Bool_t flag,Int_t recopass){fIsTunedOnData=flag;fRecoPassTuned=recopass;};
+  
+  void SetUseTPCEtaCorrection(Bool_t useTPCEtaCorrection) { fUseTPCEtaCorrection = useTPCEtaCorrection; };
+  Bool_t UseTPCEtaCorrection() const { return fUseTPCEtaCorrection; };
+
+  void SetSpecialDetectorResponse(const char* det) { fSpecialDetResponse=det; }
 
 private:
-  Bool_t fIsMC;                        //  If we run on MC data
+  Bool_t fIsMC;                        // If we run on MC data
+  Bool_t fCachePID;                    // Cache PID values in transient object
   TString fOADBPath;                   // OADB path to use
+  TString fSpecialDetResponse;         // Special detector response files for debugging
   
   AliPIDResponse *fPIDResponse;        //! PID response Handler
   Int_t   fRun;                        //! current run number
   Int_t   fOldRun;                     //! current run number
   Int_t   fRecoPass;                   //! reconstruction pass
+
+  Bool_t  fIsTunedOnData;              // flag to tune MC on data (dE/dx)
+  Int_t   fRecoPassTuned;              // Reco pass tuned on data for MC
+  
+  Bool_t  fUseTPCEtaCorrection;        //! Use TPC eta correction
   
   //
   void SetRecoInfo();
@@ -56,6 +71,6 @@ private:
   AliAnalysisTaskPIDResponse(const AliAnalysisTaskPIDResponse &other);
   AliAnalysisTaskPIDResponse& operator=(const AliAnalysisTaskPIDResponse &other);
   
-  ClassDef(AliAnalysisTaskPIDResponse,2)  // Task to properly set the PID response functions of all detectors
+  ClassDef(AliAnalysisTaskPIDResponse,4)  // Task to properly set the PID response functions of all detectors
 };
 #endif

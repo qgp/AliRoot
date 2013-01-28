@@ -3,7 +3,7 @@
 
 #ifndef ALIHLTROOTSCHEMAEVOLUTIONCOMPONENT_H
 #define ALIHLTROOTSCHEMAEVOLUTIONCOMPONENT_H
-//* This file is property of and copyright by the ALICE                    * 
+//* This file is property of and copyright by the                          * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
@@ -21,6 +21,8 @@ class TObjArray;
 class TObject;
 class TStopwatch;
 class AliHLTMessage;
+
+using std::vector;
 
 /**
  * @class AliHLTRootSchemaEvolutionComponent
@@ -112,12 +114,6 @@ class AliHLTRootSchemaEvolutionComponent : public AliHLTCalibrationProcessor
   /// Checks whether the provided infos are already there in the present version
   /// and adds if it is a new info. 
   int UpdateStreamerInfos(const TList* list, TObjArray* infos) const;
-
-  /// merge streamer info entries from source array to target array
-  /// add all existing infos if not existing in the current one, or having
-  /// different class version
-  /// return 1 if target array has been changed
-  static int MergeStreamerInfo(TObjArray* tgt, const TObjArray* src);
 
   class AliHLTDataBlockItem
   {

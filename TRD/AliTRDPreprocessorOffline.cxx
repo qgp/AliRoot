@@ -119,6 +119,7 @@ ClassImp(AliTRDPreprocessorOffline)
   fRMSBadCalibratedGain(20.0),
   fRMSBadCalibratedVdrift(20.0),
   fRMSBadCalibratedExB(20.0),
+  fMinTimeOffsetValidate(-1.6),
   fRobustFitDriftVelocity(kTRUE),
   fRobustFitExbAlt(kFALSE),
   fAlternativeVdrfitFit(kFALSE),
@@ -128,7 +129,10 @@ ClassImp(AliTRDPreprocessorOffline)
   fOutliersFitChargeLow(0.03),
   fOutliersFitChargeHigh(0.7),
   fBeginFitCharge(3.5),
-  fPHQon(kTRUE)
+  fT0Shift0(0.124797),
+  fT0Shift1(0.267451),
+  fPHQon(kTRUE),
+  fDebugPHQon(kFALSE)
 {
   //
   // default constructor
@@ -165,7 +169,7 @@ AliTRDPreprocessorOffline::~AliTRDPreprocessorOffline() {
   
 }
 //___________________________________________________________________________________
-void AliTRDPreprocessorOffline::Process(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage) 
+void AliTRDPreprocessorOffline::Process(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage) 
 {
   //
   // Process to the gain, vdrift, timeoffset, exb and chamber status calibration
@@ -194,15 +198,18 @@ void AliTRDPreprocessorOffline::Process(const Char_t* file, Int_t startRunNumber
 }
 //___________________________________________________________________________________________________________________
 
-void AliTRDPreprocessorOffline::CalibVdriftT0(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage){
+void AliTRDPreprocessorOffline::CalibVdriftT0(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage){
   //
   // make calibration of the drift velocity
   // Input parameters:
   //      file                             - the location of input file
   //      startRunNumber, endRunNumber     - run validity period 
-  //      ocdbStorage                      - path to the OCDB storage
+  //      ocdbStorage                      - OCDB storage
   //                                       - if empty - local storage 'pwd' uesed
-  if (ocdbStorage.Length()<=0) ocdbStorage="local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+  if (ocdbStorage==0x0) {
+    TString localStorage = "local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+    ocdbStorage=AliCDBManager::Instance()->GetStorage(localStorage.Data());
+  }
   //
   // 1. Initialization 
   //
@@ -246,15 +253,18 @@ void AliTRDPreprocessorOffline::CalibVdriftT0(const Char_t* file, Int_t startRun
 }
 //___________________________________________________________________________________________________________________
 
-void AliTRDPreprocessorOffline::CalibExbAlt(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage){
+void AliTRDPreprocessorOffline::CalibExbAlt(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage){
   //
   // make calibration of the drift velocity
   // Input parameters:
   //      file                             - the location of input file
   //      startRunNumber, endRunNumber     - run validity period 
-  //      ocdbStorage                      - path to the OCDB storage
+  //      ocdbStorage                      - OCDB storage
   //                                       - if empty - local storage 'pwd' uesed
-  if (ocdbStorage.Length()<=0) ocdbStorage="local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+  if (ocdbStorage==0x0) {
+    TString localStorage = "local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+    ocdbStorage=AliCDBManager::Instance()->GetStorage(localStorage.Data());
+  }
   //
   // 1. Initialization 
   //
@@ -281,15 +291,18 @@ void AliTRDPreprocessorOffline::CalibExbAlt(const Char_t* file, Int_t startRunNu
 
 //_________________________________________________________________________________________________________________
 
-void AliTRDPreprocessorOffline::CalibGain(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage){
+void AliTRDPreprocessorOffline::CalibGain(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage){
   //
   // make calibration of the drift velocity
   // Input parameters:
   //      file                             - the location of input file
   //      startRunNumber, endRunNumber     - run validity period 
-  //      ocdbStorage                      - path to the OCDB storage
+  //      ocdbStorage                      - OCDB storage
   //                                       - if empty - local storage 'pwd' uesed
-  if (ocdbStorage.Length()<=0) ocdbStorage="local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+  if (ocdbStorage==0x0) {
+    TString localStorage = "local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+    ocdbStorage=AliCDBManager::Instance()->GetStorage(localStorage.Data());
+  }
   //
   fNotEnoughStatisticsForTheGain = kFALSE;
   //
@@ -324,15 +337,18 @@ void AliTRDPreprocessorOffline::CalibGain(const Char_t* file, Int_t startRunNumb
 }
 //________________________________________________________________________________________________________________
 
-void AliTRDPreprocessorOffline::CalibPRF(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage){
+void AliTRDPreprocessorOffline::CalibPRF(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage){
   //
   // make calibration of the drift velocity
   // Input parameters:
   //      file                             - the location of input file
   //      startRunNumber, endRunNumber     - run validity period 
-  //      ocdbStorage                      - path to the OCDB storage
+  //      ocdbStorage                      - OCDB storage
   //                                       - if empty - local storage 'pwd' uesed
-  if (ocdbStorage.Length()<=0) ocdbStorage="local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+  if (ocdbStorage==0x0) {
+    TString localStorage = "local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+    ocdbStorage=AliCDBManager::Instance()->GetStorage(localStorage.Data());
+  }
   //
   // 1. Initialization 
   if(!ReadPRFGlobal(file)) return;
@@ -362,17 +378,20 @@ void AliTRDPreprocessorOffline::CalibPRF(const Char_t* file, Int_t startRunNumbe
   
 }
 //________________________________________________________________________________________________________________
-void AliTRDPreprocessorOffline::CalibPHQ(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage)
+void AliTRDPreprocessorOffline::CalibPHQ(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage)
 {
   //
   // make calibration of puls height Q
   // Input parameters:
   //      startRunNumber, endRunNumber     - run validity period 
-  //      ocdbStorage                      - path to the OCDB storage
+  //      ocdbStorage                      - OCDB storage
   //                                       - if empty - local storage 'pwd' uesed
   //
 
-  if (ocdbStorage.Length()<=0) ocdbStorage="local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+  if (ocdbStorage==0x0) {
+    TString localStorage = "local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+    ocdbStorage=AliCDBManager::Instance()->GetStorage(localStorage.Data());
+  }
   //printf("test %s\n", ocdbStorage.Data());
 
   if(!ReadPHQGlobal(file)) return;
@@ -384,14 +403,17 @@ void AliTRDPreprocessorOffline::CalibPHQ(const Char_t* file, Int_t startRunNumbe
 
 //________________________________________________________________________________________________________________
 
-void AliTRDPreprocessorOffline::CalibChamberStatus(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage){
+void AliTRDPreprocessorOffline::CalibChamberStatus(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage){
   //
   // make calibration of the chamber status
   // Input parameters:
   //      startRunNumber, endRunNumber     - run validity period 
-  //      ocdbStorage                      - path to the OCDB storage
+  //      ocdbStorage                      - OCDB storage
   //                                       - if empty - local storage 'pwd' uesed
-  if (ocdbStorage.Length()<=0) ocdbStorage="local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+  if (ocdbStorage==0x0) {
+    TString localStorage = "local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+    ocdbStorage=AliCDBManager::Instance()->GetStorage(localStorage.Data());
+  }
   //
   //
   // 1. Initialization  
@@ -411,16 +433,19 @@ void AliTRDPreprocessorOffline::CalibChamberStatus(const Char_t* file, Int_t sta
   //
   // 4. validate OCDB entries
   //
-  if(fSwitchOnValidation==kTRUE && ValidateChamberStatus()==kFALSE) { 
-    //AliError("TRD Chamber status OCDB parameters not ok!");
-    return;
+  //printf("Enough stats for vdrift? %d\n",(Int_t)fNotEnoughStatisticsForTheVdriftLinear);
+  //printf("Enough stats for gain? %d\n",(Int_t)fNotEnoughStatisticsForTheGain); 
+  if((!fNotEnoughStatisticsForTheVdriftLinear) && (!fNotEnoughStatisticsForTheGain)) {
+    if(fSwitchOnValidation==kTRUE && ValidateChamberStatus()==kFALSE) { 
+      //AliError("TRD Chamber status OCDB parameters not ok!");
+      return;
+    }
+    //
+    // 5. update of OCDB
+    //
+    //
+    UpdateOCDBChamberStatus(startRunNumber,endRunNumber,ocdbStorage);
   }
-  //
-  // 5. update of OCDB
-  //
-  //
-  if((!fNotEnoughStatisticsForTheVdriftLinear) && (!fNotEnoughStatisticsForTheGain)) UpdateOCDBChamberStatus(startRunNumber,endRunNumber,ocdbStorage);
-  //UpdateOCDBChamberStatus(startRunNumber,endRunNumber,ocdbStorage);
   
 }
 //______________________________________________________________________________________________________
@@ -706,8 +731,11 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeVdriftT0(){
   //
 
   AliTRDCalibraFit *calibra = AliTRDCalibraFit::Instance();
+  calibra->SetT0Shift0(fT0Shift0);
+  calibra->SetT0Shift1(fT0Shift1);
   calibra->SetMinEntries(fMinStatsVdriftT0PH); // If there is less than 1000 entries in the histo: no fit
-  calibra->AnalysePH(fPH2d);
+  calibra->AnalysePH(fPH2d); 
+  //calibra->SetDebugLevel(2);
 
   Int_t nbtg = 6*4*18*((Int_t) ((AliTRDCalibraMode *)calibra->GetCalibraMode())->GetDetChamb0(1))
     + 6*  18*((Int_t) ((AliTRDCalibraMode *)calibra->GetCalibraMode())->GetDetChamb2(1));
@@ -720,6 +748,7 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeVdriftT0(){
   Bool_t ok = kFALSE;
   if ((nbtg >                  0) && 
       (nbfit        >= 0.5*nbE) && (nbE > 30) && (nbfitSuccess > 30)) {
+    //printf("nbtg %d, nbfit %d, nbE %d, nbfitSucess %d\n",nbtg,nbfit,nbE,nbfitSuccess);
     //printf("Pass the cut for VdriftT0\n");
     // create the cal objects
     calibra->RemoveOutliers(1,kFALSE);
@@ -770,7 +799,9 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeVdriftLinearFit(){
   AliTRDCalibraFit *calibra = AliTRDCalibraFit::Instance();
   calibra->SetCalDetVdriftExB(fCalDetVdriftUsed,fCalDetExBUsed);
   calibra->SetMinEntries(fMinStatsVdriftLinear); // If there is less than 1000 entries in the histo: no fit
-  printf("The mean stat is by %d for VdriftLinear\n",fMinStatsVdriftLinear);
+  //printf("The mean stat is by %d for VdriftLinear\n",fMinStatsVdriftLinear);
+  //fAliTRDCalibraVdriftLinearFit->SetSeeDetector(0);
+  //fAliTRDCalibraVdriftLinearFit->SetDebugLevel(1);
   //printf("Fill PE Array\n");
   fAliTRDCalibraVdriftLinearFit->SetRobustFit(fRobustFitDriftVelocity);
   fAliTRDCalibraVdriftLinearFit->SetMinNumberOfPointsForFit(fMinNbOfPointVdriftFit);
@@ -952,14 +983,35 @@ Bool_t AliTRDPreprocessorOffline::AnalyzePHQ(Int_t startRunNumber)
   //
   //Produce PHQ calibration results
   //
+  TList *lout = 0x0;
+  TTreeSRedirector *calibStream = 0x0;
+  if(IsDebugPHQon()){
+    lout = new TList;
+    lout->SetOwner();
+
+    calibStream = new TTreeSRedirector(Form("TRDCalibStream_%010d.root", startRunNumber));
+  }
+
   for(Int_t iter=0; iter<AliTRDdEdxCalibUtils::GetHistArray()->GetSize(); iter++){
     THnBase *hi = (THnBase*) AliTRDdEdxCalibUtils::GetHistAt(iter);
-    TObjArray *obji = AliTRDdEdxCalibUtils::HistToObj(hi, startRunNumber);
+    TObjArray *obji = AliTRDdEdxCalibUtils::HistToObj(hi, startRunNumber, lout, calibStream);
     //printf("test analyze %s\n", obji->GetName());
     AliTRDdEdxCalibUtils::GetObjArray()->AddAt(obji, iter);
   }
 
   fCalibObjects->AddAt(AliTRDdEdxCalibUtils::GetObjArray(), kPHQ);
+
+  if(lout){
+    TFile *fout=new TFile(Form("TRDCalibList_%010d.root", startRunNumber),"recreate");
+    fout->cd();
+    lout->Write();
+    fout->Save();
+    fout->Close();
+    delete fout;
+  }
+  delete calibStream;
+  delete lout;
+
   return kTRUE;
 }
 
@@ -1001,6 +1053,19 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
   // Check
   if((TMath::Abs(gainrms) < 0.001) || (TMath::Abs(vdriftrms) < 0.001) || (TMath::Abs(exbrms) < 0.0000001)) return kFALSE;
 
+  // Take mean each SM
+  Double_t *gainmeanSM = new Double_t[18];
+  Double_t *vdriftmeanSM = new Double_t[18];
+  Double_t *exbmeanSM = new Double_t[18];
+  //Double_t *t0meanSM = new Double_t[18];
+  for(Int_t sm=0; sm< 18; sm++) {
+    gainmeanSM[sm] = calDetGain->GetMeanSM(kFALSE,sm);
+    vdriftmeanSM[sm] = calDetVDrift->GetMeanSM(kFALSE,sm);
+    exbmeanSM[sm] = calDetExB->GetMeanSM(kFALSE,sm);
+    //t0meanSM[sm] = calDetGain->GetMeanSM(kFALSE);
+  }
+
+
   // mask chambers with empty gain entries
   //Int_t counter = 0;
   for (Int_t idet = 0; idet < 540; idet++) {
@@ -1009,6 +1074,9 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
     TH1I *projch =  (TH1I *) fCH2d->ProjectionX("projch",idet+1,idet+1,(Option_t *)"e");
     Double_t entries = projch->GetEntries();
     //printf("Number of entries %f for det %d\n",entries,idet);
+
+    // sm number
+    Int_t smnumber = (Int_t) idet/30;
 
     // gain
     Double_t gain = calDetGain->GetValue(idet);
@@ -1034,6 +1102,19 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
       //counter++;
     }
 
+    if(TMath::Abs(gainmeanSM[smnumber]-gain) < 0.000001  ||
+       TMath::Abs(vdriftmeanSM[smnumber]-vdrift) < 0.000001 ||
+       TMath::Abs(exbmeanSM[smnumber]-exb) < 0.000001) {
+      
+      //printf(" chamber det %03d notcalibrated sm %d \n",idet,smnumber);
+      //printf(" gainmeanSM %f and gain %f\n",gainmeanSM[smnumber],gain);
+      //printf(" vdriftmeanSM %f and vdrift %f \n",vdriftmeanSM[smnumber],vdrift);
+      //printf(" exbmeanSM %f and exb %f \n",exbmeanSM[smnumber],exb);
+
+      calChamberStatus->SetStatus(idet,AliTRDCalChamberStatus::kNotCalibrated);
+    }
+
+
     delete projch;
     
    }
@@ -1053,6 +1134,11 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
     fBadCalib[sm]= smbadcalib;
     //printf("No Data %d, bad calibrated %d for %d\n",fNoData[sm],fBadCalib[sm],sm);
   }
+
+  // delete
+  delete []gainmeanSM;
+  delete []vdriftmeanSM;
+  delete []exbmeanSM;
   
   // Security
   //   for(Int_t sm=0; sm < 18; sm++) {
@@ -1169,7 +1255,7 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
    
  }
 //_________________________________________________________________________________________________________________
- void AliTRDPreprocessorOffline::UpdateOCDBGain(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath){
+ void AliTRDPreprocessorOffline::UpdateOCDBGain(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage *storage){
    //
    // Update OCDB entry
    //
@@ -1181,14 +1267,13 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
    metaData->SetBeamPeriod(1);
 
    AliCDBId id1("TRD/Calib/ChamberGainFactor", startRunNumber, endRunNumber);
-   AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
    AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(kGain);
-   if(calDet) gStorage->Put(calDet, id1, metaData);
+   if(calDet) storage->Put(calDet, id1, metaData);
 
 
  }
  //___________________________________________________________________________________________________________________
- void AliTRDPreprocessorOffline::UpdateOCDBExB(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath){
+ void AliTRDPreprocessorOffline::UpdateOCDBExB(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage *storage){
    //
    // Update OCDB entry
    //
@@ -1205,14 +1290,13 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
    metaData->SetBeamPeriod(1);
 
    AliCDBId id1("TRD/Calib/ChamberExB", startRunNumber, endRunNumber);
-   AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
    AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(detExB);
-   if(calDet) gStorage->Put(calDet, id1, metaData);
+   if(calDet) storage->Put(calDet, id1, metaData);
    //if(!calDet) printf("No caldet\n");
 
  }
 //___________________________________________________________________________________________________________________
-void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath){
+void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage *storage){
   //
   // Update OCDB entry
   //
@@ -1229,14 +1313,13 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
   metaData->SetBeamPeriod(1);
 
   AliCDBId id1("TRD/Calib/ChamberExBAlt", startRunNumber, endRunNumber);
-  AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
   AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(detExB);
-  if(calDet) gStorage->Put(calDet, id1, metaData);
+  if(calDet) storage->Put(calDet, id1, metaData);
   //if(!calDet) printf("No caldet\n");
 
 }
  //___________________________________________________________________________________________________________________
- void AliTRDPreprocessorOffline::UpdateOCDBVdrift(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath){
+ void AliTRDPreprocessorOffline::UpdateOCDBVdrift(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage){
    //
    // Update OCDB entry
    //
@@ -1252,9 +1335,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
    metaData->SetBeamPeriod(1);
 
    AliCDBId id1("TRD/Calib/ChamberVdrift", startRunNumber, endRunNumber);
-   AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
    AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(detVdrift);
-   if(calDet) gStorage->Put(calDet, id1, metaData);
+   if(calDet) storage->Put(calDet, id1, metaData);
 
    //
 
@@ -1268,13 +1350,13 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
      AliCDBId id1Pad("TRD/Calib/LocalVdrift", startRunNumber, endRunNumber);
      AliTRDCalPad *calPad = (AliTRDCalPad *) fCalibObjects->At(kVdriftPHPad);
-     if(calPad) gStorage->Put(calPad, id1Pad, metaDataPad);
+     if(calPad) storage->Put(calPad, id1Pad, metaDataPad);
 
    }
 
  }
  //________________________________________________________________________________________________________________________
- void AliTRDPreprocessorOffline::UpdateOCDBT0(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath){
+ void AliTRDPreprocessorOffline::UpdateOCDBT0(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage){
    //
    // Update OCDB entry
    //
@@ -1286,9 +1368,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
    metaData->SetBeamPeriod(1);
 
    AliCDBId id1("TRD/Calib/ChamberT0", startRunNumber, endRunNumber);
-   AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
    AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(kT0PHDet);
-   if(calDet) gStorage->Put(calDet, id1, metaData);
+   if(calDet) storage->Put(calDet, id1, metaData);
 
    //
 
@@ -1300,13 +1381,13 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
    AliCDBId id1Pad("TRD/Calib/LocalT0", startRunNumber, endRunNumber);
    AliTRDCalPad *calPad = (AliTRDCalPad *) fCalibObjects->At(kT0PHPad);
-   if(calPad) gStorage->Put(calPad, id1Pad, metaDataPad);
+   if(calPad) storage->Put(calPad, id1Pad, metaDataPad);
 
 
 
  }
  //_________________________________________________________________________________________________________________
- void AliTRDPreprocessorOffline::UpdateOCDBPRF(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath){
+ void AliTRDPreprocessorOffline::UpdateOCDBPRF(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage){
    //
    // Update OCDB entry
    //
@@ -1319,14 +1400,13 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
 
    AliCDBId id1("TRD/Calib/PRFWidth", startRunNumber, endRunNumber);
-   AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
    AliTRDCalPad *calPad = (AliTRDCalPad *) fCalibObjects->At(kPRF);
-   if(calPad) gStorage->Put(calPad, id1, metaData);
+   if(calPad) storage->Put(calPad, id1, metaData);
 
 
  }
 //_________________________________________________________________________________________________________________
-void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath)
+void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage)
 {
   //
   // Update OCDB entry
@@ -1338,16 +1418,15 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
   metaData->SetBeamPeriod(1);
 
   AliCDBId id1("TRD/Calib/PHQ", startRunNumber, endRunNumber);
-  AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
   TObjArray *cobj = (TObjArray *) fCalibObjects->At(kPHQ);
   if(cobj){
     //cobj->Print();
-    gStorage->Put(cobj, id1, metaData);
+    storage->Put(cobj, id1, metaData);
   }
 }
 
  //_________________________________________________________________________________________________________________
- void AliTRDPreprocessorOffline::UpdateOCDBChamberStatus(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath){
+ void AliTRDPreprocessorOffline::UpdateOCDBChamberStatus(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage){
    //
    // Update OCDB entry
    //
@@ -1359,9 +1438,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
    metaData->SetBeamPeriod(1);
 
    AliCDBId id1("TRD/Calib/ChamberStatus", startRunNumber, endRunNumber);
-   AliCDBStorage * gStorage = AliCDBManager::Instance()->GetStorage(storagePath);
    AliTRDCalChamberStatus *calChamberStatus = (AliTRDCalChamberStatus *) fCalibObjects->At(kChamberStatus);
-   if(calChamberStatus) gStorage->Put(calChamberStatus, id1, metaData);
+   if(calChamberStatus) storage->Put(calChamberStatus, id1, metaData);
 
 
  }
@@ -1460,8 +1538,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
      Double_t rmsdet = calDet->GetRMSRobust();
      Double_t meanpad = calPad->GetMean();
      //Double_t rmspad = calPad->GetRMS();
-     //printf("T0::minimum %f, rmsdet %f,meanpad %f, rmspad %f\n",meandet,rmsdet,meanpad,rmspad);
-     if((meandet > -1.5) && (meandet < 5.0) && (rmsdet < 4.0) && (meanpad < 5.0) && (meanpad > -0.5)) return kTRUE;
+     printf("T0::meandet %f, rmsdet %f,meanpad %f\n",meandet,rmsdet,meanpad);
+     if((meandet >   fMinTimeOffsetValidate) && (meandet < 5.0) && (rmsdet < 4.0) && (meanpad < 5.0) && (meanpad > -0.5)) return kTRUE;
      else {
        fStatusPos = fStatusPos | kTimeOffsetErrorRange;
        return kFALSE;

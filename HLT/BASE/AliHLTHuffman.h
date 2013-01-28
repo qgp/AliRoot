@@ -229,14 +229,23 @@ public:
 	AliHLTHuffman(const char* name, UInt_t maxBits);
 	~AliHLTHuffman();
 
+	UInt_t InitMaxCodeLength();
+
 	UInt_t GetMaxBits() const {return fMaxBits;}
 	UInt_t GetMaxValue() const {return fMaxValue;}
+	UInt_t GetMaxCodeLength() const {return fMaxCodeLength;}
 
 	/// Return huffman code for a value
 	const std::bitset<64>& Encode(const AliHLTUInt64_t v, AliHLTUInt64_t& codeLength) const;
 
-	/// Return value for bit pattern
-        Bool_t Decode(std::bitset<64> /*bits*/, AliHLTUInt64_t& /*value*/, AliHLTUInt32_t& length, AliHLTUInt32_t& codeLength) const;
+	/// Return value for bit pattern, LSB first
+        Bool_t DecodeLSB(std::bitset<64> /*bits*/, AliHLTUInt64_t& /*value*/, AliHLTUInt32_t& length, AliHLTUInt32_t& codeLength) const;
+	/// Return value for bit pattern, MSB first
+        Bool_t DecodeMSB(std::bitset<64> /*bits*/, AliHLTUInt64_t& /*value*/, AliHLTUInt32_t& length, AliHLTUInt32_t& codeLength) const;
+	/// Return value for bit pattern using decoder node array, MSB first
+        Bool_t FastDecodeMSB(std::bitset<64> bits, AliHLTUInt64_t& value,
+			     AliHLTUInt32_t& length, AliHLTUInt32_t& codeLength) const;
+
 	/// Add a new training value (with optional weight) to the training sample
 	Bool_t AddTrainingValue(const AliHLTUInt64_t value,
 			const Float_t weight = 1.);
@@ -249,14 +258,33 @@ public:
 
         bool CheckConsistency() const;
 
+        /**
+         * Binary structure for fast access of node information
+         * in the decoding
+         */
+        struct AliHuffmanDecodingNode {
+	  AliHLTHuffmanNode* fParent;      // parent
+          AliHLTInt64_t fValue;            // value
+          AliHuffmanDecodingNode* fLeft;    // left neighbor
+          AliHuffmanDecodingNode* fRight;   // right neighbor
+          AliHLTUInt8_t fBinaryCodeLength; // code length
+        };
+
+        int EnableDecodingMap();
+
 private:
+        AliHuffmanDecodingNode* BuildDecodingNode(AliHLTHuffmanNode* node, vector<AliHuffmanDecodingNode>& decodingnodes) const;
+
 	UInt_t fMaxBits;    // bit lenght
 	UInt_t fMaxValue;   // maximum value
 	std::vector<AliHLTHuffmanLeaveNode> fNodes; // array of nodes
 	AliHLTHuffmanNode* fHuffTopNode;       // top node
 	bool fReverseCode; // indicate the type of the binary code
+	UInt_t fMaxCodeLength; //! maximum code length
+	std::vector<AliHuffmanDecodingNode> fDecodingNodes; //! array of reduced nodes
+	AliHuffmanDecodingNode* fDecodingTopNode; //! top node of reduced nodes
 
-ClassDef(AliHLTHuffman, 2)
+ClassDef(AliHLTHuffman, 4)
 };
 
 #endif

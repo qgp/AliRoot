@@ -29,6 +29,8 @@
 
 #include <Riostream.h>
 
+using std::endl;
+using std::cout;
 /// \cond CLASSIMP
 ClassImp(AliESDMuonPad)
 /// \endcond
@@ -63,6 +65,20 @@ AliESDMuonPad& AliESDMuonPad::operator=(const AliESDMuonPad& pad)
   fCharge = pad.fCharge;
   
   return *this;
+}
+
+//_____________________________________________________________________________
+void AliESDMuonPad::Copy(TObject &obj) const {
+  
+  /// This overwrites the virtual TOBject::Copy()
+  /// to allow run time copying without casting
+  /// in AliESDEvent
+
+  if(this==&obj)return;
+  AliESDMuonPad *robj = dynamic_cast<AliESDMuonPad*>(&obj);
+  if(!robj)return; // not an AliESDMuonPad
+  *robj = *this;
+
 }
 
 //_____________________________________________________________________________

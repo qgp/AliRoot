@@ -49,7 +49,7 @@
 #include <AliTrackerBase.h>
 #include <AliTRDPIDReference.h>
 #include <AliTRDPIDResponse.h>
-#include "AliTRDCalChamberStatus.h"
+#include <AliTRDCalChamberStatus.h>
 #include <AliTender.h>
 
 #include "AliTRDTenderSupply.h"
@@ -66,25 +66,26 @@ AliTRDTenderSupply::AliTRDTenderSupply() :
   fChamberVdriftOld(NULL),
   fChamberVdriftNew(NULL),
   fRunByRunCorrection(NULL),
-  fPIDmethod(kNNpid),
+  fPIDmethod(k1DLQpid),
   fNormalizationFactor(1.),
   fPthreshold(0.8),
   fNBadChambers(0),
   fGeoFile(NULL),
   fGainCorrection(kTRUE),
-  fLoadReferences(kFALSE),
-  fLoadReferencesFromCDB(kFALSE),
+//  fLoadReferences(kFALSE),
+//  fLoadReferencesFromCDB(kFALSE),
   fLoadDeadChambers(kFALSE),
   fHasReferences(kFALSE),
   fHasNewCalibration(kTRUE),
   fDebugMode(kFALSE),
-  fNameRunByRunCorrection()
+  fNameRunByRunCorrection(),
+  fNormalizationFactorArray(NULL)
 {
   //
   // default ctor
   //
-  memset(fSlicesForPID, 0, sizeof(UInt_t) * 2);
   memset(fBadChamberID, 0, sizeof(Int_t) * kNChambers);
+  memset(fSlicesForPID, 0, sizeof(UInt_t) * 2);
 }
 
 //_____________________________________________________
@@ -97,19 +98,20 @@ AliTRDTenderSupply::AliTRDTenderSupply(const char *name, const AliTender *tender
   fChamberVdriftOld(NULL),
   fChamberVdriftNew(NULL),
   fRunByRunCorrection(NULL),
-  fPIDmethod(kNNpid),
+  fPIDmethod(k1DLQpid),
   fNormalizationFactor(1.),
   fPthreshold(0.8),
   fNBadChambers(0),
   fGeoFile(NULL),
   fGainCorrection(kTRUE),
-  fLoadReferences(kFALSE),
-  fLoadReferencesFromCDB(kFALSE),
+//  fLoadReferences(kFALSE),
+//  fLoadReferencesFromCDB(kFALSE),
   fLoadDeadChambers(kFALSE),
   fHasReferences(kFALSE),
   fHasNewCalibration(kTRUE),
   fDebugMode(kFALSE),
-  fNameRunByRunCorrection()
+  fNameRunByRunCorrection(),
+  fNormalizationFactorArray(NULL)
 {
   //
   // named ctor
@@ -124,6 +126,7 @@ AliTRDTenderSupply::~AliTRDTenderSupply()
   //
   // dtor
   //
+  if(fNormalizationFactorArray) delete fNormalizationFactorArray;
 }
 
 //_____________________________________________________
@@ -142,9 +145,9 @@ void AliTRDTenderSupply::Init()
     fTender->GetESDhandler()->SetESDpid(fESDpid);
   }
   // Load References
-  if(fLoadReferences && !fLoadReferencesFromCDB) LoadReferences();
+  //if(fLoadReferences && !fLoadReferencesFromCDB) LoadReferences();
   //fESDpid->GetTRDResponse().SetGainNormalisationFactor(fNormalizationFactor);
-  fESDpid->SetTRDslicesForPID(fSlicesForPID[0], fSlicesForPID[1]);
+  //fESDpid->SetTRDslicesForPID(fSlicesForPID[0], fSlicesForPID[1]);
 
   if(fNameRunByRunCorrection.Length()) LoadRunByRunCorrection(fNameRunByRunCorrection.Data());
 
@@ -171,7 +174,7 @@ void AliTRDTenderSupply::ProcessEvent()
   if (fTender->RunChanged()){
     AliDebug(0, Form("AliTPCTenderSupply::ProcessEvent - Run Changed (%d)\n",fTender->GetRun()));
     if (fGainCorrection) SetChamberGain();
-    if(fLoadReferences && !fHasReferences) LoadReferences();
+    //if(fLoadReferences && !fHasReferences) LoadReferences();
     if(fLoadDeadChambers) LoadDeadChambersFromCDB();
     // Load Geometry
     if(AliGeomManager::GetGeometry()){
@@ -186,6 +189,7 @@ void AliTRDTenderSupply::ProcessEvent()
 
   fESD = fTender->GetEvent();
   if (!fESD) return;
+  if(fNormalizationFactorArray) fNormalizationFactor = GetNormalizationFactor(fESD->GetRunNumber());
   Int_t ntracks=fESD->GetNumberOfTracks();
    
   //
@@ -257,6 +261,7 @@ void AliTRDTenderSupply::LoadDeadChambersFromCDB(){
   }
 }
 
+/*
 //_____________________________________________________
 void AliTRDTenderSupply::LoadReferences(){
   //
@@ -297,6 +302,7 @@ void AliTRDTenderSupply::LoadReferences(){
     fHasReferences = kTRUE;
   }
 }
+*/
 
 //_____________________________________________________
 void AliTRDTenderSupply::SetChamberGain(){
@@ -467,7 +473,8 @@ void AliTRDTenderSupply::ApplyRunByRunCorrection(AliESDtrack *const track) {
   //
 
   TVectorD *corrfactor = dynamic_cast<TVectorD *>(fRunByRunCorrection->GetObject(fTender->GetRun()));
-  if(!corrfactor) {
+  if(!corrfactor){ 
+    // No correction available - simply return
     AliDebug(2, "Couldn't derive gain correction factor from OADB");
     return;
   }
@@ -481,6 +488,42 @@ void AliTRDTenderSupply::ApplyRunByRunCorrection(AliESDtrack *const track) {
       track->SetTRDslice(slice, ily, islice);
     }
   }
+}
+
+//_____________________________________________________
+void AliTRDTenderSupply::SetNormalizationFactor(Double_t norm, Int_t runMin, Int_t runMax) { 
+  //
+  // Set the normalisation factor for a given run range
+  //
+  if(!fNormalizationFactorArray)
+    fNormalizationFactorArray = new TObjArray;
+  TVectorD *entry = new TVectorD(3);
+  TVectorD &myentry = *entry;
+  myentry(0) = runMin;
+  myentry(1) = runMax;
+  myentry(2) = norm;
+  fNormalizationFactorArray->Add(entry);
+}
+
+//_____________________________________________________
+Double_t AliTRDTenderSupply::GetNormalizationFactor(Int_t runnumber){
+  // 
+  // Load the normalization factor
+  //
+  Double_t norm = 1.;
+  if(fNormalizationFactorArray){
+    TVectorD *entry;
+    Int_t runMin, runMax;
+    TIter entries(fNormalizationFactorArray);
+    while((entry = dynamic_cast<TVectorD *>(entries()))){
+      TVectorD &myentry = *entry;
+      runMin = TMath::Nint(myentry(0));
+      runMax = TMath::Nint(myentry(1));
+      if(runnumber >= runMin && runnumber <= runMax) norm = myentry(2);
+    }
+  }
+  AliDebug(1, Form("Gain normalization factor: %f\n", norm));
+  return norm;
 }
 
 //_____________________________________________________
@@ -524,6 +567,7 @@ Bool_t AliTRDTenderSupply::GetTRDchamberID(AliESDtrack * const track, Int_t *det
   Double_t xLayer[kNPlanes] = {300.2, 312.8, 325.4, 338., 350.6, 363.2};
   Double_t etamin[kNStacks] = {0.536, 0.157, -0.145, -0.527,-0.851};
   Double_t etamax[kNStacks] = {0.851, 0.527, 0.145, -0.157,-0.536};
+  //Double_t zboundary[kNPlanes] = {302., 317., 328., 343., 350., 350.};
   for(Int_t ily = 0; ily < kNPlanes; ily++) detectors[ily] = -1;
 
   const AliExternalTrackParam *trueparam = NULL;
@@ -539,28 +583,37 @@ Bool_t AliTRDTenderSupply::GetTRDchamberID(AliESDtrack * const track, Int_t *det
   Double_t pos[3];
   Int_t nDet = 0;
   for(Int_t ily = 0; ily < kNPlanes; ily++){
-    if(!AliTrackerBase::PropagateTrackToBxByBz(&workparam, xLayer[ily], 0.139, 100)){   // Assuming the pion mass
+    //if(TMath::Abs(workparam.GetZ()) > zboundary[ily]) break;
+    //if(!AliTrackerBase::PropagateTrackToBxByBz(&workparam, xLayer[ily], 0.139, 100)){   // Assuming the pion mass
+    if(!workparam.PropagateTo(xLayer[ily], fESD->GetMagneticField())) {
       AliDebug(2, "Propagation failed");
       break;
     }
     workparam.GetXYZ(pos);
     Double_t trackAlpha = TMath::ATan2(pos[1], pos[0]);
+    if(trackAlpha < 0) trackAlpha = 2 * TMath::Pi() + trackAlpha;
+    Double_t secAlpha = 2 * TMath::Pi() / 18.;
+   
+    Int_t sector = static_cast<Int_t>(trackAlpha/secAlpha);
+
     if(fDebugMode){
       // Compare to simple propagation without magnetic field
       AliExternalTrackParam workparam1(*trueparam); // Do calculation on working Copy
       Double_t pos1[3];
-      if(!workparam1.PropagateTo(xLayer[ily], fESD->GetMagneticField())) {
+      //if(!workparam1.PropagateTo(xLayer[ily], fESD->GetMagneticField())) {
+      if(!AliTrackerBase::PropagateTrackToBxByBz(&workparam1, xLayer[ily], 0.139, 100)){   // Assuming the pion mass
         AliDebug(2, "Propagation failed");
         break;
       }
       workparam1.GetXYZ(pos1);
       Double_t trackAlpha1 = TMath::ATan2(pos1[1], pos1[0]);
-      AliDebug(2, Form("Alpha: Old %f, New %f, diff %f", trackAlpha1, trackAlpha, trackAlpha-trackAlpha1));
-    }
-    if(trackAlpha < 0) trackAlpha = 2 * TMath::Pi() + trackAlpha;
-    Double_t secAlpha = 2 * TMath::Pi() / 18.;
+      if(trackAlpha1 < 0) trackAlpha1 = 2 * TMath::Pi() + trackAlpha1;
    
-    Int_t sector = static_cast<Int_t>(trackAlpha/secAlpha);
+      Int_t sector1 = static_cast<Int_t>(trackAlpha1/secAlpha);
+      AliDebug(2, Form("Alpha: Old %f, New %f, diff %f", trackAlpha, trackAlpha1, trackAlpha-trackAlpha1));
+      AliDebug(2, Form("Sector: Old %d, New %d", sector, sector1));
+    }
+
     Double_t etaTrack = track->Eta();
     Int_t stack = -1;
     for(Int_t istack = 0; istack < 5; istack++){

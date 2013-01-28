@@ -44,11 +44,13 @@ class AliAODHandler : public AliVEventHandler {
     virtual Bool_t       Terminate();
     virtual Bool_t       TerminateIO();
     //
-    virtual void         SetCreateNonStandardAOD()               {fIsStandard = kFALSE;}
-    virtual void         SetFillAOD(Bool_t b)                    {fFillAOD = b;}
-    virtual void         SetFillExtension(Bool_t b)              {fFillExtension = b;}
-    virtual void         SetFillAODforRun(Bool_t b)              {fFillAODRun = b;}
+    virtual void         SetCreateNonStandardAOD()               {Changed(); fIsStandard = kFALSE;}
+    virtual void         SetFillAOD(Bool_t b)                    {Changed(); fFillAOD = b;}
+    virtual void         SetFillExtension(Bool_t b)              {Changed(); fFillExtension = b;}
+    virtual void         SetFillAODforRun(Bool_t b)              {Changed(); fFillAODRun = b;}
     virtual void         SetNeedsHeaderReplication()             {fNeedsHeaderReplication             = kTRUE;}
+    virtual void         SetNeedsTOFHeaderReplication()          {fNeedsTOFHeaderReplication          = kTRUE;}
+    virtual void         SetNeedsVZEROReplication()              {fNeedsVZEROReplication              = kTRUE;}
     virtual void         SetNeedsTracksBranchReplication()       {fNeedsTracksBranchReplication       = kTRUE;}
     virtual void         SetNeedsVerticesBranchReplication()     {fNeedsVerticesBranchReplication     = kTRUE;}
     virtual void         SetNeedsV0sBranchReplication()          {fNeedsV0sBranchReplication          = kTRUE;}
@@ -61,8 +63,9 @@ class AliAODHandler : public AliVEventHandler {
     virtual void         SetNeedsCaloTriggerBranchReplication()  {fNeedsCaloTriggerBranchReplication  = kTRUE;}
     virtual void         SetNeedsMCParticlesBranchReplication()  {fNeedsMCParticlesBranchReplication  = kTRUE;}
     virtual void         SetNeedsDimuonsBranchReplication()      {fNeedsDimuonsBranchReplication      = kTRUE;}
-    virtual void         SetAODIsReplicated() {fAODIsReplicated = kTRUE;}
-    virtual void         SetAODExtensionMode()                   {fIsStandard=kFALSE; fFillAOD=kFALSE; fFillAODRun=kFALSE; fFillExtension=kTRUE;}
+    virtual void         SetNeedsHMPIDBranchReplication()        {fNeedsHMPIDBranchReplication        = kTRUE;}
+    virtual void         SetAODIsReplicated()                    {Changed(); fAODIsReplicated = kTRUE;}
+    virtual void         SetAODExtensionMode()                   {Changed(); fIsStandard=kFALSE; fFillAOD=kFALSE; fFillAODRun=kFALSE; fFillExtension=kTRUE;}
     //
     AliAODEvent*         GetAOD()  {return fAODEvent;}
     virtual TTree*       GetTree() const {return fTreeA;}
@@ -81,6 +84,8 @@ class AliAODHandler : public AliVEventHandler {
     Bool_t               IsStandard()                         const {return fIsStandard;}
     Bool_t               GetFillAOD()                         const {return fFillAOD;} 
     Bool_t               NeedsHeaderReplication()             const {return  fNeedsHeaderReplication;}
+    Bool_t               NeedsTOFHeaderReplication()          const {return  fNeedsTOFHeaderReplication;}
+    Bool_t               NeedsVZEROReplication()              const {return  fNeedsVZEROReplication;}
     Bool_t               NeedsTracksBranchReplication()       const {return  fNeedsTracksBranchReplication;}
     Bool_t               NeedsVerticesBranchReplication()     const {return  fNeedsVerticesBranchReplication;}
     Bool_t               NeedsV0sBranchReplication()          const {return  fNeedsV0sBranchReplication;}
@@ -93,6 +98,7 @@ class AliAODHandler : public AliVEventHandler {
     Bool_t               NeedsCaloTriggerBranchReplication()  const {return  fNeedsCaloTriggerBranchReplication;}
     Bool_t               NeedsMCParticlesBranchReplication()  const {return  fNeedsMCParticlesBranchReplication;}
     Bool_t               NeedsDimuonsBranchReplication()      const {return  fNeedsDimuonsBranchReplication;}
+    Bool_t               NeedsHMPIDBranchReplication()        const {return  fNeedsHMPIDBranchReplication;}
     Bool_t               AODIsReplicated()                    const {return  fAODIsReplicated;}
     //
     void                 SetInputTree(TTree* /*tree*/) {;}
@@ -115,6 +121,8 @@ class AliAODHandler : public AliVEventHandler {
     Bool_t                   fFillAODRun;                         // Flag for filling of the AOD tree at the end (run)
     Bool_t                   fFillExtension;                      // Flag for filling or the delta AOD tree at the end
     Bool_t                   fNeedsHeaderReplication;             // Flag for header replication
+    Bool_t                   fNeedsTOFHeaderReplication;          // Flag for header replication
+    Bool_t                   fNeedsVZEROReplication;              // Flag for header replication
     Bool_t                   fNeedsTracksBranchReplication;       // Flag for tracks replication
     Bool_t                   fNeedsVerticesBranchReplication;     // Flag for vertices replication
     Bool_t                   fNeedsV0sBranchReplication;          // Flag for V0s replication
@@ -127,6 +135,7 @@ class AliAODHandler : public AliVEventHandler {
     Bool_t                   fNeedsCaloTriggerBranchReplication;  // Flag for Calo Trigger replication
     Bool_t                   fNeedsMCParticlesBranchReplication;  // Flag for MCParticles replication
     Bool_t                   fNeedsDimuonsBranchReplication;      // Flag for Dimuons replication
+    Bool_t                   fNeedsHMPIDBranchReplication;        // Flag for HMPID replication
     Bool_t                   fAODIsReplicated;                    // Flag true if replication as been executed
     AliAODEvent             *fAODEvent;               //! Pointer to the AOD event
     AliMCEventHandler       *fMCEventH;               //! Pointer to mc event handler needed not to depend on the manager

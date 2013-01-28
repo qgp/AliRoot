@@ -49,9 +49,11 @@ public:
       kMUU7         = BIT(9), // Muon trigger, unlike sign dimuon, offline V0 selection, CINT7 suite
       kMuonUnlikePB = BIT(9), // idem for PbPb
       kEMC7         = BIT(10), // EMCAL trigger, CINT7 suite
+      kEMC8         = BIT(10), // EMCAL trigger, CINT8 suite
       kMUS7         = BIT(11), // Muon trigger: low pt, single muon, offline V0 selection, CINT7 suite
       kPHI1         = BIT(12), // PHOS trigger, CINT1 suite
       kPHI7         = BIT(13), // PHOS trigger, CINT7 suite
+      kPHI8         = BIT(13), // PHOS trigger, CINT8 suite
       kPHOSPb       = BIT(13), // idem for PbPb
       kEMCEJE       = BIT(14), // EMCAL jet patch trigger
       kEMCEGA       = BIT(15), // EMCAL gamma trigger
@@ -60,13 +62,16 @@ public:
       kDG5          = BIT(18), // Double gap diffractive
       kZED          = BIT(19), // ZDC electromagnetic dissociation
       kSPI7         = BIT(20), // Power interaction trigger
+      kSPI          = BIT(20), // Power interaction trigger
       kINT8                 = BIT(21), // CINT8 trigger: 0TVX (T0 vertex) triger
       kMuonSingleLowPt8     = BIT(22), // Muon trigger : single muon, low pt, T0 selection, CINT8 suite
       kMuonSingleHighPt8    = BIT(23), // Muon trigger : single muon, high pt, T0 selection, CINT8 suite
       kMuonLikeLowPt8       = BIT(24), // Muon trigger : like sign muon, low pt, T0 selection, CINT8 suite
       kMuonUnlikeLowPt8     = BIT(25), // Muon trigger : unlike sign muon, low pt, T0 selection, CINT8 suite
+      kMuonUnlikeLowPt0     = BIT(26), // Muon trigger : unlike sign muon, low pt, no additional L0 requirement
       kUserDefined  = BIT(27), // Set when custom trigger classes are set in AliPhysicsSelection, offline SPD or V0 selection
-      // Bits 28 and above are reserved for FLAGS
+      kTRD          = BIT(28), // TRD trigger
+      // Bits 29 and above are reserved for FLAGS
       kFastOnly     = BIT(30), // The fast cluster fired. This bit is set in to addition another trigger bit, e.g. kMB
       kAny          = 0xffffffff, // to accept any trigger
       kAnyINT       = kMB | kINT7 | kCINT5 | kINT8 | kSPI7 // to accept any interaction (aka minimum bias) trigger
@@ -144,6 +149,7 @@ public:
   virtual Float_t GetTOFTimeResolution() const {return 0.;}
   virtual Double32_t GetT0TOF(Int_t icase) const {return 0.0*icase;}
   virtual const Double32_t * GetT0TOF() const {return NULL;}
+  virtual Float_t GetT0spread(Int_t /*i*/) const {return 0.;}
 
   // Calorimeter Clusters/Cells
   virtual AliVCluster *GetCaloCluster(Int_t)   const {return 0;}

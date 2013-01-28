@@ -38,6 +38,7 @@
 // Quarks, hadrons and decay particles are loaded in the stack outside the loop
 // of HF-hadrons, when the cuts on their children are satisfied (L. Manceau)
 // Oct 11: added Pb-Pb at 2.76 TeV (S. Grigoryan)
+// June 12: added p-Pb & Pb-p at 5 TeV (S. Grigoryan)
 // 
 //-------------------------------------------------------------------------
 // How it works (for the given flavor and p-p energy):
@@ -84,7 +85,11 @@
     gener->SetOrigin(0,0,0);          //vertex position    
     gener->SetSigma(0,0,0);           //Sigma in (X,Y,Z) (cm) on IP position
     gener->SetForceDecay(kSemiMuonic);
-    gener->SetTrackingFlag(0);
+    gener->SetSelectAll(kTRUE);      //Force the transport of all particles. 
+                                     //Necessary while using a different 
+                                     //option than kAll for SetForceDecay
+    gener->SetTrackingFlag(1);       //1: Decay during transport, 
+                                     //0: No Decay during transport
     gener->Init();
 }
 */
@@ -172,6 +177,8 @@ AliGenCorrHF::AliGenCorrHF(Int_t npart, Int_t idquark, Int_t energy):
 	   fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPbPb276PythiaMNR.root";
       else if (fEnergy == 4)
 	   fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPbPb394PythiaMNR.root";
+      else if (fEnergy == 5 || fEnergy == -5)
+	   fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPPb5PythiaMNR.root";
       else if (fEnergy == 9 || fEnergy == -9)
 	   fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPPb88PythiaMNR.root";
       else fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPbPb394PythiaMNR.root";
@@ -188,6 +195,8 @@ AliGenCorrHF::AliGenCorrHF(Int_t npart, Int_t idquark, Int_t energy):
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPbPb276PythiaMNR.root";
       else if (fEnergy == 4)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPbPb394PythiaMNR.root";
+      else if (fEnergy == 5 || fEnergy == -5)
+           fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPPb5PythiaMNR.root";
       else if (fEnergy == 9 || fEnergy == -9)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPPb88PythiaMNR.root";
       else fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPbPb394PythiaMNR.root";
@@ -344,7 +353,8 @@ void AliGenCorrHF::Generate()
     
     GetHadronPair(fFile, fQuark, yq[0], yq[1], ptq[0], ptq[1], ihadron[0], ihadron[1], plh[0], plh[1], pth[0], pth[1]);
     
-    if (fEnergy == 9 || fEnergy == -9) {      // boost particles from c.m.s. to ALICE lab frame
+    // Boost particles from c.m.s. to ALICE lab frame for p-Pb & Pb-p collisions
+    if (fEnergy == 5 || fEnergy == -5 || fEnergy == 9 || fEnergy == -9) {
       Double_t dyBoost = 0.47;
       Double_t beta  = TMath::TanH(dyBoost);
       Double_t gamma = 1./TMath::Sqrt((1.-beta)*(1.+beta));
@@ -353,7 +363,7 @@ void AliGenCorrHF::Generate()
       yq[1] += dyBoost;
       plh[0] = gb * TMath::Sqrt(plh[0]*plh[0] + pth[0]*pth[0]) + gamma * plh[0];
       plh[1] = gb * TMath::Sqrt(plh[1]*plh[1] + pth[1]*pth[1]) + gamma * plh[1];
-      if (fEnergy == 9) {
+      if (fEnergy == 5 || fEnergy == 9) {
 	yq[0] *= -1;
 	yq[1] *= -1;
 	plh[0] *= -1;
@@ -804,10 +814,10 @@ void AliGenCorrHF::LoadTracks(Int_t iquark, Float_t *pq,
 	TParticle* iparticle = (TParticle *) particles->At(i);
 	Int_t kf  = iparticle->GetPdgCode();
 	Int_t jpa = iparticle->GetFirstMother()-1;
-
-	och[0] = origin0[0]+iparticle->Vx()/10;
-	och[1] = origin0[1]+iparticle->Vy()/10;
-	och[2] = origin0[2]+iparticle->Vz()/10;
+	// RS: note, the conversion mm->cm is done now in the decayer. The time is ignored here!
+	och[0] = origin0[0]+iparticle->Vx();
+	och[1] = origin0[1]+iparticle->Vy();
+	och[2] = origin0[2]+iparticle->Vz();
 	pc[0]  = iparticle->Px();
 	pc[1]  = iparticle->Py();
 	pc[2]  = iparticle->Pz();
@@ -832,4 +842,3 @@ void AliGenCorrHF::LoadTracks(Int_t iquark, Float_t *pq,
  
   return;
 }
-

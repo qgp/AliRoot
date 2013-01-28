@@ -9,7 +9,6 @@ AliAnalysisTaskESDfilter *AddTaskESDFilter(Bool_t useKineFilter=kTRUE,
                                            Bool_t writeDimuonAOD=kFALSE,
                                            Bool_t usePhysicsSelection=kFALSE,
                                            Bool_t useCentralityTask=kFALSE, /*obsolete*/
-                                           Int_t  tofTimeZeroType=AliESDpid::kTOF_T0,
                                            Bool_t enableTPCOnlyAODTracks=kFALSE,
                                            Bool_t disableCascades=kFALSE,
                                            Bool_t disableKinks=kFALSE, Int_t runFlag = 1100,
@@ -49,7 +48,6 @@ AliAnalysisTaskESDfilter *AddTaskESDFilter(Bool_t useKineFilter=kTRUE,
    //===========================================================================   
    // Barrel tracks filter
    AliAnalysisTaskESDfilter *esdfilter = new AliAnalysisTaskESDfilter("ESD Filter");
-   esdfilter->SetTimeZeroType(tofTimeZeroType);
    if (disableCascades) esdfilter->DisableCascades();
    if  (disableKinks) esdfilter->DisableKinks();
   
@@ -142,7 +140,7 @@ Bool_t AddTrackCutsLHC10h(AliAnalysisTaskESDfilter* esdfilter){
   
   // PID for the electrons
   AliESDpidCuts *electronID = new AliESDpidCuts("Electrons", "Electron PID cuts");
-  electronID->SetTPCnSigmaCut(AliPID::kElectron, 3.);
+  electronID->SetTPCnSigmaCut(AliPID::kElectron, 3.5);
   
   // tighter cuts on primary particles for high pT tracks
   // take the standard cuts, which include already 
@@ -288,7 +286,7 @@ Bool_t AddTrackCutsLHC11h(AliAnalysisTaskESDfilter* esdfilter){
 
    // PID for the electrons
    AliESDpidCuts *electronID = new AliESDpidCuts("Electrons", "Electron PID cuts");
-   electronID->SetTPCnSigmaCut(AliPID::kElectron, 3.);
+   electronID->SetTPCnSigmaCut(AliPID::kElectron, 3.5);
 
    // standard cuts with very loose DCA
    AliESDtrackCuts* esdTrackCutsH = AliESDtrackCuts::GetStandardITSTPCTrackCuts2011(kFALSE); 
@@ -325,7 +323,7 @@ Bool_t AddTrackCutsLHC11h(AliAnalysisTaskESDfilter* esdfilter){
    AliESDtrackCuts* esdTrackCutsHTGC = new AliESDtrackCuts(*esdTrackCutsHTG);
    esdTrackCutsHTGC->SetName("Global Constraint Hybrid tracks, loose DCA no it requirement");
    esdTrackCutsHTGC->SetClusterRequirementITS(AliESDtrackCuts::kSPD,AliESDtrackCuts::kOff);
-   esdTrackCutsHTGC->SetRequireITSRefit(kFALSE);
+   esdTrackCutsHTGC->SetRequireITSRefit(kTRUE);
 
    // standard cuts with tight DCA cut, using cluster cut instead of crossed rows (a la 2010 default)
    AliESDtrackCuts* esdTrackCutsH2Cluster = AliESDtrackCuts::GetStandardITSTPCTrackCuts2011(kTRUE, 0);

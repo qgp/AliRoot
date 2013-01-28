@@ -707,7 +707,9 @@ Int_t AliITStrackerMI::PropagateBack(AliESDEvent *event) {
   fTrackingPhase="PropagateBack";
   Int_t nentr=event->GetNumberOfTracks();
   //  Info("PropagateBack", "Number of ESD tracks: %d\n", nentr);
-
+  double bz0 = GetBz();
+  const double kWatchStep=10.; // for larger steps watch arc vs segment difference
+  //
   Int_t ntrk=0;
   for (Int_t i=0; i<nentr; i++) {
      AliESDtrack *esd=event->GetTrack(i);
@@ -718,7 +720,22 @@ Int_t AliITStrackerMI::PropagateBack(AliESDEvent *event) {
      Double_t xyzTrk[3],xyzVtx[3]={GetX(),GetY(),GetZ()};
      t.GetXYZ(xyzTrk); 
      Double_t dst2 = 0.;
-     for (Int_t icoord=0; icoord<3; icoord++) {Double_t di = xyzTrk[icoord] - xyzVtx[icoord];dst2 += di*di; } 
+     {
+       double dxs = xyzTrk[0] - xyzVtx[0];
+       double dys = xyzTrk[1] - xyzVtx[1];
+       double dzs = xyzTrk[2] - xyzVtx[2];
+       // RS: for large segment steps d use approximation of cicrular arc s by
+       // s = 2R*asin(d/2R) = d/p asin(p) \approx d/p (p + 1/6 p^3) = d (1+1/6 p^2)
+       // where R is the track radius, p = d/2R = 2C*d (C is the abs curvature)
+       // Hence s^2/d^2 = (1+1/6 p^2)^2
+       dst2 = dxs*dxs + dys*dys;
+       if (dst2 > kWatchStep*kWatchStep) { // correct circular part for arc/segment factor
+	 double crv = TMath::Abs(esd->GetC(bz0));
+	 double fcarc = 1.+crv*crv*dst2/6.;
+	 dst2 *= fcarc*fcarc;
+       }
+       dst2 += dzs*dzs;
+     }
      t.StartTimeIntegral();
      t.AddTimeStep(TMath::Sqrt(dst2));
      //
@@ -4959,9 +4976,20 @@ if(index[lay]>=0)nclout++;
   //
   Double_t nsigx=AliITSReconstructor::GetRecoParam()->GetNSigXFromBoundaryPlaneEff();
   Double_t nsigz=AliITSReconstructor::GetRecoParam()->GetNSigZFromBoundaryPlaneEff();
-  Double_t dx=nsigx*TMath::Sqrt(tmp.GetSigmaY2());  // those are precisions in the tracking reference system
-  Double_t dz=nsigz*TMath::Sqrt(tmp.GetSigmaZ2());  // Use it also for the module reference system, as it is
-                                                    // done for RecPoints
+  Double_t distx=AliITSReconstructor::GetRecoParam()->GetDistXFromBoundaryPlaneEff();
+  Double_t distz=AliITSReconstructor::GetRecoParam()->GetDistZFromBoundaryPlaneEff();
+  Double_t dx=nsigx*TMath::Sqrt(tmp.GetSigmaY2()) + distx;
+  // those are precisions in the tracking reference system
+  Double_t dz=nsigz*TMath::Sqrt(tmp.GetSigmaZ2()) + distz;
+  // Use it also for the module reference system, as it is done for RecPoints
+
+  if(AliITSReconstructor::GetRecoParam()->GetSwitchOnMaxDistNSigFrmBndPlaneEff()){
+   if(nsigx*TMath::Sqrt(tmp.GetSigmaY2())<=distx) dx -= nsigx*TMath::Sqrt(tmp.GetSigmaY2());
+   else dx -= distx;
+
+   if(nsigz*TMath::Sqrt(tmp.GetSigmaZ2())<=distz) dz -= nsigz*TMath::Sqrt(tmp.GetSigmaZ2());
+   else dz -= distz;
+  }
 
   // exclude tracks at boundary between detectors
   //Double_t boundaryWidth=AliITSRecoParam::GetBoundaryWidthPlaneEff();
@@ -5073,9 +5101,32 @@ void AliITStrackerMI::UseTrackForPlaneEff(const AliITStrackMI* track, Int_t ilay
     msz *= AliITSReconstructor::GetRecoParam()->GetNSigma2RoadZNonC();
     msy *= AliITSReconstructor::GetRecoParam()->GetNSigma2RoadYNonC();
   }
+
+  if(AliITSReconstructor::GetRecoParam()->GetSwitchOffStdSearchClusPlaneEff()){
+     Double_t nsigx=AliITSReconstructor::GetRecoParam()->GetNSigXSearchClusterPlaneEff();
+     Double_t nsigz=AliITSReconstructor::GetRecoParam()->GetNSigZSearchClusterPlaneEff();
+     Double_t distx=AliITSReconstructor::GetRecoParam()->GetDistXSearchClusterPlaneEff();
+     Double_t distz=AliITSReconstructor::GetRecoParam()->GetDistZSearchClusterPlaneEff();
+     msy = nsigx*TMath::Sqrt(tmp.GetSigmaY2()) + distx;
+     msz = nsigz*TMath::Sqrt(tmp.GetSigmaZ2()) + distz;
+
+  if(AliITSReconstructor::GetRecoParam()->GetSwitchOnMaxDistNSigSrhClusPlaneEff()){
+     if(nsigx*TMath::Sqrt(tmp.GetSigmaY2())<=distx) msy -= nsigx*TMath::Sqrt(tmp.GetSigmaY2());
+     else msy -= distx;
+
+     if(nsigz*TMath::Sqrt(tmp.GetSigmaZ2())<=distz) msz -= nsigz*TMath::Sqrt(tmp.GetSigmaZ2());
+     else msz -= distz;
+  }
+
+  msy *= msy;
+  msz *= msz;
+
+  }
+
+  if(msz==0 || msy==0){AliWarning("UseTrackForPlaneEff: null search frame"); return;}
+    
   msz = 1./msz; // 1/RoadZ^2
   msy = 1./msy; // 1/RoadY^2
-//
 
   const AliITSRecPoint *cl=0; Int_t clidx=-1, ci=-1;
   Int_t idetc=-1;
@@ -5282,4 +5333,3 @@ Int_t AliITStrackerMI::AliITSlayer::FindClusterForLabel(Int_t label, Int_t *stor
   }
   return nfound;
 }
-

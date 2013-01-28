@@ -126,7 +126,7 @@ set(BINLIBDIRS "-L${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 
 # Standard Modules
 # ------------------------------
-set(ALIROOTMODULES STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS ACORDE HMPID T0 BCM STRUCT VZERO THijing THbtp EMCAL THerwig TEPEMGEN FASTSIM TPHIC RAW MONITOR ANALYSIS JETAN HLT STAT TTherminator CORRFW DPMJET TDPMjet PWGPP PWG PWGCF PWGGA PWGHF PWGDQ PWGJE PWGLF PWGUD TRIGGER PYTHIA8 TAmpt OADB MFT)
+set(ALIROOTMODULES STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS ACORDE HMPID T0 BCM STRUCT VZERO THijing THbtp EMCAL THerwig TEPEMGEN FASTSIM TPHIC RAW MONITOR ANALYSIS JETAN HLT STAT TTherminator CORRFW DPMJET TDPMjet PWGPP PWG PWGCF PWGGA PWGHF PWGDQ PWGJE PWGLF PWGUD TRIGGER PYTHIA8 TAmpt OADB MFT TEvtGen)
 
 if(THydjet)
   list(APPEND ALIROOTMODULES THydjet)
@@ -235,12 +235,15 @@ add_custom_command(TARGET htmldoc
 		   	    aliroot -q -b \"mkhtml.C(0,1)\"
 		   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+# Include Vc, which provides the static libVc and the relevant CMake macros
+include(Vc/Vc.cmake)
+add_subdirectory(Vc)
 
 # Add Modules	
 # ------------------------------
 foreach(MODULE ${MODDIRS})
   set(${MODULE}ALIBS)
-  configure_file(${PROJECT_SOURCE_DIR}/cmake/Module.tmp ${PROJECT_SOURCE_DIR}/${MODULE}/CMakeLists.txt @ONLY)
+#RS  configure_file(${PROJECT_SOURCE_DIR}/cmake/Module.tmp ${PROJECT_SOURCE_DIR}/${MODULE}/CMakeLists.txt @ONLY)
   add_custom_target(${MODULE}-all ALL)
   add_custom_target(${MODULE}-par-all)
   add_custom_target(test-${MODULE}-par-all)

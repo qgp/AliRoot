@@ -19,6 +19,7 @@
 // Uses the TDPMjet implementation of TGenerator.
 
 #include <TDPMjet.h>
+#include "DPMcommon.h"
 #include <TRandom.h>
 #include <TArrayI.h>
 #include <TParticle.h>
@@ -34,6 +35,7 @@
 #include "AliGenDPMjetEventHeader.h"
 #include "AliRun.h"
 #include "AliDpmJetRndm.h"
+#include "AliIonPDGCodes.h"
 #include "AliHeader.h"
 #include "AliStack.h"
 #include "AliMC.h"
@@ -44,9 +46,9 @@ ClassImp(AliGenDPMjet)
 //______________________________________________________________________________
 AliGenDPMjet::AliGenDPMjet()
     :AliGenMC(), 
-     fBeamEn(2750.),
+     fBeamEn(0.),
      fMinImpactParam(0.),
-     fMaxImpactParam(5.),
+     fMaxImpactParam(100.),
      fICentr(0),
      fSelectAll(0),
      fFlavor(0),
@@ -65,7 +67,10 @@ AliGenDPMjet::AliGenDPMjet()
      fTriggerMultiplicityEta(0),
      fTriggerMultiplicityPtMin(0),
      fkTuneForDiff(0),
-     fProcDiff(0)
+     fProcDiff(0),
+     fFragmentation(kFALSE),
+     fHeader(AliGenDPMjetEventHeader("DPMJET"))
+
 {
 // Constructor
     fEnergyCMS = 5500.;
@@ -76,9 +81,9 @@ AliGenDPMjet::AliGenDPMjet()
 //______________________________________________________________________________
 AliGenDPMjet::AliGenDPMjet(Int_t npart)
     :AliGenMC(npart),
-     fBeamEn(2750.),
+     fBeamEn(0.),
      fMinImpactParam(0.),
-     fMaxImpactParam(5.),
+     fMaxImpactParam(100.),
      fICentr(0),
      fSelectAll(0),
      fFlavor(0),
@@ -97,7 +102,11 @@ AliGenDPMjet::AliGenDPMjet(Int_t npart)
      fTriggerMultiplicityEta(0),
      fTriggerMultiplicityPtMin(0),
      fkTuneForDiff(0),
-     fProcDiff(0)
+     fProcDiff(0),
+     fFragmentation(kFALSE),
+     fHeader(AliGenDPMjetEventHeader("DPMJET"))
+
+
 {
 // Default PbPb collisions at 5. 5 TeV
 //
@@ -112,9 +121,9 @@ AliGenDPMjet::AliGenDPMjet(Int_t npart)
 
 AliGenDPMjet::AliGenDPMjet(const AliGenDPMjet &/*Dpmjet*/)
     :AliGenMC(),
-     fBeamEn(2750.),
+     fBeamEn(0.),
      fMinImpactParam(0.),
-     fMaxImpactParam(5.),
+     fMaxImpactParam(100.),
      fICentr(0),
      fSelectAll(0),
      fFlavor(0),
@@ -133,7 +142,11 @@ AliGenDPMjet::AliGenDPMjet(const AliGenDPMjet &/*Dpmjet*/)
      fTriggerMultiplicityEta(0),
      fTriggerMultiplicityPtMin(0),
      fkTuneForDiff(0),
-     fProcDiff(0)
+     fProcDiff(0),
+     fFragmentation(kFALSE),
+     fHeader(0x0)
+
+
 {
     // Dummy copy constructor
     fEnergyCMS = 5500.;
@@ -149,23 +162,26 @@ void AliGenDPMjet::Init()
 {
 // Initialization
     
+    if(fEnergyCMS>0. && fBeamEn<0.1) fBeamEn = fEnergyCMS/2;
     SetMC(new TDPMjet(fProcess, fAProjectile, fZProjectile, fATarget, fZTarget, 
 		      fBeamEn,fEnergyCMS));
 
     fDPMjet=(TDPMjet*) fMCEvGen;
-    //
+    if (fAProjectile == 1 && TMath::Abs(fZProjectile == 1)) fDPMjet->SetfIdp(1);
+    
     // **** Flag to force central production
     // fICentr=1. central production forced 
     // fICentr<0 && fICentr>-100 -> bmin = fMinImpactParam, bmax = fMaxImpactParam	  
     // fICentr<-99 -> fraction of x-sec. = XSFRAC		  
     // fICentr=-1. -> evaporation/fzc suppressed		  
-    // fICentr<-1. -> evaporation/fzc suppressed		  
-    if (fAProjectile == 1 && TMath::Abs(fZProjectile == 1)) fDPMjet->SetfIdp(1);
-    
+    // fICentr<-1. -> evaporation/fzc allowed		      
     fDPMjet->SetfFCentr(fICentr);  
+    
     fDPMjet->SetbRange(fMinImpactParam, fMaxImpactParam); 
     fDPMjet->SetPi0Decay(fPi0Decay);
     fDPMjet->SetDecayAll(fDecayAll);
+    fDPMjet->SetFragmentProd(fFragmentation);
+    
 //
 //  Initialize DPMjet  
 //    
@@ -278,7 +294,6 @@ void AliGenDPMjet::Generate()
 	  ks = iparticle->GetStatusCode();
 // No initial state partons
           if (ks==21) continue;
-	    
 	  if (!fSelectAll) selected = KinematicSelection(iparticle, 0) && 
 			       SelectFlavor(kf);
 
@@ -360,7 +375,9 @@ void AliGenDPMjet::Generate()
 
 
 	      
-	      Bool_t tFlag = (fTrackIt && (ks == 1));
+	      Bool_t tFlag = (fTrackIt && (ks==1 || ks==-1));
+	      //printf(" AliGemDPMJet->PushTrack: kf %d  ks %d  flag %d\n",kf,ks,tFlag);
+	      if(kf>10000 && (ks==-1 || ks==1000 || ks==1001)) kf += 1000000000;
 	      PushTrack(tFlag, imo, kf, 
 			p[0], p[1], p[2], p[3], 
 			origin[0], origin[1], origin[2], tof,
@@ -443,9 +460,8 @@ Bool_t AliGenDPMjet::Stable(TParticle*  particle)
 {
 // Return true for a stable particle
 //
-    
-//    if (particle->GetFirstDaughter() < 0 ) return kTRUE;
-    if (particle->GetStatusCode() == 1) return kTRUE;
+    int st = particle->GetStatusCode();
+    if(st == 1 || st == -1) return kTRUE;
     else return kFALSE;
 
 }
@@ -453,39 +469,40 @@ Bool_t AliGenDPMjet::Stable(TParticle*  particle)
 //______________________________________________________________________________
 void AliGenDPMjet::MakeHeader()
 {
-//  printf("MakeHeader %13.3f \n", fDPMjet->GetBImpac());
 // Builds the event header, to be called after each event
-    AliGenEventHeader* header = new AliGenDPMjetEventHeader("DPMJET");
-    ((AliGenDPMjetEventHeader*) header)->SetNProduced(fDPMjet->GetNumStablePc());
-    ((AliGenDPMjetEventHeader*) header)->SetImpactParameter(fDPMjet->GetBImpac());
-    ((AliGenDPMjetEventHeader*) header)->SetTotalEnergy(fDPMjet->GetTotEnergy());
-    ((AliGenDPMjetEventHeader*) header)->SetParticipants(fDPMjet->GetProjParticipants(), 
-    							 fDPMjet->GetTargParticipants());
+    fHeader.SetNProduced(fDPMjet->GetNumStablePc());
+    fHeader.SetImpactParameter(fDPMjet->GetBImpac());
+    fHeader.SetTotalEnergy(fDPMjet->GetTotEnergy());
+    fHeader.SetParticipants(fDPMjet->GetProjParticipants(), 
+    		            fDPMjet->GetTargParticipants());
 
-    if(fProcDiff>0){
-    ((AliGenDPMjetEventHeader*) header)->SetProcessType(fProcDiff);
-    }
-    else 
-      ((AliGenDPMjetEventHeader*) header)->SetProcessType(fDPMjet->GetProcessCode());
+    fHeader.SetCollisions(DTGLCP.ncp, DTGLCP.nct, 
+    	fDPMjet->GetProjWounded(),fDPMjet->GetTargWounded());
+		
+    if(fProcDiff>0)  fHeader.SetProcessType(fProcDiff);
+    else fHeader.SetProcessType(fDPMjet->GetProcessCode());
 
     // Bookkeeping for kinematic bias
-    ((AliGenDPMjetEventHeader*) header)->SetTrials(fTrials);
+    fHeader.SetTrials(fTrials);
     // Event Vertex
-    header->SetPrimaryVertex(fVertex);
-    header->SetInteractionTime(fTime);
-    gAlice->SetGenEventHeader(header);    
-    AddHeader(header);
+    fHeader.SetPrimaryVertex(fVertex);
+    fHeader.SetInteractionTime(fTime);
+    fHeader.SetNDiffractive(POEVT1.nsd1, POEVT1.nsd2, POEVT1.ndd);
+//    gAlice->SetGenEventHeader(fHeader);    
+    AddHeader(&fHeader);
+    fCollisionGeometry = &fHeader;
 }
 
-void AliGenDPMjet::AddHeader(AliGenEventHeader* header)
+//______________________________________________________________________________
+/*void AliGenDPMjet::AddHeader(AliGenEventHeader* fHeader)
 {
-    // Add header to container or runloader
+    // Add fHeader to container or runloader
     if (fContainer) {
-        fContainer->AddHeader(header);
+        fContainer->AddHeader(fHeader);
     } else {
-        AliRunLoader::Instance()->GetHeader()->SetGenEventHeader(header);
+        AliRunLoader::Instance()->GetHeader()->SetGenEventHeader(fHeader);
     }
-}
+}*/
 
 
 //______________________________________________________________________________
@@ -496,6 +513,7 @@ AliGenDPMjet& AliGenDPMjet::operator=(const  AliGenDPMjet& /*rhs*/)
 }
 
 
+//______________________________________________________________________________
 void AliGenDPMjet::FinishRun()
 {
     // Print run statistics
@@ -503,7 +521,7 @@ void AliGenDPMjet::FinishRun()
 }
 
 
-
+//______________________________________________________________________________
 Bool_t AliGenDPMjet::CheckDiffraction()
 {
 
@@ -661,8 +679,15 @@ Bool_t AliGenDPMjet::CheckDiffraction()
     return kTRUE;
 }
 
+// -------------------------------------------------------
+void AliGenDPMjet::SetIonPDGCodes()
+{
+   // Defining PDG codes for the ions
+   AliIonPDGCodes *pdgcodes = new AliIonPDGCodes();
+   pdgcodes->AddParticlesToPdgDataBase();
+}
 
-
+// -------------------------------------------------------
 Bool_t AliGenDPMjet::GetWeightsDiffraction(Double_t M, Double_t &Mmin, Double_t &Mmax, 
                                                        Double_t &wSD, Double_t &wDD, Double_t &wND)
 {

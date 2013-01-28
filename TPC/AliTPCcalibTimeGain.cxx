@@ -180,6 +180,7 @@ TGaxis *axis = new TGaxis(xmax,ymin,xmax,ymax,ymin,ymax,50510,"+L");
 
 ClassImp(AliTPCcalibTimeGain)
 
+Double_t AliTPCcalibTimeGain::fgMergeEntriesCut=10000000.;
 
 AliTPCcalibTimeGain::AliTPCcalibTimeGain() 
   :AliTPCcalibBase(), 
@@ -201,7 +202,7 @@ AliTPCcalibTimeGain::AliTPCcalibTimeGain()
   //
   // Default constructor
   //
-  AliInfo("Default Constructor");  
+  AliDebug(5,"Default Constructor");  
 }
 
 
@@ -228,7 +229,7 @@ AliTPCcalibTimeGain::AliTPCcalibTimeGain(const Text_t *name, const Text_t *title
   SetName(name);
   SetTitle(title);
   
-  AliInfo("Non Default Constructor");
+  AliDebug(5,"Non Default Constructor");
   
   fIntegrationTimeDeDx = deltaIntegrationTimeGain;
   
@@ -311,12 +312,12 @@ void AliTPCcalibTimeGain::ProcessCosmicEvent(AliESDEvent *event) {
   }
   //
   UInt_t time = event->GetTimeStamp();
-  Int_t ntracks = event->GetNumberOfTracks();
+  Int_t nFriendTracks = esdFriend->GetNumberOfTracks();
   Int_t runNumber = event->GetRunNumber();
   //
   // track loop
   //
-  for (Int_t i=0;i<ntracks;++i) {
+  for (Int_t i=0;i<nFriendTracks;++i) {
 
     AliESDtrack *track = event->GetTrack(i);
     if (!track) continue;
@@ -374,12 +375,12 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliESDEvent *event) {
   }
   //
   UInt_t time = event->GetTimeStamp();
-  Int_t ntracks = event->GetNumberOfTracks();
+  Int_t nFriendTracks = esdFriend->GetNumberOfTracks();
   Int_t runNumber = event->GetRunNumber();
   //
   // track loop
   //
-  for (Int_t i=0;i<ntracks;++i) { // begin track loop
+  for (Int_t i=0;i<nFriendTracks;++i) { // begin track loop
 
     AliESDtrack *track = event->GetTrack(i);
     if (!track) continue;
@@ -550,7 +551,19 @@ Long64_t AliTPCcalibTimeGain::Merge(TCollection *li) {
     }
 
     // add histograms here...
-    if (cal->GetHistGainTime()) fHistGainTime->Add(cal->GetHistGainTime());
+    if (cal->GetHistGainTime() && fHistGainTime ) 
+    {
+      if ((fHistGainTime->GetEntries() + cal->GetHistGainTime()->GetEntries()) < fgMergeEntriesCut) 
+      {
+        //AliInfo(Form("fHistGainTime has %.0f tracks, going to add %.0f\n",fHistGainTime->GetEntries(),cal->GetHistGainTime()->GetEntries()));
+        fHistGainTime->Add(cal->GetHistGainTime());
+      }
+      else
+      {
+        AliInfo(Form("fHistGainTime full (has %.0f merged tracks, max allowed: %.0f)",fHistGainTime->GetEntries(),fgMergeEntriesCut));
+      }
+    }
+
     if (cal->GetHistDeDxTotal()) fHistDeDxTotal->Add(cal->GetHistDeDxTotal());
 
   }

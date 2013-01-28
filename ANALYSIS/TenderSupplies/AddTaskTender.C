@@ -5,9 +5,10 @@ AliAnalysisTask *AddTaskTender(Bool_t useV0=kFALSE,
                                Bool_t usePID=kTRUE,
                                Bool_t useVTX=kTRUE,
                                Bool_t useT0=kTRUE,
-                               Bool_t useEmc=kFALSE)
+                               Bool_t useEmc=kFALSE,
+                               Bool_t usePtFix=kFALSE)
 {
-  if (!(useV0 | useTPC | useTOF | useTRD | usePID | useVTX | useEmc)) {
+  if (!(useV0 | useTPC | useTOF | useTRD | usePID | useVTX | | useT0 | useEmc | usePtFix)) {
      ::Error("AddTaskTender", "No supply added to tender, so tender not created");
      return 0;
   }   
@@ -29,19 +30,17 @@ AliAnalysisTask *AddTaskTender(Bool_t useV0=kFALSE,
   tender->SetCheckEventSelection(checkEvtSelection);
   tender->SetDefaultCDBStorage("raw://");
   mgr->AddTask(tender);
-  if (checkEvtSelection) {
-    if (mgr->GetTasks()->First() != (TObject*)tender ) {
-      TString firstName(mgr->GetTasks()->First()->GetName());
-      Bool_t isSecond=(mgr->GetTasks()->At(1) == (TObject*)tender);
-      if (! (firstName=="PIDResponseTask" && isSecond )){
-        Fatal("AddTaskTender","When setting the tender to check the event selection, it has to be the first wagon, or the first after the PID Response!");
-        return NULL;
-      }
-    }
+  
+  //check that that tender is the first task after the pid response
+  TString firstName(mgr->GetTasks()->First()->GetName());
+  Bool_t isSecond=(mgr->GetTasks()->At(1) == (TObject*)tender);
+
+  if (! (firstName=="PIDResponseTask" && isSecond )){
+    Fatal("AddTaskTender","When using the tender the first task needs to be the PIDResponse and the tender the second task!!!");
+    return NULL;
   }
   
   //========= Attach VZERO supply ======
-
   if (useV0) {
      AliVZEROTenderSupply *vzeroSupply=new AliVZEROTenderSupply("VZEROtender");
      vzeroSupply->SetDebug(kFALSE);
@@ -57,9 +56,17 @@ AliAnalysisTask *AddTaskTender(Bool_t useV0=kFALSE,
      tender->AddSupply(tpcSupply);
   }   
 
+  //========= Attach track 1/pt correction supply ======
+  if (usePtFix) {
+     AliTrackFixTenderSupply *trfixSupply=new AliTrackFixTenderSupply("PTInvFix");
+     //trfixSupply->SetDebugLevel(2);
+     tender->AddSupply(trfixSupply);
+  }   
+
   //========= Attach T0 supply ======
   if (useT0) {
     AliT0TenderSupply *t0Tender = new AliT0TenderSupply("T0tender");
+    t0Tender ->SetPass4LHC11aCorrection(kTRUE);
     tender->AddSupply(t0Tender);
   }   
 
@@ -72,33 +79,12 @@ AliAnalysisTask *AddTaskTender(Bool_t useV0=kFALSE,
   //========= Attach TRD supply ======
   if (useTRD) {
     AliTRDTenderSupply *trdSupply=new AliTRDTenderSupply("TRDtender");
-    trdSupply->SetLoadReferencesFromCDB();
-    // Mask Bad chambers
-    trdSupply->AddBadChamber(265);      // low drift
-    trdSupply->AddBadChamber(50);
-    trdSupply->AddBadChamber(524);      // low drift
-    trdSupply->AddBadChamber(32);       // intermediate gain
-    trdSupply->AddBadChamber(15);
-    trdSupply->AddBadChamber(231);      // low gain
-    trdSupply->AddBadChamber(273);      // intermediate gain
-    trdSupply->AddBadChamber(532);
-    trdSupply->AddBadChamber(5);        // low drift
-    trdSupply->AddBadChamber(227);
-    trdSupply->AddBadChamber(287);      // low drift
-    trdSupply->AddBadChamber(212);      // intermediate gain
-    trdSupply->AddBadChamber(228);      // low gain
-    trdSupply->AddBadChamber(52);       // low gain
-    trdSupply->AddBadChamber(169);      // low drift
-    trdSupply->AddBadChamber(236);      // low drift
 
+    trdSupply->SetLoadDeadChambersFromCDB();                    // Mask Bad chambers
     trdSupply->SetPIDmethod(AliTRDTenderSupply::k1DLQpid);
-    trdSupply->SetNormalizationFactor(1./7.603);
+    trdSupply->SwitchOffGainCorrection();                       // Correction only on pass 1
+    trdSupply->SetNormalizationFactor(0.12697,114737,130850);   // 1 otherwise
     tender->AddSupply(trdSupply);
-  }  
-
-  //========= Attach PID supply ======
-  if (usePID) {
-    tender->AddSupply(new AliPIDTenderSupply("PIDtender"));
   }  
 
   //========= Attach Primary Vertex supply ======
@@ -112,6 +98,12 @@ AliAnalysisTask *AddTaskTender(Bool_t useV0=kFALSE,
     emcSupply->SetDefaults();
     tender->AddSupply(emcSupply);
   }  
+
+  //========= Attach PID supply ======
+  if (usePID) {
+    AliPIDTenderSupply *pidSupply=new AliPIDTenderSupply("PIDtender");
+    tender->AddSupply(pidSupply);
+  }
 
   //================================================
   //              data containers

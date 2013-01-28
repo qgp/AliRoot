@@ -69,7 +69,8 @@ fListQAemcal(0x0),
 fListQAhmpid(0x0),
 fListQAtofhmpid(0x0),
 fListQAtpctof(0x0),
-fListQAV0(0x0)
+fListQAV0(0x0),
+fListQAinfo(0x0)
 {
   //
   // Dummy constructor
@@ -96,7 +97,8 @@ fListQAemcal(0x0),
 fListQAhmpid(0x0),
 fListQAtofhmpid(0x0),
 fListQAtpctof(0x0),
-fListQAV0(0x0)
+fListQAV0(0x0),
+fListQAinfo(0x0)
 {
   //
   // Default constructor
@@ -195,6 +197,10 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   fListQAV0=new TList;
   fListQAV0->SetOwner();
   fListQAV0->SetName("V0decay");
+
+  fListQAinfo=new TList;
+  fListQAinfo->SetOwner();
+  fListQAinfo->SetName("QAinfo");
   
   fListQA->Add(fListQAits);
   fListQA->Add(fListQAitsSA);
@@ -207,6 +213,7 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   fListQA->Add(fListQAtpctof);
   fListQA->Add(fListQAtofhmpid);
   fListQA->Add(fListQAV0);
+  fListQA->Add(fListQAinfo);
 
   SetupITSqa();
   SetupTPCqa();
@@ -217,6 +224,7 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   SetupTPCTOFqa();
   SetupTOFHMPIDqa();
   SetupV0qa();
+  SetupQAinfo();
   
   PostData(1,fListQA);
 }
@@ -249,7 +257,8 @@ void AliAnalysisTaskPIDqa::UserExec(Option_t */*option*/)
   // Clear the V0 PID arrays
   ClearV0PIDlist();
 
-
+  //QA info
+  FillQAinfo();
   
   PostData(1,fListQA);
 }
@@ -381,13 +390,13 @@ void AliAnalysisTaskPIDqa::FillITSqa()
     }
     
     
-    for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
       TH2 *h=(TH2*)theList->At(ispecie);
       if (!h) continue;
       Double_t nSigma=fPIDResponse->NumberOfSigmasITS(track, (AliPID::EParticleType)ispecie);
       h->Fill(mom,nSigma);
     }
-    TH2 *h=(TH2*)theList->At(AliPID::kSPECIES);
+    TH2 *h=(TH2*)theList->At(AliPID::kSPECIESC);
     if (h) {
       Double_t sig=track->GetITSsignal();
       h->Fill(mom,sig);
@@ -428,15 +437,35 @@ void AliAnalysisTaskPIDqa::FillTPCqa()
     if ( nCrossedRowsTPC<70 || ratioCrossedRowsOverFindableClustersTPC<.8 ) continue;
     
     Double_t mom=track->GetTPCmomentum();
-    
-    for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+    // the default scenario
+    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
       TH2 *h=(TH2*)fListQAtpc->At(ispecie);
       if (!h) continue;
       Double_t nSigma=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie);
       h->Fill(mom,nSigma);
     }
+    // the "hybrid" scenario
+    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
+      TH2 *h=(TH2*)fListQAtpc->At(ispecie+AliPID::kSPECIESC);
+      if (!h) continue;
+      Double_t nSigma=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie, AliTPCPIDResponse::kdEdxHybrid);
+      h->Fill(mom,nSigma);
+    }
     
-    TH2 *h=(TH2*)fListQAtpc->At(AliPID::kSPECIES);
+    // the "OROC" scenario
+    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
+      TH2 *h=(TH2*)fListQAtpc->At(ispecie+2*AliPID::kSPECIESC);
+      if (!h) continue;
+      Double_t nSigma=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie, AliTPCPIDResponse::kdEdxOROC);
+      //TSpline3* spline = fPIDResponse->GetTPCResponse().GetCurrentResponseFunction();
+      //std::cout<<ispecie<<" "<<nSigma<<" phi:"<<track->Phi()<<". "<<std::endl;
+      //if (spline) {cout<<spline->GetName()<<endl;}
+      //else {cout<<"NULL spline"<<endl;}
+      h->Fill(mom,nSigma);
+    }
+    
+    TH2 *h=(TH2*)fListQAtpc->At(3*AliPID::kSPECIESC);
+
     if (h) {
       Double_t sig=track->GetTPCsignal();
       h->Fill(mom,sig);
@@ -508,13 +537,13 @@ void AliAnalysisTaskPIDqa::FillTOFqa()
     //
     ULong_t status=track->GetStatus();
     // TPC refit + ITS refit +
-    // TOF out + TOFpid +
+    // TOF out + kTIME
     // kTIME
-    // (we don't use kTOFmismatch because it depends on TPC....)
+    // (we don't use kTOFmismatch because it depends on TPC and kTOFpid because it prevents light nuclei
     if (!((status & AliVTrack::kTPCrefit) == AliVTrack::kTPCrefit) ||
         !((status & AliVTrack::kITSrefit) == AliVTrack::kITSrefit) ||
         !((status & AliVTrack::kTOFout  ) == AliVTrack::kTOFout  ) ||
-        !((status & AliVTrack::kTOFpid  ) == AliVTrack::kTOFpid  ) ||
+	//        !((status & AliVTrack::kTOFpid  ) == AliVTrack::kTOFpid  ) ||
         !((status & AliVTrack::kTIME    ) == AliVTrack::kTIME    ) ) continue;
 
     Float_t nCrossedRowsTPC = track->GetTPCClusterInfo(2,1);
@@ -529,7 +558,7 @@ void AliAnalysisTaskPIDqa::FillTOFqa()
 
     Double_t mom=track->P();
 
-    for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
       TH2 *h=(TH2*)fListQAtof->At(ispecie);
       if (!h) continue;
       Double_t nSigma=fPIDResponse->NumberOfSigmasTOF(track, (AliPID::EParticleType)ispecie);
@@ -561,16 +590,13 @@ void AliAnalysisTaskPIDqa::FillTOFqa()
     Double_t res = (Double_t)fPIDResponse->GetTOFResponse().GetStartTimeRes(mom);
     ((TH1F*)fListQAtof->FindObject("hStartTimeRes_TOF"))->Fill(res);
 
-    AliESDEvent *esd = dynamic_cast<AliESDEvent *>(event);
-    if (esd) {
-      Double_t startTime = esd->GetT0TOF(0);
-      if (startTime < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeAC_T0"))->Fill(startTime);
-      else {
-        startTime = esd->GetT0TOF(1);
-        if (startTime < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeA_T0"))->Fill(startTime);
-        startTime = esd->GetT0TOF(2);
-        if (startTime < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeC_T0"))->Fill(startTime);
-      }
+    Double_t startTimeT0 = event->GetT0TOF(0);
+    if (startTimeT0 < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeAC_T0"))->Fill(startTimeT0);
+    else {
+      startTimeT0 = event->GetT0TOF(1);
+      if (startTimeT0 < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeA_T0"))->Fill(startTimeT0);
+      startTimeT0 = event->GetT0TOF(2);
+      if (startTimeT0 < 90000) ((TH1F*)fListQAtof->FindObject("hStartTimeC_T0"))->Fill(startTimeT0);
     }
   }
   if (tracksAtTof > 0) {
@@ -875,7 +901,7 @@ void AliAnalysisTaskPIDqa::FillTPCTOFqa()
     Double_t mom=track->P();
     Double_t momTPC=track->GetTPCmomentum();
 
-    for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
       //TOF nSigma
       Double_t nSigmaTOF=fPIDResponse->NumberOfSigmasTOF(track, (AliPID::EParticleType)ispecie);
       Double_t nSigmaTPC=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie);
@@ -885,11 +911,11 @@ void AliAnalysisTaskPIDqa::FillTPCTOFqa()
       if (h && TMath::Abs(nSigmaTOF)<3.) h->Fill(momTPC,nSigmaTPC);
 
       //TOF after TPC cut
-      h=(TH2*)fListQAtpctof->At(ispecie+AliPID::kSPECIES);
+      h=(TH2*)fListQAtpctof->At(ispecie+AliPID::kSPECIESC);
       if (h && TMath::Abs(nSigmaTPC)<3.) h->Fill(mom,nSigmaTOF);
 
       //EMCAL after TOF and TPC cut
-      h=(TH2*)fListQAtpctof->At(ispecie+2*AliPID::kSPECIES);
+      h=(TH2*)fListQAtpctof->At(ispecie+2*AliPID::kSPECIESC);
       if (h && TMath::Abs(nSigmaTOF)<3. && TMath::Abs(nSigmaTPC)<3. ){
 
 	Int_t nMatchClus = track->GetEMCALcluster();
@@ -919,6 +945,65 @@ void AliAnalysisTaskPIDqa::FillTPCTOFqa()
   }
 }
 
+//_____________________________________________________________________________
+void AliAnalysisTaskPIDqa::FillQAinfo()
+{
+  //
+  // Fill the QA information
+  //
+
+
+  //TPC QA info
+  TObjArray *arrTPC=static_cast<TObjArray*>(fListQAinfo->At(0));
+  if (fPIDResponse && arrTPC){
+    AliTPCPIDResponse &tpcResp=fPIDResponse->GetTPCResponse();
+    // fill spline names
+    if (!arrTPC->UncheckedAt(0)){
+      
+      TObjArray *arrTPCsplineNames=new TObjArray(AliPID::kSPECIESC);
+      arrTPCsplineNames->SetOwner();
+      arrTPCsplineNames->SetName("TPC_spline_names");
+      arrTPC->AddAt(arrTPCsplineNames,0);
+      
+      for (Int_t iresp=0; iresp<AliPID::kSPECIESC; ++iresp){
+        const TObject *o=tpcResp.GetResponseFunction((AliPID::EParticleType)iresp);
+        if (!o) continue;
+        arrTPCsplineNames->Add(new TObjString(Form("%02d: %s",iresp, o->GetName())));
+      }
+    }
+
+    // tpc response config
+    if (!arrTPC->UncheckedAt(1)){
+      
+      TObjArray *arrTPCconfigInfo=new TObjArray;
+      arrTPCconfigInfo->SetOwner();
+      arrTPCconfigInfo->SetName("TPC_config_info");
+      arrTPC->AddAt(arrTPCconfigInfo,1);
+
+      TObjString *ostr=0x0;
+      ostr=new TObjString;
+      ostr->String().Form("Eta Corr map: %s", tpcResp.GetEtaCorrMap()?tpcResp.GetEtaCorrMap()->GetName():"none");
+      arrTPCconfigInfo->Add(ostr);
+
+      ostr=new TObjString;
+      ostr->String().Form("Sigma Par map: %s", tpcResp.GetSigmaPar1Map()?tpcResp.GetSigmaPar1Map()->GetName():"none");
+      arrTPCconfigInfo->Add(ostr);
+
+      ostr=new TObjString;
+      ostr->String().Form("MIP: %.2f", tpcResp.GetMIP());
+      arrTPCconfigInfo->Add(ostr);
+      
+      ostr=new TObjString;
+      ostr->String().Form("Res: Def %.3g (%.3g) : AllHigh %.3g (%.3g) : OROC high %.3g (%.3g)",
+                          tpcResp.GetRes0(AliTPCPIDResponse::kDefault), tpcResp.GetResN2(AliTPCPIDResponse::kDefault),
+                          tpcResp.GetRes0(AliTPCPIDResponse::kALLhigh), tpcResp.GetResN2(AliTPCPIDResponse::kALLhigh),
+                          tpcResp.GetRes0(AliTPCPIDResponse::kOROChigh), tpcResp.GetResN2(AliTPCPIDResponse::kOROChigh)
+                         );
+      arrTPCconfigInfo->Add(ostr);
+    }
+  }
+}
+
 //______________________________________________________________________________
 void AliAnalysisTaskPIDqa::SetupITSqa()
 {
@@ -929,7 +1014,7 @@ void AliAnalysisTaskPIDqa::SetupITSqa()
   TVectorD *vX=MakeLogBinning(200,.1,30);
   
   //ITS+TPC tracks
-  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
     TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_ITS_%s",AliPID::ParticleName(ispecie)),
                               Form("ITS n#sigma %s vs. p;p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
                               vX->GetNrows()-1,vX->GetMatrixArray(),
@@ -943,7 +1028,7 @@ void AliAnalysisTaskPIDqa::SetupITSqa()
   fListQAits->Add(hSig);
 
   //ITS Standalone tracks
-  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
     TH2F *hNsigmaPSA = new TH2F(Form("hNsigmaP_ITSSA_%s",AliPID::ParticleName(ispecie)),
 				Form("ITS n#sigma %s vs. p;p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
 				vX->GetNrows()-1,vX->GetMatrixArray(),
@@ -957,7 +1042,7 @@ void AliAnalysisTaskPIDqa::SetupITSqa()
   fListQAitsSA->Add(hSigSA);
   
   //ITS Pure Standalone tracks
-  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
     TH2F *hNsigmaPPureSA = new TH2F(Form("hNsigmaP_ITSPureSA_%s",AliPID::ParticleName(ispecie)),
 				    Form("ITS n#sigma %s vs. p;p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
 				    vX->GetNrows()-1,vX->GetMatrixArray(),
@@ -982,20 +1067,39 @@ void AliAnalysisTaskPIDqa::SetupTPCqa()
   
   TVectorD *vX=MakeLogBinning(200,.1,30);
   
-  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
     TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_TPC_%s",AliPID::ParticleName(ispecie)),
                               Form("TPC n#sigma %s vs. p;p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
                               vX->GetNrows()-1,vX->GetMatrixArray(),
                               200,-10,10);
     fListQAtpc->Add(hNsigmaP);
   }
+
+  // the "hybrid" scenario
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
+    TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_TPC_%s_Hybrid",AliPID::ParticleName(ispecie)),
+                              Form("TPC n#sigma %s vs. p (Hybrid gain scenario);p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
+                              vX->GetNrows()-1,vX->GetMatrixArray(),
+                              200,-10,10);
+    fListQAtpc->Add(hNsigmaP);
+  }
+   
+  // the "OROC high" scenario
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
+    TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_TPC_%s_OROChigh",AliPID::ParticleName(ispecie)),
+                              Form("TPC n#sigma %s vs. p (OROChigh gain scenario);p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
+                              vX->GetNrows()-1,vX->GetMatrixArray(),
+                              200,-10,10);
+    fListQAtpc->Add(hNsigmaP);
+  }
+  
   
   
   TH2F *hSig = new TH2F("hSigP_TPC",
                         "TPC signal vs. p;p [GeV]; TPC signal [arb. units]",
                         vX->GetNrows()-1,vX->GetMatrixArray(),
                         300,0,300);
-  fListQAtpc->Add(hSig);
+  fListQAtpc->Add(hSig); //3*AliPID::kSPECIESC
 
   delete vX;  
 }
@@ -1028,7 +1132,7 @@ void AliAnalysisTaskPIDqa::SetupTOFqa()
   
   TVectorD *vX=MakeLogBinning(200,.1,30);
 
-  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
     TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_TOF_%s",AliPID::ParticleName(ispecie)),
                               Form("TOF n#sigma %s vs. p;p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
                               vX->GetNrows()-1,vX->GetMatrixArray(),
@@ -1158,7 +1262,7 @@ void AliAnalysisTaskPIDqa::SetupTPCTOFqa()
   TVectorD *vX=MakeLogBinning(200,.1,30);
 
   //TPC signals after TOF cut
-  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
     TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_TPC_TOF_%s",AliPID::ParticleName(ispecie)),
                               Form("TPC n#sigma %s vs. p (after TOF 3#sigma cut);p_{TPC} [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
                               vX->GetNrows()-1,vX->GetMatrixArray(),
@@ -1167,7 +1271,7 @@ void AliAnalysisTaskPIDqa::SetupTPCTOFqa()
   }
 
   //TOF signals after TPC cut
-  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
     TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_TOF_TPC_%s",AliPID::ParticleName(ispecie)),
                               Form("TOF n#sigma %s vs. p (after TPC n#sigma cut);p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
                               vX->GetNrows()-1,vX->GetMatrixArray(),
@@ -1196,6 +1300,17 @@ void AliAnalysisTaskPIDqa::SetupV0qa()
   TH2F *hArmenteros  = new TH2F("hArmenteros",  "Armenteros plot",200,-1.,1.,200,0.,0.4);
   fListQAV0->Add(hArmenteros);
  
+}
+
+//_____________________________________________________________________________
+void AliAnalysisTaskPIDqa::SetupQAinfo(){
+  //
+  // Setup the info of QA objects
+  //
+
+  TObjArray *arr=new TObjArray;
+  arr->SetName("TPC_info");
+  fListQAinfo->Add(arr);
 }
 
 //______________________________________________________________________________

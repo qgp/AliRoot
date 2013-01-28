@@ -10,7 +10,7 @@
 class TH1F; 
 class TH1I; 
 class TList; 
-
+class AliFMDReconstructor;
 
 //_____________________________________________________________________
 // This class implements the AliQADataMakerRec for the FMD. Some
@@ -21,6 +21,9 @@ class TList;
 class AliFMDQADataMakerRec: public AliQADataMakerRec 
 {
 public:
+  enum { 
+    kResetBit = BIT(23)
+  };
   /** 
    * Constructor
    */
@@ -43,6 +46,23 @@ public:
    * Destrcutor 
    */
   virtual ~AliFMDQADataMakerRec();
+  /** 
+   * Get the half-ring index
+   * 
+   * @param det      Detector
+   * @param ring     Ring
+   * @param board    Board number
+   * @param monitor  Monitor 
+   * 
+   * @return Half ring index
+   */
+  static Int_t GetHalfringIndex(UShort_t det, Char_t ring, 
+				UShort_t board, UShort_t monitor = 0);
+  static void GetHalfringFromIndex(Int_t     idx, 
+				   UShort_t& det, 
+				   Char_t&   ring, 
+				   UShort_t& board, 
+				   UShort_t& monitor);
 private:
   static TH1* MakeADCHist(UShort_t d=0, Char_t r='\0', Short_t b=-1);
   static TH1* MakeELossHist(UShort_t d=0, Char_t r='\0', Short_t b=-1);
@@ -103,19 +123,9 @@ private:
    * 
    */
   virtual void   StartOfDetectorCycle(); 
-  /** 
-   * Get the half-ring index
-   * 
-   * @param det      Detector
-   * @param ring     Ring
-   * @param board    Board number
-   * @param monitor  Monitor 
-   * 
-   * @return Half ring index
-   */
-  Int_t GetHalfringIndex(UShort_t det, Char_t ring, 
-			 UShort_t board, UShort_t monitor = 0) const;
   TClonesArray fRecPointsArray; // Rec points
+  AliFMDReconstructor* fReconstructor;
+  Bool_t               fUseReconstructor;
 
   ClassDef(AliFMDQADataMakerRec,0)  // description 
 };

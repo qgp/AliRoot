@@ -29,6 +29,7 @@
 #include <TVector3.h>
 
 #include "AliGenMC.h"
+#include "AliGenEventHeader.h"
 #include "AliRun.h"
 #include "AliGeometry.h"
 #include "AliDecayer.h"
@@ -152,6 +153,7 @@ void AliGenMC::Init()
 	fChildSelect[0]=kKPlus;
 	break;
     case kBJpsi:
+    case kBJpsiUndecayed:
 	fChildSelect[0]= 443;
 	break;
    case kChiToJpsiGammaToMuonMuon:
@@ -386,7 +388,7 @@ void AliGenMC::Boost()
     Double_t gamma = 1./TMath::Sqrt((1.-beta)*(1.+beta));
     Double_t gb    = gamma * beta;
 
-    //    printf("\n Boosting particles to lab frame %f %f %f", fDyBoost, beta, gamma);
+    printf("\n Boosting particles to lab frame %f %f %f", fDyBoost, beta, gamma);
     
     Int_t i;
     Int_t np = fParticles.GetEntriesFast();
@@ -450,6 +452,7 @@ void AliGenMC::AddHeader(AliGenEventHeader* header)
 {
     // Passes header either to the container or to gAlice
     if (fContainer) {
+        header->SetName(fName);
 	fContainer->AddHeader(header);
     } else {
 	gAlice->SetGenEventHeader(header);	

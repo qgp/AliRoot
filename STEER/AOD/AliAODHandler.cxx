@@ -47,6 +47,8 @@
 #include "AliAODBranchReplicator.h"
 #include "Riostream.h"
 
+using std::endl;
+using std::cout;
 ClassImp(AliAODHandler)
 
 //______________________________________________________________________________
@@ -57,6 +59,8 @@ AliAODHandler::AliAODHandler() :
     fFillAODRun(kTRUE),
     fFillExtension(kTRUE),
     fNeedsHeaderReplication(kFALSE),
+    fNeedsTOFHeaderReplication(kFALSE),
+    fNeedsVZEROReplication(kFALSE),
     fNeedsTracksBranchReplication(kFALSE),
     fNeedsVerticesBranchReplication(kFALSE),
     fNeedsV0sBranchReplication(kFALSE),
@@ -69,6 +73,7 @@ AliAODHandler::AliAODHandler() :
 	fNeedsCaloTriggerBranchReplication(kFALSE),
     fNeedsMCParticlesBranchReplication(kFALSE),
     fNeedsDimuonsBranchReplication(kFALSE),
+    fNeedsHMPIDBranchReplication(kFALSE),
     fAODIsReplicated(kFALSE),
     fAODEvent(NULL),
     fMCEventH(NULL),
@@ -89,6 +94,8 @@ AliAODHandler::AliAODHandler(const char* name, const char* title):
     fFillAODRun(kTRUE),
     fFillExtension(kTRUE),
     fNeedsHeaderReplication(kFALSE),
+    fNeedsTOFHeaderReplication(kFALSE),
+    fNeedsVZEROReplication(kFALSE),
     fNeedsTracksBranchReplication(kFALSE),
     fNeedsVerticesBranchReplication(kFALSE),
     fNeedsV0sBranchReplication(kFALSE),
@@ -98,9 +105,10 @@ AliAODHandler::AliAODHandler(const char* name, const char* title):
     fNeedsJetsBranchReplication(kFALSE),
     fNeedsFMDClustersBranchReplication(kFALSE),
     fNeedsCaloClustersBranchReplication(kFALSE),
-	fNeedsCaloTriggerBranchReplication(kFALSE),
+    fNeedsCaloTriggerBranchReplication(kFALSE),
     fNeedsMCParticlesBranchReplication(kFALSE),
     fNeedsDimuonsBranchReplication(kFALSE),
+    fNeedsHMPIDBranchReplication(kFALSE),
     fAODIsReplicated(kFALSE),
     fAODEvent(NULL),
     fMCEventH(NULL),
@@ -303,7 +311,9 @@ void AliAODHandler::StoreMCParticles(){
 	  if(i<nprim)flag |= AliAODMCParticle::kPrimary;
 	  
 	  if(mcEvent->IsPhysicalPrimary(i))flag |= AliAODMCParticle::kPhysicalPrim;
-	  
+	  if(mcEvent->IsSecondaryFromWeakDecay(i))flag |= AliAODMCParticle::kSecondaryFromWeakDecay;
+	  if(mcEvent->IsSecondaryFromMaterial(i))flag |= AliAODMCParticle::kSecondaryFromMaterial;
+
 	  if(fMCEventH->GetNewLabel(i)!=j){
 	      AliError(Form("MISMATCH New label %d j: %d",fMCEventH->GetNewLabel(i),j));
 	  }
@@ -311,6 +321,7 @@ void AliAODHandler::StoreMCParticles(){
 	  AliAODMCParticle mcpartTmp(mcpart,i,flag);
 	  
 	  mcpartTmp.SetStatus(mcpart->Particle()->GetStatusCode());
+	  mcpartTmp.SetMCProcessCode(mcpart->Particle()->GetUniqueID());
 	  // 
 	  Int_t d0 =  mcpartTmp.GetDaughter(0);
 	  Int_t d1 =  mcpartTmp.GetDaughter(1);

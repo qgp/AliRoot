@@ -53,6 +53,7 @@
 #include "AliDAQ.h"
 #include "AliLog.h"
 
+using std::ifstream;
 ClassImp(AliRawReader)
 
 
@@ -245,7 +246,7 @@ AliRawReader* AliRawReader::Create(const char *uri)
     }
     else {
       AliErrorClass(Form("Invalid syntax: %s",fileURI.Data()));
-      fields->Delete();
+      delete fields;
       return NULL;
     }
   }
@@ -264,7 +265,6 @@ AliRawReader* AliRawReader::Create(const char *uri)
   if (!rawReader->IsRawReaderValid()) {
     AliErrorClass(Form("Raw-reader is invalid - check the input URI (%s)",fileURI.Data()));
     delete rawReader;
-    fields->Delete();
     delete fields;
     return NULL;
   }
@@ -299,7 +299,6 @@ AliRawReader* AliRawReader::Create(const char *uri)
     rawReader->SelectEvents(eventType,triggerMask,triggerExpr.Data());
   }
 
-  fields->Delete();
   delete fields;
 
   return rawReader;
@@ -532,7 +531,7 @@ Bool_t AliRawReader::IsEventSelected() const
     TString expr(fSelectTriggerExpr);
     ULong64_t mask = GetClassMask();
     for(Int_t itrigger = 0; itrigger < 50; itrigger++) {
-      if (mask & (1 << itrigger)) {
+      if (mask & ((ULong64_t)1 << itrigger)) {
 	expr.ReplaceAll(Form("[%d]",itrigger),"1");
       }
       else {
@@ -542,10 +541,11 @@ Bool_t AliRawReader::IsEventSelected() const
     // Possibility to introduce downscaling
     TPRegexp("(%\\s*\\d+)").Substitute(expr,Form("&& !(%d$1)",GetEventIndex()),"g");
     Int_t error;
-    if ((gROOT->ProcessLineFast(expr.Data(),&error) == 0) &&
-	(error == TInterpreter::kNoError)) {
+    Bool_t result = gROOT->ProcessLineFast(expr.Data(),&error);
+    if ( error == TInterpreter::kNoError)
+      return result;
+    else
       return kFALSE;
-    }
   }
 
   return kTRUE;

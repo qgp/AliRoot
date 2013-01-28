@@ -101,7 +101,7 @@ void AliDecayerEvtGen::Decay(Int_t ipart, TLorentzVector *p)
   //all informations about decay products are stored in fEvtstdhep 
   //
   EvtId IPART=EvtPDL::evtIdFromStdHep(ipart);
-  EvtVector4R p_init=EvtVector4R::EvtVector4R(p->E(),p->Px(),p->Py(),p->Pz());
+  EvtVector4R p_init(p->E(),p->Px(),p->Py(),p->Pz());
   EvtParticle *froot_part=EvtParticleFactory::particleFactory(IPART,p_init);
   fGenerator->generateDecay(froot_part);
   fEvtstdhep->init();
@@ -158,11 +158,12 @@ Int_t AliDecayerEvtGen::ImportParticles(TClonesArray *particles)
   py=p4.get(2);
   pz=p4.get(3);
   e=p4.get(0);
-
-  x=x4.get(1);//[mm]
-  y=x4.get(2);//[mm]
-  z=x4.get(3);//[mm]
-  t=x4.get(0);//[mm]
+  const Float_t kconvT=0.001/2.999792458e8; // mm/c to seconds conversion
+  const Float_t kconvL=1./10; // mm to cm conversion
+  x=x4.get(1)*kconvL;//[cm]
+  y=x4.get(2)*kconvL;//[cm]
+  z=x4.get(3)*kconvL;//[cm]
+  t=x4.get(0)*kconvT;//[s]
 
   AliDebug(1,Form("partnum = %d istat = %d primaMadre = %d ultimaMadre = %d primaF = %d ultimaF=%d x=%f y=%f z=%f t=%f e=%f px=%f \n",partnum,istat,jmotherfirst,jmotherlast,jdaugfirst,jdauglast,x,y,z,t,e,px));
 
@@ -233,8 +234,9 @@ void AliDecayerEvtGen::ForceDecay()
      case kNoDecayHeavy:
      case kNeutralPion:
      case kBPsiPrimeDiElectron:
-     case kLambdaBLambda:
-     AliWarning(Form("Warning: case %s not implemented for this class!",(Char_t)decay));
+     case kBeautyUpgrade:
+     case kBJpsiUndecayed: 
+      AliWarning(Form("Warning: case %d not implemented for this class!",(int)decay));
      break;
      }
      ReadDecayTable();

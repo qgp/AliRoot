@@ -22,6 +22,7 @@ class AliTRDCalibraExbAltFit;
 class TH1I;
 class TH2F;
 class TString;
+class AliCDBStorage;
 
 class AliTRDPreprocessorOffline:public TNamed { 
 public:
@@ -57,7 +58,7 @@ public:
   virtual ~AliTRDPreprocessorOffline();
 
   Bool_t Init(const Char_t* fileName);
-  void Process(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage);
+  void Process(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage);
 
   // settings
   void SetLinearFitForVdrift(Bool_t methodsecond) { fMethodSecond = methodsecond;};
@@ -77,6 +78,7 @@ public:
   void     SetRMSBadCalibratedGain(Double_t rms)                     { fRMSBadCalibratedGain = rms;};
   void     SetRMSBadCalibratedVdrift(Double_t rms)                   { fRMSBadCalibratedVdrift = rms;};
   void     SetRMSBadCalibratedExB(Double_t rms)                      { fRMSBadCalibratedExB = rms;};
+  void     SetMinTimeOffsetValidate(Double_t min)                    { fMinTimeOffsetValidate = min;};
   void     SetRobustFitDriftVelocity(Bool_t robustFitDriftVelocity)  { fRobustFitDriftVelocity = robustFitDriftVelocity;};
   void     SetRobustFitExbAlt(Bool_t robustFitExbAlt)                { fRobustFitExbAlt = robustFitExbAlt;};
   void     SetAlternativeDriftVelocityFit(Bool_t alt)                { fAlternativeVdrfitFit = alt;};
@@ -86,6 +88,8 @@ public:
   void     SetOutliersFitChargeLow(Float_t outliersFitChargeLow)     { fOutliersFitChargeLow = outliersFitChargeLow; }
   void     SetOutliersFitChargeHigh(Float_t outliersFitChargeHigh)   { fOutliersFitChargeHigh = outliersFitChargeHigh; }
   void     SetBeginFitCharge(Float_t beginFitCharge)                 { fBeginFitCharge = beginFitCharge;};
+  void     SetT0Shift0(Float_t t0Shift0)                             { fT0Shift0 = t0Shift0;};
+  void     SetT0Shift1(Float_t t0Shift1)                             { fT0Shift1 = t0Shift1;};
 
 
 
@@ -147,12 +151,12 @@ public:
 
   // Internal functions
 
-  void CalibVdriftT0(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage="");
-  void CalibExbAlt(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage="");
-  void CalibGain(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber,  TString  ocdbStorage="");
-  void CalibPRF(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber,  TString  ocdbStorage="");
-  void CalibChamberStatus(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage="");
-  void CalibPHQ(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, TString ocdbStorage);
+  void CalibVdriftT0(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage=0x0);
+  void CalibExbAlt(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage=0x0);
+  void CalibGain(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber,  AliCDBStorage* ocdbStorage=0x0);
+  void CalibPRF(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber,  AliCDBStorage* ocdbStorage=0x0);
+  void CalibChamberStatus(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage=0x0);
+  void CalibPHQ(const Char_t* file, Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* ocdbStorage);
 
   Bool_t ReadStatusGlobal(const Char_t* fileName="CalibObjects.root");
   Bool_t ReadGainGlobal(const Char_t* fileName="CalibObjects.root");
@@ -173,14 +177,14 @@ public:
   void CorrectFromDetGainUsed();
   void CorrectFromDetVdriftUsed();
   
-  void UpdateOCDBT0(Int_t startRunNumber, Int_t endRunNumber, const char* storagePath);
-  void UpdateOCDBVdrift(Int_t startRunNumber, Int_t endRunNumber, const char* storagePath);
-  void UpdateOCDBExB(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath);
-  void UpdateOCDBExBAlt(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath);
-  void UpdateOCDBGain(Int_t  startRunNumber, Int_t endRunNumber, const char* storagePath);
-  void UpdateOCDBPRF(Int_t  startRunNumber, Int_t endRunNumber, const char* storagePath);
-  void UpdateOCDBChamberStatus(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath);
-  void UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRunNumber, const Char_t *storagePath);
+  void UpdateOCDBT0(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
+  void UpdateOCDBVdrift(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
+  void UpdateOCDBExB(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
+  void UpdateOCDBExBAlt(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
+  void UpdateOCDBGain(Int_t  startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
+  void UpdateOCDBPRF(Int_t  startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
+  void UpdateOCDBChamberStatus(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
+  void UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRunNumber, AliCDBStorage* storage);
 
   Bool_t ValidateGain();
   Bool_t ValidateVdrift();
@@ -195,6 +199,9 @@ public:
  
   Bool_t IsPHQon() const { return fPHQon ;};
   void SetPHQon(const Bool_t kphq){ fPHQon = kphq; }
+
+  Bool_t IsDebugPHQon() const { return fDebugPHQon ;};
+  void SetDebugPHQon(const Bool_t kphq){ fDebugPHQon = kphq; }
 
  private:
   Bool_t fMethodSecond;                      // Second Method for drift velocity   
@@ -231,7 +238,7 @@ public:
   Int_t    fMinStatsGain;                 // MinStats Gain
   Int_t    fMinStatsPRF;                  // MinStats PRF
   Int_t    fMinStatsChamberStatus;        // MinStats ChamberStatus
-	Double_t fMinSingleStatsChamberStatus;  // MinStats per chamber in % of mean (ChamberStatus)
+  Double_t fMinSingleStatsChamberStatus;  // MinStats per chamber in % of mean (ChamberStatus)
   Bool_t   fBackCorrectGain;              // Back correction afterwards gain  
   Bool_t   fBackCorrectVdrift;            // Back correction afterwards vdrift
   Bool_t   fNotEnoughStatisticsForTheGain;// Take the chamber per chamber distribution from the default distribution
@@ -245,6 +252,7 @@ public:
   Double_t fRMSBadCalibratedGain;         // value to decide when it is bad calibrated 
   Double_t fRMSBadCalibratedVdrift;       // value to decide when it is bad calibrated 
   Double_t fRMSBadCalibratedExB;          // value to decide when it is bad calibrated 
+  Double_t fMinTimeOffsetValidate;        // For validation of timeoffset min value  
   Bool_t   fRobustFitDriftVelocity;       // Robust fit for the drift velocity
   Bool_t   fRobustFitExbAlt;              // Robust fit for the exb alt 
   Bool_t   fAlternativeVdrfitFit;         // Alternative fitting method for vdrift calibration
@@ -254,6 +262,8 @@ public:
   Float_t  fOutliersFitChargeLow;         // The fit starts at fOutliersFitChargeLow procent number of entries
   Float_t  fOutliersFitChargeHigh;        // The fit starts at fOutliersFitChargeHigh procent number of entries
   Float_t  fBeginFitCharge;               // Fit Begin Charge starts at mean/fBeginFitCharge
+  Float_t  fT0Shift0;                    // T0 Shift with the maximum positive slope
+  Float_t  fT0Shift1;                    // T0 Shift with the maximum of the amplification region
 
   Int_t GetSubVersion(TString name) const;
   Int_t GetVersion(TString name) const;
@@ -266,6 +276,7 @@ private:
   AliTRDPreprocessorOffline(const AliTRDPreprocessorOffline&); // not implemented
 
   Bool_t fPHQon;                 //switch of PHQ
+  Bool_t fDebugPHQon;                 //switch of DebugPHQ
 
   ClassDef(AliTRDPreprocessorOffline,4)
 };

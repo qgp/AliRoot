@@ -48,6 +48,10 @@
 #include "AliAnalysisDataContainer.h"
 #include "AliMultiInputEventHandler.h"
 
+using std::ofstream;
+using std::ifstream;
+using std::ios;
+using std::endl;
 ClassImp(AliAnalysisAlien)
 #if 0
 ;
@@ -129,11 +133,15 @@ AliAnalysisAlien::AliAnalysisAlien()
                   fFileForTestMode(),
                   fRootVersionForProof(),
                   fAliRootMode(),
+                  fProofProcessOpt(),
                   fMergeDirName(),
                   fInputFiles(0),
                   fPackages(0),
                   fModules(0),
-                  fProofParam()
+                  fProofParam(),
+  fDropToShell(true),
+  fGridJobIDs(""),
+  fGridStages("")
 {
 // Dummy ctor.
    SetDefaults();
@@ -202,11 +210,15 @@ AliAnalysisAlien::AliAnalysisAlien(const char *name)
                   fFileForTestMode(),
                   fRootVersionForProof(),
                   fAliRootMode(),
+                  fProofProcessOpt(),
                   fMergeDirName(),
                   fInputFiles(0),
                   fPackages(0),
                   fModules(0),
-                  fProofParam()
+                  fProofParam(),
+                  fDropToShell(true),
+                  fGridJobIDs(""),
+                  fGridStages("")
 {
 // Default ctor.
    SetDefaults();
@@ -275,11 +287,15 @@ AliAnalysisAlien::AliAnalysisAlien(const AliAnalysisAlien& other)
                   fFileForTestMode(other.fFileForTestMode),
                   fRootVersionForProof(other.fRootVersionForProof),
                   fAliRootMode(other.fAliRootMode),
+                  fProofProcessOpt(other.fProofProcessOpt),
                   fMergeDirName(other.fMergeDirName),
                   fInputFiles(0),
                   fPackages(0),
                   fModules(0),
-                  fProofParam()
+                  fProofParam(),
+                  fDropToShell(other.fDropToShell),
+                  fGridJobIDs(other.fGridJobIDs),
+                  fGridStages(other.fGridStages)
 {
 // Copy ctor.
    fGridJDL = (TGridJDL*)gROOT->ProcessLine("new TAlienJDL()");
@@ -390,7 +406,11 @@ AliAnalysisAlien &AliAnalysisAlien::operator=(const AliAnalysisAlien& other)
       fFileForTestMode         = other.fFileForTestMode;
       fRootVersionForProof     = other.fRootVersionForProof;
       fAliRootMode             = other.fAliRootMode;
+      fProofProcessOpt         = other.fProofProcessOpt;
       fMergeDirName            = other.fMergeDirName;
+      fDropToShell             = other.fDropToShell;
+      fGridJobIDs              = other.fGridJobIDs;
+      fGridStages              = other.fGridStages;
       if (other.fInputFiles) {
          fInputFiles = new TObjArray();
          TIter next(other.fInputFiles);
@@ -660,12 +680,23 @@ Bool_t AliAnalysisAlien::GenerateTest(const char *name, const char *modname)
    TString execCommand = fExecutableCommand;
    SetAnalysisMacro(Form("%s.C", name));
    SetExecutable(Form("%s.sh", name));
+      fOutputFiles = GetListOfFiles("outaod");
+      // Add extra files registered to the analysis manager
+      TString extra = GetListOfFiles("ext");
+      if (!extra.IsNull()) {
+         extra.ReplaceAll(".root", "*.root");
+         if (!fOutputFiles.IsNull()) fOutputFiles += ",";
+         fOutputFiles += extra;
+      }
 //   SetExecutableCommand("aliroot -b -q ");
    SetValidationScript(Form("%s_validation.sh", name));
    WriteAnalysisFile();   
    WriteAnalysisMacro();
    WriteExecutable();
    WriteValidationScript();   
+   WriteMergingMacro();
+   WriteMergeExecutable();
+   WriteValidationScript(kTRUE);
    SetLocalTest(kFALSE);
    SetProductionMode(productionMode);
    fAnalysisMacro = macro;
@@ -1040,18 +1071,18 @@ Bool_t AliAnalysisAlien::CheckInputData()
 }   
 
 //______________________________________________________________________________
-Bool_t AliAnalysisAlien::CopyLocalDataset(const char *griddir, const char *pattern, Int_t nfiles, const char *output, const char *archivefile, const char *outputdir)
+Int_t AliAnalysisAlien::CopyLocalDataset(const char *griddir, const char *pattern, Int_t nfiles, const char *output, const char *archivefile, const char *outputdir)
 {
 // Copy data from the given grid directory according a pattern and make a local
 // dataset.
 // archivefile (optional) results in that the archive containing the file <pattern> is copied. archivefile can contain a list of files (semicolon-separated) which are all copied
    if (!Connect()) {
       Error("CopyLocalDataset", "Cannot copy local dataset with no grid connection");
-      return kFALSE;
+      return 0;
    }
    if (!DirectoryExists(griddir)) {
       Error("CopyLocalDataset", "Data directory %s not existing.", griddir);
-      return kFALSE;
+      return 0;
    }
    TString command = Form("find -z -l %d %s %s", nfiles, griddir, pattern);
    printf("Running command: %s\n", command.Data());
@@ -1059,7 +1090,7 @@ Bool_t AliAnalysisAlien::CopyLocalDataset(const char *griddir, const char *patte
    Int_t nfound = res->GetEntries();
    if (!nfound) {
       Error("CopyLocalDataset", "No file found in <%s> having pattern <%s>", griddir, pattern);
-      return kFALSE;
+      return 0;
    }
    printf("... found %d files. Copying locally ...\n", nfound);
    
@@ -1080,6 +1111,7 @@ Bool_t AliAnalysisAlien::CopyLocalDataset(const char *griddir, const char *patte
    TString cdir = gSystem->WorkingDirectory();
    gSystem->MakeDirectory(outputdir);
    gSystem->ChangeDirectory(outputdir);
+   Int_t ncopied = 0;
    for (Int_t i=0; i<nfound; i++) {
       map = (TMap*)res->At(i);
       turl = map->GetValue("turl")->GetName();
@@ -1092,34 +1124,34 @@ Bool_t AliAnalysisAlien::CopyLocalDataset(const char *griddir, const char *patte
       TString targetFileName(filename);
       
       if (strlen(archivefile) > 0) {
-	// TODO here the archive in which the file resides should be determined
-	// however whereis returns only a guid, and guid2lfn does not work
-	// Therefore we use the one provided as argument for now
-	source = Form("%s/%s", gSystem->DirName(source.Data()), archivefile);
-	targetFileName = archivefile;
+// TODO here the archive in which the file resides should be determined
+// however whereis returns only a guid, and guid2lfn does not work
+// Therefore we use the one provided as argument for now
+         source = Form("%s/%s", gSystem->DirName(source.Data()), archivefile);
+         targetFileName = archivefile;
       }
       if (TFile::Cp(source, Form("file:./%s/%s", dirname.Data(), targetFileName.Data()))) {
-	 Bool_t success = kTRUE;
-	 if (additionalArchives)
-	    for (Int_t j=0; j<additionalArchives->GetEntriesFast(); j++)
-	    {
-	       TString target;
-	       target.Form("./%s/%s", dirname.Data(), additionalArchives->At(j)->GetName());
-	       gSystem->MakeDirectory(gSystem->DirName(target));
-	       success &= TFile::Cp(Form("%s/%s", gSystem->DirName(source.Data()), additionalArchives->At(j)->GetName()), Form("file:%s", target.Data()));
-	    }
+         Bool_t success = kTRUE;
+         if (additionalArchives) {
+            for (Int_t j=0; j<additionalArchives->GetEntriesFast(); j++) {
+               TString target;
+               target.Form("./%s/%s", dirname.Data(), additionalArchives->At(j)->GetName());
+               gSystem->MakeDirectory(gSystem->DirName(target));
+               success &= TFile::Cp(Form("%s/%s", gSystem->DirName(source.Data()), additionalArchives->At(j)->GetName()), Form("file:%s", target.Data()));
+            }
+         }
 
-	 if (success) {
-	    if (strlen(archivefile) > 0) targetFileName = Form("%s#%s", targetFileName.Data(), gSystem->BaseName(turl.Data()));
-	    out << cdir << Form("/%s/%s/%s", outputdir, dirname.Data(), targetFileName.Data()) << endl;
-	 }
+         if (success) {
+            if (strlen(archivefile) > 0) targetFileName = Form("%s#%s", targetFileName.Data(), gSystem->BaseName(turl.Data()));
+            out << cdir << Form("/%s/%s/%s", outputdir, dirname.Data(), targetFileName.Data()) << endl;
+            ncopied++;
+         }
       }
    }
    gSystem->ChangeDirectory(cdir);
    delete res;
-   if (additionalArchives)
-     delete additionalArchives;
-   return kTRUE;
+   delete additionalArchives;
+   return ncopied;
 }   
 
 //______________________________________________________________________________
@@ -1530,6 +1562,7 @@ Bool_t AliAnalysisAlien::CreateJDL()
 {
 // Generate a JDL file according to current settings. The name of the file is 
 // specified by fJDLName.
+   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
    Bool_t error = kFALSE;
    TObjArray *arr = 0;
    Bool_t copy = kTRUE;
@@ -1714,7 +1747,11 @@ Bool_t AliAnalysisAlien::CreateJDL()
                delete arr;
             }
             files.ReplaceAll(".root", "*.root");
-            outputArchive += Form("root_archive.zip:%s,*.stat@disk=%d",files.Data(),fNreplicas);
+            
+            if (mgr->IsCollectThroughput())
+               outputArchive += Form("root_archive.zip:%s,*.stat,*%s@disk=%d",files.Data(),mgr->GetFileInfoLog(),fNreplicas);
+            else
+               outputArchive += Form("root_archive.zip:%s,*.stat@disk=%d",files.Data(),fNreplicas);
          } else {
             TString files = fOutputArchive;
             files.ReplaceAll(".root", "*.root"); // nreplicas etc should be already atttached by use
@@ -2236,13 +2273,15 @@ TChain *AliAnalysisAlien::GetChainForTestMode(const char *treeName) const
    Int_t count = 0;
     // Read the input list of files and add them to the chain
    TString line;
-   TChain *chain = new TChain(treeName);
+   TString streeName(treeName);
+   if (IsUseMCchain()) streeName = "TE";
+   TChain *chain = new TChain(streeName);
    TChain *chainFriend = 0;
-   if (!fFriendChainName.IsNull()) chainFriend = new TChain(treeName);       
+   if (!fFriendChainName.IsNull()) chainFriend = new TChain(streeName);       
    while (in.good())
    {
       in >> line;
-      if (line.IsNull()) continue;
+      if (line.IsNull() || line.BeginsWith("#")) continue;
       if (count++ == fNtestFiles) break;
       TString esdFile(line);
       TFile *file = TFile::Open(esdFile);
@@ -2485,7 +2524,7 @@ void AliAnalysisAlien::SetDefaults()
    fMaxMergeFiles              = 100;
    fRunNumbers                 = "";
    fExecutable                 = "analysis.sh";
-   fExecutableCommand          = "root -b -q";
+   fExecutableCommand          = "root -b -q -x";
    fArguments                  = "";
    fExecutableArgs             = "";
    fAnalysisMacro              = "myAnalysis.C";
@@ -2565,19 +2604,26 @@ Bool_t AliAnalysisAlien::CheckMergedFiles(const char *filename, const char *alie
    // Check if this is the last stage to be done.
    Bool_t laststage = (nfiles<nperchunk);
    if (fMaxMergeStages && stage>=fMaxMergeStages) laststage = kTRUE;
+   Int_t jobId = 0;
    if (laststage) {
       printf("### Submiting final merging stage %d\n", stage);
       TString finalJDL = jdl;
       finalJDL.ReplaceAll(".jdl", "_final.jdl");
       TString query = Form("submit %s %s %d", finalJDL.Data(), aliendir, stage);
-      Int_t jobId = SubmitSingleJob(query);
-      if (!jobId) return kFALSE;      
+      jobId = SubmitSingleJob(query);
    } else {
       printf("### Submiting merging stage %d\n", stage);
       TString query = Form("submit %s %s %d", jdl, aliendir, stage);
-      Int_t jobId = SubmitSingleJob(query);
-      if (!jobId) return kFALSE;           
+      jobId = SubmitSingleJob(query);
    }
+   if (!jobId) return kFALSE;           
+
+   if (!fGridJobIDs.IsNull()) fGridJobIDs.Append(" ");
+   fGridJobIDs.Append(Form("%d", jobId));
+   if (!fGridStages.IsNull()) fGridStages.Append(" ");
+   fGridStages.Append(Form("%s_merge_stage%d", 
+			   laststage ? "final" : "partial", stage));
+
    return kTRUE;   
 }        
 
@@ -2619,9 +2665,50 @@ Int_t AliAnalysisAlien::SubmitSingleJob(const char *query)
       ::Error("SubmitSingleJob", "Your query %s could not be submitted", query);
       return 0;
    }
-   printf(" Job id: %s\n", jobId.Data());
-   return atoi(jobId);
+   Int_t ijobId = jobId.Atoi();
+   printf(" Job id: '%s' (%d)\n", jobId.Data(), ijobId);
+   return ijobId; 
 }  
+
+//______________________________________________________________________________
+Bool_t AliAnalysisAlien::MergeInfo(const char *output, const char *collection)
+{
+// Merges a collection of output files using concatenation.
+   TString scoll(collection);
+   if (!scoll.Contains(".xml")) return kFALSE;
+   TGridCollection *coll = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(\"%s\");", collection));
+   if (!coll) {
+      ::Error("MergeInfo", "Input XML %s collection empty.", collection);
+      return kFALSE;
+   }
+   // Iterate grid collection
+   TString outtmp;
+   Bool_t merged = kFALSE;
+   Int_t ifile = 0;
+   while (coll->Next()) {
+      TString fname = gSystem->DirName(coll->GetTURL());
+      fname += "/";
+      fname += output;
+      outtmp = Form("%d_%s", ifile, output);
+      if (!TFile::Cp(fname, outtmp)) {
+         ::Error("MergeInfo", "Could not copy %s", fname.Data());
+         continue;
+      }
+      ifile++;
+      if (ifile<2) {
+         gSystem->Exec(Form("cp %s lastmerged", outtmp.Data()));
+         continue;
+      }
+      gSystem->Exec(Form("cat lastmerged %s > tempmerged", outtmp.Data()));
+      gSystem->Exec("cp tempmerged lastmerged");
+   }
+   if (ifile) {
+      gSystem->Exec(Form("cp lastmerged %s", output));
+      gSystem->Exec(Form("rm tempmerged lastmerged *_%s", output));
+      merged = kTRUE;
+   }
+   return merged;
+}   
 
 //______________________________________________________________________________
 Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, Int_t nmaxmerge, Int_t stage)
@@ -2641,6 +2728,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
    Int_t countChunk = 0;
    Int_t countZero = nmaxmerge;
    Bool_t merged = kTRUE;
+   Bool_t isGrid = kTRUE;
    Int_t index = outputFile.Index("@");
    if (index > 0) outputFile.Remove(index);
    TString inputFile = outputFile;
@@ -2660,6 +2748,35 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
          fname += inputFile;      
          listoffiles->Add(new TNamed(fname.Data(),""));
       }   
+   } else if (sbasedir.Contains(".txt")) {
+      // The file having the .txt extension is expected to contain a list of
+      // folders where the output files will be looked. For alien folders,
+      // the full folder LFN is expected (starting with alien://)
+      // Assume lfn's on each line
+      TString line;
+      ifstream in;
+      in.open(sbasedir);
+      if (in.fail()) {
+         ::Error("MergeOutput", "File %s cannot be opened. Merging stopped." ,sbasedir.Data());
+         return kTRUE;
+      }           
+      Int_t nfiles = 0;
+      while (in.good()) {
+         in >> line;
+         if (line.IsNull() || line.BeginsWith("#")) continue;
+         line.Strip();
+         if (!line.Contains("alien:")) isGrid = kFALSE;
+         line += "/";
+         line += outputFile;
+         nfiles++;
+         listoffiles->Add(new TNamed(line.Data(),""));
+      }
+      in.close();
+      if (!nfiles) {
+         ::Error("MergeOutput","Input file %s contains no files to be merged\n", sbasedir.Data());
+         delete listoffiles;
+         return kFALSE;
+      }
    } else {   
       command = Form("find %s/ *%s", basedir, inputFile.Data());
       printf("command: %s\n", command.Data());
@@ -2753,7 +2870,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
          // Loop 'find' results and get next LFN
          if (countZero == nmaxmerge) {
             // First file in chunk - create file merger and add previous chunk if any.
-            fm = new TFileMerger(kTRUE);
+            fm = new TFileMerger(isGrid);
             fm->SetFastMethod(kTRUE);
             if (previousChunk.Length()) fm->AddFile(previousChunk.Data());
             outputChunk = outputFile;
@@ -2793,7 +2910,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
    }
    // Merging stage different than 0.
    // Move to the begining of the requested chunk.
-   fm = new TFileMerger(kTRUE);
+   fm = new TFileMerger(isGrid);
    fm->SetFastMethod(kTRUE);
    while ((nextfile=next())) fm->AddFile(nextfile->GetName());
    delete listoffiles;
@@ -2905,11 +3022,13 @@ Bool_t AliAnalysisAlien::MergeOutputs()
       merged = MergeOutput(outputFile, fGridOutputDir, fMaxMergeFiles);
       if (!merged) {
          Error("MergeOutputs", "Terminate() will  NOT be executed");
-         return kFALSE;
+	 delete list;
+	 return kFALSE;
       }
       TFile *fileOpened = (TFile*)gROOT->GetListOfFiles()->FindObject(outputFile);
       if (fileOpened) fileOpened->Close();
    } 
+   delete list;
    return kTRUE;
 }   
 
@@ -3265,7 +3384,10 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
       }
       // Compose the output archive.
       fOutputArchive = "log_archive.zip:std*@disk=1 ";
-      fOutputArchive += Form("root_archive.zip:%s,*.stat@disk=%d",fOutputFiles.Data(),fNreplicas);
+      if (mgr->IsCollectThroughput())
+         fOutputArchive += Form("root_archive.zip:%s,*.stat,*%s@disk=%d",fOutputFiles.Data(),mgr->GetFileInfoLog(),fNreplicas);
+      else
+         fOutputArchive += Form("root_archive.zip:%s,*.stat@disk=%d",fOutputFiles.Data(),fNreplicas);
    }
 //   if (!fCloseSE.Length()) fCloseSE = gSystem->Getenv("alien_CLOSE_SE");
    if (TestBit(AliAnalysisGrid::kOffline)) {
@@ -3349,6 +3471,8 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
    gGrid->Cd(fGridOutputDir);
    TGridResult *res;
    TString jobID = "";
+   fGridJobIDs = "";
+   fGridStages = "";
    if (!fRunNumbers.Length() && !fRunRange[0]) {
       // Submit a given xml or a set of runs
       res = gGrid->Command(Form("submit %s", fJDLName.Data()));
@@ -3366,6 +3490,12 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
             \n_______________________________________________________________________",
                    fJDLName.Data(), cjobId);
             jobID = cjobId;      
+	    if (jobID.Atoi()) { 
+	      if (!fGridJobIDs.IsNull()) fGridJobIDs.Append(" ");
+	      fGridJobIDs.Append(jobID);
+	      if (!fGridStages.IsNull()) fGridStages.Append(" ");
+	      fGridStages.Append("full");
+	    }
          }          
          delete res;
       } else {
@@ -3375,12 +3505,19 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
    } else {
       // Submit for a range of enumeration of runs.
       if (!Submit()) return kFALSE;
+      jobID = fGridJobIDs;
    }   
          
-   Info("StartAnalysis", "\n#### STARTING AN ALIEN SHELL FOR YOU. EXIT WHEN YOUR JOB %s HAS FINISHED. #### \
-   \n You may exit at any time and terminate the job later using the option <terminate> \
-   \n ##################################################################################", jobID.Data());
-   gSystem->Exec("aliensh");
+   if (fDropToShell) {
+      Info("StartAnalysis", "\n#### STARTING AN ALIEN SHELL FOR YOU. EXIT WHEN YOUR JOB %s HAS FINISHED. #### \
+      \n You may exit at any time and terminate the job later using the option <terminate> \
+      \n ##################################################################################", jobID.Data());
+      gSystem->Exec("aliensh");
+   } else {
+      Info("StartAnalysis", "\n#### SUBMITTED JOB %s TO ALIEN QUEUE #### \
+      \n Remember to terminate the job later using the option <terminate> \
+      \n ##################################################################################", jobID.Data());
+   }   
    return kTRUE;
 }
 
@@ -3548,12 +3685,20 @@ Bool_t AliAnalysisAlien::SubmitMerging()
       if (!fRunNumbers.Length() && !fRunRange[0]) break;
    }
    if (!ntosubmit) return kTRUE;
-   Info("StartAnalysis", "\n #### STARTING AN ALIEN SHELL FOR YOU. You can exit any time or inspect your jobs in a different shell.##########\
-                          \n Make sure your jobs are in a final state (you can resubmit failed ones via 'masterjob <id> resubmit ERROR_ALL')\
-                          \n Rerun in 'terminate' mode to submit all merging stages, each AFTER the previous one completed. The final merged \
-                          \n output will be written to your alien output directory, while separate stages in <Stage_n>. \
-                          \n ################################################################################################################");
-   gSystem->Exec("aliensh");
+   if (fDropToShell) {
+      Info("StartAnalysis", "\n #### STARTING AN ALIEN SHELL FOR YOU. You can exit any time or inspect your jobs in a different shell.##########\
+                             \n Make sure your jobs are in a final state (you can resubmit failed ones via 'masterjob <id> resubmit ERROR_ALL')\
+                             \n Rerun in 'terminate' mode to submit all merging stages, each AFTER the previous one completed. The final merged \
+                             \n output will be written to your alien output directory, while separate stages in <Stage_n>. \
+                             \n ################################################################################################################");
+      gSystem->Exec("aliensh");
+   } else {
+      Info("StartAnalysis", "\n #### STARTED MERGING JOBS FOR YOU #### \
+                             \n Make sure your jobs are in a final state (you can resubmit failed ones via 'masterjob <id> resubmit ERROR_ALL') \
+                             \n Rerun in 'terminate' mode to submit all merging stages, each AFTER the previous one completed. The final merged \
+                             \n output will be written to your alien output directory, while separate stages in <Stage_n>. \
+                             \n ################################################################################################################");   
+   }   
    return kTRUE;
 }
 
@@ -3621,6 +3766,10 @@ Bool_t AliAnalysisAlien::SubmitNext()
             \n#####   Your JDL %s submitted (%d to go). \nTHE JOB ID IS: %s \
             \n_______________________________________________________________________",
                 fJDLName.Data(), nmasterjobs-fNsubmitted-1, cjobId1.Data());
+	    if (!fGridJobIDs.IsNull()) fGridJobIDs.Append(" ");
+	    fGridJobIDs.Append(cjobId1);
+	    if (!fGridStages.IsNull()) fGridStages.Append(" ");
+	    fGridStages.Append("full");
             jobID += cjobId1;
             jobID += " ";
             lastmaster = cjobId1.Atoi();
@@ -3906,6 +4055,8 @@ void AliAnalysisAlien::WriteAnalysisMacro()
          out << "   plugin->SetNtestFiles(" << fNtestFiles << ");" << endl;
          if (!fFriendChainName.IsNull()) 
             out << "   plugin->SetFriendChainName(\"" << fFriendChainName << "\");" << endl;
+         if (IsUseMCchain())
+            out << "   plugin->SetUseMCchain();" << endl;
          out << "   mgr->SetGridHandler(plugin);" << endl;
          if (AliAnalysisManager::GetAnalysisManager()) {
             out << "   mgr->SetDebugLevel(" << AliAnalysisManager::GetAnalysisManager()->GetDebugLevel() << ");" << endl;
@@ -4066,6 +4217,7 @@ void AliAnalysisAlien::WriteMergingMacro()
       Error("WriteMergingMacro", "No output file names defined. Are you running the right AliAnalysisAlien configuration ?");
       return;
    }   
+   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
    TString mergingMacro = fExecutable;
    mergingMacro.ReplaceAll(".sh","_merge.C");
    if (gGrid && !fGridOutputDir.Contains("/")) fGridOutputDir = Form("%s/%s/%s", gGrid->GetHomeDirectory(), fGridWorkingDir.Data(), fGridOutputDir.Data());
@@ -4248,6 +4400,19 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "   TObjString *str;" << endl;
       out << "   TString outputFile;" << endl;
       out << "   Bool_t merged = kTRUE;" << endl;
+      TString analysisFile = fExecutable;
+      analysisFile.ReplaceAll(".sh", ".root");
+      out << "   AliAnalysisManager *mgr = AliAnalysisAlien::LoadAnalysisManager(\""
+          << analysisFile << "\");" << endl;
+      out << "   if (!mgr) {" << endl;
+      out << "      printf(\"ERROR: Analysis manager could not be extracted from file \");" << endl;
+      out << "      return;" << endl;
+      out << "   }" << endl;
+      if (IsLocalTest()) {
+         out << "   printf(\"===================================\n\");" << endl;      
+         out << "   printf(\"Testing merging...\\n\");" << endl;
+         out << "   printf(\"===================================\n\");" << endl;
+      }        
       out << "   while((str=(TObjString*)iter->Next())) {" << endl;
       out << "      outputFile = str->GetString();" << endl;
       out << "      if (outputFile.Contains(\"*\")) continue;" << endl;
@@ -4255,7 +4420,7 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "      if (index > 0) outputFile.Remove(index);" << endl;
       out << "      // Skip already merged outputs" << endl;
       out << "      if (!gSystem->AccessPathName(outputFile)) {" << endl;
-      out << "         printf(\"Output file <%s> found. Not merging again.\",outputFile.Data());" << endl;
+      out << "         printf(\"Output file <%s> found. Not merging again.\\n\",outputFile.Data());" << endl;
       out << "         continue;" << endl;
       out << "      }" << endl;
       out << "      if (mergeExcludes.Contains(outputFile.Data())) continue;" << endl;
@@ -4265,22 +4430,27 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "         return;" << endl;
       out << "      }" << endl;
       out << "   }" << endl;
+      if (mgr && mgr->IsCollectThroughput() && !IsLocalTest()) {
+         out << "   TString infolog = \"" << mgr->GetFileInfoLog() << "\";" << endl;
+         out << "   AliAnalysisAlien::MergeInfo(infolog, outputDir);" << endl;
+      }
       out << "   // all outputs merged, validate" << endl;
       out << "   ofstream out;" << endl;
       out << "   out.open(\"outputs_valid\", ios::out);" << endl;
       out << "   out.close();" << endl;
       out << "   // read the analysis manager from file" << endl;
-      TString analysisFile = fExecutable;
-      analysisFile.ReplaceAll(".sh", ".root");
-      out << "   if (!outputDir.Contains(\"Stage\")) return;" << endl;
-      out << "   AliAnalysisManager *mgr = AliAnalysisAlien::LoadAnalysisManager(\"" 
-          << analysisFile << "\");" << endl;
-      out << "   if (!mgr) return;" << endl;
+      if (IsLocalTest()) {
+         out << "   printf(\"===================================\n\");" << endl;      
+         out << "   printf(\"Testing Terminate()...\\n\");" << endl;
+         out << "   printf(\"===================================\n\");" << endl;      
+      } else {   
+         out << "   if (!outputDir.Contains(\"Stage\")) return;" << endl;
+      }   
       out << "   mgr->SetRunFromPath(mgr->GetRunFromAlienPath(dir));" << endl;
       out << "   mgr->SetSkipTerminate(kFALSE);" << endl;
       out << "   mgr->PrintStatus();" << endl;
-      if (AliAnalysisManager::GetAnalysisManager()) {
-         if (AliAnalysisManager::GetAnalysisManager()->GetDebugLevel()>3) {
+      if (mgr) {
+         if (mgr->GetDebugLevel()>3) {
             out << "   gEnv->SetValue(\"XNet.Debug\", \"1\");" << endl;
          } else {
             if (TestBit(AliAnalysisGrid::kTest))            
@@ -4394,6 +4564,10 @@ Bool_t AliAnalysisAlien::SetupPar(const char *package)
 void AliAnalysisAlien::WriteExecutable()
 {
 // Generate the alien executable script.
+   // Patch executable with -x to catch error code
+   if (fExecutableCommand.Contains("root") && 
+       fExecutableCommand.Contains("-q") && 
+       !fExecutableCommand.Contains("-x")) fExecutableCommand += " -x";
    if (!TestBit(AliAnalysisGrid::kSubmit)) {  
       ofstream out;
       out.open(fExecutable.Data(), ios::out);

@@ -33,6 +33,7 @@
 #include "AliAODDimuon.h"
 #include "AliAODTZERO.h"
 #include "AliAODVZERO.h"
+#include "AliAODHMPIDrings.h"
 #include "AliAODZDC.h"
 #ifdef MFT_UPGRADE
 #include "AliAODMFT.h"
@@ -60,15 +61,16 @@ class AliAODEvent : public AliVEvent {
 	           kAODPHOSTrigger,
 		       kAODFmdClusters,
 		       kAODPmdClusters,
+                       kAODHMPIDrings,
 		       kAODDimuons,
 		       kAODTZERO,
 		       kAODVZERO,
 		       kAODZDC,
-		       kTOFHeader,
+		       kTOFHeader,                       
+#ifdef MFT_UPGRADE
+	           kAODVZERO,
+#endif
 		       kAODListN
-	           #ifdef MFT_UPGRADE
-	           ,kAODVZERO
-			   #endif
   };
 
   AliAODEvent();
@@ -133,6 +135,7 @@ class AliAODEvent : public AliVEvent {
   const AliTOFHeader *GetTOFHeader() const {return fTOFHeader;}
   Float_t GetEventTimeSpread() const {if (fTOFHeader) return fTOFHeader->GetT0spread(); else return 0.;}
   Float_t GetTOFTimeResolution() const {if (fTOFHeader) return fTOFHeader->GetTOFResolution(); else return 0.;}
+  Float_t GetT0spread(Int_t i) const {return fHeader->GetT0spread(i);}
 
 
   // -- Tracks
@@ -210,6 +213,16 @@ class AliAODEvent : public AliVEvent {
   Int_t         AddPmdCluster(const AliAODPmdCluster* clus)
   {new((*fPmdClusters)[fPmdClusters->GetEntriesFast()]) AliAODPmdCluster(*clus); return fPmdClusters->GetEntriesFast()-1;}
 
+  // -- HMPID objects 
+  TClonesArray *GetHMPIDrings()       const {return fHMPIDrings; } 
+  Int_t         GetNHMPIDrings();
+  AliAODHMPIDrings *GetHMPIDring(Int_t nRings);
+  Int_t         AddHMPIDrings(const  AliAODHMPIDrings* ring) 
+  {new((*fHMPIDrings)[fHMPIDrings->GetEntriesFast()]) AliAODHMPIDrings(*ring); return fHMPIDrings->GetEntriesFast()-1;}
+  
+  AliAODHMPIDrings *GetHMPIDringForTrackID(Int_t trackID);
+  
+  
   // -- Jet
   TClonesArray *GetJets()            const { return fJets; }
   Int_t         GetNJets()           const { return fJets?fJets->GetEntriesFast():0; }
@@ -248,6 +261,7 @@ class AliAODEvent : public AliVEvent {
 		   Int_t caloClusSize = 0, 
 		   Int_t fmdClusSize = 0, 
 		   Int_t pmdClusSize = 0,
+                   Int_t hmpidRingsSize = 0,
 		   Int_t dimuonArrsize =0
 		   );
   void    ClearStd();
@@ -269,6 +283,8 @@ class AliAODEvent : public AliVEvent {
 
   // TZERO 
   AliAODTZERO *GetTZEROData() const { return fAODTZERO; }
+  Double32_t GetT0TOF(Int_t icase) const { return fAODTZERO?fAODTZERO->GetT0TOF(icase):999999;}
+  const Double32_t * GetT0TOF() const { return fAODTZERO?fAODTZERO->GetT0TOF():0x0;}
  
   // VZERO 
   AliAODVZERO *GetVZEROData() const { return fAODVZERO; }
@@ -308,6 +324,7 @@ class AliAODEvent : public AliVEvent {
   AliAODCaloTrigger *fPHOSTrigger;  //! PHOS Trigger information
   TClonesArray    *fFmdClusters;  //! FMDclusters
   TClonesArray    *fPmdClusters;  //! PMDclusters
+  TClonesArray    *fHMPIDrings;   //! HMPID signals
   TClonesArray    *fDimuons;      //! dimuons
   AliAODTZERO     *fAODTZERO;     //! TZERO AOD
   AliAODVZERO     *fAODVZERO;     //! VZERO AOD
@@ -322,7 +339,7 @@ class AliAODEvent : public AliVEvent {
   
   static const char* fAODListName[kAODListN]; //!
 
-  ClassDef(AliAODEvent,90);
+  ClassDef(AliAODEvent,91);
 };
 
 #endif
