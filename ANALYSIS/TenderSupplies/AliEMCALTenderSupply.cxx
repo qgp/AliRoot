@@ -80,6 +80,7 @@ AliTenderSupply()
 ,fRecalShowerShape(kFALSE)
 ,fInputTree(0)
 ,fInputFile(0)
+,fGetPassFromFileName(kTRUE)
 ,fFilepass(0) 
 ,fMass(-1)
 ,fStep(-1)
@@ -1580,6 +1581,25 @@ void AliEMCALTenderSupply::RecPoints2Clusters(TClonesArray *clus)
     c->SetM20(elipAxis[1]*elipAxis[1]) ;
     c->SetCellsAbsId(absIds);
     c->SetCellsAmplitudeFraction(ratios);
+
+    //MC
+    AliESDCaloCluster *esdClus = dynamic_cast<AliESDCaloCluster*>(c);
+    if (esdClus) {
+      Int_t  parentMult = 0;
+      Int_t *parentList = recpoint->GetParents(parentMult);
+      if (parentMult > 0) {
+	TArrayI parents(parentMult, parentList);
+	esdClus->AddLabels(parents); 
+      }
+    }
+    else {
+      AliAODCaloCluster *aodClus = dynamic_cast<AliAODCaloCluster*>(c);
+      if (aodClus) {
+	Int_t  parentMult = 0;
+	Int_t *parentList = recpoint->GetParents(parentMult);
+	aodClus->SetLabel(parentList, parentMult); 
+      }
+    }
   }
 }
 
