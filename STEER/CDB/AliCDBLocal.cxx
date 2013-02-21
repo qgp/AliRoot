@@ -21,6 +21,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>
+#include <stdexcept>
+
 #include <TSystem.h>
 #include <TObjString.h>
 #include <TRegexp.h>
@@ -30,6 +32,7 @@
 #include "AliCDBLocal.h"
 #include "AliCDBEntry.h"
 #include "AliLog.h"
+using namespace std;
 
 ClassImp(AliCDBLocal)
 
@@ -510,13 +513,18 @@ AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId& queryId) {
 
 	AliCDBId* dataId = GetEntryId(queryId);
 
-	if (!dataId || !dataId->IsSpecified()) return NULL;
+        TString errMessage(TString::Format("No valid CDB object found! request was: %s", queryId.ToString().Data()));
+	if (!dataId || !dataId->IsSpecified()){
+                throw std::runtime_error(errMessage.Data());
+                return NULL;
+        }
 
 	TString filename;
 	if (!IdToFilename(*dataId, filename)) {
 
 		AliDebug(2,Form("Bad data ID encountered! Subnormal error!"));
 		delete dataId;
+		throw std::runtime_error(errMessage.Data());
 		return NULL;
 	}
 
@@ -524,6 +532,7 @@ AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId& queryId) {
 	if (!file.IsOpen()) {
 		AliDebug(2,Form("Can't open file <%s>!", filename.Data()));
 		delete dataId;
+		throw std::runtime_error(errMessage.Data());
 		return NULL;
 	}
 
@@ -535,6 +544,7 @@ AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId& queryId) {
 		AliDebug(2,Form("Bad storage data: No AliCDBEntry in file!"));
 		file.Close();
 		delete dataId;
+		throw std::runtime_error(errMessage.Data());
 		return NULL;
 	}
 
@@ -555,9 +565,10 @@ AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId& queryId) {
 	// Check whether entry contains a TTree. In case load the tree in memory!
 	LoadTreeFromFile(anEntry);
 
-	// close file, return retieved entry
+	// close file, return retrieved entry
 	file.Close();
 	delete dataId;
+
 	return anEntry;
 }
 
@@ -894,49 +905,6 @@ void AliCDBLocal::QueryValidFiles()
 
 }
 
-//_____________________________________________________________________________
-Int_t AliCDBLocal::GetLatestVersion(const char* path, Int_t run){
-// get last version found in the database valid for run and path
-
-	AliCDBPath aCDBPath(path);
-	if(!aCDBPath.IsValid() || aCDBPath.IsWildcard()) {
-		AliError(Form("Invalid path in request: %s", path));
-		return -1;
-	}
-
-	AliCDBId query(path, run, run, -1, -1);
-	AliCDBId* dataId = GetId(query);
-
-	if(!dataId) return -1;
-
-	Int_t version = dataId->GetVersion();
-	delete dataId;
-
-	return version;
-
-}
-
-//_____________________________________________________________________________
-Int_t AliCDBLocal::GetLatestSubVersion(const char* path, Int_t run, Int_t version){
-// get last version found in the database valid for run and path
-
-	AliCDBPath aCDBPath(path);
-	if(!aCDBPath.IsValid() || aCDBPath.IsWildcard()) {
-		AliError(Form("Invalid path in request: %s", path));
-		return -1;
-	}
-
-	AliCDBId query(path, run, run, version, -1);
-	AliCDBId *dataId = GetId(query);
-
-	if(!dataId) return -1;
-
-	Int_t subVersion = dataId->GetSubVersion();
-
-	delete dataId;
-	return subVersion;
-
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                             //
