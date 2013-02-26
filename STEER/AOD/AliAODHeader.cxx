@@ -35,6 +35,7 @@ AliAODHeader::AliAODHeader() :
   fMuonMagFieldScale(-999.),
   fCentrality(-999.),
   fEventplane(-999.),
+  fEventplaneMag(-999.),
   fZDCN1Energy(-999.),
   fZDCP1Energy(-999.),
   fZDCN2Energy(-999.),
@@ -53,6 +54,8 @@ AliAODHeader::AliAODHeader() :
   fOrbitNumber(0),
   fPeriodNumber(0),
   fBunchCrossNumber(0),
+  fRefMultComb05(-999),
+  fRefMultComb08(-999),
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
@@ -91,6 +94,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fMuonMagFieldScale(-999.),
   fCentrality(-999.),
   fEventplane(-999.),
+  fEventplaneMag(-999.),
   fZDCN1Energy(-999.),
   fZDCP1Energy(-999.),
   fZDCN2Energy(-999.),
@@ -109,6 +113,8 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
   fBunchCrossNumber(nBunchX),
+  fRefMultComb05(-999),
+  fRefMultComb08(-999),
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
@@ -144,6 +150,8 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   Int_t refMult,
 			   Int_t refMultPos,
 			   Int_t refMultNeg,
+			   Int_t refMultComb05,
+			   Int_t refMultComb08,
 			   Double_t magField,
 			   Double_t muonMagFieldScale,
 			   Double_t cent,
@@ -183,6 +191,8 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
   fBunchCrossNumber(nBunchX),
+  fRefMultComb05(refMultComb05),
+  fRefMultComb08(refMultComb08),
   fTriggerCluster(trigClus),
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
@@ -227,6 +237,7 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fMuonMagFieldScale(hdr.fMuonMagFieldScale),
   fCentrality(hdr.fCentrality),
   fEventplane(hdr.fEventplane),
+  fEventplaneMag(hdr.fEventplaneMag),
   fZDCN1Energy(hdr.fZDCN1Energy),
   fZDCP1Energy(hdr.fZDCP1Energy),
   fZDCN2Energy(hdr.fZDCN2Energy),
@@ -245,6 +256,8 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fOrbitNumber(hdr.fOrbitNumber),
   fPeriodNumber(hdr.fPeriodNumber),
   fBunchCrossNumber(hdr.fBunchCrossNumber),
+  fRefMultComb05(hdr.fRefMultComb05), 
+  fRefMultComb08(hdr.fRefMultComb08), 
   fTriggerCluster(hdr.fTriggerCluster), 
   fDiamondZ(hdr.fDiamondZ), 
   fDiamondSig2Z(hdr.fDiamondSig2Z),
@@ -299,6 +312,7 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fMuonMagFieldScale= hdr.fMuonMagFieldScale;
     fCentrality       = hdr.fCentrality;
     fEventplane       = hdr.fEventplane;
+    fEventplaneMag    = hdr.fEventplaneMag;
     fZDCN1Energy      = hdr.fZDCN1Energy;
     fZDCP1Energy      = hdr.fZDCP1Energy;
     fZDCN2Energy      = hdr.fZDCN2Energy;
@@ -313,6 +327,9 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fOrbitNumber      = hdr.fOrbitNumber;
     fPeriodNumber     = hdr.fPeriodNumber;
     fBunchCrossNumber = hdr.fBunchCrossNumber;
+    fRefMultComb05    = hdr.fRefMultComb05;
+    fRefMultComb08    = hdr.fRefMultComb08;
+
     fTriggerCluster   = hdr.fTriggerCluster;
     fNMuons           = hdr.fNMuons;
     fNDimuons         = hdr.fNDimuons;
@@ -423,6 +440,7 @@ void AliAODHeader::Clear(Option_t* /*opt*/)
     delete fEventplaneP;
     fEventplaneP = 0;
     fEventplane = -999;
+    fEventplaneMag = -999.;
   }
   return;
 }
@@ -444,6 +462,7 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   
   printf("Centrality              : %f\n", fCentrality);
   printf("Event plane             : %f\n", fEventplane);
+  printf("Event plane             : %f\n", fEventplaneMag);
   printf("ZDC N1 Energy           : %f\n", fZDCN1Energy);
   printf("ZDC P1 Energy           : %f\n", fZDCP1Energy);
   printf("ZDC N2 Energy           : %f\n", fZDCN2Energy);
@@ -453,6 +472,8 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("ref. Multiplicity       : %d\n", fRefMult);
   printf("ref. Multiplicity (pos) : %d\n", fRefMultPos);
   printf("ref. Multiplicity (neg) : %d\n", fRefMultNeg);
+  printf("ref. Mult.Comb |eta|<.5 : %d\n", fRefMultComb05);
+  printf("ref. Mult.Comb |eta|<.8 : %d\n", fRefMultComb08);
   printf("number of muons         : %d\n", fNMuons);
   printf("number of dimuons       : %d\n", fNDimuons);
   printf("offline trigger         : %u\n", fOfflineTrigger);
