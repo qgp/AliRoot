@@ -402,6 +402,9 @@ AliAODHeader* AliAnalysisTaskESDfilter::ConvertHeader(const AliESDEvent& esd)
   header->SetZDCN2Energy(esd.GetZDCN2Energy());
   header->SetZDCP2Energy(esd.GetZDCP2Energy());
   header->SetZDCEMEnergy(esd.GetZDCEMEnergy(0),esd.GetZDCEMEnergy(1));
+
+  header->SetIRInt2InteractionMap(esd.GetHeader()->GetIRInt2InteractionMap());
+  header->SetIRInt1InteractionMap(esd.GetHeader()->GetIRInt1InteractionMap());
   
   // ITS Cluster Multiplicty
   const AliMultiplicity *mult = esd.GetMultiplicity();
@@ -1975,6 +1978,18 @@ void AliAnalysisTaskESDfilter::ConvertPrimaryVertices(const AliESDEvent& esd)
     pVTRK->SetNContributors(vtxP->GetNContributors());
     pVTRK->SetBC(vtxP->GetBC());
   }
+
+  // Add TPC "main" vertex 
+  const AliESDVertex *vtxT = esd.GetPrimaryVertexTPC();
+  vtxT->GetXYZ(pos); // position
+  vtxT->GetCovMatrix(covVtx); //covariance matrix
+  AliAODVertex * mVTPC = new(Vertices()[fNumberOfVertices++])
+  AliAODVertex(pos, covVtx, vtxT->GetChi2toNDF(), NULL, -1, AliAODVertex::kMainTPC);
+  mVTPC->SetName(vtxT->GetName());
+  mVTPC->SetTitle(vtxT->GetTitle());
+  mVTPC->SetNContributors(vtxT->GetNContributors()); 
+
+
 }
 
 //______________________________________________________________________________
@@ -2061,7 +2076,8 @@ void AliAnalysisTaskESDfilter::ConvertZDC(const AliESDEvent& esd)
   	esdZDC->GetImpactParamSideC());
   zdcAOD->SetZDCTDCSum(esdZDC->GetZNTDCSum(0));	
   zdcAOD->SetZDCTDCDiff(esdZDC->GetZNTDCDiff(0));	
-
+  if(esdZDC->IsZNChit()) zdcAOD->SetZNCTDC(esdZDC->GetZDCTDCCorrected(10,0));
+  if(esdZDC->IsZNAhit()) zdcAOD->SetZNATDC(esdZDC->GetZDCTDCCorrected(12,0));
 }
 
 //_______________________________________________________________________________________________________________________________________
