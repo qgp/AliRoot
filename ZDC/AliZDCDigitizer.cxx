@@ -348,7 +348,6 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
       }
     }
     if(!hijingHeader){ 
-        listOfHeaders->Dump();
         printf(" No HIJING header found in list of headers from generator\n");
 	//continue;
     }
