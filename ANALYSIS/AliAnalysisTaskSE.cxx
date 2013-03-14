@@ -581,17 +581,17 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Double_t time    = 0;
 				Int_t    mclabel =-1;
 			        Double_t efrac   = 0;
-				if(cellsA->GetMCLabel(i) >= 0 && fgAODEmcalCells->GetMCLabel(i) < 0)
+				if(cellsA->GetMCLabel(i) >= 0 && fgAODEmcalCells->GetMCLabel(pos) < 0)
 				  {
 				    mclabel = cellsA->GetMCLabel(i) ;
-				    time    = fgAODEmcalCells->GetTime(i) ; // Time from data
+				    time    = fgAODEmcalCells->GetTime(pos) ; // Time from data
 				    if(amp > 0) efrac = cellsA->GetAmplitude(i) / amp;
 				  }
-				else if(fgAODEmcalCells->GetMCLabel(i) >= 0 &&  cellsA->GetMCLabel(i) < 0)
+				else if(fgAODEmcalCells->GetMCLabel(pos) >= 0 &&  cellsA->GetMCLabel(i) < 0)
 				  {
-				    mclabel = fgAODEmcalCells->GetMCLabel(i) ;
+				    mclabel = fgAODEmcalCells->GetMCLabel(pos) ;
 				    time    = cellsA->GetTime(i) ; // Time from data
-				    if(amp > 0) efrac = fgAODEmcalCells->GetAmplitude(i) / amp;              
+				    if(amp > 0) efrac = fgAODEmcalCells->GetAmplitude(pos) / amp;
 				  }
 				else 
 				  { // take all from input
@@ -609,9 +609,9 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Int_t nn = copycells1->GetNumberOfCells();
 				
 				while( nn-- ){ fgAODEmcalCells->SetCell(nn,copycells1->GetCellNumber(nn),copycells1->GetAmplitude(nn),
-									copycells1->GetTime(nn),copycells1->GetMCLabel(nn),0.); }
+									copycells1->GetTime(nn),copycells1->GetMCLabel(nn),copycells1->GetEFraction(nn)); }
 				
-				fgAODEmcalCells->SetCell(nc++,cn,cellsA->GetAmplitude(i),cellsA->GetTime(i), cellsA->GetMCLabel(i),0.);
+				fgAODEmcalCells->SetCell(nc++,cn,cellsA->GetAmplitude(i),cellsA->GetTime(i), cellsA->GetMCLabel(i),1.);
 				
 				delete copycells1;
 			      }
@@ -651,17 +651,17 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Double_t time    = 0;
 				Int_t    mclabel =-1;
 				Double_t    efrac   = 0;
-				if(cellsP->GetMCLabel(i) >= 0 && fgAODPhosCells->GetMCLabel(i) < 0)
+				if(cellsP->GetMCLabel(i) >= 0 && fgAODPhosCells->GetMCLabel(pos) < 0)
 				  {
 				    mclabel = cellsP->GetMCLabel(i) ;
-				    time    = fgAODPhosCells->GetTime(i) ; // Time from data
+				    time    = fgAODPhosCells->GetTime(pos) ; // Time from data
 				    if(amp > 0) efrac = cellsP->GetAmplitude(i) / amp;
 				  }
-				else if(fgAODPhosCells->GetMCLabel(i) >= 0 &&  cellsP->GetMCLabel(i) < 0)
+				else if(fgAODPhosCells->GetMCLabel(pos) >= 0 &&  cellsP->GetMCLabel(i) < 0)
 				  {
-				    mclabel = fgAODPhosCells->GetMCLabel(i) ;
+				    mclabel = fgAODPhosCells->GetMCLabel(pos) ;
 				    time    = cellsP->GetTime(i) ; // Time from data
-				    if(amp > 0) efrac = fgAODPhosCells->GetAmplitude(i) / amp;              
+				    if(amp > 0) efrac = fgAODPhosCells->GetAmplitude(pos) / amp;
 				  }
 				else 
 				  { // take all from input
@@ -679,9 +679,9 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Int_t nn = copycells1->GetNumberOfCells();
 				
 				while( nn-- ){ fgAODPhosCells->SetCell(nn,copycells1->GetCellNumber(nn),copycells1->GetAmplitude(nn), 
-								       copycells1->GetTime(nn),copycells1->GetMCLabel(nn),0.); }
+								       copycells1->GetTime(nn),copycells1->GetMCLabel(nn),copycells1->GetEFraction(nn)); }
 				
-				fgAODPhosCells->SetCell(nc++,cn,cellsP->GetAmplitude(i),cellsP->GetTime(i), cellsP->GetMCLabel(i),0.);
+				fgAODPhosCells->SetCell(nc++,cn,cellsP->GetAmplitude(i),cellsP->GetTime(i), cellsP->GetMCLabel(i),1.);
 				
 				delete copycells1;
 			      }
