@@ -19,6 +19,7 @@
 #include "AliITSUSensMap.h"
 #include "AliITSsegmentation.h"
 #include "AliMathBase.h"
+#include <TArrayS.h>
 
 class AliITSCalibration;
 class AliITSUSimuParam;
@@ -76,7 +77,7 @@ class AliITSUSimulation : public TObject
   //
   void SetCalibDead(AliITSCalibration *calib)              {fCalibDead = calib;}
   void SetCalibNoisy(AliITSCalibration *calib)             {fCalibNoisy = calib;}
-  void SetSegmentation(AliITSsegmentation *seg)            {fSeg = seg; if (seg&&fSensMap) fSensMap->SetDimensions(seg->Npz(),seg->Npx(),2*kMaxROCycleAccept);}
+  void SetSegmentation(AliITSsegmentation *seg)            {fSeg = seg; if (seg&&fSensMap) fSensMap->SetDimensions(seg->Npz(),seg->Npx(),kMaxROCycleAccept);}
   void SetSimuParam(AliITSUSimuParam *sp)                  {fSimuParam = sp;}
   virtual void SetResponseParam(AliITSUParamList* resp)    {fResponseParam = resp;}
   void SetMap(AliITSUSensMap *p)                           {fSensMap = p;}
@@ -102,6 +103,7 @@ class AliITSUSimulation : public TObject
   AliITSUModule       *fModule;         //! module being processed
   Int_t                fEvent;          //! event number being processed
   Int_t                fDebug;          //!  debug flag
+  Bool_t               fCyclesID[2*kMaxROCycleAccept]; //! status of RO cycles
 
   ClassDef(AliITSUSimulation,1)       // Simulation base class 
     
