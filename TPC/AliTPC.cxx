@@ -78,6 +78,7 @@
 #include "AliTPCCalPad.h"
 #include "AliTPCCalROC.h"
 #include "AliTPCExB.h"
+#include "AliCTPTimeParams.h"
 #include "AliRawReader.h"
 #include "AliTPCRawStreamV3.h"
 #include "TTreeStream.h"
@@ -586,8 +587,25 @@ void AliTPC::CreateMaterials()
   density=1.25;
 
   AliMixture(26,"Epoxy",amat,zmat,density,-3,wmat);
-  //
-  density *= 1.1;
+  
+  // Epoxy - C14 H20 O3 for glue
+ 
+  amat[0]=12.011;
+  amat[1]=1.;
+  amat[2]=15.9994;
+
+  zmat[0]=6.;
+  zmat[1]=1.;
+  zmat[2]=8.;
+
+  wmat[0]=14.;
+  wmat[1]=20.;
+  wmat[2]=3.;
+
+  density=1.25;
+
+  density *= 1.25;
+
   AliMixture(35,"Epoxy1",amat,zmat,density,-3,wmat);
   //
   // epoxy film - 90% epoxy, 10% glass fiber 
@@ -678,8 +696,24 @@ void AliTPC::CreateMaterials()
  
   density = 3.97;
 
-  AliMixture(31,"Alumina",amat,zmat,density,-2,wmat);   
+  AliMixture(31,"Alumina",amat,zmat,density,-2,wmat);  
+  //
+  // Ceramics for resistors
+  //
+  amat[0] = 26.98;
+  amat[1]= 15.9994;
 
+  zmat[0] = 13.;
+  zmat[1]=8.;
+ 
+  wmat[0]=2.;
+  wmat[1]=3.; 
+
+  density = 3.97;
+  //
+  density *=1.25;
+
+  AliMixture(36,"Alumina1",amat,zmat,density,-2,wmat);
   //
   // liquids
   //
@@ -736,6 +770,7 @@ void AliTPC::CreateMaterials()
   AliMedium(23,"Brass",33,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
   AliMedium(24,"Epoxyfm",34,0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001); 
   AliMedium(25,"Epoxy1",35,0, iSXFLD, sXMGMX, 10., 999., .1, .0005, .001); 
+  AliMedium(26,"Alumina1",36,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
 }
 
 void AliTPC::GenerNoise(Int_t tablesize)
@@ -2170,6 +2205,17 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 	      "\n";
 	  }
 	}
+        if (AliTPCcalibDB::Instance()->IsTrgL0()){  
+         // Modification 14.03
+         // distinguish between the L0 and L1 trigger as it is done in the reconstruction
+         // by defualt we assume L1 trigger is used - make a correction in case of  L0
+         AliCTPTimeParams* ctp = AliTPCcalibDB::Instance()->GetCTPTimeParams();
+         if (ctp){
+           //for TPC standalone runs no ctp info
+           Double_t delay = ctp->GetDelayL1L0()*0.000000025;
+           xyz[2]+=delay/fTPCParam->GetTSample();  // adding the delay (in the AliTPCTramsform opposite sign)
+         }
+       }
 	xyz[2]+=correction;
 	xyz[2]+=fTPCParam->GetNTBinsL1();    // adding Level 1 time bin offset
 	//
