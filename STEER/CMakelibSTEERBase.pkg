@@ -86,6 +86,7 @@ set ( SRCS
     STEERBase/AliTOFTriggerMask.cxx
     STEERBase/AliVCaloTrigger.cxx
     STEERBase/AliProdInfo.cxx
+    STEERBase/AliVTrdTrack.cxx
   )
 
 string(REPLACE ".cxx" ".h" HDRS  "${SRCS}")

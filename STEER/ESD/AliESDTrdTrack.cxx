@@ -31,7 +31,7 @@ ClassImp(AliESDTrdTrack)
 
 //_____________________________________________________________________________
 AliESDTrdTrack::AliESDTrdTrack():
-  TObject(),
+  AliVTrdTrack(),
   fSector(-1),
   fStack(-1),
   fA(0),
@@ -43,6 +43,7 @@ AliESDTrdTrack::AliESDTrdTrack():
   fFlags(0),
   fFlagsTiming(0),
   fReserved(0),
+  fTrackMatch(),
   fLabel(-1)
 {
   //
@@ -53,7 +54,7 @@ AliESDTrdTrack::AliESDTrdTrack():
 }
 
 AliESDTrdTrack::AliESDTrdTrack(const AliESDTrdTrack& track):
-  TObject(track),
+  AliVTrdTrack(track),
   fSector(track.fSector),
   fStack(track.fStack),
   fA(track.fA),
@@ -65,6 +66,7 @@ AliESDTrdTrack::AliESDTrdTrack(const AliESDTrdTrack& track):
   fFlags(track.fFlags),
   fFlagsTiming(track.fFlagsTiming),
   fReserved(track.fReserved),
+  fTrackMatch(track.fTrackMatch),
   fLabel(track.fLabel)
 {
   //
@@ -87,9 +89,18 @@ AliESDTrdTrack& AliESDTrdTrack::operator=(const AliESDTrdTrack& track)
 
   if (this == &track)
     return *this;
-  TObject::operator=(track);
-  fLabel        = track.fLabel;
+  AliVTrdTrack::operator=(track);
   fSector       = track.fSector;
+  fStack        = track.fStack;
+  fA            = track.fA;
+  fB            = track.fB;
+  fC            = track.fC;
+  fPID          = track.fPID;
+  fLayerMask    = track.fLayerMask;
+  fFlags        = track.fFlags;
+  fFlagsTiming  = track.fFlagsTiming;
+  fReserved     = track.fReserved;
+  fLabel        = track.fLabel;
   for (Int_t iLayer = 0; iLayer < 6; iLayer++) {
     fTrackletIndex[iLayer] = track.fTrackletIndex[iLayer];
     fTrackletRefs[iLayer] = track.fTrackletRefs[iLayer];

@@ -123,5 +123,7 @@
 #pragma link C++ class AliTOFPIDParams+;
 #pragma link C++ class AliProdInfo+;
 
+#pragma link C++ class AliVTrdTrack+;
+
 #endif
 

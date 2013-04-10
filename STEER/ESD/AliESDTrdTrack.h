@@ -6,13 +6,13 @@
 // Global Tracking Unit, used for the TRD L1 trigger
 // Author: Jochen Klein <jochen.klein@cern.ch>
 
-
-#include "TObject.h"
 #include "TRef.h"
 
+#include "AliVTrdTrack.h"
 #include "AliESDTrdTracklet.h"
+#include "AliESDtrack.h"
 
-class AliESDTrdTrack : public TObject {
+class AliESDTrdTrack : public AliVTrdTrack {
 
  public:
 
@@ -46,6 +46,7 @@ class AliESDTrdTrack : public TObject {
 
   AliESDTrdTracklet* GetTracklet(Int_t idx) const
     { return (GetLayerMask() & (1<<idx)) ? (AliESDTrdTracklet*) ((fTrackletRefs[idx]).GetObject()) : 0x0; }
+  AliVTrack* GetTrackMatch() const { return (AliVTrack*) fTrackMatch.GetObject(); }
 
   void SetA(Int_t a)            { fA = a; }
   void SetB(Int_t b)            { fB = b; }
@@ -62,6 +63,7 @@ class AliESDTrdTrack : public TObject {
   void SetTrackletIndex(const Char_t idx, const Int_t layer) { fTrackletIndex[layer] = idx; }
 
   void AddTrackletReference(AliESDTrdTracklet* trkl, Int_t layer) { fTrackletRefs[layer] = trkl; }
+  void SetTrackMatchReference(AliVTrack *trk) { fTrackMatch = trk; }
 
   Bool_t IsSortable() const  { return kTRUE; }
   Int_t Compare(const TObject* obj) const;
@@ -69,8 +71,6 @@ class AliESDTrdTrack : public TObject {
  protected:
 
   void AppendBits(ULong64_t &word, Int_t nBits, Int_t val) const { word = (word << nBits) | (val & ~(~0 << nBits)); }
-
-  static const Int_t fgkNlayers = 6;      // number of TRD layers
 
   Int_t    fSector;			  // sector in which the track was found
   Char_t   fStack;			  // stack in which the track was found
@@ -88,9 +88,12 @@ class AliESDTrdTrack : public TObject {
 
   TRef fTrackletRefs[fgkNlayers];         // references to contributing tracklets
 
+  TRef fTrackMatch;                       // reference to matched global track
+					  // to reject TRD tracks from late conversions
+
   Int_t fLabel;				  // Track label
 
-  ClassDef(AliESDTrdTrack,5)
+  ClassDef(AliESDTrdTrack,7)
 };
 
 #endif
