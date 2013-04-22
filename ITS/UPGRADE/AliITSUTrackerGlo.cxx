@@ -37,6 +37,7 @@
 #include "AliITSUSeed.h"
 #include "AliITSUAux.h"
 #include "AliITSUClusterPix.h"
+#include "AliITSUGeomTGeo.h"
 using namespace AliITSUAux;
 using namespace TMath;
 
@@ -368,6 +369,7 @@ Bool_t AliITSUTrackerGlo::NeedToProlong(AliESDtrack* esdTr)
        && (Abs(dtz[0])>AliITSUReconstructor::GetRecoParam()->GetMaxDForProlongation() ||
 	   Abs(dtz[1])>AliITSUReconstructor::GetRecoParam()->GetMaxDZForProlongation())) return kFALSE;
   //
+  //  if (esdTr->Pt()<3) return kFALSE;//RS
   return kTRUE;
 }
 
@@ -420,6 +422,17 @@ void AliITSUTrackerGlo::FindTrack(AliESDtrack* esdTr, Int_t esdID)
 	if (NeedToKill(&seedUC,kRWCheckFailed) && seedU) KillSeed(seedU,kTRUE);
 	continue;
       }
+      /*
+      //RS toremove
+      int mcquest = -1;
+      if (!seedUC.ContainsFake()) {
+	mcquest = fCurrESDtrMClb;
+	seedUC.Print("etp");
+	printf("FSParams: "); for (int ip=0;ip<kNTrImpData;ip++) printf("%+e ",fTrImpData[ip]); printf("\n");
+      }
+      //
+      int nsens = lrA->FindSensors(&fTrImpData[kTrPhi0], hitSens, mcquest);  // find detectors which may be hit by the track
+      */
       int nsens = lrA->FindSensors(&fTrImpData[kTrPhi0], hitSens);  // find detectors which may be hit by the track
       AliDebug(2,Form("Will check %d sensors on lr:%d | esdID=%d (MClb:%d)",nsens,ila,esdID,fCurrESDtrMClb));
       //
@@ -460,7 +473,7 @@ void AliITSUTrackerGlo::FindTrack(AliESDtrack* esdTr, Int_t esdID)
 	if (!seedT.RotateToAlpha(sens->GetPhiTF())) continue;
 	//
 	int clID0 = sens->GetFirstClusterId();
-	for (int icl=ncl;icl--;) {
+	for (int icl=ncl;icl--;) { // don't change the order, clusters are sorted
 	  //	  AliLog::SetClassDebugLevel("AliITSUTrackerGlo",10);
 	  int res = CheckCluster(&seedT,ila,clID0+icl);
 	  //	  AliLog::SetClassDebugLevel("AliITSUTrackerGlo", 0);
@@ -764,9 +777,17 @@ Bool_t AliITSUTrackerGlo::GetRoadWidth(AliITSUSeed* seed, int ilrA)
   double sgz = sc.GetSigmaZ2() + dr*dr*sc.GetSigmaTgl2() + AliITSUReconstructor::GetRecoParam()->GetSigmaZ2(ilrA);
   sgy = Sqrt(sgy)*AliITSUReconstructor::GetRecoParam()->GetNSigmaRoadY();
   sgz = Sqrt(sgz)*AliITSUReconstructor::GetRecoParam()->GetNSigmaRoadZ();
-  fTrImpData[kTrPhi0] = 0.5*(fTrImpData[kTrPhiOut]+fTrImpData[kTrPhiIn]);
+  double dphi0 = 0.5*Abs(fTrImpData[kTrPhiOut]-fTrImpData[kTrPhiIn]);
+  double phi0  = 0.5*(fTrImpData[kTrPhiOut]+fTrImpData[kTrPhiIn]);
+  if ( dphi0>(0.5*Pi()) ) {
+    // special case of angles around pi 
+    dphi0 = Abs(phi0);    
+    phi0  += Pi();
+  }
+
+  fTrImpData[kTrPhi0] = phi0;
   fTrImpData[kTrZ0]   = 0.5*(fTrImpData[kTrZOut]+fTrImpData[kTrZIn]);
-  fTrImpData[kTrDPhi] = 0.5*Abs(fTrImpData[kTrPhiOut]-fTrImpData[kTrPhiIn]) + sgy/lrA->GetR();
+  fTrImpData[kTrDPhi] = dphi0 + sgy/lrA->GetR();
   fTrImpData[kTrDZ]   = 0.5*Abs(fTrImpData[kTrZOut]-fTrImpData[kTrZIn])   + sgz;
   //  
   return kTRUE;
@@ -833,7 +854,7 @@ Int_t AliITSUTrackerGlo::CheckCluster(AliITSUSeed* track, Int_t lr, Int_t clID)
 #ifdef  _FILL_CONTROL_HISTOS_
   int hcOffs = fTrackPhase*kHistosPhase + lr;
   double htrPt=-1;
-  if (goodCl&&goodSeed && fCHistoArr /*&& track->GetChi2Penalty()<1e-5*/) {
+  if (goodCl && (((AliITSUClusterPix*)cl)->GetNPix()>1 || !((AliITSUClusterPix*)cl)->IsSplit()) && goodSeed && fCHistoArr /* && track->GetChi2Penalty()<1e-5*/) {
     htrPt = track->Pt();
     ((TH2*)fCHistoArr->At(kHResY+hcOffs))->Fill(htrPt,dy);
     ((TH2*)fCHistoArr->At(kHResZ+hcOffs))->Fill(htrPt,dz);
@@ -854,7 +875,9 @@ Int_t AliITSUTrackerGlo::CheckCluster(AliITSUSeed* track, Int_t lr, Int_t clID)
       cl->Print();
       PrintSeedClusters(track);
     }
-    if (dy>0) return kStopSearchOnSensor;  // No chance that other cluster of this sensor will match (all Y's will be even larger)
+    // clusters are sorted in increasing Y and the loop goes from last (highers Y) to 1st.
+    // if the track has too large y for this cluster (dy<0) it will be so for all other clusters of the sensor
+    if (dy<0) return kStopSearchOnSensor;  // No chance that other cluster of this sensor will match (all Y's will be even larger)
     else      return kClusterNotMatching;   // Other clusters may match
   }
   double dz2 = dz*dz;
@@ -1250,10 +1273,10 @@ void AliITSUTrackerGlo::CookMCLabel(AliITSUTrackHyp* hyp)
     seed = (AliITSUSeed*)seed->GetParent();
   } // loop over clusters
   // 
+  AliESDtrack* esdTr = hyp->GetESDTrack();
+  int tpcLab = esdTr ? Abs(esdTr->GetTPCLabel()) : -kDummyLabel;
   if (nCl && nLab) {
     int maxLab=0,nTPCok=0;
-    AliESDtrack* esdTr = hyp->GetESDTrack();
-    int tpcLab = esdTr ? Abs(esdTr->GetTPCLabel()) : -kDummyLabel;
     for (int ilb=nLab;ilb--;) {
       int st = lbStat[ilb];
       if (lbStat[maxLab]<st) maxLab=ilb;
@@ -1266,7 +1289,7 @@ void AliITSUTrackerGlo::CookMCLabel(AliITSUTrackHyp* hyp)
   }
   //
   hyp->SetFakeRatio(-1.);
-  hyp->SetLabel( kDummyLabel );
+  hyp->SetLabel( -tpcLab );
   hyp->SetITSLabel( kDummyLabel );
 }
 
