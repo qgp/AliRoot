@@ -2,6 +2,7 @@
 #include "AliESDtrack.h"
 #include "AliCluster.h"
 #include "AliITSUAux.h"
+#include <TString.h>
 
 ClassImp(AliITSUTrackHyp)
 
@@ -12,6 +13,8 @@ AliITSUTrackHyp::AliITSUTrackHyp(Int_t nlr)
 : fNLayers(nlr)
   ,fITSLabel(0)
   ,fESDTrack(0)
+  ,fWinner(0)
+  ,fTPCSeed(0)
   ,fLayerSeeds(0)
 {
   // def. c-tor
@@ -23,6 +26,7 @@ AliITSUTrackHyp::~AliITSUTrackHyp()
 {
   // d-tor
   delete[] fLayerSeeds;
+  delete fTPCSeed;
 }
 
 //__________________________________________________________________
@@ -31,9 +35,11 @@ AliITSUTrackHyp::AliITSUTrackHyp(const AliITSUTrackHyp &src)
   , fNLayers(src.fNLayers)
   , fITSLabel(src.fITSLabel)
   , fESDTrack(src.fESDTrack)
+  , fWinner(0)
+  , fTPCSeed(src.fTPCSeed)
   , fLayerSeeds(0)
 {
-  // copy c-tor
+  // copy c-tor. Note: it is shallow
   if (fNLayers>0) {
     fLayerSeeds = new TObjArray[fNLayers];
     for (int ilr=fNLayers;ilr--;) {
@@ -44,7 +50,19 @@ AliITSUTrackHyp::AliITSUTrackHyp(const AliITSUTrackHyp &src)
 	AddSeed(sd,ilr);
       }      
     }
+    fWinner = src.fWinner;
   }
+  //
+}
+//__________________________________________________________________
+void AliITSUTrackHyp::InitFrom(const AliITSUTrackHyp *src)
+{
+  // copy initial params
+  fNLayers = src->fNLayers;
+  fITSLabel = src->fITSLabel;
+  fESDTrack = src->fESDTrack;
+  fWinner = src->fWinner;
+  fTPCSeed = src->fTPCSeed;
   //
 }
 
@@ -60,17 +78,27 @@ AliITSUTrackHyp &AliITSUTrackHyp::operator=(const AliITSUTrackHyp &src)
 }
 
 //__________________________________________________________________
-void AliITSUTrackHyp::Print(Option_t* ) const
+void AliITSUTrackHyp::Print(Option_t* opt) const
 {
   printf("Track Hyp.#%4d. NSeeds:",GetUniqueID());
-  for (int i=0;i<fNLayers;i++) printf(" (%d) %3d",i,GetNSeeds(i)); printf("\n");
+  TString opts = opt;
+  opts.ToLower();
+  Bool_t prSeeds = opts.Contains("l");
+  for (int i=0;i<fNLayers;i++) {
+    printf("Lr (%d) %3d ",i,GetNSeeds(i)); 
+    if (prSeeds) {
+      printf("\n");
+      for (int isd=0;isd<GetNSeeds(i);isd++) ((AliITSUSeed*)GetSeed(i,isd))->Print(opt);
+    }
+  }
+  if (!prSeeds) printf("\n");
 }
 
 //__________________________________________________________________
 AliITSUSeed* AliITSUTrackHyp::GetWinner() const
 {
   // Get best candidate. TODO
-  return fLayerSeeds[0].GetEntriesFast()>0 ? GetSeed(0,0) : 0;
+  return fWinner;
 }
 
 //__________________________________________________________________
@@ -78,11 +106,11 @@ AliITSUSeed* AliITSUTrackHyp::DefineWinner(int lr, int id)
 {
   // assign best candidate
   if (GetNSeeds(lr)<=id) return 0;
-  AliITSUSeed* winner = GetSeed(lr,id);
-  this->AliExternalTrackParam::operator=(*winner);
-  SetChi2(winner->GetChi2GloNrm());
-  SetNumberOfClusters(winner->GetNLayersHit());
-  return winner;
+  fWinner = GetSeed(lr,id);
+  this->AliExternalTrackParam::operator=(*fWinner);
+  SetChi2(fWinner->GetChi2GloNrm());
+  SetNumberOfClusters(fWinner->GetNLayersHit());
+  return fWinner;
 }
 
 //__________________________________________________________________
@@ -128,22 +156,7 @@ Int_t AliITSUTrackHyp::FetchClusterInfo(Int_t *clIDarr) const
   // fill cl.id's in the array. The clusters of layer L will be set at slots
   // clID[2L] (and clID[2L+1] if there is an extra cluster).
   for (int i=fNLayers<<1;i--;) clIDarr[i]=-1;
-  Int_t lr,ncl=0;
-  AliITSUSeed* seed = GetWinner();
-  if (!seed) {
-    AliFatal("The winner is not set");
-    return ncl;
-  }
-  while(seed) {
-    int clID = seed->GetLrCluster(lr);
-    if (clID>=0) {
-      int slotLr = lr<<1;
-      clIDarr[ clIDarr[slotLr]<0 ? slotLr : slotLr+1 ] = clID;
-      ncl++;
-    }
-    seed = (AliITSUSeed*)seed->GetParent();
-  }
-  return ncl;
+  return GetWinner() ? GetWinner()->FetchClusterInfo(clIDarr) : 0;
 }
 
 //__________________________________________________________________

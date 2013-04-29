@@ -8,12 +8,12 @@
 //-------------------------------------------------------------------------
 //                ITS upgrade tracker base class
 //-------------------------------------------------------------------------
-
 #include "AliTracker.h"
 #include "AliESDEvent.h"
 #include "AliITSUSeed.h"
 #include "AliITSUTrackCond.h"
 #include "AliITSUTrackHyp.h"
+#include <TArrayI.h>
 
 class AliITSUReconstructor;
 class AliITSURecoDet;
@@ -68,7 +68,7 @@ class AliITSUTrackerGlo : public AliTracker {
   void                   Init(AliITSUReconstructor* rec);
   void                   FindTrack(AliESDtrack* esdTr, Int_t esdID);
   void                   CreateDefaultTrackCond();
-  Bool_t                 InitHypothesis(AliESDtrack *esdTr, Int_t esdID);
+  AliITSUTrackHyp*       InitHypothesis(AliESDtrack *esdTr, Int_t esdID);
   Bool_t                 TransportToLayer(AliITSUSeed* seed, Int_t lFrom, Int_t lTo);
   Bool_t                 TransportToLayer(AliExternalTrackParam* seed, Int_t lFrom, Int_t lTo);
   Bool_t                 TransportToLayerX(AliExternalTrackParam* seed, Int_t lFrom, Int_t lTo, Double_t xStop);  
@@ -78,18 +78,20 @@ class AliITSUTrackerGlo : public AliTracker {
   Bool_t                 GoToEntranceToLayer(AliExternalTrackParam* seed, AliITSURecoLayer* lr, Int_t dir, Bool_t check=kFALSE);
   Bool_t                 PropagateSeed(AliITSUSeed *seed, Double_t xToGo, Double_t mass, Double_t maxStep=1.0, Bool_t matCorr=kTRUE);
   Bool_t                 PropagateSeed(AliExternalTrackParam *seed, Double_t xToGo, Double_t mass, Double_t maxStep=1.0, Bool_t matCorr=kTRUE);
-  Bool_t                 RefitTrack(AliITSUTrackHyp* trc, Double_t r, Bool_t stopAtLastCl=kFALSE);
+  Double_t               RefitTrack(AliExternalTrackParam* trc, Double_t r, Int_t stopCond=0);
   Int_t                  GetTrackingPhase()                 const {return fTrackPhase;}
 
   //
   void                   KillSeed(AliITSUSeed* seed, Bool_t branch=kFALSE);
   Bool_t                 NeedToKill(AliITSUSeed* seed, Int_t flag);
   Bool_t                 GetRoadWidth(AliITSUSeed* seed, int ilrA);
+  Bool_t                 CheckBackwardMatching(AliITSUSeed* seed);
   Int_t                  CheckCluster(AliITSUSeed* seed, Int_t lr, Int_t clID);
   void                   AddProlongationHypothesis(AliITSUSeed* seed, Int_t lr);
   Bool_t                 AddSeedBranch(AliITSUSeed* seed);
   void                   ValidateAllowedBranches(Int_t accMax);
   void                   ValidateAllowedCandidates(Int_t ilr, Int_t accMax);
+  void                   FlagSeedClusters(const AliITSUSeed* seed, Bool_t flg);
   //
   AliITSUSeed*           NewSeedFromPool(const AliITSUSeed* src=0);
   void                   ResetSeedsPool();
@@ -98,8 +100,9 @@ class AliITSUTrackerGlo : public AliTracker {
   AliITSUTrackHyp*       GetTrackHyp(Int_t id)               const  {return (AliITSUTrackHyp*)fHypStore.UncheckedAt(id);}
   void                   SetTrackHyp(AliITSUTrackHyp* hyp,Int_t id) {fHypStore.AddAtAndExpand(hyp,id);}
   void                   DeleteLastSeedFromPool()                   {fSeedsPool.RemoveLast();}
-  void                   SaveCurrentTrackHypotheses();
+  void                   SaveReducedHypothesesTree(AliITSUTrackHyp* dest);
   void                   FinalizeHypotheses();
+  Bool_t                 FinalizeHypothesis(AliITSUTrackHyp* hyp);
   void                   UpdateESDTrack(AliITSUTrackHyp* hyp,Int_t flag);
   void                   CookMCLabel(AliITSUTrackHyp* hyp);
   void                   SetTrackingPhase(Int_t p)        {fTrackPhase = p;}
@@ -127,19 +130,24 @@ class AliITSUTrackerGlo : public AliTracker {
   //
   // the seeds management to be optimized
   TObjArray                       fHypStore;       // storage for tracks hypotheses
-  AliITSUSeed*                    fLayerCandidates[AliITSUTrackCond::kMaxCandidates]; // array for branches of current track prolongation
+  Int_t                           fLayerMaxCandidates; //! size of tmp candidates array 
+  AliITSUSeed**                   fLayerCandidates;//! array for branches of current track prolongation
   Int_t                           fNBranchesAdded; // number of branches created for current seed in prolongation
   Int_t                           fNCandidatesAdded; // number of candidates added for current seed in prolongation
-  AliITSUTrackHyp*                fCurrHyp;        // hypotheses container for current track
+  AliITSUTrackHyp*                fCurrHyp;        //! hypotheses container for current track
+  AliITSUTrackHyp*                fWorkHyp;        //! temporary hypothesis for track finding
   TClonesArray                    fSeedsPool;      //! pool for seeds
   TArrayI                         fFreeSeedsID;    //! array of ID's of freed seeds
+  TArrayI                         fESDIndex;       //! array of ID's of freed seeds
   Int_t                           fNFreeSeeds;     //! number of seeds freed in the pool
   Int_t                           fLastSeedID;     //! id of the pool seed on which is returned by the NextFreeSeed method
+  Int_t                           fNLrActive;      //! number of active layers
   //
   TObjArray                       fDefTrackConds;  //! default tracking conditions
-  AliITSUTrackCond*               fCurrTrackCond;  // current tracking condition
-  Int_t                           fTrackPhase;     // tracking phase
-  Int_t*                          fClInfo;         //! auxiliary track cluster info
+  AliITSUTrackCond*               fCurrTrackCond;  //! current tracking condition
+  Int_t                           fCurrActLrID;    //! current active layer ID being processed (set only when needed, not guaranteed)
+  AliITSURecoLayer*               fCurrLayer;      //! current layer being processed  (set only when needed, not guaranteed)
+  Int_t                           fTrackPhase;     //! tracking phase
   //
   static const Double_t           fgkToler;        // tracking tolerance
   //
@@ -147,11 +155,13 @@ class AliITSUTrackerGlo : public AliTracker {
   // this code is only for special histos needed to extract some control parameters
   void BookControlHistos();
   TObjArray* fCHistoArr;
-  enum {kHResY=0,kHResYP=10,kHResZ=20,kHResZP=30,kHChi2Cl=40};
+  enum {kHResY=0,kHResYP=10,kHResZ=20,kHResZP=30,kHChi2Cl=40,kHChi2Nrm=50,kHBestInBranch=60,kHBestInCand=70};
+  enum {kHClShare=0,kHChiMatchCorr,kHChiMatchFake,kHChiMatchCorrMiss,kHChiMatchFakeMiss,
+	kHChiITSSACorr,kHChiITSSAFake}; // custom histos 
   enum {kHistosPhase=100};
   //
 #endif
-
+  //
   ClassDef(AliITSUTrackerGlo,1)   //ITS upgrade tracker
     
 };

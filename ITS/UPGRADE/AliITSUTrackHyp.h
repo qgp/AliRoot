@@ -13,18 +13,22 @@ class AliCluster;
 class AliITSUTrackHyp: public AliKalmanTrack
 {
  public:
+  enum {kSkip=BIT(14)};
   AliITSUTrackHyp(Int_t nlr=0);
   AliITSUTrackHyp(const AliITSUTrackHyp& src);
   AliITSUTrackHyp &operator=(const AliITSUTrackHyp &src);
   virtual ~AliITSUTrackHyp();
   //
+  void               InitFrom(const AliITSUTrackHyp *src);
   Int_t              GetNLayers()        const {return fNLayers;}
   Int_t              GetNSeeds(Int_t lr) const {return fLayerSeeds[lr].GetEntriesFast();}
   AliITSUSeed*       GetSeed(Int_t lr, Int_t id) const {return (AliITSUSeed*)fLayerSeeds[lr].UncheckedAt(id);}
+  AliITSUSeed*       RemoveSeed(Int_t lr, Int_t id) const {return (AliITSUSeed*)fLayerSeeds[lr].RemoveAt(id);}
   AliITSUSeed*       GetWinner()         const;
   AliESDtrack*       GetESDTrack()       const {return fESDTrack;}
   Int_t              GetITSLabel()       const {return fITSLabel;}
   AliITSUSeed*       DefineWinner(Int_t lr=0, Int_t id=0);
+  void               SetWinner(AliITSUSeed* w) {fWinner = w;}
   const TObjArray*   GetLayerSeeds(Int_t lr) const {return lr<fNLayers ? &fLayerSeeds[lr] : 0;}
   void               AddSeed(AliITSUSeed* seed, Int_t lr);
   void               SetESDTrack(AliESDtrack* esdtr) {fESDTrack = esdtr;}
@@ -33,6 +37,8 @@ class AliITSUTrackHyp: public AliKalmanTrack
   //
   void               SetChi2(Double_t chi2) {fChi2 = chi2;}
   Double_t           Update(const AliCluster* c);
+  AliExternalTrackParam* GetTPCSeed() const {return fTPCSeed;}
+  void               SetTPCSeed(AliExternalTrackParam* seed) {fTPCSeed = seed;}
   //
   virtual Double_t   GetPredictedChi2(const AliCluster *c) const;
   virtual Bool_t     PropagateTo(Double_t xr, Double_t x0, Double_t rho);
@@ -44,10 +50,15 @@ class AliITSUTrackHyp: public AliKalmanTrack
   //
   virtual void       Print(Option_t* option = "") const;
   //
+  Bool_t             GetSkip()               const {return TestBit(kSkip);}
+  void               SetSkip(Bool_t v=kTRUE)       {SetBit(kSkip,v);}
+  //
  protected:
   UChar_t          fNLayers;               // number of layers
   Int_t            fITSLabel;              // ITS MC Label, the global one (wrt TPC) is fLab
   AliESDtrack*     fESDTrack;              // reference esd track
+  AliITSUSeed*     fWinner;                // winner seed
+  AliExternalTrackParam* fTPCSeed;         // kinematics of TPC track at outer radius
   TObjArray*       fLayerSeeds;            // seeds of given layer
   //
   ClassDef(AliITSUTrackHyp,1)
