@@ -68,6 +68,10 @@ elseif(CCMAJORV STREQUAL "4")
   set(CXXFLAGS "${OPT} -fPIC -pipe -fmessage-length=0 -Dlinux")
   add_definitions(-Dlinux)
   set(CXXFLAGSNO "${NOOPT} -fPIC -pipe -fmessage-length=0")
+  if(CCMINORV STRGREATER 5) 
+    message("-- GCC version > 4.5 - mask default -Wl,--as-needed")
+    set(XTRA_LDFLAGS "-Wl,--no-as-needed")
+  endif() 
 
 else ()
 
@@ -102,7 +106,7 @@ if(${CMAKE_Fortran_COMPILER} MATCHES "g95")
 
 elseif(${CMAKE_Fortran_COMPILER} MATCHES "gfortran")
   
-  set(FFLAGS "-DFORTRAN_GFORTRAN ${FFLAGS}")
+  set(FFLAGS "-DFORTRAN_GFORTRAN ${FFLAGS} -fPIC")
   execute_process(COMMAND ${CMAKE_Fortran_COMPILER} -print-file-name=libgfortran.so
                   OUTPUT_VARIABLE _shlib
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -119,8 +123,8 @@ else()
   
 endif(${CMAKE_Fortran_COMPILER} MATCHES "g95")
 
-set(LDFLAGS "${OPT}")
-set(SOFLAGS "${OPT} -shared")
+set(LDFLAGS "${OPT} ${XTRA_LDFLAGS} ")
+set(SOFLAGS "${OPT}  ${XTRA_LDFLAGS} -shared")
 set(ALLIB)
 
 
