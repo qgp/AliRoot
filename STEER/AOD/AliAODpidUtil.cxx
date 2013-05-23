@@ -95,7 +95,7 @@ Float_t AliAODpidUtil::GetTPCsignalTunedOnData(const AliVTrack *t) const {
         Double_t sigma = fTPCResponse.GetExpectedSigma(track, type, AliTPCPIDResponse::kdEdxDefault, this->UseTPCEtaCorrection());
         dedx = gRandom->Gaus(bethe,sigma);
         
-	    if(iS == AliPID::ParticleCode(AliPID::kHe3) || iS == AliPID::ParticleCode(AliPID::kAlpha)) dedx *= 5;
+// 	    if(iS == AliPID::ParticleCode(AliPID::kHe3) || iS == AliPID::ParticleCode(AliPID::kAlpha)) dedx *= 5;
 	}
 
     }
@@ -104,7 +104,54 @@ Float_t AliAODpidUtil::GetTPCsignalTunedOnData(const AliVTrack *t) const {
     return dedx;
 }
 //_________________________________________________________________________
-Float_t AliAODpidUtil::GetNumberOfSigmasTOF(const AliVParticle *vtrack, AliPID::EParticleType type) const
+Float_t AliAODpidUtil::GetTOFsignalTunedOnData(const AliVTrack *t) const {
+    AliAODTrack *track = (AliAODTrack *) t;
+    Double_t tofSignal = track->GetTOFsignalTunedOnData();
+
+    if(tofSignal <  99999) return (Float_t)tofSignal; // it has been already set
+    AliAODPid *pidObj = track->GetDetPid();
+    tofSignal = pidObj->GetTOFsignal() + fTOFResponse.GetTailRandomValue();
+    track->SetTOFsignalTunedOnData(tofSignal);
+    return (Float_t)tofSignal;
+}
+
+//_________________________________________________________________________
+Float_t AliAODpidUtil::GetSignalDeltaTOFold(const AliVParticle *vtrack, AliPID::EParticleType type, Bool_t ratio/*=kFALSE*/) const
+{
+  //
+  // Number of sigma implementation for the TOF
+  //
+  
+  AliAODTrack *track=(AliAODTrack*)vtrack;
+  AliAODPid *pidObj = track->GetDetPid();
+  if (!pidObj) return -9999.;
+  Double_t tofTime = 99999;
+  if (fTuneMConData && ((fTuneMConDataMask & kDetTOF) == kDetTOF) ) tofTime = (Double_t)this->GetTOFsignalTunedOnData((AliVTrack*)vtrack);
+  else tofTime=pidObj->GetTOFsignal();
+  const Double_t expTime=fTOFResponse.GetExpectedSignal((AliVTrack*)vtrack,type);
+  Double_t sigmaTOFPid[AliPID::kSPECIES];
+  pidObj->GetTOFpidResolution(sigmaTOFPid);
+  AliAODEvent *event=(AliAODEvent*)track->GetAODEvent();
+  if (event) {  // protection if the user didn't call GetTrack, which sets the internal pointer
+    AliTOFHeader* tofH=(AliTOFHeader*)event->GetTOFHeader();
+    if (tofH && (TMath::Abs(sigmaTOFPid[0]) <= 1.E-16) ) { // new AOD
+        tofTime -= fTOFResponse.GetStartTime(vtrack->P());
+    }
+  } else {
+    AliError("pointer to AliAODEvent not found, please call GetTrack to set it");
+    return -9999.;
+  }
+
+  Double_t delta=-9999.;
+
+  if (!ratio) delta=tofTime-expTime;
+  else if (expTime>1.e-20) delta=tofTime/expTime;
+  
+  return delta;
+}
+
+//_________________________________________________________________________
+Float_t AliAODpidUtil::GetNumberOfSigmasTOFold(const AliVParticle *vtrack, AliPID::EParticleType type) const
 {
   //
   // Number of sigma implementation for the TOF
@@ -112,12 +159,13 @@ Float_t AliAODpidUtil::GetNumberOfSigmasTOF(const AliVParticle *vtrack, AliPID::
   
   AliAODTrack *track=(AliAODTrack*)vtrack;
 
-  if ( !(track->GetStatus() & AliVTrack::kTOFout) || !(track->GetStatus() & AliVTrack::kTIME) ) return -999.;
   Bool_t oldAod=kTRUE;
-  Double_t sigTOF;
+  Double_t sigTOF=0.;
   AliAODPid *pidObj = track->GetDetPid();
   if (!pidObj) return -999.;
-  Double_t tofTime=pidObj->GetTOFsignal();
+  Double_t tofTime = 99999;
+  if (fTuneMConData && ((fTuneMConDataMask & kDetTOF) == kDetTOF) ) tofTime = (Double_t)this->GetTOFsignalTunedOnData((AliVTrack*)vtrack);
+  else tofTime=pidObj->GetTOFsignal();
   Double_t expTime=fTOFResponse.GetExpectedSignal((AliVTrack*)vtrack,type);
   Double_t sigmaTOFPid[AliPID::kSPECIES];
   pidObj->GetTOFpidResolution(sigmaTOFPid);

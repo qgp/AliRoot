@@ -78,7 +78,7 @@ AliTPCPIDResponse::AliTPCPIDResponse():
   //
   for (Int_t i=0; i<fgkNumberOfGainScenarios; i++) {fRes0[i]=0.07;fResN2[i]=0.0;}
 }
-
+/*TODO remove?
 //_________________________________________________________________________
 AliTPCPIDResponse::AliTPCPIDResponse(const Double_t *param):
   TNamed(),
@@ -108,7 +108,7 @@ AliTPCPIDResponse::AliTPCPIDResponse(const Double_t *param):
   //
   for (Int_t i=0; i<fgkNumberOfGainScenarios; i++) {fRes0[i]=param[1];fResN2[i]=param[2];}
 }
-
+*/
 
 //_________________________________________________________________________
 AliTPCPIDResponse::~AliTPCPIDResponse()
@@ -153,12 +153,12 @@ AliTPCPIDResponse::AliTPCPIDResponse(const AliTPCPIDResponse& that):
   for (Int_t i=0; i<fgkNumberOfGainScenarios; i++) {fRes0[i]=that.fRes0[i];fResN2[i]=that.fResN2[i];}
  
   // Copy eta maps
-  if (that.fhEtaCorr){
+  if (that.fhEtaCorr) {
     fhEtaCorr = new TH2D(*(that.fhEtaCorr));
     fhEtaCorr->SetDirectory(0);
   }
   
-  if (that.fhEtaSigmaPar1){
+  if (that.fhEtaSigmaPar1) {
     fhEtaSigmaPar1 = new TH2D(*(that.fhEtaSigmaPar1));
     fhEtaSigmaPar1->SetDirectory(0);
   }
@@ -189,14 +189,14 @@ AliTPCPIDResponse& AliTPCPIDResponse::operator=(const AliTPCPIDResponse& that)
 
   delete fhEtaCorr;
   fhEtaCorr=0x0;
-  if (that.fhEtaCorr){
+  if (that.fhEtaCorr) {
     fhEtaCorr = new TH2D(*(that.fhEtaCorr));
     fhEtaCorr->SetDirectory(0);
   }
   
   delete fhEtaSigmaPar1;
   fhEtaSigmaPar1=0x0;
-  if (that.fhEtaSigmaPar1){
+  if (that.fhEtaSigmaPar1) {
     fhEtaSigmaPar1 = new TH2D(*(that.fhEtaSigmaPar1));
     fhEtaSigmaPar1->SetDirectory(0);
   }
@@ -335,7 +335,7 @@ Double_t AliTPCPIDResponse::GetExpectedSignal(const AliVTrack* track,
   //
   
   Double_t mom=track->GetTPCmomentum();
-  Double_t mass=AliPID::ParticleMass(species);
+  Double_t mass=AliPID::ParticleMassZ(species);
   
   //charge factor. BB goes with z^2, however in reality it is slightly larger (calibration, threshold effects, ...)
   // !!! Splines for light nuclei need to be normalised to this factor !!!
@@ -375,7 +375,7 @@ Double_t AliTPCPIDResponse::GetExpectedSignal(const AliVTrack* track,
     // !!! Splines for light nuclei need to be normalised to this factor !!!
     const Double_t chargeFactor = TMath::Power(AliPID::ParticleCharge(species),2.3);
   
-    return Bethe(track->GetTPCmomentum() / AliPID::ParticleMass(species)) * chargeFactor;
+    return Bethe(track->GetTPCmomentum() / AliPID::ParticleMassZ(species)) * chargeFactor;
   }
   
   Double_t dEdx = -1;
@@ -514,7 +514,7 @@ Float_t AliTPCPIDResponse::GetNumberOfSigmas(const AliVTrack* track,
   //Calculates the number of sigmas of the PID signal from the expected value
   //for a given particle species in the presence of multiple gain scenarios
   //inside the TPC
-                             
+  
   Double_t dEdx = -1;
   Int_t nPoints = -1;
   ETPCgainScenario gainScenario = kGainScenarioInvalid;
@@ -522,7 +522,7 @@ Float_t AliTPCPIDResponse::GetNumberOfSigmas(const AliVTrack* track,
   
   if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
     return -999; //TODO: Better handling!
-                             
+    
   Double_t bethe = GetExpectedSignal(track, species, dEdx, responseFunction, correctEta);
   Double_t sigma = GetExpectedSigma(track, species, gainScenario, dEdx, nPoints, responseFunction, correctEta);
   // 999 will be returned by GetExpectedSigma e.g. in case of 0 dEdx clusters
@@ -533,12 +533,40 @@ Float_t AliTPCPIDResponse::GetNumberOfSigmas(const AliVTrack* track,
 }
 
 //_________________________________________________________________________
+Float_t AliTPCPIDResponse::GetSignalDelta(const AliVTrack* track,
+                                          AliPID::EParticleType species,
+                                          ETPCdEdxSource dedxSource,
+                                          Bool_t correctEta,
+                                          Bool_t ratio/*=kFALSE*/) const
+{
+  //Calculates the number of sigmas of the PID signal from the expected value
+  //for a given particle species in the presence of multiple gain scenarios
+  //inside the TPC
+
+  Double_t dEdx = -1;
+  Int_t nPoints = -1;
+  ETPCgainScenario gainScenario = kGainScenarioInvalid;
+  TSpline3* responseFunction = 0x0;
+
+  if (!ResponseFunctiondEdxN(track, species, dedxSource, dEdx, nPoints, gainScenario, &responseFunction))
+    return -9999.; //TODO: Better handling!
+
+  const Double_t bethe = GetExpectedSignal(track, species, dEdx, responseFunction, correctEta);
+
+  Double_t delta=-9999.;
+  if (!ratio) delta=dEdx-bethe;
+  else if (bethe>1.e-20) delta=dEdx/bethe;
+
+  return delta;
+}
+
+//_________________________________________________________________________
 Bool_t AliTPCPIDResponse::ResponseFunctiondEdxN( const AliVTrack* track, 
                                                  AliPID::EParticleType species,
                                                  ETPCdEdxSource dedxSource,
-                                                 Double_t& dEdx, 
-                                                 Int_t& nPoints, 
-                                                 ETPCgainScenario& gainScenario, 
+                                                 Double_t& dEdx,
+                                                 Int_t& nPoints,
+                                                 ETPCgainScenario& gainScenario,
                                                  TSpline3** responseFunction) const 
 {
   // Calculates the right parameters for PID
@@ -871,7 +899,7 @@ Bool_t AliTPCPIDResponse::sectorNumbersInOut(Double_t* trackPositionInner,
                                              Float_t& inphi,
                                              Float_t& outphi,
                                              Int_t& in,
-                                                                                                                                                                                                                                     Int_t& out ) const
+                                             Int_t& out ) const
 {
   //calculate the sector numbers (equivalent to IROC chamber numbers) a track crosses
   //for OROC chamber numbers add 36
@@ -894,8 +922,8 @@ Bool_t AliTPCPIDResponse::sectorNumbersInOut(Double_t* trackPositionInner,
   }
   return kTRUE;
 }
-    
-    
+
+
 //_____________________________________________________________________________
 Int_t AliTPCPIDResponse::sectorNumber(Double_t phi) const
 {
@@ -904,12 +932,14 @@ Int_t AliTPCPIDResponse::sectorNumber(Double_t phi) const
   return TMath::Floor(phi/width);
 }
 
+
 //_____________________________________________________________________________
 void AliTPCPIDResponse::Print(Option_t* /*option*/) const
 {
   //Print info
   fResponseFunctions.Print();
 }
+
 
 //_____________________________________________________________________________
 AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack* track, Int_t layer) const
@@ -927,9 +957,9 @@ AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack
   /////////////////////////////////////////////////////////////////////////////
   //find out where track enters and leaves the layer.
   //
-  Double_t trackPositionInner[3]; 
-  Double_t trackPositionOuter[3]; 
-  
+  Double_t trackPositionInner[3];
+  Double_t trackPositionOuter[3];
+ 
   //if there is no inner param this could mean we're using the AOD track,
   //we still can extrapolate from the vertex - so use those params.
   const AliExternalTrackParam* ip = track->GetInnerParam();
@@ -968,19 +998,19 @@ AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack
   }
 
 
-  if (!sectorNumbersInOut(trackPositionInner, 
-                          trackPositionOuter, 
-                          inphi, 
-                          outphi, 
-                          in, 
+  if (!sectorNumbersInOut(trackPositionInner,
+                          trackPositionOuter,
+                          inphi,
+                          outphi,
+                          in,
                           out)) return kChamberInvalid;
 
   /////////////////////////////////////////////////////////////////////////////
-  //now we have the location of the track we can check 
+  //now we have the location of the track we can check
   //if it is in a good/bad chamber
   //
   Bool_t sideA = kTRUE;
-  
+ 
   if (((in/18)%2==1) && ((out/18)%2==1)) sideA=kFALSE;
 
   in=in%18;
@@ -1019,26 +1049,26 @@ AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack
   Float_t lengthFractionInBadSectors = 0.;
 
   const Float_t sectorWidth = TMath::TwoPi()/18.;  
-  
+ 
   for (Int_t i=in; i<=out; i++)
   {
     int j=i;
     if (i<0) j+=18;    //correct for the negative values
     if (!sideA) j+=18; //move to the correct side
-    
+   
     Float_t deltaPhi = 0.;
     Float_t phiEdge=sectorWidth*i;
     if (inphi>phiEdge) {deltaPhi=phiEdge+sectorWidth-inphi;}
     else if ((outphi>=phiEdge) && (outphi<(phiEdge+sectorWidth))) {deltaPhi=outphi-phiEdge;}
     else {deltaPhi=sectorWidth;}
-    
+   
     Float_t v = fVoltageMap[(layer==1)?(j):(j+36)];
-    if (v<=fBadIROCthreshhold) 
-    { 
-      trackLengthInBad+=deltaPhi; 
+    if (v<=fBadIROCthreshhold)
+    {
+      trackLengthInBad+=deltaPhi;
       lengthFractionInBadSectors=1.;
     }
-    if (v<=fLowGainIROCthreshold && v>fBadIROCthreshhold) 
+    if (v<=fLowGainIROCthreshold && v>fBadIROCthreshhold)
     {
       trackLengthInLowGain+=deltaPhi;
       lengthFractionInBadSectors=1.;
@@ -1050,15 +1080,16 @@ AliTPCPIDResponse::EChamberStatus AliTPCPIDResponse::TrackStatus(const AliVTrack
     lengthFractionInBadSectors = (trackLengthInLowGain+trackLengthInBad)/trackLengthTotal;
 
   //printf("### side: %s, pt: %.2f, pz: %.2f, in: %i, out: %i, phiIN: %.2f, phiOUT: %.2f, rIN: %.2f, rOUT: %.2f\n",(sideA)?"A":"C",track->Pt(),track->Pz(),in,out,inphi,outphi,innerRadius,outerRadius);
-  
-  if (lengthFractionInBadSectors>fMaxBadLengthFraction) 
+ 
+  if (lengthFractionInBadSectors>fMaxBadLengthFraction)
   {
     //printf("%%%%%%%% %s kChamberLowGain\n",(layer==1)?"IROC":"OROC");
     return kChamberLowGain;
   }
-  
+ 
   return kChamberHighGain;
 }
+
 
 //_____________________________________________________________________________
 Float_t AliTPCPIDResponse::MaxClusterRadius(const AliVTrack* track) const
@@ -1069,7 +1100,7 @@ Float_t AliTPCPIDResponse::MaxClusterRadius(const AliVTrack* track) const
   if (!clusterMap) return 0.;
 
   //from AliTPCParam, radius of first IROC row
-  const Float_t rfirstIROC = 8.52249984741210938e+01; 
+  const Float_t rfirstIROC = 8.52249984741210938e+01;
   const Float_t padrowHeightIROC = 0.75;
   const Float_t rfirstOROC0 = 1.35100006103515625e+02;
   const Float_t padrowHeightOROC0 = 1.0;
@@ -1084,6 +1115,7 @@ Float_t AliTPCPIDResponse::MaxClusterRadius(const AliVTrack* track) const
   return 0.0;
 }
 
+
 //_____________________________________________________________________________
 Bool_t AliTPCPIDResponse::TrackApex(const AliVTrack* track, Float_t magField, Double_t position[3]) const
 {
@@ -1093,23 +1125,23 @@ Bool_t AliTPCPIDResponse::TrackApex(const AliVTrack* track, Float_t magField, Do
   Double_t p[3];
   track->GetPxPyPz(p);
   Double_t r = 1./track->OneOverPt()/0.0299792458/magField; //signed - will determine the direction of b
-  //printf("b: %.2f, x:%.2f, y:%.2f, pt: %.2f, px:%.2f, py%.2f, r: %.2f\n",magField, x[0],x[1],track->Pt(), p[0],p[1],r); 
+  //printf("b: %.2f, x:%.2f, y:%.2f, pt: %.2f, px:%.2f, py%.2f, r: %.2f\n",magField, x[0],x[1],track->Pt(), p[0],p[1],r);
   //find orthogonal vector (Gram-Schmidt)
   Double_t alpha = (p[0]*x[0] + p[1]*x[1])/(p[0]*p[0] + p[1]*p[1]);
   Double_t b[2];
-  b[0]=x[0]-alpha*p[0]; 
-  b[1]=x[1]-alpha*p[1]; 
-  
+  b[0]=x[0]-alpha*p[0];
+  b[1]=x[1]-alpha*p[1];
+ 
   Double_t norm = TMath::Sqrt(b[0]*b[0]+b[1]*b[1]);
   if (TMath::AreEqualAbs(norm,0.0,1e-10)) return kFALSE;
-  b[0]/=norm; 
-  b[1]/=norm; 
-  b[0]*=r; 
-  b[1]*=r; 
-  b[0]+=x[0]; 
+  b[0]/=norm;
+  b[1]/=norm;
+  b[0]*=r;
+  b[1]*=r;
+  b[0]+=x[0];
   b[1]+=x[1];
   //printf("center: x:%.2f, y:%.2f\n",b[0],b[1]);
-  
+ 
   norm = TMath::Sqrt(b[0]*b[0]+b[1]*b[1]);
   if (TMath::AreEqualAbs(norm,0.0,1e-10)) return kFALSE;
  

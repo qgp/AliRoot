@@ -91,13 +91,24 @@ public:
   virtual UShort_t  GetTPCsignalN()      const {return 0 ;}
   virtual Double_t  GetTPCmomentum()     const {return 0.;}
   virtual Double_t  GetTOFsignal()       const {return 0.;}
+  virtual Double_t  GetTOFsignalTunedOnData() const {return 0.;}
   virtual Double_t  GetHMPIDsignal()     const {return 0.;}
   virtual Double_t  GetTRDsignal()       const {return 0.;}
 
+  virtual Double_t  GetHMPIDoccupancy()  const {return 0.;}
+  
+  virtual Int_t     GetHMPIDcluIdx()     const {return 0;}
+  
+  virtual void GetHMPIDtrk(Float_t &/*&x*/, Float_t &/*y*/, Float_t &/*th*/, Float_t &/*ph*/) const {;}  
+  virtual void GetHMPIDmip(Float_t &/*x*/, Float_t &/*y*/, Int_t &/*q*/,Int_t &/*nph*/) const {;}
+  
+  virtual Bool_t GetOuterHmpPxPyPz(Double_t */*p*/) const {return kFALSE;}
+  
   virtual void      GetIntegratedTimes(Double_t */*times*/) const { return; }
   virtual Double_t  GetTRDmomentum(Int_t /*plane*/, Double_t */*sp*/=0x0) const {return 0.;}
   virtual void      GetHMPIDpid(Double_t */*p*/) const {;}
-    
+  virtual Double_t  GetIntegratedLength() const { return 0.;}
+  
   virtual ULong_t  GetStatus() const = 0;
   virtual Bool_t   GetXYZ(Double_t *p) const = 0;
   virtual Bool_t   GetXYZAt(Double_t /*x*/, Double_t /*b*/, Double_t* /*r*/ ) const {return kFALSE;}

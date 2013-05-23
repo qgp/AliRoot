@@ -126,13 +126,24 @@ Float_t AliESDpid::GetTPCsignalTunedOnData(const AliVTrack *t) const {
         Double_t bethe = fTPCResponse.GetExpectedSignal(track, type, AliTPCPIDResponse::kdEdxDefault, this->UseTPCEtaCorrection());
         Double_t sigma = fTPCResponse.GetExpectedSigma(track, type, AliTPCPIDResponse::kdEdxDefault, this->UseTPCEtaCorrection());
 		dedx = gRandom->Gaus(bethe,sigma);
-		if(iS == AliPID::ParticleCode(AliPID::kHe3) || iS == AliPID::ParticleCode(AliPID::kAlpha)) dedx *= 5;
+// 		if(iS == AliPID::ParticleCode(AliPID::kHe3) || iS == AliPID::ParticleCode(AliPID::kAlpha)) dedx *= 5;
 	    }
 	}
     }
 
     track->SetTPCsignalTunedOnData(dedx);
     return dedx;
+}
+//_________________________________________________________________________
+Float_t AliESDpid::GetTOFsignalTunedOnData(const AliVTrack *t) const {
+    AliESDtrack *track = (AliESDtrack *) t;
+    Double_t tofSignal = track->GetTOFsignalTunedOnData();
+
+    if(tofSignal <  99999) return (Float_t)tofSignal; // it has been already set
+
+    tofSignal = t->GetTOFsignal() + fTOFResponse.GetTailRandomValue();
+    track->SetTOFsignalTunedOnData(tofSignal);
+    return (Float_t)tofSignal;
 }
 //_________________________________________________________________________
 void AliESDpid::MakeTPCPID(AliESDtrack *track) const
@@ -284,7 +295,8 @@ void AliESDpid::MakeTOFPID(AliESDtrack *track, Float_t /*timeZeroTOF*/) const
   Double_t tof = track->GetTOFsignal() - timezero;
 
   Double_t p[AliPID::kSPECIES];
-  Bool_t mismatch = kTRUE, heavy = kTRUE;
+//   Bool_t mismatch = kTRUE;
+  Bool_t heavy = kTRUE;
   for (Int_t j=0; j<AliPID::kSPECIES; j++) {
     Double_t sig = sigma[j];
     if (TMath::Abs(tof-time[j]) > (fRange+2)*sig) {
@@ -294,9 +306,9 @@ void AliESDpid::MakeTOFPID(AliESDtrack *track, Float_t /*timeZeroTOF*/) const
 
     // Check the mismatching
     
-    Double_t mass = AliPID::ParticleMass(j);
-    Double_t pm = fTOFResponse.GetMismatchProbability(track->GetP(),mass);
-    if (p[j]>pm) mismatch = kFALSE;
+//     Double_t mass = AliPID::ParticleMass(j);
+//     Double_t pm = fTOFResponse.GetMismatchProbability(track->GetP(),mass);
+//     if (p[j]>pm) mismatch = kFALSE;
 
     // Check for particles heavier than (AliPID::kSPECIES - 1)
     if (tof < (time[j] + fRange*sig)) heavy=kFALSE;
@@ -409,14 +421,39 @@ Bool_t AliESDpid::CheckTOFMatching(AliESDtrack *track) const{
     return status;
 }
 
-Float_t AliESDpid::NumberOfSigmasTOF(const AliVParticle *track, AliPID::EParticleType type, const Float_t /*timeZeroTOF*/) const
+//_________________________________________________________________________
+Float_t AliESDpid::GetSignalDeltaTOFold(const AliVParticle *track, AliPID::EParticleType type, Bool_t ratio/*=kFALSE*/) const
+{
+  //
+  // TOF signal - expected
+  //
+  AliVTrack *vtrack=(AliVTrack*)track;
+  
+  const Double_t expTime = fTOFResponse.GetExpectedSignal(vtrack,type);
+  Double_t tofTime = 99999;
+  if (fTuneMConData && ((fTuneMConDataMask & kDetTOF) == kDetTOF) ) tofTime = (Double_t)this->GetTOFsignalTunedOnData((AliVTrack*)vtrack);
+  else tofTime=vtrack->GetTOFsignal();
+  tofTime = tofTime  - fTOFResponse.GetStartTime(vtrack->P());
+  Double_t delta=-9999.;
+
+  if (!ratio) delta=tofTime-expTime;
+  else if (expTime>1.e-20) delta=tofTime/expTime;
+  
+  return delta;
+}
+
+//_________________________________________________________________________
+Float_t AliESDpid::GetNumberOfSigmasTOFold(const AliVParticle *track, AliPID::EParticleType type) const
 {
   //
   // Number of sigma implementation for the TOF
   //
-  
+
   AliVTrack *vtrack=(AliVTrack*)track;
-  if ( !(vtrack->GetStatus() & AliVTrack::kTOFout) || !(vtrack->GetStatus() & AliVTrack::kTIME) ) return -999.;
+  Double_t tofTime = 99999;
+  if (fTuneMConData && ((fTuneMConDataMask & kDetTOF) == kDetTOF) ) tofTime = (Double_t)this->GetTOFsignalTunedOnData((AliVTrack*)vtrack);
+  else tofTime=vtrack->GetTOFsignal();
+  
   Double_t expTime = fTOFResponse.GetExpectedSignal(vtrack,type);
-  return (vtrack->GetTOFsignal() - fTOFResponse.GetStartTime(vtrack->P()) - expTime)/fTOFResponse.GetExpectedSigma(vtrack->P(),expTime,AliPID::ParticleMassZ(type));
+  return (tofTime - fTOFResponse.GetStartTime(vtrack->P()) - expTime)/fTOFResponse.GetExpectedSigma(vtrack->P(),expTime,AliPID::ParticleMassZ(type));
 }
