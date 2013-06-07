@@ -170,7 +170,7 @@ Bool_t AliZDCDigitizer::Init()
   /*if(fIspASystem){
     fBeamType = "p-A";
     AliInfo(" AliZDCDigitizer -> Manually setting beam type to p-A\n");
-    }*/
+  }*/
   
   // Setting beam type for spectator generator and RELDIS generator
   if(((fBeamType.CompareTo("UNKNOWN")) == 0) || fIsRELDISgen){
@@ -301,11 +301,13 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
     else if(genHeader->InheritsFrom(AliGenCocktailEventHeader::Class())){
       TList* listOfHeaders = ((AliGenCocktailEventHeader*) genHeader)->GetHeaders();
       if(listOfHeaders){ 
-        hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (listOfHeaders->FindObject("Hijing"));
-        if(!hijingHeader) hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (listOfHeaders->FindObject("Hijing_0"));      
-        if(!hijingHeader) hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (listOfHeaders->FindObject("HijingpPbPb"));
-        if(!hijingHeader) hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (listOfHeaders->FindObject("HijingpPb"));
-        if(!hijingHeader) hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (listOfHeaders->FindObject("HijingpPb_0"));      
+	for(Int_t iH = 0; iH < listOfHeaders->GetEntries(); ++iH) {
+	  AliGenEventHeader *currHeader = dynamic_cast <AliGenEventHeader *> (listOfHeaders->At(iH));
+	  if (currHeader && currHeader->InheritsFrom(AliGenHijingEventHeader::Class())) {
+	    hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (currHeader);
+	    break;
+	  }
+	}
       }
       else{
         printf(" No list of headers from generator \n");
@@ -321,10 +323,10 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
       specPProj = hijingHeader->ProjSpectatorsp();
       specNTarg = hijingHeader->TargSpectatorsn();
       specPTarg = hijingHeader->TargSpectatorsp();
-      AliInfo(Form("\t AliZDCDigitizer: b = %1.2f fm\n"
+      printf("\t AliZDCDigitizer: b = %1.2f fm\n"
       " \t    PROJECTILE:  #spectator n %d, #spectator p %d\n"
       " \t    TARGET:  #spectator n %d, #spectator p %d\n", 
-      impPar, specNProj, specPProj, specNTarg, specPTarg));
+      impPar, specNProj, specPProj, specNTarg, specPTarg);
     
       // Applying fragmentation algorithm and adding spectator signal
       Int_t freeSpecNProj=0, freeSpecPProj=0;
@@ -333,10 +335,10 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
       if(specNTarg!=0 || specPTarg!=0) Fragmentation(impPar, specNTarg, specPTarg, freeSpecNTarg, freeSpecPTarg);
       if(freeSpecNProj!=0) SpectatorSignal(1, freeSpecNProj, pm);
       if(freeSpecPProj!=0) SpectatorSignal(2, freeSpecPProj, pm);
-      AliInfo(Form("\t AliZDCDigitizer -> Adding spectator signal for PROJECTILE: %d free  n and %d free p\n",freeSpecNProj,freeSpecPProj));
+      printf("\t AliZDCDigitizer -> Adding spectator signal for PROJECTILE: %d free  n and %d free p\n",freeSpecNProj,freeSpecPProj);
       if(freeSpecNTarg!=0) SpectatorSignal(3, freeSpecNTarg, pm);
       if(freeSpecPTarg!=0) SpectatorSignal(4, freeSpecPTarg, pm);
-      AliInfo(Form("\t AliZDCDigitizer -> Adding spectator signal for TARGET: %d free  n and %d free p\n",freeSpecNTarg,freeSpecPTarg));
+      printf("\t AliZDCDigitizer -> Adding spectator signal for TARGET: %d free  n and %d free p\n",freeSpecNTarg,freeSpecPTarg);
     }
   }
 
@@ -376,7 +378,7 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
 
 	//Ch. debug
 	//printf("\t DIGIT added -> det %d quad %d - digi[0,1] = [%d, %d]\n",
-	//     sector[0], sector[1], digi[0], digi[1]); // Chiara debugging!
+	  //   sector[0], sector[1], digi[0], digi[1]); // Chiara debugging!
 	
     }
   } // Loop over detector
