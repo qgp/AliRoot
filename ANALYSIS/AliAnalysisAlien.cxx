@@ -2588,7 +2588,7 @@ void AliAnalysisAlien::SetFriendChainName(const char *name, const char *libnames
    // Libs should be separated by blancs.
    fFriendChainName = name;
    fFriendLibs = libnames;
-   if (!fFriendLibs.Contains(".so")) {
+   if (fFriendLibs.Length() && !fFriendLibs.Contains(".so")) {
       Fatal("SetFriendChainName()", "You should provide explicit library names (with extension)");
    }
 }
@@ -4113,7 +4113,7 @@ void AliAnalysisAlien::WriteAnalysisMacro()
             out << "   plugin->SetFileForTestMode(\"" << fFileForTestMode << "\");" << endl;
          out << "   plugin->SetNtestFiles(" << fNtestFiles << ");" << endl;
          if (!fFriendChainName.IsNull()) 
-            out << "   plugin->SetFriendChainName(\"" << fFriendChainName << "\");" << endl;
+            out << "   plugin->SetFriendChainName(\"" << fFriendChainName << "\",\"" << fFriendLibs << "\");" << endl;
          if (IsUseMCchain())
             out << "   plugin->SetUseMCchain();" << endl;
          out << "   mgr->SetGridHandler(plugin);" << endl;
