@@ -12,8 +12,10 @@ AliAnalysisTaskESDfilter *AddTaskESDFilter(Bool_t useKineFilter=kTRUE,
                                            Bool_t useCentralityTask=kFALSE, /*obsolete*/
                                            Bool_t enableTPCOnlyAODTracks=kFALSE,
                                            Bool_t disableCascades=kFALSE,
-                                           Bool_t disableKinks=kFALSE, Int_t runFlag = 1100,
-					   Int_t  muonMCMode = 2)
+                                           Bool_t disableKinks=kFALSE, 
+                                           Int_t runFlag = 1100,
+                                           Int_t  muonMCMode = 2, 
+                                           Bool_t useV0Filter=kTRUE)
 {
   // Creates a filter task and adds it to the analysis manager.
    // Get the pointer to the existing analysis manager via the static access method.
@@ -21,7 +23,7 @@ AliAnalysisTaskESDfilter *AddTaskESDFilter(Bool_t useKineFilter=kTRUE,
    AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
    if (!mgr) {
       ::Error("AddTaskESDFilter", "No analysis manager to connect to.");
-      return NULL;
+     return NULL;
    }   
    
    // This task requires an ESD input handler and an AOD output handler.
@@ -87,17 +89,19 @@ AliAnalysisTaskESDfilter *AddTaskESDFilter(Bool_t useKineFilter=kTRUE,
    }
 
    // Filter with cuts on V0s
-   AliESDv0Cuts*   esdV0Cuts = new AliESDv0Cuts("Standard V0 Cuts pp", "ESD V0 Cuts");
-   esdV0Cuts->SetMinRadius(0.2);
-   esdV0Cuts->SetMaxRadius(200);
-   esdV0Cuts->SetMinDcaPosToVertex(0.05);
-   esdV0Cuts->SetMinDcaNegToVertex(0.05);
-   esdV0Cuts->SetMaxDcaV0Daughters(1.5);
-   esdV0Cuts->SetMinCosinePointingAngle(0.99);
-   AliAnalysisFilter* v0Filter = new AliAnalysisFilter("v0Filter");
-   v0Filter->AddCuts(esdV0Cuts);
+   if (useV0Filter) {
+     AliESDv0Cuts*   esdV0Cuts = new AliESDv0Cuts("Standard V0 Cuts pp", "ESD V0 Cuts");
+     esdV0Cuts->SetMinRadius(0.2);
+     esdV0Cuts->SetMaxRadius(200);
+     esdV0Cuts->SetMinDcaPosToVertex(0.05);
+     esdV0Cuts->SetMinDcaNegToVertex(0.05);
+     esdV0Cuts->SetMaxDcaV0Daughters(1.5);
+     esdV0Cuts->SetMinCosinePointingAngle(0.99);
+     AliAnalysisFilter* v0Filter = new AliAnalysisFilter("v0Filter");
+     v0Filter->AddCuts(esdV0Cuts);
 
-   esdfilter->SetV0Filter(v0Filter);
+     esdfilter->SetV0Filter(v0Filter);
+   }  
 
    // Enable writing of Muon AODs
    esdmuonfilter->SetWriteMuonAOD(writeMuonAOD);
@@ -220,8 +224,6 @@ Bool_t AddTrackCutsLHC10h(AliAnalysisTaskESDfilter* esdfilter){
   AliESDtrackCuts* esdTrackCutsGCOnly = jetCuts1006->Clone("JetCuts10041006");
   esdTrackCutsGCOnly->SetRequireITSRefit(kFALSE);
 
-
-
   // TPC only tracks
   AliESDtrackCuts* esdTrackCutsTPCCOnly = AliESDtrackCuts::GetStandardTPCOnlyTrackCuts();
   esdTrackCutsTPCCOnly->SetMinNClustersTPC(70);
@@ -266,7 +268,6 @@ Bool_t AddTrackCutsLHC10h(AliAnalysisTaskESDfilter* esdfilter){
   return kTRUE;
   
 }
-
 
 
 Bool_t AddTrackCutsLHC11h(AliAnalysisTaskESDfilter* esdfilter){
@@ -319,6 +320,7 @@ Bool_t AddTrackCutsLHC11h(AliAnalysisTaskESDfilter* esdfilter){
    esdTrackCutsHTG->SetMaxDCAToVertexZ(3.2);
    esdTrackCutsHTG->SetDCAToVertex2D(kTRUE);
    esdTrackCutsHTG->SetMaxChi2TPCConstrainedGlobal(36);
+   esdTrackCutsHTG->SetMaxFractionSharedTPCClusters(0.4);
    
 
    // Than the complementary tracks which will be stored as global
