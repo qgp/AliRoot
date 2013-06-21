@@ -190,6 +190,8 @@ public:
   virtual void           SetVZEROEqFactors(Float_t /* factors */[64]) const {return;}
   virtual AliVZDC   *GetZDCData() const = 0;
 
+  virtual Int_t     GetNumberOfESDTracks()  const { return 0; }
+
   ClassDef(AliVEvent,2)  // base class for AliEvent data
 };
 #endif 

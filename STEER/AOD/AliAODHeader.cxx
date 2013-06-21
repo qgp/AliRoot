@@ -36,6 +36,8 @@ AliAODHeader::AliAODHeader() :
   fCentrality(-999.),
   fEventplane(-999.),
   fEventplaneMag(-999.),
+  fEventplaneQx(-999.),
+  fEventplaneQy(-999.),
   fZDCN1Energy(-999.),
   fZDCP1Energy(-999.),
   fZDCN2Energy(-999.),
@@ -62,6 +64,7 @@ AliAODHeader::AliAODHeader() :
   fOfflineTrigger(0),
   fESDFileName(""),
   fEventNumberESDFile(-1),
+  fNumberESDTracks(-1),
   fL0TriggerInputs(0),
   fL1TriggerInputs(0),
   fL2TriggerInputs(0),
@@ -97,6 +100,8 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fCentrality(-999.),
   fEventplane(-999.),
   fEventplaneMag(-999.),
+  fEventplaneQx(-999.),
+  fEventplaneQy(-999.),
   fZDCN1Energy(-999.),
   fZDCP1Energy(-999.),
   fZDCN2Energy(-999.),
@@ -123,6 +128,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fOfflineTrigger(0),
   fESDFileName(""),
   fEventNumberESDFile(-1),
+  fNumberESDTracks(-1),
   fL0TriggerInputs(0),
   fL1TriggerInputs(0),
   fL2TriggerInputs(0),
@@ -177,6 +183,9 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fMuonMagFieldScale(muonMagFieldScale),
   fCentrality(cent),
   fEventplane(eventplane),
+  fEventplaneMag(0),
+  fEventplaneQx(0),
+  fEventplaneQy(0),
   fZDCN1Energy(n1Energy),
   fZDCP1Energy(p1Energy),
   fZDCN2Energy(n2Energy),
@@ -203,6 +212,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fOfflineTrigger(0),
   fESDFileName(""),
   fEventNumberESDFile(-1),
+  fNumberESDTracks(-1),
   fL0TriggerInputs(0),
   fL1TriggerInputs(0),
   fL2TriggerInputs(0),
@@ -244,6 +254,8 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fCentrality(hdr.fCentrality),
   fEventplane(hdr.fEventplane),
   fEventplaneMag(hdr.fEventplaneMag),
+  fEventplaneQx(hdr.fEventplaneQx),
+  fEventplaneQy(hdr.fEventplaneQy),
   fZDCN1Energy(hdr.fZDCN1Energy),
   fZDCP1Energy(hdr.fZDCP1Energy),
   fZDCN2Energy(hdr.fZDCN2Energy),
@@ -270,6 +282,7 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fOfflineTrigger(hdr.fOfflineTrigger),
   fESDFileName(hdr.fESDFileName),
   fEventNumberESDFile(hdr.fEventNumberESDFile),
+  fNumberESDTracks(hdr.fNumberESDTracks),
   fL0TriggerInputs(hdr.fL0TriggerInputs),
   fL1TriggerInputs(hdr.fL1TriggerInputs),
   fL2TriggerInputs(hdr.fL2TriggerInputs),
@@ -321,6 +334,8 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fCentrality       = hdr.fCentrality;
     fEventplane       = hdr.fEventplane;
     fEventplaneMag    = hdr.fEventplaneMag;
+    fEventplaneQx     = hdr.fEventplaneQx;
+    fEventplaneQy     = hdr.fEventplaneQy;
     fZDCN1Energy      = hdr.fZDCN1Energy;
     fZDCP1Energy      = hdr.fZDCP1Energy;
     fZDCN2Energy      = hdr.fZDCN2Energy;
@@ -346,6 +361,7 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fOfflineTrigger   = hdr.fOfflineTrigger;
     fESDFileName      = hdr.fESDFileName;
     fEventNumberESDFile = hdr.fEventNumberESDFile;
+    fNumberESDTracks    = hdr.fNumberESDTracks;
     fL0TriggerInputs    = hdr.fL0TriggerInputs;
     fL1TriggerInputs    = hdr.fL1TriggerInputs;
     fL2TriggerInputs    = hdr.fL2TriggerInputs;
@@ -452,6 +468,8 @@ void AliAODHeader::Clear(Option_t* /*opt*/)
     fEventplaneP = 0;
     fEventplane = -999;
     fEventplaneMag = -999.;
+    fEventplaneQx = -999.;
+    fEventplaneQy = -999.;
   }
   return;
 }
@@ -472,8 +490,10 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("Muon mag. field scale   : %f\n", fMuonMagFieldScale);
   
   printf("Centrality              : %f\n", fCentrality);
-  printf("Event plane             : %f\n", fEventplane);
-  printf("Event plane             : %f\n", fEventplaneMag);
+  printf("Event plane Ang         : %f\n", fEventplane);
+  printf("Event plane Mag         : %f\n", fEventplaneMag);
+  printf("Event plane Qx          : %f\n", fEventplaneQx);
+  printf("Event plane Qy          : %f\n", fEventplaneQy);
   printf("ZDC N1 Energy           : %f\n", fZDCN1Energy);
   printf("ZDC P1 Energy           : %f\n", fZDCP1Energy);
   printf("ZDC N2 Energy           : %f\n", fZDCN2Energy);
@@ -534,6 +554,38 @@ Int_t AliAODHeader::GetIRInt2ClosestInteractionMap()
   for(Int_t item=1; item<=90; item++) {
     Int_t bin = FindIRIntInteractionsBXMap(item);
     Bool_t isFired = fIRInt2InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      firstPositive = item;
+      break;
+    }
+  }
+
+  Int_t closest = firstPositive < TMath::Abs(firstNegative) ? firstPositive : TMath::Abs(firstNegative);
+  if(firstPositive==100 && firstNegative==100) closest=0;
+  return closest;
+}
+
+//__________________________________________________________________________
+Int_t AliAODHeader::GetIRInt1ClosestInteractionMap(Int_t gap)
+{
+  //
+  // Calculation of the closest interaction
+  // In case of VZERO (Int1) one has to introduce a gap
+  // in order to avoid false positivies from after-pulses
+
+  Int_t firstNegative=100;
+  for(Int_t item=-1; item>=-90; item--) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt1InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      firstNegative = item;
+      break;
+    }
+  }
+  Int_t firstPositive=100;
+  for(Int_t item=1+gap; item<=90; item++) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt1InteractionsMap.TestBitNumber(bin);
     if(isFired) {
       firstPositive = item;
       break;
