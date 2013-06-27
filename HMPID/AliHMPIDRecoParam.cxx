@@ -59,7 +59,6 @@ AliHMPIDRecoParam& AliHMPIDRecoParam::operator=(const AliHMPIDRecoParam &p)
 {
 //
 // assign. operator
-//
   if(this!=&p){
     AliDetectorRecoParam::operator=(p);
     this->fHmpRecoMode= p.fHmpRecoMode;
