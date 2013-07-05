@@ -14,13 +14,15 @@
 #include <AliLog.h>
 
 #include <AliEveApplication.h>
+#include <AliEveManager.h>
+
 
 ClassImp(AliEveApplication)
 
 AliEveApplication::AliEveApplication(const char* appClassName, int* argc, char** argv, void* options, int numOptions, Bool_t noLogo)
-    : TRint(appClassName, argc, argv, options, numOptions, noLogo)
+	: TRint(appClassName, argc, argv, options, numOptions, noLogo)
 {
-    Init();
+  Init();
 }
 
 AliEveApplication::~AliEveApplication()
@@ -29,22 +31,24 @@ AliEveApplication::~AliEveApplication()
 void  AliEveApplication::Init()
 {
 
-    TString evedir(Form("%s/EVE", gSystem->Getenv("ALICE_ROOT")));
+	static const TEveException kEH("alieve::main");
 
-    TString macPath(gROOT->GetMacroPath());
-    macPath += Form(":%s/macros", evedir.Data());
-    gInterpreter->AddIncludePath(evedir);
+  TString evedir(Form("%s/EVE", gSystem->Getenv("ALICE_ROOT")));
 
-    macPath += Form(":%s/alice-macros", evedir.Data());
-    gInterpreter->AddIncludePath(Form("%s/EVE", gSystem->Getenv("ALICE_ROOT")));
-    gInterpreter->AddIncludePath(Form("%s/PWG0", gSystem->Getenv("ALICE_ROOT")));
-    gInterpreter->AddIncludePath(Form("%s/include", gSystem->Getenv("ALICE_ROOT")));
-    gInterpreter->AddIncludePath(gSystem->Getenv("ALICE_ROOT"));
+  TString macPath(gROOT->GetMacroPath());
+  macPath += Form(":%s/macros", evedir.Data());
+  gInterpreter->AddIncludePath(evedir);
 
-    gROOT->SetMacroPath(macPath);
+  macPath += Form(":%s/alice-macros", evedir.Data());
+  gInterpreter->AddIncludePath(Form("%s/EVE", gSystem->Getenv("ALICE_ROOT")));
+  gInterpreter->AddIncludePath(Form("%s/PWG0", gSystem->Getenv("ALICE_ROOT")));
+  gInterpreter->AddIncludePath(Form("%s/include", gSystem->Getenv("ALICE_ROOT")));
+  gInterpreter->AddIncludePath(gSystem->Getenv("ALICE_ROOT"));
+ 
+  gROOT->SetMacroPath(macPath);
 
-    // make sure logger is instantiated
-    AliLog::GetRootLogger();
+  // make sure logger is instantiated
+  AliLog::GetRootLogger();
 
 
 }

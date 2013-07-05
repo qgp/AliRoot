@@ -11,20 +11,14 @@
 #pragma link off all globals;
 #pragma link off all classes;
 
-// AliEveFileDialog
-#pragma link C++ class AliEveFileDialog+;
-
 // AliEveApplication
 #pragma link C++ class AliEveApplication+;
 
-// AliEveMainWindow
-#pragma link C++ class AliEveMainWindow+;
+// AliEveManager
+#pragma link C++ class AliEveManager+;
 
 // AliEveConfigManager
 #pragma link C++ class AliEveConfigManager+;
-
-// AliEveConfigManager
-#pragma link C++ class AliEveUtil+;
 
 // AliEveEventManager
 #pragma link C++ class AliEveEventManager+;
