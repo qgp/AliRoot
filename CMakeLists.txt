@@ -41,6 +41,7 @@ include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR})
 
 # include the libraries
 add_subdirectory (STEER)
+add_subdirectory (ANALYSIS)
 add_subdirectory (RAW)
 add_subdirectory (ITS)
 add_subdirectory (TPC)
