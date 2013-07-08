@@ -43,6 +43,7 @@ include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR})
 add_subdirectory (STEER)
 add_subdirectory (RAW)
 add_subdirectory (ITS)
+add_subdirectory (TPC)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
