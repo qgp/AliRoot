@@ -26,7 +26,9 @@
 
 
 // Forward class declarations
-class TH1F;
+#ifndef ROOT_TH1F
+#include <TH1F.h>
+#endif
 
 
 class AliStats : public TObject {
