@@ -37,7 +37,6 @@ class AliTRDPIDParams : public TNamed{
     Bool_t GetThresholdParameters(Int_t ntracklets, Double_t efficiency, Double_t *params, Double_t centrality = -1) const;
     void SetThresholdParameters(Int_t ntracklets, Double_t effMin, Double_t effMax, Double_t *params, Double_t centrality = -1);
 
-  private:
     class AliTRDPIDThresholds : public TObject{
     public:
       AliTRDPIDThresholds();
@@ -84,6 +83,7 @@ class AliTRDPIDParams : public TNamed{
        ClassDef(AliTRDPIDCentrality, 1);
     };
 
+  private:
     AliTRDPIDCentrality *FindCentrality(Double_t centrality) const;
     AliTRDPIDParams &operator=(const AliTRDPIDParams &);
     static const Double_t kVerySmall;
