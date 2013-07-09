@@ -9,7 +9,8 @@
 
 #include <TObject.h>
 #include <TArrayI.h>
-typedef enum {kEmpty, kUsed, kUnused} FlagType;
+#include "AliHitMap.h"
+//typedef enum {kEmpty, kUsed, kUnused} FlagType;
 
 //___________________________________________________________________________
 
