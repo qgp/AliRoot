@@ -1,11 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
 
 # Module
-set (MODULE STAT)
-include_directories(${CMAKE_SOURCE_DIR}/${MODULE})
+set (MODULE TRDsim)
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/TRD/${MODULE})
 
 # Additional include directories
-include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/STEER/STEERBase)
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/STEER/STEERBase ${CMAKE_SOURCE_DIR}/STEER/STEER ${CMAKE_SOURCE_DIR}/TRD/TRDbase ${CMAKE_SOURCE_DIR}/TRD/TRDrec ${CMAKE_SOURCE_DIR}/STEER/ESD ${CMAKE_SOURCE_DIR}/VZERO/VZERObase ${CMAKE_SOURCE_DIR}/T0/T0base ${CMAKE_SOURCE_DIR}/TOF/TOFbase ${CMAKE_SOURCE_DIR}/TOF/TOFsim ${CMAKE_SOURCE_DIR}/RAW/RAWDatarec ${CMAKE_SOURCE_DIR}/RAW/RAWDatabase)
 
 # Include directories for CLING
 get_directory_property(incdirs INCLUDE_DIRECTORIES)
@@ -14,15 +14,22 @@ foreach( d ${incdirs})
 endforeach()
 
 # Sources
-set ( SRCS  
-  TKDInterpolatorBase.cxx 
-  TKDNodeInfo.cxx 
-  TKDPDF.cxx 
-  TKDInterpolator.cxx 
-  TKDSpline.cxx 
-  AliTMinuitToolkit.cxx 
-  TStatToolkit.cxx 
-  )
+set ( SRCS
+    AliTRDsimTR.cxx
+    AliTRD.cxx
+    AliTRDv1.cxx 
+    AliTRDdigitizer.cxx
+    AliTRDTrigger.cxx
+    AliTRDTriggerL0.cxx 
+    AliTRDTriggerL1.cxx 
+    AliTRDptrgFEB.cxx
+    AliTRDptrgLUT.cxx
+    AliTRDptrgCBB.cxx
+    AliTRDptrgCBAC.cxx
+    AliTRDptrgTLMU.cxx
+    AliTRDptrgParam.cxx
+    AliTRDQADataMakerSim.cxx
+   )
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
@@ -35,7 +42,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.cxx ${CMAKE_C
   ${HDRS} ${MODULE}LinkDef.h
   DEPENDS ${HDRS} ${MODULE}LinkDef.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+)
 
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)

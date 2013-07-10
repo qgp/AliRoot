@@ -1,11 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
 
 # Module
-set (MODULE STAT)
-include_directories(${CMAKE_SOURCE_DIR}/${MODULE})
+set (MODULE TOFrec)
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/TOF/${MODULE})
 
 # Additional include directories
-include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/STEER/STEERBase)
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/STEER/STEERBase ${CMAKE_SOURCE_DIR}/STEER/STEER ${CMAKE_SOURCE_DIR}/TOF/TOFbase ${CMAKE_SOURCE_DIR}/STEER/ESD ${CMAKE_SOURCE_DIR}/TOF/TOFsim ${CMAKE_SOURCE_DIR}/RAW/RAWDatarec ${CMAKE_SOURCE_DIR}/RAW/RAWDatabase ${CMAKE_SOURCE_DIR}/STEER/CDB)
 
 # Include directories for CLING
 get_directory_property(incdirs INCLUDE_DIRECTORIES)
@@ -15,14 +15,19 @@ endforeach()
 
 # Sources
 set ( SRCS  
-  TKDInterpolatorBase.cxx 
-  TKDNodeInfo.cxx 
-  TKDPDF.cxx 
-  TKDInterpolator.cxx 
-  TKDSpline.cxx 
-  AliTMinuitToolkit.cxx 
-  TStatToolkit.cxx 
-  )
+    AliTOFcluster.cxx 
+    AliTOFClusterFinder.cxx 
+    AliTOFClusterFinderV1.cxx 
+    AliTOFtrack.cxx 
+    AliTOFtracker.cxx 
+    AliTOFtrackerMI.cxx 
+    AliTOFtrackerV1.cxx 
+    AliTOFReconstructor.cxx 
+    AliTOFRecoParam.cxx 
+    AliTOFT0maker.cxx 
+    AliTOFT0v1.cxx 
+    AliTOFQADataMakerRec.cxx 
+    )
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
@@ -35,7 +40,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.cxx ${CMAKE_C
   ${HDRS} ${MODULE}LinkDef.h
   DEPENDS ${HDRS} ${MODULE}LinkDef.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+)
 
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)

@@ -1,11 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
 
 # Module
-set (MODULE STAT)
-include_directories(${CMAKE_SOURCE_DIR}/${MODULE})
+set (MODULE VZERObase)
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/VZERO/${MODULE})
 
 # Additional include directories
-include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/STEER/STEERBase)
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/STEER/STEERBase ${CMAKE_SOURCE_DIR}/STEER/STEER ${CMAKE_SOURCE_DIR}/STEER/CDB ${CMAKE_SOURCE_DIR}/VZERO/VZEROrec)
 
 # Include directories for CLING
 get_directory_property(incdirs INCLUDE_DIRECTORIES)
@@ -15,17 +15,26 @@ endforeach()
 
 # Sources
 set ( SRCS  
-  TKDInterpolatorBase.cxx 
-  TKDNodeInfo.cxx 
-  TKDPDF.cxx 
-  TKDInterpolator.cxx 
-  TKDSpline.cxx 
-  AliTMinuitToolkit.cxx 
-  TStatToolkit.cxx 
-  )
+    AliVZEROLoader.cxx 
+    AliVZEROdigit.cxx 
+    AliVZEROSDigit.cxx 
+    AliVZEROCalibData.cxx 
+    AliVZEROPreprocessor.cxx 
+    AliVZERODataDCS.cxx 
+    AliVZEROQAChecker.cxx 
+    AliVZEROMisAligner.cxx 
+    AliVZEROLogicalSignal.cxx 
+    AliVZEROTrending.cxx 
+    AliVZERODataFEE.cxx 
+    AliVZEROTriggerSimulator.cxx 
+    AliVZEROTriggerData.cxx 
+    )
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
+
+# Additional header files with no implementation
+set(HDRS ${HDRS} AliVZEROConst.h)
 
 # Make dictionary
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.cxx ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.h
@@ -35,7 +44,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.cxx ${CMAKE_C
   ${HDRS} ${MODULE}LinkDef.h
   DEPENDS ${HDRS} ${MODULE}LinkDef.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+)
 
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)

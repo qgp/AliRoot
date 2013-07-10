@@ -1,10 +1,5 @@
-# AliRoot Build System CMakeLists for TRD
-#
-# Author: Johny Jose m(johny.jose@cern.ch)
-#         Port of previous Makefile build to cmake
-
 cmake_minimum_required(VERSION 2.8.4 FATAL_ERROR)
 
-file(GLOB PACKAGES CMake*.pkg)
-
-ALICE_BuildModule()
+add_subdirectory(TRDbase)
+add_subdirectory(TRDrec)
+add_subdirectory(TRDsim)

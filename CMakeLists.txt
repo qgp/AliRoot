@@ -41,11 +41,16 @@ include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR})
 
 # include the libraries
 add_subdirectory (STEER)
+add_subdirectory (STAT)
 add_subdirectory (OADB)
 add_subdirectory (ANALYSIS)
 add_subdirectory (RAW)
 add_subdirectory (ITS)
 add_subdirectory (TPC)
+add_subdirectory (VZERO)
+add_subdirectory (T0)
+add_subdirectory (TOF)
+add_subdirectory (TRD)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
