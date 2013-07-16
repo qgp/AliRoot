@@ -54,6 +54,7 @@ add_subdirectory (TRD)
 add_subdirectory (ZDC)
 add_subdirectory (STRUCT)
 add_subdirectory (HMPID)
+add_subdirectory (PMD)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
