@@ -323,7 +323,7 @@ void AliTPCRF1D::Update()
   //at the begining initialize to 0
   for (Int_t i =0; i<fNRF;i++)  fcharge[i] = 0;
   if ( fGRF == 0 ) return;
-  fInteg  = fGRF->Integral(-5*forigsigma,5*forigsigma,funParam,0.00001);
+  fInteg  = fGRF->Integral(-5*forigsigma,5*forigsigma,0.00001);
   if ( fInteg == 0 ) fInteg = 1; 
   if (fDirect==kFALSE){
   //integrate charge over pad for different distance of pad
@@ -333,7 +333,7 @@ void AliTPCRF1D::Update()
       Float_t x1=TMath::Max(x-fpadWidth/2,-5*forigsigma);
       Float_t x2=TMath::Min(x+fpadWidth/2,5*forigsigma);
       fcharge[i] = 
-	fkNorm*fGRF->Integral(x1,x2,funParam,0.0001)/fInteg;
+	fkNorm*fGRF->Integral(x1,x2,0.0001)/fInteg;
     };   
   }
   else{
