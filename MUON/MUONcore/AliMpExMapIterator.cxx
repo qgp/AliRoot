@@ -87,25 +87,18 @@ AliMpExMapIterator::~AliMpExMapIterator()
 }
 
 //_____________________________________________________________________________
-#if ROOT_SVN_REVISION >= 29598
 Bool_t 
-AliMpExMapIterator::Next(Long64_t& index, TObject*& object)
-#else
-Bool_t 
-AliMpExMapIterator::Next(Long_t& index, TObject*& object)
-#endif
+AliMpExMapIterator::Next(ULong64_t& index, TObject*& object)
 {
 /// Move to next object in iteration
 
-#if ROOT_SVN_REVISION >= 29598
   Long64_t value(0);
-#else
-  Long_t value(0);
-#endif
 
   object = 0;
-  
-  Bool_t rv = fIterator->Next(index,value);
+
+  Long64_t dummy = 0;
+
+  Bool_t rv = fIterator->Next(index,value,dummy);
 
   if ( rv )
   {
@@ -122,11 +115,7 @@ AliMpExMapIterator::Next()
 /// Return the next object in iteration.
 /// The returned object must not be deleted by the user.  
 
-#if ROOT_SVN_REVISION >= 29598
-  Long64_t dummy;
-#else
-  Long_t dummy;
-#endif
+  ULong64_t dummy;
   TObject* o(0x0);
   Next(dummy,o);
   return o;
@@ -140,11 +129,7 @@ AliMpExMapIterator::Next(Int_t& key)
 /// The returned object must not be deleted by the user.  
 
   TObject* o;
-#if ROOT_SVN_REVISION >= 29598
-  Long64_t index;
-#else
-  Long_t index;
-#endif
+  ULong64_t index;
   Next(index,o);
   key = (Int_t)(index);
   return o;
@@ -157,11 +142,7 @@ AliMpExMapIterator::Next(Int_t& keyFirst, Int_t& keySecond)
 /// Return the next object in iteration and fill the key.
 /// The returned object must not be deleted by the user.  
 
-#if ROOT_SVN_REVISION >= 29598
-  Long64_t index;
-#else
-  Long_t index;
-#endif
+  ULong64_t index;
   TObject* o(0x0);
   Next(index,o);
   keyFirst = AliMpExMap::GetPairFirst(index);
@@ -176,11 +157,7 @@ AliMpExMapIterator::Next(TString& key)
 /// Return the next object in iteration and fill the key.
 /// The returned object must not be deleted by the user.  
 
-#if ROOT_SVN_REVISION >= 29598
-  Long64_t index;
-#else
-  Long_t index;
-#endif
+  ULong64_t index;
   TObject* o(0x0);
   Next(index,o);
   key = AliMpExMap::GetString(index);

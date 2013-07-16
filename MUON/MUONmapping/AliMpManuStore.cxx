@@ -249,14 +249,10 @@ void  AliMpManuStore::ReplaceManu(Int_t detElemId, Int_t manuId, Int_t serialNb)
   // Loop over map
   TExMapIter it(&fManuToSerialNbs);
 
-#if ROOT_SVN_REVISION >= 29598
-  Long64_t key;
+  ULong64_t key;
   Long64_t value;
-#else
-  Long_t key;
-  Long_t value;
-#endif
-  while ( ( it.Next(key, value) ) ) {
+  Long64_t dummy;
+  while ( ( it.Next(key, value, dummy) ) ) {
 
     if ( key != index ) 
       newManuToSerialNbs.Add(key, value);
@@ -267,7 +263,7 @@ void  AliMpManuStore::ReplaceManu(Int_t detElemId, Int_t manuId, Int_t serialNb)
   TExMap newSerialNbToManus;
   // Loop over map
   TExMapIter it2(&fSerialNbToManus);
-  while ( ( it2.Next(key, value) ) ) {
+  while ( ( it2.Next(key, value, dummy) ) ) {
 
     if ( value != index ) 
       newSerialNbToManus.Add(key, value);
@@ -344,14 +340,10 @@ Bool_t  AliMpManuStore::WriteData(const TString& outDir)
     
     // Loop over map
     TExMapIter it2(&fManuToSerialNbs);
-#if ROOT_SVN_REVISION >= 29598
-    Long64_t key;
+    ULong64_t key;
     Long64_t value;
-#else
-    Long_t key;
-    Long_t value;
-#endif
-    while ( ( it2.Next(key, value) ) ) {
+    Long64_t dummy;
+    while ( ( it2.Next(key, value, dummy) ) ) {
       Int_t pairFirst = AliMp::PairFirst(key);
       
       if ( pairFirst != detElemId ) continue;

@@ -423,15 +423,11 @@ void AliMUONSt1GeometryBuilderV2::CreateQuadrant(Int_t chamber)
   
   Int_t nb = AliMpConstants::ManuMask(AliMp::kNonBendingPlane);
   TExMapIter it(&specialMap);
-#if ROOT_SVN_REVISION >= 29598
-  Long64_t key;
+  ULong64_t key;
   Long64_t value;
-#else
-  Long_t key;
-  Long_t value;
-#endif  
+  Long64_t dummy;
   
-  while ( it.Next(key,value) == kTRUE ) { 
+  while ( it.Next(key,value,dummy) == kTRUE ) { 
     delete reinterpret_cast<AliMUONSt1SpecialMotif*>(value);
   }
   specialMap.Delete();
@@ -461,7 +457,7 @@ void AliMUONSt1GeometryBuilderV2::CreateQuadrant(Int_t chamber)
   PlaceSector(kSector2, specialMap, where, reflectZ, chamber);
 
   it.Reset();
-  while ( it.Next(key,value) == kTRUE ) {
+  while ( it.Next(key,value,dummy) == kTRUE ) {
     delete reinterpret_cast<AliMUONSt1SpecialMotif*>(value);
   }
   specialMap.Delete();
