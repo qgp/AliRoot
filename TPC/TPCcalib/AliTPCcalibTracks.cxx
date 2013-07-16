@@ -115,7 +115,6 @@ using namespace std;
 #include <TCanvas.h>
 #include <TGraph2DErrors.h>
 #include "TPostScript.h"
-#include "TCint.h"
 
 #include <TH2D.h>
 #include <TF2.h>
@@ -321,7 +320,7 @@ AliTPCcalibTracks::AliTPCcalibTracks(const Text_t *name, const Text_t *title, Al
    this->SetTitle(title);
 
    if (GetDebugLevel() > 0) cout << " ***** this is AliTPCcalibTracks' main constructor ***** " << endl;
-   G__SetCatchException(0);     
+   //PH   G__SetCatchException(0);     
    
    fClusterParam = clusterParam;
    if (fClusterParam){
