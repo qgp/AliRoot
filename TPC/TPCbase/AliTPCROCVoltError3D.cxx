@@ -105,7 +105,7 @@ AliTPCROCVoltError3D::AliTPCROCVoltError3D()
     fLookUpEphiOverEz[k] =  new TMatrixF(kNR,kNZ);
     fLookUpDeltaEz[k]    =  new TMatrixF(kNR,kNZ);   
   }
-  fROCDataFileName="$ALICE_ROOT/TPC/Calib/maps/TPCROCdzSurvey.root";
+  fROCDataFileName="$ALICE_ROOT/TPC/TPCcalib/maps/TPCROCdzSurvey.root";
   SetROCDataFileName(fROCDataFileName.Data()); // initialization of fdzDataLinFit is included
 
 }
