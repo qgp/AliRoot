@@ -41,8 +41,6 @@
 // #pragma link C++ class  AliFMDAltroReader+;
 // #pragma link C++ class  AliFMDAltroWriter+;
 
-#else
-# error Not for compilation 
 #endif
 //
 // EOF

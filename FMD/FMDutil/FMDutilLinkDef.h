@@ -39,8 +39,6 @@
 #pragma link C++ class  AliFMDSpectraDisplay::AliFMDSpectraDisplayStrip;
 #pragma link C++ class  AliFMDCalibDrawer+;
 
-#else
-# error Not for compilation 
 #endif
 //
 // EOF

@@ -28,8 +28,6 @@
 #pragma link C++ class  AliFMDOfflineTrigger+;
 #pragma link C++ class  AliFMDESDRevertexer+;
 
-#else
-# error Not for compilation 
 #endif
 //
 // EOF
