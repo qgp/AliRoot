@@ -62,6 +62,7 @@ add_subdirectory (EMCAL)
 add_subdirectory (PHOS)
 add_subdirectory (TRIGGER)
 add_subdirectory (BCM)
+add_subdirectory (CORRFW)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
