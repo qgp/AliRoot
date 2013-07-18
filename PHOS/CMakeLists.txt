@@ -1,10 +1,8 @@
-# AliRoot Build System CMakeLists for PHOS
-#
-# Author: Johny Jose m(johny.jose@cern.ch)
-#         Port of previous Makefile build to cmake
-
 cmake_minimum_required(VERSION 2.8.4 FATAL_ERROR)
 
-file(GLOB PACKAGES CMake*.pkg)
-
-ALICE_BuildModule()
+add_subdirectory(PHOSUtils)
+add_subdirectory(PHOSbase)
+add_subdirectory(PHOSsim)
+add_subdirectory(PHOSrec)
+add_subdirectory(PHOSshuttle)
+add_subdirectory(PHOSpi0Calib)

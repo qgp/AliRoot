@@ -59,6 +59,7 @@ add_subdirectory (MUON)
 add_subdirectory (FMD)
 add_subdirectory (ACORDE)
 add_subdirectory (EMCAL)
+add_subdirectory (PHOS)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)

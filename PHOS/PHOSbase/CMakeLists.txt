@@ -1,0 +1,85 @@
+cmake_minimum_required (VERSION 2.8)
+
+# Module
+set (MODULE PHOSbase)
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/PHOS/${MODULE})
+
+# Additional include directories
+include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR}/STEER/STEERBase ${CMAKE_SOURCE_DIR}/STEER/CDB ${CMAKE_SOURCE_DIR}/STEER/ESD ${CMAKE_SOURCE_DIR}/STEER/STEER ${CMAKE_SOURCE_DIR}/PHOS/PHOSUtils ${CMAKE_SOURCE_DIR}/PHOS/PHOSsim ${CMAKE_SOURCE_DIR}/PHOS/PHOSrec ${CMAKE_SOURCE_DIR}/RAW/RAWDatarec ${CMAKE_SOURCE_DIR}/RAW/RAWDatabase)
+
+# Include directories for CLING
+get_directory_property(incdirs INCLUDE_DIRECTORIES)
+foreach( d ${incdirs})    
+  set(include_dirs ${include_dirs} -I${d})
+endforeach()
+
+# Sources
+set ( SRCS
+    AliPHOSGeometry.cxx 
+    AliPHOSLoader.cxx 
+    AliPHOSHit.cxx 
+    AliPHOSTrackSegmentMaker.cxx 
+    AliPHOSPID.cxx 
+    AliPHOSClusterizer.cxx 
+    AliPHOSDigitizer.cxx 
+    AliPHOSSDigitizer.cxx 
+    AliPHOSDigit.cxx 
+    AliPHOSFastRecParticle.cxx 
+    AliPHOSCalibData.cxx 
+    AliPHOSCpvCalibData.cxx 
+    AliPHOSEmcCalibData.cxx 
+    AliPHOSTriggerParameters.cxx
+    AliPHOSPulseGenerator.cxx 
+    AliPHOSRawFitterv0.cxx 
+    AliPHOSRawFitterv1.cxx 
+    AliPHOSRawFitterv2.cxx 
+    AliPHOSRawFitterv3.cxx 
+    AliPHOSRawFitterv4.cxx 
+    AliPHOSRawDigiProducer.cxx 
+    AliPHOSEmcBadChannelsMap.cxx 
+    AliPHOSSurvey.cxx 
+    AliPHOSSurvey1.cxx 
+    AliPHOSModuleMisalignment.cxx 
+    AliPHOSQAChecker.cxx 
+    AliPHOSRecParticle.cxx 
+    AliPHOSRecPoint.cxx 
+    AliPHOSEmcRecPoint.cxx 
+    AliPHOSCpvRecPoint.cxx 
+    AliPHOSTrackSegment.cxx 
+    AliPHOSRecoParam.cxx 
+    AliPHOSImpact.cxx 
+    AliPHOSTrigger.cxx 
+    AliPHOSSimParam.cxx
+    )
+
+# Headers from sources
+string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
+
+# Make dictionary
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.cxx ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.h
+  COMMAND ${ROOTCINT} 
+  ARGS -f ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.cxx -c -p 
+  ${include_dirs}
+  ${HDRS} ${MODULE}LinkDef.h
+  DEPENDS ${HDRS} ${MODULE}LinkDef.h
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# Add a library to the project using the specified source files
+add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
+
+# Additional compilation flags
+set_target_properties(${MODULE} PROPERTIES
+  COMPILE_FLAGS "-O -g"
+  )
+
+# System dependent: Modify the way the library is build
+if(${CMAKE_SYSTEM} MATCHES Darwin)
+  set_target_properties(${MODULE} PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+    )
+endif(${CMAKE_SYSTEM} MATCHES Darwin)
+
+# Installation
+install(TARGETS ${MODULE} LIBRARY DESTINATION lib)
+install(FILES ${HDRS} DESTINATION include)
