@@ -28,7 +28,7 @@ class TTimeStamp;
 //              Class AliEMCALSensorTempSensors
 ////////////////////////////////////////////////////////////////////////
 
-const TString kAmandaString = "PT_%02d.Temperature";
+const TString kAmandaStringEMC = "PT_%02d.Temperature";
 
 class AliEMCALSensorTemp : public AliDCSSensor {
 
@@ -48,9 +48,9 @@ public:
 
 
   static TClonesArray * ReadList(const char *fname,
-                                 const TString& amandaString = kAmandaString);
+                                 const TString& amandaString = kAmandaStringEMC);
   static TClonesArray * ReadTree(TTree *tree, 
-                                 const TString& amandaString = kAmandaString);
+                                 const TString& amandaString = kAmandaStringEMC);
 
 protected:
   // A SuperModule is defined in hardware land with a sector and a side index

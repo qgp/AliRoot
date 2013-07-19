@@ -30,9 +30,9 @@ class AliEMCALSensorTempArray : public AliDCSSensorArray {
   AliEMCALSensorTempArray();
   AliEMCALSensorTempArray(Int_t run);
   AliEMCALSensorTempArray(const char *fname,
-			  const TString& amandaString = kAmandaString);
+			  const TString& amandaString = kAmandaStringEMC);
   AliEMCALSensorTempArray (UInt_t startTime, UInt_t endTime, TTree* confTree,
-			   const TString& amandaString = kAmandaString);
+			   const TString& amandaString = kAmandaStringEMC);
   AliEMCALSensorTempArray(const AliEMCALSensorTempArray &c);
   virtual ~AliEMCALSensorTempArray();
   AliEMCALSensorTempArray &operator=(const AliEMCALSensorTempArray &c);
