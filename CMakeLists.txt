@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8)
-project (AliRoot CXX)
+project (AliRoot CXX Fortran C)
 # Specify the languages of the project
 # Sets the following variables:
 #   CMAKE_CXX_COMPILER
@@ -63,6 +63,7 @@ add_subdirectory (PHOS)
 add_subdirectory (TRIGGER)
 add_subdirectory (BCM)
 add_subdirectory (CORRFW)
+add_subdirectory (PYTHIA6)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
