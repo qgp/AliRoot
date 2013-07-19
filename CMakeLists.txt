@@ -64,6 +64,7 @@ add_subdirectory (TRIGGER)
 add_subdirectory (BCM)
 add_subdirectory (CORRFW)
 add_subdirectory (FASTSIM)
+add_subdirectory (LHAPDF)
 add_subdirectory (PYTHIA6)
 add_subdirectory (EVGEN)
 
