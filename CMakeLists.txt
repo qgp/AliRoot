@@ -67,6 +67,7 @@ add_subdirectory (FASTSIM)
 add_subdirectory (LHAPDF)
 add_subdirectory (PYTHIA6)
 add_subdirectory (EVGEN)
+add_subdirectory (MICROCERN)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
