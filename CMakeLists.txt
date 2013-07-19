@@ -63,7 +63,9 @@ add_subdirectory (PHOS)
 add_subdirectory (TRIGGER)
 add_subdirectory (BCM)
 add_subdirectory (CORRFW)
+add_subdirectory (FASTSIM)
 add_subdirectory (PYTHIA6)
+add_subdirectory (EVGEN)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
