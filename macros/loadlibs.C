@@ -15,8 +15,8 @@ Int_t loadlibs ()
   if ( gSystem->Load("libMinuit") < 0 ) return ret; ret--;
   if ( gSystem->Load("libProof") < 0 ) return ret; ret--;
 
-  if ( gSystem->Load("libmicrocern") < 0 ) return ret; ret--;
-  if ( gSystem->Load("liblhapdf") < 0 ) return ret; ret--;
+  if ( gSystem->Load("libMICROCERN") < 0 ) return ret; ret--;
+  if ( gSystem->Load("libLHAPDF") < 0 ) return ret; ret--;
   if ( gSystem->Load("libpythia6") < 0 ) return ret; ret--;
 
   if ( gSystem->Load("libEG") < 0 ) return ret; ret--;
@@ -39,8 +39,8 @@ Int_t loadlibs ()
   if ( gSystem->Load("libAliPythia6") < 0 ) return ret; ret--;
   if ( gSystem->Load("libSTAT") < 0 ) return ret; ret--;
 
-  if ( gSystem->Load("libhijing") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libTHijing") < 0 ) return ret; ret--;// AliGenHijingEventHeader needed by libZDCsim.so
+  // if ( gSystem->Load("libhijing") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libTHijing") < 0 ) return ret; ret--;// AliGenHijingEventHeader needed by libZDCsim.so
 
   if ( gSystem->Load("libSTRUCT") < 0 ) return ret; ret--;
   if ( gSystem->Load("libPHOSUtils") < 0 ) return ret; ret--;
@@ -97,10 +97,10 @@ Int_t loadlibs ()
   if ( gSystem->Load("libTOFsim") < 0 ) return ret; ret--;
   if ( gSystem->Load("libTOFrec") < 0 ) return ret; ret--;
 
-  if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libHLTinterface") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libHLTsim") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libHLTrec") < 0 )  return ret; ret--;
+  // if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libHLTinterface") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libHLTsim") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libHLTrec") < 0 )  return ret; ret--;
 	
   #ifdef MFT_UPGRADE
   if ( gSystem->Load("libMFTbase") < 0 ) return ret; ret--;
