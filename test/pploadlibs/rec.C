@@ -1,5 +1,4 @@
 void rec() {
-  gROOT->Macro("loadlibsrec.C");
   new AliRun("gAlice","The ALICE Off-line Simulation Framework");
 
   AliReconstruction reco;

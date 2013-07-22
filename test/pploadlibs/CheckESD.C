@@ -1,29 +1,3 @@
-#if !defined( __CINT__) || defined(__MAKECINT__)
-#include <TROOT.h>
-#include <TFile.h>
-#include <TError.h>
-#include <TH1.h>
-#include <TH2.h>
-#include <TF1.h>
-#include <TCanvas.h>
-#include <TVector3.h>
-#include <TPDGCode.h>
-#include <TParticle.h>
-
-#include "AliRunLoader.h"
-#include "AliLoader.h"
-#include "AliESDEvent.h"
-#include "AliESDv0.h"
-#include "AliESDcascade.h"
-#include "AliESDMuonTrack.h"
-#include "AliESDCaloCluster.h"
-#include "AliRun.h"
-#include "AliStack.h"
-#include "AliHeader.h"
-#include "AliGenEventHeader.h"
-#include "AliPID.h"
-#endif
-
 TH1F* CreateHisto(const char* name, const char* title, 
 		  Int_t nBins, Double_t xMin, Double_t xMax,
 		  const char* xLabel = NULL, const char* yLabel = NULL)
@@ -96,7 +70,6 @@ Bool_t FitHisto(TH1* histo, Double_t& res, Double_t& resError)
 Bool_t CheckESD(const char* gAliceFileName = "galice.root", 
 		const char* esdFileName = "AliESDs.root")
 {
-  gROOT->Macro("loadlibsrec.C");
   new AliRun("gAlice","The ALICE Off-line Simulation Framework");
 
 // check the content of the ESD

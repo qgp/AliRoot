@@ -7,14 +7,14 @@ else
     REXE=root.exe
 fi
 
-rm -rf *.root *.dat *.log fort* hlt hough raw* *~
+rm -rf *.root *.dat *.log fort* hlt hough raw* *~ GRP
 
-${REXE} -b -q sim.C      2>&1 | tee sim.log
+${REXE} -b -q runsim.C      2>&1 | tee sim.log
 mv syswatch.log simwatch.log
-${REXE} -b -q rec.C      2>&1 | tee rec.log
+${REXE} -b -q runrec.C      2>&1 | tee rec.log
 mv syswatch.log recwatch.log
 #${REXE} -b -q ${ALICE_ROOT}/STEER/macros/CreateAODfromESD.C 2>&1 | tee aod.log
-${REXE} -b -q CheckESD.C 2>&1 | tee check.log
+${REXE} -b -q runcheck.C 2>&1 | tee check.log
 
 
 
