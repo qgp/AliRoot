@@ -20,7 +20,7 @@ Int_t loadlibsrec ()
   if ( gSystem->Load("libTree") < 0 ) return ret; ret--;
   if ( gSystem->Load("libGui") < 0 ) return ret; ret--;
 
-  if ( gSystem->Load("libmicrocern") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libmicrocern") < 0 ) return ret; ret--;
   if ( gSystem->Load("libSTEERBase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libESD") < 0 ) return ret; ret--;
   if ( gSystem->Load("libCDB") < 0 ) return ret; ret--;
@@ -33,9 +33,9 @@ Int_t loadlibsrec ()
   if ( gSystem->Load("libRAWDatasim") < 0 ) return ret; ret--;
 
   if ( gSystem->Load("libSTRUCT") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libPHOSUtils") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libPHOSbase") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libPHOSrec") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libPHOSUtils") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libPHOSbase") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libPHOSrec") < 0 ) return ret; ret--;
   if ( gSystem->Load("libMUONcore") < 0 ) return ret; ret--;
   if ( gSystem->Load("libMUONmapping") < 0 ) return ret; ret--;
   if ( gSystem->Load("libMUONgeometry") < 0 ) return ret; ret--;
@@ -45,9 +45,9 @@ Int_t loadlibsrec ()
   if ( gSystem->Load("libMUONbase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libMUONsim") < 0 ) return ret; ret--;
   if ( gSystem->Load("libMUONrec") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libFMDbase") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libFMDsim") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libFMDrec") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libFMDbase") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libFMDsim") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libFMDrec") < 0 ) return ret; ret--;
   if ( gSystem->Load("libPMDbase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libPMDsim") < 0 ) return ret; ret--;
   if ( gSystem->Load("libPMDrec") < 0 ) return ret; ret--;
@@ -60,16 +60,16 @@ Int_t loadlibsrec ()
   if ( gSystem->Load("libZDCbase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libZDCsim") < 0 ) return ret; ret--;
   if ( gSystem->Load("libZDCrec") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libACORDEbase") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libACORDErec") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libACORDEbase") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libACORDErec") < 0 ) return ret; ret--;
   if ( gSystem->Load("libVZERObase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libVZEROrec") < 0 ) return ret; ret--;
   if ( gSystem->Load("libVZEROsim") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libEMCALraw") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libEMCALUtils") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libEMCALbase") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libEMCALsim") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libEMCALrec") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libEMCALraw") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libEMCALUtils") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libEMCALbase") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libEMCALsim") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libEMCALrec") < 0 ) return ret; ret--;
   if ( gSystem->Load("libTPCbase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libTPCrec") < 0 ) return ret; ret--;
   if ( gSystem->Load("libTPCsim") < 0 ) return ret; ret--;
@@ -83,12 +83,12 @@ Int_t loadlibsrec ()
   if ( gSystem->Load("libTOFbase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libTOFsim") < 0 ) return ret; ret--;
   if ( gSystem->Load("libTOFrec") < 0 ) return ret; ret--;
-  #ifdef MFT_UPGRADE
-  if ( gSystem->Load("libMFTbase") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libMFTrec") < 0 ) return ret; ret--;
-  if ( gSystem->Load("libMFTsim") < 0 ) return ret; ret--;
-  #endif
-  if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
+  // #ifdef MFT_UPGRADE
+  // if ( gSystem->Load("libMFTbase") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libMFTrec") < 0 ) return ret; ret--;
+  // if ( gSystem->Load("libMFTsim") < 0 ) return ret; ret--;
+  // #endif
+  // if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
   
   return 0;
 }
