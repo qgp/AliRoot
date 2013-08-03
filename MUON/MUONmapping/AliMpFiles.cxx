@@ -515,7 +515,7 @@ TString AliMpFiles::GetTop()
     AliErrorClassStream() << "Cannot find path to mapping data." << endl;
     return ntop;
   }  
-  ntop += "/MUON/mapping";
+  ntop += "/MUON/MUONmapping";
   return ntop;
 }
 

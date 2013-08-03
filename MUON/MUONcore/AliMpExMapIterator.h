@@ -48,7 +48,7 @@ public:
   virtual const TCollection* GetCollection() const;
 
 private:
-    Bool_t Next(ULong64_t& index, TObject*& object);
+    Bool_t Next(Long64_t& index, TObject*& object);
   
     TExMapIter* fIterator; ///< iterator we are wrapping
 
