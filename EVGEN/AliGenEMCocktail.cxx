@@ -24,7 +24,8 @@
 // chosen pT distributions from AliGenEMlib (weighting mode: kNonAnalog),
 // or they are generated according to the pT distributions themselves
 // (weighting mode: kAnalog)  
- 
+
+#include <RVersion.h> 
 #include <TObjArray.h>
 #include <TParticle.h>
 #include <TF1.h>
@@ -94,7 +95,11 @@ void AliGenEMCocktail::CreateCocktail()
   genpizero = new AliGenParam(fNPart, new AliGenEMlib(), AliGenEMlib::kPizero, "DUMMY");
   AddSource2Generator(namePizero,genpizero);
   TF1 *fPtPizero = genpizero->GetPt();
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,99,0)
   fYieldArray[kGenPizero] = fPtPizero->Integral(fPtMin,fPtMax,1.e-6);
+#else
+  fYieldArray[kGenPizero] = fPtPizero->Integral(fPtMin,fPtMax,(Double_t *) 0x0,1.e-6);
+#endif
 // eta  
   AliGenParam * geneta=0;
   Char_t nameEta[10];    
@@ -102,7 +107,11 @@ void AliGenEMCocktail::CreateCocktail()
   geneta = new AliGenParam(fNPart, new AliGenEMlib(), AliGenEMlib::kEta, "DUMMY");
   AddSource2Generator(nameEta,geneta);
   TF1 *fPtEta = geneta->GetPt();
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,99,0)
   fYieldArray[kGenEta] = fPtEta->Integral(fPtMin,fPtMax,1.e-6);
+#else
+  fYieldArray[kGenEta] = fPtEta->Integral(fPtMin,fPtMax,(Double_t *) 0x0,1.e-6);
+#endif
 // rho  
   AliGenParam * genrho=0;
   Char_t nameRho[10];    
@@ -110,7 +119,11 @@ void AliGenEMCocktail::CreateCocktail()
   genrho = new AliGenParam(fNPart, new AliGenEMlib(), AliGenEMlib::kRho, "DUMMY");
   AddSource2Generator(nameRho,genrho);
   TF1 *fPtRho = genrho->GetPt();
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,99,0)
   fYieldArray[kGenRho] = fPtRho->Integral(fPtMin,fPtMax,1.e-6);
+#else
+  fYieldArray[kGenRho] = fPtRho->Integral(fPtMin,fPtMax,(Double_t *) 0x0,1.e-6);
+#endif
 // omega
   AliGenParam * genomega=0;
   Char_t nameOmega[10];    
@@ -118,7 +131,11 @@ void AliGenEMCocktail::CreateCocktail()
   genomega = new AliGenParam(fNPart, new AliGenEMlib(), AliGenEMlib::kOmega, "DUMMY");
   AddSource2Generator(nameOmega,genomega);
   TF1 *fPtOmega = genomega->GetPt();
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,99,0)
   fYieldArray[kGenOmega] = fPtOmega->Integral(fPtMin,fPtMax,1.e-6);
+#else
+  fYieldArray[kGenOmega] = fPtOmega->Integral(fPtMin,fPtMax,(Double_t *) 0x0,1.e-6);
+#endif
 // etaprime
   AliGenParam * genetaprime=0;
   Char_t nameEtaprime[10];    
@@ -126,7 +143,11 @@ void AliGenEMCocktail::CreateCocktail()
   genetaprime = new AliGenParam(fNPart, new AliGenEMlib(), AliGenEMlib::kEtaprime, "DUMMY");
   AddSource2Generator(nameEtaprime,genetaprime);
   TF1 *fPtEtaprime = genetaprime->GetPt();
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,99,0)
   fYieldArray[kGenEtaprime] = fPtEtaprime->Integral(fPtMin,fPtMax,1.e-6);
+#else
+  fYieldArray[kGenEtaprime] = fPtEtaprime->Integral(fPtMin,fPtMax,(Double_t *) 0x0,1.e-6);
+#endif
 // phi  
   AliGenParam * genphi=0;
   Char_t namePhi[10];    
@@ -134,7 +155,11 @@ void AliGenEMCocktail::CreateCocktail()
   genphi = new AliGenParam(fNPart, new AliGenEMlib(), AliGenEMlib::kPhi, "DUMMY");
   AddSource2Generator(namePhi,genphi);
   TF1 *fPtPhi = genphi->GetPt();
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,99,0)
   fYieldArray[kGenPhi] = fPtPhi->Integral(fPtMin,fPtMax,1.e-6);
+#else
+  fYieldArray[kGenPhi] = fPtPhi->Integral(fPtMin,fPtMax,(Double_t *) 0x0,1.e-6);
+#endif
 }
 
 //-------------------------------------------------------------------
