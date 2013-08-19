@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 2.8)
 project (AliRoot CXX C)
+enable_language(Fortran OPTIONAL)
 # Specify the languages of the project
 # Sets the following variables:
 #   CMAKE_CXX_COMPILER
@@ -39,9 +40,6 @@ configure_file (
 # Root include directories
 include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR})
 
-# Check for Fortran
-include(CheckLanguage)
-check_language(Fortran)
 # include the libraries
 add_subdirectory (STEER)
 add_subdirectory (STAT)
@@ -67,11 +65,11 @@ add_subdirectory (TRIGGER)
 add_subdirectory (BCM)
 add_subdirectory (CORRFW)
 add_subdirectory (FASTSIM)
-if(CMAKE_Fortran_Compiler)
+if(CMAKE_Fortran_COMPILER_WORKS)
   add_subdirectory (LHAPDF)
   add_subdirectory (PYTHIA6)
   add_subdirectory (MICROCERN)
-endif(CMAKE_Fortran_Compiler)
+endif(CMAKE_Fortran_COMPILER_WORKS)
 add_subdirectory (EVGEN)
 
 # Installation
