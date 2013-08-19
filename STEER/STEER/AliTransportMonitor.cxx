@@ -114,6 +114,27 @@ PMonData &AliTransportMonitor::AliTransportMonitorVol::GetPMonData(Int_t pdg)
   return *data;
 }
 
+void AliTransportMonitor::AliTransportMonitorVol::Merge(AliTransportMonitorVol* volM) 
+{
+  //
+  // Merging
+  //
+  fTotalTime = (fTotalTime + volM->GetTotalTime());
+  if (fTimeRZ && volM->GetHistogram()) {
+    fTimeRZ->Add(volM->GetHistogram()); 
+  } else if (volM->GetHistogram()) {
+    fTimeRZ = (TH2F*)(volM->GetHistogram()->Clone());
+  }
+
+  Int_t ntypes = volM->GetNtypes();
+  for (Int_t i = 0; i < ntypes; i++) {
+    Int_t pdg = volM->GetPDG(i);
+     PMonData &data  = GetPMonData(pdg);
+     data.fEdt  += (volM->GetEmed(i) * volM->GetTotalTime());
+     data.fTime += (volM->GetTime(i));
+  }
+}
+
 ClassImp(AliTransportMonitor)
 
 //______________________________________________________________________________
@@ -182,7 +203,8 @@ void AliTransportMonitor::Print(Option_t *volName) const
       timeperpart[i] = volMon->GetTime(i); 
       timepervol += timeperpart[i];
     }
-    printf("Volume %s: Transport time: %g%% of %g [s]\n", volMon->GetName(), 100.*timepervol/fTotalTime, fTotalTime);
+    printf("Volume %s: Transport time: %g%% of %g %g [s]\n", volMon->GetName(), 100.*timepervol/fTotalTime, fTotalTime,
+	   volMon->GetTotalTime());
     TMath::Sort(ntypes, timeperpart, isort, kTRUE);
     TString particle;
     TDatabasePDG *pdgDB = TDatabasePDG::Instance();    
@@ -283,7 +305,36 @@ void AliTransportMonitor::Export(const char *fname)
   file->Write();
   file->Close();
 }  
+//______________________________________________________________________________
+void AliTransportMonitor::Merge(AliTransportMonitor* mergeMon)
+{
 
+  // merge with monitor 
+  if (!fVolumeMon) 
+    {
+      TObjArray* arr = mergeMon->GetVolumes();
+      Int_t nvol = arr->GetEntriesFast();
+      fVolumeMon = new TObjArray(nvol);
+      fVolumeMon->SetOwner();
+      for (Int_t i = 0; i < nvol; i++) {
+	AliTransportMonitorVol *volMon = new AliTransportMonitorVol();
+	volMon->SetName(arr->At(i)->GetName());
+	fVolumeMon->Add(volMon);
+      }
+    } // first time
+
+
+  Int_t n = fVolumeMon->GetEntriesFast();
+  TObjArray* mergeVols = mergeMon->GetVolumes();
+  fTotalTime = 0;
+  for (Int_t i = 0; i < n; i++)
+    {
+      AliTransportMonitorVol *volMon1 = (AliTransportMonitorVol*)fVolumeMon->At(i);      
+      AliTransportMonitorVol *volMon2 = (AliTransportMonitorVol*)mergeVols->At(i);      
+      volMon1->Merge(volMon2);
+      fTotalTime += (volMon1->GetTotalTime());
+    }
+}
 //______________________________________________________________________________
 AliTransportMonitor *AliTransportMonitor::Import(const char *fname)
 {
