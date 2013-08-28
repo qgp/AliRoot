@@ -71,6 +71,7 @@ if(CMAKE_Fortran_COMPILER_WORKS)
   add_subdirectory (MICROCERN)
 endif(CMAKE_Fortran_COMPILER_WORKS)
 add_subdirectory (EVGEN)
+add_subdirectory (PWG)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)
