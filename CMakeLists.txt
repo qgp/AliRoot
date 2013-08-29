@@ -76,6 +76,7 @@ add_subdirectory (TTherminator)
 add_subdirectory (TPHIC)
 add_subdirectory (THydjet)
 add_subdirectory (PWG)
+add_subdirectory (HLT)
 
 # Installation
 install(FILES ${PROJECT_BINARY_DIR}/ARVersion.h DESTINATION include)

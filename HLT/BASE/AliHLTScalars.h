@@ -309,10 +309,11 @@ protected:
 	 * \param i  The index number of the scalar to fetch.
 	 */
 	AliScalar* ScalarUncheckedAt(UInt_t i) const { return static_cast<AliScalar*>(fScalars.UncheckedAt(Int_t(i))); }
-	
-private:
+  //PH fScalars needed by schema evolution	
+public:
 	
 	TClonesArray fScalars;  // List of scalar objects.
+private:
 	THashTable fMap;        //! Hash table of pointers to the scalars for fast lookup.
 	
 	ClassDef(AliHLTScalars, 1);  // Set of HLT scalars.

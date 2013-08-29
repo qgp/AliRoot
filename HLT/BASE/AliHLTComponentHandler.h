@@ -303,6 +303,7 @@ class AliHLTComponentHandler : public AliHLTLogging {
   /**
    * Compound descriptor for component libraries
    */
+public:
   struct AliHLTLibHandle {
     AliHLTLibHandle() : fHandle(NULL), fName(NULL), fMode(kDynamic) {}
     /** dlopen handle */
@@ -312,6 +313,7 @@ class AliHLTComponentHandler : public AliHLTLogging {
     /** library mode: kStatic means never unloaded */
     TLibraryMode fMode;                                            //! transient
   };
+private:
 
   /**
    * Find a specific library among the loaded libraries.

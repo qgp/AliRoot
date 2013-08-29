@@ -8,8 +8,4 @@
 #pragma link C++ class AliHLTHOMERReader+;
 #pragma link C++ class AliHLTHOMERWriter+;
 
-
-/* #pragma link C++ global gROOT; */
-/* #pragma link C++ global gEnv; */
-
 #endif

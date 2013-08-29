@@ -239,8 +239,9 @@ class AliHLTGlobalTriggerDecision : public AliHLTTriggerDecision
    * The method is inherited from TObject.
    */
   virtual /*const*/ TObject* FindObject(const TObject* obj) const;
-  
- private:
+
+  //PH Scheme evolution in Root6 needs the following functions to be public  
+  //PH private:
   
   /**
    * Deletes all the input objects in fInputObjects that are marked with kCanDelete
@@ -254,6 +255,7 @@ class AliHLTGlobalTriggerDecision : public AliHLTTriggerDecision
    */
   void MarkInputObjectsAsOwned();
   
+ private:
   TClonesArray fContributingTriggers;  /// The list of contributing trigger decisions from all AliHLTTrigger components that were considered.
   TObjArray fInputObjects;  /// The list of other input objects.
   TArrayL64 fCounters;  /// Event trigger counters. One counter for each trigger class in the global trigger.
