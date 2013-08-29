@@ -74,6 +74,7 @@ add_subdirectory (EVGEN)
 add_subdirectory (TUHKMgen)
 add_subdirectory (TTherminator)
 add_subdirectory (TPHIC)
+add_subdirectory (THydjet)
 add_subdirectory (PWG)
 
 # Installation
