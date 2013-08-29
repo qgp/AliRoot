@@ -71,6 +71,7 @@ if(CMAKE_Fortran_COMPILER_WORKS)
   add_subdirectory (MICROCERN)
 endif(CMAKE_Fortran_COMPILER_WORKS)
 add_subdirectory (EVGEN)
+add_subdirectory (TUHKMgen)
 add_subdirectory (PWG)
 
 # Installation
