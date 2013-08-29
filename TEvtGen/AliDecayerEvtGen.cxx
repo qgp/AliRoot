@@ -207,7 +207,10 @@ void AliDecayerEvtGen::ForceDecay()
      break;
      case kBSemiElectronic:
      SetDecayTablePath(gSystem->ExpandPathName("$ALICE_ROOT/TEvtGen/EvtGen/DecayTable/BTOELE.DEC"));
-     break;  
+     break;
+     case kHadronicD:
+      SetDecayTablePath(gSystem->ExpandPathName("$ALICE_ROOT/TEvtGen/EvtGen/DecayTable/BTOD.DEC"));
+      break;
      case kHardMuons:
      case kChiToJpsiGammaToMuonMuon:
      case kChiToJpsiGammaToElectronElectron:
@@ -225,7 +228,6 @@ void AliDecayerEvtGen::ForceDecay()
      case kWToCharmToMuon:
      case kZDiMuon:
      case kZDiElectron:
-     case kHadronicD:
      case kHadronicDWithout4Bodies:
      case kPhiKK:
      case kOmega:
@@ -235,7 +237,14 @@ void AliDecayerEvtGen::ForceDecay()
      case kNeutralPion:
      case kBPsiPrimeDiElectron:
      case kBeautyUpgrade:
-       AliWarning(Form("Warning: case %d not implemented for this class!",(int)decay));
+     case kBJpsiUndecayed: 
+     case kDiElectronEM:
+     case kElectronEM:
+     case kGammaEM:
+     case kJpsiDiMuon:
+     case kNoDecayBeauty:
+     case kPsiPrimeJpsiDiElectron:
+      AliWarning(Form("Warning: case %d not implemented for this class!",(int)decay));
      break;
      }
      ReadDecayTable();

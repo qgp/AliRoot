@@ -23,6 +23,7 @@
 
 #include "Riostream.h"
 #include "AliITSUReconstructor.h"
+#include "AliITSURecoDet.h"
 #include "AliRun.h"
 #include "AliRawReader.h"
 #include "AliESDEvent.h"
@@ -43,6 +44,7 @@ ClassImp(AliITSUReconstructor)
 AliITSUReconstructor::AliITSUReconstructor() 
 :  AliReconstructor()
   ,fGeom(0)
+  ,fITS(0)
   ,fClusterFinders(0)
   ,fClusters(0)
 {
@@ -69,13 +71,17 @@ AliITSUReconstructor::~AliITSUReconstructor()
   }
   delete[] fClusters;
   //
+  delete fITS;
   delete fGeom;
 } 
 
 //______________________________________________________________________
 void AliITSUReconstructor::Init() 
 {
-  // Initalize this constructor 
+  // Initalize this reconstructor 
+  // Note: fITS cannot be initialized here since it requires RecoParams (not available ar
+  // the moment of reconstructors initialization)
+  //
   AliInfo("Initializing");
   if (fGeom) AliFatal("was already done, something is wrong...");
   //
@@ -103,7 +109,6 @@ void AliITSUReconstructor::Init()
   }
   //
   return;
-
 }
 
 //_____________________________________________________________________________
@@ -138,6 +143,7 @@ void AliITSUReconstructor::Reconstruct(TTree *digitsTree, TTree *clustersTree) c
   double bz = 0;
   if (field == 0) AliError("Cannot get magnetic field from TGeoGlobalMagField");
   else bz = field->SolenoidField();
+  const AliITSURecoParam* recPar = GetRecoParam();
   //
   for (int ilr=0;ilr<fGeom->GetNLayers();ilr++) {
     //
@@ -146,7 +152,8 @@ void AliITSUReconstructor::Reconstruct(TTree *digitsTree, TTree *clustersTree) c
     clFinder->SetSegmentation((AliITSUSegmentationPix*)fGeom->GetSegmentation(ilr));
     clFinder->SetLayerID(ilr);
     clFinder->SetClusters(fClusters[ilr]);
-    clFinder->SetRecoParam(GetRecoParam()); // RS: Do we need to set it for every event?
+    clFinder->SetRecoParam(recPar); // RS: Do we need to set it for every event?
+    clFinder->SetAllowDiagonalClusterization(recPar->GetAllowDiagonalClusterization(ilr));
     clFinder->PrepareLorentzAngleCorrection(bz);
     //
     int modF=fGeom->GetFirstModIndex(ilr);
@@ -212,11 +219,11 @@ AliTracker* AliITSUReconstructor::CreateTrackleter() const
 
 }
 
+/*
 //_____________________________________________________________________________
 Int_t AliITSUReconstructor::LoadClusters(TTree* treeRP) 
 {
   // read clusters from the tree, if it is provided
-  if (!treeRP) return 0;
   for (int ilr=fGeom->GetNLayers();ilr--;) {
     if (!fClusters[ilr]) AliFatal(Form("Clusters array for layer %d is not defined",ilr)); 
     TBranch* br = treeRP->GetBranch(Form("ITSRecPoints%d",ilr));
@@ -225,4 +232,18 @@ Int_t AliITSUReconstructor::LoadClusters(TTree* treeRP)
   }
   treeRP->GetEntry(0); // we are still in 1 ev/tree mode...
   return 1;
+}
+*/
+
+
+//_____________________________________________________________________________
+AliITSURecoDet* AliITSUReconstructor::GetITSInterface()
+{
+  // Create reco oriented interface to geometry
+  if (fITS) return fITS;
+  //
+  fITS = new AliITSURecoDet(fGeom,"ITSURecoInterface");
+  int nLr = fITS->GetNLayersActive();
+  for (int ilr=nLr;ilr--;) fITS->GetLayerActive(ilr)->SetClusters(GetClusters(ilr));
+  return fITS;
 }

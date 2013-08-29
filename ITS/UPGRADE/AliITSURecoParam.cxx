@@ -15,7 +15,7 @@
 
 #include "AliITSURecoParam.h"
 #include "AliLog.h"
-
+#include "AliITSUTrackCond.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
@@ -30,20 +30,18 @@ const Double_t AliITSURecoParam::fgkMaxDforV0dghtrForProlongation = 30;
 const Double_t AliITSURecoParam::fgkMaxDForProlongation           = 40; 
 const Double_t AliITSURecoParam::fgkMaxDZForProlongation          = 60;      
 const Double_t AliITSURecoParam::fgkMinPtForProlongation          = 0.0; 
-const Double_t AliITSURecoParam::fgkNSigmaRoadY                   = 5.;
-const Double_t AliITSURecoParam::fgkNSigmaRoadZ                   = 5.; 
-const Double_t AliITSURecoParam::fgkSigmaRoadY                    = 1.;//1000e-4;
-const Double_t AliITSURecoParam::fgkSigmaRoadZ                    = 1.;//1000e-4;
-const Double_t AliITSURecoParam::fgkMaxTr2ClChi2                  = 15.;
+const Double_t AliITSURecoParam::fgkSigmaRoadY                    = 20.E-4;//1000e-4;
+const Double_t AliITSURecoParam::fgkSigmaRoadZ                    = 20.E-4;//1000e-4;
 const Double_t AliITSURecoParam::fgkTanLorentzAngle               = 0;
-const Double_t AliITSURecoParam::fgkMissPenalty                   = 3.0;
+const Bool_t   AliITSURecoParam::fgkAllowDiagonalClusterization   = kFALSE;
 //
 // hardwired params for TPC-ITS border layer
 const Double_t AliITSURecoParam::fgkTPCITSWallRMin                = 50.;
 const Double_t AliITSURecoParam::fgkTPCITSWallRMax                = 80.;
 const Double_t AliITSURecoParam::fgkTPCITSWallZSpanH              = 250.;
 const Double_t AliITSURecoParam::fgkTPCITSWallMaxStep             = 6.;
-
+//
+const Bool_t   AliITSURecoParam::fgkUseMatLUT[kNTrackingPhases] = {kFALSE,kFALSE,kFALSE};
 
 //
 //_____________________________________________________________________________
@@ -53,23 +51,22 @@ AliITSURecoParam::AliITSURecoParam()
   ,fMaxDForProlongation(fgkMaxDForProlongation)
   ,fMaxDZForProlongation(fgkMaxDZForProlongation)
   ,fMinPtForProlongation(fgkMinPtForProlongation)
-  ,fNSigmaRoadY(fgkNSigmaRoadY)
-  ,fNSigmaRoadZ(fgkNSigmaRoadZ)
      //
   ,fTPCITSWallRMin(fgkTPCITSWallRMin)
   ,fTPCITSWallRMax(fgkTPCITSWallRMax)
   ,fTPCITSWallZSpanH(fgkTPCITSWallZSpanH)
   ,fTPCITSWallMaxStep(fgkTPCITSWallMaxStep)
      //
+  ,fAllowDiagonalClusterization(0)
   ,fTanLorentzAngle(0)
   ,fSigmaY2(0)
   ,fSigmaZ2(0)
-  ,fMaxTr2ClChi2(0)
-  ,fMissPenalty(0)
+  ,fTrackingConditions(0)
 {
   // def c-tor
   SetName("ITS");
   SetTitle("ITS");
+  for (int i=kNTrackingPhases;i--;) fUseMatLUT[i] = fgkUseMatLUT[i];
 }
 
 //_____________________________________________________________________________
@@ -79,19 +76,17 @@ AliITSURecoParam::AliITSURecoParam(Int_t nLr)
   ,fMaxDForProlongation(fgkMaxDForProlongation)
   ,fMaxDZForProlongation(fgkMaxDZForProlongation)
   ,fMinPtForProlongation(fgkMinPtForProlongation)
-  ,fNSigmaRoadY(fgkNSigmaRoadY)
-  ,fNSigmaRoadZ(fgkNSigmaRoadZ)
      //
   ,fTPCITSWallRMin(fgkTPCITSWallRMin)
   ,fTPCITSWallRMax(fgkTPCITSWallRMax)
   ,fTPCITSWallZSpanH(fgkTPCITSWallZSpanH)
   ,fTPCITSWallMaxStep(fgkTPCITSWallMaxStep)
      //
+  ,fAllowDiagonalClusterization(0)
   ,fTanLorentzAngle(0)
   ,fSigmaY2(0)
   ,fSigmaZ2(0)
-  ,fMaxTr2ClChi2(0)
-  ,fMissPenalty(0)
+  ,fTrackingConditions(0)
 {
   // def c-tor
   SetName("ITS");
@@ -106,8 +101,8 @@ AliITSURecoParam::~AliITSURecoParam()
   delete[] fTanLorentzAngle;
   delete[] fSigmaY2;
   delete[] fSigmaZ2;
-  delete[] fMaxTr2ClChi2;
-  delete[] fMissPenalty;
+  delete[] fAllowDiagonalClusterization;
+  fTrackingConditions.Delete();
 }
 
 //_____________________________________________________________________________
@@ -148,15 +143,13 @@ void  AliITSURecoParam::SetNLayers(Int_t n)
   fTanLorentzAngle = new Double_t[n];
   fSigmaY2 = new Double_t[n];
   fSigmaZ2 = new Double_t[n];
-  fMaxTr2ClChi2 = new Double_t[n];
-  fMissPenalty  = new Double_t[n];
+  fAllowDiagonalClusterization = new Bool_t[n];
   //
   for (int i=n;i--;) {
+    fAllowDiagonalClusterization[i] = fgkAllowDiagonalClusterization;
     fTanLorentzAngle[i] = fgkTanLorentzAngle;
     fSigmaY2[i] = fgkSigmaRoadY*fgkSigmaRoadY;
     fSigmaZ2[i] = fgkSigmaRoadZ*fgkSigmaRoadZ;
-    fMaxTr2ClChi2[i] = fgkMaxTr2ClChi2;
-    fMissPenalty[i]  = fgkMissPenalty;
   }
   //
 }
@@ -186,16 +179,16 @@ void  AliITSURecoParam::SetSigmaZ2(Int_t lr, Double_t v)
 }
 
 //_____________________________________________________________________________
-void  AliITSURecoParam::SetMaxTr2ClChi2(Int_t lr, Double_t v)
+void  AliITSURecoParam::SetAllowDiagonalClusterization(Int_t lr, Bool_t v)
 {
   // set Lorentz angle value
   if (lr>=fNLayers) AliFatal(Form("Number of defined layers is %d",fNLayers));
-  fMaxTr2ClChi2[lr] = v;
+  fAllowDiagonalClusterization[lr] = v;
 }
 
 //========================================================================
 //_____________________________________________________________________________
-void AliITSURecoParam::Print(Option_t *opt) const
+void AliITSURecoParam::Print(Option_t *) const
 {
   // print params
   printf("%s: %s %s\n",ClassName(),GetName(),GetTitle());
@@ -203,9 +196,9 @@ void AliITSURecoParam::Print(Option_t *opt) const
   printf("%-30s\t%f\n","fMaxDForProlongation",fMaxDForProlongation); 
   printf("%-30s\t%f\n","fMaxDZForProlongation",fMaxDZForProlongation);
   printf("%-30s\t%f\n","fMinPtForProlongation",fMinPtForProlongation);
-  printf("%-30s\t%f\n","fNSigmaRoadY",fNSigmaRoadY);
-  printf("%-30s\t%f\n","fNSigmaRoadZ",fNSigmaRoadZ);
   //
+  printf("Use material LUT at steps: "); 
+  for (int i=0;i<kNTrackingPhases;i++) printf("%d : %s |",i,GetUseMatLUT(i) ? "ON":"OFF"); printf("\n");
   printf("TPC-ITS wall: %.3f<R<%.3f DZ/2=%.3f MaxStep=%.3f\n",
 	 fTPCITSWallRMin,fTPCITSWallRMax,fTPCITSWallZSpanH,fTPCITSWallMaxStep);
   //
@@ -215,8 +208,19 @@ void AliITSURecoParam::Print(Option_t *opt) const
     printf("%-30s\t:","fTanLorentzAngle");  for (int i=0;i<fNLayers;i++) printf(" %+.2e",fTanLorentzAngle[i]); printf("\n");
     printf("%-30s\t:","fSigmaY2");          for (int i=0;i<fNLayers;i++) printf(" %+.2e",fSigmaY2[i]); printf("\n");
     printf("%-30s\t:","fSigmaZ2");          for (int i=0;i<fNLayers;i++) printf(" %+.2e",fSigmaZ2[i]); printf("\n");
-    printf("%-30s\t:","fMaxTr2ClChi2");     for (int i=0;i<fNLayers;i++) printf(" %+.2e",fMaxTr2ClChi2[i]); printf("\n");
-    printf("%-30s\t:","fMissPenalty");      for (int i=0;i<fNLayers;i++) printf(" %+.2e",fMissPenalty[i]); printf("\n");
   }
   //
+  int nTrCond = GetNTrackingConditions();
+  printf("%d tracking conditions defined\n",nTrCond);
+  for (int itc=0;itc<nTrCond;itc++) {
+    printf("Tracking condition %d\n",itc);
+    GetTrackingCondition(itc)->Print();
+  }
+}
+
+//__________________________________________________
+void  AliITSURecoParam::AddTrackingCondition(AliITSUTrackCond* cond)
+{
+  // Add new tracking condition
+  fTrackingConditions.AddLast(cond);
 }

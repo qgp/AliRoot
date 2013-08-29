@@ -21,6 +21,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>
+#include <stdexcept>
+
 #include <TSystem.h>
 #include <TObjString.h>
 #include <TRegexp.h>
@@ -30,6 +32,7 @@
 #include "AliCDBLocal.h"
 #include "AliCDBEntry.h"
 #include "AliLog.h"
+using namespace std;
 
 ClassImp(AliCDBLocal)
 
@@ -391,7 +394,7 @@ AliCDBId* AliCDBLocal::GetId(const AliCDBId& query) {
 		while ((filename = gSystem->GetDirEntry(dirPtr))) { // loop on files
 
 			TString aString(filename);
-			if (aString == "." || aString == "..") continue;
+                        if (aString.BeginsWith('.')) continue;
 
 			if (!FilenameToId(filename, aRunRange, aVersion, aSubVersion)) continue;
                         // aRunRange, aVersion, aSubVersion filled from filename
@@ -437,7 +440,7 @@ AliCDBId* AliCDBLocal::GetId(const AliCDBId& query) {
 		while ((filename = gSystem->GetDirEntry(dirPtr))) { // loop on files
 
                         TString aString(filename);
-                        if (aString == "." || aString == "..") continue;
+                        if (aString.BeginsWith('.')) continue;
 
 			if (!FilenameToId(filename, aRunRange, aVersion, aSubVersion)) continue;
                         // aRunRange, aVersion, aSubVersion filled from filename
@@ -473,7 +476,7 @@ AliCDBId* AliCDBLocal::GetId(const AliCDBId& query) {
 	while ((filename = gSystem->GetDirEntry(dirPtr))) { // loop on files
 
                         TString aString(filename);
-                        if (aString == "." || aString == "..") continue;
+                        if (aString.BeginsWith('.')) continue;
 
                         if (!FilenameToId(filename, aRunRange, aVersion, aSubVersion)) continue;
                         // aRunRange, aVersion, aSubVersion filled from filename
@@ -510,20 +513,26 @@ AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId& queryId) {
 
 	AliCDBId* dataId = GetEntryId(queryId);
 
-	if (!dataId || !dataId->IsSpecified()) return NULL;
+        TString errMessage(TString::Format("No valid CDB object found! request was: %s", queryId.ToString().Data()));
+	if (!dataId || !dataId->IsSpecified()){
+		AliError(Form("The data ID is undefined!"));
+                throw std::runtime_error(errMessage.Data());
+                return NULL;
+        }
 
 	TString filename;
 	if (!IdToFilename(*dataId, filename)) {
-
-		AliDebug(2,Form("Bad data ID encountered! Subnormal error!"));
+		AliError(Form("Bad data ID encountered!"));
 		delete dataId;
+		throw std::runtime_error(errMessage.Data());
 		return NULL;
 	}
 
 	TFile file(filename, "READ"); // open file
 	if (!file.IsOpen()) {
-		AliDebug(2,Form("Can't open file <%s>!", filename.Data()));
+		AliError(Form("Can't open file <%s>!", filename.Data()));
 		delete dataId;
+		throw std::runtime_error(errMessage.Data());
 		return NULL;
 	}
 
@@ -532,9 +541,10 @@ AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId& queryId) {
 
 	AliCDBEntry* anEntry = dynamic_cast<AliCDBEntry*> (file.Get("AliCDBEntry"));
 	if (!anEntry) {
-		AliDebug(2,Form("Bad storage data: No AliCDBEntry in file!"));
+		AliError(Form("Bad storage data: No AliCDBEntry in file!"));
 		file.Close();
 		delete dataId;
+		throw std::runtime_error(errMessage.Data());
 		return NULL;
 	}
 
@@ -555,9 +565,10 @@ AliCDBEntry* AliCDBLocal::GetEntry(const AliCDBId& queryId) {
 	// Check whether entry contains a TTree. In case load the tree in memory!
 	LoadTreeFromFile(anEntry);
 
-	// close file, return retieved entry
+	// close file, return retrieved entry
 	file.Close();
 	delete dataId;
+
 	return anEntry;
 }
 
@@ -604,7 +615,8 @@ void AliCDBLocal::GetEntriesForLevel0(const char* level0,
 	while ((level1 = gSystem->GetDirEntry(level0DirPtr))) {
 
 		TString level1Str(level1);
-		if (level1Str == "." || level1Str == "..") {
+                // skip directories starting with a dot (".svn" and similar in old svn working copies)
+		if (level1Str.BeginsWith('.')) {
 			continue;
 		}
 		
@@ -645,8 +657,9 @@ void AliCDBLocal::GetEntriesForLevel1(const char* level0, const char* level1,
 	while ((level2 = gSystem->GetDirEntry(level1DirPtr))) {
 
 		TString level2Str(level2);
-		if (level2Str == "." || level2Str == "..") {
-			continue;
+                // skip directories starting with a dot (".svn" and similar in old svn working copies)
+		if (level2Str.BeginsWith('.')) {
+                        continue;
 		}
 
 		TString fullPath = Form("%s/%s",level1Dir.Data(), level2); 
@@ -694,7 +707,8 @@ TList* AliCDBLocal::GetEntries(const AliCDBId& queryId) {
 	while ((level0 = gSystem->GetDirEntry(storageDirPtr))) {
 
 		TString level0Str(level0);
-		if (level0Str == "." || level0Str == "..") {
+                // skip directories starting with a dot (".svn" and similar in old svn working copies)
+		if (level0Str.BeginsWith('.')) {
 			continue;
 		}
 		
@@ -894,49 +908,6 @@ void AliCDBLocal::QueryValidFiles()
 
 }
 
-//_____________________________________________________________________________
-Int_t AliCDBLocal::GetLatestVersion(const char* path, Int_t run){
-// get last version found in the database valid for run and path
-
-	AliCDBPath aCDBPath(path);
-	if(!aCDBPath.IsValid() || aCDBPath.IsWildcard()) {
-		AliError(Form("Invalid path in request: %s", path));
-		return -1;
-	}
-
-	AliCDBId query(path, run, run, -1, -1);
-	AliCDBId* dataId = GetId(query);
-
-	if(!dataId) return -1;
-
-	Int_t version = dataId->GetVersion();
-	delete dataId;
-
-	return version;
-
-}
-
-//_____________________________________________________________________________
-Int_t AliCDBLocal::GetLatestSubVersion(const char* path, Int_t run, Int_t version){
-// get last version found in the database valid for run and path
-
-	AliCDBPath aCDBPath(path);
-	if(!aCDBPath.IsValid() || aCDBPath.IsWildcard()) {
-		AliError(Form("Invalid path in request: %s", path));
-		return -1;
-	}
-
-	AliCDBId query(path, run, run, version, -1);
-	AliCDBId *dataId = GetId(query);
-
-	if(!dataId) return -1;
-
-	Int_t subVersion = dataId->GetSubVersion();
-
-	delete dataId;
-	return subVersion;
-
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                             //

@@ -60,7 +60,6 @@ and save results in a file (named from RESULT_FILE define - see below).
 #include "AliRawReader.h"
 #include "AliRawReaderDate.h"
 #include "AliTPCmapper.h"
-#include "AliTPCRawStream.h"
 #include "AliTPCROC.h"
 #include "AliTPCCalROC.h"
 #include "AliTPCCalPad.h"
@@ -95,7 +94,6 @@ int main(int argc, char **argv) {
     return -1;
   }
   
-  AliLog::SetClassDebugLevel("AliTPCRawStream",-5);
   AliLog::SetClassDebugLevel("AliRawReaderDate",-5);
   AliLog::SetClassDebugLevel("AliTPCAltroMapping",-5);
   AliLog::SetModuleDebugLevel("RAW",-5);
@@ -254,7 +252,7 @@ int main(int argc, char **argv) {
       return -1;
     }
 
-    
+    Bool_t hasNewData=kFALSE;
     /* read until EOF */
     while (true) {
       struct eventHeaderStruct *event;
@@ -278,7 +276,7 @@ int main(int argc, char **argv) {
       if (event==NULL){
         //use time in between bursts to
         // send the data to AMOREdb
-        if (stopWatch.RealTime()>updateInterval){
+        if (stopWatch.RealTime()>updateInterval && hasNewData){
           calibCE->Analyse();
           if (!skipAmore) SendToAmoreDB(calibCE,runNb);
           stopWatch.Start();
@@ -290,7 +288,7 @@ int main(int argc, char **argv) {
           printf ("TPCCEda: %d events processed, %d used\n",nevents,calibCE->GetNeventsProcessed());
           neventsOld=nevents;
         }
-        
+        hasNewData=kFALSE;
         continue;
       }
       
@@ -306,6 +304,7 @@ int main(int argc, char **argv) {
       
       // CE calibration
       calibCE->ProcessEvent(event);
+      hasNewData=kTRUE;
       
       /* free resources */
       free(event);

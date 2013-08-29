@@ -352,12 +352,16 @@ AliCDBEntry* AliHLTPendolino::GetFromOCDB(const char* detector,
 		return NULL;
 	}
 	
-	if (hcdb->GetLatestVersion(path.GetPath(), fRunNumber)<0) {
-		return NULL;
+	AliCDBEntry* entry=NULL;
+	try {
+	  // exceptions for the loading of OCDB objects have been introduced in r61012 on
+	  // Feb 20 2013. This allows to reduce this function to try and catch of AliCDBManager::Get
+	  entry=hcdb->Get(path, fRunNumber);
 	}
-
-	return hcdb->Get(path, fRunNumber);
-
+	catch (...) {
+	  // for now we just ignore the exception and return NULL
+	}
+	return entry;
 	
 /*
 	AliCDBEntry* entry = 0;
@@ -767,20 +771,12 @@ Int_t AliHLTPendolino::initPredictProc(TString detector, Int_t run,
 }
 
 
-#ifdef SHUTTLE_PRE_REV29388_INTERFACE
-const UInt_t AliHLTPendolino::GetStartTimeDCSQuery()
-#else
 UInt_t AliHLTPendolino::GetStartTimeDCSQuery()
-#endif
 {
 	return fStartTime;
 }
 
-#ifdef SHUTTLE_PRE_REV29388_INTERFACE
-const UInt_t AliHLTPendolino::GetEndTimeDCSQuery()
-#else
 UInt_t AliHLTPendolino::GetEndTimeDCSQuery()
-#endif
 {
 	return fEndTime;
 }

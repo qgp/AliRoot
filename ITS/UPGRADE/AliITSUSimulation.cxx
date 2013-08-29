@@ -22,6 +22,8 @@
 #include "TSeqCollection.h"
 #include "AliITSUSimulation.h"
 #include "AliITSUSDigit.h"
+#include "AliITSUModule.h"
+#include "AliITSUParamList.h"
 using namespace TMath;
 
 ClassImp(AliITSUSimulation)
@@ -33,7 +35,10 @@ AliITSUSimulation::AliITSUSimulation()
   ,fCalibNoisy(0)
   ,fSensMap(0)
   ,fSimuParam(0)
+  ,fResponseParam(0)
   ,fModule(0)
+  ,fReadOutCycleOffset(0)
+  ,fReadOutCycleLength(25e-6)  
   ,fEvent(0)
   ,fDebug(0)
 {
@@ -46,7 +51,10 @@ AliITSUSimulation::AliITSUSimulation(AliITSUSimuParam* sim,AliITSUSensMap* map)
   ,fCalibNoisy(0)
   ,fSensMap(map)
   ,fSimuParam(sim)
+  ,fResponseParam(0)
   ,fModule(0)
+  ,fReadOutCycleOffset(0)
+  ,fReadOutCycleLength(25e-6)
   ,fEvent(0)
   ,fDebug(0)
 {
@@ -61,7 +69,10 @@ AliITSUSimulation::AliITSUSimulation(const AliITSUSimulation &s)
   ,fCalibNoisy(s.fCalibNoisy)
   ,fSensMap(s.fSensMap)
   ,fSimuParam(s.fSimuParam)   
+  ,fResponseParam(s.fResponseParam)
   ,fModule(s.fModule)
+  ,fReadOutCycleOffset(s.fReadOutCycleOffset)
+  ,fReadOutCycleLength(s.fReadOutCycleLength)
   ,fEvent(s.fEvent)
   ,fDebug(s.fDebug)
 {
@@ -78,21 +89,28 @@ AliITSUSimulation&  AliITSUSimulation::operator=(const AliITSUSimulation &s)
   fCalibNoisy= s.fCalibNoisy;
   fSensMap   = s.fSensMap;
   fSimuParam = s.fSimuParam;
+  fResponseParam = s.fResponseParam;
   fModule    = s.fModule;
+  fReadOutCycleOffset = s.fReadOutCycleOffset;
+  fReadOutCycleLength = s.fReadOutCycleLength;
   fEvent     = s.fEvent;
   return *this;
 }
 
 //______________________________________________________________________
-void AliITSUSimulation::InitSimulationModule(Int_t module, Int_t event, AliITSsegmentation* seg)
+void AliITSUSimulation::InitSimulationModule(AliITSUModule* mod, Int_t event, AliITSsegmentation* seg, AliITSUParamList* resp)
 {
   //  This function creates maps to build the list of tracks for each
   //  summable digit. Inputs defined by base class.
   //
-  SetModule(module);
-  SetEvent(event);
+  SetModule(mod);
   SetSegmentation(seg);
+  SetResponseParam(resp);
   ClearMap();
+  memset(fCyclesID,0,(1+2*kMaxROCycleAccept)*sizeof(Bool_t));
+  //
+  SetEvent(event);
+  
 }
 
 //______________________________________________________________________
@@ -108,7 +126,7 @@ Bool_t AliITSUSimulation::AddSDigitsToModule(TSeqCollection *pItemArr,Int_t mask
   // 
   for( Int_t i=0; i<nItems; i++ ) {
     AliITSUSDigit * pItem = (AliITSUSDigit *)(pItemArr->At( i ));
-    if( pItem->GetModule() != fModule ) AliFatal(Form("SDigits module %d != current module %d: exit", pItem->GetModule(), fModule ));
+    if(pItem->GetModule() != int(fModule->GetIndex()) ) AliFatal(Form("SDigits module %d != current module %d: exit", pItem->GetModule(),fModule->GetIndex()));
     if(pItem->GetSumSignal()>0.0 ) sig = kTRUE;
     AliITSUSDigit* oldItem = (AliITSUSDigit*)fSensMap->GetItem(pItem);
     if (!oldItem) {
@@ -121,22 +139,38 @@ Bool_t AliITSUSimulation::AddSDigitsToModule(TSeqCollection *pItemArr,Int_t mask
 }
 
 //______________________________________________________________________
-void AliITSUSimulation::UpdateMapSignal(UInt_t dim0,UInt_t dim1,Int_t trk,Int_t ht,Double_t signal) 
+void AliITSUSimulation::UpdateMapSignal(UInt_t col,UInt_t row,Int_t trk,Int_t ht,Double_t signal, Int_t roCycle) 
 {
   // update map with new hit
-  UInt_t ind = fSensMap->GetIndex(dim0,dim1);
-  AliITSUSDigit* oldItem = (AliITSUSDigit*)fSensMap->GetItem(ind);
-  if (!oldItem) fSensMap->RegisterItem( new(fSensMap->GetFree()) AliITSUSDigit(trk,ht,fModule,ind,signal) );
+  // Note: roCycle can be anything between -kMaxROCycleAccept : kMaxROCycleAccept
+  if (Abs(roCycle)>kMaxROCycleAccept) {
+    AliError(Form("CycleID %d is outside of allowed +-%d range",roCycle,kMaxROCycleAccept));
+    return;
+  }
+  UInt_t ind = fSensMap->GetIndex(col,row,roCycle);
+  AliITSUSDigit* oldItem = (AliITSUSDigit*)fSensMap->GetItem(ind);  
+  if (!oldItem) {    
+    fSensMap->RegisterItem( new(fSensMap->GetFree()) AliITSUSDigit(trk,ht,fModule->GetIndex(),ind,signal,roCycle) );
+    fCyclesID[roCycle+kMaxROCycleAccept] = kTRUE;
+  }
   else oldItem->AddSignal(trk,ht,signal);
+  //
 }
 
 //______________________________________________________________________
-void AliITSUSimulation::UpdateMapNoise(UInt_t dim0,UInt_t dim1,Double_t noise) 
+void AliITSUSimulation::UpdateMapNoise(UInt_t col,UInt_t row,Double_t noise, Int_t roCycle) 
 {
   // update map with new hit
-  UInt_t ind = fSensMap->GetIndex(dim0,dim1);
+  if (Abs(roCycle)>kMaxROCycleAccept) {
+    AliError(Form("CycleID %d is outside of allowed +-%d range",roCycle,kMaxROCycleAccept));
+    return;
+  }
+  UInt_t ind = fSensMap->GetIndex(col,row,roCycle);
   AliITSUSDigit* oldItem = (AliITSUSDigit*)fSensMap->GetItem(ind);
-  if (!oldItem) fSensMap->RegisterItem( new(fSensMap->GetFree()) AliITSUSDigit(fModule,ind,noise) );
+  if (!oldItem) {
+    fSensMap->RegisterItem( new(fSensMap->GetFree()) AliITSUSDigit(fModule->GetIndex(),ind,noise,roCycle) );
+    fCyclesID[roCycle+kMaxROCycleAccept] = kTRUE;
+  }
   else oldItem->AddNoise(noise);
 }
 
@@ -164,4 +198,16 @@ Int_t AliITSUSimulation::GenOrderedSample(UInt_t nmax,UInt_t ngen,TArrayI &vals,
   }
   Sort((int)ngen,valA,indA,kFALSE);
   return ngen;
+}
+
+//______________________________________________________________________
+Double_t AliITSUSimulation::GenerateReadOutCycleOffset()
+{
+  // Generate randomly the strobe
+  // phase w.r.t to the LHC clock
+  return fReadOutCycleOffset = fReadOutCycleLength*gRandom->Rndm();
+  // fReadOutCycleOffset = 25e-9*gRandom->Rndm(); // clm: I think this way we shift too much 10-30 us! The global shift should be between the BCs?!
+  // RS: 25 ns is too small number, the staggering will not work. Let's at the moment keep fully random shift (still, no particle from correct
+  // collision will be lost) untill real number is specified
+ //
 }

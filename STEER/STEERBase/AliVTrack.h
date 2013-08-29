@@ -22,23 +22,39 @@ class AliVTrack: public AliVParticle {
 
 public:
   enum {
-    kITSin=0x0001,kITSout=0x0002,kITSrefit=0x0004,kITSpid=0x0008,
-    kTPCin=0x0010,kTPCout=0x0020,kTPCrefit=0x0040,kTPCpid=0x0080,
-    kTRDin=0x0100,kTRDout=0x0200,kTRDrefit=0x0400,kTRDpid=0x0800,
-    kTOFin=0x1000,kTOFout=0x2000,kTOFrefit=0x4000,kTOFpid=0x8000,
-    kTOFmismatch=0x100000,
-    kHMPIDout=0x10000,kHMPIDpid=0x20000,
-    kEMCALmatch=0x40000,
-    kPHOSmatch=0x200000,
-    kTRDbackup =0x80000,
-    kTRDStop=0x20000000,
-    kESDpid=0x40000000,
-    kTIME=0x80000000,
-    kGlobalMerge=0x08000000,
-    kITSpureSA=0x10000000,
-    kMultInV0 =0x2000000,    //BIT(25): assumed to be belong to V0 in multiplicity estimates
-    kMultSec  =0x4000000,     //BIT(26): assumed to be secondary (due to the DCA) in multiplicity estimates
-    kEmbedded =0x8000000     // BIT(27), 1<<27: Is a track that has been embedded into the event
+    kITSin        = 0x1
+    ,kITSout      = 0x2
+    ,kITSrefit    = 0x4
+    ,kITSpid      = 0x8
+    ,kTPCin       = 0x10
+    ,kTPCout      = 0x20
+    ,kTPCrefit    = 0x40
+    ,kTPCpid      = 0x80
+    ,kTRDin       = 0x100
+    ,kTRDout      = 0x200
+    ,kTRDrefit    = 0x400
+    ,kTRDpid      = 0x800
+    ,kTOFin       = 0x1000
+    ,kTOFout      = 0x2000
+    ,kTOFrefit    = 0x4000
+    ,kTOFpid      = 0x8000
+    ,kHMPIDout    = 0x10000
+    ,kHMPIDpid    = 0x20000
+    ,kEMCALmatch  = 0x40000
+    ,kTRDbackup   = 0x80000
+    ,kTOFmismatch = 0x100000
+    ,kPHOSmatch   = 0x200000
+    ,kITSupg      = 0x400000     // flag that in the ITSupgrade reco
+    //
+    ,kGlobalMerge = 0x1000000
+    ,kMultInV0    = 0x2000000     //BIT(25): assumed to be belong to V0 in multiplicity estimates
+    ,kMultSec     = 0x4000000     //BIT(26): assumed to be secondary (due to the DCA) in multiplicity estimates
+    ,kEmbedded    = 0x8000000     // BIT(27), 1<<27: Is a track that has been embedded into the event
+    //
+    ,kITSpureSA   = 0x10000000
+    ,kTRDStop     = 0x20000000
+    ,kESDpid      = 0x40000000
+    ,kTIME        = 0x80000000
   };
   enum {
     kTRDnPlanes = 6,
@@ -75,7 +91,9 @@ public:
 
   virtual Double_t GetTrackPhiOnEMCal() const {return -999;}
   virtual Double_t GetTrackEtaOnEMCal() const {return -999;}
-  virtual void SetTrackPhiEtaOnEMCal(Double_t,Double_t) {;}
+  virtual Double_t GetTrackPtOnEMCal() const {return -999;}
+  virtual Double_t GetTrackPOnEMCal() const {return -999;}
+  virtual void SetTrackPhiEtaPtOnEMCal(Double_t,Double_t,Double_t=-999) {;}
 
   virtual Int_t GetPHOScluster()      const {return -1;}
   virtual void SetPHOScluster(Int_t)        {;}
@@ -90,13 +108,26 @@ public:
   virtual Double_t  GetTPCsignalTunedOnData() const {return 0.;}
   virtual UShort_t  GetTPCsignalN()      const {return 0 ;}
   virtual Double_t  GetTPCmomentum()     const {return 0.;}
+  virtual Double_t  GetTPCTgl()          const {return 0.;}
   virtual Double_t  GetTOFsignal()       const {return 0.;}
+  virtual Double_t  GetTOFsignalTunedOnData() const {return 0.;}
   virtual Double_t  GetHMPIDsignal()     const {return 0.;}
+  virtual Double_t  GetTRDsignal()       const {return 0.;}
 
+  virtual Double_t  GetHMPIDoccupancy()  const {return 0.;}
+  
+  virtual Int_t     GetHMPIDcluIdx()     const {return 0;}
+  
+  virtual void GetHMPIDtrk(Float_t &/*&x*/, Float_t &/*y*/, Float_t &/*th*/, Float_t &/*ph*/) const {;}  
+  virtual void GetHMPIDmip(Float_t &/*x*/, Float_t &/*y*/, Int_t &/*q*/,Int_t &/*nph*/) const {;}
+  
+  virtual Bool_t GetOuterHmpPxPyPz(Double_t */*p*/) const {return kFALSE;}
+  
   virtual void      GetIntegratedTimes(Double_t */*times*/) const { return; }
   virtual Double_t  GetTRDmomentum(Int_t /*plane*/, Double_t */*sp*/=0x0) const {return 0.;}
   virtual void      GetHMPIDpid(Double_t */*p*/) const {;}
-    
+  virtual Double_t  GetIntegratedLength() const { return 0.;}
+  
   virtual ULong_t  GetStatus() const = 0;
   virtual Bool_t   GetXYZ(Double_t *p) const = 0;
   virtual Bool_t   GetXYZAt(Double_t /*x*/, Double_t /*b*/, Double_t* /*r*/ ) const {return kFALSE;}

@@ -24,6 +24,7 @@
 #include "AliVCaloTrigger.h"
 #include "TRefArray.h"
 #include "AliTOFHeader.h"
+#include "AliVTrdTrack.h"
 class AliCentrality;
 class AliEventplane;
 class AliVVZERO;
@@ -70,7 +71,8 @@ public:
       kMuonUnlikeLowPt8     = BIT(25), // Muon trigger : unlike sign muon, low pt, T0 selection, CINT8 suite
       kMuonUnlikeLowPt0     = BIT(26), // Muon trigger : unlike sign muon, low pt, no additional L0 requirement
       kUserDefined  = BIT(27), // Set when custom trigger classes are set in AliPhysicsSelection, offline SPD or V0 selection
-      // Bits 28 and above are reserved for FLAGS
+      kTRD          = BIT(28), // TRD trigger
+      // Bits 29 and above are reserved for FLAGS
       kFastOnly     = BIT(30), // The fast cluster fired. This bit is set in to addition another trigger bit, e.g. kMB
       kAny          = 0xffffffff, // to accept any trigger
       kAnyINT       = kMB | kINT7 | kCINT5 | kINT8 | kSPI7 // to accept any interaction (aka minimum bias) trigger
@@ -128,7 +130,7 @@ public:
   virtual UInt_t    GetEventType()  const = 0;
   virtual ULong64_t GetTriggerMask() const = 0;
   virtual UChar_t   GetTriggerCluster() const = 0;
-
+  virtual TString   GetFiredTriggerClasses() const = 0;
   virtual Double_t  GetZDCN1Energy() const = 0;
   virtual Double_t  GetZDCP1Energy() const = 0;
   virtual Double_t  GetZDCN2Energy() const = 0;
@@ -188,6 +190,11 @@ public:
   virtual Float_t        GetVZEROEqMultiplicity(Int_t /* i */) const {return -1;}
   virtual void           SetVZEROEqFactors(Float_t /* factors */[64]) const {return;}
   virtual AliVZDC   *GetZDCData() const = 0;
+
+  virtual Int_t GetNumberOfTrdTracks() const { return 0; }
+  virtual AliVTrdTrack* GetTrdTrack(Int_t /* iTrack */) const { return 0x0; }
+
+  virtual Int_t     GetNumberOfESDTracks()  const { return 0; }
 
   ClassDef(AliVEvent,2)  // base class for AliEvent data
 };

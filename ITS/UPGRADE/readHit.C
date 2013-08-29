@@ -1,5 +1,5 @@
-
-void readHit(){
+void readHit(int nev=-1,int evStart=0)
+{
   gROOT->SetStyle("Plain");
 
   gSystem->Load("libITSUpgradeBase");
@@ -41,13 +41,23 @@ void readHit(){
     hDeLoss[i]->SetXTitle("GeV");
   }
 
+  int nevTot = (Int_t)runLoader->GetNumberOfEvents();
+  printf("N Events : %i \n",nevTot);
+  evStart = evStart<nevTot ? evStart : nevTot-1;
+  if (evStart<0) evStart = 0;
+  //
+  int lastEv = nev<0 ? nevTot : evStart+nev;
+  if (lastEv > nevTot) lastEv = nevTot;
+  //
 
   //HIT INIT
 
   TTree *hitTree = 0x0;
   TClonesArray *hitList=new TClonesArray("AliITSUHit");
 
-  for (Int_t iEvent = 0; iEvent < runLoader->GetNumberOfEvents(); iEvent++) {
+  for (Int_t iEvent = evStart; iEvent < lastEv; iEvent++) {
+
+    printf("\nEvent\t%d\n",iEvent);
  
     runLoader->GetEvent(iEvent);
     
@@ -69,8 +79,8 @@ void readHit(){
 	pHit->GetPositionG0(xg0,yg0,zg0,tg0);
 	xyGlob->Fill(xg,yg);
 	zGlob->Fill(zg);
-	printf("Module %5d | Lr:%2d Ladder: %3d, X:[%+.5e:%+.5e] Y:[%+.5e:%+.5e] Z:[%+.5e %+.5e] TrackID: %d\n",id,lr,ld,
-	       xg0,xg,yg0,yg,zg0,zg,pHit->GetTrack());
+	printf("Module %5d | Lr:%2d Ladder: %3d, X:[%+.5e:%+.5e] Y:[%+.5e:%+.5e] Z:[%+.5e %+.5e] DE: %.5e TrackID: %d\n",id,lr,ld,
+	       xg0,xg,yg0,yg,zg0,zg,pHit->GetIonization(),pHit->GetTrack());
 	hDeLoss[lr]->Fill(pHit->GetIonization());
 	//	} // is primary
       }//loop hit 

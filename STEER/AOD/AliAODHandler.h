@@ -30,7 +30,7 @@ class AliAODHandler : public AliVEventHandler {
     AliAODHandler(const char* name, const char* title);
     virtual ~AliAODHandler();
     virtual void         SetOutputFileName(const char* fname);
-    virtual const char*  GetOutputFileName();
+    virtual const char*  GetOutputFileName() const;
     // Extra outputs as a string separated by commas
     virtual const char*  GetExtraOutputs() const;
     virtual Bool_t       Init(Option_t* option);
@@ -49,6 +49,8 @@ class AliAODHandler : public AliVEventHandler {
     virtual void         SetFillExtension(Bool_t b)              {Changed(); fFillExtension = b;}
     virtual void         SetFillAODforRun(Bool_t b)              {Changed(); fFillAODRun = b;}
     virtual void         SetNeedsHeaderReplication()             {fNeedsHeaderReplication             = kTRUE;}
+    virtual void         SetNeedsTOFHeaderReplication()          {fNeedsTOFHeaderReplication          = kTRUE;}
+    virtual void         SetNeedsVZEROReplication()              {fNeedsVZEROReplication              = kTRUE;}
     virtual void         SetNeedsTracksBranchReplication()       {fNeedsTracksBranchReplication       = kTRUE;}
     virtual void         SetNeedsVerticesBranchReplication()     {fNeedsVerticesBranchReplication     = kTRUE;}
     virtual void         SetNeedsV0sBranchReplication()          {fNeedsV0sBranchReplication          = kTRUE;}
@@ -82,6 +84,8 @@ class AliAODHandler : public AliVEventHandler {
     Bool_t               IsStandard()                         const {return fIsStandard;}
     Bool_t               GetFillAOD()                         const {return fFillAOD;} 
     Bool_t               NeedsHeaderReplication()             const {return  fNeedsHeaderReplication;}
+    Bool_t               NeedsTOFHeaderReplication()          const {return  fNeedsTOFHeaderReplication;}
+    Bool_t               NeedsVZEROReplication()              const {return  fNeedsVZEROReplication;}
     Bool_t               NeedsTracksBranchReplication()       const {return  fNeedsTracksBranchReplication;}
     Bool_t               NeedsVerticesBranchReplication()     const {return  fNeedsVerticesBranchReplication;}
     Bool_t               NeedsV0sBranchReplication()          const {return  fNeedsV0sBranchReplication;}
@@ -100,7 +104,7 @@ class AliAODHandler : public AliVEventHandler {
     void                 SetInputTree(TTree* /*tree*/) {;}
     void                 SetMCEventHandler(AliMCEventHandler* mcH) {fMCEventH = mcH;} // For internal use
     void StoreMCParticles(); // Store MC particles, only to be called from AliAnalyisTaskMCParticleFilter
-
+    void                 SetTreeBuffSize(Long64_t sz=30000000) {fTreeBuffSize = sz;}
   Bool_t HasExtensions() const;
   
   void Print(Option_t* opt="") const;
@@ -117,6 +121,8 @@ class AliAODHandler : public AliVEventHandler {
     Bool_t                   fFillAODRun;                         // Flag for filling of the AOD tree at the end (run)
     Bool_t                   fFillExtension;                      // Flag for filling or the delta AOD tree at the end
     Bool_t                   fNeedsHeaderReplication;             // Flag for header replication
+    Bool_t                   fNeedsTOFHeaderReplication;          // Flag for header replication
+    Bool_t                   fNeedsVZEROReplication;              // Flag for header replication
     Bool_t                   fNeedsTracksBranchReplication;       // Flag for tracks replication
     Bool_t                   fNeedsVerticesBranchReplication;     // Flag for vertices replication
     Bool_t                   fNeedsV0sBranchReplication;          // Flag for V0s replication
@@ -131,6 +137,9 @@ class AliAODHandler : public AliVEventHandler {
     Bool_t                   fNeedsDimuonsBranchReplication;      // Flag for Dimuons replication
     Bool_t                   fNeedsHMPIDBranchReplication;        // Flag for HMPID replication
     Bool_t                   fAODIsReplicated;                    // Flag true if replication as been executed
+    // Counters for SetAutoFlush configuration
+    Long64_t                 fTreeBuffSize;           //  allowed uncompressed buffer size per tree
+    Long64_t                 fMemCountAOD;            //! accumulated AOD size before AutoSave 
     AliAODEvent             *fAODEvent;               //! Pointer to the AOD event
     AliMCEventHandler       *fMCEventH;               //! Pointer to mc event handler needed not to depend on the manager
     TTree                   *fTreeA;                  //! tree for AOD persistency
@@ -139,7 +148,7 @@ class AliAODHandler : public AliVEventHandler {
     TObjArray               *fExtensions;             //  List of extensions
     TObjArray               *fFilters;                //  List of filtered AOD's
 
-  ClassDef(AliAODHandler, 7)
+  ClassDef(AliAODHandler, 8)
 };
 
 #endif

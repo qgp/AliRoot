@@ -31,6 +31,7 @@
 #include "AliAODHeader.h"
 #include "AliAODTrack.h"
 #include "AliAODDimuon.h"
+#include "AliAODTrdTrack.h"
 
 ClassImp(AliAODEvent)
 
@@ -54,7 +55,8 @@ ClassImp(AliAODEvent)
 						      "AliAODTZERO",
 						      "AliAODVZERO",
 						      "AliAODZDC",
-						      "AliTOFHeader"
+						      "AliTOFHeader",
+						      "trdTracks"
 #ifdef MFT_UPGRADE	  
 						      ,"AliAODMFT"
 #endif						      
@@ -85,7 +87,8 @@ AliAODEvent::AliAODEvent() :
   fAODTZERO(0),
   fAODVZERO(0),
   fAODZDC(0),
-  fTOFHeader(0)
+  fTOFHeader(0),
+  fTrdTracks(0)
 #ifdef MFT_UPGRADE
   ,fAODMFT(0)
 #endif
@@ -119,7 +122,8 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   fAODTZERO(new AliAODTZERO(*aod.fAODTZERO)),
   fAODVZERO(new AliAODVZERO(*aod.fAODVZERO)),
   fAODZDC(new AliAODZDC(*aod.fAODZDC)),
-  fTOFHeader(new AliTOFHeader(*aod.fTOFHeader))
+  fTOFHeader(new AliTOFHeader(*aod.fTOFHeader)),
+  fTrdTracks(new TClonesArray(*aod.fTrdTracks))
 #ifdef MFT_UPGRADE
   ,fAODMFT(new AliAODMFT(*aod.fAODMFT))
 #endif
@@ -145,6 +149,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   AddObject(fAODVZERO);
   AddObject(fAODZDC);
   AddObject(fTOFHeader);
+  AddObject(fTrdTracks);
 #ifdef MFT_UPGRADE	
   AddObject(fAODVZERO);
 #endif
@@ -320,6 +325,7 @@ void AliAODEvent::CreateStdContent()
   AddObject(new AliAODVZERO());
   AddObject(new AliAODZDC());
   AddObject(new AliTOFHeader());
+  AddObject(new TClonesArray("AliAODTrdTrack", 0));
 #ifdef MFT_UPGRADE
   AddObject(new AliAODMFT());
 #endif
@@ -413,6 +419,7 @@ void AliAODEvent::GetStdContent()
   fAODVZERO      = (AliAODVZERO*)fAODObjects->FindObject("AliAODVZERO");
   fAODZDC        = (AliAODZDC*)fAODObjects->FindObject("AliAODZDC");
   fTOFHeader     = (AliTOFHeader*)fAODObjects->FindObject("AliTOFHeader");
+  fTrdTracks     = (TClonesArray*)fAODObjects->FindObject("trdTracks");
 #ifdef MFT_UPGRADE
   fAODMFT        = (AliAODMFT*)fAODObjects->FindObject("AliAODMFT");
 #endif
@@ -428,7 +435,8 @@ void AliAODEvent::ResetStd(Int_t trkArrSize,
 			   Int_t fmdClusSize, 
 			   Int_t pmdClusSize,
                            Int_t hmpidRingsSize,
-			   Int_t dimuonArrSize
+			   Int_t dimuonArrSize,
+			   Int_t nTrdTracks
 			   )
 {
   // deletes content of standard arrays and resets size 
@@ -482,6 +490,13 @@ void AliAODEvent::ResetStd(Int_t trkArrSize,
     if (dimuonArrSize > fDimuons->GetSize()) 
       fDimuons->Expand(dimuonArrSize);
   }
+  if (fTrdTracks) {
+    // no pointers in there, so cheaper Clear suffices
+    fTrdTracks->Clear("C");
+    if (nTrdTracks > fTrdTracks->GetSize())
+      fTrdTracks->Expand(nTrdTracks);
+  }
+
   if (fTracklets)
     fTracklets->DeleteContainer();
   if (fPhosCells)
@@ -527,6 +542,8 @@ void AliAODEvent::ClearStd()
      fHMPIDrings   ->Clear();    
   if (fDimuons)
     fDimuons       ->Clear();
+  if (fTrdTracks)
+    fTrdTracks     ->Clear();
 	
   if (fEMCALTrigger)
 	fEMCALTrigger->DeAllocate();
@@ -955,7 +972,7 @@ void  AliAODEvent::SetTOFHeader(const AliTOFHeader *header)
 
 }
 //------------------------------------------------------------
-AliAODHMPIDrings *AliAODEvent::GetHMPIDringForTrackID(Int_t trackID)
+AliAODHMPIDrings *AliAODEvent::GetHMPIDringForTrackID(Int_t trackID) const
 {
   //
   // Returns the HMPID object if any for a given track ID
@@ -964,13 +981,13 @@ AliAODHMPIDrings *AliAODEvent::GetHMPIDringForTrackID(Int_t trackID)
   {
     for(Int_t ien = 0 ; ien < GetNHMPIDrings(); ien++)
     {
-      if( ien == trackID ) return GetHMPIDring(ien);      
+      if( GetHMPIDring(ien)->GetHmpTrkID() == trackID ) return GetHMPIDring(ien);      
     }//rings loop  
   }
   return 0;
 }
 //------------------------------------------------------------
-Int_t AliAODEvent::GetNHMPIDrings()   
+Int_t AliAODEvent::GetNHMPIDrings() const   
 { 
   //
   // If there is a list of HMPID rings in the given AOD event, return their number
@@ -979,7 +996,7 @@ Int_t AliAODEvent::GetNHMPIDrings()
   else return -1;
 } 
 //------------------------------------------------------------
-AliAODHMPIDrings *AliAODEvent::GetHMPIDring(Int_t nRings)   
+AliAODHMPIDrings *AliAODEvent::GetHMPIDring(Int_t nRings) const
 { 
   //
   // If there is a list of HMPID rings in the given AOD event, return corresponding ring
@@ -993,3 +1010,6 @@ AliAODHMPIDrings *AliAODEvent::GetHMPIDring(Int_t nRings)
   else return 0x0;  
 }
 //------------------------------------------------------------
+AliAODTrdTrack& AliAODEvent::AddTrdTrack(const AliVTrdTrack *track) {
+  return *(new ((*fTrdTracks)[fTrdTracks->GetEntriesFast()]) AliAODTrdTrack(*track));
+}

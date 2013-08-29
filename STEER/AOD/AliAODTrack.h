@@ -127,12 +127,20 @@ class AliAODTrack : public AliVTrack {
   virtual Bool_t   XvYvZv(Double_t x[3]) const { x[0] = Xv(); x[1] = Yv(); x[2] = Zv(); return kTRUE; }
 
   Double_t Chi2perNDF()  const { return fChi2perNDF; }
-  UShort_t GetTPCNcls()  const { 
-    UShort_t cl = fTPCFitMap.CountBits();
-    if(cl==0)cl = fTPCClusterMap.CountBits();// backward compatibility
+
+  UShort_t GetTPCnclsS(Int_t i0=0,Int_t i1=159)  const { 
+    UShort_t cl = fTPCSharedMap.CountBits(i0)-fTPCSharedMap.CountBits(i1);
     return cl;
   }
   
+  UShort_t GetTPCncls(Int_t i0=0,Int_t i1=159)  const { 
+    UShort_t cl = fTPCFitMap.CountBits(i0)-fTPCFitMap.CountBits(i1);
+    if(cl==0)cl = fTPCClusterMap.CountBits(i0)-fTPCClusterMap.CountBits(i1);// backward compatibility
+    return cl;
+  }
+  
+  UShort_t GetTPCNcls()  const { return GetTPCncls(); }
+
   virtual Double_t M() const { return M(GetMostProbablePID()); }
   Double_t M(AODTrkPID_t pid) const;
   virtual Double_t E() const { return E(GetMostProbablePID()); }
@@ -160,7 +168,7 @@ class AliAODTrack : public AliVTrack {
  
   template <typename T> void SetPID(const T *pid) {
     if(pid) for(Int_t i=0; i<10; ++i) fPID[i]=pid[i];
-    else {for(Int_t i=0; i<10; fPID[i++]=0.) ; fPID[AliAODTrack::kUnknown]=1.;}}
+    else {  for(Int_t i=0; i<10; i++) fPID[i]=0.; fPID[AliAODTrack::kUnknown]=1.;}}
 
   Bool_t IsOn(Int_t mask) const {return (fFlags&mask)>0;}
   ULong_t GetStatus() const { return GetFlags(); }
@@ -168,6 +176,9 @@ class AliAODTrack : public AliVTrack {
 
   Int_t   GetID() const { return (Int_t)fID; }
   Int_t   GetLabel() const { return fLabel; } 
+  void    GetTOFLabel(Int_t *p) const;
+
+
   Char_t  GetType() const { return fType;}
   Bool_t  IsPrimaryCandidate() const;
   Bool_t  GetUsedForVtxFit() const { return TestBit(kUsedForVtxFit); }
@@ -268,7 +279,9 @@ class AliAODTrack : public AliVTrack {
 
   Double_t GetTrackPhiOnEMCal() const {return fTrackPhiOnEMCal;}
   Double_t GetTrackEtaOnEMCal() const {return fTrackEtaOnEMCal;}
-  void SetTrackPhiEtaOnEMCal(Double_t phi,Double_t eta) {fTrackPhiOnEMCal=phi;fTrackEtaOnEMCal=eta;}
+  Double_t GetTrackPtOnEMCal() const {return fTrackPtOnEMCal;}
+  Double_t GetTrackPOnEMCal() const {return TMath::Abs(fTrackEtaOnEMCal) < 1 ? fTrackPtOnEMCal*TMath::CosH(fTrackEtaOnEMCal) : -999;}
+  void SetTrackPhiEtaPtOnEMCal(Double_t phi,Double_t eta,Double_t pt) {fTrackPhiOnEMCal=phi;fTrackEtaOnEMCal=eta;fTrackPtOnEMCal=pt;}
 
   Int_t GetPHOScluster() const {return fCaloIndex;}
   void SetPHOScluster(Int_t index) {fCaloIndex=index;}
@@ -283,11 +296,25 @@ class AliAODTrack : public AliVTrack {
   UShort_t  GetTPCsignalN()      const { return fDetPid?fDetPid->GetTPCsignalN():0;    }
   virtual AliTPCdEdxInfo* GetTPCdEdxInfo() const {return fDetPid?fDetPid->GetTPCdEdxInfo():0;}
   Double_t  GetTPCmomentum()     const { return fDetPid?fDetPid->GetTPCmomentum():0.;  }
+  Double_t  GetTPCTgl()          const { return fDetPid?fDetPid->GetTPCTgl():0.;  }
   Double_t  GetTOFsignal()       const { return fDetPid?fDetPid->GetTOFsignal():0.;    }
-  Double_t  GetHMPIDsignal()     const { return 0.;  } // TODO: To be implemented properly with the new HMPID object
+  Double_t  GetIntegratedLength() const { return fTrackLength;}
+  void      SetIntegratedLength(Double_t l) {fTrackLength = l;}
+  Double_t  GetTOFsignalTunedOnData() const { return fTOFsignalTuned;}
+  void      SetTOFsignalTunedOnData(Double_t signal) {fTOFsignalTuned = signal;}
+  Double_t  GetHMPIDsignal()     const; 
+  Double_t  GetHMPIDoccupancy()  const;
+
+  Int_t     GetHMPIDcluIdx()     const;
+    
+  void GetHMPIDtrk(Float_t &x, Float_t &y, Float_t &th, Float_t &ph) const;  
+  void GetHMPIDmip(Float_t &x,Float_t &y,Int_t &q,Int_t &nph) const;
+  
+  Bool_t GetOuterHmpPxPyPz(Double_t *p) const;
   
   void      GetIntegratedTimes(Double_t *times) const {if (fDetPid) fDetPid->GetIntegratedTimes(times); }
   Double_t  GetTRDslice(Int_t plane, Int_t slice) const;
+  Double_t  GetTRDsignal()                        const {return fDetPid ? fDetPid->GetTRDsignal() : 0;}
   Double_t  GetTRDmomentum(Int_t plane, Double_t */*sp*/=0x0) const;
   Double_t  GetTRDchi2()                 const {return fDetPid ? fDetPid->GetTRDChi2() : -1;}
   UChar_t   GetTRDncls(Int_t layer)      const;
@@ -312,7 +339,7 @@ class AliAODTrack : public AliVTrack {
 
   void SetID(Short_t id) { fID = id; }
   void SetLabel(Int_t label) { fLabel = label; }
-
+  void SetTOFLabel(const Int_t* p);
   template <typename T> void SetPosition(const T *x, Bool_t isDCA = kFALSE);
   void SetDCA(Double_t d, Double_t z);
   void SetUsedForVtxFit(Bool_t used = kTRUE) { used ? SetBit(kUsedForVtxFit) : ResetBit(kUsedForVtxFit); }
@@ -397,7 +424,8 @@ class AliAODTrack : public AliVTrack {
 
   ULong_t       fFlags;             // reconstruction status flags 
   Int_t         fLabel;             // track label, points back to MC track
-  
+  Int_t         fTOFLabel[3];       // TOF label
+  Double32_t    fTrackLength;       // Track length
   UInt_t        fITSMuonClusterMap; // map of ITS and muon clusters, one bit per layer
                                     // (ITS: bit 1-8, muon trigger: bit 9-16, muon tracker: bit 17-26, muon match trigger: bit 31-32) 
   UInt_t        fMUONtrigHitsMapTrg; // Muon trigger hits map from trigger
@@ -424,14 +452,16 @@ class AliAODTrack : public AliVTrack {
   mutable const AliDetectorPID* fDetectorPID; //! transient object to cache calibrated PID information
   TRef          fProdVertex;        // vertex of origin
 
-  Double_t      fTrackPhiOnEMCal;   // phi of track after being propagated to 430cm
-  Double_t      fTrackEtaOnEMCal;   // eta of track after being propagated to 430cm
+  Double_t      fTrackPhiOnEMCal;   // phi of track after being propagated to the EMCal surface (default r = 440 cm)
+  Double_t      fTrackEtaOnEMCal;   // eta of track after being propagated to the EMCal surface (default r = 440 cm)
+  Double_t      fTrackPtOnEMCal;    // pt of track after being propagated to the EMCal surface (default r = 440 cm)
 
   Double_t      fTPCsignalTuned;    //! TPC signal tuned on data when using MC
+  Double_t      fTOFsignalTuned;    //! TOF signal tuned on data when using MC
 
   const AliAODEvent* fAODEvent;     //! 
 
-  ClassDef(AliAODTrack, 19);
+  ClassDef(AliAODTrack, 22);
 };
 
 inline Bool_t  AliAODTrack::IsPrimaryCandidate() const

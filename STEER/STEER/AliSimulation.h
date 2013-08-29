@@ -42,6 +42,7 @@ public:
   void           SetEventsPerFile(const char* detector, const char* type, 
 				  Int_t nEvents);
 
+  void           SetRunGeneratorOnly(Bool_t val) {fRunGeneratorOnly = val;};
   void           SetRunGeneration(Bool_t run) {fRunGeneration = run;};
   void           SetRunSimulation(Bool_t run) {fRunSimulation = run;};
   void           SetLoadAlignFromCDB(Bool_t load)  {fLoadAlignFromCDB = load;};
@@ -70,6 +71,7 @@ public:
   void           SetAlignObjArray(TObjArray *array)
                    {fAlignObjArray = array;
 		   fLoadAlignFromCDB = kFALSE;}
+  void           SetUseMonitoring(Bool_t flag=kTRUE) {fUseMonitoring = flag;}
 
   Bool_t         MisalignGeometry(AliRunLoader *runLoader = NULL);
 
@@ -89,6 +91,7 @@ public:
 			 Float_t rmax=430,Float_t zmax=10000, AliLegoGenerator* gener=NULL, Int_t nev = -1);
 
   virtual Bool_t RunSimulation(Int_t nEvents = 0);
+  virtual Bool_t RunGeneratorOnly();
   virtual Bool_t RunSDigitization(const char* detectors = "ALL");
   virtual Bool_t RunTrigger(const char* descriptors ="", const char* detectors = "ALL");
   virtual Bool_t WriteTriggerRawData();
@@ -155,6 +158,7 @@ private:
 
   static AliSimulation *fgInstance;    // Static pointer to object
 
+  Bool_t         fRunGeneratorOnly;   // run code for a generator only production
   Bool_t         fRunGeneration;      // generate prim. particles or not
   Bool_t         fRunSimulation;      // simulate detectors (hits) or not
   Bool_t         fLoadAlignFromCDB;   // Load alignment data from CDB and apply it to geometry or not
@@ -168,6 +172,7 @@ private:
   Bool_t         fDeleteIntermediateFiles; // delete intermediate raw data files
   Bool_t         fWriteSelRawData;    // write detectors raw data in a separate file accoring to the trigger cluster
   Bool_t         fStopOnError;        // stop or continue on errors
+  Bool_t         fUseMonitoring;      // monitor simulation timing per volume
 
   Int_t          fNEvents;            // number of events
   TString        fConfigFileName;     // name of the config file
@@ -191,7 +196,7 @@ private:
   Bool_t         fEmbeddingFlag;       // Flag for embedding
   AliLego       *fLego;                //! Pointer to aliLego object if it exists
   // OCDB
-  ULong_t         fKey;                //! current CDB key
+  ULong64_t       fKey;                //! current CDB key
   Bool_t          fUseVertexFromCDB;   // Flag to use Vertex from CDB
   Bool_t          fUseMagFieldFromGRP; // Use magnetic field settings from GRP
   TString         fGRPWriteLocation;   // Location to write the GRP entry from simulation
@@ -222,7 +227,7 @@ private:
 
   Bool_t         fWriteGRPEntry;      // Write or not GRP entry corresponding to the settings in Config.C
 
-  ClassDef(AliSimulation, 12)  // class for running generation, simulation and digitization
+  ClassDef(AliSimulation, 13)  // class for running generation, simulation and digitization
 };
 
 #endif

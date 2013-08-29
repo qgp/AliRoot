@@ -40,12 +40,14 @@ fCachePID(kTRUE),
 fOADBPath(),
 fSpecialDetResponse(),
 fPIDResponse(0x0),
-fRun(0),
-fOldRun(0),
+fRun(-1),
+fOldRun(-1),
 fRecoPass(0),
 fIsTunedOnData(kFALSE),
+fTunedOnDataMask(0),
 fRecoPassTuned(0),
-fUseTPCEtaCorrection(kFALSE)//TODO: In future, default kTRUE  
+fUseTPCEtaCorrection(kFALSE),//TODO: In future, default kTRUE 
+fUseTPCMultiplicityCorrection(kFALSE)//TODO: In future, default kTRUE  
 {
   //
   // Dummy constructor
@@ -60,12 +62,14 @@ fCachePID(kTRUE),
 fOADBPath(),
 fSpecialDetResponse(),
 fPIDResponse(0x0),
-fRun(0),
-fOldRun(0),
+fRun(-1),
+fOldRun(-1),
 fRecoPass(0),
 fIsTunedOnData(kFALSE),
+fTunedOnDataMask(0),
 fRecoPassTuned(0),
-fUseTPCEtaCorrection(kFALSE)//TODO: In future, default kTRUE
+fUseTPCEtaCorrection(kFALSE),//TODO: In future, default kTRUE
+fUseTPCMultiplicityCorrection(kFALSE)//TODO: In future, default kTRUE  
 {
   //
   // Default constructor
@@ -105,6 +109,7 @@ void AliAnalysisTaskPIDResponse::UserCreateOutputObjects()
   if (!fOADBPath.IsNull()) fPIDResponse->SetOADBPath(fOADBPath.Data());
 
   if(fIsTunedOnData) fPIDResponse->SetTunedOnData(kTRUE,fRecoPassTuned);
+  if(fTunedOnDataMask != 0) fPIDResponse->SetTunedOnDataMask(fTunedOnDataMask);
 
   if (!fSpecialDetResponse.IsNull()){
     TObjArray *arr=fSpecialDetResponse.Tokenize("; ");
@@ -117,7 +122,7 @@ void AliAnalysisTaskPIDResponse::UserCreateOutputObjects()
       }
     }
     delete arr;
-  }
+  }  
 }
 
 //______________________________________________________________________________
@@ -132,9 +137,11 @@ void AliAnalysisTaskPIDResponse::UserExec(Option_t */*option*/)
   if (fRun!=fOldRun){
     SetRecoInfo();
     fOldRun=fRun;
+    
+    fPIDResponse->SetUseTPCEtaCorrection(fUseTPCEtaCorrection);
+    fPIDResponse->SetUseTPCMultiplicityCorrection(fUseTPCMultiplicityCorrection);
   }
 
-  fPIDResponse->SetUseTPCEtaCorrection(fUseTPCEtaCorrection);
   fPIDResponse->InitialiseEvent(event,fRecoPass);
   AliESDpid *pidresp = dynamic_cast<AliESDpid*>(fPIDResponse);
   if(pidresp && AliAnalysisManager::GetAnalysisManager()->GetMCtruthEventHandler()){
@@ -175,7 +182,10 @@ void AliAnalysisTaskPIDResponse::SetRecoInfo()
     fPIDResponse->SetCurrentFile(fileName.Data());
   }
 
-  if (!(prodInfo.IsMC())) {      // reco pass is needed only for data
+  fPIDResponse->SetCurrentAliRootRev(prodInfo.GetAlirootSvnVersion());
+  
+  if (prodInfo.IsMC() == kTRUE) fIsMC=kTRUE;         // protection if user didn't use macro switch
+  if ( (prodInfo.IsMC() == kFALSE) && (fIsMC == kFALSE) ) {      // reco pass is needed only for data
     fRecoPass = prodInfo.GetRecoPass();
     if (fRecoPass < 0) {   // as last resort we find pass from file name (UGLY, but not stored in ESDs/AODs before LHC12d )
       TString fileName(file->GetName());
@@ -193,8 +203,9 @@ void AliAnalysisTaskPIDResponse::SetRecoInfo()
     } 
     if (fRecoPass <= 0) {
       AliError(" ******** Failed to find reconstruction pass number *********");
-      AliError(" ******** Insert pass number inside the path of your local file ******");
       AliError(" ******** PID information loaded for 'pass 0': parameters unreliable ******");
+      AliError("      --> If these are MC data: please set kTRUE first argument of AddTaskPIDResponse");
+      AliError("      --> If these are real data: please insert pass number inside the path of your local file ******");
     }
   }
 

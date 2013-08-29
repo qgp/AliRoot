@@ -11,12 +11,16 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+class AliITSUTrackCond;
 
+#include <TObjArray.h>
 #include "AliDetectorRecoParam.h"
 
 class AliITSURecoParam : public AliDetectorRecoParam
 {
  public: 
+  enum {kClus2Tracks,kPropBack,kRefitInw,kNTrackingPhases};   // tracking phases
+  //
   AliITSURecoParam();
   AliITSURecoParam(Int_t nLr);
   virtual ~AliITSURecoParam();
@@ -32,36 +36,35 @@ class AliITSURecoParam : public AliDetectorRecoParam
   Double_t    GetTanLorentzAngle(Int_t lr)       const;
   Double_t    GetSigmaY2(Int_t lr)               const;
   Double_t    GetSigmaZ2(Int_t lr)               const;
-  Double_t    GetMaxTr2ClChi2(Int_t lr)          const;
-  Double_t    GetMissPenalty(Int_t lr)           const;
-  //
-  Double_t    GetNSigmaRoadY()                   const {return fNSigmaRoadY;}
-  Double_t    GetNSigmaRoadZ()                   const {return fNSigmaRoadZ;}
+  Bool_t      GetAllowDiagonalClusterization(Int_t lr) const;
   //
   Double_t    GetTPCITSWallRMin()                const {return fTPCITSWallRMin;}
   Double_t    GetTPCITSWallRMax()                const {return fTPCITSWallRMax;}
   Double_t    GetTPCITSWallZSpanH()              const {return fTPCITSWallZSpanH;}
   Double_t    GetTPCITSWallMaxStep()             const {return fTPCITSWallMaxStep;}
+  TObjArray*  GetTrackingConditions()            const {return (TObjArray*)&fTrackingConditions;}
+  Int_t       GetNTrackingConditions()           const {return fTrackingConditions.GetEntriesFast();}
+  AliITSUTrackCond* GetTrackingCondition(Int_t i) const {return (AliITSUTrackCond*)fTrackingConditions[i];}
+  Bool_t      GetUseMatLUT(Int_t step)           const {return (step<0||step>=kNTrackingPhases) ? kFALSE:fUseMatLUT[step];}
   //
   void        SetNLayers(Int_t n);
   void        SetTanLorentzAngle(Int_t lr, Double_t v);
   void        SetSigmaY2(Int_t lr, Double_t v);
   void        SetSigmaZ2(Int_t lr, Double_t v);
-  void        SetMaxTr2ClChi2(Int_t lr, Double_t v);
-  void        SetMissPenalty(Int_t lr, Double_t v);
+  void        SetAllowDiagonalClusterization(Int_t lr, Bool_t v);
   //
   void        SetMaxDforV0dghtrForProlongation(Double_t v)            {fMaxDforV0dghtrForProlongation = v;}
   void        SetMaxDForProlongation(Double_t v)                      {fMaxDForProlongation = v;}
   void        SetMaxDZForProlongation(Double_t v)                     {fMaxDZForProlongation = v;}
   void        SetMinPtForProlongation(Double_t v)                     {fMinPtForProlongation = v;}
-  void        SetNSigmaRoadY(Double_t v)                              {fNSigmaRoadY=v;}
-  void        SetNSigmaRoadZ(Double_t v)                              {fNSigmaRoadZ=v;}
   //
   void        SetTPCITSWallRMin(double v)                             {fTPCITSWallRMin = v;}
   void        SetTPCITSWallRMax(double v)                             {fTPCITSWallRMax = v;}
   void        SetTPCITSWallZSpanH(double v)                           {fTPCITSWallZSpanH = v;}
   void        SetTPCITSWallMaxStep(double v)                          {fTPCITSWallMaxStep = v;}
   //
+  void        SetUseMatLUT(Int_t step, Bool_t v)                      {if (step>=0&&step<kNTrackingPhases) fUseMatLUT[step]=v;}
+  void        AddTrackingCondition(AliITSUTrackCond* cond);
   virtual void Print(Option_t *opt="")  const;
   //
  protected:
@@ -71,46 +74,42 @@ class AliITSURecoParam : public AliDetectorRecoParam
   Double_t       fMaxDForProlongation; // max. rphi imp. par. cut
   Double_t       fMaxDZForProlongation; // max. 3D imp. par. cut
   Double_t       fMinPtForProlongation; // min. pt cut
-  Double_t       fNSigmaRoadY;          // N sigmas for road in Y
-  Double_t       fNSigmaRoadZ;          // N sigmas for road in Z
   //
   Double_t       fTPCITSWallRMin;       // minR
   Double_t       fTPCITSWallRMax;       // maxR
   Double_t       fTPCITSWallZSpanH;     // half Z span
   Double_t       fTPCITSWallMaxStep;    // max tracking step
   //
+  Bool_t         fUseMatLUT[kNTrackingPhases]; // allow usage of material lookup table at given tracking step
+  Bool_t*        fAllowDiagonalClusterization; //[fNLayers] allow clusters of pixels with common corners only
   Double_t*      fTanLorentzAngle;  //[fNLayers] Optional Lorentz angle for each layer
   Double_t*      fSigmaY2;          //[fNLayers] addition to road width^2
   Double_t*      fSigmaZ2;          //[fNLayers] addition to road width^2
-  Double_t*      fMaxTr2ClChi2;     //[fNLayers] max track-to-cluster chi2
-  Double_t*      fMissPenalty;      //[fNLayers] chi2 penalty for missing hit on the layer
   //
-
-
+  TObjArray      fTrackingConditions; // array of tracking conditions for different iterations
+  //
   static const Double_t fgkMaxDforV0dghtrForProlongation;      // default
   static const Double_t fgkMaxDForProlongation;                // default
   static const Double_t fgkMaxDZForProlongation;               // default
   static const Double_t fgkMinPtForProlongation;               // default
-  static const Double_t fgkNSigmaRoadY;                        // default
-  static const Double_t fgkNSigmaRoadZ;                        // default
-  // for arrays
+  static const Double_t fgkTanLorentzAngle;                    // default
   static const Double_t fgkSigmaRoadY;                         // default
   static const Double_t fgkSigmaRoadZ;                         // default
-  static const Double_t fgkMaxTr2ClChi2;                       // default
-  static const Double_t fgkTanLorentzAngle;                    // default
-  static const Double_t fgkMissPenalty;                        // default
   //
   // hardwired params for TPC-ITS border layer
-  static const Double_t fgkTPCITSWallRMin;                     // minR
-  static const Double_t fgkTPCITSWallRMax;                     // maxR
+  static const Double_t fgkTPCITSWallRMin;                     // fiducial R min   
+  static const Double_t fgkTPCITSWallRMax;                     // fiducial R max
   static const Double_t fgkTPCITSWallZSpanH;                   // half Z span
   static const Double_t fgkTPCITSWallMaxStep;                  // max tracking step
+  //
+  static const Bool_t   fgkUseMatLUT[kNTrackingPhases];        // def. mat. LUT usage 
+  static const Bool_t   fgkAllowDiagonalClusterization;        // clusters of pixels with common corners
   //
  private:
   AliITSURecoParam(const AliITSURecoParam & param);
   AliITSURecoParam & operator=(const AliITSURecoParam &param);
 
-  ClassDef(AliITSURecoParam,1) // ITS reco parameters
+  ClassDef(AliITSURecoParam,5) // ITS reco parameters
 };
 
 //_____________________________________________________________________________
@@ -135,17 +134,10 @@ inline Double_t AliITSURecoParam::GetSigmaZ2(Int_t lr) const
 }
 
 //_____________________________________________________________________________
-inline Double_t AliITSURecoParam::GetMaxTr2ClChi2(Int_t lr) const
+inline Bool_t AliITSURecoParam::GetAllowDiagonalClusterization(Int_t lr) const
 {
-  // get tg of Lorentz Angle for the layer
-  return (lr<fNLayers)&&fMaxTr2ClChi2 ? fMaxTr2ClChi2[lr]:fgkMaxTr2ClChi2; //0;
-}
-
-//_____________________________________________________________________________
-inline Double_t AliITSURecoParam::GetMissPenalty(Int_t lr) const
-{
-  // get penalty for missing hit
-  return (lr<fNLayers)&&fMissPenalty ? fMissPenalty[lr]:fgkMissPenalty; //0;
+  // are diagonal clusters permitted
+  return (lr<fNLayers)&&fAllowDiagonalClusterization ? fAllowDiagonalClusterization[lr]:fgkAllowDiagonalClusterization;
 }
 
 #endif

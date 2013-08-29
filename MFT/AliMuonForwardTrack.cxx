@@ -34,6 +34,7 @@
 #include "AliMFTConstants.h"
 #include "TLorentzVector.h"
 #include "TDatabasePDG.h"
+#include "AliMUONConstants.h"
 
 ClassImp(AliMuonForwardTrack)
 
@@ -431,49 +432,176 @@ Double_t AliMuonForwardTrack::GetOffset(Double_t x, Double_t y, Double_t z) {
 
 //====================================================================================================================================================
 
-Bool_t AliMuonForwardTrack::IsFromResonance() {
+Double_t AliMuonForwardTrack::GetDCA(Double_t x, Double_t y, Double_t z) {
 
-  Bool_t result = kFALSE;
+  // Distance of Closest Approach, according to the standard MUON terminology. Actually, the offset of the track w.r.t. the primary vertex,
+  // where the extrapolation of the track DOES NOT include the MFT information
 
-  if ( GetParentPDGCode(0) ==    113 ||
-       GetParentPDGCode(0) ==    221 ||
-       GetParentPDGCode(0) ==    223 ||
-       GetParentPDGCode(0) ==    331 ||
-       GetParentPDGCode(0) ==    333 ||
-       GetParentPDGCode(0) ==    443 ||
-       GetParentPDGCode(0) == 100443 ||
-       GetParentPDGCode(0) ==    553 ||
-       GetParentPDGCode(0) == 100553 ) result = kTRUE;
+  AliMUONTrackParam param = (*((AliMUONTrackParam*)(GetTrackParamAtMUONCluster(0))));
+
+  AliMUONTrackExtrap::ExtrapToVertexWithoutBranson(&param, z);
+  Double_t dX = param.GetNonBendingCoor() - x;
+  Double_t dY = param.GetBendingCoor()    - y;
+  return TMath::Sqrt(dX*dX + dY*dY);
+
+}
+
+//====================================================================================================================================================
+
+Double_t AliMuonForwardTrack::GetMomentumSpectrometer(Double_t z) {
+
+  // Momentum of the track at the primary vertex plane, where the extrapolation of the track DOES NOT include the MFT information
+
+  AliMUONTrackParam param = (*((AliMUONTrackParam*)(GetTrackParamAtMUONCluster(0))));
+
+  AliMUONTrackExtrap::ExtrapToVertexWithoutBranson(&param, z);
+  return param.P();
+
+}
+
+//====================================================================================================================================================
+
+Double_t AliMuonForwardTrack::GetThetaAbs() {
+
+  // it is the angle defined by the imaginary line goingo from the vertex to the exit point of the track at the end of the hadron absorber
   
-  if (result) AliDebug(1, Form("Muon comes from a resonance %d", GetParentPDGCode(0)));
-  
-  return result; 
+  Double_t z = AliMUONConstants::AbsZEnd();
+
+  AliMUONTrackParam param = (*((AliMUONTrackParam*)(GetTrackParamAtMUONCluster(0))));
+
+  AliMUONTrackExtrap::ExtrapToZ(&param, z);
+  Double_t x = param.GetNonBendingCoor();
+  Double_t y = param.GetBendingCoor();
+
+  return 180. +TMath::ATan(TMath::Sqrt(x*x + y*y)/z)*TMath::RadToDeg();
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromDirectResonance() {
+
+  if (!IsMuon()) return kFALSE;
+
+  for (Int_t i=GetFirstMotherID(); i>=0; i--) if (!IsPDGResonance(GetParentPDGCode(i))) return kFALSE;  // the decay chain finds a non-resonance particle
+
+  return kTRUE; 
   
 }
 
 //====================================================================================================================================================
 
-Bool_t AliMuonForwardTrack::IsFromCharm() {
+Bool_t AliMuonForwardTrack::IsFromChainResonance() {
 
-  Bool_t result = kFALSE;
+  if (!IsMuon()) return kFALSE;
 
-  if (IsPDGCharm(GetParentPDGCode(0)) && !IsPDGBeauty(GetParentPDGCode(1))) result = kTRUE;
-  
-  if (result) AliDebug(1, Form("Muon comes from a charmed hadron %d", GetParentPDGCode(0)));
-  
-  return result; 
+  if (GetFirstMotherID() == 0) return kFALSE;   // it is not a chain
+
+  if (!IsPDGResonance(GetParentPDGCode(GetFirstMotherID()))) return kFALSE;  // primordial is not a resonance
+
+  for (Int_t i=GetFirstMotherID()-1; i>=0; i--) if (!IsPDGResonance(GetParentPDGCode(i))) return kTRUE;  // the decay chain finds a non-resonance particle
+
+  return kFALSE;
   
 }
 
 //====================================================================================================================================================
 
-Bool_t AliMuonForwardTrack::IsFromBeauty() {
+Bool_t AliMuonForwardTrack::IsFromDirectCharm() {
+
+  if (!IsMuon()) return kFALSE;
+
+  for (Int_t i=GetFirstMotherID(); i>=0; i--) if (!IsPDGCharm(GetParentPDGCode(i))) return kFALSE;  // the decay chain finds a non-charmed particle
+
+  return kTRUE; 
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromChainCharm() {
+
+  if (!IsMuon()) return kFALSE;
+
+  if (GetFirstMotherID() == 0) return kFALSE;   // it is not a chain
+
+  if (!IsPDGCharm(GetParentPDGCode(GetFirstMotherID()))) return kFALSE;  // primordial is not a charmed hadron
+
+  for (Int_t i=GetFirstMotherID()-1; i>=0; i--) if (!IsPDGCharm(GetParentPDGCode(i))) return kTRUE;  // the decay chain finds a non-charmed particle
+
+  return kFALSE;
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromDirectBeauty() {
+
+  if (!IsMuon()) return kFALSE;
+
+  for (Int_t i=GetFirstMotherID(); i>=0; i--) if (!IsPDGBeauty(GetParentPDGCode(i))) return kFALSE;  // the decay chain finds a non-beauty particle
+
+  return kTRUE; 
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFromChainBeauty() {
+
+  if (!IsMuon()) return kFALSE;
+
+  if (GetFirstMotherID() == 0) return kFALSE;   // it is not a chain
+
+  if (!IsPDGBeauty(GetParentPDGCode(GetFirstMotherID()))) return kFALSE;  // primordial is not a beauty hadron
+
+  for (Int_t i=GetFirstMotherID()-1; i>=0; i--) if (!IsPDGBeauty(GetParentPDGCode(i))) return kTRUE;  // the decay chain finds a non-beauty particle
+
+  return kFALSE;
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsMuon() {
+
+  if (IsFake()) return kFALSE;
+
+  if (TMath::Abs(fMCTrackRef->GetPdgCode())==13) return kTRUE;
+
+  return kFALSE;
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsFake() {
+
+  if (!fMCTrackRef) return kTRUE;
+
+  return kFALSE;
+
+}
+
+//====================================================================================================================================================
+
+Bool_t AliMuonForwardTrack::IsPDGResonance(Int_t pdg) {
+
+  // if (pdg<10) return kFALSE; 
+  // Int_t id = pdg%100000; 
+  // return (!((id-id%10)%110));
 
   Bool_t result = kFALSE;
 
-  if (IsPDGBeauty(GetParentPDGCode(0))) result = kTRUE;
-  
-  if (result) AliDebug(1, Form("Muon comes from a beauty hadron %d", GetParentPDGCode(0)));
+  if ( pdg ==    113 ||
+       pdg ==    221 ||
+       pdg ==    223 ||
+       pdg ==    331 ||
+       pdg ==    333 ||
+       pdg ==    443 ||
+       pdg == 100443 ||
+       pdg ==    553 ||
+       pdg == 100553 ) result = kTRUE;
   
   return result; 
   
@@ -545,12 +673,13 @@ Bool_t AliMuonForwardTrack::IsPDGBeauty(Int_t pdg) {
 
 //====================================================================================================================================================
 
-
-Bool_t AliMuonForwardTrack::IsFromBackground() {
+Bool_t AliMuonForwardTrack::IsMuonFromBackground() {
 
   Bool_t result = kFALSE;
 
-  if (!IsFromResonance() && !IsFromCharm() && !IsFromBeauty()) result = kTRUE;
+  if (!IsMuon()) return result;
+
+  if (!IsFromDirectResonance() && !IsFromChainResonance() && !IsFromDirectCharm() && !IsFromChainCharm() && !IsFromDirectBeauty() && !IsFromChainBeauty()) result = kTRUE;
 
   if (result) AliDebug(1, Form("Muon comes from a background source %d", GetParentPDGCode(0)));
 
@@ -576,3 +705,33 @@ void AliMuonForwardTrack::EvalKinem(Double_t z) {
 
 //====================================================================================================================================================
 
+Int_t AliMuonForwardTrack::GetFirstMotherID() {
+
+  Int_t motherLevel = 0; 
+  Int_t motherMCLabel = GetParentMCLabel(motherLevel); 
+  while (motherMCLabel >= 0) { 
+    motherLevel++; 
+    motherMCLabel = GetParentMCLabel(motherLevel); 
+  }
+  return motherLevel-1;
+
+}
+
+//====================================================================================================================================================
+
+void AliMuonForwardTrack::PrintHistory() {
+
+  if (IsFake()) printf("Track is a fake MUON\n");
+  else {
+    TString history = "";
+    for (Int_t i=GetFirstMotherID(); i>=0; i--) {
+      history += TDatabasePDG::Instance()->GetParticle(GetParentPDGCode(i))->GetName();
+      history += " -> ";
+    }
+    history += TDatabasePDG::Instance()->GetParticle(fMCTrackRef->GetPdgCode())->GetName();
+    printf("%s\n",history.Data());
+  }
+
+}
+
+//====================================================================================================================================================

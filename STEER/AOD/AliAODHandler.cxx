@@ -59,6 +59,8 @@ AliAODHandler::AliAODHandler() :
     fFillAODRun(kTRUE),
     fFillExtension(kTRUE),
     fNeedsHeaderReplication(kFALSE),
+    fNeedsTOFHeaderReplication(kFALSE),
+    fNeedsVZEROReplication(kFALSE),
     fNeedsTracksBranchReplication(kFALSE),
     fNeedsVerticesBranchReplication(kFALSE),
     fNeedsV0sBranchReplication(kFALSE),
@@ -73,6 +75,8 @@ AliAODHandler::AliAODHandler() :
     fNeedsDimuonsBranchReplication(kFALSE),
     fNeedsHMPIDBranchReplication(kFALSE),
     fAODIsReplicated(kFALSE),
+    fTreeBuffSize(30000000),
+    fMemCountAOD(0),
     fAODEvent(NULL),
     fMCEventH(NULL),
     fTreeA(NULL),
@@ -92,6 +96,8 @@ AliAODHandler::AliAODHandler(const char* name, const char* title):
     fFillAODRun(kTRUE),
     fFillExtension(kTRUE),
     fNeedsHeaderReplication(kFALSE),
+    fNeedsTOFHeaderReplication(kFALSE),
+    fNeedsVZEROReplication(kFALSE),
     fNeedsTracksBranchReplication(kFALSE),
     fNeedsVerticesBranchReplication(kFALSE),
     fNeedsV0sBranchReplication(kFALSE),
@@ -106,6 +112,8 @@ AliAODHandler::AliAODHandler(const char* name, const char* title):
     fNeedsDimuonsBranchReplication(kFALSE),
     fNeedsHMPIDBranchReplication(kFALSE),
     fAODIsReplicated(kFALSE),
+    fTreeBuffSize(30000000),
+    fMemCountAOD(0),
     fAODEvent(NULL),
     fMCEventH(NULL),
     fTreeA(NULL),
@@ -382,6 +390,7 @@ void AliAODHandler::StoreMCParticles(){
 
   // AODTracks
   TClonesArray* tracks = fAODEvent->GetTracks();
+  Int_t tofLabel[3];
   if(tracks){
     for(int it = 0; it < fAODEvent->GetNTracks();++it){
       AliAODTrack *track = fAODEvent->GetTrack(it);
@@ -392,7 +401,7 @@ void AliAODHandler::StoreMCParticles(){
 	label *= -1;
 	sign  = -1;
       }
-
+      
       if (label >= AliMCEvent::BgLabelOffset()) label =  mcEvent->BgLabelToIndex(label);
       if(label > np || track->GetLabel() == 0){
 	AliWarning(Form("Wrong ESD track label %5d (%5d)",track->GetLabel(), label));
@@ -401,6 +410,23 @@ void AliAODHandler::StoreMCParticles(){
 	AliWarning(Form("New label not found for %5d (%5d)",track->GetLabel(), label));
       }
       track->SetLabel(sign*fMCEventH->GetNewLabel(label));
+      
+      track->GetTOFLabel(tofLabel);
+      
+      for (Int_t i =0; i < 3; i++) {
+	label  = tofLabel[i]; // esd label
+	Int_t nlabel = label; // new label
+	if (label < 0) continue;
+	if (label >= AliMCEvent::BgLabelOffset()) nlabel =  mcEvent->BgLabelToIndex(label);
+	if(nlabel > np || label == 0) {
+	  AliWarning(Form("Wrong TOF label %5d (%5d)", label, nlabel));
+	}
+	if(fMCEventH->GetNewLabel(label) == 0){
+	  AliWarning(Form("New TOF label not found for %5d",label ));
+	}
+	tofLabel[i] = fMCEventH->GetNewLabel(label);
+      } 
+      track->SetTOFLabel(tofLabel);
     }
   }
   
@@ -421,6 +447,43 @@ void AliAODHandler::StoreMCParticles(){
       //      cluster->SetLabels(labels,nLabel);
     }// iClust
   }// clusters
+  
+  // AOD calo cells MC label re-index
+  Int_t iCell, nCell, cellMCLabel, cellMCLabelNew;;
+  Short_t cellAbsId;
+  Double_t cellE, cellT, cellEFrac;
+  AliAODCaloCells *cells;
+  
+  // EMCal
+  cells = fAODEvent->GetEMCALCells();
+  if( cells ){
+    nCell = cells->GetNumberOfCells() ;
+    for( iCell = 0; iCell < nCell; iCell++ ){ 
+      cells->GetCell( iCell, cellAbsId, cellE, cellT, cellMCLabel, cellEFrac );
+      // GetNewLabel returns 1 in case when -1 is supplied
+      if( cellMCLabel < 0 )
+        cellMCLabelNew = cellMCLabel;
+      else
+        cellMCLabelNew = fMCEventH->GetNewLabel( cellMCLabel );
+        
+      cells->SetCell( iCell, cellAbsId, cellE, cellT, cellMCLabelNew, cellEFrac );
+    }
+  }
+  // PHOS
+  cells = fAODEvent->GetPHOSCells();
+  if( cells ){
+    nCell = cells->GetNumberOfCells() ;
+    for( iCell = 0; iCell < nCell; iCell++ ){ 
+      cells->GetCell( iCell, cellAbsId, cellE, cellT, cellMCLabel, cellEFrac );
+      // GetNewLabel returns 1 in case when -1 is supplied
+      if( cellMCLabel < 0 )
+        cellMCLabelNew = cellMCLabel;
+      else
+        cellMCLabelNew = fMCEventH->GetNewLabel( cellMCLabel );
+        
+      cells->SetCell( iCell, cellAbsId, cellE, cellT, cellMCLabelNew, cellEFrac );
+    }
+  }
 
   // AOD tracklets
   AliAODTracklets *tracklets = fAODEvent->GetTracklets();
@@ -540,6 +603,7 @@ void AliAODHandler::CreateTree(Int_t flag)
     fTreeA = new TTree("aodTree", "AliAOD tree");
     fTreeA->Branch(fAODEvent->GetList());
     if (flag == 0) fTreeA->SetDirectory(0);
+    fMemCountAOD = 0;
 }
 
 //______________________________________________________________________________
@@ -547,7 +611,16 @@ void AliAODHandler::FillTree()
 {
  
     // Fill the AOD Tree
-    fTreeA->Fill();
+   Long64_t nbf = fTreeA->Fill();
+   if (fTreeBuffSize>0 && fTreeA->GetAutoFlush()<0 && (fMemCountAOD += nbf)>fTreeBuffSize ) { // default limit is still not reached
+    nbf = fTreeA->GetZipBytes();
+    if (nbf>0) nbf = -nbf;
+    else       nbf = fTreeA->GetEntries();
+    fTreeA->SetAutoFlush(nbf);
+    AliInfo(Form("Calling fTreeA->SetAutoFlush(%lld) | W:%lld T:%lld Z:%lld",
+		 nbf,fMemCountAOD,fTreeA->GetTotBytes(),fTreeA->GetZipBytes()));        
+  }
+ 
 }
 
 //______________________________________________________________________________
@@ -664,7 +737,7 @@ void AliAODHandler::SetOutputFileName(const char* fname)
 }
 
 //______________________________________________________________________________
-const char *AliAODHandler::GetOutputFileName()
+const char *AliAODHandler::GetOutputFileName() const
 {
 // Get file name.
    return fFileName.Data();

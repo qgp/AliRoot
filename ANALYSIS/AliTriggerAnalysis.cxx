@@ -44,6 +44,8 @@
 #include <AliESDFMD.h>
 #include <AliESDVertex.h>
 #include <AliESDtrackCuts.h>
+#include <AliDAQ.h>
+#include <AliESDTrdTrack.h>
 
 ClassImp(AliTriggerAnalysis)
 
@@ -63,8 +65,22 @@ AliTriggerAnalysis::AliTriggerAnalysis() :
   fZDCCutRefDeltaCorr(-2.1),
   fZDCCutSigmaSumCorr(6.0),
   fZDCCutSigmaDeltaCorr(1.2),
+  fZDCCutZNATimeCorrMin(0.0),
+  fZDCCutZNATimeCorrMax(2.0),
+  fZDCCutZNCTimeCorrMin(0.0),
+  fZDCCutZNCTimeCorrMax(5.0),
   fASPDCvsTCut(65),
   fBSPDCvsTCut(4),
+  fTRDptHSE(3.),
+  fTRDpidHSE(144),
+  fTRDptHQU(2.),
+  fTRDpidHQU(164.),
+  fTRDptHEE(3.),
+  fTRDpidHEE(144),
+  fTRDminSectorHEE(6),
+  fTRDmaxSectorHEE(8),
+  fTRDptHJT(3.),
+  fTRDnHJT(3),
   fDoFMD(kTRUE),
   fFMDLowCut(0.2),
   fFMDHitCut(0.5),
@@ -188,17 +204,25 @@ AliTriggerAnalysis::~AliTriggerAnalysis()
   }
 }
 
-void AliTriggerAnalysis::EnableHistograms()
+void AliTriggerAnalysis::EnableHistograms(Bool_t isLowFlux)
 {
-  // creates the monitoring histograms
+  // creates the monitoring histograms (dynamical range of histograms can be adapted for pp and pPb via isLowFlux flag)
   
   // do not add this hists to the directory
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
-  
-  fHistBitsSPD = new TH2F("fHistBitsSPD", "SPD GFO;number of fired chips (offline);number of fired chips (hardware)", 1202, -1.5, 1200.5, 1202, -1.5, 1200.5);
+  //
+  Int_t nBins = isLowFlux ? 600 : 1202;
+  fHistBitsSPD = new TH2F("fHistBitsSPD", "SPD GFO;number of fired chips (offline);number of fired chips (hardware)", nBins, -1.5, -1.5 + nBins, nBins, -1.5, -1.5+nBins);
+  //
   fHistFiredBitsSPD = new TH1F("fHistFiredBitsSPD", "SPD GFO Hardware;chip number;events", 1200, -0.5, 1199.5);
-  fHistSPDClsVsTrk = new TH2F("fHistSPDClsVsTrk", "SPD Clusters vs Tracklets", 300, -0.5, 2999.5, 1000, -0.5, 9999.5);
+  //
+  Int_t nBinsX = isLowFlux ? 100  : 300;
+  Int_t nBinsY = isLowFlux ? 500  : 1000;
+  Float_t xMax = isLowFlux ? 400  : 2999.5;
+  Float_t yMax = isLowFlux ? 4000 : 9999.5;
+  fHistSPDClsVsTrk = new TH2F("fHistSPDClsVsTrk", "SPD Clusters vs Tracklets; n tracklets; n clusters", nBinsX, -0.5, xMax, nBinsY, -0.5, yMax);
+  //
   fHistV0A = new TH1F("fHistV0A", "V0A;leading time (ns);events", 400, -100, 100);
   fHistV0C = new TH1F("fHistV0C", "V0C;leading time (ns);events", 400, -100, 100);
   fHistZDC = new TH1F("fHistZDC", "ZDC;trigger bits;events", 8, -1.5, 6.5);
@@ -264,6 +288,11 @@ const char* AliTriggerAnalysis::GetTriggerName(Trigger trigger)
     case kCentral : str = "V0 Central"; break;
     case kSemiCentral : str = "V0 Semi-central"; break;
     case kEMCAL : str = "EMCAL"; break;
+    case kTRDHCO : str = "TRD cosmics"; break;
+    case kTRDHJT : str = "TRD Jet"; break;
+    case kTRDHSE : str = "TRD Single Electron"; break;
+    case kTRDHQU : str = "TRD Quarkonia"; break;
+    case kTRDHEE : str = "TRD Dielectron"; break;
     default: str = ""; break;
   }
    
@@ -545,6 +574,18 @@ Int_t AliTriggerAnalysis::EvaluateTrigger(const AliESDEvent* aEsd, Trigger trigg
         AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
       return IsLaserWarmUpTPCEvent(aEsd);
     }
+    case kTPCHVdip:
+    {
+      if (!offline)
+        AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
+      return IsHVdipTPCEvent(aEsd);
+    }
+    case kIncompleteEvent:
+    {
+      if (!offline)
+        AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
+      return IsIncompleteEvent(aEsd);
+    }
     case kCentral:
     {
       if (offline)
@@ -578,6 +619,46 @@ Int_t AliTriggerAnalysis::EvaluateTrigger(const AliESDEvent* aEsd, Trigger trigg
       if(!offline) 
 	AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
       if (EMCALCellsTrigger(aEsd)) 
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHCO:
+    {
+      if(!offline) 
+	AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
+      if(TRDTrigger(aEsd,kTRDHCO))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHJT:
+    {
+      if(!offline) 
+	AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
+      if(TRDTrigger(aEsd,kTRDHJT))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHSE:
+    {
+      if(!offline) 
+	AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
+      if(TRDTrigger(aEsd,kTRDHSE))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHQU:
+    {
+      if(!offline) 
+	AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
+      if(TRDTrigger(aEsd,kTRDHQU))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHEE:
+    {
+      if(!offline) 
+	AliFatal(Form("Online trigger not available for trigger %d", triggerNoFlags));
+      if(TRDTrigger(aEsd,kTRDHEE))
 	decision = kTRUE;
       break;
     }
@@ -620,6 +701,31 @@ Bool_t AliTriggerAnalysis::IsLaserWarmUpTPCEvent(const AliESDEvent* esd)
     return kTRUE;
   return kFALSE;
 }
+
+Bool_t AliTriggerAnalysis::IsHVdipTPCEvent(const AliESDEvent* esd) {
+  //
+  // This function flags events in which the TPC chamber HV is not at its nominal value
+  //
+  if (fMC) return kFALSE; // there are no dip events in MC
+  if (!esd->IsDetectorOn(AliDAQ::kTPC)) return kTRUE;
+  return kFALSE;
+
+}
+
+Bool_t AliTriggerAnalysis::IsIncompleteEvent(const AliESDEvent* esd) 
+{
+  //
+  // Check whether the event is incomplete 
+  // (due to DAQ-HLT issues, it could be only part of the event was saved)
+  //
+  if (fMC) return kFALSE; // there are no incomplete events on MC
+  if ((esd->GetEventType() == 7) &&
+      (esd->GetDAQDetectorPattern() & (1<<4)) &&
+     !(esd->GetDAQAttributes() & (1<<7))) return kTRUE;
+
+  return kFALSE;
+}
+
 
 Bool_t AliTriggerAnalysis::IsOfflineTriggerFired(const AliESDEvent* aEsd, Trigger trigger)
 {
@@ -785,6 +891,36 @@ Bool_t AliTriggerAnalysis::IsOfflineTriggerFired(const AliESDEvent* aEsd, Trigge
   case kEMCAL:
     {
       if (EMCALCellsTrigger(aEsd))
+	decision = kTRUE;
+      break;
+    }  
+  case kTRDHCO:
+    {
+      if(TRDTrigger(aEsd,kTRDHCO))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHJT:
+    {
+      if(TRDTrigger(aEsd,kTRDHJT))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHSE:
+    {
+      if(TRDTrigger(aEsd,kTRDHSE))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHQU:
+    {
+      if(TRDTrigger(aEsd,kTRDHQU))
+	decision = kTRUE;
+      break;
+    }
+  case kTRDHEE:
+    {
+      if(TRDTrigger(aEsd,kTRDHEE))
 	decision = kTRUE;
       break;
     }
@@ -1444,6 +1580,8 @@ Bool_t AliTriggerAnalysis::ZDCTimeBGTrigger(const AliESDEvent *aEsd, AliceSide s
   AliESDZDC *zdcData = aEsd->GetESDZDC();
   Bool_t zna = kFALSE;
   Bool_t znc = kFALSE;
+  Bool_t znabadhit = kFALSE;
+  Bool_t zncbadhit = kFALSE;
 
   Float_t tdcC=999, tdcCcorr=999, tdcA=999, tdcAcorr=999;
   for(Int_t i = 0; i < 4; ++i) {
@@ -1451,6 +1589,7 @@ Bool_t AliTriggerAnalysis::ZDCTimeBGTrigger(const AliESDEvent *aEsd, AliceSide s
       znc = kTRUE;
       tdcC = 0.025*(zdcData->GetZDCTDCData(10,i)-zdcData->GetZDCTDCData(14,i));
       tdcCcorr = zdcData->GetZDCTDCCorrected(10,i);
+      if((TMath::Abs(tdcCcorr)<fZDCCutZNCTimeCorrMax) && (TMath::Abs(tdcCcorr)>fZDCCutZNCTimeCorrMin)) zncbadhit = kTRUE;
     }
   }
   for(Int_t j = 0; j < 4; ++j) {
@@ -1458,17 +1597,18 @@ Bool_t AliTriggerAnalysis::ZDCTimeBGTrigger(const AliESDEvent *aEsd, AliceSide s
       zna = kTRUE;
       tdcA = 0.025*(zdcData->GetZDCTDCData(12,j)-zdcData->GetZDCTDCData(14,j));
       tdcAcorr = zdcData->GetZDCTDCCorrected(12,j);
+      if((TMath::Abs(tdcAcorr)<fZDCCutZNATimeCorrMax) && (TMath::Abs(tdcAcorr)>fZDCCutZNATimeCorrMin)) znabadhit = kTRUE;
     }
   }
 
   const Int_t runNumber = aEsd->GetRunNumber();
-  if(runNumber<188124 || runNumber>188374){
-    AliError(Form(" ZN BG time cut not implemented for run %d",runNumber));
+  if(runNumber<188124 || (runNumber>188374 && runNumber<194713)){ // FIXME: end of pA-run is not known
+    AliDebug(3,Form(" ZN BG time cut not implemented for run %d",runNumber));
     return kFALSE;
   }
 
-  Bool_t znabg = (zna && (TMath::Abs(tdcAcorr)>2.0));
-  Bool_t zncbg = (znc && (TMath::Abs(tdcCcorr)>5.0));
+  Bool_t znabg = (zna && znabadhit);
+  Bool_t zncbg = (znc && zncbadhit);
 
   // Printf("Checking ZN background (time) for run %d, A = %d, time=%2.2f, C = %d, time=%2.2f",runNumber,(Int_t)zna,tdcAcorr,(Int_t)znc,tdcCcorr);
   // Printf("Checking ZN background (time) for run %d, A-BG = %d, C-BG = %d",runNumber,(Int_t)znabg,(Int_t)zncbg);
@@ -1680,8 +1820,8 @@ void AliTriggerAnalysis::SaveHistograms() const
     
   if (fHistBitsSPD) {
     fHistBitsSPD->Write();
-    fHistBitsSPD->ProjectionX();
-    fHistBitsSPD->ProjectionY();
+    //fHistBitsSPD->ProjectionX();
+    //fHistBitsSPD->ProjectionY();
   }
   else Printf("Cannot save fHistBitsSPD");
   if (fHistFiredBitsSPD) fHistFiredBitsSPD->Write();
@@ -1857,6 +1997,88 @@ Bool_t AliTriggerAnalysis::EMCALCellsTrigger(const AliESDEvent *aEsd)
   
   if (isLedEvent) {
     isFired = kFALSE;
+  }
+
+  return isFired;
+}
+
+//__________________________________________________________________________________________
+Bool_t AliTriggerAnalysis::TRDTrigger(const AliESDEvent *esd, Trigger trigger)
+{
+  // evaluate the TRD trigger conditions,
+  // so far HCO, HSE, HQU, HJT, HEE
+
+  Bool_t isFired = kFALSE;
+
+  if(trigger!=kTRDHCO && trigger!=kTRDHJT && trigger!=kTRDHSE && trigger!=kTRDHQU && trigger!=kTRDHEE) {
+    AliWarning("Beware you are erroneously trying to use this function (wrong trigger)");
+    return isFired;
+  }
+
+  if (!esd) {
+    AliErrorClass("ESD event pointer is null");
+    return isFired;
+  }
+  
+  Int_t nTrdTracks = esd->GetNumberOfTrdTracks();
+  
+  if (nTrdTracks > 0 && (trigger==kTRDHCO) ) { 
+    isFired = kTRUE;
+    return isFired;
+  }
+
+  if(trigger!=kTRDHJT) {
+    for (Int_t iTrack = 0; iTrack < nTrdTracks; ++iTrack) {
+      
+      AliESDTrdTrack *trdTrack = esd->GetTrdTrack(iTrack);   
+      if (!trdTrack) continue;
+
+      // for the electron triggers we only consider matched tracks
+      if(trigger==kTRDHQU)
+	if ( (TMath::Abs(trdTrack->Pt()) > fTRDptHQU) && (trdTrack->GetPID() > fTRDpidHQU) ) { 
+	  isFired = kTRUE;
+	  return isFired;
+	}
+
+      if(trigger==kTRDHSE)
+	if ( (TMath::Abs(trdTrack->Pt()) > fTRDptHSE) && (trdTrack->GetPID() > fTRDpidHSE) ) { 
+	  isFired = kTRUE;
+	  return isFired;
+	}
+      
+      if(trigger==kTRDHEE)
+	if ( (trdTrack->GetSector() >= fTRDminSectorHEE) && (trdTrack->GetSector() <= fTRDmaxSectorHEE) &&
+	     (TMath::Abs(trdTrack->Pt()) > fTRDptHSE) && (trdTrack->GetPID() > fTRDpidHSE) ) { 
+	  isFired = kTRUE;
+	  return isFired;
+	}
+
+    }
+  } else if(trigger==kTRDHJT) {
+
+    Int_t nTracks[90] = { 0 }; // stack-wise counted number of tracks above pt threshold
+
+    for (Int_t iTrack = 0; iTrack < nTrdTracks; ++iTrack) {
+      
+      AliESDTrdTrack *trdTrack = esd->GetTrdTrack(iTrack);    
+      if (!trdTrack) continue;
+      
+      Int_t globalStack = 5*trdTrack->GetSector() + trdTrack->GetStack();
+      
+      // stack-wise counting of tracks above pt threshold for jet trigger
+      if (TMath::Abs(trdTrack->GetPt()) >= fTRDptHJT) {
+	++nTracks[globalStack];
+      }
+    }
+
+    // check if HJT condition is fulfilled in any stack
+    for (Int_t iStack = 0; iStack < 90; iStack++) {
+      if (nTracks[iStack] >= fTRDnHJT) {
+	isFired = kTRUE;
+	break;
+      }
+    }
+
   }
 
   return isFired;

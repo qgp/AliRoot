@@ -35,6 +35,7 @@
 #include "AliGenDPMjetEventHeader.h"
 #include "AliRun.h"
 #include "AliDpmJetRndm.h"
+#include "AliIonPDGCodes.h"
 #include "AliHeader.h"
 #include "AliStack.h"
 #include "AliMC.h"
@@ -374,7 +375,9 @@ void AliGenDPMjet::Generate()
 
 
 	      
-	      Bool_t tFlag = (fTrackIt && (ks==1 || ks==-1 || ks==1001));
+	      Bool_t tFlag = (fTrackIt && (ks==1 || ks==-1));
+	      //printf(" AliGemDPMJet->PushTrack: kf %d  ks %d  flag %d\n",kf,ks,tFlag);
+	      if(kf>10000 && (ks==-1 || ks==1000 || ks==1001)) kf += 1000000000;
 	      PushTrack(tFlag, imo, kf, 
 			p[0], p[1], p[2], p[3], 
 			origin[0], origin[1], origin[2], tof,
@@ -457,9 +460,8 @@ Bool_t AliGenDPMjet::Stable(TParticle*  particle)
 {
 // Return true for a stable particle
 //
-    
-//    if (particle->GetFirstDaughter() < 0 ) return kTRUE;
-    if (particle->GetStatusCode() == 1) return kTRUE;
+    int st = particle->GetStatusCode();
+    if(st == 1 || st == -1) return kTRUE;
     else return kFALSE;
 
 }
@@ -629,7 +631,9 @@ Bool_t AliGenDPMjet::CheckDiffraction()
        TParticle *  part = (TParticle *) fParticles.At(iPart);
        Double_t E= part->Energy();
        Double_t P= part->P();
-       M= TMath::Sqrt((fEnergyCMS-E-P)*(fEnergyCMS-E+P));
+       Double_t M2 = (fEnergyCMS-E-P)*(fEnergyCMS-E+P);
+       if(M2<0)  return kFALSE;
+       M= TMath::Sqrt(M2);
      }
 
      Double_t Mmin, Mmax, wSD, wDD, wND;
@@ -677,8 +681,15 @@ Bool_t AliGenDPMjet::CheckDiffraction()
     return kTRUE;
 }
 
+// -------------------------------------------------------
+void AliGenDPMjet::SetIonPDGCodes()
+{
+   // Defining PDG codes for the ions
+   AliIonPDGCodes *pdgcodes = new AliIonPDGCodes();
+   pdgcodes->AddParticlesToPdgDataBase();
+}
 
-
+// -------------------------------------------------------
 Bool_t AliGenDPMjet::GetWeightsDiffraction(Double_t M, Double_t &Mmin, Double_t &Mmax, 
                                                        Double_t &wSD, Double_t &wDD, Double_t &wND)
 {

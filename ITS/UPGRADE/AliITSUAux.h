@@ -11,10 +11,13 @@
 //                                                                   //
 ///////////////////////////////////////////////////////////////////////
 
+#define _ITSU_TUNING_MODE_
+//#define _ITSU_DEBUG_
 
 class AliITSUGeomTGeo;
 class AliITSsegmentation;
 using namespace TMath;
+
 
 
 namespace AliITSUAux {
@@ -31,8 +34,11 @@ namespace AliITSUAux {
   //
   const Double_t kNominalBz = 5.01;           // nominal field
   const Double_t kPionMass  = 1.3957e-01;
-  const UInt_t   kLrBitMax  = 4;              // layer mask highest bit
+  const UInt_t   kLrBitLow  = 28;             // layer mask lowest bit
+  const UInt_t   kLrMask    = 0xf0000000;     // layer mask
+  const UInt_t   kClMask    = 0x0fffffff;     // cluster mask
   const UInt_t   kMaxLayers = 15;             // max number of active layers
+  const UInt_t   kMaxLrMask = 0x7fff;         // bitmask for allowed layers
 }
 
 //_________________________________________________________________________________
@@ -58,35 +64,34 @@ inline Bool_t AliITSUAux::OKforPhiMax(double phiMax,double phi) {
 //_________________________________________________________________________________
 inline UInt_t AliITSUAux::PackCluster(Int_t lr, Int_t clID) {
   // pack layer/cluster into single uint
-  UInt_t p = clID<0 ? 0 : clID+1;
-  p<<=kLrBitMax;
-  return p + lr;
+  UInt_t p = (clID<0 ? 0 : clID+1) + (lr<<=kLrBitLow);
+  return p;
 }
 
 //_________________________________________________________________________________
 inline Int_t AliITSUAux::UnpackCluster(UInt_t p, Int_t &lr) {
   // unpack layer/cluster
-  lr = p&kMaxLayers;
-  p>>=kLrBitMax;
+  lr = (p&kLrMask)>>kLrBitLow;
+  p &= kClMask;
   return int(p)-1;
 }
 
 //_________________________________________________________________________________
 inline Int_t AliITSUAux::UnpackLayer(UInt_t p) {
   // unpack layer
-  return p&kMaxLayers;
+  return (p&kLrMask)>>kLrBitLow;
 }
 
 //_________________________________________________________________________________
 inline Int_t AliITSUAux::UnpackCluster(UInt_t p) {
   // unpack cluster
-  return int(p>>kLrBitMax)-1;
+  return int(p&kClMask)-1;
 }
 
 //_________________________________________________________________________________
 inline Bool_t AliITSUAux::IsCluster(UInt_t p) {
   // does it correspond to cluster?
-  return p>kMaxLayers;
+  return (p&kClMask);
 }
 
 //_________________________________________________________________________________

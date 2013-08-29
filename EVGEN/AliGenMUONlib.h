@@ -59,6 +59,7 @@ class AliGenMUONlib :
 // J/Psi     
     static Double_t PtJpsiPPdummy(Double_t px, Double_t en);
     static Double_t PtJpsiPP7000(const Double_t *px, const Double_t *dummy);
+    static Double_t PtJpsiPP8000(const Double_t *px, const Double_t *dummy);
     static Double_t PtJpsiPP2760(const Double_t *px, const Double_t *dummy);
     static Double_t PtJpsiPP4400(const Double_t *px, const Double_t *dummy);	
     static Double_t PtJpsiPP5030(const Double_t *px, const Double_t *dummy);	
@@ -119,6 +120,7 @@ class AliGenMUONlib :
     static Double_t YJpsiPPdummy(Double_t px, Double_t en);
     static Double_t YJpsiPPpoly(Double_t px, Double_t en);
     static Double_t YJpsiPP7000(const Double_t *px, const Double_t *dummy);
+    static Double_t YJpsiPP8000(const Double_t *px, const Double_t *dummy);
     static Double_t YJpsiPP2760(const Double_t *px, const Double_t *dummy);
     static Double_t YJpsiPPpoly7000(const Double_t *px, const Double_t *dummy);
     static Double_t YJpsiPPpoly2760(const Double_t *px, const Double_t *dummy);
@@ -186,6 +188,7 @@ class AliGenMUONlib :
 
 // Upsilon    
     static Double_t PtUpsilonPPdummy(Double_t px, Double_t en);
+    static Double_t PtUpsilonPP8000(const Double_t *px, const Double_t *dummy );
     static Double_t PtUpsilonPP7000(const Double_t *px, const Double_t *dummy );
     static Double_t PtUpsilonPP2760(const Double_t *px, const Double_t *dummy );
     static Double_t PtUpsilonPP4400(const Double_t *px, const Double_t *dummy );
@@ -242,6 +245,7 @@ class AliGenMUONlib :
     static Double_t YUpsilonPPdummy(Double_t px, Double_t en);
     static Double_t YUpsilonPPpoly(Double_t px, Double_t en);
     static Double_t YUpsilonPP7000(const Double_t *px, const Double_t *dummy );
+    static Double_t YUpsilonPP8000(const Double_t *px, const Double_t *dummy );
     static Double_t YUpsilonPP2760(const Double_t *px, const Double_t *dummy );
     static Double_t YUpsilonPPpoly7000(const Double_t *px, const Double_t *dummy );
     static Double_t YUpsilonPPpoly2760(const Double_t *px, const Double_t *dummy );

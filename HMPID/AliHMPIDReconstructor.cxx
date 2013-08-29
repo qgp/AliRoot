@@ -28,7 +28,7 @@
 #include <AliRawReader.h>          //Reconstruct() for raw digits
 #include <AliLog.h>                //
 #include "AliHMPIDRawStream.h"     //ConvertDigits()
-#include "AliHMPIDRecoParamV1.h"   //ctor
+#include "AliHMPIDRecoParamV1.h"     //ctor
 
 ClassImp(AliHMPIDReconstructor)
 

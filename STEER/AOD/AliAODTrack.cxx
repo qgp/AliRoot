@@ -25,9 +25,11 @@
 #include "AliLog.h"
 #include "AliExternalTrackParam.h"
 #include "AliVVertex.h"
-#include "AliAODTrack.h"
 #include "AliDetectorPID.h"
 #include "AliAODEvent.h"
+#include "AliAODHMPIDrings.h"
+
+#include "AliAODTrack.h"
 
 ClassImp(AliAODTrack)
 
@@ -39,6 +41,8 @@ AliAODTrack::AliAODTrack() :
   fChi2MatchTrigger(0.),
   fFlags(0),
   fLabel(-999),
+  fTOFLabel(),
+  fTrackLength(0),
   fITSMuonClusterMap(0),
   fMUONtrigHitsMapTrg(0),
   fMUONtrigHitsMapTrk(0),
@@ -58,7 +62,9 @@ AliAODTrack::AliAODTrack() :
   fProdVertex(NULL),
   fTrackPhiOnEMCal(-999),
   fTrackEtaOnEMCal(-999),
+  fTrackPtOnEMCal(-999),
   fTPCsignalTuned(0),
+  fTOFsignalTuned(99999),
   fAODEvent(NULL)
 {
   // default constructor
@@ -68,6 +74,7 @@ AliAODTrack::AliAODTrack() :
   SetXYAtDCA(-999., -999.);
   SetPxPyPzAtDCA(-999., -999., -999.);
   SetPID((Float_t*)NULL);
+  for (Int_t i = 0; i < 3; i++) {fTOFLabel[i] = -1;}
 }
 
 //______________________________________________________________________________
@@ -93,6 +100,8 @@ AliAODTrack::AliAODTrack(Short_t id,
   fChi2MatchTrigger(0.),
   fFlags(0),
   fLabel(label),
+  fTOFLabel(),
+  fTrackLength(0),
   fITSMuonClusterMap(0),
   fMUONtrigHitsMapTrg(0),
   fMUONtrigHitsMapTrk(0),
@@ -112,7 +121,9 @@ AliAODTrack::AliAODTrack(Short_t id,
   fProdVertex(prodVertex),
   fTrackPhiOnEMCal(-999),
   fTrackEtaOnEMCal(-999),
+  fTrackPtOnEMCal(-999),
   fTPCsignalTuned(0),
+  fTOFsignalTuned(99999),
   fAODEvent(NULL)
 {
   // constructor
@@ -126,6 +137,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   if(covMatrix) SetCovMatrix(covMatrix);
   SetPID(pid);
   SetITSClusterMap(itsClusMap);
+  for (Int_t i=0;i<3;i++) {fTOFLabel[i]=-1;}
 }
 
 //______________________________________________________________________________
@@ -151,6 +163,8 @@ AliAODTrack::AliAODTrack(Short_t id,
   fChi2MatchTrigger(0.),
   fFlags(0),
   fLabel(label),
+  fTOFLabel(),
+  fTrackLength(0),
   fITSMuonClusterMap(0),
   fMUONtrigHitsMapTrg(0),
   fMUONtrigHitsMapTrk(0),
@@ -170,7 +184,9 @@ AliAODTrack::AliAODTrack(Short_t id,
   fProdVertex(prodVertex),
   fTrackPhiOnEMCal(-999),
   fTrackEtaOnEMCal(-999),
+  fTrackPtOnEMCal(-999),
   fTPCsignalTuned(0),
+  fTOFsignalTuned(99999),
   fAODEvent(NULL)
 {
   // constructor
@@ -184,6 +200,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   if(covMatrix) SetCovMatrix(covMatrix);
   SetPID(pid);
   SetITSClusterMap(itsClusMap);
+  for (Int_t i=0;i<3;i++) {fTOFLabel[i]=-1;}
 }
 
 //______________________________________________________________________________
@@ -204,6 +221,8 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   fChi2MatchTrigger(trk.fChi2MatchTrigger),
   fFlags(trk.fFlags),
   fLabel(trk.fLabel),
+  fTOFLabel(),
+  fTrackLength(trk.fTrackLength),
   fITSMuonClusterMap(trk.fITSMuonClusterMap),
   fMUONtrigHitsMapTrg(trk.fMUONtrigHitsMapTrg),
   fMUONtrigHitsMapTrk(trk.fMUONtrigHitsMapTrk),
@@ -223,7 +242,9 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   fProdVertex(trk.fProdVertex),
   fTrackPhiOnEMCal(trk.fTrackPhiOnEMCal),
   fTrackEtaOnEMCal(trk.fTrackEtaOnEMCal),
+  fTrackPtOnEMCal(trk.fTrackPtOnEMCal),
   fTPCsignalTuned(trk.fTPCsignalTuned),
+  fTOFsignalTuned(trk.fTOFsignalTuned),
   fAODEvent(trk.fAODEvent)
 {
   // Copy constructor
@@ -238,6 +259,7 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   if(trk.fDetPid) fDetPid=new AliAODPid(*trk.fDetPid);
   SetPID(trk.fPID);
   if (trk.fDetectorPID) fDetectorPID = new AliDetectorPID(*trk.fDetectorPID);
+  for (Int_t i = 0; i < 3; i++) {fTOFLabel[i] = trk.fTOFLabel[i];}  
 }
 
 //______________________________________________________________________________
@@ -258,6 +280,7 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     trk.GetPID(fPID);
     fFlags             = trk.fFlags;
     fLabel             = trk.fLabel;    
+    fTrackLength       = trk.fTrackLength;
     fITSMuonClusterMap = trk.fITSMuonClusterMap;
     fMUONtrigHitsMapTrg = trk.fMUONtrigHitsMapTrg;
     fMUONtrigHitsMapTrk = trk.fMUONtrigHitsMapTrk;
@@ -273,7 +296,9 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     fCaloIndex         = trk.fCaloIndex;
     fTrackPhiOnEMCal   = trk.fTrackPhiOnEMCal;
     fTrackEtaOnEMCal   = trk.fTrackEtaOnEMCal;
+    fTrackPtOnEMCal    = trk.fTrackPtOnEMCal;
     fTPCsignalTuned    = trk.fTPCsignalTuned;
+    fTOFsignalTuned    = trk.fTOFsignalTuned;
 
     delete fCovMatrix;
     if(trk.fCovMatrix) fCovMatrix=new AliAODRedCov<6>(*trk.fCovMatrix);
@@ -293,6 +318,7 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     delete fDetectorPID;
     fDetectorPID=0x0;
     if (trk.fDetectorPID) fDetectorPID = new AliDetectorPID(*trk.fDetectorPID);
+    for (Int_t i = 0; i < 3; i++) {fTOFLabel[i] = trk.fTOFLabel[i];}  
   }
 
   return *this;
@@ -398,6 +424,17 @@ Double_t AliAODTrack::Y(Double_t m) const
   } else { // pid unknown
     return -999.;
   }
+}
+
+void AliAODTrack::SetTOFLabel(const Int_t *p) {  
+  // Sets  (in TOF)
+  for (Int_t i = 0; i < 3; i++) fTOFLabel[i]=p[i];
+}
+
+//_______________________________________________________________________
+void AliAODTrack::GetTOFLabel(Int_t *p) const {
+  // Gets (in TOF)
+  for (Int_t i=0; i<3; i++) p[i]=fTOFLabel[i];
 }
 
 //______________________________________________________________________________
@@ -691,13 +728,13 @@ Double_t  AliAODTrack::GetTRDslice(Int_t plane, Int_t slice) const {
   // return TRD Pid information
   //
   if (!fDetPid) return -1;
-  Double32_t *trdSlices=fDetPid->GetTRDsignal();
+  Double32_t *trdSlices=fDetPid->GetTRDslices();
   if (!trdSlices) return -1;
   if ((plane<0) || (plane>=kTRDnPlanes)) {
     return -1.;
   }
 
-  Int_t ns=fDetPid->GetTRDnSlices()/kTRDnPlanes;
+  Int_t ns=fDetPid->GetTRDnSlices();
   if ((slice<-1) || (slice>=ns)) {
     return -1.;
   }
@@ -794,6 +831,62 @@ void AliAODTrack::SetDetectorPID(const AliDetectorPID *pid)
   
 }
 
+//_____________________________________________________________________________
+Double_t AliAODTrack::GetHMPIDsignal() const
+{
+  if(fAODEvent->GetHMPIDringForTrackID(fID)) return fAODEvent->GetHMPIDringForTrackID(fID)->GetHmpSignal();
+  else return -999.;
+}
+
+//_____________________________________________________________________________
+Double_t AliAODTrack::GetHMPIDoccupancy() const
+{
+  if(fAODEvent->GetHMPIDringForTrackID(fID)) return fAODEvent->GetHMPIDringForTrackID(fID)->GetHmpOccupancy();
+  else return -999.;
+}
+
+//_____________________________________________________________________________
+Int_t AliAODTrack::GetHMPIDcluIdx() const
+{
+  if(fAODEvent->GetHMPIDringForTrackID(fID)) return fAODEvent->GetHMPIDringForTrackID(fID)->GetHmpCluIdx();
+  else return -999;
+}
+
+//_____________________________________________________________________________
+void AliAODTrack::GetHMPIDtrk(Float_t &x, Float_t &y, Float_t &th, Float_t &ph) const
+{
+  x = -999; y = -999.; th = -999.; ph = -999.;
+
+  const AliAODHMPIDrings *ring=fAODEvent->GetHMPIDringForTrackID(fID);
+  if(ring){
+    x  = ring->GetHmpTrackX();
+    y  = ring->GetHmpTrackY();
+    th = ring->GetHmpTrackTheta();
+    ph = ring->GetHmpTrackPhi();
+  }
+}
+
+//_____________________________________________________________________________
+void AliAODTrack::GetHMPIDmip(Float_t &x,Float_t &y,Int_t &q, Int_t &nph) const
+{
+  x = -999; y = -999.; q = -999; nph = -999;
+  
+  const AliAODHMPIDrings *ring=fAODEvent->GetHMPIDringForTrackID(fID);
+  if(ring){
+    x   = ring->GetHmpMipX();
+    y   = ring->GetHmpMipY();
+    q   = (Int_t)ring->GetHmpMipCharge();
+    nph = (Int_t)ring->GetHmpNumOfPhotonClusters();
+  }
+}
+
+//_____________________________________________________________________________
+Bool_t AliAODTrack::GetOuterHmpPxPyPz(Double_t *p) const 
+{ 
+ if(fAODEvent->GetHMPIDringForTrackID(fID)) {fAODEvent->GetHMPIDringForTrackID(fID)->GetHmpMom(p); return kTRUE;}
+ 
+ else return kFALSE;      
+}
 //_____________________________________________________________________________
 Bool_t AliAODTrack::GetXYZAt(Double_t x, Double_t b, Double_t *r) const
 {

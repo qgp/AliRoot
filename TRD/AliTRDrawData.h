@@ -12,6 +12,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "TObject.h"
+#include "AliLog.h"
 #include "AliTRDgeometry.h"
 
 class TTree;
@@ -41,10 +42,8 @@ class AliTRDrawData : public TObject {
 
   virtual AliTRDdigitsManager *Raw2Digits(AliRawReader *rawReader);
 
-  virtual TClonesArray    *TrackletsArray();
-  virtual TClonesArray    *TracksArray();
-  void                    SetTrackletsOwner(TClonesArray *trkl = 0x0) { fTracklets = trkl; } // set to own the given array
-  void                    SetTracksOwner(TClonesArray *trk = 0x0) { fTracks = trk; } // set to own the given array
+  void                    SetTracklets(TClonesArray*) { AliError("Deprecated, not doing anything."); }
+  void                    SetTracks(TClonesArray*) { AliError("Deprecated, not doing anything"); }
 
   UInt_t  GetTriggerFlags(const Int_t sector) const { return fTrgFlags[sector]; }
 

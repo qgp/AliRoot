@@ -16,16 +16,10 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/** @file   AliHLTHOMERLibManager.cxx
-    @author Matthias Richter
-    @date   
-    @brief  dynamic HLT HOMER reader/writer generation and destruction.   */
-
-// see header file for class documentation
-// or
-// refer to README to build package
-// or
-// visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+/// @file   AliHLTHOMERLibManager.cxx
+/// @author Matthias Richter
+/// @date   
+/// @brief  dynamic HLT HOMER reader/writer generation and destruction.
 
 #include <cerrno>
 #include <cassert>
@@ -39,6 +33,8 @@
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTHOMERLibManager)
 
+// global flag of the library status
+int AliHLTHOMERLibManager::fgLibraryStatus=0;
 // This list must be NULL terminated, since we use it as a marker to identify
 // the end of the list.
 const char* AliHLTHOMERLibManager::fgkLibraries[] = {"libAliHLTHOMER.so", "libHOMER.so", NULL};
@@ -47,7 +43,6 @@ int AliHLTHOMERLibManager::fgkLibRefCount[] = {0, 0};
 
 AliHLTHOMERLibManager::AliHLTHOMERLibManager()
   :
-  fLibraryStatus(0),
   fFctCreateReaderFromTCPPort(NULL),
   fFctCreateReaderFromTCPPorts(NULL),
   fFctCreateReaderFromBuffer(NULL),
@@ -56,26 +51,31 @@ AliHLTHOMERLibManager::AliHLTHOMERLibManager()
   fFctDeleteWriter(NULL),
   fLoadedLib(NULL)
 {
-  // see header file for class documentation
-  // or
-  // refer to README to build package
-  // or
-  // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
+  // constructor
+  // 
+  // Interface to the HLT Online Monitoring Including Root (HOMER) library.
+  // It allows to decouple the HLT base library from this additional library
+  // while providing the basic functionality to the component libraries
 }
 
 AliHLTHOMERLibManager::~AliHLTHOMERLibManager()
 {
-  // see header file for class documentation
-  UnloadHOMERLibrary();
+  // destructor
+  //
+  // the library load strategy has been changed in March 2013 in order to
+  // stabilize the runtime memory layout of AliRoot in an attemp to get control
+  // over memory corruptions
+  //  UnloadHOMERLibrary();
 }
 
 AliHLTHOMERReader* AliHLTHOMERLibManager::OpenReader(const char* hostname, unsigned short port )
 {
-  // see header file for class documentation
-  if (fLibraryStatus<0) return NULL;
+  // Open Reader instance for host
+  if (fgLibraryStatus<0) return NULL;
 
-  if (fLibraryStatus==0) {
-    fLibraryStatus=LoadHOMERLibrary();
+  fgLibraryStatus=LoadHOMERLibrary();
+  if (fgLibraryStatus <= 0) {
+	return NULL;
   }
   
   AliHLTHOMERReader* pReader=NULL;
@@ -88,11 +88,12 @@ AliHLTHOMERReader* AliHLTHOMERLibManager::OpenReader(const char* hostname, unsig
 
 AliHLTHOMERReader* AliHLTHOMERLibManager::OpenReader(unsigned int tcpCnt, const char** hostnames, unsigned short* ports)
 {
-  // see header file for class documentation
-  if (fLibraryStatus<0) return NULL;
+  // Open Reader instance for a list of hosts
+  if (fgLibraryStatus<0) return NULL;
 
-  if (fLibraryStatus==0) {
-    fLibraryStatus=LoadHOMERLibrary();
+  fgLibraryStatus=LoadHOMERLibrary();
+  if (fgLibraryStatus <= 0) {
+  	return NULL;
   }
   
   AliHLTHOMERReader* pReader=NULL;
@@ -106,11 +107,12 @@ AliHLTHOMERReader* AliHLTHOMERLibManager::OpenReader(unsigned int tcpCnt, const 
 
 AliHLTHOMERReader* AliHLTHOMERLibManager::OpenReaderBuffer(const AliHLTUInt8_t* pBuffer, int size)
 {
-  // see header file for class documentation
-  if (fLibraryStatus<0) return NULL;
+  // Open Reader instance for a data buffer
+  if (fgLibraryStatus<0) return NULL;
 
-  if (fLibraryStatus==0) {
-    fLibraryStatus=LoadHOMERLibrary();
+  fgLibraryStatus=LoadHOMERLibrary();
+  if (fgLibraryStatus <= 0) {
+	return NULL;
   }
   
   AliHLTHOMERReader* pReader=NULL;
@@ -123,11 +125,14 @@ AliHLTHOMERReader* AliHLTHOMERLibManager::OpenReaderBuffer(const AliHLTUInt8_t* 
 
 int AliHLTHOMERLibManager::DeleteReader(AliHLTHOMERReader* pReader)
 {
-  // see header file for class documentation
-  if (fLibraryStatus<0) return fLibraryStatus;
+  // delete a reader
 
-  if (fLibraryStatus==0) {
-    fLibraryStatus=LoadHOMERLibrary();
+  // the actual deletion function is inside the HOMER library
+  if (fgLibraryStatus<0) return fgLibraryStatus;
+
+  fgLibraryStatus=LoadHOMERLibrary();
+  if (fgLibraryStatus <= 0) {
+  	return fgLibraryStatus;
   }
   
   if (fFctDeleteReader!=NULL) {
@@ -139,11 +144,12 @@ int AliHLTHOMERLibManager::DeleteReader(AliHLTHOMERReader* pReader)
 
 AliHLTHOMERWriter* AliHLTHOMERLibManager::OpenWriter()
 {
-  // see header file for class documentation
-  if (fLibraryStatus<0) return NULL;
+  // open a Writer instance
+  if (fgLibraryStatus<0) return NULL;
 
-  if (fLibraryStatus==0) {
-    fLibraryStatus=LoadHOMERLibrary();
+  fgLibraryStatus=LoadHOMERLibrary();
+  if (fgLibraryStatus <= 0) {
+	return NULL;
   }
   
   AliHLTHOMERWriter* pWriter=NULL;
@@ -157,10 +163,11 @@ AliHLTHOMERWriter* AliHLTHOMERLibManager::OpenWriter()
 int AliHLTHOMERLibManager::DeleteWriter(AliHLTHOMERWriter* pWriter)
 {
   // see header file for class documentation
-  if (fLibraryStatus<0) return fLibraryStatus;
+  if (fgLibraryStatus<0) return fgLibraryStatus;
 
-  if (fLibraryStatus==0) {
-    fLibraryStatus=LoadHOMERLibrary();
+  fgLibraryStatus=LoadHOMERLibrary();
+  if (fgLibraryStatus <= 0) {
+	return fgLibraryStatus;
   }
   
   if (fFctDeleteWriter!=NULL) {
@@ -172,7 +179,9 @@ int AliHLTHOMERLibManager::DeleteWriter(AliHLTHOMERWriter* pWriter)
 
 int AliHLTHOMERLibManager::LoadHOMERLibrary()
 {
-  // see header file for class documentation
+  // delete a writer
+
+  // the actual deletion function is inside the HOMER library
   int iResult=-EBADF;
   const char** library=&fgkLibraries[0];
   int* refcount = &fgkLibRefCount[0];
@@ -223,7 +232,7 @@ int AliHLTHOMERLibManager::LoadHOMERLibrary()
 
 int AliHLTHOMERLibManager::UnloadHOMERLibrary()
 {
-  // see header file for class documentation
+  // unload HOMER library
   int iResult=0;
   
   if (fLoadedLib != NULL)

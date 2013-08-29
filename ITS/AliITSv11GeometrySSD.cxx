@@ -523,25 +523,7 @@ const Double_t AliITSv11GeometrySSD::fgkSSDCentralSupportRadius = 297.5*fgkmm;
 const Double_t AliITSv11GeometrySSD::fgkSSDCentralSupportWidth = 6.28*fgkmm;
 const Double_t AliITSv11GeometrySSD::fgkSSDCentralAL3SupportLength = 60.0*fgkmm;
 const Double_t AliITSv11GeometrySSD::fgkSSDCentralAL3SupportWidth = 2.5*fgkSSDCentralSupportWidth;
-/////////////////////////////////////////////////////////////////////////////////
-// SSD Cables Parameters (lengths are in mm and angles in degrees)
-/////////////////////////////////////////////////////////////////////////////////
-const Double_t AliITSv11GeometrySSD::fgkSSDCablesLay5TubeRadiusMin = 11.9*fgkmm;
-const Double_t AliITSv11GeometrySSD::fgkSSDCablesLay6TubeRadiusMin = 11.9*fgkmm;
-const Double_t AliITSv11GeometrySSD::fgkSSDCablesLay5RightSideHeight = 7.*fgkmm;  // to be fixed in order to reproduce material budget
-const Double_t AliITSv11GeometrySSD::fgkSSDCablesLay6RightSideHeight = 7.*fgkmm;  // to be fixed in order to reproduce material budget
-const Double_t AliITSv11GeometrySSD::fgkSSDCableAngle = 22.5;
-const Double_t AliITSv11GeometrySSD::fgkSSDCablesLay5RightSideWaterHeight = 2.5*fgkmm;  // to be fixed in order to reproduce material budget
-const Double_t AliITSv11GeometrySSD::fgkSSDCablesPatchPanel2RB26Angle[2] = {25.0,53.2};
-const Double_t AliITSv11GeometrySSD::fgkSSDCablesPatchPanel2RB24Angle[2] = {23.0,53.6};
-const Double_t AliITSv11GeometrySSD::fgkSSDPatchPanel2RB26ITSDistance = 975.0*fgkmm;
-const Double_t AliITSv11GeometrySSD::fgkSSDPatchPanel2RB24ITSDistance = 1020.0*fgkmm;
-const Double_t AliITSv11GeometrySSD::fgkSSDPatchPanel2RB26Radius = 451.3*fgkmm;
-const Double_t AliITSv11GeometrySSD::fgkSSDPatchPanel2RB24Radius = 451.3*fgkmm;
-const Double_t AliITSv11GeometrySSD::fgkSSDPatchPanelHeight = 87.5*fgkmm;
-const Double_t AliITSv11GeometrySSD::fgkSSDCableMaterialBudgetHeight = 20.0*fgkmm;
-//const Double_t AliITSv11GeometrySSD::fgkSSDPatchPanel2RB26Radius = fgkSSDPConeExternalRadius;
-//const Double_t AliITSv11GeometrySSD::fgkSSDPatchPanel2RB24Radius = fgkSSDPConeExternalRadius;
+
 /////////////////////////////////////////////////////////////////////////////////
 ClassImp(AliITSv11GeometrySSD)
 /////////////////////////////////////////////////////////////////////////////////
@@ -1862,14 +1844,14 @@ TList* AliITSv11GeometrySSD::GetCarbonFiberSupportList(){
   ////////////////////
   vertexposition[0][0] = new TVector3();
   vertexposition[0][1] = new TVector3(fgkCarbonFiberSupportXAxisLength,
-									  fgkCarbonFiberSupportYAxisLength);
+				      fgkCarbonFiberSupportYAxisLength, 0);
   vertexposition[0][2] = new TVector3(carbonfibersupportxaxisEdgeproj,
 									  carbonfibersupportxaxisEdgeproj
-					   *			  TMath::Tan(theta));
+				      *			  TMath::Tan(theta), 0);
   vertexposition[0][3] = new TVector3(fgkCarbonFiberSupportXAxisLength
 					   -			  carbonfibersupportxaxisEdgeproj,
 									  fgkCarbonFiberSupportYAxisLength
-					   -			  vertexposition[0][2]->Y());
+				      -	vertexposition[0][2]->Y(), 0);
   ////////////////////////////////////////////////////
   //Setting the parameters for Isometry Transformation
   ////////////////////////////////////////////////////
@@ -1880,7 +1862,7 @@ TList* AliITSv11GeometrySSD::GetCarbonFiberSupportList(){
   param[0] = 0., param[1] = 1., param[2] = 0., param[3] = -symmetryplaneposition;
   for(Int_t j=0; j<kvertexnumber; j++) vertexposition[1][j] = 
     new TVector3((GetReflection(vertexposition[0][j],param))->X(),
-		 (GetReflection(vertexposition[0][j],param))->Y());
+		 (GetReflection(vertexposition[0][j],param))->Y(), 0);
   const char* carbonfibersupportshapename[kshapesnumber] = 
 						{"CarbonFiberSupportShape1","CarbonFiberSupportShape2"};
   const char* carbonfibersupportname[kshapesnumber] = 
@@ -1929,10 +1911,10 @@ TGeoVolume* AliITSv11GeometrySSD::GetCarbonFiberJunction(Double_t width){
 			*			  TMath::DegToRad()),
 						  fgkCarbonFiberJunctionEdge[0]
 			*			  TMath::Sin(fgkCarbonFiberJunctionAngle[0]
-			*			  TMath::DegToRad()));
+					* TMath::DegToRad()), 0);
   vertex[4] = new TVector3(fgkCarbonFiberJunctionLength-fgkSSDTolerance,
-						   fgkCarbonFiberJunctionEdge[1]);
-  vertex[5] = new TVector3(fgkCarbonFiberJunctionLength-fgkSSDTolerance); 
+			   fgkCarbonFiberJunctionEdge[1], 0);
+  vertex[5] = new TVector3(fgkCarbonFiberJunctionLength-fgkSSDTolerance, 0, 0); 
   vertex[1] = GetReflection(vertex[5],reflectionparam);	
   vertex[2] = GetReflection(vertex[4],reflectionparam);	
   Double_t xvertexpoints[6], yvertexpoints[6];
@@ -1964,24 +1946,24 @@ TList* AliITSv11GeometrySSD::GetCarbonFiberLowerSupportList(){
   for(Int_t i = 0; i<kshapesnumber; i++) vertexposition[i] = 
 						 new TVector3*[kvertexnumber];
   //First Shape Vertex Positioning
-  vertexposition[0][0] = new TVector3(fgkCarbonFiberLowerSupportLowerLenght);
+  vertexposition[0][0] = new TVector3(fgkCarbonFiberLowerSupportLowerLenght, 0, 0);
   vertexposition[0][1] = new TVector3(fgkCarbonFiberTriangleLength
-					   -		fgkCarbonFiberLowerSupportLowerLenght);
+				      -	fgkCarbonFiberLowerSupportLowerLenght, 0, 0);
   vertexposition[0][2] = new TVector3();
-  vertexposition[0][3] = new TVector3(fgkCarbonFiberTriangleLength);
+  vertexposition[0][3] = new TVector3(fgkCarbonFiberTriangleLength, 0, 0);
   //Second Shape Vertex Positioning
   Double_t theta = TMath::ATan((fgkCarbonFiberLowerSupportVolumePosition[1]
 				 -				fgkCarbonFiberLowerSupportVolumePosition[0])
 				 /				fgkCarbonFiberTriangleLength);
   vertexposition[1][0] = new TVector3(vertexposition[0][0]->X(),
 								vertexposition[0][0]->X()*TMath::Tan(theta)
-				 +				fgkCarbonFiberLowerSupportVolumePosition[0]);
+				      + fgkCarbonFiberLowerSupportVolumePosition[0], 0);
   vertexposition[1][1] = new TVector3(vertexposition[0][1]->X(),
 								vertexposition[0][1]->X()*TMath::Tan(theta)
-				 +				fgkCarbonFiberLowerSupportVolumePosition[0]);
-  vertexposition[1][2] = new TVector3(0.,fgkCarbonFiberLowerSupportVolumePosition[0]);
+				      + fgkCarbonFiberLowerSupportVolumePosition[0], 0);
+  vertexposition[1][2] = new TVector3(0.,fgkCarbonFiberLowerSupportVolumePosition[0], 0);
   vertexposition[1][3] = new TVector3(fgkCarbonFiberTriangleLength,
-								fgkCarbonFiberLowerSupportVolumePosition[1]);
+				      fgkCarbonFiberLowerSupportVolumePosition[1], 0);
   const char* carbonfiberlowersupportshapename[kshapesnumber] = 
 			  {"CarbonFiberLowerSupportShape1","CarbonFiberLowerSupportShape2"};
   const char* carbonfiberlowersupportname[kshapesnumber] = 
@@ -2020,11 +2002,11 @@ TGeoVolume* AliITSv11GeometrySSD::GetSSDSensorSupport(Double_t length, Double_t 
 	TGeoXtru* ssdsensorsupportshape = new TGeoXtru(2);	
     TVector3* vertexposition[kvertexnumber];
 	vertexposition[0] = new TVector3();	
-	vertexposition[1] = new TVector3(0.0,length);	
-	vertexposition[2] = new TVector3(thickness[1],vertexposition[1]->Y());	
-	vertexposition[3] = new TVector3(vertexposition[2]->X(),thickness[0]);	
-	vertexposition[4] = new TVector3(height,vertexposition[3]->Y());	
-	vertexposition[5] = new TVector3(vertexposition[4]->X());	
+	vertexposition[1] = new TVector3(0.0,length,0);	
+	vertexposition[2] = new TVector3(thickness[1],vertexposition[1]->Y(),0);	
+	vertexposition[3] = new TVector3(vertexposition[2]->X(),thickness[0],0);	
+	vertexposition[4] = new TVector3(height,vertexposition[3]->Y(),0);	
+	vertexposition[5] = new TVector3(vertexposition[4]->X(),0,0);	
 	Double_t xvertexpoints[6], yvertexpoints[6];
 	for(Int_t i=0; i<kvertexnumber; i++) 
 		xvertexpoints[i] = vertexposition[i]->X(), 
@@ -2060,20 +2042,20 @@ TGeoVolume* AliITSv11GeometrySSD::GetCoolingTubeSupport(Int_t nedges){
 
   Double_t router = fgkCoolingTubeSupportRmin/CosD(phi/nedges);  //  Recalc inner radius so that tube fits inside  
   vertexposition[0] = new TVector3(router*CosD(angle),
-								   router*SinD(angle));
+				   router*SinD(angle), 0);
   vertexposition[1] = new TVector3(fgkCoolingTubeSupportRmax*CosD(angle),
-								   fgkCoolingTubeSupportRmax*SinD(angle));
+				   fgkCoolingTubeSupportRmax*SinD(angle),0);
   vertexposition[2] = new TVector3(vertexposition[1]->X(),
-								   fgkCoolingTubeSupportRmax);
+				   fgkCoolingTubeSupportRmax, 0);
   vertexposition[3] = new TVector3(-vertexposition[1]->X(),
-								   fgkCoolingTubeSupportRmax);
+				   fgkCoolingTubeSupportRmax, 0);
   vertexposition[4] = new TVector3(-vertexposition[1]->X(),
-								    vertexposition[1]->Y());
+				   vertexposition[1]->Y(), 0);
 
   for(Int_t i=0; i<nedges; i++)
 	vertexposition[i+5] = 
 		new TVector3(router*CosD(psi+i*(2.*phi/nedges)),
-			     router*SinD(psi+i*(2.*phi/nedges)));
+			     router*SinD(psi+i*(2.*phi/nedges)), 0);
   ///////////////////////////////////////////////////////////////////////
   // TGeoXTru Volume definition for Cooling Tube Support Arc Part
   ///////////////////////////////////////////////////////////////////////
@@ -2171,14 +2153,14 @@ TGeoVolume* AliITSv11GeometrySSD::GetCoolingTubeSupport(Int_t nedges){
    ////////////////////////////////////////
   // Positioning the vertices for TGeoXTru
   ////////////////////////////////////////
-  virtualvertex[0] = new TVector3(-fgkCoolingTubeSupportRmax,-fgkCoolingTubeSupportRmax); 
-  virtualvertex[1] = new TVector3(virtualvertex[0]->X(),-virtualvertex[0]->Y());
-  virtualvertex[2] = new TVector3(-virtualvertex[0]->X(),virtualvertex[1]->Y());
-  virtualvertex[3] = new TVector3(virtualvertex[2]->X(),0.5*fgkCoolingTubeSupportHeight);
-  virtualvertex[4] = new TVector3(virtualvertex[3]->X()+boxlength,virtualvertex[3]->Y());
-  virtualvertex[5] = new TVector3(virtualvertex[4]->X(),-virtualvertex[4]->Y());
-  virtualvertex[6] = new TVector3(virtualvertex[3]->X(),-virtualvertex[3]->Y());
-  virtualvertex[7] = new TVector3(virtualvertex[2]->X(),-virtualvertex[2]->Y());
+  virtualvertex[0] = new TVector3(-fgkCoolingTubeSupportRmax,-fgkCoolingTubeSupportRmax, 0); 
+  virtualvertex[1] = new TVector3(virtualvertex[0]->X(),-virtualvertex[0]->Y(),0);
+  virtualvertex[2] = new TVector3(-virtualvertex[0]->X(),virtualvertex[1]->Y(),0);
+  virtualvertex[3] = new TVector3(virtualvertex[2]->X(),0.5*fgkCoolingTubeSupportHeight,0);
+  virtualvertex[4] = new TVector3(virtualvertex[3]->X()+boxlength,virtualvertex[3]->Y(),0);
+  virtualvertex[5] = new TVector3(virtualvertex[4]->X(),-virtualvertex[4]->Y(),0);
+  virtualvertex[6] = new TVector3(virtualvertex[3]->X(),-virtualvertex[3]->Y(),0);
+  virtualvertex[7] = new TVector3(virtualvertex[2]->X(),-virtualvertex[2]->Y(),0);
   Double_t xmothervertex[kvirtualvertexnumber], ymothervertex[kvirtualvertexnumber];
   for(Int_t i=0; i< kvirtualvertexnumber; i++)
 	xmothervertex[i] = virtualvertex[i]->X(),
@@ -2553,7 +2535,7 @@ TGeoVolume* AliITSv11GeometrySSD::GetCoolingBlockSystem(){
   coolingblocktransvector = new TVector3(fgkCoolingTubeSeparation,
 								  fgkSSDSensorLength
 								- 2.*fgkSSDModuleStiffenerPosition[1]
-								- fgkSSDCoolingBlockWidth);
+					 - fgkSSDCoolingBlockWidth, 0);
   const Int_t kcoolingblocktransnumber = 2;
   const Int_t kcoolingblocknumber = 4;
   TGeoHMatrix* coolingblockmatrix[kcoolingblocknumber];
@@ -2719,14 +2701,14 @@ TGeoVolume* AliITSv11GeometrySSD::GetSSDEndFlex(){
   TVector3* referencetrans[karcnumber];
   referencetrans[0] = new TVector3(ssdflexboxlength*CosD(2.*fgkSSDFlexAngle)
 					+			   radius[0]*SinD(2.*fgkSSDFlexAngle),
-								   radius[0]);
+				   radius[0], 0);
   referencetrans[1] = new TVector3(referencetrans[0]->X()
 					+              fgkSSDFlexLength[2],
-     -              fgkSSDStiffenerHeight);
+				   -              fgkSSDStiffenerHeight, 0);
 for(Int_t i=0; i<karcnumber; i++){
 	for(Int_t j=0; j<knedges+1; j++){
 		vertexposition[j+i*(knedges+1)] = new TVector3(radius[i]*CosD(angle[i]),
-										               radius[i]*SinD(angle[i]));
+							 radius[i]*SinD(angle[i]), 0);
 		angle[i] +=  deltangle[i]*(1.0-2.0*i);
 	} 	
   }
@@ -2760,29 +2742,30 @@ for(Int_t i=0; i<karcnumber; i++){
 	}
   }
   for(Int_t i=0; i<kendflexlayernumber; i++){
-	vertex[i][0] = new TVector3(transvector[i]->X(),transvector[i]->Y());
-	vertex[i][1] = new TVector3(transvector[i+1]->X(),transvector[i+1]->Y());
+    vertex[i][0] = new TVector3(transvector[i]->X(),transvector[i]->Y(),0);
+    vertex[i][1] = new TVector3(transvector[i+1]->X(),transvector[i+1]->Y(),0);
 	for(Int_t j=0; j<karcnumber*(knedges+1); j++){
 		if(j<(knedges+1)){
 			vertex[i][j+2] = new TVector3(vertexposition[j]->X()*ratioradius[0][i+1],
-										  vertexposition[j]->Y()*ratioradius[0][i+1]);
+						vertexposition[j]->Y()*ratioradius[0][i+1], 0);
 			vertex[i][j+2]->RotateZ(referenceangle[0]);
 			*vertex[i][j+2] += *referencetrans[0];
 			vertex[i][4*(knedges+1)-j+1] = 
 							 new TVector3(vertexposition[j]->X()*ratioradius[0][i],
-										  vertexposition[j]->Y()*ratioradius[0][i]);
+				 vertexposition[j]->Y()*ratioradius[0][i], 0);
 			vertex[i][4*(knedges+1)-j+1]->RotateZ(referenceangle[0]);
 			*vertex[i][4*(knedges+1)-j+1] += *referencetrans[0];
 		}
 		else{
 		
 			vertex[i][j+2] = new TVector3(vertexposition[j]->X()*ratioradius[1][i+1],
-										  vertexposition[j]->Y()*ratioradius[1][i+1]);
+						vertexposition[j]->Y()*ratioradius[1][i+1],0);
 			vertex[i][j+2]->RotateZ(referenceangle[1]);
 			*vertex[i][j+2] += *referencetrans[1];
 			vertex[i][4*(knedges+1)-j+1] = 
 							 new TVector3(vertexposition[j]->X()*ratioradius[1][i],
-										  vertexposition[j]->Y()*ratioradius[1][i]);
+				       vertexposition[j]->Y()*ratioradius[1][i],
+				       0);
 			vertex[i][4*(knedges+1)-j+1]->RotateZ(referenceangle[1]);
 			*vertex[i][4*(knedges+1)-j+1] += *referencetrans[1];
 	   }
@@ -2916,7 +2899,7 @@ TGeoVolume* AliITSv11GeometrySSD::GetSSDMountingBlock(){
 	screwvertex[i] = new TVector3(fgkSSDMountingBlockScrewHoleRadius[0]
 				   *CosD(phi0+i*deltaphi),
 				   fgkSSDMountingBlockScrewHoleRadius[0]
-				   *SinD(phi0+i*deltaphi));
+				      *SinD(phi0+i*deltaphi), 0);
   Double_t xscrewvertex[kscrewvertexnumber+6];
   Double_t yscrewvertex[kscrewvertexnumber+6];
   xscrewvertex[0] = - fgkSSDMountingBlockScrewHoleRadius[0];	
@@ -3256,25 +3239,25 @@ TGeoVolume* AliITSv11GeometrySSD::GetSSDCoolingBlock(Int_t nedges){
   // Vertex Positioning for TGeoXTru
   ///////////////////////////////////////
   TVector3** vertexposition = new TVector3*[2*kvertexnumber+nedges+1];
-  vertexposition[0] = new TVector3(0.0,0.0);
-  vertexposition[1] = new TVector3(0.0,fgkSSDCoolingBlockHeight[1]);
+  vertexposition[0] = new TVector3(0.0,0.0, 0.);
+  vertexposition[1] = new TVector3(0.0,fgkSSDCoolingBlockHeight[1],0);
   vertexposition[2] = new TVector3(fgkSSDCoolingBlockHoleLength[1],
-					  vertexposition[1]->Y());
+				   vertexposition[1]->Y(),0);
   vertexposition[3] = new TVector3(vertexposition[2]->X(),
-					  vertexposition[2]->Y()+fgkSSDCoolingBlockHeight[2]);
-  vertexposition[4] = new TVector3(vertexposition[1]->X(),vertexposition[3]->Y());
+				   vertexposition[2]->Y()+fgkSSDCoolingBlockHeight[2],0);
+  vertexposition[4] = new TVector3(vertexposition[1]->X(),vertexposition[3]->Y(),0);
   vertexposition[5] = new TVector3(vertexposition[4]->X(),
-					+ vertexposition[3]->Y()+fgkSSDCoolingBlockHoleRadius[1]);
+				   + vertexposition[3]->Y()+fgkSSDCoolingBlockHoleRadius[1],0);
   vertexposition[6] = new TVector3(Xfrom2Points(vertexposition[5]->X(),
 					  vertexposition[5]->Y(),0.5*(fgkSSDCoolingBlockLength
 					- fgkSSDCoolingBlockHoleLength[0]
 					- 4.*fgkSSDCoolingBlockHoleRadius[1]),
 					  fgkSSDCoolingBlockHeight[0]
 					- fgkSSDCoolingBlockHoleRadius[1],
-					  fgkSSDCoolingBlockHeight[0]),fgkSSDCoolingBlockHeight[0]);
+						fgkSSDCoolingBlockHeight[0]),fgkSSDCoolingBlockHeight[0], 0);
   vertexposition[7] = new TVector3(0.5*(fgkSSDCoolingBlockLength
 					- fgkSSDCoolingBlockHoleLength[0]),
-					  vertexposition[6]->Y());
+				   vertexposition[6]->Y(), 0);
   Double_t alpha = TMath::ACos(0.5*fgkSSDCoolingBlockHoleLength[0]
 			   / fgkSSDCoolingBlockHoleRadius[0])*TMath::RadToDeg();
   Double_t phi = 180.-alpha;
@@ -3282,10 +3265,11 @@ TGeoVolume* AliITSv11GeometrySSD::GetSSDCoolingBlock(Int_t nedges){
   Double_t deltapsi = psi/nedges;
   Double_t radius = fgkSSDCoolingBlockHoleRadius[0]/CosD(0.5*deltapsi);
   TVector3* transvector = new TVector3(0.5*fgkSSDCoolingBlockLength,
-						  fgkSSDCoolingBlockHoleCenter);
+				       fgkSSDCoolingBlockHoleCenter, 0);
   for(Int_t i=0; i<nedges+1; i++){
 	vertexposition[kvertexnumber+i] = new TVector3(radius*CosD(phi+i*deltapsi),
-											       radius*SinD(phi+i*deltapsi));
+						   radius*SinD(phi+i*deltapsi),
+						   0);
    *vertexposition[kvertexnumber+i] += (*transvector);
   }
   Double_t param[4] = {1.0,0.0,0.0,-0.5*fgkSSDCoolingBlockLength};  
@@ -3366,7 +3350,7 @@ void AliITSv11GeometrySSD::GetSSDChipCables(TGeoVolume *&cableL, TGeoVolume *&ca
   TVector3* vertex = new TVector3();
   TVector3* transvector[kssdchipcableslaynumber];
   transvector[0] = new TVector3(fgkSSDChipWidth,
-								SSDChipCablesHeight-ssdchipcablesradius[0]);
+				SSDChipCablesHeight-ssdchipcablesradius[0], 0);
   transvector[1] = new TVector3();
   TGeoXtru* ssdchipcableshape[kssdchipcableslaynumber*kssdchipcablesnumber];
   TGeoVolume* ssdchipcable[kssdchipcableslaynumber*kssdchipcablesnumber];
@@ -3380,19 +3364,19 @@ void AliITSv11GeometrySSD::GetSSDChipCables(TGeoVolume *&cableL, TGeoVolume *&ca
 				 +		 fgkSSDChipCablesHeight[1]);  
 	for(Int_t i=0; i<kssdchipcableslaynumber; i++){
 		vertexposition[i][0] = new TVector3(0.,SSDChipCablesHeight
-							 - fgkSSDChipCablesHeight[0]-i*fgkSSDChipCablesHeight[1]);
+					      - fgkSSDChipCablesHeight[0]-i*fgkSSDChipCablesHeight[1], 0);
 		vertexposition[i][1] = new TVector3(0.,SSDChipCablesHeight
-							 - i*fgkSSDChipCablesHeight[0]);
+						    - i*fgkSSDChipCablesHeight[0], 0);
 		vertexposition[i][2*(nedges+1)+2] = 
 					new TVector3(fgkSSDChipWidth+ssdchipcablesradius[0]
 				+				 fgkSSDChipCablesWidth[1]
 				+				 fgkSSDChipCablesWidth[2],
 								((1.-i)*fgkSSDChipCablesHeight[i]
-				+				 fgkSSDChipCablesHeight[1]));
+				+ fgkSSDChipCablesHeight[1]), 0);
         vertexposition[i][2*(nedges+1)+3] = 
 					new TVector3(vertexposition[i][2*(nedges+1)+2]->X(),
 								 vertexposition[i][2*(nedges+1)+2]->Y()
-				-				 fgkSSDChipCablesHeight[i]);
+		       - fgkSSDChipCablesHeight[i], 0);
 	    for(Int_t j=0; j<nedges+1; j++){ 		
 		    angle = 0.5*phi+TMath::Power(-1,i+1)*j*deltaphi;
 			vertex->SetX(ssdchipcablesradius[0]*CosD(angle));
@@ -3401,14 +3385,14 @@ void AliITSv11GeometrySSD::GetSSDChipCables(TGeoVolume *&cableL, TGeoVolume *&ca
 						new TVector3(*vertex+*transvector[i]);
 			vertexposition[1][(nedges+1)*i+j+2] = 
 						new TVector3(vertex->X()*ratio[2*i]+transvector[i]->X(),
-									 vertex->Y()*ratio[2*i]+transvector[i]->Y());
+				       vertex->Y()*ratio[2*i]+transvector[i]->Y(), 0);
 			vertexposition[0][(4-i)*(nedges+1)+4-j-1] = 
 						new TVector3(*vertexposition[1][(nedges+1)*i+j+2]);
 			vertexposition[1][(4-i)*(nedges+1)+4-j-1] = 
 						new TVector3(vertex->X()*ratio[2*i+1]
 							+			 transvector[i]->X(),
 									   	 vertex->Y()*ratio[2*i+1]
-							+	     	 transvector[i]->Y());
+				       + transvector[i]->Y(), 0);
 		}
 	}
 	for(Int_t i=0; i<kssdchipcableslaynumber; i++){
@@ -3577,15 +3561,15 @@ TList* AliITSv11GeometrySSD::GetLadderCableSegment(Double_t ssdendladdercablelen
 												  new TVector3*[kvertexnumber];
 //Shape Vertex Positioning
   for(Int_t i=0; i<kladdercablesegmentnumber; i++){
-	laddercablesegmentvertexposition[i][0] = new TVector3(0.,i*fgkSSDFlexHeight[0]);
+    laddercablesegmentvertexposition[i][0] = new TVector3(0.,i*fgkSSDFlexHeight[0], 0);
 	laddercablesegmentvertexposition[i][1] = new TVector3(fgkSSDLadderCableWidth,
-														  i*fgkSSDFlexHeight[0]);
+							      i*fgkSSDFlexHeight[0], 0);
 	laddercablesegmentvertexposition[i][2] = new TVector3(0.,fgkSSDFlexHeight[0]
 										   +			     fgkSSDFlexHeight[1]
-										   +			  i*fgkSSDFlexHeight[0]);
+							      + i*fgkSSDFlexHeight[0], 0);
 	laddercablesegmentvertexposition[i][3] = 
 						   new TVector3(laddercablesegmentvertexposition[i][1]->X(),
-										laddercablesegmentvertexposition[i][2]->Y());
+								laddercablesegmentvertexposition[i][2]->Y(), 0);
   }
   Double_t laddercablesegmentwidth[2][2] = {{fgkSSDFlexHeight[0],fgkSSDFlexHeight[0]},
 							     		    {fgkSSDFlexHeight[1],fgkSSDFlexHeight[1]}};	
@@ -4212,7 +4196,7 @@ void AliITSv11GeometrySSD::Layer6(TGeoVolume* moth){
   for(Int_t i=0; i<fgklayernumber; i++){
 	for(Int_t j=0; j<nedges+1; j++){
 		vertex[i][j] = new TVector3(fgkMountingBlockSupportRadius[i]*TMath::Cos(psi0[i]+j*deltapsi[i]),
-								    fgkMountingBlockSupportRadius[i]*TMath::Sin(psi0[i]+j*deltapsi[i]));
+					    fgkMountingBlockSupportRadius[i]*TMath::Sin(psi0[i]+j*deltapsi[i]), 0);
 		if(vertex[i][j]->X()>mountingsupportedgevector[i]->X()) indexedge[i]++;
 		vertexlist[i]->Add(vertex[i][j]);
 	}
@@ -4761,12 +4745,12 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   for(Int_t i=0; i<fgklayernumber; i++){
     ringsupportvertex[i] = new TVector3*[2*kssdlayladdernumber[i]+3+nedges];	
 	ringsupportvertex[i][0] = new TVector3(0.,fgkMountingBlockSupportRadius[i]
-							*			   TMath::Cos(theta[i]));
+					   * TMath::Cos(theta[i]), 0);
 	ringsupportvertex[i][1] = new TVector3(-0.5*fgkSSDMountingBlockLength[0]
 							-			   mountingsupportedge[i],
-										   ringsupportvertex[i][0]->Y());
+					       ringsupportvertex[i][0]->Y(), 0);
 	ringsupportvertex[i][2] = new TVector3(0.5*fgkSSDMountingBlockLength[0],
-										   ringsupportvertex[i][1]->Y()); 									   	
+					       ringsupportvertex[i][1]->Y(),0); 									   	
     ringsupportvertex[i][2]->RotateZ(theta[i]+phi[i]);
 	for(Int_t j=1; j<kssdlayladdernumber[i]; j++){
 	   ringsupportvertex[i][2*j+1] = new TVector3(*ringsupportvertex[i][1]);  	
@@ -4778,7 +4762,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
     for(Int_t j=0; j<nedges+1; j++){
 		ringsupportvertex[i][2*kssdlayladdernumber[i]+2+j] = 
 			new TVector3((ringsupportvertex[i][0]->Y()-fgkLadderSupportHeight)*CosD(90.0-j*angle),
-						 (ringsupportvertex[i][0]->Y()-fgkLadderSupportHeight)*SinD(90.0-j*angle));
+			       (ringsupportvertex[i][0]->Y()-fgkLadderSupportHeight)*SinD(90.0-j*angle), 0);
 	}
   }
   Double_t **xmothervertex = new Double_t*[fgklayernumber];
@@ -7401,43 +7385,53 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 }
  ////////////////////////////////////////////////////////////////////////////////
  TGeoVolume* AliITSv11GeometrySSD::SetSSDCables(){
-  /////////////////////////////////////////////////////////////
-  // Method generating SSDCables
-  /////////////////////////////////////////////////////////////
-  // SSD Layer 5 Cables
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  TGeoVolumeAssembly* ssdcablesmother = new TGeoVolumeAssembly("SSDCables");
-  Double_t ssdcablelayvertical = 0.05; // Internal variables to control overlapping with SDD cables
-  Double_t ssdcablelaylateral = 0.55;   // Internal variables to control overlapping with SDD cables
-  Double_t ssdcablesfactor = 0.5;     // Internal variables to control overlapping with SDD cables
-  //////////////////////////////////////////////////////////////////////////////////////////////////
-  Double_t ssdcableslay5rigthsideradiusmin = fgkEndCapSupportMiddleRadius[0]+fgkSSDCablesLay5TubeRadiusMin;  
-  Double_t ssdcableslay5endconedistance = (ssdcableslay5rigthsideradiusmin
-									    -  fgkSSDLowerPConeRadius)
-									    * TanD(fgkSSDPConeAngle);
-  Double_t ssdcableslay5startconedistance = fgkEndCapSupportCenterLay5ITSPosition
-									      + fgkEndCapSupportCenterLay5Position
-									      - 0.5*fgkSSDCentralSupportLength-fgkSSDCentralAL3SupportLength;
-  Double_t ssdcablelay5rightsidelength = ssdcableslay5endconedistance
-									   - ssdcableslay5startconedistance; 
-  ssdcablelay5rightsidelength *= ssdcablesfactor;
-  Double_t ssdcableslay5rightsideradiusmax = ssdcableslay5rigthsideradiusmin+fgkSSDCablesLay5RightSideHeight; 
-  TGeoTube* ssdcablelay5rightubeshape = new TGeoTube(ssdcableslay5rigthsideradiusmin,
-												ssdcableslay5rightsideradiusmax,
-												0.5*ssdcablelay5rightsidelength); 
-  TGeoVolume* ssdcablelay5righttube = new TGeoVolume("SSDCableLay5RightSideTube",
-													 ssdcablelay5rightubeshape,
-													 fSSDCopper);
-  ssdcablelay5righttube->SetLineColor(9);
-  TGeoTranslation* ssdcablelay5rightrans = 
-					  new TGeoTranslation(0.,0.,fgkEndCapSupportCenterLay5ITSPosition
-										 +		fgkEndCapSupportCenterLay5Position
-										 +      0.5*ssdcablelay5rightsidelength);
+   /////////////////////////////////////////////////////////////
+   // Method generating SSDCables
+   /////////////////////////////////////////////////////////////
+
+   /////////////////////////////////////////////////////////////////////////////////
+   // SSD Cables Parameters (lengths are in mm and angles in degrees)
+   /////////////////////////////////////////////////////////////////////////////////
+   
+   const Double_t kSSDCablesLay5TubeRadiusMin = 11.9*fgkmm;
+   const Double_t kSSDCablesLay6TubeRadiusMin = 11.9*fgkmm;
+   
+   // Cable thickness for rings at outer Z
+   // Average: 9/2 = 4.5 cables per quadrant
+   // Ideally 1/16 * 38(34) cables, but take factor to (1/8) to accomodate kinks and loops (there are only 2 different cable lengths); 21 mm^2 Cu each
+
+   const Double_t kSSDCablesLay5RingArea = 21.*34./8.*fgkmm*fgkmm;  // to be fixed in order to reproduce material budget
+   const Double_t kSSDCablesLay6RingArea = 21.*38./8.*fgkmm*fgkmm;  // to be fixed in order to reproduce material budget
+   
+   
+   const Double_t kSSDCablesHeight = 3.2*fgkmm;  // 3.2 mm*13 cm width = 18 cables, 185g/m each Add fudge factor of 2 to get to ~25 kg measured
+
+   const Double_t kSSDCableAngle = 22.5;
+   // MvL: remove water?
+   const Double_t kSSDCablesLay5RightSideWaterHeight = 2.5*fgkmm;  // to be fixed in order to reproduce material budget
+   const Double_t kSSDCablesPatchPanel2RB26Angle[2] = {25.0,53.2};
+   const Double_t kSSDCablesPatchPanel2RB24Angle[2] = {23.0,53.6};
+   const Double_t kSSDPatchPanel2RB26ITSDistance = 975.0*fgkmm;
+   const Double_t kSSDPatchPanel2RB24ITSDistance = 1020.0*fgkmm;
+   const Double_t kSSDPatchPanel2RB26Radius = 451.3*fgkmm;
+   const Double_t kSSDPatchPanel2RB24Radius = 451.3*fgkmm;
+   const Double_t kSSDPatchPanelHeight = 87.5*fgkmm;
+   
+   // SSD Layer 5 Cables
+   //////////////////////////////////////////////////////////////////////////////////////////////////
+   TGeoVolumeAssembly* ssdcablesmother = new TGeoVolumeAssembly("SSDCables");
+   Double_t ssdcablelayvertical = 0.05; // Internal variables to control overlapping with SDD cables
+   Double_t ssdcablelaylateral = 0.55;   // Internal variables to control overlapping with SDD cables
+   //////////////////////////////////////////////////////////////////////////////////////////////////
+  // Printf(Form("Cable ring: rad min: %g length %g thick %g", ssdcableslay5rigthsideradiusmin, ssdcablelay5rightsidelength, kSSDCablesLay5RingArea/ssdcablelay5rightsidelength));
+  
+
+  
   ////////////////////////////////////
   //  Double_t cablescapacity[20];
   //  cablescapacity[0] = ssdcablelay5rightubeshape->Capacity();
   ////////////////////////////////////
-  ssdcablesmother->AddNode(ssdcablelay5righttube,1,ssdcablelay5rightrans);
+  //ssdcablesmother->AddNode(ssdcablelay5righttube,1,ssdcablelay5rightrans);
   ////////////////////////////////////
   // TGeoPCone Volumes
   ///////////////////////////////////
@@ -7447,26 +7441,41 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   Double_t ssdcableslay5pconzsection[6];
   Double_t ssdcableslay5pconrmin[6];
   Double_t ssdcableslay5pconrmax[6];
-  ssdcableslay5pconrmin[0] = ssdcablelay5rightubeshape->GetRmin();
-  ssdcableslay5pconrmax[0] = ssdcablelay5rightubeshape->GetRmax();
+  ssdcableslay5pconrmin[0] = fgkEndCapSupportMiddleRadius[0]+kSSDCablesLay5TubeRadiusMin;
   ssdcableslay5pconrmin[1] = fgkSSDPConeUpRadius*(1.0+ssdcablelayvertical);
-  ssdcableslay5pconrmax[1] = ssdcableslay5pconrmin[1]+fgkSSDCablesLay5RightSideHeight;
+
   ssdcableslay5pconzsection[0] = fgkEndCapSupportCenterLay5ITSPosition
-							   + fgkEndCapSupportCenterLay5Position
-							   + 2.*ssdcablelay5rightubeshape->GetDz();
+                                 + fgkEndCapSupportCenterLay5Position;
+                                //+ 2.*ssdcablelay5rightsidelength;  // removing this generates overlap with the water ring 
+                                // Keeping it generates overlap with the cones...
+  // SSDCables/SSDCableLay5RightSideWaterTube_2 ovlp=0.0939792
   ssdcableslay5pconzsection[1] = 0.5*fgkSSDCentralSupportLength
 							   + fgkSSDCentralAL3SupportLength
 							   + (fgkSSDPConeUpRadius-fgkSSDLowerPConeRadius)
 							   * TanD(fgkSSDPConeAngle);      
+  Double_t dz = ssdcableslay5pconzsection[1]-ssdcableslay5pconzsection[0];
+  Double_t pconethickness = kSSDCablesLay5RingArea/TMath::Abs(dz);
+  ssdcableslay5pconrmax[0] = ssdcableslay5pconrmin[0]+pconethickness;
+  ssdcableslay5pconrmax[1] = ssdcableslay5pconrmin[1]+pconethickness;
+  //Printf(Form("pcone: r1 %g  r2 %g z1 %g z2 %g thickness %g", ssdcableslay5pconrmax[0], ssdcableslay5pconrmax[1], 
+  //	      ssdcableslay5pconzsection[0],ssdcableslay5pconzsection[1],pconethickness));
+  
   for(Int_t i=0; i<2;i++) ssdcableslay5pconshape[0]->DefineSection(i,ssdcableslay5pconzsection[i],
 						  ssdcableslay5pconrmin[i],ssdcableslay5pconrmax[i]); 
   ssdcableslay5pcon[0] = new TGeoVolume("SSDCableLay5RightSidePCon1",
 							   ssdcableslay5pconshape[0],fSSDCopper);
   ssdcableslay5pcon[0]->SetLineColor(9);
   ssdcablesmother->AddNode(ssdcableslay5pcon[0],1);
+
+  Double_t totvol = ssdcableslay5pcon[0]->Capacity();
+  // Printf(Form("Cables, lay5, pCone,volume: %g", ssdcableslay5pcon[0]->Capacity()));
 ////////////////////////////////////
 //  cablescapacity[1] = ssdcableslay5pconshape[0]->Capacity();
 ////////////////////////////////////
+
+  //
+  //   PCon 2 and 3 are cables going through/towards holes in supports
+  //
   ssdcableslay5pconzsection[2] = ssdcableslay5pconzsection[1];
   ssdcableslay5pconzsection[3] = 0.5*fgkSSDCentralSupportLength
 							   + fgkSSDCentralAL3SupportLength
@@ -7475,20 +7484,21 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   Double_t ssdcableangle = (fgkSSDPConeTrapezoidBasis-2.*(fgkSSDPConeUpMaxRadius
 					     -  fgkSSDPConeUpRadius)/TanD(fgkSSDPConeTrapezoidAngle))
 						 /  fgkSSDPConeUpRadius*TMath::RadToDeg()*2;
-  ssdcableslay5pconshape[1] = new TGeoPcon(90.0-fgkSSDCableAngle-0.5*ssdcableangle,
-										   ssdcableangle,2);   
+  ssdcableslay5pconshape[1] = new TGeoPcon(90.0-kSSDCableAngle-0.5*ssdcableangle,
+										   ssdcableangle,2);
+  // Printf(Form("PCon2, phi %g dphi %g ",90.0-kSSDCableAngle-0.5*ssdcableangle, ssdcableangle));
   ssdcableslay5pconrmin[2] = ssdcableslay5pconrmin[1];
-  ssdcableslay5pconrmax[2] = ssdcableslay5pconrmax[1];
+  ssdcableslay5pconrmax[2] = ssdcableslay5pconrmax[1]; 
   ssdcableslay5pconrmin[3] = 0.25*(fgkSSDPConeUpMaxRadius+3.*fgkSSDPConeUpRadius
 						   - 4.*fgkSSDLowerPConeRadius)+fgkSSDLowerPConeRadius;
   ssdcableslay5pconrmin[3]*=(1.0+ssdcablelayvertical);
-  ssdcableslay5pconrmax[3] = ssdcableslay5pconrmin[3]+fgkSSDCablesLay5RightSideHeight;
+  ssdcableslay5pconrmax[3] = ssdcableslay5pconrmin[3] + kSSDCablesHeight; 
   for(Int_t i=0; i<2;i++) ssdcableslay5pconshape[1]->DefineSection(i,ssdcableslay5pconzsection[i+2],
 						  ssdcableslay5pconrmin[i+2],ssdcableslay5pconrmax[i+2]); 
   ssdcableslay5pcon[1] = new TGeoVolume("SSDCableLay5RightSidePCon2",ssdcableslay5pconshape[1],fSSDCopper);
   ssdcableslay5pcon[1]->SetLineColor(9);
   ////////////////////////////////////
-  ssdcableslay5pconshape[2] = new TGeoPcon(90.0-fgkSSDCableAngle-0.5*ssdcableangle,
+  ssdcableslay5pconshape[2] = new TGeoPcon(90.0-kSSDCableAngle-0.5*ssdcableangle,
 										   ssdcableangle,2);   
   ssdcableslay5pconrmin[4] = ssdcableslay5pconrmin[3];
   ssdcableslay5pconrmax[4] = ssdcableslay5pconrmax[3];
@@ -7511,6 +7521,8 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
    ssdcableslay5pconrot[i]->SetAngles(90.0*i,0.,0.);
    ssdcablesmother->AddNode(ssdcableslay5pcon[1],i+1,ssdcableslay5pconrot[i]);
    ssdcablesmother->AddNode(ssdcableslay5pcon[2],i+1,ssdcableslay5pconrot[i]);  	
+   // Printf(Form("Pcon2, Pcon3, vol %g %g",ssdcableslay5pcon[1]->Capacity(),ssdcableslay5pcon[2]->Capacity()));
+   totvol += ssdcableslay5pcon[1]->Capacity()+ssdcableslay5pcon[2]->Capacity();
   }
   ////////////////////////////////////
   //cablescapacity[2] = 4.0*ssdcableslay5pconshape[1]->Capacity();
@@ -7518,11 +7530,6 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   ////////////////////////////////////
   // Positioning Left SSD Cables Part
   ////////////////////////////////////
-  TGeoTranslation* ssdcablesLay5RightTubeToLeftrans = new TGeoTranslation(0.,0.,
-													- 0.5*ssdcablelay5rightsidelength
-													- fgkEndCapSupportCenterLay5Position
-												    - fgkEndCapSupportCenterLay5ITSPosition);
-  ssdcablesmother->AddNode(ssdcablelay5righttube,2,ssdcablesLay5RightTubeToLeftrans);  
   TGeoRotation* ssdcablesLay5RightPConToLeftRot = new TGeoRotation();
   ssdcablesLay5RightPConToLeftRot->SetAngles(90.,180.,-90);
   ssdcablesmother->AddNode(ssdcableslay5pcon[0],2,ssdcablesLay5RightPConToLeftRot);  
@@ -7540,9 +7547,41 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   /////////////////////////////////////////////////////////////
   // Water Tubes Layer 5
   /////////////////////////
+  /*  Remove ring; could be replaced with a PCone next to/on top of the cables
+
+   //
+   // MvL: Remove ring; put everything in PCone
+   //
+   // Need to keep dimensions for water ring...
+
+   Double_t ssdcablesfactor = 0.5;     // Internal variables to control overlapping with SDD cables
+
+  Double_t ssdcableslay5rigthsideradiusmin = fgkEndCapSupportMiddleRadius[0]+kSSDCablesLay5TubeRadiusMin;  
+  Double_t ssdcableslay5endconedistance = (ssdcableslay5rigthsideradiusmin
+									    -  fgkSSDLowerPConeRadius)
+									    * TanD(fgkSSDPConeAngle);
+  Double_t ssdcableslay5startconedistance = fgkEndCapSupportCenterLay5ITSPosition
+									      + fgkEndCapSupportCenterLay5Position
+									      - 0.5*fgkSSDCentralSupportLength-fgkSSDCentralAL3SupportLength;
+  Double_t ssdcablelay5rightsidelength = ssdcableslay5endconedistance
+									   - ssdcableslay5startconedistance; 
+  ssdcablelay5rightsidelength *= ssdcablesfactor;
+  Double_t ssdcableslay5rightsideradiusmax = ssdcableslay5rigthsideradiusmin+kSSDCablesLay5RingArea/ssdcablelay5rightsidelength; 
+
+
+  TGeoTranslation* ssdcablelay5rightrans = 
+					  new TGeoTranslation(0.,0.,fgkEndCapSupportCenterLay5ITSPosition
+							            + fgkEndCapSupportCenterLay5Position
+  								    + 0.5*ssdcablelay5rightsidelength);
+
+  TGeoTranslation* ssdcablesLay5RightTubeToLeftrans = new TGeoTranslation(0.,0.,
+													- 0.5*ssdcablelay5rightsidelength
+													- fgkEndCapSupportCenterLay5Position
+												    - fgkEndCapSupportCenterLay5ITSPosition);
+
   TGeoTube* ssdcablelay5rightubewatershape = new TGeoTube(ssdcableslay5rightsideradiusmax,
 										     ssdcableslay5rightsideradiusmax
-									       + fgkSSDCablesLay5RightSideWaterHeight,
+									       + kSSDCablesLay5RightSideWaterHeight,
 										     0.5*ssdcablelay5rightsidelength); 
   TGeoVolume* ssdcablelay5rightwatertube = new TGeoVolume("SSDCableLay5RightSideWaterTube",
 													 ssdcablelay5rightubewatershape,
@@ -7550,6 +7589,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   ssdcablelay5rightwatertube->SetLineColor(7);
   ssdcablesmother->AddNode(ssdcablelay5rightwatertube,1,ssdcablelay5rightrans);
   ssdcablesmother->AddNode(ssdcablelay5rightwatertube,2,ssdcablesLay5RightTubeToLeftrans);
+  */
   ////////////////////////////////////
   // TGeoPCone Water Volumes Layer 
   ///////////////////////////////////
@@ -7561,10 +7601,10 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   Double_t ssdcableslay5pconwaterrmax[6];
   ssdcableslay5pcwateronrmin[0] = ssdcableslay5pconrmax[0];
   ssdcableslay5pconwaterrmax[0] = ssdcableslay5pcwateronrmin[0]
-								+ fgkSSDCablesLay5RightSideWaterHeight;
+								+ kSSDCablesLay5RightSideWaterHeight;
   ssdcableslay5pcwateronrmin[1] = ssdcableslay5pconrmax[1];
   ssdcableslay5pconwaterrmax[1] = ssdcableslay5pcwateronrmin[1]
-								+ fgkSSDCablesLay5RightSideWaterHeight;
+								+ kSSDCablesLay5RightSideWaterHeight;
   ssdcableslay5pconwaterzsection[0] = ssdcableslay5pconzsection[0];
   ssdcableslay5pconwaterzsection[1] = ssdcableslay5pconzsection[1];
   for(Int_t i=0; i<2;i++) ssdcableslay5pconwatershape[0]->DefineSection(i,ssdcableslay5pconwaterzsection[i],
@@ -7577,28 +7617,28 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 ////////////////////////////////////
   ssdcableslay5pconwaterzsection[2] = ssdcableslay5pconzsection[2];
   ssdcableslay5pconwaterzsection[3] = ssdcableslay5pconzsection[3];
-  ssdcableslay5pconwatershape[1] = new TGeoPcon(90.0-fgkSSDCableAngle-0.5*ssdcableangle,
+  ssdcableslay5pconwatershape[1] = new TGeoPcon(90.0-kSSDCableAngle-0.5*ssdcableangle,
 												ssdcableangle,2);   
   ssdcableslay5pcwateronrmin[2] = ssdcableslay5pconrmax[1];
   ssdcableslay5pconwaterrmax[2] = ssdcableslay5pcwateronrmin[2]
-								+ fgkSSDCablesLay5RightSideWaterHeight;
+								+ kSSDCablesLay5RightSideWaterHeight;
   ssdcableslay5pcwateronrmin[3] = ssdcableslay5pconrmax[3];
   ssdcableslay5pconwaterrmax[3] = ssdcableslay5pcwateronrmin[3]
-								+ fgkSSDCablesLay5RightSideWaterHeight;
+								+ kSSDCablesLay5RightSideWaterHeight;
   for(Int_t i=0; i<2;i++) ssdcableslay5pconwatershape[1]->DefineSection(i,ssdcableslay5pconwaterzsection[i+2],
 						  ssdcableslay5pcwateronrmin[i+2],ssdcableslay5pconwaterrmax[i+2]); 
   ssdcableslay5pconwater[1] = new TGeoVolume("SSDCableLay5RightSidePConWater2",
 							   ssdcableslay5pconwatershape[1],fSSDCoolingTubeWater);
   ssdcableslay5pconwater[1]->SetLineColor(7);
 ////////////////////////////////////
-  ssdcableslay5pconwatershape[2] = new TGeoPcon(90.0-fgkSSDCableAngle-0.5*ssdcableangle,
+  ssdcableslay5pconwatershape[2] = new TGeoPcon(90.0-kSSDCableAngle-0.5*ssdcableangle,
 												ssdcableangle,2);   
   ssdcableslay5pcwateronrmin[4] = ssdcableslay5pconrmax[3];
   ssdcableslay5pconwaterrmax[4] = ssdcableslay5pcwateronrmin[4]
-								+ fgkSSDCablesLay5RightSideWaterHeight;
+								+ kSSDCablesLay5RightSideWaterHeight;
   ssdcableslay5pcwateronrmin[5] = ssdcableslay5pconrmax[4];
   ssdcableslay5pconwaterrmax[5] = ssdcableslay5pcwateronrmin[4]
-								+ fgkSSDCablesLay5RightSideWaterHeight;
+								+ kSSDCablesLay5RightSideWaterHeight;
   ssdcableslay5pconwaterzsection[4] = ssdcableslay5pconzsection[4];
   ssdcableslay5pconwaterzsection[5] = ssdcableslay5pconzsection[5];
   for(Int_t i=0; i<2;i++) ssdcableslay5pconwatershape[2]->DefineSection(i,ssdcableslay5pconwaterzsection[i+4],
@@ -7622,9 +7662,10 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   /////////////////////////
   // SSD Layer 6 Cables
   /////////////////////////
-  Double_t ssdcableslay6rigthsideradiusmin = fgkEndCapSupportMiddleRadius[1]+fgkSSDCablesLay6TubeRadiusMin;  
-  Double_t ssdcablelay6rightsidelength = 2.*ssdcablelay5rightsidelength;
-  Double_t ssdcableslay6rightsideradiusmax = ssdcableslay6rigthsideradiusmin+fgkSSDCablesLay6RightSideHeight; 
+  Double_t ssdcableslay6rigthsideradiusmin = fgkEndCapSupportMiddleRadius[1]+kSSDCablesLay6TubeRadiusMin;  
+  Double_t ssdcablelay6rightsidelength = 2.; // cm  was 2.*ssdcablelay5rightsidelength;
+  Double_t ssdcableslay6rightsideradiusmax = ssdcableslay6rigthsideradiusmin+kSSDCablesLay6RingArea/ssdcablelay6rightsidelength;
+  // Printf(Form("Lay 6 cables, length %g, radius %g, thickness %g", ssdcablelay6rightsidelength, ssdcableslay6rigthsideradiusmin, kSSDCablesLay6RingArea/ssdcablelay6rightsidelength));
   TGeoTube* ssdcablelay6rightubeshape = new TGeoTube(ssdcableslay6rigthsideradiusmin,
 												ssdcableslay6rightsideradiusmax,
 												0.5*ssdcablelay6rightsidelength); 
@@ -7642,10 +7683,15 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 												    - fgkEndCapSupportCenterLay6ITSPosition);
   ssdcablesmother->AddNode(ssdcablelay6righttube,1,ssdcablelay6rightrans);
   ssdcablesmother->AddNode(ssdcablelay6righttube,2,ssdcablesLay6RightTubeToLeftrans);
+  // Printf(Form("Cables; ring layer 6, volume: %g",ssdcablelay6rightubeshape->Capacity()));
+  totvol += ssdcablelay6rightubeshape->Capacity();
   ////////////////////////////////////
   //cablescapacity[8] = 2.*ssdcablelay6rightubeshape->Capacity();
   ////////////////////////////////////
-  TGeoPcon* ssdcableslay6pconshape = new TGeoPcon(90.0-fgkSSDCableAngle-0.5*ssdcableangle,
+  // MvL: PCon is part of connection to patch panels;
+  // removed since current volume is too thick; now absorbed in rings+connections
+  /*
+  TGeoPcon* ssdcableslay6pconshape = new TGeoPcon(90.0-kSSDCableAngle-0.5*ssdcableangle,
 										   ssdcableangle,2);   
   TGeoVolume* ssdcableslay6pcon;
   Double_t ssdcableslay6pconrmin[2];
@@ -7661,6 +7707,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   ssdcableslay6pconzsection[1] = ssdcableslay5pconwaterzsection[5];
   for(Int_t i=0; i<2;i++) ssdcableslay6pconshape->DefineSection(i,ssdcableslay6pconzsection[i],
 						  ssdcableslay6pconrmin[i],ssdcableslay6pconrmax[i]); 
+  
   ssdcableslay6pcon = new TGeoVolume("SSDCableLay6RightSidePCon",
 							   ssdcableslay6pconshape,fSSDCopper);
   ssdcableslay6pcon->SetLineColor(9);
@@ -7668,6 +7715,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
    ssdcablesmother->AddNode(ssdcableslay6pcon,i+1,ssdcableslay5pconrot[i]);
    ssdcablesmother->AddNode(ssdcableslay6pcon,i+5,ssdcablesLay5RightPConToLeftMatrix[i]);
   }
+  */
   ////////////////////////////////////
   //cablescapacity[9] = 8.*ssdcableslay6pconshape->Capacity();
   /////////////////////////
@@ -7675,7 +7723,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   /////////////////////////
   TGeoTube* ssdcablelay6righwatertubeshape = new TGeoTube(ssdcableslay6rightsideradiusmax,
 														  ssdcableslay6rightsideradiusmax
-										   +			  fgkSSDCablesLay5RightSideWaterHeight,
+										   +			  kSSDCablesLay5RightSideWaterHeight,
 														  0.5*ssdcablelay6rightsidelength); 
   TGeoVolume* ssdcablelay6rightwatertube = new TGeoVolume("SSDCableLay6RightSideWaterTube",
 													 ssdcablelay6righwatertubeshape,
@@ -7683,7 +7731,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   ssdcablelay6rightwatertube->SetLineColor(7);
   ssdcablesmother->AddNode(ssdcablelay6rightwatertube,1,ssdcablelay6rightrans);
   ssdcablesmother->AddNode(ssdcablelay6rightwatertube,2,ssdcablesLay6RightTubeToLeftrans);
-  TGeoPcon* ssdcableslay6waterpconshape = new TGeoPcon(90.0-fgkSSDCableAngle-0.5*ssdcableangle,
+  TGeoPcon* ssdcableslay6waterpconshape = new TGeoPcon(90.0-kSSDCableAngle-0.5*ssdcableangle,
 										   ssdcableangle,2);   
   TGeoVolume* ssdcableslay6waterpcon;
   Double_t ssdcableslay6waterpconrmin[2];
@@ -7691,7 +7739,7 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   Double_t ssdcableslay6waterpconzsection[2];
   ssdcableslay6waterpconrmin[0] = ssdcableslay6rightsideradiusmax;
   ssdcableslay6waterpconrmax[0] = ssdcableslay6rightsideradiusmax
-							    + fgkSSDCablesLay5RightSideWaterHeight;
+							    + kSSDCablesLay5RightSideWaterHeight;
   ssdcableslay6waterpconrmin[1] = ssdcableslay6waterpconrmin[0];
   ssdcableslay6waterpconrmax[1] = ssdcableslay6waterpconrmax[0];
   ssdcableslay6waterpconzsection[0] = fgkEndCapSupportCenterLay6ITSPosition
@@ -7721,20 +7769,21 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   Double_t ssdcablepatchpanel3BB26radiusmin[2];
   Double_t ssdcablepatchpanel3BB26radiusmax[2];
   Double_t ssdcablepatchpanel3RB26zsection[2];
-  ssdcablepatchpanel3BB26radiusmin[0] = ssdcableslay5pconrmin[3]-0.5*fgkSSDPatchPanelHeight+2.8+0.003;//Avoid small overlap with SPDshieldring;
+  ssdcablepatchpanel3BB26radiusmin[0] = ssdcableslay5pconrmin[3]-0.5*kSSDPatchPanelHeight;// +2.8+0.003;//Avoid small overlap with SPDshieldring;
   ssdcablepatchpanel3BB26radiusmax[0] = ssdcablepatchpanel3BB26radiusmin[0]
-									  + fgkSSDCablesLay5RightSideHeight
-									  + fgkSSDCablesLay6RightSideHeight+0.5*fgkSSDPatchPanelHeight;
-  ssdcablepatchpanel3BB26radiusmin[1] = fgkSSDPatchPanel2RB26Radius;
+                                        + kSSDCablesHeight;
+  ssdcablepatchpanel3BB26radiusmin[1] = kSSDPatchPanel2RB26Radius;
   ssdcablepatchpanel3BB26radiusmax[1] = ssdcablepatchpanel3BB26radiusmin[1]
-									  + 0.*fgkSSDCablesLay5RightSideHeight
-									  + 0.*fgkSSDCablesLay6RightSideHeight+0.5*fgkSSDPatchPanelHeight;
+					+ kSSDCablesHeight;
   ssdcablepatchpanel3RB26zsection[0] = 0.5*fgkSSDCentralSupportLength
-										 + fgkSSDCentralAL3SupportLength
+					+ fgkSSDCentralAL3SupportLength
 										 + fgkSSDPConeZLength[0];
-  ssdcablepatchpanel3RB26zsection[1] = fgkSSDPatchPanel2RB26ITSDistance;  
+  ssdcablepatchpanel3RB26zsection[1] = kSSDPatchPanel2RB26ITSDistance;  
+  // Printf(Form("RB26 cable length %g",ssdcablepatchpanel3RB26zsection[1]-ssdcablepatchpanel3RB26zsection[0]));
+  // Printf(Form("Angular range %g",ssdcableangle));
+
   TGeoPcon* ssdcablepatchpanel3RB26pconshape = 
-								new TGeoPcon(90.0-fgkSSDCablesPatchPanel2RB26Angle[0]
+								new TGeoPcon(90.0-kSSDCablesPatchPanel2RB26Angle[0]
 												- 0.5*ssdcableangle,ssdcableangle,2);   
   for(Int_t i=0; i<2;i++) ssdcablepatchpanel3RB26pconshape->DefineSection(i,ssdcablepatchpanel3RB26zsection[i],
 						  ssdcablepatchpanel3BB26radiusmin[i],ssdcablepatchpanel3BB26radiusmax[i]); 
@@ -7744,12 +7793,13 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   TGeoRotation* ssdcablepatchpanel3B26rot[4];
   for(Int_t i=0; i<4; i++) ssdcablepatchpanel3B26rot[i] = new TGeoRotation();
   ssdcablepatchpanel3B26rot[0]->SetAngles(0.0,0.0,0.0);
-  ssdcablepatchpanel3B26rot[1]->SetAngles(fgkSSDCablesPatchPanel2RB26Angle[0]
-								  +			  fgkSSDCablesPatchPanel2RB26Angle[1]+6.0,0.0,0.0);
+  ssdcablepatchpanel3B26rot[1]->SetAngles(kSSDCablesPatchPanel2RB26Angle[0]
+					  + kSSDCablesPatchPanel2RB26Angle[1]+6.0,0.0,0.0);
   ssdcablepatchpanel3B26rot[2]->SetAngles(180.0,0.0,0.0);
-  ssdcablepatchpanel3B26rot[3]->SetAngles(180.0+fgkSSDCablesPatchPanel2RB26Angle[0]
-								  +			  fgkSSDCablesPatchPanel2RB26Angle[1]+6.0,0.0,0.0);
+  ssdcablepatchpanel3B26rot[3]->SetAngles(180.0 + kSSDCablesPatchPanel2RB26Angle[0]
+						+ kSSDCablesPatchPanel2RB26Angle[1]+6.0,0.0,0.0);
   for(Int_t i=0; i<4; i++) ssdcablesmother->AddNode(ssdcablepatchpanel3RB26pcon,i+1,ssdcablepatchpanel3B26rot[i]);
+  // Printf(Form("Cable to patch panels RB26 volume: %g (x4)",ssdcablepatchpanel3RB26pcon->Capacity()));
   ////////////////////////////////////
   //cablescapacity[10] = 4.*ssdcablepatchpanel3RB26pconshape->Capacity();
   ////////////////////////////////////////
@@ -7762,29 +7812,28 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
 									  + fgkSSDCentralAL3SupportLength
 									  + (4.0/5.0)*fgkSSDPConeZLength[0];
   ssdcableitsring3BB26pconzsection[1] = ssdcablepatchpanel3RB26zsection[0];
-  ssdcableitsring3BB26pconrmin[0] = fgkSSDPConeUpRadius-0.5*fgkSSDPatchPanelHeight;
-  ssdcableitsring3BB26pconrmax[0] = ssdcableitsring3BB26pconrmin[0]
-								  + fgkSSDCablesLay5RightSideHeight
-								  + fgkSSDCablesLay6RightSideHeight+0.5*fgkSSDPatchPanelHeight;
+  ssdcableitsring3BB26pconrmin[0] = fgkSSDPConeUpRadius-0.5*kSSDPatchPanelHeight;
+  ssdcableitsring3BB26pconrmax[0] = ssdcableitsring3BB26pconrmin[0] + 2.5*kSSDCablesHeight; // widths of cable bunch is about half of patch panels; need factor 2.5
+
   ssdcableitsring3BB26pconrmin[1] = ssdcablepatchpanel3BB26radiusmin[0];
   ssdcableitsring3BB26pconrmax[1] = ssdcablepatchpanel3BB26radiusmax[0];
   TGeoPcon* ssdcableitsring3BB26pconshape[4];
-  ssdcableitsring3BB26pconshape[0] = new TGeoPcon(90.0-fgkSSDCablesPatchPanel2RB26Angle[0]
+  ssdcableitsring3BB26pconshape[0] = new TGeoPcon(90.0 - kSSDCablesPatchPanel2RB26Angle[0]
 								   -              0.5*ssdcableangle,ssdcableangle
-								   +				(fgkSSDCablesPatchPanel2RB26Angle[0]
-								   -				 fgkSSDCableAngle),2);
-  ssdcableitsring3BB26pconshape[1] = new TGeoPcon(90.0+fgkSSDCablesPatchPanel2RB26Angle[1]
+								   +				(kSSDCablesPatchPanel2RB26Angle[0]
+								   -				 kSSDCableAngle),2);
+  ssdcableitsring3BB26pconshape[1] = new TGeoPcon(90.0 + kSSDCablesPatchPanel2RB26Angle[1]
 								   -              0.5*ssdcableangle,ssdcableangle
-								   +			  3.0*fgkSSDCableAngle
-								   -			  fgkSSDCablesPatchPanel2RB26Angle[1],2);
-  ssdcableitsring3BB26pconshape[2] = new TGeoPcon(270-fgkSSDCablesPatchPanel2RB26Angle[0]
+								   +			  3.0*kSSDCableAngle
+								   -			  kSSDCablesPatchPanel2RB26Angle[1],2);
+  ssdcableitsring3BB26pconshape[2] = new TGeoPcon(270-kSSDCablesPatchPanel2RB26Angle[0]
 								   -              0.5*ssdcableangle,ssdcableangle
-								   -			  fgkSSDCableAngle
-								   +			  fgkSSDCablesPatchPanel2RB26Angle[0],2);
-  ssdcableitsring3BB26pconshape[3] = new TGeoPcon(270.0+fgkSSDCablesPatchPanel2RB26Angle[1]
+								   -			  kSSDCableAngle
+								   +			  kSSDCablesPatchPanel2RB26Angle[0],2);
+  ssdcableitsring3BB26pconshape[3] = new TGeoPcon(270.0+kSSDCablesPatchPanel2RB26Angle[1]
 								   -              0.5*ssdcableangle,ssdcableangle
-								   +			  3.0*fgkSSDCableAngle
-								   -			  fgkSSDCablesPatchPanel2RB26Angle[1],2);
+								   +			  3.0*kSSDCableAngle
+								   -			  kSSDCablesPatchPanel2RB26Angle[1],2);
   for(Int_t i=0;i<4;i++)
 	for(Int_t j=0; j<2; j++) ssdcableitsring3BB26pconshape[i]->DefineSection(j,ssdcableitsring3BB26pconzsection[j],
 							 ssdcableitsring3BB26pconrmin[j],
@@ -7801,7 +7850,9 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   for(Int_t i=0;i<4;i++){
 	ssdcableitsring3BB26pcon[i]->SetLineColor(9);
 	ssdcablesmother->AddNode(ssdcableitsring3BB26pcon[i],1);
+	//Printf(Form("Cable to patch panels RB26 volume part 2: %g (%d)",ssdcableitsring3BB26pcon[i]->Capacity(),i));
 }
+
   ////////////////////////////////////
   //cablescapacity[11] = ssdcableitsring3BB26pconshape[0]->Capacity()
   //				 + ssdcableitsring3BB26pconshape[1]->Capacity() 
@@ -7815,17 +7866,16 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   Double_t ssdcablepatchpanel3RB24zsection[2];
   ssdcablepatchpanel3BB24radiusmin[0] = ssdcablepatchpanel3BB26radiusmin[0];
   ssdcablepatchpanel3BB24radiusmax[0] = ssdcablepatchpanel3BB26radiusmax[0];
-  ssdcablepatchpanel3BB24radiusmin[1] = fgkSSDPatchPanel2RB24Radius;
+  ssdcablepatchpanel3BB24radiusmin[1] = kSSDPatchPanel2RB24Radius;
   ssdcablepatchpanel3BB24radiusmax[1] = ssdcablepatchpanel3BB24radiusmin[1]
-									  + 0.*fgkSSDCablesLay5RightSideHeight
-									  + 0.*fgkSSDCablesLay6RightSideHeight
-									  + 0.5*fgkSSDPatchPanelHeight;
+                                        + kSSDCablesHeight;
   ssdcablepatchpanel3RB24zsection[0] = -0.5*fgkSSDCentralSupportLength
 									 -  fgkSSDCentralAL3SupportLength
 									 -  fgkSSDPConeZLength[0];
-  ssdcablepatchpanel3RB24zsection[1] = -fgkSSDPatchPanel2RB24ITSDistance;  
+  ssdcablepatchpanel3RB24zsection[1] = -kSSDPatchPanel2RB24ITSDistance;  
+  //Printf(Form("RB24 cable length %g",ssdcablepatchpanel3RB24zsection[1]-ssdcablepatchpanel3RB24zsection[0]));
   TGeoPcon* ssdcablepatchpanel3RB24pconshape = 
-								new TGeoPcon(90.0-fgkSSDCablesPatchPanel2RB24Angle[1]
+								new TGeoPcon(90.0-kSSDCablesPatchPanel2RB24Angle[1]
 												- 0.5*ssdcableangle,ssdcableangle,2);   
   for(Int_t i=0; i<2;i++) ssdcablepatchpanel3RB24pconshape->DefineSection(i,ssdcablepatchpanel3RB24zsection[i],
 						  ssdcablepatchpanel3BB24radiusmin[i],ssdcablepatchpanel3BB24radiusmax[i]); 
@@ -7836,12 +7886,13 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   TGeoRotation* ssdcablepatchpanel3B24rot[4];
   for(Int_t i=0; i<4; i++) ssdcablepatchpanel3B24rot[i] = new TGeoRotation();
   ssdcablepatchpanel3B24rot[0]->SetAngles(-6.0,0.0,0.0);
-  ssdcablepatchpanel3B24rot[1]->SetAngles(fgkSSDCablesPatchPanel2RB24Angle[0]
-								  +			  fgkSSDCablesPatchPanel2RB24Angle[1],0.0,0.0);
+  ssdcablepatchpanel3B24rot[1]->SetAngles(kSSDCablesPatchPanel2RB24Angle[0]
+					  + kSSDCablesPatchPanel2RB24Angle[1],0.0,0.0);
   ssdcablepatchpanel3B24rot[2]->SetAngles(174.0,0.0,0.0);
-  ssdcablepatchpanel3B24rot[3]->SetAngles(180.0+fgkSSDCablesPatchPanel2RB24Angle[0]
-								  +			  fgkSSDCablesPatchPanel2RB24Angle[1],0.0,0.0);
+  ssdcablepatchpanel3B24rot[3]->SetAngles(180.0+kSSDCablesPatchPanel2RB24Angle[0]
+					  + kSSDCablesPatchPanel2RB24Angle[1],0.0,0.0);
   for(Int_t i=0; i<4; i++) ssdcablesmother->AddNode(ssdcablepatchpanel3RB24pcon,i+1,ssdcablepatchpanel3B24rot[i]);
+  //Printf(Form("Cable to patch panels RB24 volume: %g (x4)",ssdcablepatchpanel3RB24pcon->Capacity()));
   ////////////////////////////////////
   //cablescapacity[12] = 4.*ssdcablepatchpanel3RB24pconshape->Capacity();
   ////////////////////////////////////////
@@ -7852,25 +7903,24 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   Double_t ssdcableitsring3BB24pconrmax[2];
   ssdcableitsring3BB24pconzsection[0] = -ssdcableitsring3BB26pconzsection[0];
   ssdcableitsring3BB24pconzsection[1] = ssdcablepatchpanel3RB24zsection[0];
-  ssdcableitsring3BB24pconrmin[0] = fgkSSDPConeUpRadius-0.5*fgkSSDPatchPanelHeight;
-  ssdcableitsring3BB24pconrmax[0] = ssdcableitsring3BB24pconrmin[0]
-								  + fgkSSDCablesLay5RightSideHeight
-								  + fgkSSDCablesLay6RightSideHeight+0.5*fgkSSDPatchPanelHeight;
+  ssdcableitsring3BB24pconrmin[0] = fgkSSDPConeUpRadius-0.5*kSSDPatchPanelHeight;
+  ssdcableitsring3BB24pconrmax[0] = ssdcableitsring3BB24pconrmin[0] + 2.5*kSSDCablesHeight;  // Cable bunch width smaller; make it thicker
+
   ssdcableitsring3BB24pconrmin[1] = ssdcablepatchpanel3BB24radiusmin[0];
   ssdcableitsring3BB24pconrmax[1] = ssdcablepatchpanel3BB24radiusmax[0];
   TGeoPcon* ssdcableitsring3BB24pconshape[4];
-  ssdcableitsring3BB24pconshape[0] = new TGeoPcon(fgkSSDCableAngle-0.5*ssdcableangle,ssdcableangle
-								   +				(90.0-fgkSSDCablesPatchPanel2RB24Angle[1]
-								   -				 fgkSSDCableAngle),2);
-  ssdcableitsring3BB24pconshape[1] = new TGeoPcon(90.0+fgkSSDCableAngle-0.5*ssdcableangle,
-								     ssdcableangle-fgkSSDCableAngle
-								   +			  fgkSSDCablesPatchPanel2RB24Angle[0],2);
-  ssdcableitsring3BB24pconshape[2] = new TGeoPcon(180.0+fgkSSDCableAngle-0.5*ssdcableangle,ssdcableangle
-								   -			  fgkSSDCableAngle
-								   +			  90.0-fgkSSDCablesPatchPanel2RB24Angle[1],2);
-  ssdcableitsring3BB24pconshape[3] = new TGeoPcon(270.0+fgkSSDCableAngle-0.5*ssdcableangle,
-												  ssdcableangle-fgkSSDCableAngle
-								   +			  fgkSSDCablesPatchPanel2RB24Angle[0],2);
+  ssdcableitsring3BB24pconshape[0] = new TGeoPcon(kSSDCableAngle-0.5*ssdcableangle,ssdcableangle
+						               + (90.0-kSSDCablesPatchPanel2RB24Angle[1]
+								   - kSSDCableAngle),2);
+  ssdcableitsring3BB24pconshape[1] = new TGeoPcon(90.0+kSSDCableAngle-0.5*ssdcableangle,
+								     ssdcableangle-kSSDCableAngle
+								   + kSSDCablesPatchPanel2RB24Angle[0],2);
+  ssdcableitsring3BB24pconshape[2] = new TGeoPcon(180.0+kSSDCableAngle-0.5*ssdcableangle,ssdcableangle
+								   - kSSDCableAngle
+								   + 90.0 - kSSDCablesPatchPanel2RB24Angle[1],2);
+  ssdcableitsring3BB24pconshape[3] = new TGeoPcon(270.0+kSSDCableAngle-0.5*ssdcableangle,
+								   ssdcableangle-kSSDCableAngle
+								   + kSSDCablesPatchPanel2RB24Angle[0],2);
   for(Int_t i=0;i<4;i++)
 	for(Int_t j=0; j<2; j++) ssdcableitsring3BB24pconshape[i]->DefineSection(j,ssdcableitsring3BB24pconzsection[j],
 							 ssdcableitsring3BB24pconrmin[j],
@@ -7887,37 +7937,28 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
   for(Int_t i=0;i<4;i++){
 	ssdcableitsring3BB24pcon[i]->SetLineColor(9);
 	ssdcablesmother->AddNode(ssdcableitsring3BB24pcon[i],1);
+	// Printf(Form("Cable to patch panels RB24 (part 2) volume: %g (%d)",ssdcableitsring3BB24pcon[i]->Capacity(),i));
 }
+
   ////////////////////////////////////
   //cablescapacity[13] = ssdcableitsring3BB24pconshape[0]->Capacity()
   //					 + ssdcableitsring3BB24pconshape[1]->Capacity()
   //					 + ssdcableitsring3BB24pconshape[2]->Capacity()
   //					 + ssdcableitsring3BB24pconshape[3]->Capacity();
-  ////////////////////////////////////
-  // Volumes for Material Budget 
-  ////////////////////////////////////
-  TGeoTube* ssdcablelay6materialbudgetubeshape = new TGeoTube(ssdcableslay6rightsideradiusmax
-											   +     fgkSSDCablesLay5RightSideWaterHeight,
-													 ssdcableslay6rightsideradiusmax
-											   +     fgkSSDCablesLay5RightSideWaterHeight
-											   +	 fgkSSDCableMaterialBudgetHeight,0.5*ssdcablelay6rightsidelength); 
-  TGeoVolume* ssdcablelay6materialbudgetube = new TGeoVolume("SSDCableLay6MaterialBudgetTube",
-													 ssdcablelay6materialbudgetubeshape,
-													 fSSDCopper);
-  ssdcablelay6materialbudgetube->SetLineColor(9);
-  ssdcablesmother->AddNode(ssdcablelay6materialbudgetube,1,ssdcablelay6rightrans);
-  ssdcablesmother->AddNode(ssdcablelay6materialbudgetube,2,ssdcablesLay6RightTubeToLeftrans);
 
+  // MvL: Pcon are connection to patch panels (part of)
+  // Removed; do not contribute much; put into ring structure
+  /*
   TGeoPcon* ssdcablelay6materialbudgetpconshape = 
-					new TGeoPcon(90.0-fgkSSDCableAngle-0.5*ssdcableangle,ssdcableangle,2); 
+					new TGeoPcon(90.0-kSSDCableAngle-0.5*ssdcableangle,ssdcableangle,2); 
   TGeoVolume* ssdcablelay6materialbudgetpcon;
   Double_t ssdcablelay6materialbudgetpconrmin[2];
   Double_t ssdcablelay6materialbudgetpconrmax[2];
   Double_t ssdcablelay6materialbudgetpconzsection[2];
   ssdcablelay6materialbudgetpconrmin[0] = ssdcableslay6rightsideradiusmax
-										+ fgkSSDCablesLay5RightSideWaterHeight;
+										+ kSSDCablesLay5RightSideWaterHeight;
   ssdcablelay6materialbudgetpconrmax[0] = ssdcablelay6materialbudgetpconrmin[0]
-										+ fgkSSDCableMaterialBudgetHeight;
+										+ kSSDCableMaterialBudgetHeight;
   ssdcablelay6materialbudgetpconrmin[1] = ssdcablelay6materialbudgetpconrmin[0];
   ssdcablelay6materialbudgetpconrmax[1] = ssdcablelay6materialbudgetpconrmax[0];
   ssdcablelay6materialbudgetpconzsection[0] = fgkEndCapSupportCenterLay6ITSPosition
@@ -7935,12 +7976,14 @@ void AliITSv11GeometrySSD::SetLadderSupport(Int_t nedges){
    ssdcablesmother->AddNode(ssdcablelay6materialbudgetpcon,i+1,ssdcableslay5pconrot[i]);
    ssdcablesmother->AddNode(ssdcablelay6materialbudgetpcon,i+5,ssdcablesLay5RightPConToLeftMatrix[i]);
   }
+  */
 ////////////////////////////////////
  /* cablescapacity[14] = 2.*ssdcablelay6materialbudgetubeshape->Capacity();
   cablescapacity[15] = 2.*ssdcablelay6materialbudgetpconshape->Capacity();
   Double_t ssdcablesvolume = 0.0;
   for(Int_t i=0;i<16;i++) ssdcablesvolume+=cablescapacity[i];
   std::cout << ssdcablesvolume << std::endl;*/
+  // Printf(Form("Total volume (one side; without conn to patch panel): %g",totvol));
   return ssdcablesmother;
  }
  ////////////////////////////////////////////////////////////////////////////////
@@ -8001,8 +8044,8 @@ TGeoXtru* AliITSv11GeometrySSD::GetArcShape(Double_t phi, Double_t rmin,
 	Double_t angle = 0.;
     for(Int_t i=0; i<nedges+1; i++){ 
 		angle = 90.+0.5*phi-i*(phi/nedges);
-		vertexposition[0][i] = new TVector3(rmin*CosD(angle),rmin*SinD(angle));
-		vertexposition[1][i] = new TVector3(rmax*CosD(angle),rmax*SinD(angle));
+		vertexposition[0][i] = new TVector3(rmin*CosD(angle),rmin*SinD(angle),0);
+		vertexposition[1][i] = new TVector3(rmax*CosD(angle),rmax*SinD(angle),0);
 	}
 	Double_t *xvertexpoints = new Double_t[kvertexnumber];
 	Double_t *yvertexpoints = new Double_t[kvertexnumber];

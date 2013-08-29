@@ -35,6 +35,7 @@
 #include "AliStack.h"
 #include "AliMCEvent.h"
 #include "AliMCEventHandler.h"
+#include "AliESDInputHandler.h"
 #include "AliAODEvent.h"
 #include "AliAODHeader.h"
 #include "AliAODMCHeader.h"
@@ -46,6 +47,7 @@
 #include "AliGenHijingEventHeader.h"
 #include "AliGenPythiaEventHeader.h"
 #include "AliGenCocktailEventHeader.h"
+#include "AliGenEventHeaderTunedPbPb.h"
 
 #include "AliLog.h"
 
@@ -70,7 +72,8 @@ Bool_t AliAnalysisTaskMCParticleFilter::Notify()
   // Implemented Notify() to read the cross sections
   // from pyxsec.root
   // 
-  TTree *tree = AliAnalysisManager::GetAnalysisManager()->GetTree();
+  AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
+  TTree *tree = mgr->GetTree();
   Double_t xsection = 0;
   UInt_t   ntrials  = 0;
   if(tree){
@@ -81,7 +84,11 @@ Bool_t AliAnalysisTaskMCParticleFilter::Notify()
     }
 
     TString fileName(curfile->GetName());
-    if(fileName.Contains("AliESDs.root")){
+    TString datafile = mgr->GetInputEventHandler()->GetInputFileName();
+    if (fileName.Contains(datafile)) {
+        fileName.ReplaceAll(datafile, "pyxsec.root");
+    }
+    else if(fileName.Contains("AliESDs.root")){
         fileName.ReplaceAll("AliESDs.root", "pyxsec.root");
     }
     else if(fileName.Contains("AliAOD.root")){
@@ -271,12 +278,17 @@ void AliAnalysisTaskMCParticleFilter::UserExec(Option_t */*option*/)
   AliGenHijingEventHeader *hiH  = 0;
   AliCollisionGeometry    *colG = 0;
   AliGenDPMjetEventHeader *dpmH = 0;
+  AliGenEventHeaderTunedPbPb *tunedH = 0;
+
   // it can be only one save some casts
   // assuming PYTHIA and HIJING are the most likely ones...
   if(!pyH){
       hiH = dynamic_cast<AliGenHijingEventHeader*>(mcEH);
       if(!hiH){
 	  dpmH = dynamic_cast<AliGenDPMjetEventHeader*>(mcEH);
+	  if(!dpmH){
+	    tunedH = dynamic_cast<AliGenEventHeaderTunedPbPb*>(mcEH);
+	  }
       }
   }
   
@@ -313,8 +325,10 @@ void AliAnalysisTaskMCParticleFilter::UserExec(Option_t */*option*/)
     fAODMcHeader->SetReactionPlaneAngle(colG->ReactionPlaneAngle());
     AliInfo(Form("Found Collision Geometry. Got Reaction Plane %lf\n", colG->ReactionPlaneAngle()));
   }
-
-
+  else if(tunedH) {
+    fAODMcHeader->SetReactionPlaneAngle(tunedH->GetPsi2());
+    fAODMcHeader->SetCrossSection(tunedH->GetCentrality());
+  }
 
 
   Int_t j=0;

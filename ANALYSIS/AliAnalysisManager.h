@@ -94,6 +94,7 @@ enum EAliAnalysisFlags {
 
    // Getters/Setters
    static AliAnalysisManager *GetAnalysisManager() {return fgAnalysisManager;}
+   static Int_t        LoadMacro(const char *filename, Int_t *error = 0, Bool_t check = kFALSE);
    EAliAnalysisExecMode 
                        GetAnalysisType() const    {return fMode;}
    void                GetAnalysisTypeString(TString &type) const;                    
@@ -131,6 +132,7 @@ enum EAliAnalysisFlags {
    static Int_t        GetGlobalInt(const char *key, Bool_t &valid);
    static Double_t     GetGlobalDbl(const char *key, Bool_t &valid);
    TMap               *GetGlobals()               {return fGlobals;}
+   static Bool_t       IsMacroLoaded(const char filename);
    static Bool_t       IsPipe(std::ostream &out);
    Bool_t              IsProofMode() const        {return (fMode==kProofAnalysis)?kTRUE:kFALSE;}
    Bool_t              IsRemote() const           {return fIsRemote;}
@@ -175,6 +177,7 @@ enum EAliAnalysisFlags {
    // Including tasks and getting them
    void                 AddTask(AliAnalysisTask *task);
    AliAnalysisTask     *GetTask(const char *name) const;
+   Int_t                GetTaskIndex(const AliAnalysisTask *task) const;
    
    // Connecting data containers to task inputs/outputs
    Bool_t               ConnectInput(AliAnalysisTask *task, Int_t islot,
@@ -225,6 +228,7 @@ enum EAliAnalysisFlags {
 protected:
    void                 CreateReadCache();
    void                 ImportWrappers(TList *source);
+   void                 InputFileFromTree(TTree * const tree, TString &fname);
    void                 SetEventLoop(Bool_t flag=kTRUE) {TObject::SetBit(kEventLoop,flag);}
    void                 DoLoadBranch(const char *name);
 
@@ -278,6 +282,7 @@ private:
    Double_t                fCPUTime;             //! Cumulated time in Exec
    Double_t                fInitTime;            //! Cumulated time in initialization
    static TString          fgCommonFileName;     //! Common output file name (not streamed)
+   static TString          fgMacroNames;         //! Loaded macro names
    static AliAnalysisManager *fgAnalysisManager; //! static pointer to object instance
    ClassDef(AliAnalysisManager,18)  // Analysis manager class
 };   

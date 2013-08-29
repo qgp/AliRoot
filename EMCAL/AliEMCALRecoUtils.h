@@ -49,7 +49,7 @@ public:
   void     Print(const Option_t*) const;
 
   //enums
-  enum     NonlinearityFunctions{kPi0MC=0,kPi0GammaGamma=1,kPi0GammaConversion=2,kNoCorrection=3,kBeamTest=4,kBeamTestCorrected=5,kPi0MCv2=6,kPi0MCv3=7};
+  enum     NonlinearityFunctions{kPi0MC=0,kPi0GammaGamma=1,kPi0GammaConversion=2,kNoCorrection=3,kBeamTest=4,kBeamTestCorrected=5,kPi0MCv2=6,kPi0MCv3=7,kBeamTestCorrectedv2=8};
   enum     PositionAlgorithms{kUnchanged=-1,kPosTowerIndex=0, kPosTowerGlobal=1};
   enum     ParticleType{kPhoton=0, kElectron=1,kHadron =2, kUnknown=-1};
   enum     { kNCuts = 12 }; //track matching Marcel
@@ -108,12 +108,12 @@ public:
 
   Float_t  CorrectClusterEnergyLinearity(AliVCluster* clu) ;
   
-  Float_t  GetNonLinearityParam(const Int_t i)     const { if(i < 7 ){ return fNonLinearityParams[i] ; }
-                                                          else      { AliInfo(Form("Index %d larger than 7, do nothing\n",i)) ; 
+  Float_t  GetNonLinearityParam(const Int_t i)     const { if(i < 7 && i >=0 ){ return fNonLinearityParams[i]  ; }
+                                                   else  { AliInfo(Form("Index %d larger than 6 or negative, do nothing\n",i)) ;
                                                                        return 0.                     ; } }
   void     SetNonLinearityParam(const Int_t i, const Float_t param) {
-                                                          if(i < 7 ){fNonLinearityParams[i] = param ; }
-                                                          else { AliInfo(Form("Index %d larger than 7, do nothing\n",i)) ; } }
+                                                           if(i < 7 && i >=0 ){ fNonLinearityParams[i] = param ; }
+                                                           else { AliInfo(Form("Index %d larger than 6 or negative, do nothing\n",i)) ; } }
   void     InitNonLinearityParam();
 
   Int_t    GetNonLinearityFunction() const               { return fNonLinearityFunction    ; }
@@ -266,7 +266,7 @@ public:
   
   static Bool_t ExtrapolateTrackToEMCalSurface(AliExternalTrackParam *trkParam, 
                                                const Double_t emcalR, const Double_t mass, const Double_t step, 
-                                               Float_t &eta, Float_t &phi);
+                                               Float_t &eta, Float_t &phi, Float_t &pt);
   static Bool_t ExtrapolateTrackToPosition(AliExternalTrackParam *trkParam, const Float_t *clsPos, 
                                            const Double_t mass, const Double_t step, 
                                            Float_t &tmpEta, Float_t &tmpPhi);
@@ -304,6 +304,7 @@ public:
   void     SetCutPhi(Float_t cutPhi)                  { fCutPhi = cutPhi              ; }
   void     SetClusterWindow(Double_t window)          { fClusterWindow = window       ; }
   void     SetCutZ(Float_t cutZ)                      { printf("Obsolete fucntion of cutZ=%1.1f\n",cutZ) ; } //Obsolete
+  void     SetEMCalSurfaceDistance(Double_t d)        { fEMCalSurfaceDistance = d     ; }
 
   Double_t GetMass()                            const { return fMass                  ; }
   Double_t GetStep()                            const { return fStepCluster           ; }
@@ -349,7 +350,15 @@ public:
                                                        InitTrackCuts()                 ; }
   Int_t    GetTrackCutsType() const                  { return fTrackCutsType; }
 
-  // track quality cut setters  
+  // Define AOD track type for matching
+  void     SwitchOffAODHybridTracksMatch()           { fAODHybridTracks         = kFALSE ; }
+  void     SwitchOffAODTPCOnlyTracksMatch()          { fAODTPCOnlyTracks        = kFALSE ; }
+  void     SwitchOnAODHybridTracksMatch()            { fAODHybridTracks         = kTRUE  ; SwitchOffAODTPCOnlyTracksMatch() ; }
+  void     SwitchOnAODTPCOnlyTracksMatch()           { fAODTPCOnlyTracks        = kTRUE  ; SwitchOffAODHybridTracksMatch()  ; }
+  void     SetAODTrackFilterMask( UInt_t mask)       { fAODFilterMask           = mask   ;
+                                                       SwitchOffAODTPCOnlyTracksMatch()  ; SwitchOffAODHybridTracksMatch()  ; }
+  
+  // track quality cut setters
   void     SetMinTrackPt(Double_t pt=0)              { fCutMinTrackPt           = pt   ; }
   void     SetMinNClustersTPC(Int_t min=-1)          { fCutMinNClusterTPC       = min  ; }
   void     SetMinNClustersITS(Int_t min=-1)          { fCutMinNClusterITS       = min  ; }
@@ -363,6 +372,7 @@ public:
   void     SetDCAToVertex2D(Bool_t b=kFALSE)         { fCutDCAToVertex2D        = b    ; }
   void     SetRequireITSStandAlone(Bool_t b=kFALSE)    {fCutRequireITSStandAlone = b;} //Marcel
   void     SetRequireITSPureStandAlone(Bool_t b=kFALSE){fCutRequireITSpureSA     = b;}
+  
   // getters								
   Double_t GetMinTrackPt()                     const { return fCutMinTrackPt           ; }
   Int_t    GetMinNClusterTPC()                 const { return fCutMinNClusterTPC       ; }
@@ -428,6 +438,9 @@ private:
     
   //Track matching
   UInt_t     fAODFilterMask;             // Filter mask to select AOD tracks. Refer to $ALICE_ROOT/ANALYSIS/macros/AddTaskESDFilter.C
+  Bool_t     fAODHybridTracks;           // Match with hybrid
+  Bool_t     fAODTPCOnlyTracks;          // Match with TPC only tracks
+  
   TArrayI  * fMatchedTrackIndex;         // Array that stores indexes of matched tracks      
   TArrayI  * fMatchedClusterIndex;       // Array that stores indexes of matched clusters
   TArrayF  * fResidualEta;               // Array that stores the residual eta
@@ -442,6 +455,7 @@ private:
   Double_t   fStepSurface;               // Length of step to extrapolate tracks to EMCal surface
   Double_t   fStepCluster;               // Length of step to extrapolate tracks to clusters
   Bool_t     fITSTrackSA;                // If track matching is to be done with ITS tracks standing alone	
+  Double_t   fEMCalSurfaceDistance;      // EMCal surface distance (= 430 by default, the last 10 cm are propagated on a cluster-track pair basis)
  
   // Track cuts  
   Int_t      fTrackCutsType;             // Esd track cuts type for matching
@@ -460,7 +474,7 @@ private:
   Bool_t     fCutRequireITSpureSA; 	 // ITS pure standalone tracks
   
   
-  ClassDef(AliEMCALRecoUtils, 18)
+  ClassDef(AliEMCALRecoUtils, 21)
   
 };
 

@@ -151,10 +151,24 @@ public:
 
   void     SwitchOnUpdateCellOnly()                       { fDoUpdateOnly = kTRUE            ;} 
   void     SwitchOffUpdateCellOnly()                      { fDoUpdateOnly = kFALSE           ;}  
-
-  void     SwitchOnTrackMatch()                           { fDoTrackMatch = kTRUE            ;} 
-  void     SwitchOffTrackMatch()                          { fDoTrackMatch = kFALSE           ;}  
  
+  void     SwitchOnTrackMatch()                           { fDoTrackMatch = kTRUE            ;}
+  void     SwitchOffTrackMatch()                          { fDoTrackMatch = kFALSE           ;}
+
+  void     SetPass(const char* p)                         { fFilepass = p; fGetPassFromFileName = kFALSE; }
+  void     UnsetPass()                                    { fFilepass = ""; fGetPassFromFileName = kTRUE; }
+  
+  //MC label methods
+  
+  void     RemapMCLabelForAODs(Int_t &label);
+  void     SwitchOnRemapMCLabelForAODs()                  { fRemapMCLabelForAODs  = kTRUE   ; }
+  void     SwitchOffRemapMCLabelForAODs()                 { fRemapMCLabelForAODs  = kFALSE  ; }
+  
+  void     SetClustersMCLabelFromOriginalClusters() ;  
+  void     SwitchOnUseClusterMCLabelForCell(Int_t opt = 2) { fSetCellMCLabelFromCluster = opt ; }
+  void     SwitchOffUseClusterMCLabelForCell()             { fSetCellMCLabelFromCluster = 0   ; }
+
+  
 private:
 
   AliVEvent* GetEvent();
@@ -186,8 +200,9 @@ private:
   Int_t                  fNonLinearThreshold;     // non linearity threshold value for kBeamTesh non linearity function   
   Bool_t                 fReCalibCluster;         // switch for Recalibrate clusters
   Bool_t                 fUpdateCell;             // flag cell update
-  Bool_t                 fCalibrateEnergy;        // flag cell energy clibration
-  Bool_t                 fCalibrateTime;          // flag cell time clSibration
+  Bool_t                 fCalibrateEnergy;        // flag cell energy calibration
+  Bool_t                 fCalibrateTime;          // flag cell time calibration
+  Bool_t                 fCalibrateTimeParamAvailable; // Check if time calib param are available to set properly time cuts
   Bool_t                 fDoNonLinearity;         // nNon linearity correction flag
   Bool_t                 fBadCellRemove;          // zero bad cells
   Bool_t                 fRejectExoticCells;      // reject exotic cells
@@ -201,7 +216,8 @@ private:
   Bool_t                 fRecalShowerShape;       // switch for recalculation of the shower shape
   TTree                 *fInputTree;              //!input data tree
   TFile                 *fInputFile;              //!input data file 
-  TString                fFilepass;               //!input data pass number
+  Bool_t                 fGetPassFromFileName;    // get fFilepass from file name
+  TString                fFilepass;               // input data pass number
   Double_t               fMass;                   // mass for track matching
   Double_t               fStep;                   // step size during track matching
   Bool_t                 fCutEtaPhiSum;           // swicth to apply residual cut together
@@ -225,9 +241,19 @@ private:
   Float_t                fExoticCellDiffTime;     // if time of candidate to exotic and close cell is too different (in ns), it must be noisy, set amp to 0
   Float_t                fExoticCellMinAmplitude; // check for exotic only if amplitud is larger than this value
 
-  AliEMCALTenderSupply(const AliEMCALTenderSupply&c);
+  // MC labels
+  Int_t                  fOrgClusterCellId[12672]; // Array ID of cluster to wich the cell belongs in unmodified clusters
+ 
+  Int_t                  fSetCellMCLabelFromCluster; // Use cluster MC label as cell label:
+                                                     // 0 - get the MC label stored in cells
+                                                     // 1 - assign to the cell the MC lable of the cluster
+                                                     // 2 - get the original clusters id, add all the MC labels
+  TClonesArray *         fTempClusterArr      ;      //! Temporal clusters array to recover the MC of original cluster if fSetCellMCLabelFromCluster=2
+  Bool_t                 fRemapMCLabelForAODs ;      // Remap AOD cells MC label
+  
+  AliEMCALTenderSupply(            const AliEMCALTenderSupply&c);
   AliEMCALTenderSupply& operator= (const AliEMCALTenderSupply&c);
   
-  ClassDef(AliEMCALTenderSupply, 12); // EMCAL tender task
+  ClassDef(AliEMCALTenderSupply, 16); // EMCAL tender task
 };
 #endif

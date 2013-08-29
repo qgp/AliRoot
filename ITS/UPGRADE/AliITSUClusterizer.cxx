@@ -20,6 +20,7 @@ ClassImp(AliITSUClusterizer)
 //______________________________________________________________________________
 AliITSUClusterizer::AliITSUClusterizer(Int_t initNRow) 
 :  fVolID(-1)
+  ,fAllowDiagonalClusterization(kFALSE)
   ,fSegm(0)
   ,fRecoParam(0)
   ,fInputDigits(0)
@@ -157,17 +158,26 @@ void AliITSUClusterizer::Transform(AliITSUClusterPix *cluster,AliITSUClusterizer
   cand->fLastDigit->fNext=0;
   double x=0,z=0,xmn=1e9,xmx=-1e9,zmn=1e9,zmx=-1e9,px=0,pz=0;
   float  cx,cz;
+  int charge=0;
   for (AliITSUClusterizerClusterDigit *idigit=cand->fFirstDigit;idigit;idigit=idigit->fNext) {
     AliITSdigit* dig = idigit->fDigit;
-    fSegm->DetToLocal(dig->GetCoord2(),dig->GetCoord1(),cx,cz);
+    fSegm->DetToLocal(dig->GetCoord2(),dig->GetCoord1(),cx,cz); // center of pixel
+    //
+    // account for possible diod shift
+    double ddx,ddz, dx=fSegm->Dpx(dig->GetCoord2()), dz=fSegm->Dpz(dig->GetCoord1());
+    fSegm->GetDiodShift(dig->GetCoord2(),dig->GetCoord1(),ddx,ddz);
+    //
+    charge += dig->GetSignal();
     x += cx;
     z += cz;
     if (cx<xmn) xmn=cx;
     if (cx>xmx) xmx=cx;
     if (cz<zmn) zmn=cz;
     if (cz>zmx) zmx=cz;
-    px += fSegm->Dpx(dig->GetCoord2());
-    pz += fSegm->Dpz(dig->GetCoord1());
+    x += ddx*dx;
+    z += ddz*dz;
+    px += dx;
+    pz += dz;
     //
     if (!fRawData) {
       for(Int_t dlab=0;dlab<maxLbinDigit;dlab++){
@@ -198,7 +208,8 @@ void AliITSUClusterizer::Transform(AliITSUClusterPix *cluster,AliITSUClusterizer
   cluster->SetSigmaY2(nx>1 ? dx*dx*k1to12 : px*px*k1to12);
   cluster->SetSigmaYZ(0);
   cluster->SetFrameLoc();
-  cluster->SetNxNz(nx,nz);
+  cluster->SetNxNzN(nx,nz,n);
+  cluster->SetQ(charge); // note: this is MC info
   //
   if (!fRawData) {
     CheckLabels();
@@ -274,7 +285,8 @@ void AliITSUClusterizer::Clusterize()
       lastV=iDigit->fDigit->GetCoord2(); 
     }
     // skip cluster parts before this digit
-    while (iPrevRow && iPrevRow->fUEnd<iDigit->fDigit->GetCoord1()) {
+    int limCol = iDigit->fDigit->GetCoord1()-fAllowDiagonalClusterization;
+    while (iPrevRow && iPrevRow->fUEnd < limCol) {
       iPrevRow=iPrevRow->fNextInRow;
     }
     // find the longest continous line of digits [iDigit,pDigit]=[iDigit,jDigit)
@@ -292,7 +304,7 @@ void AliITSUClusterizer::Clusterize()
       AttachDigitToCand(cand,pDigit);
       ++lastU1;
     }
-    --lastU1;
+    if (!fAllowDiagonalClusterization) --lastU1;
     AliITSUClusterizerClusterPart *part=AllocPart();
     part->fUBegin=lastU ;
     part->fUEnd  =lastU1;

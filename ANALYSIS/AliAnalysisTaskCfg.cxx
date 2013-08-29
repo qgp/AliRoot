@@ -337,7 +337,19 @@ const char *AliAnalysisTaskCfg::GetDependency(Int_t i) const
 Bool_t AliAnalysisTaskCfg::NeedsDependency(const char *dep) const
 {
 // Check if a given library is needed by the module.
-   return fDeps.Contains(dep);
+   Int_t indmin = 0;
+   Int_t indmax = 0;
+   Int_t len = fDeps.Length();
+   TString crt;
+   while (indmax<len) {
+      indmax = fDeps.Index(",",indmin);
+      if (indmax < 0) indmax = len;
+      // indmin points to the beginning of the string while indmax to the end+1
+      crt = fDeps(indmin, indmax-indmin);
+      if (crt==dep) return kTRUE;
+      indmin = indmax+1;
+   }
+   return kFALSE;
 }
 
 //______________________________________________________________________________
@@ -550,12 +562,13 @@ TObjArray *AliAnalysisTaskCfg::ExtractModulesFrom(const char *filename)
       } else if (cfg && line.BeginsWith("#Module.StartConfig")) {
          // Marker for start of the configuration macro
          addConfig = new TMacro();
-         TString shortName = gSystem->BaseName(cfg->GetMacroName());
-         shortName = shortName(0,shortName.Index("."));
-         shortName += "Config";
+//         TString shortName = gSystem->BaseName(cfg->GetMacroName());
+//         shortName = shortName(0,shortName.Index("."));
+         TString shortName = cfg->GetName();
+         shortName += "_Config";
          addConfig->SetName(shortName);
-         shortName.Prepend("/");
-         shortName.Prepend(gSystem->DirName(cfg->GetMacroName()));
+//         shortName.Prepend("/");
+//         shortName.Prepend(gSystem->DirName(cfg->GetMacroName()));
          shortName += ".C";
          addConfig->SetTitle(shortName);
       } else if (cfg && line.BeginsWith("#Module.EndMacro")) {

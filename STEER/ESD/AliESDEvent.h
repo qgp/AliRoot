@@ -40,6 +40,7 @@
 #include "AliESDCaloCells.h"
 
 #include "AliESDVZERO.h"
+#include "AliESDTrdTrack.h"
 #ifdef MFT_UPGRADE
 //#include "AliESDMFT.h"
 #endif
@@ -55,7 +56,6 @@ class AliMultiplicity;
 class AliRawDataErrorLog;
 class AliESDRun;
 class AliESDTrdTrigger;
-class AliESDTrdTrack;
 class AliESDTrdTracklet;
 class AliESDMuonTrack;
 class AliESDMuonCluster;
@@ -202,7 +202,7 @@ public:
   Int_t     GetEventNumberInFile() const {return fHeader?fHeader->GetEventNumberInFile():-1;}
   UShort_t  GetBunchCrossNumber() const {return fHeader?fHeader->GetBunchCrossNumber():0;}
   UChar_t   GetTriggerCluster() const {return fHeader?fHeader->GetTriggerCluster():0;}
-
+  Bool_t IsDetectorInTriggerCluster(TString detector, AliTriggerConfiguration* trigConf) const;
   // ZDC CKB: put this in the header?
   AliESDZDC*    GetESDZDC()  const {return fESDZDC;}
   AliESDZDC*    GetZDCData() const {return fESDZDC;}
@@ -394,6 +394,7 @@ public:
   }
 
   void AddTrdTracklet(const AliESDTrdTracklet *trkl);
+  void AddTrdTracklet(UInt_t trackletWord, Short_t hcid, Int_t label = -1);
 
   AliESDv0 *GetV0(Int_t i) const {
     return (AliESDv0*)(fV0s?fV0s->At(i):0x0);
@@ -448,6 +449,7 @@ public:
     return (fTrkPileupVertices?fTrkPileupVertices->GetEntriesFast():0);
   }
   Int_t GetNumberOfTracks()     const {return fTracks?fTracks->GetEntriesFast():0;}
+  Int_t GetNumberOfESDTracks()  const { return GetNumberOfTracks(); }
   Int_t GetNumberOfHLTConfMapTracks()     const {return 0;} 
   // fHLTConfMapTracks->GetEntriesFast();}
   Int_t GetNumberOfHLTHoughTracks()     const {return  0;  }
@@ -502,6 +504,11 @@ public:
   ULong_t GetDetectorStatus() const {return fDetectorStatus;}
   Bool_t IsDetectorOn(ULong_t detMask) const {return (fDetectorStatus&detMask)>0;}
 
+  void SetDAQDetectorPattern(UInt_t pattern) {fDAQDetectorPattern = pattern;}
+  void SetDAQAttributes(UInt_t attributes) {fDAQAttributes = attributes;}
+  UInt_t GetDAQDetectorPattern() const {return fDAQDetectorPattern;}
+  UInt_t GetDAQAttributes() const {return fDAQAttributes;}
+  
 protected:
   AliESDEvent(const AliESDEvent&);
   static Bool_t ResetWithPlacementNew(TObject *pObject);
@@ -559,9 +566,11 @@ protected:
   AliCentrality *fCentrality; //! Centrality for AA collision
   AliEventplane *fEventplane; //! Event plane for AA collision
 
-  ULong_t fDetectorStatus; // set detector event status bit for good event selection
+  ULong64_t fDetectorStatus; // set detector event status bit for good event selection
+  UInt_t fDAQDetectorPattern; // Detector pattern from DAQ: bit 0 is SPD, bit 4 is TPC, etc. See event.h
+  UInt_t fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
 
-  ClassDef(AliESDEvent,17)  //ESDEvent class 
+  ClassDef(AliESDEvent,19)  //ESDEvent class 
 };
 #endif 
 

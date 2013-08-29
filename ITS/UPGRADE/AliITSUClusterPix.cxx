@@ -13,7 +13,9 @@ UInt_t           AliITSUClusterPix::fgMode = 0;
 
 //_____________________________________________________
 AliITSUClusterPix::AliITSUClusterPix()
-  : fNxNz(0)
+  : fCharge(0)
+  , fRecoInfo(0)
+  , fNxNzN(0)
 {
   // default constructor
 }
@@ -27,7 +29,9 @@ AliITSUClusterPix::~AliITSUClusterPix()
 //_____________________________________________________
 AliITSUClusterPix::AliITSUClusterPix(const AliITSUClusterPix& cluster) 
   :AliCluster(cluster)
-  ,fNxNz(cluster.fNxNz)
+  ,fCharge(cluster.fCharge)
+  ,fRecoInfo(cluster.fRecoInfo)
+  ,fNxNzN(cluster.fNxNzN)
 {
   // copy constructor
 }
@@ -37,7 +41,9 @@ AliITSUClusterPix& AliITSUClusterPix::operator=(const AliITSUClusterPix& cluster
 {
   // = op
   if(&cluster == this) return *this;
-  fNxNz = cluster.fNxNz;
+  fNxNzN = cluster.fNxNzN;
+  fCharge = cluster.fCharge;
+  fRecoInfo = cluster.fRecoInfo;
   TObject::operator=(cluster);
   AliCluster::operator=(cluster);
   return *this;
@@ -63,8 +69,8 @@ void AliITSUClusterPix::Print(Option_t* option) const
   // Print cluster information.
   TString str = option; 
   str.ToLower();
-  printf("Cl.in mod %5d, nx:%3d nz:%3d |Err^2:%.3e %.3e %+.3e |",GetVolumeId(),GetNx(),GetNz(),
-	 GetSigmaY2(),GetSigmaZ2(),GetSigmaYZ());
+  printf("Cl.in mod %5d, nx:%3d nz:%3d n:%d |Err^2:%.3e %.3e %+.3e |",GetVolumeId(),GetNx(),GetNz(),
+	 GetNPix(),GetSigmaY2(),GetSigmaZ2(),GetSigmaYZ());
   printf("XYZ: (%+.4e %+.4e %+.4e ",GetX(),GetY(),GetZ());
   if      (IsFrameLoc()) printf("LOC)");
   else if (IsFrameGlo()) printf("GLO)");
@@ -76,6 +82,7 @@ void AliITSUClusterPix::Print(Option_t* option) const
   }
   printf(" MClb:");
   for (int i=0;i<3;i++) printf(" %5d",GetLabel(i));
+  if (TestBit(kSplit)) printf(" Spl");
   printf("\n");
   //
 }
@@ -243,7 +250,7 @@ void AliITSUClusterPix::GetTrackingXYZ(Float_t xyz[3]) const
   }
   // now in local frame
   GetTracking2LocalMatrix()->MasterToLocal(loc,trk);
-  for (int i=3;i--;) xyz[i] = loc[i];
+  for (int i=3;i--;) xyz[i] = trk[i];
   //
 }
 
@@ -301,5 +308,20 @@ Bool_t AliITSUClusterPix::IsEqual(const TObject* obj)  const
     return (Abs(xyz[1]-xyz1[1])<kTol && Abs(xyz[2]-xyz1[2])<kTol) ? kTRUE : kFALSE;
   }
   AliFatal(Form("Unknown modr for sorting: %d",fgMode));
+  return kFALSE;
+}
+
+//______________________________________________________________________________
+Bool_t AliITSUClusterPix::HasCommonTrack(const AliCluster* cl) const
+{
+  // check if clusters have common tracks
+  int lbi,lbj;
+  for (int i=0;i<3;i++) {
+    if ((lbi=GetLabel(i))<0) break;
+    for (int j=0;j<3;j++) {
+      if ((lbj=cl->GetLabel(j))<0) break;
+      if (lbi==lbj) return kTRUE;
+    }
+  }
   return kFALSE;
 }

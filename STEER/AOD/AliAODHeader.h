@@ -10,9 +10,12 @@
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------
 
+#include <TVector2.h>
+
 #include "AliVHeader.h"
 #include "AliAODVertex.h"
 #include <TString.h>
+#include <TBits.h>
 #include "AliCentrality.h"
 #include "AliEventplane.h"
 
@@ -33,6 +36,8 @@ class AliAODHeader : public AliVHeader {
 	       Int_t refMult,
 	       Int_t refMultPos,
 	       Int_t refMultNeg,
+	       Int_t refMultComb05,
+	       Int_t refMultComb08,
 	       Double_t magField,
 	       Double_t muonMagFieldScale,
 	       Double_t cent,
@@ -56,6 +61,7 @@ class AliAODHeader : public AliVHeader {
 
   Int_t     GetRunNumber()          const { return fRunNumber;}
   Int_t     GetEventNumberESDFile() const { return fEventNumberESDFile;}
+  Int_t     GetNumberOfESDTracks()    const { return fNumberESDTracks;}
   UShort_t  GetBunchCrossNumber()   const { return fBunchCrossNumber; }
   UInt_t    GetOrbitNumber()        const { return fOrbitNumber; }
   UInt_t    GetPeriodNumber()       const { return fPeriodNumber; }
@@ -68,6 +74,9 @@ class AliAODHeader : public AliVHeader {
   
   Double_t  GetCentrality()         const { return fCentrality; }
   Double_t  GetEventplane()         const { return fEventplane; }
+  Double_t  GetEventplaneMag()      const { return fEventplaneMag; }
+  Double_t  GetEventplaneQx()       const { return fEventplaneQx; }
+  Double_t  GetEventplaneQy()       const { return fEventplaneQy; }
   Double_t  GetZDCN1Energy()        const { return fZDCN1Energy; }
   Double_t  GetZDCP1Energy()        const { return fZDCP1Energy; }
   Double_t  GetZDCN2Energy()        const { return fZDCN2Energy; }
@@ -78,6 +87,8 @@ class AliAODHeader : public AliVHeader {
   Int_t     GetRefMultiplicityNeg() const { return fRefMultNeg; }
   Int_t     GetNumberOfMuons()      const { return fNMuons; }
   Int_t     GetNumberOfDimuons()    const { return fNDimuons; }
+  Int_t     GetRefMultiplicityComb05() const { return fRefMultComb05; }
+  Int_t     GetRefMultiplicityComb08() const { return fRefMultComb08; }
 
   Double_t  GetQTheta(UInt_t i) const;
   UInt_t    GetNQTheta() const { return (UInt_t)fNQTheta; }
@@ -100,6 +111,7 @@ class AliAODHeader : public AliVHeader {
   
   void SetRunNumber(Int_t nRun)                { fRunNumber = nRun; }
   void SetEventNumberESDFile(Int_t n)          { fEventNumberESDFile=n; }
+  void SetNumberOfESDTracks(Int_t n)           { fNumberESDTracks=n; }
   void SetBunchCrossNumber(UShort_t nBx)       { fBunchCrossNumber = nBx; }
   void SetOrbitNumber(UInt_t nOr)              { fOrbitNumber = nOr; }
   void SetPeriodNumber(UInt_t nPer)            { fPeriodNumber = nPer; }
@@ -122,10 +134,14 @@ class AliAODHeader : public AliVHeader {
   void SetRefMultiplicityNeg(Int_t refMultNeg) { fRefMultNeg = refMultNeg; }
   void SetNumberOfMuons(Int_t nMuons) { fNMuons = nMuons; }
   void SetNumberOfDimuons(Int_t nDimuons) { fNDimuons = nDimuons; }
-  
+  void SetRefMultiplicityComb05(Int_t refMult)   { fRefMultComb05 = refMult; }
+  void SetRefMultiplicityComb08(Int_t refMult)   { fRefMultComb08 = refMult; }  
+
   void SetQTheta(Double_t *QTheta, UInt_t size = 5);  
   void RemoveQTheta();
 
+  void ResetEventplanePointer();
+  
   void SetDiamond(Float_t xy[2],Float_t cov[3]) { 
     for(Int_t i=0;i<3;i++) {fDiamondCovXY[i] = cov[i];}
     for(Int_t i=0;i<2;i++) {fDiamondXY[i]    = xy[i] ;}
@@ -176,6 +192,14 @@ class AliAODHeader : public AliVHeader {
   void       SetT0spread(Int_t i, Float_t t) {
     if ((i>=0)&&(i<kT0SpreadSize)) fT0spread[i]=t;}
 
+  Int_t  FindIRIntInteractionsBXMap(Int_t difference) const;
+  void   SetIRInt2InteractionMap(TBits bits) { fIRInt2InteractionsMap = bits; }
+  void   SetIRInt1InteractionMap(TBits bits) { fIRInt1InteractionsMap = bits; }
+  TBits  GetIRInt2InteractionMap() const { return fIRInt2InteractionsMap; }
+  TBits  GetIRInt1InteractionMap() const { return fIRInt1InteractionsMap; }
+  Int_t  GetIRInt2ClosestInteractionMap() const;
+  Int_t  GetIRInt1ClosestInteractionMap(Int_t gap = 3) const;
+  Int_t  GetIRInt2LastInteractionMap() const;
   
  private :
   
@@ -183,6 +207,9 @@ class AliAODHeader : public AliVHeader {
   Double32_t  fMuonMagFieldScale;   // magnetic field scale of muon arm magnet
   Double32_t  fCentrality;          // Centrality
   Double32_t  fEventplane;          // Event plane angle
+  Double32_t  fEventplaneMag;       // Length of Q vector from TPC event plance
+  Double32_t  fEventplaneQx;        // Q vector component x from TPC event plance
+  Double32_t  fEventplaneQy;        // Q vector component y from TPC event plance
   Double32_t  fZDCN1Energy;         // reconstructed energy in the neutron1 ZDC
   Double32_t  fZDCP1Energy;         // reconstructed energy in the proton1 ZDC
   Double32_t  fZDCN2Energy;         // reconstructed energy in the neutron2 ZDC
@@ -202,6 +229,8 @@ class AliAODHeader : public AliVHeader {
   UInt_t      fOrbitNumber;         // Orbit Number
   UInt_t      fPeriodNumber;        // Period Number
   UShort_t    fBunchCrossNumber;    // BunchCrossingNumber
+  Short_t     fRefMultComb05;       // combined reference multiplicity (tracklets + ITSTPC) in |eta|<0.5
+  Short_t     fRefMultComb08;       // combined reference multiplicity (tracklets + ITSTPC) in |eta|<0.8
   UChar_t     fTriggerCluster;      // Trigger cluster (mask)
   Double32_t      fDiamondXY[2];    // Interaction diamond (x,y) in RUN
   Double32_t      fDiamondCovXY[3]; // Interaction diamond covariance (x,y) in RUN
@@ -212,6 +241,7 @@ class AliAODHeader : public AliVHeader {
   UInt_t      fOfflineTrigger;      // fired offline triggers for this event
   TString     fESDFileName;         // ESD file name to which this event belongs
   Int_t       fEventNumberESDFile;  // Event number in ESD file
+  Int_t       fNumberESDTracks;     // Number of tracks in origingal ESD event
   UInt_t      fL0TriggerInputs;     // L0 Trigger Inputs (mask)
   UInt_t      fL1TriggerInputs;     // L1 Trigger Inputs (mask)
   UShort_t    fL2TriggerInputs;     // L2 Trigger Inputs (mask)
@@ -221,7 +251,9 @@ class AliAODHeader : public AliVHeader {
   AliEventplane* fEventplaneP;	    // Pointer to full event plane information
   Float_t     fVZEROEqFactors[64];  // V0 channel equalization factors for event-plane reconstruction
   Float_t     fT0spread[kT0SpreadSize]; // spread of time distributions: (TOA+T0C/2), T0A, T0C, (T0A-T0C)/2
-  ClassDef(AliAODHeader, 18);
+  TBits   fIRInt2InteractionsMap;  // map of the Int2 events (normally 0TVX) near the event, that's Int2Id-EventId in a -90 to 90 window
+  TBits   fIRInt1InteractionsMap;  // map of the Int1 events (normally V0A&V0C) near the event, that's Int1Id-EventId in a -90 to 90 window
+  ClassDef(AliAODHeader, 23);
 };
 inline
 void AliAODHeader::SetCentrality(const AliCentrality* cent)      { 
@@ -240,10 +272,27 @@ void AliAODHeader::SetEventplane(AliEventplane* eventplane)      {
 	if(fEventplaneP)*fEventplaneP = *eventplane;
 	else fEventplaneP = new AliEventplane(*eventplane);
 	fEventplane = eventplane->GetEventplane("Q");
+        const TVector2* qvect=eventplane->GetQVector();
+        fEventplaneMag = -999;
+	fEventplaneQx = -999;
+	fEventplaneQy = -999;
+        if (qvect) {
+	  fEventplaneMag=qvect->Mod();
+	  fEventplaneQx=qvect->X();
+	  fEventplaneQy=qvect->Y();
+	}
     }
     else{
 	fEventplane = -999;
+        fEventplaneMag = -999;
+	fEventplaneQx = -999;
+	fEventplaneQy = -999;
     }
+}
+inline
+void AliAODHeader::ResetEventplanePointer()      {
+  delete fEventplaneP;
+  fEventplaneP = 0x0;
 }
 
 inline

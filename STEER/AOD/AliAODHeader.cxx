@@ -35,6 +35,9 @@ AliAODHeader::AliAODHeader() :
   fMuonMagFieldScale(-999.),
   fCentrality(-999.),
   fEventplane(-999.),
+  fEventplaneMag(-999.),
+  fEventplaneQx(-999.),
+  fEventplaneQy(-999.),
   fZDCN1Energy(-999.),
   fZDCP1Energy(-999.),
   fZDCN2Energy(-999.),
@@ -53,18 +56,23 @@ AliAODHeader::AliAODHeader() :
   fOrbitNumber(0),
   fPeriodNumber(0),
   fBunchCrossNumber(0),
+  fRefMultComb05(-999),
+  fRefMultComb08(-999),
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
   fOfflineTrigger(0),
   fESDFileName(""),
   fEventNumberESDFile(-1),
+  fNumberESDTracks(-1),
   fL0TriggerInputs(0),
   fL1TriggerInputs(0),
   fL2TriggerInputs(0),
   fTPConlyRefMult(-1), 
   fCentralityP(0),
-  fEventplaneP(0)
+  fEventplaneP(0),
+  fIRInt2InteractionsMap(0),
+  fIRInt1InteractionsMap(0)
 {
   // default constructor
 
@@ -91,6 +99,9 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fMuonMagFieldScale(-999.),
   fCentrality(-999.),
   fEventplane(-999.),
+  fEventplaneMag(-999.),
+  fEventplaneQx(-999.),
+  fEventplaneQy(-999.),
   fZDCN1Energy(-999.),
   fZDCP1Energy(-999.),
   fZDCN2Energy(-999.),
@@ -109,18 +120,23 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
   fBunchCrossNumber(nBunchX),
+  fRefMultComb05(-999),
+  fRefMultComb08(-999),
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
   fOfflineTrigger(0),
   fESDFileName(""),
   fEventNumberESDFile(-1),
+  fNumberESDTracks(-1),
   fL0TriggerInputs(0),
   fL1TriggerInputs(0),
   fL2TriggerInputs(0),
   fTPConlyRefMult(-1), 
   fCentralityP(0),
-  fEventplaneP(0)
+  fEventplaneP(0),
+  fIRInt2InteractionsMap(0),
+  fIRInt1InteractionsMap(0)
 {
   // constructor
 
@@ -144,6 +160,8 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   Int_t refMult,
 			   Int_t refMultPos,
 			   Int_t refMultNeg,
+			   Int_t refMultComb05,
+			   Int_t refMultComb08,
 			   Double_t magField,
 			   Double_t muonMagFieldScale,
 			   Double_t cent,
@@ -165,6 +183,9 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fMuonMagFieldScale(muonMagFieldScale),
   fCentrality(cent),
   fEventplane(eventplane),
+  fEventplaneMag(0),
+  fEventplaneQx(0),
+  fEventplaneQy(0),
   fZDCN1Energy(n1Energy),
   fZDCP1Energy(p1Energy),
   fZDCN2Energy(n2Energy),
@@ -183,18 +204,23 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
   fBunchCrossNumber(nBunchX),
+  fRefMultComb05(refMultComb05),
+  fRefMultComb08(refMultComb08),
   fTriggerCluster(trigClus),
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
   fOfflineTrigger(0),
   fESDFileName(""),
   fEventNumberESDFile(-1),
+  fNumberESDTracks(-1),
   fL0TriggerInputs(0),
   fL1TriggerInputs(0),
   fL2TriggerInputs(0),
   fTPConlyRefMult(-1), 
   fCentralityP(0),
-  fEventplaneP(0)
+  fEventplaneP(0),
+  fIRInt2InteractionsMap(0),
+  fIRInt1InteractionsMap(0)
 {
   // constructor
 
@@ -227,6 +253,9 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fMuonMagFieldScale(hdr.fMuonMagFieldScale),
   fCentrality(hdr.fCentrality),
   fEventplane(hdr.fEventplane),
+  fEventplaneMag(hdr.fEventplaneMag),
+  fEventplaneQx(hdr.fEventplaneQx),
+  fEventplaneQy(hdr.fEventplaneQy),
   fZDCN1Energy(hdr.fZDCN1Energy),
   fZDCP1Energy(hdr.fZDCP1Energy),
   fZDCN2Energy(hdr.fZDCN2Energy),
@@ -245,18 +274,23 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fOrbitNumber(hdr.fOrbitNumber),
   fPeriodNumber(hdr.fPeriodNumber),
   fBunchCrossNumber(hdr.fBunchCrossNumber),
+  fRefMultComb05(hdr.fRefMultComb05), 
+  fRefMultComb08(hdr.fRefMultComb08), 
   fTriggerCluster(hdr.fTriggerCluster), 
   fDiamondZ(hdr.fDiamondZ), 
   fDiamondSig2Z(hdr.fDiamondSig2Z),
   fOfflineTrigger(hdr.fOfflineTrigger),
   fESDFileName(hdr.fESDFileName),
   fEventNumberESDFile(hdr.fEventNumberESDFile),
+  fNumberESDTracks(hdr.fNumberESDTracks),
   fL0TriggerInputs(hdr.fL0TriggerInputs),
   fL1TriggerInputs(hdr.fL1TriggerInputs),
   fL2TriggerInputs(hdr.fL2TriggerInputs),
   fTPConlyRefMult(hdr.fTPConlyRefMult), 
   fCentralityP(new AliCentrality(*hdr.fCentralityP)),
-  fEventplaneP(new AliEventplane(*hdr.fEventplaneP))
+  fEventplaneP(new AliEventplane(*hdr.fEventplaneP)),
+  fIRInt2InteractionsMap(hdr.fIRInt2InteractionsMap),
+  fIRInt1InteractionsMap(hdr.fIRInt1InteractionsMap)
 {
   // Copy constructor.
   
@@ -299,6 +333,9 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fMuonMagFieldScale= hdr.fMuonMagFieldScale;
     fCentrality       = hdr.fCentrality;
     fEventplane       = hdr.fEventplane;
+    fEventplaneMag    = hdr.fEventplaneMag;
+    fEventplaneQx     = hdr.fEventplaneQx;
+    fEventplaneQy     = hdr.fEventplaneQy;
     fZDCN1Energy      = hdr.fZDCN1Energy;
     fZDCP1Energy      = hdr.fZDCP1Energy;
     fZDCN2Energy      = hdr.fZDCN2Energy;
@@ -313,6 +350,9 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fOrbitNumber      = hdr.fOrbitNumber;
     fPeriodNumber     = hdr.fPeriodNumber;
     fBunchCrossNumber = hdr.fBunchCrossNumber;
+    fRefMultComb05    = hdr.fRefMultComb05;
+    fRefMultComb08    = hdr.fRefMultComb08;
+
     fTriggerCluster   = hdr.fTriggerCluster;
     fNMuons           = hdr.fNMuons;
     fNDimuons         = hdr.fNDimuons;
@@ -321,10 +361,14 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fOfflineTrigger   = hdr.fOfflineTrigger;
     fESDFileName      = hdr.fESDFileName;
     fEventNumberESDFile = hdr.fEventNumberESDFile;
+    fNumberESDTracks    = hdr.fNumberESDTracks;
     fL0TriggerInputs    = hdr.fL0TriggerInputs;
     fL1TriggerInputs    = hdr.fL1TriggerInputs;
     fL2TriggerInputs    = hdr.fL2TriggerInputs;
     fTPConlyRefMult     = hdr.fTPConlyRefMult;
+
+    fIRInt2InteractionsMap  = hdr.fIRInt2InteractionsMap;
+    fIRInt1InteractionsMap  = hdr.fIRInt1InteractionsMap;
 
     if(hdr.fEventplaneP){
       if(fEventplaneP)*fEventplaneP = *hdr.fEventplaneP;
@@ -423,6 +467,9 @@ void AliAODHeader::Clear(Option_t* /*opt*/)
     delete fEventplaneP;
     fEventplaneP = 0;
     fEventplane = -999;
+    fEventplaneMag = -999.;
+    fEventplaneQx = -999.;
+    fEventplaneQy = -999.;
   }
   return;
 }
@@ -443,7 +490,10 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("Muon mag. field scale   : %f\n", fMuonMagFieldScale);
   
   printf("Centrality              : %f\n", fCentrality);
-  printf("Event plane             : %f\n", fEventplane);
+  printf("Event plane Ang         : %f\n", fEventplane);
+  printf("Event plane Mag         : %f\n", fEventplaneMag);
+  printf("Event plane Qx          : %f\n", fEventplaneQx);
+  printf("Event plane Qy          : %f\n", fEventplaneQy);
   printf("ZDC N1 Energy           : %f\n", fZDCN1Energy);
   printf("ZDC P1 Energy           : %f\n", fZDCP1Energy);
   printf("ZDC N2 Energy           : %f\n", fZDCN2Energy);
@@ -453,6 +503,8 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("ref. Multiplicity       : %d\n", fRefMult);
   printf("ref. Multiplicity (pos) : %d\n", fRefMultPos);
   printf("ref. Multiplicity (neg) : %d\n", fRefMultNeg);
+  printf("ref. Mult.Comb |eta|<.5 : %d\n", fRefMultComb05);
+  printf("ref. Mult.Comb |eta|<.8 : %d\n", fRefMultComb08);
   printf("number of muons         : %d\n", fNMuons);
   printf("number of dimuons       : %d\n", fNDimuons);
   printf("offline trigger         : %u\n", fOfflineTrigger);
@@ -467,4 +519,109 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("\n");
 
   return;
+}
+
+//__________________________________________________________________________
+Int_t AliAODHeader::FindIRIntInteractionsBXMap(Int_t difference) const
+{
+  //
+  // The mapping is of 181 bits, from -90 to +90
+  //
+  Int_t bin=-1;
+
+  if(difference<-90 || difference>90) return bin;
+  else { bin = 90 + difference; }
+  
+  return bin;
+}
+
+//__________________________________________________________________________
+Int_t AliAODHeader::GetIRInt2ClosestInteractionMap() const
+{
+  //
+  // Calculation of the closest interaction
+  //
+  Int_t firstNegative=100;
+  for(Int_t item=-1; item>=-90; item--) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt2InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      firstNegative = item;
+      break;
+    }
+  }
+  Int_t firstPositive=100;
+  for(Int_t item=1; item<=90; item++) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt2InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      firstPositive = item;
+      break;
+    }
+  }
+
+  Int_t closest = firstPositive < TMath::Abs(firstNegative) ? firstPositive : TMath::Abs(firstNegative);
+  if(firstPositive==100 && firstNegative==100) closest=0;
+  return closest;
+}
+
+//__________________________________________________________________________
+Int_t AliAODHeader::GetIRInt1ClosestInteractionMap(Int_t gap) const
+{
+  //
+  // Calculation of the closest interaction
+  // In case of VZERO (Int1) one has to introduce a gap
+  // in order to avoid false positivies from after-pulses
+
+  Int_t firstNegative=100;
+  for(Int_t item=-1; item>=-90; item--) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt1InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      firstNegative = item;
+      break;
+    }
+  }
+  Int_t firstPositive=100;
+  for(Int_t item=1+gap; item<=90; item++) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt1InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      firstPositive = item;
+      break;
+    }
+  }
+
+  Int_t closest = firstPositive < TMath::Abs(firstNegative) ? firstPositive : TMath::Abs(firstNegative);
+  if(firstPositive==100 && firstNegative==100) closest=0;
+  return closest;
+}
+
+//__________________________________________________________________________
+Int_t AliAODHeader::GetIRInt2LastInteractionMap() const
+{
+  //
+  // Calculation of the last interaction
+  //
+  Int_t lastNegative=0;
+  for(Int_t item=-90; item<=-1; item++) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt2InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      lastNegative = item;
+      break;
+    }
+  }
+  Int_t lastPositive=0;
+  for(Int_t item=90; item>=1; item--) {
+    Int_t bin = FindIRIntInteractionsBXMap(item);
+    Bool_t isFired = fIRInt2InteractionsMap.TestBitNumber(bin);
+    if(isFired) {
+      lastPositive = item;
+      break;
+    }
+  }
+
+  Int_t last = lastPositive > TMath::Abs(lastNegative) ? lastPositive : TMath::Abs(lastNegative);
+  return last;
 }

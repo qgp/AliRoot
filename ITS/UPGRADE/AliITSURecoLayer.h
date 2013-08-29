@@ -5,6 +5,7 @@
 #include <TObjArray.h>
 #include <TClonesArray.h>
 #include "AliITSURecoSens.h"
+
 class AliITSUGeomTGeo;
 class AliITSsegmentation;
 class AliCluster;
@@ -22,7 +23,9 @@ class AliITSURecoLayer : public TNamed
 {
  public:
   //
-  enum {kPassive=BIT(14)};
+  enum {kPassive=BIT(14)                 // layer is passive
+	,kOwnsClusterArray=BIT(15)       // owner of cluster array, delete in destructor
+  };
   AliITSURecoLayer(const char* name);
   AliITSURecoLayer(const char* name, Int_t activeID,AliITSUGeomTGeo* gm);
   virtual ~AliITSURecoLayer();
@@ -38,11 +41,13 @@ class AliITSURecoLayer : public TNamed
   Double_t           GetRMax()                     const {return fRMax;}
   Double_t           GetDR()                       const {return fRMax-fRMin;}
   Double_t           GetR()                        const {return fR;}
+  Double_t           GetR(Int_t dir)               const {return dir==0 ? fR : (dir<0 ? fRMin : fRMax);}
   Double_t           GetZMin()                     const {return fZMin;}
   Double_t           GetZMax()                     const {return fZMax;}
   Double_t           GetMaxStep()                  const {return fMaxStep;}
   Bool_t             IsActive()                    const {return !TestBit(kPassive);}
   Bool_t             IsPassive()                   const {return TestBit(kPassive);}
+  Bool_t             GetOwnsClusterArray()         const {return TestBit(kOwnsClusterArray);}
   //
   void               SetID(Int_t i)                      {SetUniqueID(i);} 
   void               SetActiveID(Int_t i)                {fActiveID = i;} 
@@ -52,15 +57,19 @@ class AliITSURecoLayer : public TNamed
   void               SetZMin(Double_t z)                 {fZMin = z;}
   void               SetZMax(Double_t z)                 {fZMax = z;}
   void               SetPassive(Bool_t v=kTRUE)          {SetBit(kPassive,v);}
+  void               SetOwnsClusterArray(Bool_t v=kTRUE) {SetBit(kOwnsClusterArray,v);}
   void               SetMaxStep(Double_t st)             {fMaxStep = st>0 ? st : 0.1;}
   //
   AliITSURecoSens*   GetSensor(Int_t i)            const {return i<0 ? 0:(AliITSURecoSens*)fSensors[i];}
   AliITSURecoSens*   GetSensor(Int_t ld,Int_t is)  const {return GetSensor(ld*fNSensInLadder+is);}
+  AliITSURecoSens*   GetSensorFromID(Int_t i)      const;
   TClonesArray*      GetClusters()                 const {return (TClonesArray*)fClusters;}
+  TClonesArray**     GetClustersAddress()                {return (TClonesArray**)&fClusters;}  
   Int_t              GetNClusters()                const {return fClusters ? fClusters->GetEntriesFast() : 0;}
   AliCluster*        GetCluster(Int_t icl)         const {return (AliCluster*)fClusters->UncheckedAt(icl);}
   void               SetClusters(TClonesArray* cl)       {fClusters = cl;}
   //
+  //  Int_t              FindSensors(const double* impPar, AliITSURecoSens *sensors[AliITSURecoSens::kNNeighbors], int mcLab=-1);
   Int_t              FindSensors(const double* impPar, AliITSURecoSens *sensors[AliITSURecoSens::kNNeighbors]);
   //
   virtual void       Print(Option_t* option = "")  const;

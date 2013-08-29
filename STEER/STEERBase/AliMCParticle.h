@@ -66,7 +66,7 @@ public:
       {return dynamic_cast<AliTrackReference*>((*fTrackReferences)[i]);}
 
     // "Trackable" criteria
-    Float_t  GetTPCTrackLength(Float_t bz, Float_t ptmin, Int_t &counter, Float_t deadWidth);
+    Float_t  GetTPCTrackLength(Float_t bz, Float_t ptmin, Int_t &counter, Float_t deadWidth, Float_t zMax=230. );
     // Navigation
     Int_t GetMother()        const {return fMother;}
     Int_t GetFirstDaughter() const {return fFirstDaughter;}
@@ -122,7 +122,7 @@ inline Double_t AliMCParticle::Y()         const
     Double_t e  = E();
     Double_t pz = Pz();
     
-    if (e != TMath::Abs(pz)) { 
+    if ( TMath::Abs(e - TMath::Abs(pz)) > FLT_EPSILON ) {
 	return 0.5*TMath::Log((e+pz)/(e-pz));
     } else { 
 	return -999.;

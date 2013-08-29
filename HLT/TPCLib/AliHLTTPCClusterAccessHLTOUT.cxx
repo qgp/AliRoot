@@ -32,7 +32,6 @@
 #include "AliHLTComponent.h"
 #include "AliHLTErrorGuard.h"
 #include "AliHLTDataInflater.h"
-#include "AliHLTTPCDefinitions.h"
 #include "AliLog.h"
 #include "AliHLTSystem.h"
 #include "AliHLTPluginBase.h"
@@ -40,6 +39,7 @@
 #include "AliTPCClustersRow.h"
 #include "AliTPCParam.h"
 #include "TClonesArray.h"
+#include "TString.h"
 #include <cstdlib>
 #include <string>
 #include <memory>
@@ -48,8 +48,6 @@
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCClusterAccessHLTOUT)
-
-const int AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::iterator::fkRowOffsetOuterSector = AliHLTTPCTransform::GetFirstRow(2);
 
 AliHLTTPCClusterAccessHLTOUT::AliHLTTPCClusterAccessHLTOUT()
   : TObject()
@@ -239,7 +237,6 @@ int AliHLTTPCClusterAccessHLTOUT::ProcessClusters(const char* params)
   AliHLTTPCDataCompressionDecoder& decoder=*fpDecoder;
   decoder.Clear();
   decoder.SetVerbosity(fVerbosity);
-  decoder.EnableClusterMerger();
 
   bool bNextBlock=false;
   // add cluster id and mc information data blocks
@@ -254,6 +251,12 @@ int AliHLTTPCClusterAccessHLTOUT::ProcessClusters(const char* params)
     desc.fPtr=(void*)buffer;
     if (pHLTOUT->GetDataBlockDescription(desc.fDataType, desc.fSpecification)<0) {
       continue;
+    }
+    if (desc.fDataType==AliHLTTPCDefinitions::DataCompressionDescriptorDataType()) {
+      // header      
+      if ((iResult=decoder.AddCompressionDescriptor(&desc))<0) {
+	return iResult;
+      }
     }
     if (desc.fDataType==AliHLTTPCDefinitions::AliHLTDataTypeClusterMCInfo()) {
       // add mc information
@@ -414,7 +417,7 @@ AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::AliRawClusterContainer()
   /// constructor
   for (int i=0; i<72; i++) {
     fClusterMaps.push_back(new AliRawClusterEntryVector);
-    fClusterMaps.back()->reserve(5000);
+    fClusterMaps.back()->reserve(30000);
   }
 }
 
@@ -435,7 +438,7 @@ AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::~AliRawClusterContainer()
   }
 }
 
-AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::iterator& AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::BeginRemainingClusterBlock(int count, AliHLTUInt32_t specification)
+AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::iterator& AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::BeginPartitionClusterBlock(int count, AliHLTUInt32_t specification)
 {
   /// iterator of remaining clusters block of specification
 
@@ -574,6 +577,6 @@ AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::iterator& AliHLTTPCCluster
 
   // offline uses row number in physical sector, inner sector consists of
   // partitions 0 and 1, outer sector of partition 2-5
-  fRowOffset=partition<2?0:fkRowOffsetOuterSector;
+  fRowOffset=partition<2?0:AliHLTTPCTransform::GetFirstRow(2);
   return *this;
 }

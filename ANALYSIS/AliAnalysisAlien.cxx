@@ -131,7 +131,6 @@ AliAnalysisAlien::AliAnalysisAlien()
                   fProofCluster(),
                   fProofDataSet(),
                   fFileForTestMode(),
-                  fRootVersionForProof(),
                   fAliRootMode(),
                   fProofProcessOpt(),
                   fMergeDirName(),
@@ -139,7 +138,11 @@ AliAnalysisAlien::AliAnalysisAlien()
                   fPackages(0),
                   fModules(0),
                   fProofParam(),
-                  fDropToShell(true)
+                  fDropToShell(true),
+                  fGridJobIDs(""),
+                  fGridStages(""),
+                  fFriendLibs(""),
+                  fTreeName()
 {
 // Dummy ctor.
    SetDefaults();
@@ -206,7 +209,6 @@ AliAnalysisAlien::AliAnalysisAlien(const char *name)
                   fProofCluster(),
                   fProofDataSet(),
                   fFileForTestMode(),
-                  fRootVersionForProof(),
                   fAliRootMode(),
                   fProofProcessOpt(),
                   fMergeDirName(),
@@ -214,7 +216,11 @@ AliAnalysisAlien::AliAnalysisAlien(const char *name)
                   fPackages(0),
                   fModules(0),
                   fProofParam(),
-                  fDropToShell(true)
+                  fDropToShell(true),
+                  fGridJobIDs(""),
+                  fGridStages(""),
+                  fFriendLibs(""),
+                  fTreeName()
 {
 // Default ctor.
    SetDefaults();
@@ -281,7 +287,6 @@ AliAnalysisAlien::AliAnalysisAlien(const AliAnalysisAlien& other)
                   fProofCluster(other.fProofCluster),
                   fProofDataSet(other.fProofDataSet),
                   fFileForTestMode(other.fFileForTestMode),
-                  fRootVersionForProof(other.fRootVersionForProof),
                   fAliRootMode(other.fAliRootMode),
                   fProofProcessOpt(other.fProofProcessOpt),
                   fMergeDirName(other.fMergeDirName),
@@ -289,7 +294,11 @@ AliAnalysisAlien::AliAnalysisAlien(const AliAnalysisAlien& other)
                   fPackages(0),
                   fModules(0),
                   fProofParam(),
-                  fDropToShell(other.fDropToShell)
+                  fDropToShell(other.fDropToShell),
+                  fGridJobIDs(other.fGridJobIDs),
+                  fGridStages(other.fGridStages),
+                  fFriendLibs(other.fFriendLibs),
+                  fTreeName(other.fTreeName)
 {
 // Copy ctor.
    fGridJDL = (TGridJDL*)gROOT->ProcessLine("new TAlienJDL()");
@@ -398,11 +407,14 @@ AliAnalysisAlien &AliAnalysisAlien::operator=(const AliAnalysisAlien& other)
       fProofCluster            = other.fProofCluster;
       fProofDataSet            = other.fProofDataSet;
       fFileForTestMode         = other.fFileForTestMode;
-      fRootVersionForProof     = other.fRootVersionForProof;
       fAliRootMode             = other.fAliRootMode;
       fProofProcessOpt         = other.fProofProcessOpt;
       fMergeDirName            = other.fMergeDirName;
       fDropToShell             = other.fDropToShell;
+      fGridJobIDs              = other.fGridJobIDs;
+      fGridStages              = other.fGridStages;
+      fFriendLibs              = other.fFriendLibs;
+      fTreeName                = other.fTreeName;
       if (other.fInputFiles) {
          fInputFiles = new TObjArray();
          TIter next(other.fInputFiles);
@@ -658,6 +670,7 @@ Bool_t AliAnalysisAlien::GenerateTest(const char *name, const char *modname)
          return kFALSE;
       }
       if (!LoadModule(mod)) return kFALSE;
+      if (!LoadFriendLibs()) return kFALSE;
    } else if (!LoadModules()) return kFALSE;
    AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
    if (!mgr->InitAnalysis()) return kFALSE;
@@ -672,6 +685,14 @@ Bool_t AliAnalysisAlien::GenerateTest(const char *name, const char *modname)
    TString execCommand = fExecutableCommand;
    SetAnalysisMacro(Form("%s.C", name));
    SetExecutable(Form("%s.sh", name));
+      fOutputFiles = GetListOfFiles("outaod");
+      // Add extra files registered to the analysis manager
+      TString extra = GetListOfFiles("ext");
+      if (!extra.IsNull()) {
+         extra.ReplaceAll(".root", "*.root");
+         if (!fOutputFiles.IsNull()) fOutputFiles += ",";
+         fOutputFiles += extra;
+      }
 //   SetExecutableCommand("aliroot -b -q ");
    SetValidationScript(Form("%s_validation.sh", name));
    WriteAnalysisFile();   
@@ -712,8 +733,36 @@ Bool_t AliAnalysisAlien::LoadModules()
       mod = (AliAnalysisTaskCfg*)fModules->At(imod);
       if (!LoadModule(mod)) return kFALSE;
    }
-   return kTRUE;
+   // Load additional friend libraries
+   return LoadFriendLibs();
 }      
+
+//______________________________________________________________________________
+Bool_t AliAnalysisAlien::LoadFriendLibs() const
+{
+// Load libraries required for reading friends.
+   if (fFriendLibs.Length()) {
+      TObjArray *list = 0;
+      TString lib;
+      if (fFriendLibs.Contains(",")) list  = fFriendLibs.Tokenize(",");
+      else                           list  = fFriendLibs.Tokenize(" ");
+      for (Int_t ilib=0; ilib<list->GetEntriesFast(); ilib++) {
+         lib = list->At(ilib)->GetName();
+         lib.ReplaceAll(".so","");
+         lib.ReplaceAll(" ","");
+         if (lib.BeginsWith("lib")) lib.Remove(0, 3);
+         lib.Prepend("lib");
+         Int_t loaded = strlen(gSystem->GetLibraries(lib,"",kFALSE));
+         if (!loaded) loaded = gSystem->Load(lib);
+         if (loaded < 0) {
+            Error("LoadModules", "Cannot load library for friends %s", lib.Data());
+            return kFALSE;
+         }
+      }
+      delete list;
+   }
+   return kTRUE;
+}   
 
 //______________________________________________________________________________
 void AliAnalysisAlien::SetRunPrefix(const char *prefix)
@@ -1157,6 +1206,10 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
    // Compose the 'find' command arguments
    TString format;
    TString command;
+   TString delimiter = pattern;
+   delimiter.Strip();
+   if (delimiter.Contains(" ")) delimiter = "";
+   else delimiter = " ";
    TString options = "-x collection ";
    if (TestBit(AliAnalysisGrid::kTest)) options += Form("-l %d ", fNtestFiles);
    else options += Form("-l %d ", gMaxEntries);  // Protection for the find command
@@ -1176,7 +1229,7 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
       if (!DirectoryExists(path)) {
          Error("CreateDataset", "Path to data directory %s not valid",fGridDataDir.Data());
          return kFALSE;
-      }   
+      } 
 //      CdWork();
       if (TestBit(AliAnalysisGrid::kTest)) file = "wn.xml";
       else file = Form("%s.xml", gSystem->BaseName(path));
@@ -1187,7 +1240,7 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
             command = "find ";
             command += Form("%s -o %d ",options.Data(), nstart);
             command += path;
-            command += " ";
+            command += delimiter;
             command += pattern;
             command += conditions;
             printf("command: %s\n", command.Data());
@@ -1263,7 +1316,7 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
       while ((os=(TObjString*)next())) {
          nstart = 0;
          stage = 0;
-         path = Form("%s/%s/ ", fGridDataDir.Data(), os->GetString().Data());
+         path = Form("%s/%s/", fGridDataDir.Data(), os->GetString().Data());
          if (!DirectoryExists(path)) continue;
 //         CdWork();
          if (TestBit(AliAnalysisGrid::kTest)) file = "wn.xml";
@@ -1276,6 +1329,7 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
                command = "find ";
                command +=  Form("%s -o %d ",options.Data(), nstart);
                command += path;
+               command += delimiter;
                command += pattern;
                command += conditions;
                TGridResult *res = gGrid->Command(command);
@@ -1391,7 +1445,7 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
    } else {
       // Process a full run range.
       for (Int_t irun=fRunRange[0]; irun<=fRunRange[1]; irun++) {
-         format = Form("%%s/%s ", fRunPrefix.Data());
+         format = Form("%%s/%s/", fRunPrefix.Data());
          nstart = 0;
          stage = 0;
          path = Form(format.Data(), fGridDataDir.Data(), irun);
@@ -1415,6 +1469,7 @@ Bool_t AliAnalysisAlien::CreateDataset(const char *pattern)
                command = "find ";
                command +=  Form("%s -o %d ",options.Data(), nstart);
                command += path;
+               command += delimiter;
                command += pattern;
                command += conditions;
                TGridResult *res = gGrid->Command(command);
@@ -1690,6 +1745,7 @@ Bool_t AliAnalysisAlien::CreateJDL()
             fMergingJDL->AddToInputSandbox(Form("LF:%s/%s", workdir.Data(), obj->GetName()));
          }
       }
+      const char *comment = "List of output files and archives";
       if (fOutputArchive.Length()) {
          TString outputArchive = fOutputArchive;
          if (!fRegisterExcludes.IsNull()) {
@@ -1704,14 +1760,12 @@ Bool_t AliAnalysisAlien::CreateJDL()
          arr = outputArchive.Tokenize(" ");
          TIter next(arr);
          Bool_t first = kTRUE;
-         const char *comment = "Files to be archived";
-         const char *comment1 = comment;
          while ((os=(TObjString*)next())) {
-            if (!first) comment = NULL;
             if (!os->GetString().Contains("@") && fCloseSE.Length())
-               fGridJDL->AddToOutputArchive(Form("%s@%s",os->GetString().Data(), fCloseSE.Data()), comment); 
+               fGridJDL->AddToSet("Output", Form("%s@%s",os->GetString().Data(), fCloseSE.Data()));
             else
-               fGridJDL->AddToOutputArchive(os->GetString(), comment);
+               fGridJDL->AddToSet("Output", os->GetString());
+            if (first) fGridJDL->AddToSetDescription("Output", comment);
             first = kFALSE;   
          }      
          delete arr;
@@ -1733,7 +1787,7 @@ Bool_t AliAnalysisAlien::CreateJDL()
             files.ReplaceAll(".root", "*.root");
             
             if (mgr->IsCollectThroughput())
-               outputArchive += Form("root_archive.zip:%s,*.stat,*%s@disk=%d",files.Data(),mgr->GetFileInfoLog(),fNreplicas);
+               outputArchive += Form("root_archive.zip:%s,*.stat@disk=%d %s@disk=%d",files.Data(),fNreplicas, mgr->GetFileInfoLog(),fNreplicas);
             else
                outputArchive += Form("root_archive.zip:%s,*.stat@disk=%d",files.Data(),fNreplicas);
          } else {
@@ -1743,15 +1797,14 @@ Bool_t AliAnalysisAlien::CreateJDL()
          }   
          arr = outputArchive.Tokenize(" ");
          TIter next2(arr);
-         comment = comment1;
          first = kTRUE;
          while ((os=(TObjString*)next2())) {
-            if (!first) comment = NULL;
             TString currentfile = os->GetString();
             if (!currentfile.Contains("@") && fCloseSE.Length())
-               fMergingJDL->AddToOutputArchive(Form("%s@%s",currentfile.Data(), fCloseSE.Data()), comment);
+               fMergingJDL->AddToSet("Output", Form("%s@%s",currentfile.Data(), fCloseSE.Data()));
             else
-               fMergingJDL->AddToOutputArchive(currentfile, comment);
+               fMergingJDL->AddToSet("Output", currentfile);
+            if (first) fMergingJDL->AddToSetDescription("Output", comment);
             first = kFALSE;   
          }      
          delete arr;         
@@ -1759,7 +1812,6 @@ Bool_t AliAnalysisAlien::CreateJDL()
       arr = fOutputFiles.Tokenize(",");
       TIter next(arr);
       Bool_t first = kTRUE;
-      const char *comment = "Files to be saved";
       while ((os=(TObjString*)next())) {
          // Ignore ouputs in jdl that are also in outputarchive
          TString sout = os->GetString();
@@ -1771,15 +1823,17 @@ Bool_t AliAnalysisAlien::CreateJDL()
          if (fRegisterExcludes.Contains(sout)) continue;
          if (!first) comment = NULL;
          if (!os->GetString().Contains("@") && fCloseSE.Length())
-            fGridJDL->AddToOutputSandbox(Form("%s@%s",os->GetString().Data(), fCloseSE.Data()), comment); 
+            fGridJDL->AddToSet("Output", Form("%s@%s",os->GetString().Data(), fCloseSE.Data())); 
          else
-            fGridJDL->AddToOutputSandbox(os->GetString(), comment);
-         first = kFALSE;
+            fGridJDL->AddToSet("Output", os->GetString());
+         if (first) fGridJDL->AddToSetDescription("Output", comment); 
          if (fMergeExcludes.Contains(sout)) continue;   
          if (!os->GetString().Contains("@") && fCloseSE.Length())
-            fMergingJDL->AddToOutputSandbox(Form("%s@%s",os->GetString().Data(), fCloseSE.Data()), comment); 
+            fMergingJDL->AddToSet("Output", Form("%s@%s",os->GetString().Data(), fCloseSE.Data())); 
          else
-            fMergingJDL->AddToOutputSandbox(os->GetString(), comment);
+            fMergingJDL->AddToSet("Output", os->GetString());
+         if (first) fMergingJDL->AddToSetDescription("Output", comment);
+         first = kFALSE;
       }   
       delete arr;
       fGridJDL->SetPrice((UInt_t)fPrice, "AliEn price for this job");
@@ -1932,7 +1986,7 @@ Bool_t AliAnalysisAlien::WriteJDL(Bool_t copy)
    }  
    TString sjdl2 = fMergingJDL->Generate();
    Int_t index, index1;
-   sjdl.ReplaceAll("\"LF:", "\n   \"LF:");
+   sjdl.ReplaceAll("\",\"", "\",\n   \"");
    sjdl.ReplaceAll("(member", "\n   (member");
    sjdl.ReplaceAll("\",\"VO_", "\",\n   \"VO_");
    sjdl.ReplaceAll("{", "{\n   ");
@@ -1940,7 +1994,7 @@ Bool_t AliAnalysisAlien::WriteJDL(Bool_t copy)
    sjdl.ReplaceAll("{\n   \n", "{\n");
    sjdl.ReplaceAll("\n\n", "\n");
    sjdl.ReplaceAll("OutputDirectory", "OutputDir");
-   sjdl1.ReplaceAll("\"LF:", "\n   \"LF:");
+   sjdl1.ReplaceAll("\",\"", "\",\n   \"");
    sjdl1.ReplaceAll("(member", "\n   (member");
    sjdl1.ReplaceAll("\",\"VO_", "\",\n   \"VO_");
    sjdl1.ReplaceAll("{", "{\n   ");
@@ -1948,7 +2002,7 @@ Bool_t AliAnalysisAlien::WriteJDL(Bool_t copy)
    sjdl1.ReplaceAll("{\n   \n", "{\n");
    sjdl1.ReplaceAll("\n\n", "\n");
    sjdl1.ReplaceAll("OutputDirectory", "OutputDir");
-   sjdl2.ReplaceAll("\"LF:", "\n   \"LF:");
+   sjdl2.ReplaceAll("\",\"", "\",\n   \"");
    sjdl2.ReplaceAll("(member", "\n   (member");
    sjdl2.ReplaceAll("\",\"VO_", "\",\n   \"VO_");
    sjdl2.ReplaceAll("{", "{\n   ");
@@ -2260,8 +2314,21 @@ TChain *AliAnalysisAlien::GetChainForTestMode(const char *treeName) const
    TString streeName(treeName);
    if (IsUseMCchain()) streeName = "TE";
    TChain *chain = new TChain(streeName);
-   TChain *chainFriend = 0;
-   if (!fFriendChainName.IsNull()) chainFriend = new TChain(streeName);       
+   TList *friends = new TList();
+   TChain *cfriend = 0;
+   if (!fFriendChainName.IsNull()) {
+      TObjArray *list = fFriendChainName.Tokenize(" ");
+      TIter next(list);
+      TObjString *str;
+      while((str=(TObjString*)next())) {
+         cfriend = new TChain(streeName, str->GetName());
+         friends->Add(cfriend);
+         chain->AddFriend(cfriend);
+      }
+      delete list;
+   } 
+   TString bpath;
+   TIter nextfriend(friends);
    while (in.good())
    {
       in >> line;
@@ -2275,16 +2342,22 @@ TChain *AliAnalysisAlien::GetChainForTestMode(const char *treeName) const
          if (!fFriendChainName.IsNull()) {
             if (esdFile.Index("#") > -1)
                esdFile.Remove(esdFile.Index("#"));
-            esdFile = gSystem->DirName(esdFile);
-            esdFile += "/" + fFriendChainName;
-            file = TFile::Open(esdFile);
-            if (file && !file->IsZombie()) {
-               file->Close();
-               chainFriend->Add(esdFile);
-            } else {
-               Fatal("GetChainForTestMode", "Cannot open friend file: %s", esdFile.Data());
-               return 0;
-            }   
+            bpath = gSystem->DirName(esdFile);
+            bpath += "/";
+            TString fileFriend;
+            nextfriend.Reset();
+            while ((cfriend=(TChain*)nextfriend())) {
+               fileFriend = bpath;
+               fileFriend += cfriend->GetTitle();
+               file = TFile::Open(fileFriend);
+               if (file && !file->IsZombie()) {
+                  file->Close();
+                  cfriend->Add(fileFriend);
+               } else {
+                  Fatal("GetChainForTestMode", "Cannot open friend file: %s", fileFriend.Data());
+                  return 0;
+               } 
+            }     
          }
       } else {
          Error("GetChainforTestMode", "Skipping un-openable file: %s", esdFile.Data());
@@ -2294,11 +2367,10 @@ TChain *AliAnalysisAlien::GetChainForTestMode(const char *treeName) const
    if (!chain->GetListOfFiles()->GetEntries()) {
        Error("GetChainForTestMode", "No file from %s could be opened", fFileForTestMode.Data());
        delete chain;
-       delete chainFriend;
+       friends->Delete();
+       delete friends;
        return NULL;
    }
-//    chain->ls();
-   if (!fFriendChainName.IsNull()) chain->AddFriend(chainFriend);
    return chain;
 }    
 
@@ -2384,8 +2456,8 @@ void AliAnalysisAlien::Print(Option_t *) const
       printf("=   Soft reset signal will be send to master______ CHANGE BEHAVIOR AFTER COMPLETION\n");      
       if (fProofReset>1)   
       printf("=   Hard reset signal will be send to master______ CHANGE BEHAVIOR AFTER COMPLETION\n");      
-      if (!fRootVersionForProof.IsNull())
-      printf("=   ROOT version requested________________________ %s\n", fRootVersionForProof.Data());
+      if (!fROOTVersion.IsNull())
+      printf("=   ROOT version requested________________________ %s\n", fROOTVersion.Data());
       else
       printf("=   ROOT version requested________________________ default\n");
       printf("=   AliRoot version requested_____________________ %s\n", fAliROOTVersion.Data());
@@ -2417,7 +2489,7 @@ void AliAnalysisAlien::Print(Option_t *) const
             \n*****       To disable, use: plugin->SetOverwriteMode(kFALSE);\n");
    }
    printf("=   Copy files to grid: __________________________ %s\n", (IsUseCopy())?"YES":"NO");
-   printf("=   Check if files can be copied to grid: ________ %s\n", (IsCheckCopy())?"YES":"NO");
+   printf("=   Check if files can be copied to grid: ________ %s\n", (IsCheckCopy())?"YES":"NO:Print");
    printf("=   Production mode:______________________________ %d\n", fProductionMode);
    printf("=   Version of API requested: ____________________ %s\n", fAPIVersion.Data());
    printf("=   Version of ROOT requested: ___________________ %s\n", fROOTVersion.Data());
@@ -2426,8 +2498,17 @@ void AliAnalysisAlien::Print(Option_t *) const
    printf("=   User running the plugin: _____________________ %s\n", fUser.Data());
    printf("=   Grid workdir relative to user $HOME: _________ %s\n", fGridWorkingDir.Data());
    printf("=   Grid output directory relative to workdir: ___ %s\n", fGridOutputDir.Data());
-   printf("=   Data base directory path requested: __________ %s\n", fGridDataDir.Data());
-   printf("=   Data search pattern: _________________________ %s\n", fDataPattern.Data());
+   TString basedatadir = fGridDataDir;
+   TString pattern = fDataPattern;
+   pattern.Strip();
+   Int_t ind = pattern.Index(" ");
+   if (ind>=0) {
+      basedatadir += "/%run%/";
+      basedatadir += pattern(0, ind);
+      pattern = pattern(ind+1, pattern.Length());
+   }   
+   printf("=   Data base directory path requested: __________ %s\n", basedatadir.Data());
+   printf("=   Data search pattern: _________________________ %s\n", pattern.Data());
    printf("=   Input data format: ___________________________ %s\n", fInputFormat.Data());
    if (fRunNumbers.Length()) 
    printf("=   Run numbers to be processed: _________________ %s\n", fRunNumbers.Data());
@@ -2538,6 +2619,35 @@ void AliAnalysisAlien::SetDefaults()
 }   
 
 //______________________________________________________________________________
+void AliAnalysisAlien::SetFriendChainName(const char *name, const char *libnames)
+{
+   // Set file name for the chain of friends and optionally additional libs to be loaded.
+   // Libs should be separated by blancs.
+   fFriendChainName = name;
+   fFriendChainName.ReplaceAll(",", " ");
+   fFriendChainName.Strip();
+   fFriendChainName.ReplaceAll("  ", " ");
+   
+   fFriendLibs = libnames;
+   if (fFriendLibs.Length()) {
+     if(!fFriendLibs.Contains(".so"))
+       Fatal("SetFriendChainName()", "You should provide explicit library names (with extension)");
+     fFriendLibs.ReplaceAll(",", " ");
+     fFriendLibs.Strip();
+     fFriendLibs.ReplaceAll("  ", " ");
+   }
+}
+
+//______________________________________________________________________________
+void AliAnalysisAlien::SetRootVersionForProof(const char *version)
+{
+// Obsolete method. Use SetROOTVersion instead
+   Warning("SetRootVersionForProof", "Obsolete. Use SetROOTVersion instead");
+   if (fROOTVersion.IsNull()) SetROOTVersion(version);
+   else Error("SetRootVersionForProof", "ROOT version already set to %s", fROOTVersion.Data());
+}
+   
+//______________________________________________________________________________
 Bool_t AliAnalysisAlien::CheckMergedFiles(const char *filename, const char *aliendir, Int_t nperchunk, const char *jdl)
 {
 // Checks current merge stage, makes xml for the next stage, counts number of files, submits next stage.
@@ -2588,19 +2698,26 @@ Bool_t AliAnalysisAlien::CheckMergedFiles(const char *filename, const char *alie
    // Check if this is the last stage to be done.
    Bool_t laststage = (nfiles<nperchunk);
    if (fMaxMergeStages && stage>=fMaxMergeStages) laststage = kTRUE;
+   Int_t jobId = 0;
    if (laststage) {
       printf("### Submiting final merging stage %d\n", stage);
       TString finalJDL = jdl;
       finalJDL.ReplaceAll(".jdl", "_final.jdl");
       TString query = Form("submit %s %s %d", finalJDL.Data(), aliendir, stage);
-      Int_t jobId = SubmitSingleJob(query);
-      if (!jobId) return kFALSE;      
+      jobId = SubmitSingleJob(query);
    } else {
       printf("### Submiting merging stage %d\n", stage);
       TString query = Form("submit %s %s %d", jdl, aliendir, stage);
-      Int_t jobId = SubmitSingleJob(query);
-      if (!jobId) return kFALSE;           
+      jobId = SubmitSingleJob(query);
    }
+   if (!jobId) return kFALSE;           
+
+   if (!fGridJobIDs.IsNull()) fGridJobIDs.Append(" ");
+   fGridJobIDs.Append(Form("%d", jobId));
+   if (!fGridStages.IsNull()) fGridStages.Append(" ");
+   fGridStages.Append(Form("%s_merge_stage%d", 
+			   laststage ? "final" : "partial", stage));
+
    return kTRUE;   
 }        
 
@@ -2642,14 +2759,17 @@ Int_t AliAnalysisAlien::SubmitSingleJob(const char *query)
       ::Error("SubmitSingleJob", "Your query %s could not be submitted", query);
       return 0;
    }
-   printf(" Job id: %s\n", jobId.Data());
-   return atoi(jobId);
+   Int_t ijobId = jobId.Atoi();
+   printf(" Job id: '%s' (%d)\n", jobId.Data(), ijobId);
+   return ijobId; 
 }  
 
 //______________________________________________________________________________
 Bool_t AliAnalysisAlien::MergeInfo(const char *output, const char *collection)
 {
 // Merges a collection of output files using concatenation.
+   TString scoll(collection);
+   if (!scoll.Contains(".xml")) return kFALSE;
    TGridCollection *coll = (TGridCollection*)gROOT->ProcessLine(Form("TAlienCollection::Open(\"%s\");", collection));
    if (!coll) {
       ::Error("MergeInfo", "Input XML %s collection empty.", collection);
@@ -2702,6 +2822,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
    Int_t countChunk = 0;
    Int_t countZero = nmaxmerge;
    Bool_t merged = kTRUE;
+   Bool_t isGrid = kTRUE;
    Int_t index = outputFile.Index("@");
    if (index > 0) outputFile.Remove(index);
    TString inputFile = outputFile;
@@ -2722,17 +2843,29 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
          listoffiles->Add(new TNamed(fname.Data(),""));
       }   
    } else if (sbasedir.Contains(".txt")) {
+      // The file having the .txt extension is expected to contain a list of
+      // folders where the output files will be looked. For alien folders,
+      // the full folder LFN is expected (starting with alien://)
       // Assume lfn's on each line
       TString line;
       ifstream in;
       in.open(sbasedir);
+      if (in.fail()) {
+         ::Error("MergeOutput", "File %s cannot be opened. Merging stopped." ,sbasedir.Data());
+         return kTRUE;
+      }           
       Int_t nfiles = 0;
       while (in.good()) {
          in >> line;
          if (line.IsNull() || line.BeginsWith("#")) continue;
+         line.Strip();
+         if (!line.Contains("alien:")) isGrid = kFALSE;
+         line += "/";
+         line += outputFile;
          nfiles++;
          listoffiles->Add(new TNamed(line.Data(),""));
       }
+      in.close();
       if (!nfiles) {
          ::Error("MergeOutput","Input file %s contains no files to be merged\n", sbasedir.Data());
          delete listoffiles;
@@ -2831,7 +2964,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
          // Loop 'find' results and get next LFN
          if (countZero == nmaxmerge) {
             // First file in chunk - create file merger and add previous chunk if any.
-            fm = new TFileMerger(kTRUE);
+            fm = new TFileMerger(isGrid);
             fm->SetFastMethod(kTRUE);
             if (previousChunk.Length()) fm->AddFile(previousChunk.Data());
             outputChunk = outputFile;
@@ -2871,7 +3004,7 @@ Bool_t AliAnalysisAlien::MergeOutput(const char *output, const char *basedir, In
    }
    // Merging stage different than 0.
    // Move to the begining of the requested chunk.
-   fm = new TFileMerger(kTRUE);
+   fm = new TFileMerger(isGrid);
    fm->SetFastMethod(kTRUE);
    while ((nextfile=next())) fm->AddFile(nextfile->GetName());
    delete listoffiles;
@@ -2983,11 +3116,13 @@ Bool_t AliAnalysisAlien::MergeOutputs()
       merged = MergeOutput(outputFile, fGridOutputDir, fMaxMergeFiles);
       if (!merged) {
          Error("MergeOutputs", "Terminate() will  NOT be executed");
-         return kFALSE;
+	 delete list;
+	 return kFALSE;
       }
       TFile *fileOpened = (TFile*)gROOT->GetListOfFiles()->FindObject(outputFile);
       if (fileOpened) fileOpened->Close();
    } 
+   delete list;
    return kTRUE;
 }   
 
@@ -3118,9 +3253,9 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
         }
       }
       // Do we need to change the ROOT version ? The success of this cannot be checked.
-      if (!fRootVersionForProof.IsNull() && !testMode) {
-         gROOT->ProcessLine(Form("TProof::Mgr(\"%s\")->SetROOTVersion(\"%s\");", 
-                            fProofCluster.Data(), fRootVersionForProof.Data()));
+      if (!fROOTVersion.IsNull() && !testMode) {
+         gROOT->ProcessLine(Form("TProof::Mgr(\"%s\")->SetROOTVersion(\"VO_ALICE@ROOT::%s\");", 
+                            fProofCluster.Data(), fROOTVersion.Data()));
       }
       // Connect to PROOF and check the status
       Long_t proof = 0;
@@ -3183,7 +3318,12 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
          if (!alirootMode.IsNull()) extraLibs = "ANALYSIS:OADB:ANALYSISalice";
          // Parse the extra libs for .so
          if (fAdditionalLibs.Length()) {
-            TObjArray *list = fAdditionalLibs.Tokenize(" ");
+            TString additionalLibs = fAdditionalLibs;
+            additionalLibs.Strip();
+            if (additionalLibs.Length() && fFriendLibs.Length())
+               additionalLibs += " ";
+            additionalLibs += fFriendLibs;
+            TObjArray *list = additionalLibs.Tokenize(" ");
             TIter next(list);
             TObjString *str;
             while((str=(TObjString*)next())) {
@@ -3209,10 +3349,10 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
             }
             if (list) delete list;            
          }
-        if (!extraLibs.IsNull()) {
-          Info("StartAnalysis", "Adding extra libs: %s",extraLibs.Data());
-          optionsList.Add(new TNamed("ALIROOT_EXTRA_LIBS",extraLibs.Data()));
-        }
+         if (!extraLibs.IsNull()) {
+           Info("StartAnalysis", "Adding extra libs: %s",extraLibs.Data());
+           optionsList.Add(new TNamed("ALIROOT_EXTRA_LIBS",extraLibs.Data()));
+         }
          // Check extra includes
          if (!fIncludePath.IsNull()) {
             TString includePath = fIncludePath;
@@ -3344,7 +3484,7 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
       // Compose the output archive.
       fOutputArchive = "log_archive.zip:std*@disk=1 ";
       if (mgr->IsCollectThroughput())
-         fOutputArchive += Form("root_archive.zip:%s,*.stat,*%s@disk=%d",fOutputFiles.Data(),mgr->GetFileInfoLog(),fNreplicas);
+         fOutputArchive += Form("root_archive.zip:%s,*.stat@disk=%d %s@disk=%d",fOutputFiles.Data(),fNreplicas, mgr->GetFileInfoLog(),fNreplicas);
       else
          fOutputArchive += Form("root_archive.zip:%s,*.stat@disk=%d",fOutputFiles.Data(),fNreplicas);
    }
@@ -3430,6 +3570,8 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
    gGrid->Cd(fGridOutputDir);
    TGridResult *res;
    TString jobID = "";
+   fGridJobIDs = "";
+   fGridStages = "";
    if (!fRunNumbers.Length() && !fRunRange[0]) {
       // Submit a given xml or a set of runs
       res = gGrid->Command(Form("submit %s", fJDLName.Data()));
@@ -3447,6 +3589,12 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
             \n_______________________________________________________________________",
                    fJDLName.Data(), cjobId);
             jobID = cjobId;      
+	    if (jobID.Atoi()) { 
+	      if (!fGridJobIDs.IsNull()) fGridJobIDs.Append(" ");
+	      fGridJobIDs.Append(jobID);
+	      if (!fGridStages.IsNull()) fGridStages.Append(" ");
+	      fGridStages.Append("full");
+	    }
          }          
          delete res;
       } else {
@@ -3456,6 +3604,7 @@ Bool_t AliAnalysisAlien::StartAnalysis(Long64_t /*nentries*/, Long64_t /*firstEn
    } else {
       // Submit for a range of enumeration of runs.
       if (!Submit()) return kFALSE;
+      jobID = fGridJobIDs;
    }   
          
    if (fDropToShell) {
@@ -3716,6 +3865,10 @@ Bool_t AliAnalysisAlien::SubmitNext()
             \n#####   Your JDL %s submitted (%d to go). \nTHE JOB ID IS: %s \
             \n_______________________________________________________________________",
                 fJDLName.Data(), nmasterjobs-fNsubmitted-1, cjobId1.Data());
+	    if (!fGridJobIDs.IsNull()) fGridJobIDs.Append(" ");
+	    fGridJobIDs.Append(cjobId1);
+	    if (!fGridStages.IsNull()) fGridStages.Append(" ");
+	    fGridStages.Append("full");
             jobID += cjobId1;
             jobID += " ";
             lastmaster = cjobId1.Atoi();
@@ -3949,7 +4102,12 @@ void AliAnalysisAlien::WriteAnalysisMacro()
       out << "   printf(\"Include path: %s\\n\", gSystem->GetIncludePath());" << endl << endl;
       if (fAdditionalLibs.Length()) {
          out << "// Add aditional AliRoot libraries" << endl;
-         TObjArray *list = fAdditionalLibs.Tokenize(" ");
+         TString additionalLibs = fAdditionalLibs;
+         additionalLibs.Strip();
+         if (additionalLibs.Length() && fFriendLibs.Length())
+            additionalLibs += " ";
+         additionalLibs += fFriendLibs;
+         TObjArray *list = additionalLibs.Tokenize(" ");
          TIter next(list);
          TObjString *str;
          while((str=(TObjString*)next())) {
@@ -4000,7 +4158,7 @@ void AliAnalysisAlien::WriteAnalysisMacro()
             out << "   plugin->SetFileForTestMode(\"" << fFileForTestMode << "\");" << endl;
          out << "   plugin->SetNtestFiles(" << fNtestFiles << ");" << endl;
          if (!fFriendChainName.IsNull()) 
-            out << "   plugin->SetFriendChainName(\"" << fFriendChainName << "\");" << endl;
+            out << "   plugin->SetFriendChainName(\"" << fFriendChainName << "\",\"" << fFriendLibs << "\");" << endl;
          if (IsUseMCchain())
             out << "   plugin->SetUseMCchain();" << endl;
          out << "   mgr->SetGridHandler(plugin);" << endl;
@@ -4042,9 +4200,13 @@ void AliAnalysisAlien::WriteAnalysisMacro()
          if (IsUseMCchain()) {
             out << "   TString treename = \"TE\";" << endl;
          } else {   
-            out << "   TString treename = type;" << endl;
-            out << "   treename.ToLower();" << endl;
-            out << "   treename += \"Tree\";" << endl;
+            if (!fTreeName.IsNull()) {
+               out << "   TString treename = \"" << fTreeName << "\";" << endl;
+            } else {   
+               out << "   TString treename = type;" << endl;
+               out << "   treename.ToLower();" << endl;
+               out << "   treename += \"Tree\";" << endl;
+            }   
          }   
          out << "   printf(\"***************************************\\n\");" << endl;
          out << "   printf(\"    Getting chain of trees %s\\n\", treename.Data());" << endl;
@@ -4056,8 +4218,20 @@ void AliAnalysisAlien::WriteAnalysisMacro()
          out << "   }" << endl;
          out << "   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();" << endl;
          out << "   TChain *chain = new TChain(treename);" << endl;
-         if(fFriendChainName!="") {
-            out << "   TChain *chainFriend = new TChain(treename);" << endl;
+         if(!fFriendChainName.IsNull()) {
+            out << "   TList *friends = new TList();" << endl;
+            out << "   TIter nextfriend(friends);" << endl;
+            out << "   TChain *cfriend = 0;" << endl;
+            TObjArray *list = fFriendChainName.Tokenize(" ");
+            TIter next(list);
+            TObjString *str;
+            while((str=(TObjString*)next())) {
+               out << "   cfriend = new TChain(treename, \"" << str->GetName() << "\");" << endl;
+               out << "   friends->Add(cfriend);" << endl;
+               out << "   chain->AddFriend(cfriend);" << endl;
+            }
+            delete list;   
+//            out << "   TChain *chainFriend = new TChain(treename);" << endl;
          }
          out << "   coll->Reset();" << endl;
          out << "   while (coll->Next()) {" << endl;
@@ -4071,19 +4245,24 @@ void AliAnalysisAlien::WriteAnalysisMacro()
          out << "         }" << endl;
          out << "      }" << endl;
          out << "      chain->Add(filename);" << endl;
-         if(fFriendChainName!="") {
-            out << "      TString fileFriend=coll->GetTURL(\"\");" << endl;
-            out << "      if (fileFriend.Index(\"#\") > -1) fileFriend.Remove(fileFriend.Index(\"#\"));" << endl;
-            out << "      fileFriend = gSystem->DirName(fileFriend);" << endl;
-            out << "      fileFriend += \"/\";" << endl;
-            out << "      fileFriend += \"" << fFriendChainName << "\";";
-            out << "      TFile *file = TFile::Open(fileFriend);" << endl;
-            out << "      if (file) {" << endl;
-            out << "         file->Close();" << endl;
-            out << "         chainFriend->Add(fileFriend.Data());" << endl;
-            out << "      } else {" << endl;
-            out << "         ::Fatal(\"CreateChain\", \"Cannot open friend file: %s\", fileFriend.Data());" << endl;
-            out << "         return 0;" << endl;
+         if(!fFriendChainName.IsNull()) {
+            out << "      TString bpath=coll->GetTURL(\"\");" << endl;
+            out << "      if (bpath.Index(\"#\") > -1) bpath.Remove(bpath.Index(\"#\"));" << endl;
+            out << "      bpath = gSystem->DirName(bpath);" << endl;
+            out << "      bpath += \"/\";" << endl;
+            out << "      TString fileFriend;" << endl;
+            out << "      nextfriend.Reset();" << endl;
+            out << "      while ((cfriend=(TChain*)nextfriend())) {" << endl;
+            out << "         fileFriend = bpath;" << endl;
+            out << "         fileFriend += cfriend->GetTitle();" << endl;
+            out << "         TFile *file = TFile::Open(fileFriend);" << endl;
+            out << "         if (file) {" << endl;
+            out << "            file->Close();" << endl;
+            out << "            cfriend->Add(fileFriend.Data());" << endl;
+            out << "         } else {" << endl;
+            out << "            ::Fatal(\"CreateChain\", \"Cannot open friend file: %s\", fileFriend.Data());" << endl;
+            out << "            return 0;" << endl;
+            out << "         }" << endl;
             out << "      }" << endl;
          }
          out << "   }" << endl;
@@ -4091,9 +4270,6 @@ void AliAnalysisAlien::WriteAnalysisMacro()
          out << "      ::Error(\"CreateChain\", \"No tree found from collection %s\", xmlfile);" << endl;
          out << "      return NULL;" << endl;
          out << "   }" << endl;
-         if(fFriendChainName!="") {
-            out << "   chain->AddFriend(chainFriend);" << endl;
-         }
          out << "   return chain;" << endl;
          out << "}" << endl << endl;
       }   
@@ -4299,7 +4475,12 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "   printf(\"Include path: %s\\n\", gSystem->GetIncludePath());" << endl << endl;
       if (fAdditionalLibs.Length()) {
          out << "// Add aditional AliRoot libraries" << endl;
-         TObjArray *list = fAdditionalLibs.Tokenize(" ");
+         TString additionalLibs = fAdditionalLibs;
+         additionalLibs.Strip();
+         if (additionalLibs.Length() && fFriendLibs.Length())
+            additionalLibs += " ";
+         additionalLibs += fFriendLibs;
+         TObjArray *list = additionalLibs.Tokenize(" ");
          TIter next(list);
          TObjString *str;
          while((str=(TObjString*)next())) {
@@ -4354,6 +4535,11 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "      printf(\"ERROR: Analysis manager could not be extracted from file \");" << endl;
       out << "      return;" << endl;
       out << "   }" << endl;
+      if (IsLocalTest()) {
+         out << "   printf(\"===================================\n\");" << endl;      
+         out << "   printf(\"Testing merging...\\n\");" << endl;
+         out << "   printf(\"===================================\n\");" << endl;
+      }        
       out << "   while((str=(TObjString*)iter->Next())) {" << endl;
       out << "      outputFile = str->GetString();" << endl;
       out << "      if (outputFile.Contains(\"*\")) continue;" << endl;
@@ -4361,7 +4547,7 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "      if (index > 0) outputFile.Remove(index);" << endl;
       out << "      // Skip already merged outputs" << endl;
       out << "      if (!gSystem->AccessPathName(outputFile)) {" << endl;
-      out << "         printf(\"Output file <%s> found. Not merging again.\",outputFile.Data());" << endl;
+      out << "         printf(\"Output file <%s> found. Not merging again.\\n\",outputFile.Data());" << endl;
       out << "         continue;" << endl;
       out << "      }" << endl;
       out << "      if (mergeExcludes.Contains(outputFile.Data())) continue;" << endl;
@@ -4371,7 +4557,7 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "         return;" << endl;
       out << "      }" << endl;
       out << "   }" << endl;
-      if (mgr && mgr->IsCollectThroughput()) {
+      if (mgr && mgr->IsCollectThroughput() && !IsLocalTest()) {
          out << "   TString infolog = \"" << mgr->GetFileInfoLog() << "\";" << endl;
          out << "   AliAnalysisAlien::MergeInfo(infolog, outputDir);" << endl;
       }
@@ -4380,7 +4566,13 @@ void AliAnalysisAlien::WriteMergingMacro()
       out << "   out.open(\"outputs_valid\", ios::out);" << endl;
       out << "   out.close();" << endl;
       out << "   // read the analysis manager from file" << endl;
-      out << "   if (!outputDir.Contains(\"Stage\")) return;" << endl;
+      if (IsLocalTest()) {
+         out << "   printf(\"===================================\n\");" << endl;      
+         out << "   printf(\"Testing Terminate()...\\n\");" << endl;
+         out << "   printf(\"===================================\n\");" << endl;      
+      } else {   
+         out << "   if (!outputDir.Contains(\"Stage\")) return;" << endl;
+      }   
       out << "   mgr->SetRunFromPath(mgr->GetRunFromAlienPath(dir));" << endl;
       out << "   mgr->SetSkipTerminate(kFALSE);" << endl;
       out << "   mgr->PrintStatus();" << endl;

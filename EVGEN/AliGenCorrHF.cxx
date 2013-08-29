@@ -21,9 +21,9 @@
 // Is a generalisation of AliGenParam class for correlated pairs of hadrons.
 // In this version quark pairs and fragmentation functions are obtained from
 // ~2.10^6 Pythia6.214 events generated with kCharmppMNRwmi & kBeautyppMNRwmi, 
-// CTEQ5L PDF and Pt_hard = 2.76 GeV/c for p-p collisions at 7, 10 and 14 TeV,
+// CTEQ5L PDF and Pt_hard = 2.76 GeV/c for p-p collisions at 2.76, 7, 8, 10 and 14 TeV,
 // and with kCharmppMNR (Pt_hard = 2.10 GeV/c) & kBeautyppMNR (Pt_hard = 2.75 GeV/c), 
-// CTEQ4L PDF for Pb-Pb at 3.94 TeV, for p-Pb & Pb-p at 8.8 TeV. 
+// CTEQ4L PDF for Pb-Pb at 2.76 and 3.94 TeV, for p-Pb & Pb-p at 5 and 8.8 TeV. 
 // Decays are performed by Pythia.
 // Author: S. Grigoryan, LPC Clermont-Fd & YerPhI, Smbat.Grigoryan@cern.ch
 // July 07: added quarks in the stack (B. Vulpescu)
@@ -39,6 +39,7 @@
 // of HF-hadrons, when the cuts on their children are satisfied (L. Manceau)
 // Oct 11: added Pb-Pb at 2.76 TeV (S. Grigoryan)
 // June 12: added p-Pb & Pb-p at 5 TeV (S. Grigoryan)
+// April 13: added p-p at 2.76 and 8 TeV (S. Grigoryan)
 // 
 //-------------------------------------------------------------------------
 // How it works (for the given flavor and p-p energy):
@@ -73,7 +74,6 @@
 //
 // add the following typical lines in Config.C
 /*
-  if (!strcmp(option,"corr")) {
     // An example for correlated charm or beauty hadron pair production at 14 TeV
 
     // AliGenCorrHF *gener = new AliGenCorrHF(1, 4, 14);  // for charm, 1 pair per event
@@ -91,9 +91,7 @@
     gener->SetTrackingFlag(1);       //1: Decay during transport, 
                                      //0: No Decay during transport
     gener->Init();
-}
 */
-// and in aliroot do e.g. gAlice->Run(10,"Config.C") to produce 10 events.
 // One can include AliGenCorrHF in an AliGenCocktail generator.
 //--------------------------------------------------------------------------
 
@@ -169,10 +167,14 @@ AliGenCorrHF::AliGenCorrHF(Int_t npart, Int_t idquark, Int_t energy):
     if (fQuark == 5) {
       if (fEnergy == 7)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPP7PythiaMNRwmi.root";
+      else if (fEnergy == 8)
+           fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPP8PythiaMNRwmi.root";
       else if (fEnergy == 10)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPP10PythiaMNRwmi.root";
       else if (fEnergy == 14)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPP14PythiaMNRwmi.root";
+      else if (fEnergy == 2)
+           fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPP276PythiaMNRwmi.root";
       else if (fEnergy == 3)
 	   fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/BeautyPbPb276PythiaMNR.root";
       else if (fEnergy == 4)
@@ -187,10 +189,14 @@ AliGenCorrHF::AliGenCorrHF(Int_t npart, Int_t idquark, Int_t energy):
       fQuark = 4;
       if (fEnergy == 7)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPP7PythiaMNRwmi.root";
+      else if (fEnergy == 8)
+           fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPP8PythiaMNRwmi.root";
       else if (fEnergy == 10)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPP10PythiaMNRwmi.root";
       else if (fEnergy == 14)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPP14PythiaMNRwmi.root";
+      else if (fEnergy == 2)
+           fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPP276PythiaMNRwmi.root";
       else if (fEnergy == 3)
            fFileName = "$ALICE_ROOT/EVGEN/dataCorrHF/CharmPbPb276PythiaMNR.root";
       else if (fEnergy == 4)
@@ -814,6 +820,7 @@ void AliGenCorrHF::LoadTracks(Int_t iquark, Float_t *pq,
 	TParticle* iparticle = (TParticle *) particles->At(i);
 	Int_t kf  = iparticle->GetPdgCode();
 	Int_t jpa = iparticle->GetFirstMother()-1;
+        Int_t ksc  = iparticle->GetStatusCode();
 	// RS: note, the conversion mm->cm is done now in the decayer. The time is ignored here!
 	och[0] = origin0[0]+iparticle->Vx();
 	och[1] = origin0[1]+iparticle->Vy();
@@ -830,7 +837,7 @@ void AliGenCorrHF::LoadTracks(Int_t iquark, Float_t *pq,
 	
 	PushTrack(fTrackIt*trackIt[i], iparent, kf,
 		  pc, och, polar,
-		  0, kPDecay, nt, wgtch);
+		  0, kPDecay, nt, wgtch,ksc);
 	pParent[i] = nt;
 	KeepTrack(nt); 
 	fNprimaries++;

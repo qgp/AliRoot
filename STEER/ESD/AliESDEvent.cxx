@@ -72,6 +72,9 @@
 #include "AliESDHLTDecision.h"
 #include "AliCentrality.h"
 #include "AliESDCosmicTrack.h"
+#include "AliTriggerConfiguration.h"
+#include "AliTriggerClass.h"
+#include "AliTriggerCluster.h"
 #ifdef MFT_UPGRADE
 #include "AliESDMFT.h"
 #endif
@@ -163,7 +166,9 @@ AliESDEvent::AliESDEvent():
   fTOFHeader(0),
   fCentrality(0),
   fEventplane(0),
-  fDetectorStatus(0xFFFFFFFF)
+  fDetectorStatus(0xFFFFFFFF),
+  fDAQDetectorPattern(0xFFFF),
+  fDAQAttributes(0xFFFF)
   #ifdef MFT_UPGRADE
 //  , fESDMFT(0)
   #endif
@@ -212,7 +217,9 @@ AliESDEvent::AliESDEvent(const AliESDEvent& esd):
   fTOFHeader(new AliTOFHeader(*esd.fTOFHeader)),
   fCentrality(new AliCentrality(*esd.fCentrality)),
   fEventplane(new AliEventplane(*esd.fEventplane)),
-  fDetectorStatus(esd.fDetectorStatus)
+  fDetectorStatus(esd.fDetectorStatus),
+  fDAQDetectorPattern(esd.fDAQDetectorPattern),
+  fDAQAttributes(esd.fDAQAttributes)
   #ifdef MFT_UPGRADE
 //  , fESDMFT(new AliESDMFT(*esd.fESDMFT))
   #endif
@@ -356,6 +363,8 @@ AliESDEvent & AliESDEvent::operator=(const AliESDEvent& source) {
   fUseOwnList = source.fUseOwnList;
   
   fDetectorStatus = source.fDetectorStatus;
+  fDAQDetectorPattern = source.fDAQDetectorPattern;
+  fDAQAttributes = source.fDAQAttributes;
 
   return *this;
 }
@@ -403,7 +412,9 @@ void AliESDEvent::Reset()
 
   // Reset the standard contents
   ResetStdContent(); 
-
+  fDetectorStatus = 0xFFFFFFFF;
+  fDAQDetectorPattern = 0xFFFF;
+  fDAQAttributes = 0xFFFF;
   //  reset for the old data without AliESDEvent...
   if(fESDOld)fESDOld->Reset();
   if(fESDFriendOld){
@@ -548,6 +559,24 @@ Int_t AliESDEvent::AddV0(const AliESDv0 *v) {
   return idx;
 }  
 
+//______________________________________________________________________________
+Bool_t AliESDEvent::IsDetectorInTriggerCluster(TString detector, AliTriggerConfiguration* trigConf) const {
+  // Check if a given detector was read-out in the analyzed event
+  const TObjArray& classesArray=trigConf->GetClasses();
+  ULong64_t trigMask=GetTriggerMask();
+  Int_t nclasses = classesArray.GetEntriesFast();
+  for(Int_t iclass=0; iclass < nclasses; iclass++ ) {
+    AliTriggerClass* trclass = (AliTriggerClass*)classesArray.At(iclass);
+    Int_t classMask=trclass->GetMask();
+    if(trigMask & classMask){
+      TString detList=trclass->GetCluster()->GetDetectorsInCluster();
+      if(detList.Contains(detector.Data())){
+	return kTRUE;
+      }
+    }
+  }
+  return kFALSE; 
+}
 //______________________________________________________________________________
 void AliESDEvent::Print(Option_t *) const 
 {
@@ -1174,6 +1203,11 @@ void AliESDEvent::AddTrdTracklet(const AliESDTrdTracklet *trkl)
   new ((*fTrdTracklets)[fTrdTracklets->GetEntriesFast()]) AliESDTrdTracklet(*trkl);
 }
 
+void AliESDEvent::AddTrdTracklet(UInt_t trackletWord, Short_t hcid, Int_t label)
+{
+  new ((*fTrdTracklets)[fTrdTracklets->GetEntriesFast()]) AliESDTrdTracklet(trackletWord, hcid, label);
+}
+
 Int_t AliESDEvent::AddKink(const AliESDkink *c) 
 {
     // Add kink
@@ -1585,6 +1619,9 @@ void AliESDEvent::WriteToTree(TTree* tree) const {
       tree->Bronch(branchname, obj->ClassName(), fESDObjects->GetObjectRef(obj),kBufsize, splitLevel);
     }
   }
+  tree->Branch("fDetectorStatus",(void*)&fDetectorStatus,"fDetectorStatus/l");
+  tree->Branch("fDAQDetectorPattern",(void*)&fDAQDetectorPattern,"fDAQDetectorPattern/i");
+  tree->Branch("fDAQAttributes",(void*)&fDAQAttributes,"fDAQAttributes/i");
 }
 
 
@@ -1684,6 +1721,9 @@ void AliESDEvent::ReadFromTree(TTree *tree, Option_t* opt){
       // If connected use the connected list if objects
       fESDObjects->Delete();
       fESDObjects = connectedList;
+      tree->SetBranchAddress("fDetectorStatus",&fDetectorStatus); //PH probably redundant
+      tree->SetBranchAddress("fDAQDetectorPattern",&fDAQDetectorPattern);
+      tree->SetBranchAddress("fDAQAttributes",&fDAQAttributes);
       GetStdContent(); 
       fOldMuonStructure = fESDObjects->TestBit(BIT(23));
       fConnected = true;
@@ -1747,6 +1787,9 @@ void AliESDEvent::ReadFromTree(TTree *tree, Option_t* opt){
 	}
       }
     }
+    tree->SetBranchAddress("fDetectorStatus",&fDetectorStatus);
+    tree->SetBranchAddress("fDAQDetectorPattern",&fDAQDetectorPattern);
+    tree->SetBranchAddress("fDAQAttributes",&fDAQAttributes);
     GetStdContent();
     // when reading back we are not owner of the list 
     // must not delete it
@@ -1782,6 +1825,9 @@ void AliESDEvent::ReadFromTree(TTree *tree, Option_t* opt){
 	}
       }
     }
+    tree->SetBranchAddress("fDetectorStatus",&fDetectorStatus);
+    tree->SetBranchAddress("fDAQDetectorPattern",&fDAQDetectorPattern);
+    tree->SetBranchAddress("fDAQAttributes",&fDAQAttributes);
     GetStdContent();
     // when reading back we are not owner of the list 
     // must not delete it

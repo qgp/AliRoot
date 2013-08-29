@@ -23,9 +23,10 @@
 
 #include "AliHLTTPCDataCompressionComponent.h"
 #include "AliHLTTPCDefinitions.h"
+#include "AliHLTTPCDataCompressionDescriptor.h"
 #include "AliHLTTPCTrackGeometry.h"
 #include "AliHLTTPCSpacePointContainer.h"
-#include "AliHLTTPCHWCFSpacePointContainer.h"
+#include "AliHLTTPCRawSpacePointContainer.h"
 #include "AliHLTGlobalBarrelTrack.h"
 #include "AliHLTComponentBenchmark.h"
 #include "AliHLTDataDeflaterSimple.h"
@@ -48,8 +49,8 @@ ClassImp(AliHLTTPCDataCompressionComponent)
 
 AliHLTTPCDataCompressionComponent::AliHLTTPCDataCompressionComponent()
   : AliHLTProcessor()
-  , fMode(0)
-  , fDeflaterMode(0)
+  , fMode(kCompressionModeNone)
+  , fDeflaterMode(kDeflaterModeNone)
   , fVerificationMode(0)
   , fMaxDeltaPad(AliHLTTPCDefinitions::GetMaxClusterDeltaPad())
   , fMaxDeltaTime(AliHLTTPCDefinitions::GetMaxClusterDeltaTime())
@@ -94,7 +95,7 @@ void AliHLTTPCDataCompressionComponent::GetInputDataTypes( AliHLTComponentDataTy
 {
   /// inherited from AliHLTComponent: list of data types in the vector reference
   tgtList.clear();
-  tgtList.push_back(AliHLTTPCDefinitions::HWClustersDataType());
+  tgtList.push_back(AliHLTTPCDefinitions::RawClustersDataType());
   tgtList.push_back(AliHLTTPCDefinitions::ClustersDataType());
   tgtList.push_back(kAliHLTDataTypeTrack|kAliHLTDataOriginTPC);
 }
@@ -109,6 +110,7 @@ int AliHLTTPCDataCompressionComponent::GetOutputDataTypes(AliHLTComponentDataTyp
 {
   /// inherited from AliHLTComponent: multiple output data types of the component.
   tgtList.clear();
+  tgtList.push_back(AliHLTTPCDefinitions::DataCompressionDescriptorDataType());
   tgtList.push_back(AliHLTTPCDefinitions::RawClustersDataType());
   tgtList.push_back(AliHLTTPCDefinitions::RemainingClustersCompressedDataType());
   tgtList.push_back(AliHLTTPCDefinitions::RemainingClusterIdsDataType());
@@ -139,9 +141,9 @@ void AliHLTTPCDataCompressionComponent::GetOCDBObjectDescription(TMap* const tar
 
   targetMap->Add(new TObjString("HLT/ConfigTPC/TPCDataCompressor"),
 		 new TObjString("component arguments"));
-  if (fDeflaterMode==2) {
+  if (fDeflaterMode==kDeflaterModeHuffman) {
     targetMap->Add(new TObjString("HLT/ConfigTPC/TPCDataCompressorHuffmanTables"),
-		   new TObjString("huffman tables for deflater mode 2"));
+		   new TObjString("huffman tables for deflater mode 'huffman'"));
   }
 }
 
@@ -169,6 +171,7 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
   }
 
   // Process an event
+
   // Loop over all input blocks in the event
   bool bHaveMC=(GetFirstInputBlock(AliHLTTPCDefinitions::fgkAliHLTDataTypeClusterMCInfo | kAliHLTDataOriginTPC))!=NULL;
   if ((bHaveMC || fVerificationMode>0) && fpWrittenAssociatedClusterIds==NULL) {
@@ -190,9 +193,30 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
   if (GetBenchmarkInstance()) {
     GetBenchmarkInstance()->Start(2);
   }
+ 
+  // Write header block
+  {
+    AliHLTComponent_BlockData bd;
+    FillBlockData(bd);
+    bd.fOffset        = size;
+    bd.fSize          = sizeof(AliHLTTPCDataCompressionDescriptor);
+    bd.fDataType      = AliHLTTPCDefinitions::DataCompressionDescriptorDataType();
+    if( capacity < size + bd.fSize ){
+      iResult = -ENOMEM;
+      return iResult;
+    }    
+    AliHLTTPCDataCompressionDescriptor desc; 
+    desc.SetMergedClustersFlag(1);
+    *(AliHLTTPCDataCompressionDescriptor*)(outputPtr + bd.fOffset ) = desc;
+    outputBlocks.push_back(bd);
+    size += bd.fSize;
+    outputDataSize+=bd.fSize;
+    HLTBenchmark("header data block of size %d", bd.fSize);
+  }
 
   // transformed clusters
-  if (fMode==10) { // FIXME: condition to be adjusted
+  // the transformed clusters have not been used yet
+  if (false) { // FIXME: condition to be adjusted
     for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::fgkClustersDataType);
 	 pDesc!=NULL; pDesc=GetNextInputBlock()) {
       if (GetBenchmarkInstance()) {
@@ -219,7 +243,7 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
   vector<int> trackindexmap; // stores index for every track id
 
   // track data input
-  if (fMode==2 || fMode==4) {
+  if (fMode==kCompressionModeV1TrackModel || fMode==kCompressionModeV2TrackModel) {
     for (pDesc=GetFirstInputBlock(kAliHLTDataTypeTrack|kAliHLTDataOriginTPC);
 	 pDesc!=NULL; pDesc=GetNextInputBlock()) {
       if (GetBenchmarkInstance()) {
@@ -324,9 +348,8 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
 
   // loop over raw cluster blocks, assign to tracks and write
   // unassigned clusters
-  for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::fgkHWClustersDataType);
-       pDesc!=NULL; pDesc=GetNextInputBlock()) {
-    if (pDesc->fSize<=sizeof(AliRawDataHeader)) continue;
+  for (pDesc=GetFirstInputBlock(AliHLTTPCDefinitions::fgkRawClustersDataType);
+       pDesc!=NULL; pDesc=GetNextInputBlock()) {    
     if (GetBenchmarkInstance()) {
       GetBenchmarkInstance()->Start(1);
       GetBenchmarkInstance()->AddInput(pDesc->fSize);
@@ -491,7 +514,7 @@ int AliHLTTPCDataCompressionComponent::DoEvent( const AliHLTComponentEventData& 
 
   if (GetBenchmarkInstance() && allClusters>0) {
     GetBenchmarkInstance()->Stop(0);
-    if (fDeflaterMode!=3) {
+    if (fDeflaterMode!=kDeflaterModeHuffmanTrainer) {
       HLTBenchmark("%s - compression factor %.2f", GetBenchmarkInstance()->GetStatistics(), compressionFactor);
     } else {
       HLTBenchmark("%s", GetBenchmarkInstance()->GetStatistics());
@@ -773,8 +796,14 @@ int AliHLTTPCDataCompressionComponent::DoInit( int argc, const char** argv )
     return iResult;
 
   //Stage 3: command line arguments.
+  int mode=fMode; // just a backup for the info message below
+  int deflaterMode=fDeflaterMode;
   if (argc && (iResult = ConfigureFromArgumentString(argc, argv)) < 0)
     return iResult;
+
+  if (mode!=fMode || deflaterMode!=fDeflaterMode) {
+    HLTInfo("configured from command line: mode %d, deflater mode %d", fMode, fDeflaterMode);
+  }
 
   std::auto_ptr<AliHLTComponentBenchmark> benchmark(new AliHLTComponentBenchmark);
   if (benchmark.get()) {
@@ -789,15 +818,15 @@ int AliHLTTPCDataCompressionComponent::DoInit( int argc, const char** argv )
   }
 
   unsigned spacePointContainerMode=0;
-  if (fMode==2 || fMode==4) {
+  if (fMode==kCompressionModeV1TrackModel || fMode==kCompressionModeV2TrackModel) {
     // initialize map data for cluster access in the track association loop
-    spacePointContainerMode|=AliHLTTPCHWCFSpacePointContainer::kModeCreateMap;
+    spacePointContainerMode|=AliHLTTPCRawSpacePointContainer::kModeCreateMap;
   }
-  if (fMode==3 || fMode==4) {
+  if (fMode==kCompressionModeV2 || fMode==kCompressionModeV2TrackModel) {
     // optimized storage format: differential pad and time storage
-    spacePointContainerMode|=AliHLTTPCHWCFSpacePointContainer::kModeDifferentialPadTime;
+    spacePointContainerMode|=AliHLTTPCRawSpacePointContainer::kModeDifferentialPadTime;
   }
-  std::auto_ptr<AliHLTTPCHWCFSpacePointContainer> rawInputClusters(new AliHLTTPCHWCFSpacePointContainer(spacePointContainerMode));
+  std::auto_ptr<AliHLTTPCRawSpacePointContainer> rawInputClusters(new AliHLTTPCRawSpacePointContainer(spacePointContainerMode));
   std::auto_ptr<AliHLTTPCSpacePointContainer> inputClusters(new AliHLTTPCSpacePointContainer);
 
   std::auto_ptr<TH1F> histoCompFactor(new TH1F("CompressionFactor",
@@ -821,7 +850,7 @@ int AliHLTTPCDataCompressionComponent::DoInit( int argc, const char** argv )
 
   // track grid: 36 slices, each 6 partitions with max 33 rows
   fTrackGrid=new AliHLTTrackGeometry::AliHLTTrackGrid(36, 1, 6, 1, 33, 1, 20000);
-  fSpacePointGrid=AliHLTTPCHWCFSpacePointContainer::AllocateIndexGrid();
+  fSpacePointGrid=AliHLTTPCRawSpacePointContainer::AllocateIndexGrid();
 
   if (!rawInputClusters.get() ||
       !inputClusters.get() ||
@@ -859,9 +888,9 @@ int AliHLTTPCDataCompressionComponent::InitDeflater(int mode)
 {
   /// init the data deflater
   int iResult=0;
-  if (mode==2 || mode==3) {
+  if (mode==kDeflaterModeHuffman || mode==kDeflaterModeHuffmanTrainer) {
     // huffman deflater
-    std::auto_ptr<AliHLTDataDeflaterHuffman> deflater(new AliHLTDataDeflaterHuffman(mode==3));
+    std::auto_ptr<AliHLTDataDeflaterHuffman> deflater(new AliHLTDataDeflaterHuffman(mode==kDeflaterModeHuffmanTrainer));
     if (!deflater.get()) return -ENOMEM;
 
     if (!deflater->IsTrainingMode()) {
@@ -906,7 +935,7 @@ int AliHLTTPCDataCompressionComponent::InitDeflater(int mode)
     fpDataDeflater=deflater.release();
     return 0;
   }
-  if (mode==1) {
+  if (mode==kDeflaterModeSimple) {
     std::auto_ptr<AliHLTDataDeflaterSimple> deflater(new AliHLTDataDeflaterSimple);
     if (!deflater.get()) return -ENOMEM;
 
@@ -972,7 +1001,7 @@ int AliHLTTPCDataCompressionComponent::DoDeinit()
       filename.ReplaceAll(".root", "-deflater.root");
       fpDataDeflater->SaveAs(filename);
     }
-    if (fDeflaterMode==3) {
+    if (fDeflaterMode==kDeflaterModeHuffmanTrainer) {
       if (fTrainingTableOutput.IsNull()) {
 	fTrainingTableOutput=GetComponentID();
 	fTrainingTableOutput+="-huffman.root";

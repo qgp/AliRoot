@@ -28,6 +28,7 @@
 #include <TDirectory.h>
 #include <TH2F.h>
 #include <TF1.h>
+#include <TBits.h>
 
 //____________________________________________________________________
 ClassImp(AliESDtrackCuts)
@@ -1240,8 +1241,18 @@ Bool_t AliESDtrackCuts::AcceptTrack(const AliESDtrack* esdTrack)
   if (!fCutDCAToVertex2D && TMath::Abs(dcaToVertexZ) < fCutMinDCAToVertexZ)
     cuts[27] = kTRUE;
   
-  for (Int_t i = 0; i < 3; i++)
-    cuts[28+i] = !CheckITSClusterRequirement(fCutClusterRequirementITS[i], esdTrack->HasPointOnITSLayer(i*2), esdTrack->HasPointOnITSLayer(i*2+1));
+  for (Int_t i = 0; i < 3; i++) {
+    if(!(esdTrack->GetStatus()&AliESDtrack::kITSupg)) { // current ITS
+      cuts[28+i] = !CheckITSClusterRequirement(fCutClusterRequirementITS[i], esdTrack->HasPointOnITSLayer(i*2), esdTrack->HasPointOnITSLayer(i*2+1));
+    } else { // upgraded ITS (7 layers)
+      // at the moment, for L012 the layers 12 are considered together
+      if(i==0) { // L012
+	cuts[28+i] = !CheckITSClusterRequirement(fCutClusterRequirementITS[i], esdTrack->HasPointOnITSLayer(0), (esdTrack->HasPointOnITSLayer(1))&(esdTrack->HasPointOnITSLayer(2)));
+      } else { // L34 or L56
+	cuts[28+i] = !CheckITSClusterRequirement(fCutClusterRequirementITS[i], esdTrack->HasPointOnITSLayer(i*2+1), esdTrack->HasPointOnITSLayer(i*2+2));
+      }
+    }
+  }
   
   if(fCutRequireITSStandAlone || fCutRequireITSpureSA){
     if ((status & AliESDtrack::kITSin) == 0 || (status & AliESDtrack::kTPCin)){
@@ -2217,17 +2228,18 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
   const Int_t kSecBit = BIT(16); // set this bit in global tracks if it is secondary according to a cut
   
   for(Int_t itracks=0; itracks < nESDTracks; itracks++) {
-    if(esd->GetTrack(itracks)->GetLabel() > highestID) highestID = esd->GetTrack(itracks)->GetLabel();
     esd->GetTrack(itracks)->ResetBit(kSecBit|kRejBit); //reset bits used for flagging secondaries and rejected tracks in case they were changed before this analysis
   }
-  const Int_t maxid = highestID+1; // used to define bool array for check multiple associations of tracklets to one track. array starts at 0.
+  const Int_t maxid = nESDTracks+1; // used to define bool array for check multiple associations of tracklets to one track. array starts at 0.
   
   // bit mask for esd tracks, to check if multiple tracklets are associated to it
-  Bool_t globalBits[maxid], pureITSBits[maxid];
-  for(Int_t i=0; i<maxid; i++){ // set all bools to false
-      globalBits[i]=kFALSE;
-      pureITSBits[i]=kFALSE;
-  }
+  TBits globalBits(maxid), pureITSBits(maxid);
+  // why labels are used with the data? RS
+  //  Bool_t globalBits[maxid], pureITSBits[maxid];
+  //  for(Int_t i=0; i<maxid; i++){ // set all bools to false
+  //      globalBits[i]=kFALSE;
+  //      pureITSBits[i]=kFALSE;
+  //  }
 
   //*******************************************************************************************************
   // get multiplicity from global tracks
@@ -2255,7 +2267,7 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
           if (fgMultEstTrackCuts[kMultEstTrackCutGlobal]->AcceptTrack(track)) { // good ITSTPC track
             if (fgMultEstTrackCuts[kMultEstTrackCutDCAwSPD]->AcceptTrack(track) || fgMultEstTrackCuts[kMultEstTrackCutDCAwoSPD]->AcceptTrack(track)) {
               tracksITSTPC++; //global track counted
-              globalBits[itracks] = kTRUE;
+              globalBits.SetBitNumber(itracks);
             }
             else track->SetBit(kSecBit); // large DCA -> secondary, don't count either track not associated tracklet
           }
@@ -2266,7 +2278,7 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
       else if (fgMultEstTrackCuts[kMultEstTrackCutITSSA]->AcceptTrack(track)) { // good ITS complementary track
         if (fgMultEstTrackCuts[kMultEstTrackCutDCAwSPD]->AcceptTrack(track) || fgMultEstTrackCuts[kMultEstTrackCutDCAwoSPD]->AcceptTrack(track)) {
           tracksITSTPCSA_complementary++;
-          globalBits[itracks] = kTRUE;
+          globalBits.SetBitNumber(itracks);
         }
         else track->SetBit(kSecBit); // large DCA -> secondary, don't count either track not associated tracklet
       }
@@ -2278,7 +2290,7 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
       if (fgMultEstTrackCuts[kMultEstTrackCutITSSA]->AcceptTrack(track)) { // good ITSSA track
         if (fgMultEstTrackCuts[kMultEstTrackCutDCAwSPD]->AcceptTrack(track) || fgMultEstTrackCuts[kMultEstTrackCutDCAwoSPD]->AcceptTrack(track)) {
           tracksITSSA++;
-          pureITSBits[itracks] = kTRUE;
+          pureITSBits.SetBitNumber(itracks);
         }
         else track->SetBit(kRejBit);
       }
@@ -2302,8 +2314,8 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
     // are both clusters from the same tracks? If not, skip the tracklet (shouldn't change things much)
     if ((id1!=id2 && id1>=0 && id2>=0) || (id3!=id4 && id3>=0 && id4>=0)) continue;
 
-    Bool_t bUsedInGlobal = (id1 != -1) ? globalBits[id1] : 0;// has associated global track been associated to a previous tracklet?
-    Bool_t bUsedInPureITS = (id3 != -1) ? pureITSBits[id3] : 0;// has associated pure ITS track been associated to a previous tracklet?
+    Bool_t bUsedInGlobal = (id1 != -1) ? globalBits.TestBitNumber(id1) : 0;// has associated global track been associated to a previous tracklet?
+    Bool_t bUsedInPureITS = (id3 != -1) ? pureITSBits.TestBitNumber(id3) : 0;// has associated pure ITS track been associated to a previous tracklet?
     //*******************************************************************************************************
     if (trackType == kTrackletsITSTPC) {
       // count tracklets towards global+complementary tracks
@@ -2311,7 +2323,7 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
         (tr1 &&  tr1->TestBit(kRejBit)) ) {  // count tracklet as bad quality track
           if(!bUsedInGlobal){
             ++trackletsITSTPC_complementary;
-            if(id1>0) globalBits[id1] = kTRUE; // mark global track linked to this tracklet as "associated"
+            if(id1>0) globalBits.SetBitNumber(id1); // mark global track linked to this tracklet as "associated"
           }
       }
       else if(id1<0) {
@@ -2323,7 +2335,7 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
         (tr3 &&  tr3->TestBit(kRejBit)) ) { // count tracklet as bad quality track
         if(!bUsedInPureITS) {
           ++trackletsITSSA_complementary;
-          if(id3>0) pureITSBits[id3] = kTRUE; // mark global track linked to this tracklet as "associated"
+          if(id3>0) pureITSBits.SetBitNumber(id3); // mark global track linked to this tracklet as "associated"
         }
       }
       else if(id3<0) {

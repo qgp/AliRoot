@@ -41,6 +41,7 @@ class AliKalmanTrack;
 class AliTrackPointArray;
 class TPolyMarker3D;
 class AliDetectorPID;
+class TTreeSRedirector;
 
 class AliESDtrack : public AliExternalTrackParam {
 public:
@@ -186,6 +187,7 @@ public:
   Bool_t  GetITSModuleIndexInfo(Int_t ilayer,Int_t &idet,Int_t &status,
 				Float_t &xloc,Float_t &zloc) const;
   Int_t   GetITSLabel() const {return fITSLabel;}
+  void    SetITSLabel(Int_t label) {fITSLabel = label;}
   void    SetITStrack(AliKalmanTrack * track){
     if (fFriendTrack) fFriendTrack->SetITStrack(track);
   }
@@ -229,6 +231,7 @@ public:
   Double_t GetTPCsignalSigma() const {return fTPCsignalS;}
   UShort_t GetTPCsignalN() const {return fTPCsignalN;}
   Double_t GetTPCmomentum() const {return fIp?fIp->GetP():GetP();}
+  Double_t GetTPCTgl()      const {return fIp?fIp->GetTgl():GetTgl();}
   Double_t GetTPCchi2() const {return fTPCchi2;}
   Double_t GetTPCchi2Iter1() const {return fTPCchi2Iter1;}
   UShort_t GetTPCclusters(Int_t *idx) const;
@@ -325,6 +328,8 @@ public:
   Int_t   GetTOFcluster() const {return fTOFindex;}
   void    SetTOFcluster(Int_t index) {fTOFindex=index;}
   void    SetTOFCalChannel(Int_t index) {fTOFCalChannel=index;}
+  void    SetTOFsignalTunedOnData(Double_t signal){fTOFsignalTuned=signal;}
+  Double_t GetTOFsignalTunedOnData() const {return fTOFsignalTuned;}
 
 // HMPID methodes +++++++++++++++++++++++++++++++++ (kir)
   void    SetHMPIDsignal(Double_t theta) {fHMPIDsignal=theta;}
@@ -359,7 +364,9 @@ public:
   
   Double_t GetTrackPhiOnEMCal() const {return fTrackPhiOnEMCal;}
   Double_t GetTrackEtaOnEMCal() const {return fTrackEtaOnEMCal;}
-  void SetTrackPhiEtaOnEMCal(Double_t phi,Double_t eta) {fTrackPhiOnEMCal=phi;fTrackEtaOnEMCal=eta;}
+  Double_t GetTrackPtOnEMCal() const {return fTrackPtOnEMCal;}
+  Double_t GetTrackPOnEMCal() const {return TMath::Abs(fTrackEtaOnEMCal) < 1 ? fTrackPtOnEMCal*TMath::CosH(fTrackEtaOnEMCal) : -999;}
+  void SetTrackPhiEtaPtOnEMCal(Double_t phi,Double_t eta,Double_t pt) {fTrackPhiOnEMCal=phi;fTrackEtaOnEMCal=eta;fTrackPtOnEMCal=pt;}
 
   Int_t GetPHOScluster() const {return fCaloIndex;}
   void SetPHOScluster(Int_t index) {fCaloIndex=index;}
@@ -416,6 +423,8 @@ public:
   // - set lengt of bit fields fTPCClusterMap and fTPCSharedMap to 0
   static void OnlineMode(bool mode) {fgkOnlineMode=mode;}
   static bool OnlineMode() {return fgkOnlineMode;}
+  Double_t GetLengthInActiveZone( AliExternalTrackParam  *paramT, Double_t deltaY, Double_t deltaZ, Double_t bz, Double_t exbPhi =0 , TTreeSRedirector * pcstream =0 );
+  Double_t GetLengthInActiveZone( Int_t mode, Double_t deltaY, Double_t deltaZ, Double_t bz, Double_t exbPhi =0 , TTreeSRedirector * pcstream =0 );
 protected:
   
   AliExternalTrackParam *fCp; // Track parameters constrained to the primary vertex
@@ -498,6 +507,7 @@ protected:
   Double32_t fTRDBudget;      // trd material budget
 
   Double32_t fTOFsignal;      // detector's PID signal
+  Double32_t fTOFsignalTuned; //! detector's PID signal tuned on data when using MC
   Double32_t fTOFsignalToT;   // detector's ToT signal
   Double32_t fTOFsignalRaw;   // detector's uncorrected time signal
   Double32_t fTOFsignalDz;    // local z  of track's impact on the TOF pad 
@@ -543,14 +553,15 @@ protected:
 
   mutable const AliDetectorPID* fDetectorPID; //! transient object to cache PID information
 
-  Double_t fTrackPhiOnEMCal;   // phi of track after being propagated to 430cm
-  Double_t fTrackEtaOnEMCal;   // eta of track after being propagated to 430cm
+  Double_t      fTrackPhiOnEMCal;   // phi of track after being propagated to the EMCal surface (default r = 440 cm)
+  Double_t      fTrackEtaOnEMCal;   // eta of track after being propagated to the EMCal surface (default r = 440 cm)
+  Double_t      fTrackPtOnEMCal;    // pt of track after being propagated to the EMCal surface (default r = 440 cm)
   
  private:
   static bool fgkOnlineMode; //! indicate the online mode to skip some of the functionality
 
   AliESDtrack & operator=(const AliESDtrack & );
-  ClassDef(AliESDtrack,66)  //ESDtrack 
+  ClassDef(AliESDtrack,68)  //ESDtrack 
 };
 
 

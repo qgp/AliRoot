@@ -317,6 +317,12 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fSspecie(0),
   fNhighPt(0),
   fShighPt(0),
+  //
+  fTreeBuffSize(30000000),
+  fMemCountESD(0),
+  fMemCountESDF(0),
+  fMemCountESDHLT(0),
+  //
   fUpgradeModule(""),
   fAnalysisMacro(),
   fAnalysis(0),
@@ -442,6 +448,12 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fSspecie(0),
   fNhighPt(0),
   fShighPt(0),
+  //
+  fTreeBuffSize(rec.fTreeBuffSize),
+  fMemCountESD(0),
+  fMemCountESDF(0),
+  fMemCountESDHLT(0),
+  //
   fUpgradeModule(""),
   fAnalysisMacro(rec.fAnalysisMacro),
   fAnalysis(0),
@@ -615,6 +627,12 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fSspecie = 0;
   fNhighPt = 0;
   fShighPt = 0;
+  //
+  fTreeBuffSize = rec.fTreeBuffSize;
+  fMemCountESD = 0;
+  fMemCountESDF = 0;
+  fMemCountESDHLT = 0;
+  //
   fUpgradeModule="";
   fAnalysisMacro = rec.fAnalysisMacro;
   fAnalysis = 0;
@@ -1277,6 +1295,7 @@ Bool_t AliReconstruction::LoadCDB()
   // in the trigger or that are needed in order to put correct
   // information in ESD
   AliCDBManager::Instance()->GetAll("TRIGGER/*/*");
+  AliCDBManager::Instance()->GetAll("HLT/*/*");
 
   return kTRUE;
 }
@@ -1563,7 +1582,10 @@ void AliReconstruction::Begin(TTree *)
     Abort("MisalignGeometry", TSelector::kAbortProcess);
     return;
   }
-  AliCDBManager::Instance()->UnloadFromCache("GRP/Geometry/Data");
+
+  const TMap* cdbCache = AliCDBManager::Instance()->GetEntryCache();
+  if(cdbCache->Contains("GRP/Geometry/Data"))
+	  AliCDBManager::Instance()->UnloadFromCache("GRP/Geometry/Data");
   if(!toCDBSnapshot) AliCDBManager::Instance()->UnloadFromCache("*/Align/*");
   AliSysInfo::AddStamp("MisalignGeom");
 
@@ -1572,7 +1594,9 @@ void AliReconstruction::Begin(TTree *)
     return;
   }
   AliSysInfo::AddStamp("InitGRP");
-  if(!toCDBSnapshot) AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
+  if(!toCDBSnapshot)
+      if(cdbCache->Contains("GRP/Calib/CosmicTriggers"))
+	  AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
 
   if(!fCDBSnapshotMode || toCDBSnapshot){
       if (!LoadCDB()) {
@@ -1610,7 +1634,8 @@ void AliReconstruction::Begin(TTree *)
   {
       AliCDBManager::Instance()->DumpToSnapshotFile(snapshotFileOut.Data(),kFALSE);
       AliCDBManager::Instance()->UnloadFromCache("*/Align/*");
-      AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
+      if(cdbCache->Contains("GRP/Calib/CosmicTriggers"))
+	  AliCDBManager::Instance()->UnloadFromCache("GRP/Calib/CosmicTriggers");
   }
 
   if (fInput && gProof) {
@@ -1964,6 +1989,11 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     // fill Event header information from the RawEventHeader
     if (fRawReader){FillRawEventHeaderESD(fesd);}
     if (fRawReader){FillRawEventHeaderESD(fhltesd);}
+    if (fRawReader){
+      // Store DAQ detector pattern and attributes
+      fesd->SetDAQDetectorPattern(fRawReader->GetDetectorPattern()[0]);
+      fesd->SetDAQAttributes(fRawReader->GetAttributes()[2]);
+    }
 
     fesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
     fhltesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
@@ -2346,7 +2376,16 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
   
   }
   //
-  ftree->Fill();
+  Long64_t nbf;
+  nbf = ftree->Fill();
+  if (fTreeBuffSize>0 && ftree->GetAutoFlush()<0 && (fMemCountESD += nbf)>fTreeBuffSize ) { // default limit is still not reached
+    nbf = ftree->GetZipBytes();
+    if (nbf>0) nbf = -nbf;
+    else       nbf = ftree->GetEntries();
+    ftree->SetAutoFlush(nbf);
+    AliInfo(Form("Calling ftree->SetAutoFlush(%lld) | W:%lld T:%lld Z:%lld",
+		 nbf,fMemCountESD,ftree->GetTotBytes(),ftree->GetZipBytes()));        
+  }
   AliSysInfo::AddStamp(Form("ESDFill_%d",iEvent), 0,0,iEvent);     
   //
   if (fWriteESDfriend) {
@@ -2360,8 +2399,18 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     ftree->AutoSave("SaveSelf");
     if (fWriteESDfriend) ftreeF->AutoSave("SaveSelf");
   }
-    // write HLT ESD
-    fhlttree->Fill();
+  // write HLT ESD
+  
+  nbf = fhlttree->Fill();
+  if (fTreeBuffSize>0 && fhlttree->GetAutoFlush()<0 && (fMemCountESDHLT += nbf)>fTreeBuffSize ) { // default limit is still not reached
+    nbf = fhlttree->GetZipBytes();
+    if (nbf>0) nbf = -nbf;
+    else       nbf = fhlttree->GetEntries();
+    fhlttree->SetAutoFlush(nbf);
+    AliInfo(Form("Calling fhlttree->SetAutoFlush(%lld) | W:%lld T:%lld Z:%lld",
+		 nbf,fMemCountESDHLT,fhlttree->GetTotBytes(),fhlttree->GetZipBytes()));        
+  }
+    
 
     // call AliEVE
     if (fRunAliEVE) RunAliEVE();
@@ -2465,7 +2514,11 @@ void AliReconstruction::SlaveTerminate()
    sVersion += ":";
    sVersion += ALIROOT_SVN_REVISION;
    sVersion += "; root ";
+#ifdef ROOT_SVN_BRANCH
    sVersion += ROOT_SVN_BRANCH;
+#else
+   sVersion += ROOT_GIT_BRANCH;
+#endif
    sVersion += ":";
    sVersion += ROOT_SVN_REVISION;
    sVersion += "; metadata ";
@@ -3963,6 +4016,9 @@ Bool_t AliReconstruction::GetEventInfo()
   }
 
   // Load trigger aliases and declare the trigger classes included in aliases
+  //PH Why do we do it in each event and not only once in the beginning of the chunk??
+  //PH Temporary fix for #99725: AliReconstruction::GetEventInfo bug
+  fDeclTriggerClasses.Clear();
   AliCDBEntry * entry = AliCDBManager::Instance()->Get("GRP/CTP/Aliases");
   if (entry) {
     THashList * lst = dynamic_cast<THashList*>(entry->GetObject());
@@ -4340,7 +4396,16 @@ void AliReconstruction::WriteESDfriend() {
     fesdf->SetSkipBit(kTRUE);
   }
   //
-  ftreeF->Fill();
+  Long64_t nbf = ftreeF->Fill();
+  if (fTreeBuffSize>0 && ftreeF->GetAutoFlush()<0 && (fMemCountESDF += nbf)>fTreeBuffSize ) { // default limit is still not reached
+    nbf = ftreeF->GetZipBytes();
+    if (nbf>0) nbf = -nbf;
+    else       nbf = ftreeF->GetEntries();
+    ftreeF->SetAutoFlush(nbf);
+    AliInfo(Form("Calling ftreeF->SetAutoFlush(%lld) | W:%lld T:%lld Z:%lld",
+		 nbf,fMemCountESDF,ftreeF->GetTotBytes(),ftreeF->GetZipBytes()));        
+  }
+  
 }
 
 //_________________________________________________________________

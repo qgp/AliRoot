@@ -33,6 +33,8 @@
 #include "AliESD.h"
 #include "AliAODEvent.h"
 #include "AliAODHeader.h"
+#include "AliAODVZERO.h"
+#include "AliTOFHeader.h"
 #include "AliAODTracklets.h"
 #include "AliAODCaloCells.h"
 #include "AliAODCaloTrigger.h"
@@ -54,6 +56,8 @@ ClassImp(AliAnalysisTaskSE)
 
 ////////////////////////////////////////////////////////////////////////
 AliAODHeader*    AliAnalysisTaskSE::fgAODHeader         = NULL;
+AliTOFHeader*    AliAnalysisTaskSE::fgTOFHeader         = NULL;
+AliAODVZERO*     AliAnalysisTaskSE::fgAODVZERO          = NULL;
 TClonesArray*    AliAnalysisTaskSE::fgAODTracks         = NULL;
 TClonesArray*    AliAnalysisTaskSE::fgAODVertices       = NULL;
 TClonesArray*    AliAnalysisTaskSE::fgAODV0s            = NULL;
@@ -215,6 +219,19 @@ void AliAnalysisTaskSE::CreateOutputObjects()
 		 fgAODHeader = new AliAODHeader;
 		 handler->AddBranch("AliAODHeader", &fgAODHeader);
 		}
+            if ((handler->NeedsTOFHeaderReplication() || merging) && !(fgTOFHeader))
+                {
+                 if (fDebug > 1) AliInfo("Replicating TOFheader");
+                 fgTOFHeader = new AliTOFHeader;
+                 handler->AddBranch("AliTOFHeader", &fgTOFHeader);
+                }
+            if ((handler->NeedsVZEROReplication() || merging) && !(fgAODVZERO))
+                {
+                 if (fDebug > 1) AliInfo("Replicating VZERO");
+                 fgAODVZERO = new AliAODVZERO;
+                 handler->AddBranch("AliAODVZERO", &fgAODVZERO);
+                }
+
 	    if ((handler->NeedsTracksBranchReplication() || merging) && !(fgAODTracks))      
 	    {   
 		if (fDebug > 1) AliInfo("Replicating track branch\n");
@@ -333,7 +350,7 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
     if (fDebug > 1) AliInfo("AliAnalysisTaskSE::Exec() \n");
 //
     AliAODHandler* handler = dynamic_cast<AliAODHandler*> 
-	((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());
+      ((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());
 
     AliAODInputHandler* aodH = dynamic_cast<AliAODInputHandler*>(fInputHandler);
 //
@@ -343,52 +360,43 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
       // Get the actual offline trigger mask for the event and AND it with the
       // requested mask. If no mask requested select by default the event.
       if (fOfflineTriggerMask)
-         isSelected = fOfflineTriggerMask & fInputHandler->IsEventSelected();
+	isSelected = fOfflineTriggerMask & fInputHandler->IsEventSelected();
     }
 //  Functionality below moved in the filter tasks (AG)
 //    if (handler) handler->SetFillAOD(isSelected);
 
     if( fInputHandler ) {
-	fEntry = fInputHandler->GetReadEntry();
-	fESDfriend = ((AliESDInputHandler*)fInputHandler)->GetESDfriend();
+      fEntry = fInputHandler->GetReadEntry();
+      fESDfriend = ((AliESDInputHandler*)fInputHandler)->GetESDfriend();
     }
     
 
-// Notify the change of run number
+    // Notify the change of run number
     if (InputEvent() && (InputEvent()->GetRunNumber() != fCurrentRunNumber)) {
 	fCurrentRunNumber = InputEvent()->GetRunNumber();
 	NotifyRun();
-    }    
-	   
-    else if( fMCEvent )
-       fEntry = fMCEvent->Header()->GetEvent(); 
-    if ( !((Entry()-1)%100) && fDebug > 0) 
-         AliInfo(Form("%s ----> Processing event # %lld", CurrentFileName(), Entry()));
+    } else if( fMCEvent )
+      fEntry = fMCEvent->Header()->GetEvent(); 
 
+    if ( !((Entry()-1)%100) && fDebug > 0) 
+      AliInfo(Form("%s ----> Processing event # %lld", CurrentFileName(), Entry()));
     
-    
+    if (aodH) fMCEvent = aodH->MCEvent();
 
     if (handler && aodH) {
-	fMCEvent = aodH->MCEvent();
 	Bool_t merging = aodH->GetMergeEvents();
-      
-  // Do not analyze merged events if last embedded file has less events than normal event, 
-  // skip analysis after last embeded event 
-  if(merging){
-    if(aodH->GetReadEntry() + aodH->GetMergeOffset() >= aodH->GetTreeToMerge()->GetEntriesFast()){
-      //printf("Skip Entry %lld, Offset %d, Tree Entries %d\n",aodH->GetReadEntry(),aodH->GetMergeOffset(), aodH->GetTreeToMerge()->GetEntries());
-          
-      // Do I need to add the lines before the return?
-      // Added protection in case the derived task is not an AOD producer.
-      AliAnalysisDataSlot *out0 = GetOutputSlot(0);
-      if (out0 && out0->IsConnected()) PostData(0, fTreeA);    
-          
-      DisconnectMultiHandler();
-          
-      return;
-    }
-    //else   printf("MERGE Entry %lld, Offset %d, Tree Entries %d\n",aodH->GetReadEntry(),aodH->GetMergeOffset(), aodH->GetTreeToMerge()->GetEntries());
-  }
+	// Do not analyze merged events if last embedded file has less events than normal event, 
+	// skip analysis after last embeded event 
+	if(merging){
+	  if(aodH->GetReadEntry() + aodH->GetMergeOffset() >= aodH->GetTreeToMerge()->GetEntriesFast()){
+	    // Do I need to add the lines before the return?
+	    // Added protection in case the derived task is not an AOD producer.
+	    AliAnalysisDataSlot *out0 = GetOutputSlot(0);
+	    if (out0 && out0->IsConnected()) PostData(0, fTreeA);    
+	    DisconnectMultiHandler();
+	    return;
+	  }
+	}
       
 	AliAODEvent* aod = dynamic_cast<AliAODEvent*>(InputEvent());
 
@@ -398,6 +406,15 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 	      // copy the contents by assigment
 	      *fgAODHeader =  *(aod->GetHeader());
 	    }
+            if ((handler->NeedsTOFHeaderReplication() || merging) && (fgTOFHeader))
+            {
+              *fgTOFHeader =  *(aod->GetTOFHeader());
+            }
+            if ((handler->NeedsVZEROReplication() || merging) && (fgAODVZERO))
+            {
+              *fgAODVZERO = *(aod->GetVZEROData());
+            }
+
 	    if ((handler->NeedsTracksBranchReplication() || (merging &&  aodH->GetMergeTracks())) && (fgAODTracks))
 	    {
 		TClonesArray* tracks = aod->GetTracks();
@@ -564,17 +581,17 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Double_t time    = 0;
 				Int_t    mclabel =-1;
 			        Double_t efrac   = 0;
-				if(cellsA->GetMCLabel(i) >= 0 && fgAODEmcalCells->GetMCLabel(i) < 0)
+				if(cellsA->GetMCLabel(i) >= 0 && fgAODEmcalCells->GetMCLabel(pos) < 0)
 				  {
 				    mclabel = cellsA->GetMCLabel(i) ;
-				    time    = fgAODEmcalCells->GetTime(i) ; // Time from data
+				    time    = fgAODEmcalCells->GetTime(pos) ; // Time from data
 				    if(amp > 0) efrac = cellsA->GetAmplitude(i) / amp;
 				  }
-				else if(fgAODEmcalCells->GetMCLabel(i) >= 0 &&  cellsA->GetMCLabel(i) < 0)
+				else if(fgAODEmcalCells->GetMCLabel(pos) >= 0 &&  cellsA->GetMCLabel(i) < 0)
 				  {
-				    mclabel = fgAODEmcalCells->GetMCLabel(i) ;
+				    mclabel = fgAODEmcalCells->GetMCLabel(pos) ;
 				    time    = cellsA->GetTime(i) ; // Time from data
-				    if(amp > 0) efrac = fgAODEmcalCells->GetAmplitude(i) / amp;              
+				    if(amp > 0) efrac = fgAODEmcalCells->GetAmplitude(pos) / amp;
 				  }
 				else 
 				  { // take all from input
@@ -592,9 +609,9 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Int_t nn = copycells1->GetNumberOfCells();
 				
 				while( nn-- ){ fgAODEmcalCells->SetCell(nn,copycells1->GetCellNumber(nn),copycells1->GetAmplitude(nn),
-									copycells1->GetTime(nn),copycells1->GetMCLabel(nn),0.); }
+									copycells1->GetTime(nn),copycells1->GetMCLabel(nn),copycells1->GetEFraction(nn)); }
 				
-				fgAODEmcalCells->SetCell(nc++,cn,cellsA->GetAmplitude(i),cellsA->GetTime(i), cellsA->GetMCLabel(i),0.);
+				fgAODEmcalCells->SetCell(nc++,cn,cellsA->GetAmplitude(i),cellsA->GetTime(i), cellsA->GetMCLabel(i),1.);
 				
 				delete copycells1;
 			      }
@@ -634,17 +651,17 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Double_t time    = 0;
 				Int_t    mclabel =-1;
 				Double_t    efrac   = 0;
-				if(cellsP->GetMCLabel(i) >= 0 && fgAODPhosCells->GetMCLabel(i) < 0)
+				if(cellsP->GetMCLabel(i) >= 0 && fgAODPhosCells->GetMCLabel(pos) < 0)
 				  {
 				    mclabel = cellsP->GetMCLabel(i) ;
-				    time    = fgAODPhosCells->GetTime(i) ; // Time from data
+				    time    = fgAODPhosCells->GetTime(pos) ; // Time from data
 				    if(amp > 0) efrac = cellsP->GetAmplitude(i) / amp;
 				  }
-				else if(fgAODPhosCells->GetMCLabel(i) >= 0 &&  cellsP->GetMCLabel(i) < 0)
+				else if(fgAODPhosCells->GetMCLabel(pos) >= 0 &&  cellsP->GetMCLabel(i) < 0)
 				  {
-				    mclabel = fgAODPhosCells->GetMCLabel(i) ;
+				    mclabel = fgAODPhosCells->GetMCLabel(pos) ;
 				    time    = cellsP->GetTime(i) ; // Time from data
-				    if(amp > 0) efrac = fgAODPhosCells->GetAmplitude(i) / amp;              
+				    if(amp > 0) efrac = fgAODPhosCells->GetAmplitude(pos) / amp;
 				  }
 				else 
 				  { // take all from input
@@ -662,9 +679,9 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 				Int_t nn = copycells1->GetNumberOfCells();
 				
 				while( nn-- ){ fgAODPhosCells->SetCell(nn,copycells1->GetCellNumber(nn),copycells1->GetAmplitude(nn), 
-								       copycells1->GetTime(nn),copycells1->GetMCLabel(nn),0.); }
+								       copycells1->GetTime(nn),copycells1->GetMCLabel(nn),copycells1->GetEFraction(nn)); }
 				
-				fgAODPhosCells->SetCell(nc++,cn,cellsP->GetAmplitude(i),cellsP->GetTime(i), cellsP->GetMCLabel(i),0.);
+				fgAODPhosCells->SetCell(nc++,cn,cellsP->GetAmplitude(i),cellsP->GetTime(i), cellsP->GetMCLabel(i),1.);
 				
 				delete copycells1;
 			      }
@@ -743,13 +760,7 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
 
 
 // Call the user analysis    
-    if (!fMCEventHandler) {
-	if (isSelected) 
-	    UserExec(option);
-    } else {
-	if (isSelected && (fMCEventHandler->InitOk())) 
-	    UserExec(option);
-    }
+	if (isSelected) UserExec(option);
     
 // Added protection in case the derived task is not an AOD producer.
     AliAnalysisDataSlot *out0 = GetOutputSlot(0);
@@ -823,6 +834,7 @@ void AliAnalysisTaskSE::LoadBranches() const
   TIter next(arr);
   TObject *obj;
   while ((obj=next())) mgr->LoadBranch(obj->GetName());
+  delete arr;
 }
 
 

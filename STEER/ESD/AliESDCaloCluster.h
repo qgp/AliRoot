@@ -92,13 +92,19 @@ class AliESDCaloCluster : public AliVCluster
     else *fTracksMatched = array;
   }
   void AddLabels(TArrayI & array)         { 
-    if(!fLabels)fLabels = new TArrayI(array) ; 
+    if(!fLabels)fLabels = new TArrayI(array) ;
     else *fLabels = array;
   }
   
+  void SetLabel(Int_t *array, UInt_t size)
+  {
+    if(fLabels) delete fLabels ;
+    fLabels = new TArrayI(size,array);
+  }
+
   TArrayI * GetTracksMatched() const  {return  fTracksMatched;}
   TArrayI * GetLabelsArray() const    {return  fLabels;}
-  Int_t   * GetLabels() const         {return  fLabels->GetArray();}
+  Int_t   * GetLabels() const         {if (fLabels) return  fLabels->GetArray(); else return 0;}
 
   Int_t GetTrackMatchedIndex() const   
   {if( fTracksMatched &&  fTracksMatched->GetSize() >0)  return  fTracksMatched->At(0); 
@@ -134,6 +140,9 @@ class AliESDCaloCluster : public AliVCluster
   Double_t GetCellAmplitudeFraction(Int_t i) const {  
     if (fCellsAmpFraction && i >=0 && i < fNCells ) return fCellsAmpFraction[i];    
     else return -1;}
+
+  Double_t    GetMCEnergyFraction() const           { return fMCEnergyFraction ; }
+  void        SetMCEnergyFraction(Double_t e)       { fMCEnergyFraction = e    ; }
   
  protected:
   
@@ -162,6 +171,7 @@ class AliESDCaloCluster : public AliVCluster
   Char_t       fClusterType;       // Flag for different cluster type/versions
   Double_t     fTOF;               //[0,0,12] time-of-flight
   
+  Double_t     fMCEnergyFraction;          //!MC energy (embedding)
   
   ClassDef(AliESDCaloCluster,11)  //ESDCaloCluster 
 

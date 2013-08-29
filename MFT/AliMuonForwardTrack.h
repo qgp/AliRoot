@@ -67,8 +67,11 @@ public:
 
   Double_t GetWeightedOffset(Double_t x, Double_t y, Double_t z);
   Double_t GetOffset(Double_t x, Double_t y, Double_t z);
+  Double_t GetDCA(Double_t x, Double_t y, Double_t z);
+  Double_t GetMomentumSpectrometer(Double_t z);
   Double_t GetOffsetX(Double_t x, Double_t z);
   Double_t GetOffsetY(Double_t y, Double_t z);
+  Double_t GetThetaAbs();
 
   void SetParentMCLabel(Int_t iParent, Int_t MClabel) { if (0<=iParent && iParent<fgkNParentsMax) fParentMCLabel[iParent] = MClabel; }
   void SetParentPDGCode(Int_t iParent, Int_t PDGCode) { if (0<=iParent && iParent<fgkNParentsMax) fParentPDGCode[iParent] = PDGCode; }
@@ -94,12 +97,24 @@ public:
   void SetTrackMCId(Int_t id) { fTrackMCId = id; }
   Int_t GetTrackMCId() { return fTrackMCId; }
   
-  Bool_t IsFromResonance();
-  Bool_t IsFromCharm();
-  Bool_t IsFromBeauty();
+  Bool_t IsFromDirectResonance();
+  Bool_t IsFromDirectCharm();
+  Bool_t IsFromDirectBeauty();
+  Bool_t IsFromChainResonance();
+  Bool_t IsFromChainCharm();
+  Bool_t IsFromChainBeauty();
+  Bool_t IsFromCharm()  { return IsFromDirectCharm()  || IsFromChainCharm();  }
+  Bool_t IsFromBeauty() { return IsFromDirectBeauty() || IsFromChainBeauty(); }
+  Bool_t IsMuon();
+  Bool_t IsFake();
+  Bool_t IsPDGResonance(Int_t pdg);
   Bool_t IsPDGCharm(Int_t pdg);
   Bool_t IsPDGBeauty(Int_t pdg);
-  Bool_t IsFromBackground();
+  Bool_t IsMuonFromBackground();
+
+  Int_t GetFirstMotherID();
+
+  void PrintHistory();
 
 protected:
 

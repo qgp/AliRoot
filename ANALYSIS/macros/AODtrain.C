@@ -1,9 +1,10 @@
 // ### Settings that make sense when using the Alien plugin
 //==============================================================================
 Int_t       runOnData          = 1;       // Set to 1 if processing real data
-Int_t       iCollision         = 1;       // 0=pp, 1=Pb-Pb
+Int_t       iCollision         = 0;       // 0=pp, 1=Pb-Pb
 Int_t       run_flag           = 1100;    // year (2011 = 1100)
 //==============================================================================
+Bool_t      doCDBconnect        =1;
 Bool_t      usePhysicsSelection = kTRUE; // use physics selection
 Bool_t      useTender           = kFALSE; // use tender wagon
 Bool_t      useCentrality       = kTRUE; // centrality
@@ -24,8 +25,12 @@ Int_t       iMUONcopyAOD       = 1;      // Task that copies only muon events in
 Int_t       iJETAN             = 1;      // Jet analysis (PWG4)
 Int_t       iJETANdelta        = 1;      // Jet delta AODs
 Int_t       iPWGHFvertexing     = 1;      // Vertexing HF task (PWG3)
-Int_t       iPWGDQJPSIfilter    = 1;      // JPSI filtering (PWG3)
+Int_t       iPWGDQJPSIfilter    = 0;      // JPSI filtering (PWG3)
 Int_t       iPWGHFd2h           = 1;      // D0->2 hadrons (PWG3)
+Int_t       iPWGPP               =1;      // high pt filter task
+Int_t       iPWGLFForward       = 1;      // Forward mult task (PWGLF)
+Bool_t doPIDResponse  = 1;
+Bool_t doPIDqa        = 1; //new
 
 // ### Configuration macros used for each module
 //==============================================================================
@@ -45,7 +50,7 @@ void AODtrain(Int_t merge=0)
 {
 // Main analysis train macro.
 
-  if (merge) {
+  if (merge || doCDBconnect) {
     TGrid::Connect("alien://");
     if (!gGrid || !gGrid->IsConnected()) {
       ::Error("QAtrain", "No grid connection");
@@ -143,7 +148,34 @@ void AddAnalysisTasks(){
       AliAnalysisTaskSE *tender = AddTaskTender(useV0tender);
 //      tender->SetDebugLevel(2);
    }
-
+   //
+  // PIDResponse(JENS)
+  //
+  if (doPIDResponse) {
+    gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDResponse.C"); 
+    AliAnalysisTaskPIDResponse *PIDResponse = AddTaskPIDResponse();
+//    PIDResponse->SelectCollisionCandidates(AliVEvent::kAny);
+  }  
+ 
+  //
+  // PIDqa(JENS)
+  //
+  if (doPIDqa) {
+    gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPIDqa.C");
+    AliAnalysisTaskPIDqa *PIDQA = AddTaskPIDqa();
+    PIDQA->SelectCollisionCandidates(AliVEvent::kAny);
+  }  
+  // CDB connection
+  //
+  if (doCDBconnect && !useTender) {
+    gROOT->LoadMacro("$ALICE_ROOT/PWGPP/PilotTrain/AddTaskCDBconnect.C");
+    AliTaskCDBconnect *taskCDB = AddTaskCDBconnect();
+    if (!taskCDB) return;
+    AliCDBManager *cdb = AliCDBManager::Instance();
+    cdb->SetDefaultStorage("raw://");
+//    taskCDB->SetRunNumber(run_number);
+  }    
+ 
    if (usePhysicsSelection) {
    // Physics selection task
       gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskPhysicsSelection.C");
@@ -153,12 +185,36 @@ void AddAnalysisTasks(){
 //      physSelTask->GetPhysicsSelection()->SetCustomOADBObjects(oadbDefaultPbPb,0,0);
       mgr->AddStatisticsTask(AliVEvent::kAny);
    }
+   
+
+//Jacek
+   if (iPWGPP) {
+      gROOT->LoadMacro("$ALICE_ROOT/PWGPP/macros/AddTaskFilteredTree.C");
+      AddTaskFilteredTree("FilterEvents_Trees.root");
+   }   
+   
    // Centrality (only Pb-Pb)
-   if (iCollision && useCentrality) {
+   if (useCentrality) {
       gROOT->LoadMacro("$ALICE_ROOT/ANALYSIS/macros/AddTaskCentrality.C");
       AliCentralitySelectionTask *taskCentrality = AddTaskCentrality();
-      taskCentrality->SelectCollisionCandidates(AliVEvent::kAny);
+      //taskCentrality->SelectCollisionCandidates(AliVEvent::kAny);
    }
+   
+// --- PWGLF - Forward (cholm@nbi.dk) -----------------------------
+   if (iPWGLFForward && usePhysicsSelection) { 
+        gROOT->LoadMacro("$ALICE_ROOT/PWGLF/FORWARD/analysis2/AddTaskForwardMult.C");
+     UShort_t pwglfForwardSys = 0; // iCollision+1; // pp:1, PbPb:2, pPb:3
+     UShort_t pwglfSNN        = 0;            // GeV, 0==unknown
+     Short_t  pwglfField      = 0;
+     AddTaskForwardMult(useMC && useTR,        // Need track-refs 
+			pwglfForwardSys,       // Collision system
+			pwglfSNN, 
+			pwglfField);
+        gROOT->LoadMacro("$ALICE_ROOT/PWGLF/FORWARD/analysis2/AddTaskCentralMult.C");
+        AddTaskCentralMult(useMC, pwglfForwardSys, pwglfSNN, pwglfField);
+   }
+ 
+    
 
    if (iESDfilter) {
       //  ESD filter task configuration.
@@ -167,7 +223,7 @@ void AddAnalysisTasks(){
          printf("Registering delta AOD file\n");
          mgr->RegisterExtraFile("AliAOD.Muons.root");
          mgr->RegisterExtraFile("AliAOD.Dimuons.root");
-         AliAnalysisTaskESDfilter *taskesdfilter = AddTaskESDFilter(useKFILTER, kTRUE, kFALSE, kFALSE /*usePhysicsSelection*/,kTRUE,kFALSE,kFALSE,run_flag);
+         AliAnalysisTaskESDfilter *taskesdfilter = AddTaskESDFilter(useKFILTER, kTRUE, kFALSE, kFALSE /*usePhysicsSelection*/,kFALSE,kTRUE,kFALSE,kFALSE,run_flag);
       } else {
    	   AliAnalysisTaskESDfilter *taskesdfilter = AddTaskESDFilter(useKFILTER, kFALSE, kFALSE, kFALSE /*usePhysicsSelection*/,kFALSE,kTRUE,kFALSE,kFALSE,run_flag); // others
       }   
@@ -208,8 +264,8 @@ void AddAnalysisTasks(){
    Bool_t  kIsPbPb = (iCollision==0)?false:true; // can be more intlligent checking the name of the data set
    TString kDefaultJetBackgroundBranch = "";
    TString kJetSubtractBranches = "";
-   UInt_t kHighPtFilterMask = 128;// from esd filter
-   UInt_t iPhysicsSelectionFlag = AliVEvent::kMB;
+   UInt_t kHighPtFilterMask = 272;// from esd filter
+   UInt_t iPhysicsSelectionFlag = 0;
    if (iJETAN) {
      gROOT->LoadMacro("$ALICE_ROOT/PWGJE/macros/AddTaskJets.C");
      // Default jet reconstructor running on ESD's
@@ -266,7 +322,6 @@ void AddAnalysisTasks(){
      } 
    }
 }
-
 //______________________________________________________________________________
 Bool_t LoadCommonLibraries()
 {
@@ -299,10 +354,15 @@ Bool_t LoadCommonLibraries()
 Bool_t LoadAnalysisLibraries()
 {
 // Load common analysis libraries.
-   if (useTender) {
+   if (useTender || doCDBconnect) {
       if (!LoadLibrary("TENDER") ||
           !LoadLibrary("TENDERSupplies")) return kFALSE;
    }       
+   // CDBconnect
+   if (doCDBconnect && !useTender) {
+      if (!LoadLibrary("PWGPP")) return kFALSE;
+   }
+          
    if (iESDfilter || iPWGMuonTrain) {
       if (!LoadLibrary("PWGmuon")) return kFALSE;
    }   
@@ -317,12 +377,23 @@ Bool_t LoadAnalysisLibraries()
           !LoadLibrary("siscone") ||
           !LoadLibrary("SISConePlugin") ||
           !LoadLibrary("FASTJETAN")) return kFALSE;
-   }     
-   // PWG3 Vertexing HF
-   if (iPWGHFvertexing || iPWG3d2h) {
-      if (!LoadLibrary("PWG3base") ||
-          !LoadLibrary("PWGHFvertexingHF")) return kFALSE;
+   }  
+   // PWG2 FORWARD
+   if (iPWGLFForward) {
+      //if (!LoadLibrary("PWGLFforward", mode, kTRUE)) return kFALSE;
+      if (!LoadLibrary("PWGLFforward2")) return kFALSE;
    }   
+   
+   // PWG3 Vertexing HF
+   if (iPWGHFvertexing || iPWGHFd2h) {
+      if (!LoadLibrary("PWGflowBase") ||
+          !LoadLibrary("PWGflowTasks") ||
+          !LoadLibrary("PWGHFvertexingHF")) return kFALSE;
+   }    
+ //    if (iPWGHFvertexing || iPWG3d2h) {
+ //     if (!LoadLibrary("PWG3base") ||
+ //         !LoadLibrary("PWGHFvertexingHF")) return kFALSE;
+ //  }   
    // PWG3 dielectron
    if (iPWGDQJPSIfilter) {
       if (!LoadLibrary("PWGDQdielectron")) return kFALSE;
@@ -383,8 +454,7 @@ void AODmerge()
   TStopwatch timer;
   timer.Start();
   TString outputDir = "wn.xml";
-  TString outputFiles = "EventStat_temp.root,AODQA.root,AliAOD.root,AliAOD.VertexingHF.root,";
-  outputFiles +=        "AliAOD.Muons.root,AliAOD.Jets.root";
+  TString outputFiles = "EventStat_temp.root,AODQA.root,AliAOD.root,AliAOD.VertexingHF.root,FilterEvents_Trees.root,AliAOD.Muons.root,AliAOD.Jets.root";
   TString mergeExcludes = "";
   TObjArray *list = outputFiles.Tokenize(",");
   TIter *iter = new TIter(list);
@@ -402,7 +472,7 @@ void AODmerge()
     merged = AliAnalysisAlien::MergeOutput(outputFile, outputDir, 10, 0);
     if (!merged) {
        printf("ERROR: Cannot merge %s\n", outputFile.Data());
-       return;
+       continue;
     }
   }
   // all outputs merged, validate

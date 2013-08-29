@@ -10,11 +10,12 @@ class TH1;
 class AliESDEvent;
 class AliExternalTrackParam;
 class AliTRDgeometry;
+class AliESDtrack;
 class AliESDTrdTrack;
 
 //#define TRD_TM_DEBUG
 
-class AliTRDonlineTrackMatching {
+class AliTRDonlineTrackMatching : public TObject {
  public:
   AliTRDonlineTrackMatching();
   ~AliTRDonlineTrackMatching();
@@ -89,6 +90,8 @@ class AliTRDonlineTrackMatching {
 
   AliTRDonlineTrackMatching(const AliTRDonlineTrackMatching &c);
   AliTRDonlineTrackMatching& operator=(const AliTRDonlineTrackMatching& rhs);
+
+  ClassDef(AliTRDonlineTrackMatching, 0);
 };
 
 #endif

@@ -50,6 +50,7 @@
 #include "AliESDEvent.h"
 #include "AliLog.h"
 #include "AliTender.h"
+#include "AliAODMCParticle.h"
 
 ClassImp(AliEMCALTenderSupply)
 
@@ -68,6 +69,7 @@ AliTenderSupply()
 ,fUpdateCell(kFALSE)  
 ,fCalibrateEnergy(kFALSE)
 ,fCalibrateTime(kFALSE)
+,fCalibrateTimeParamAvailable(kFALSE)
 ,fDoNonLinearity(kFALSE)
 ,fBadCellRemove(kFALSE)
 ,fRejectExoticCells(kFALSE)
@@ -80,6 +82,7 @@ AliTenderSupply()
 ,fRecalShowerShape(kFALSE)
 ,fInputTree(0)
 ,fInputFile(0)
+,fGetPassFromFileName(kTRUE)
 ,fFilepass(0) 
 ,fMass(-1)
 ,fStep(-1)
@@ -103,10 +106,15 @@ AliTenderSupply()
 ,fExoticCellFraction(-1)
 ,fExoticCellDiffTime(-1)
 ,fExoticCellMinAmplitude(-1)
+,fSetCellMCLabelFromCluster(0)
+,fTempClusterArr(0)
+,fRemapMCLabelForAODs(0)
+
 {
   // Default constructor.
 
-  for(Int_t i = 0; i < 12; i++) fEMCALMatrix[i] = 0 ;
+  for(Int_t i = 0; i < 12;    i++) fEMCALMatrix[i]      = 0 ;
+  for(Int_t j = 0; j < 12672; j++) fOrgClusterCellId[j] = -1;
 }
 
 //_____________________________________________________
@@ -125,6 +133,7 @@ AliTenderSupply(name,tender)
 ,fUpdateCell(kFALSE)  
 ,fCalibrateEnergy(kFALSE)
 ,fCalibrateTime(kFALSE)
+,fCalibrateTimeParamAvailable(kFALSE)
 ,fDoNonLinearity(kFALSE)
 ,fBadCellRemove(kFALSE)
 ,fRejectExoticCells(kFALSE)
@@ -137,7 +146,8 @@ AliTenderSupply(name,tender)
 ,fRecalShowerShape(kFALSE)
 ,fInputTree(0)  
 ,fInputFile(0)
-,fFilepass(0) 
+,fGetPassFromFileName(kTRUE)
+,fFilepass("") 
 ,fMass(-1)
 ,fStep(-1)
 ,fCutEtaPhiSum(kTRUE)
@@ -160,10 +170,15 @@ AliTenderSupply(name,tender)
 ,fExoticCellFraction(-1)
 ,fExoticCellDiffTime(-1)
 ,fExoticCellMinAmplitude(-1)
+,fSetCellMCLabelFromCluster(0)
+,fTempClusterArr(0)
+,fRemapMCLabelForAODs(0)
+
 {
   // Named constructor
   
-  for(Int_t i = 0; i < 12; i++) fEMCALMatrix[i] = 0 ;
+  for(Int_t i = 0; i < 12;    i++) fEMCALMatrix[i]      = 0 ;
+  for(Int_t j = 0; j < 12672; j++) fOrgClusterCellId[j] = -1;
 }
 
 //_____________________________________________________
@@ -182,6 +197,7 @@ AliTenderSupply(name)
 ,fUpdateCell(kFALSE)  
 ,fCalibrateEnergy(kFALSE)
 ,fCalibrateTime(kFALSE)
+,fCalibrateTimeParamAvailable(kFALSE)
 ,fDoNonLinearity(kFALSE)
 ,fBadCellRemove(kFALSE)
 ,fRejectExoticCells(kFALSE)
@@ -194,7 +210,8 @@ AliTenderSupply(name)
 ,fRecalShowerShape(kFALSE)
 ,fInputTree(0)  
 ,fInputFile(0)
-,fFilepass(0) 
+,fGetPassFromFileName(kTRUE)
+,fFilepass("") 
 ,fMass(-1)
 ,fStep(-1)
 ,fCutEtaPhiSum(kTRUE)
@@ -217,27 +234,38 @@ AliTenderSupply(name)
 ,fExoticCellFraction(-1)
 ,fExoticCellDiffTime(-1)
 ,fExoticCellMinAmplitude(-1)
+,fSetCellMCLabelFromCluster(0)
+,fTempClusterArr(0)
+,fRemapMCLabelForAODs(0)
 {
   // Named constructor.
   
-  for(Int_t i = 0; i < 12; i++) fEMCALMatrix[i] = 0 ;
+  for(Int_t i = 0; i < 12;    i++) fEMCALMatrix[i]      = 0 ;
+  for(Int_t j = 0; j < 12672; j++) fOrgClusterCellId[j] = -1;
 }
 
 //_____________________________________________________
 AliEMCALTenderSupply::~AliEMCALTenderSupply()
 {
   //Destructor
-  
+
+  if (!AliAnalysisManager::GetAnalysisManager())  return;  
+
   if (!AliAnalysisManager::GetAnalysisManager()->IsProofMode()) 
   {
     delete fEMCALRecoUtils;
     delete fRecParam;
     delete fUnfolder;
+    
     if (!fClusterizer) 
     {
-      fDigitsArr->Clear("C");
-      delete fDigitsArr; 
-    } else 
+      if (fDigitsArr) 
+      { 
+     	fDigitsArr->Clear("C");
+      	delete fDigitsArr; 
+      }
+    } 
+    else 
     {
       delete fClusterizer;
       fDigitsArr = 0;
@@ -291,6 +319,7 @@ void AliEMCALTenderSupply::Init()
     fRecalClusPos           = tender->fRecalClusPos;
     fCalibrateEnergy        = tender->fCalibrateEnergy;
     fCalibrateTime          = tender->fCalibrateTime;
+    fCalibrateTimeParamAvailable = tender->fCalibrateTimeParamAvailable;
     fFiducial               = tender->fFiducial;
     fNCellsFromEMCALBorder  = tender->fNCellsFromEMCALBorder;
     fRecalDistToBadChannels = tender->fRecalDistToBadChannels;    
@@ -436,7 +465,7 @@ void AliEMCALTenderSupply::ProcessEvent()
   // Event loop.
   
   AliVEvent *event = GetEvent();
-  
+
   if (!event) {
     AliError("Event ptr = 0, returning");
     return;
@@ -465,7 +494,8 @@ void AliEMCALTenderSupply::ProcessEvent()
     } 
 
     // get pass
-    GetPass();
+    if (fGetPassFromFileName)
+      GetPass();
 
     // define what recalib parameters are needed for various switches
     // this is based on implementation in AliEMCALRecoUtils
@@ -475,17 +505,6 @@ void AliEMCALTenderSupply::ProcessEvent()
     Bool_t needTimecalib   = fCalibrateTime   | fReClusterize;
     Bool_t needMisalign    = fRecalClusPos    | fReClusterize;
     Bool_t needClusterizer = fReClusterize;
-
-    // initiate reco params with some defaults 
-    // will not overwrite, if those have been provided by user
-    if( needRecoParam ){
-      Int_t initRC = InitRecParam();
-      
-      if( initRC == 0 )
-        AliInfo("Defaults reco params loaded.");
-      if( initRC > 1 )
-        AliWarning("User defined reco params.");
-    }
 
     // init bad channels
     if( needBadChannels ){
@@ -519,15 +538,15 @@ void AliEMCALTenderSupply::ProcessEvent()
       
     }
     
-    
-    
     // init time calibration
-    if( needTimecalib ){
+    if( needTimecalib ) {
       Int_t initTC = InitTimeCalibration();
       if ( !initTC ) 
         AliError("InitTimeCalibration returned false, returning");
-      if (initTC==1)
+      if (initTC==1) {
+        fCalibrateTimeParamAvailable = kTRUE;
         AliWarning("InitTimeCalib OK");
+      }
       if( initTC > 1 )
         AliWarning(Form("No external time calibration set: %d - %s", event->GetRunNumber(), fFilepass.Data()));
     }
@@ -538,6 +557,17 @@ void AliEMCALTenderSupply::ProcessEvent()
         AliError("InitMisalignmentMatrix returned false, returning");
       else
         AliWarning("InitMisalignMatrix OK");
+    }
+    
+    // initiate reco params with some defaults
+    // will not overwrite, if those have been provided by user
+    if( needRecoParam ) {
+      Int_t initRC = InitRecParam();
+      
+      if( initRC == 0 )
+        AliInfo("Defaults reco params loaded.");
+      if( initRC > 1 )
+        AliWarning("User defined reco params.");
     }
     
     // init clusterizer
@@ -1138,8 +1168,7 @@ Int_t AliEMCALTenderSupply::InitRunDepRecalib()
         
         Int_t absID = fEMCALGeo->GetAbsCellIdFromCellIndexes(ism, irow, icol); // original calibration factor
         factor *= rundeprecal->GetBinContent(absID) / 10000. ; // correction dependent on T
-        //printf("\t ism %d, icol %d, irow %d,absID %d, corrA %2.3f, corrB %2.3f, corrAB %2.3f\n",ism, icol, irow, absID, 
-        //      GetEMCALChannelRecalibrationFactor(ism,icol,irow) , rundeprecal->GetBinContent(absID) / 10000., factor);
+
         fEMCALRecoUtils->SetEMCALChannelRecalibrationFactor(ism,icol,irow,factor);
       } // columns
     } // rows 
@@ -1259,7 +1288,7 @@ void AliEMCALTenderSupply::UpdateCells()
     Double_t ecell = 0;
     Double_t tcell = 0;
     Double_t efrac = 0;
-    Short_t  mclabel = -1;
+    Int_t  mclabel = -1;
     Bool_t   isExot = kFALSE;
   
     // loop through cells
@@ -1329,9 +1358,18 @@ Int_t AliEMCALTenderSupply::InitRecParam()
   fRecParam = new AliEMCALRecParam();
   fRecParam->SetClusteringThreshold(0.100);
   fRecParam->SetMinECut(0.050);
-  fRecParam->SetTimeCut(250);
-  fRecParam->SetTimeMin(425);
-  fRecParam->SetTimeMax(825);
+  
+  if(!fCalibrateTimeParamAvailable){
+    fRecParam->SetTimeCut(250*1.e-9);
+    fRecParam->SetTimeMin(425*1.e-9);
+    fRecParam->SetTimeMax(825*1.e-9);
+  }
+  else {
+    fRecParam->SetTimeCut(100*1.e-9);
+    fRecParam->SetTimeMin(-50*1.e-9);
+    fRecParam->SetTimeMax( 50*1.e-9);
+  }
+  
   if ( beamType == "A-A") {
     fRecParam->SetClusterizerFlag(AliEMCALRecParam::kClusterizerv2);
   } 
@@ -1356,7 +1394,12 @@ Bool_t AliEMCALTenderSupply::InitClusterization()
     AliInfo(Form("Initialising reclustering parameters: Clusterizer type: %d",fRecParam->GetClusterizerFlag()));
   
   //---setup clusterizer
-  delete fClusterizer;
+  if (fClusterizer) {
+    // avoid deleting fDigitsArr
+    fClusterizer->SetDigitsArr(0);
+    delete fClusterizer;
+    fClusterizer = 0;
+  }
   if     (fRecParam->GetClusterizerFlag() == AliEMCALRecParam::kClusterizerv1)
     fClusterizer = new AliEMCALClusterizerv1 (fEMCALGeo);
   else if (fRecParam->GetClusterizerFlag() == AliEMCALRecParam::kClusterizerv2) 
@@ -1416,33 +1459,67 @@ void AliEMCALTenderSupply::FillDigitsArray()
 
  if (!event)
     return;
-  
+    
+  // In case of MC productions done before aliroot tag v5-02-Rev09
+  // assing the cluster label to all the cells belonging to this cluster
+  // very rough
+  Int_t cellLabels[12672];
+  if(fSetCellMCLabelFromCluster)
+  {
+    for (Int_t i = 0; i < 12672; i++)
+    {
+      cellLabels       [i] = 0 ;
+      fOrgClusterCellId[i] =-1 ;
+    }
+    
+    Int_t nClusters = event->GetNumberOfCaloClusters();
+    for (Int_t i = 0; i < nClusters; i++)
+    {
+      AliVCluster *clus =  event->GetCaloCluster(i);
+      
+      if(!clus) continue;
+      
+      if(!clus->IsEMCAL()) continue ;
+      
+      Int_t      label = clus->GetLabel();
+      UShort_t * index = clus->GetCellsAbsId() ;
+      
+      for(Int_t icell=0; icell < clus->GetNCells(); icell++ )
+      {
+        cellLabels       [index[icell]] = label;
+        fOrgClusterCellId[index[icell]] = i ; // index of the original cluster
+      }
+    }// cluster loop
+  }
+
   fDigitsArr->Clear("C");
   AliVCaloCells *cells = event->GetEMCALCells();
   Int_t ncells = cells->GetNumberOfCells();
   for (Int_t icell = 0, idigit = 0; icell < ncells; ++icell) 
   {
     Double_t cellAmplitude=0, cellTime=0, efrac = 0;
-    Short_t  cellNumber=0, mcLabel=-1;
+    Short_t  cellNumber=0;
+    Int_t mcLabel=-1;
 
     if (cells->GetCell(icell, cellNumber, cellAmplitude, cellTime, mcLabel, efrac) != kTRUE)
       break;
 
-    // Do not add if already too low (some cells set to 0 if bad channels)
-    if (cellAmplitude < fRecParam->GetMinECut() ) 
+    // Do not add if energy already too low (some cells set to 0 if bad channels)
+    if (cellAmplitude < fRecParam->GetMinECut())
       continue;
 
     // If requested, do not include exotic cells
    if (fEMCALRecoUtils->IsExoticCell(cellNumber,cells,event->GetBunchCrossNumber())) 
       continue;
-        
-    AliEMCALDigit *digit = static_cast<AliEMCALDigit*>(fDigitsArr->New(idigit));
-    digit->SetId(cellNumber);
-    digit->SetTime((Float_t)cellTime);
-    digit->SetTimeR((Float_t)cellTime);
-    digit->SetIndexInList(idigit);
-    digit->SetType(AliEMCALDigit::kHG);
-    digit->SetAmplitude((Float_t)cellAmplitude);
+    
+    if     ( fSetCellMCLabelFromCluster ) mcLabel = cellLabels[cellNumber];
+    else if( fRemapMCLabelForAODs       ) RemapMCLabelForAODs(mcLabel);
+    
+    if (mcLabel > 0 && efrac < 1e-6) efrac = 1;
+    
+    new((*fDigitsArr)[idigit]) AliEMCALDigit(mcLabel, mcLabel, cellNumber,
+                                             (Float_t)cellAmplitude, (Float_t)cellTime,
+                                             AliEMCALDigit::kHG,idigit, 0, 0, efrac*cellAmplitude);
     idigit++;
   }
 }
@@ -1473,7 +1550,11 @@ void AliEMCALTenderSupply::UpdateClusters()
     AliError(" Null pointer to calo clusters array, returning");
     return;
   }
-  
+    
+  // Before destroying the orignal list, assign to the rec points the MC labels
+  // of the original clusters, if requested
+  if( fSetCellMCLabelFromCluster == 2 ) SetClustersMCLabelFromOriginalClusters() ;
+
   Int_t nents = clus->GetEntriesFast();
   for (Int_t i=0; i < nents; ++i) 
   {
@@ -1481,7 +1562,9 @@ void AliEMCALTenderSupply::UpdateClusters()
     if (!c)
       continue;
     if (c->IsEMCAL())
+    {
       delete clus->RemoveAt(i);
+    }
   }
   
   clus->Compress();
@@ -1550,13 +1633,166 @@ void AliEMCALTenderSupply::RecPoints2Clusters(TClonesArray *clus)
     c->SetM20(elipAxis[1]*elipAxis[1]) ;
     c->SetCellsAbsId(absIds);
     c->SetCellsAmplitudeFraction(ratios);
+
+    //MC labels
+    Int_t  parentMult = 0;
+    Int_t *parentList = recpoint->GetParents(parentMult);
+    if (parentMult > 0) c->SetLabel(parentList, parentMult);
+
   }
 }
+
+//___________________________________________________________
+void AliEMCALTenderSupply::RemapMCLabelForAODs(Int_t & label)
+{
+  // MC label for Cells not remapped after ESD filtering, do it here.
+  
+  if(label < 0) return ;
+  
+  AliAODEvent  * evt = dynamic_cast<AliAODEvent*> (GetEvent()) ;
+  if(!evt) return ;
+  
+  TClonesArray * arr = dynamic_cast<TClonesArray*>(evt->FindListObject("mcparticles")) ;
+  if(!arr) return ;
+  
+  if(label < arr->GetEntriesFast())
+  {
+    AliAODMCParticle * particle = dynamic_cast<AliAODMCParticle *>(arr->At(label));
+    if(!particle) return ;
+    
+    if(label == particle->Label()) return ; // label already OK
+  }
+  
+  // loop on the particles list and check if there is one with the same label
+  for(Int_t ind = 0; ind < arr->GetEntriesFast(); ind++ )
+  {
+    AliAODMCParticle * particle = dynamic_cast<AliAODMCParticle *>(arr->At(ind));
+    if(!particle) continue ;
+    
+    if(label == particle->Label())
+    {
+      label = ind;
+      return;
+    }
+  }
+  
+  label = -1;
+  
+}
+
+//_____________________________________________________________________________________________
+void AliEMCALTenderSupply::SetClustersMCLabelFromOriginalClusters()
+{
+  // Get the original clusters that contribute to the new rec point cluster,
+  // assign the labels of such clusters to the new rec point cluster.
+  // Only approximatedly valid  when output are V1 clusters, or input/output clusterizer
+  // are the same handle with care
+  // Copy from same method in AliAnalysisTaskEMCALClusterize, but here modify the recpoint and
+  // not the output calocluster
+  
+  Int_t ncls = fClusterArr->GetEntriesFast();
+  for(Int_t irp=0; irp < ncls; ++irp)
+  {
+    TArrayI clArray(300) ; //Weird if more than a few clusters are in the origin ...
+    clArray.Reset();
+    Int_t nClu = 0;
+    Int_t nLabTotOrg = 0;
+    Float_t emax = -1;
+    Int_t idMax = -1;
+    
+    AliEMCALRecPoint *clus = static_cast<AliEMCALRecPoint*>(fClusterArr->At(irp));
+    
+    //Find the clusters that originally had the cells
+    const Int_t ncells = clus->GetMultiplicity();
+    Int_t *digList     = clus->GetDigitsList();
+    
+    for ( Int_t iLoopCell = 0 ; iLoopCell < ncells ; iLoopCell++ )
+    {
+      AliEMCALDigit *digit = static_cast<AliEMCALDigit*>(fDigitsArr->At(digList[iLoopCell]));
+      Int_t idCell = digit->GetId();
+
+      if(idCell>=0)
+      {
+        Int_t idCluster = fOrgClusterCellId[idCell];
+        Bool_t set = kTRUE;
+        for(Int_t icl =0; icl < nClu; icl++)
+        {
+          if(((Int_t)clArray.GetAt(icl))==-1 ) continue;
+          if( idCluster == ((Int_t)clArray.GetAt(icl)) ) set = kFALSE;
+        }
+        if( set && idCluster >= 0)
+        {
+          clArray.SetAt(idCluster,nClu++);
+          nLabTotOrg+=(GetEvent()->GetCaloCluster(idCluster))->GetNLabels();
+                    
+          //Search highest E cluster
+          AliVCluster * clOrg = GetEvent()->GetCaloCluster(idCluster);
+          if(emax < clOrg->E())
+          {
+            emax  = clOrg->E();
+            idMax = idCluster;
+          }
+        }
+      }
+    }// cell loop
+        
+    // Put the first in the list the cluster with highest energy
+    if(idMax != ((Int_t)clArray.GetAt(0))) // Max not at first position
+    {
+      Int_t maxIndex = -1;
+      Int_t firstCluster = ((Int_t)clArray.GetAt(0));
+      for ( Int_t iLoopCluster = 0 ; iLoopCluster < nClu ; iLoopCluster++ )
+      {
+        if(idMax == ((Int_t)clArray.GetAt(iLoopCluster))) maxIndex = iLoopCluster;
+      }
+      
+      if(firstCluster >=0 && idMax >=0)
+      {
+        clArray.SetAt(idMax,0);
+        clArray.SetAt(firstCluster,maxIndex);
+      }
+    }
+    
+    // Get the labels list in the original clusters, assign all to the new cluster
+    TArrayI clMCArray(nLabTotOrg) ;
+    clMCArray.Reset();
+    
+    Int_t nLabTot = 0;
+    for ( Int_t iLoopCluster = 0 ; iLoopCluster < nClu ; iLoopCluster++ )
+    {
+      Int_t idCluster = (Int_t) clArray.GetAt(iLoopCluster);
+      AliVCluster * clOrg = GetEvent()->GetCaloCluster(idCluster);
+      Int_t nLab = clOrg->GetNLabels();
+      
+      for ( Int_t iLab = 0 ; iLab < nLab ; iLab++ )
+      {
+        Int_t lab = clOrg->GetLabelAt(iLab) ;
+        if(lab>=0)
+        {
+          Bool_t set = kTRUE;
+          for(Int_t iLabTot =0; iLabTot < nLabTot; iLabTot++)
+          {
+            if( lab == ((Int_t)clMCArray.GetAt(iLabTot)) ) set = kFALSE;
+          }
+          if( set ) clMCArray.SetAt(lab,nLabTot++);
+        }
+      }
+    }// cluster loop
+    
+    // Set the final list of labels to rec point
+    
+    Int_t *labels = new Int_t[nLabTot];
+    for(Int_t il = 0; il < nLabTot; il++) labels[il] = clMCArray.GetArray()[il];
+    clus->SetParents(nLabTot,labels);
+    
+  } // rec point array
+}
+
 
 //_____________________________________________________
 void AliEMCALTenderSupply::GetPass()
 {
-  // Get passx from filename.
+  // Get passx from filename
   
   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();
   fInputTree = mgr->GetTree();
@@ -1578,7 +1814,14 @@ void AliEMCALTenderSupply::GetPass()
   else if (fname.Contains("pass2")) fFilepass = TString("pass2");
   else if (fname.Contains("pass3")) fFilepass = TString("pass3");
   else if (fname.Contains("pass4")) fFilepass = TString("pass4");
-  else 
+  else if (fname.Contains("pass5")) fFilepass = TString("pass5");
+  else if (fname.Contains("calo") || fname.Contains("high_lumi"))
+
+  {
+    //printf("AliEMCALTenderSupply::GetPass() - Path contains <calo> or <high-lumi>, set as <pass1>\n");
+    fFilepass = TString("pass1");
+  }
+  else
   {
     AliError(Form("Pass number string not found: %s", fname.Data()));
     return;            

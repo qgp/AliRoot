@@ -170,14 +170,15 @@ Bool_t AliZDCDigitizer::Init()
   /*if(fIspASystem){
     fBeamType = "p-A";
     AliInfo(" AliZDCDigitizer -> Manually setting beam type to p-A\n");
-    }*/
+  }*/
   
   // Setting beam type for spectator generator and RELDIS generator
   if(((fBeamType.CompareTo("UNKNOWN")) == 0) || fIsRELDISgen){
      fBeamType = "A-A";
      AliInfo(" AliZDCDigitizer -> Manually setting beam type to A-A\n");
   }    
-  printf("\t  AliZDCDigitizer ->  beam type %s  - beam energy = %f GeV\n", fBeamType.Data(), fBeamEnergy);
+  printf("\n\t  AliZDCDigitizer ->  beam type %s  - beam energy = %f GeV\n", fBeamType.Data(), fBeamEnergy);
+  if(fSpectators2Track) printf("\t  AliZDCDigitizer ->  spectator signal added at digit level\n");
   
   if(fBeamEnergy>0.1){
     ReadPMTGains();
@@ -299,24 +300,33 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
     if(genHeader->InheritsFrom(AliGenHijingEventHeader::Class())) hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (genHeader);
     else if(genHeader->InheritsFrom(AliGenCocktailEventHeader::Class())){
       TList* listOfHeaders = ((AliGenCocktailEventHeader*) genHeader)->GetHeaders();
-      if(listOfHeaders) hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (listOfHeaders->FindObject("Hijing"));
+      if(listOfHeaders){ 
+	for(Int_t iH = 0; iH < listOfHeaders->GetEntries(); ++iH) {
+	  AliGenEventHeader *currHeader = dynamic_cast <AliGenEventHeader *> (listOfHeaders->At(iH));
+	  if (currHeader && currHeader->InheritsFrom(AliGenHijingEventHeader::Class())) {
+	    hijingHeader = dynamic_cast <AliGenHijingEventHeader*> (currHeader);
+	    break;
+	  }
+	}
+      }
       else{
-        AliWarning(" No list of headers from generator -> skipping event\n");
-	continue;
+        printf(" No list of headers from generator \n");
       }
     }
-    if(!hijingHeader) continue;
+    if(!hijingHeader){ 
+        printf(" No HIJING header found in list of headers from generator\n");
+    }
     
-    if(fSpectators2Track==kTRUE){
+    if(hijingHeader && fSpectators2Track==kTRUE){
       impPar = hijingHeader->ImpactParameter();
       specNProj = hijingHeader->ProjSpectatorsn();
       specPProj = hijingHeader->ProjSpectatorsp();
       specNTarg = hijingHeader->TargSpectatorsn();
       specPTarg = hijingHeader->TargSpectatorsp();
-      AliInfo(Form("\t AliZDCDigitizer: b = %1.2f fm\n"
+      printf("\t AliZDCDigitizer: b = %1.2f fm\n"
       " \t    PROJECTILE:  #spectator n %d, #spectator p %d\n"
       " \t    TARGET:  #spectator n %d, #spectator p %d\n", 
-      impPar, specNProj, specPProj, specNTarg, specPTarg));
+      impPar, specNProj, specPProj, specNTarg, specPTarg);
     
       // Applying fragmentation algorithm and adding spectator signal
       Int_t freeSpecNProj=0, freeSpecPProj=0;
@@ -325,10 +335,10 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
       if(specNTarg!=0 || specPTarg!=0) Fragmentation(impPar, specNTarg, specPTarg, freeSpecNTarg, freeSpecPTarg);
       if(freeSpecNProj!=0) SpectatorSignal(1, freeSpecNProj, pm);
       if(freeSpecPProj!=0) SpectatorSignal(2, freeSpecPProj, pm);
-      AliInfo(Form("\t AliZDCDigitizer -> Adding spectator signal for PROJECTILE: %d free  n and %d free p\n",freeSpecNProj,freeSpecPProj));
+      printf("\t AliZDCDigitizer -> Adding spectator signal for PROJECTILE: %d free  n and %d free p\n",freeSpecNProj,freeSpecPProj);
       if(freeSpecNTarg!=0) SpectatorSignal(3, freeSpecNTarg, pm);
       if(freeSpecPTarg!=0) SpectatorSignal(4, freeSpecPTarg, pm);
-      AliInfo(Form("\t AliZDCDigitizer -> Adding spectator signal for TARGET: %d free  n and %d free p\n",freeSpecNTarg,freeSpecPTarg));
+      printf("\t AliZDCDigitizer -> Adding spectator signal for TARGET: %d free  n and %d free p\n",freeSpecNTarg,freeSpecPTarg);
     }
   }
 
@@ -368,7 +378,7 @@ void AliZDCDigitizer::Digitize(Option_t* /*option*/)
 
 	//Ch. debug
 	//printf("\t DIGIT added -> det %d quad %d - digi[0,1] = [%d, %d]\n",
-	//     sector[0], sector[1], digi[0], digi[1]); // Chiara debugging!
+	  //   sector[0], sector[1], digi[0], digi[1]); // Chiara debugging!
 	
     }
   } // Loop over detector
@@ -471,8 +481,8 @@ void AliZDCDigitizer::ReadPMTGains()
       }
     }
     //
-    AliInfo(Form("\n    ZDC PMT gains for p-p @ %1.0f+%1.0f GeV: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
-      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]));     
+    printf("\n    AliZDCDigitizer::ReadPMTGains -> ZDC PMT gains for p-p @ %1.0f+%1.0f GeV: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
+      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]);     
   }
   else if(((fBeamType.CompareTo("A-A")) == 0)){
     for(int i=0; i<12; i++){
@@ -487,10 +497,11 @@ void AliZDCDigitizer::ReadPMTGains()
       }
      }  
      //
-     AliInfo(Form("\n    ZDC PMT gains for Pb-Pb @ %1.0f+%1.0f A GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
-      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1]));
+     printf("\n    AliZDCDigitizer::ReadPMTGains -> ZDC PMT gains for Pb-Pb @ %1.0f+%1.0f A GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
+      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1]);
   }
-  else if(((fBeamType.CompareTo("p-A")) == 0) || ((fBeamType.CompareTo("P-A")) == 0)){
+  else if(((fBeamType.CompareTo("p-A")) == 0) || ((fBeamType.CompareTo("P-A")) == 0) 
+       || ((fBeamType.CompareTo("A-p")) == 0) || ((fBeamType.CompareTo("A-P")) == 0)){
     for(int i=0; i<12; i++){
       if(beam[i]==0 && fBeamEnergy!=0.){
         if(det[i]==1 || det[i]==2){
@@ -508,8 +519,8 @@ void AliZDCDigitizer::ReadPMTGains()
 	}
       }
     }
-    AliInfo(Form("\n    ZDC PMT gains for p-Pb: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
-      	fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]));
+    printf("\n    AliZDCDigitizer::ReadPMTGains -> ZDC PMT gains for p-Pb: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
+      	fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]);
   }
 }
 
@@ -531,8 +542,8 @@ void AliZDCDigitizer::CalculatePMTGains()
       fPMGain[2][1] = 0.869654*(1.32312-0.000101515*fBeamEnergy)*10000000;
       fPMGain[2][2] = 1.030883*(1.32312-0.000101515*fBeamEnergy)*10000000;
       //
-      AliInfo(Form("\n    ZDC PMT gains for p-p @ %1.0f+%1.0f GeV: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
-      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]));
+      printf("\n    AliZDCDigitizer::CalculatePMTGains -> ZDC PMT gains for p-p @ %1.0f+%1.0f GeV: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
+      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]);
      
     }
   }
@@ -550,8 +561,8 @@ void AliZDCDigitizer::CalculatePMTGains()
        fPMGain[3][j] = 50000./(4*scalGainFactor);  // ZNA	         
        fPMGain[4][j] = 100000./(5*scalGainFactor); // ZPA    
     }
-    AliInfo(Form("\n    ZDC PMT gains for Pb-Pb @ %1.0f+%1.0f A GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
-      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1]));
+    printf("\n    AliZDCDigitizer::CalculatePMTGains -> ZDC PMT gains for Pb-Pb @ %1.0f+%1.0f A GeV: ZN(%1.0f), ZP(%1.0f), ZEM(%1.0f)\n",
+      	fBeamEnergy, fBeamEnergy, fPMGain[0][0], fPMGain[1][0], fPMGain[2][1]);
   }
   else if(((fBeamType.CompareTo("p-A")) == 0) || ((fBeamType.CompareTo("P-A"))) ){
     // PTM gains for Pb-Pb @ 1.38+1.38 A TeV on side A
@@ -563,13 +574,32 @@ void AliZDCDigitizer::CalculatePMTGains()
     for(Int_t j = 0; j < 5; j++){
        fPMGain[0][j] = 1.515831*(661.444/fBeamEnergy+0.000740671)*10000000; //ZNC (p)
        fPMGain[1][j] = 0.674234*(864.350/fBeamEnergy+0.00234375)*10000000;  //ZPC (p)
-       fPMGain[2][j] = npartScalingFactor*100000./scalGainFactor; 	   // ZEM (Pb)
+       if(j<2) fPMGain[2][j] = npartScalingFactor*100000./scalGainFactor; 	   // ZEM (Pb)
        // Npart max scales from 400 in Pb-Pb to ~8 in pPb -> *40.
        fPMGain[3][j] = npartScalingFactor*50000/(4*scalGainFactor);  // ZNA (Pb)  	     
        fPMGain[4][j] = npartScalingFactor*100000/(5*scalGainFactor); // ZPA (Pb)  
     }
-    AliInfo(Form("\n    ZDC PMT gains for p-Pb: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
-      	fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]));
+    printf("\n    AliZDCDigitizer::CalculatePMTGains -> ZDC PMT gains for p-Pb: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
+      	fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]);
+  }
+  else if(((fBeamType.CompareTo("A-p")) == 0) || ((fBeamType.CompareTo("A-P"))) ){
+    // PTM gains for Pb-Pb @ 1.38+1.38 A TeV on side 
+    // PTM gains rescaled to beam energy for p-p on side C
+    // WARNING! Energies are set by hand for 2011 pA RUN!!!
+    Float_t scalGainFactor = fBeamEnergy/2760.;
+    Float_t npartScalingFactor = 208./15.;
+    
+    for(Int_t j = 0; j < 5; j++){
+       fPMGain[3][j] = 1.350938*(661.444/fBeamEnergy+0.000740671)*10000000;  //ZNA (p)
+       fPMGain[4][j] = 0.678597*(864.350/fBeamEnergy+0.00234375)*10000000;   //ZPA (p)
+       // Npart max scales from 400 in Pb-Pb to ~8 in pPb -> *40.
+       fPMGain[1][j] = npartScalingFactor*50000/(4*scalGainFactor);  // ZNC (Pb)  	     
+       fPMGain[2][j] = npartScalingFactor*100000/(5*scalGainFactor); // ZPC (Pb)  
+    }
+    fPMGain[2][1] = 0.869654*(1.32312-0.000101515*fBeamEnergy)*10000000; // ZEM (pp)
+    fPMGain[2][2] = 1.030883*(1.32312-0.000101515*fBeamEnergy)*10000000; // ZEM (pp)
+    printf("\n    AliZDCDigitizer::CalculatePMTGains -> ZDC PMT gains for p-Pb: ZNC(%1.0f), ZPC(%1.0f), ZEM(%1.0f), ZNA(%1.0f) ZPA(%1.0f)\n",
+      	fPMGain[0][0], fPMGain[1][0], fPMGain[2][1], fPMGain[3][0], fPMGain[4][0]);
   }
 }
 

@@ -44,7 +44,7 @@ class AliCentralitySelectionTask : public AliAnalysisTaskSE {
 
  private:
 
-  Int_t SetupRun(const AliESDEvent* const esd);
+  Int_t SetupRun(const AliVEvent* const esd);
   Bool_t IsOutlierV0MSPD(Float_t spd, Float_t v0, Int_t cent) const;
   Bool_t IsOutlierV0MTPC(Int_t tracks, Float_t v0, Int_t cent) const;
   Bool_t IsOutlierV0MZDC(Float_t zdc, Float_t v0) const;
@@ -108,38 +108,89 @@ class AliCentralitySelectionTask : public AliAnalysisTaskSE {
   Float_t  fCentV0M;            // percentile centrality from V0
   Float_t  fCentV0A;            // percentile centrality from V0A
   Float_t  fCentV0C;            // percentile centrality from V0C
+  Float_t  fCentV0MEq;          // percentile centrality from V0 equalized channel
+  Float_t  fCentV0AEq;          // percentile centrality from V0A equalized channel
+  Float_t  fCentV0CEq;          // percentile centrality from V0C equalized channel
   Float_t  fCentFMD;            // percentile centrality from FMD
   Float_t  fCentTRK;            // percentile centrality from tracks
   Float_t  fCentTKL;            // percentile centrality from tracklets
   Float_t  fCentCL0;            // percentile centrality from clusters in layer 0
   Float_t  fCentCL1;            // percentile centrality from clusters in layer 1
   Float_t  fCentCND;            // percentile centrality from candle 
-  Float_t  fCentNPA;            // percentile centrality from Npart (MC) 
   Float_t  fCentZNA;            // percentile centrality from ZNA 
+  Float_t  fCentZNC;            // percentile centrality from ZNC 
+  Float_t  fCentZPA;            // percentile centrality from ZPA 
+  Float_t  fCentZPC;            // percentile centrality from ZPC 
+  Float_t  fCentNPA;            // percentile centrality from Npart (MC) 
   Float_t  fCentV0MvsFMD;       // percentile centrality from V0 vs FMD
   Float_t  fCentTKLvsV0M;       // percentile centrality from tracklets vs V0
   Float_t  fCentZEMvsZDC;       // percentile centrality from ZEM vs ZDC
 
+  Float_t  fCentV0Mtrue;        // percentile centrality from true (sim) V0A+V0C
+  Float_t  fCentV0Atrue;        // percentile centrality from true (sim) V0A
+  Float_t  fCentV0Ctrue;        // percentile centrality from true (sim) V0C
+  Float_t  fCentV0MEqtrue;      // percentile centrality from true (sim) V0A+V0C equalized channel
+  Float_t  fCentV0AEqtrue;      // percentile centrality from true (sim) V0A equalized channel
+  Float_t  fCentV0CEqtrue;      // percentile centrality from true (sim) V0C equalized channel
+  Float_t  fCentFMDtrue;        // percentile centrality from true (sim) FMD
+  Float_t  fCentTRKtrue;        // percentile centrality from true (sim) tracks
+  Float_t  fCentTKLtrue;        // percentile centrality from true (sim) tracklets
+  Float_t  fCentCL0true;        // percentile centrality from true (sim) Clusters in layer 0
+  Float_t  fCentCL1true;        // percentile centrality from true (sim) Clusters in layer 1
+  Float_t  fCentCNDtrue;        // percentile centrality from true (sim) tracks (candle condition)
+  Float_t  fCentZNAtrue;        // percentile centrality from true (sim) ZNA
+  Float_t  fCentZNCtrue;        // percentile centrality from true (sim) ZNC
+  Float_t  fCentZPAtrue;        // percentile centrality from true (sim) ZPA
+  Float_t  fCentZPCtrue;        // percentile centrality from true (sim) ZPC
+
+
   TH1F    *fHtempV0M;           // histogram with centrality vs multiplicity using V0
   TH1F    *fHtempV0A;           // histogram with centrality vs multiplicity using V0A
   TH1F    *fHtempV0C;           // histogram with centrality vs multiplicity using V0C
+  TH1F    *fHtempV0MEq;         // histogram with centrality vs multiplicity using V0  equalized channel
+  TH1F    *fHtempV0AEq;         // histogram with centrality vs multiplicity using V0A equalized channel
+  TH1F    *fHtempV0CEq;         // histogram with centrality vs multiplicity using V0C equalized channel
   TH1F    *fHtempFMD;           // histogram with centrality vs multiplicity using FMD
   TH1F    *fHtempTRK;           // histogram with centrality vs multiplicity using tracks
   TH1F    *fHtempTKL;           // histogram with centrality vs multiplicity using tracklets
   TH1F    *fHtempCL0;           // histogram with centrality vs multiplicity using clusters in layer 0
   TH1F    *fHtempCL1;           // histogram with centrality vs multiplicity using clusters in layer 1
   TH1F    *fHtempCND;           // histogram with centrality vs multiplicity using candle
-  TH1F    *fHtempNPA;           // histogram with centrality vs multiplicity using Npart
   TH1F    *fHtempZNA;           // histogram with centrality vs multiplicity using ZNA
+  TH1F    *fHtempZNC;           // histogram with centrality vs multiplicity using ZNC
+  TH1F    *fHtempZPA;           // histogram with centrality vs multiplicity using ZPA
+  TH1F    *fHtempZPC;           // histogram with centrality vs multiplicity using ZPC
   TH1F    *fHtempV0MvsFMD;      // histogram with centrality vs multiplicity using V0 vs FMD   
   TH1F    *fHtempTKLvsV0M;      // histogram with centrality vs multiplicity using tracklets vs V0
   TH2F    *fHtempZEMvsZDC;      // histogram with centrality vs multiplicity using ZEM vs ZDC 
+  TH1F    *fHtempNPA;           // histogram with centrality vs multiplicity using Npart
+
+  TH1F    *fHtempV0Mtrue;       // histogram with centrality true (sim) vs multiplicity using V0
+  TH1F    *fHtempV0Atrue;       // histogram with centrality true (sim) vs multiplicity using V0A
+  TH1F    *fHtempV0Ctrue;       // histogram with centrality true (sim) vs multiplicity using V0C
+  TH1F    *fHtempV0MEqtrue;     // histogram with centrality true (sim) vs multiplicity using V0 equalized channel
+  TH1F    *fHtempV0AEqtrue;     // histogram with centrality true (sim) vs multiplicity using V0A equalized channel
+  TH1F    *fHtempV0CEqtrue;     // histogram with centrality true (sim) vs multiplicity using V0C equalized channel
+  TH1F    *fHtempFMDtrue;       // histogram with centrality true (sim) vs multiplicity using FMD
+  TH1F    *fHtempTRKtrue;       // histogram with centrality true (sim) vs multiplicity using tracks
+  TH1F    *fHtempTKLtrue;       // histogram with centrality true (sim) vs multiplicity using tracklets
+  TH1F    *fHtempCL0true;       // histogram with centrality true (sim) vs multiplicity using clusters in layer 0
+  TH1F    *fHtempCL1true;       // histogram with centrality true (sim) vs multiplicity using clusters in layer 1
+  TH1F    *fHtempCNDtrue;       // histogram with centrality true (sim) vs multiplicity using candle
+  TH1F    *fHtempZNAtrue;       // histogram with centrality true (sim) vs multiplicity using ZNA
+  TH1F    *fHtempZNCtrue;       // histogram with centrality true (sim) vs multiplicity using ZNC
+  TH1F    *fHtempZPAtrue;       // histogram with centrality true (sim) vs multiplicity using ZPA
+  TH1F    *fHtempZPCtrue;       // histogram with centrality true (sim) vs multiplicity using ZPC
 
   TList   *fOutputList; // output list
   
+
   TH1F *fHOutCentV0M    ;       //control histogram for centrality
   TH1F *fHOutCentV0A    ;       //control histogram for centrality
   TH1F *fHOutCentV0C    ;       //control histogram for centrality
+  TH1F *fHOutCentV0MEq  ;       //control histogram for centrality
+  TH1F *fHOutCentV0AEq  ;       //control histogram for centrality
+  TH1F *fHOutCentV0CEq  ;       //control histogram for centrality
   TH1F *fHOutCentV0MCVHN;       //control histogram for centrality
   TH1F *fHOutCentV0MCVLN;       //control histogram for centrality
   TH1F *fHOutCentV0MCVHNinMB;   //control histogram for centrality
@@ -170,6 +221,9 @@ class AliCentralitySelectionTask : public AliAnalysisTaskSE {
   TH1F *fHOutCentCND     ;      //control histogram for centrality
   TH1F *fHOutCentNPA     ;      //control histogram for centrality
   TH1F *fHOutCentZNA     ;      //control histogram for centrality
+  TH1F *fHOutCentZNC     ;      //control histogram for centrality
+  TH1F *fHOutCentZPA     ;      //control histogram for centrality
+  TH1F *fHOutCentZPC     ;      //control histogram for centrality
   TH1F *fHOutCentV0MvsFMD;      //control histogram for centrality
   TH1F *fHOutCentTKLvsV0M;      //control histogram for centrality
   TH1F *fHOutCentZEMvsZDC;      //control histogram for centrality
@@ -194,11 +248,15 @@ class AliCentralitySelectionTask : public AliAnalysisTaskSE {
   TH2F *fHOutCentZNAvsCentTRK;  //control histogram for centrality
   TH2F *fHOutCentZNAvsCentCND;  //control histogram for centrality
   TH2F *fHOutCentZNAvsCentCL1;  //control histogram for centrality
+  TH2F *fHOutCentZNAvsCentZPA;  //control histogram for centrality
 
   TH2F *fHOutMultV0AC;          //control histogram for multiplicity
   TH1F *fHOutMultV0M ;          //control histogram for multiplicity
   TH1F *fHOutMultV0A ;          //control histogram for multiplicity
   TH1F *fHOutMultV0C ;          //control histogram for multiplicity
+  TH1F *fHOutMultV0MEq ;        //control histogram for multiplicity
+  TH1F *fHOutMultV0AEq ;        //control histogram for multiplicity
+  TH1F *fHOutMultV0CEq ;        //control histogram for multiplicity
   TH1F *fHOutMultV0Mnc ;        //control histogram for multiplicity
   TH1F *fHOutMultV0Anc ;        //control histogram for multiplicity
   TH1F *fHOutMultV0Cnc ;        //control histogram for multiplicity
@@ -212,6 +270,9 @@ class AliCentralitySelectionTask : public AliAnalysisTaskSE {
   TH1F *fHOutMultCND ;          //control histogram for multiplicity
   TH1F *fHOutMultNPA ;          //control histogram for multiplicity
   TH1F *fHOutMultZNA ;          //control histogram for multiplicity
+  TH1F *fHOutMultZNC ;          //control histogram for multiplicity
+  TH1F *fHOutMultZPA ;          //control histogram for multiplicity
+  TH1F *fHOutMultZPC ;          //control histogram for multiplicity
 
   TH2F *fHOutMultV0MvsZDN;      //control histogram for multiplicity
   TH2F *fHOutMultZEMvsZDN;      //control histogram for multiplicity
@@ -225,6 +286,7 @@ class AliCentralitySelectionTask : public AliAnalysisTaskSE {
   TH2F *fHOutMultV0OvsCL1;      //control histogram for multiplicity
   TH2F *fHOutMultV0OvsTRK;      //control histogram for multiplicity
   TH2F *fHOutMultCL1vsTKL;      //control histogram for multiplicity
+  TH2F *fHOutMultZNAvsZPA;      //control histogram for multiplicity
 
   TH1F *fHOutCentV0Mqual1     ; //control histogram for centrality quality 1
   TH1F *fHOutCentTRKqual1     ; //control histogram for centrality quality 1
@@ -244,7 +306,7 @@ class AliCentralitySelectionTask : public AliAnalysisTaskSE {
   TH1F *fHOutVertex ;           //control histogram for vertex SPD
   TH1F *fHOutVertexT0 ;         //control histogram for vertex T0
 
-  ClassDef(AliCentralitySelectionTask, 24); 
+  ClassDef(AliCentralitySelectionTask, 28); 
 };
 
 #endif

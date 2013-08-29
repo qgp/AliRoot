@@ -65,6 +65,7 @@ fListQAitsPureSA(0x0),
 fListQAtpc(0x0),
 fListQAtrd(0x0),
 fListQAtof(0x0),
+fListQAt0(0x0),
 fListQAemcal(0x0),
 fListQAhmpid(0x0),
 fListQAtofhmpid(0x0),
@@ -93,6 +94,7 @@ fListQAitsPureSA(0x0),
 fListQAtpc(0x0),
 fListQAtrd(0x0),
 fListQAtof(0x0),
+fListQAt0(0x0),
 fListQAemcal(0x0),
 fListQAhmpid(0x0),
 fListQAtofhmpid(0x0),
@@ -177,6 +179,10 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   fListQAtof=new TList;
   fListQAtof->SetOwner();
   fListQAtof->SetName("TOF");
+
+  fListQAt0=new TList;
+  fListQAt0->SetOwner();
+  fListQAt0->SetName("T0");
   
   fListQAemcal=new TList;
   fListQAemcal->SetOwner();
@@ -208,6 +214,7 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   fListQA->Add(fListQAtpc);
   fListQA->Add(fListQAtrd);
   fListQA->Add(fListQAtof);
+  fListQA->Add(fListQAt0);
   fListQA->Add(fListQAemcal);
   fListQA->Add(fListQAhmpid);
   fListQA->Add(fListQAtpctof);
@@ -219,6 +226,7 @@ void AliAnalysisTaskPIDqa::UserCreateOutputObjects()
   SetupTPCqa();
   SetupTRDqa();
   SetupTOFqa();
+  SetupT0qa();
   SetupEMCALqa();
   SetupHMPIDqa();
   SetupTPCTOFqa();
@@ -249,6 +257,7 @@ void AliAnalysisTaskPIDqa::UserExec(Option_t */*option*/)
   FillTOFqa();
   FillEMCALqa();
   FillHMPIDqa();
+  FillT0qa();
   
   //combined detector QA
   FillTPCTOFqa();
@@ -445,23 +454,25 @@ void AliAnalysisTaskPIDqa::FillTPCqa()
       h->Fill(mom,nSigma);
     }
     // the "hybrid" scenario
-    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
-      TH2 *h=(TH2*)fListQAtpc->At(ispecie+AliPID::kSPECIESC);
-      if (!h) continue;
-      Double_t nSigma=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie, AliTPCPIDResponse::kdEdxHybrid);
-      h->Fill(mom,nSigma);
-    }
-    
-    // the "OROC" scenario
-    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
-      TH2 *h=(TH2*)fListQAtpc->At(ispecie+2*AliPID::kSPECIESC);
-      if (!h) continue;
-      Double_t nSigma=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie, AliTPCPIDResponse::kdEdxOROC);
-      //TSpline3* spline = fPIDResponse->GetTPCResponse().GetCurrentResponseFunction();
-      //std::cout<<ispecie<<" "<<nSigma<<" phi:"<<track->Phi()<<". "<<std::endl;
-      //if (spline) {cout<<spline->GetName()<<endl;}
-      //else {cout<<"NULL spline"<<endl;}
-      h->Fill(mom,nSigma);
+    if (track->GetTPCdEdxInfo()){
+      for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
+        TH2 *h=(TH2*)fListQAtpc->At(ispecie+AliPID::kSPECIESC);
+        if (!h) continue;
+        Double_t nSigma=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie, AliTPCPIDResponse::kdEdxHybrid);
+        h->Fill(mom,nSigma);
+      }
+
+      // the "OROC" scenario
+      for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
+        TH2 *h=(TH2*)fListQAtpc->At(ispecie+2*AliPID::kSPECIESC);
+        if (!h) continue;
+        Double_t nSigma=fPIDResponse->NumberOfSigmasTPC(track, (AliPID::EParticleType)ispecie, AliTPCPIDResponse::kdEdxOROC);
+        //TSpline3* spline = fPIDResponse->GetTPCResponse().GetCurrentResponseFunction();
+        //std::cout<<ispecie<<" "<<nSigma<<" phi:"<<track->Phi()<<". "<<std::endl;
+        //if (spline) {cout<<spline->GetName()<<endl;}
+        //else {cout<<"NULL spline"<<endl;}
+        h->Fill(mom,nSigma);
+        }
     }
     
     TH2 *h=(TH2*)fListQAtpc->At(3*AliPID::kSPECIESC);
@@ -585,6 +596,11 @@ void AliAnalysisTaskPIDqa::FillTOFqa()
       } else {
 	((TH1F*)fListQAtof->FindObject("hNsigma_TOF_Pion_T0-Best"))->Fill(nsigma);
       }
+      if (mask & 0x1) { //at least TOF-T0 present
+	Double_t delta=0;
+	(void)fPIDResponse->GetSignalDelta((AliPIDResponse::EDetector)AliPIDResponse::kTOF,track,(AliPID::EParticleType)AliPID::kPion,delta);
+	((TH1F*)fListQAtof->FindObject("hDelta_TOF_Pion"))->Fill(delta);
+      }
     }
 
     Double_t res = (Double_t)fPIDResponse->GetTOFResponse().GetStartTimeRes(mom);
@@ -604,6 +620,65 @@ void AliAnalysisTaskPIDqa::FillTOFqa()
     Int_t mask = fPIDResponse->GetTOFResponse().GetStartTimeMask(5.);
     if (mask & 0x1) ((TH1F*)fListQAtof->FindObject("hT0MakerEff"))->Fill(tracksAtTof);
   }
+}
+
+//______________________________________________________________________________
+void AliAnalysisTaskPIDqa::FillT0qa()
+{
+  //
+  // Fill TOF information
+  //
+  AliVEvent *event=InputEvent();
+
+  Int_t ntracks=event->GetNumberOfTracks();
+
+  Int_t tracksAtT0 = 0;
+
+  for(Int_t itrack = 0; itrack < ntracks; itrack++){
+    AliVTrack *track=(AliVTrack*)event->GetTrack(itrack);
+
+    //
+    //basic track cuts
+    //
+    ULong_t status=track->GetStatus();
+    // TPC refit + ITS refit +
+    if (!((status & AliVTrack::kTPCrefit) == AliVTrack::kTPCrefit) ||
+        !((status & AliVTrack::kITSrefit) == AliVTrack::kITSrefit) ) continue;
+    Float_t nCrossedRowsTPC = track->GetTPCClusterInfo(2,1);
+    Float_t  ratioCrossedRowsOverFindableClustersTPC = 1.0;
+    if (track->GetTPCNclsF()>0) {
+      ratioCrossedRowsOverFindableClustersTPC = nCrossedRowsTPC/track->GetTPCNclsF();
+    }
+    if ( nCrossedRowsTPC<70 || ratioCrossedRowsOverFindableClustersTPC<.8 ) continue;
+
+    tracksAtT0++;
+  }
+
+  Bool_t t0A = kFALSE;
+  Bool_t t0C = kFALSE;
+  Bool_t t0And = kFALSE;
+  Double_t startTimeT0 = event->GetT0TOF(0);     // AND
+  if (startTimeT0 < 90000) {
+    t0And = kTRUE;
+    ((TH1F*)fListQAt0->FindObject("hStartTimeAC_T0"))->Fill(startTimeT0);
+    }
+  startTimeT0 = event->GetT0TOF(1);             // T0A 
+  if (startTimeT0 < 90000) {
+    t0A = kTRUE;
+    ((TH1F*)fListQAt0->FindObject("hStartTimeA_T0"))->Fill(startTimeT0);
+    
+  }
+  startTimeT0 = event->GetT0TOF(2);             // T0C 
+  if (startTimeT0 < 90000) {
+    t0C = kTRUE;
+    ((TH1F*)fListQAt0->FindObject("hStartTimeC_T0"))->Fill(startTimeT0);
+  }
+  
+  ((TH1F* )fListQAt0->FindObject("hnTracksAt_T0"))->Fill(tracksAtT0);
+  if (t0A) ((TH1F*)fListQAt0->FindObject("hT0AEff"))->Fill(tracksAtT0);
+  if (t0C) ((TH1F*)fListQAt0->FindObject("hT0CEff"))->Fill(tracksAtT0);
+  if (t0And) ((TH1F*)fListQAt0->FindObject("hT0AndEff"))->Fill(tracksAtT0);
+  if (t0A || t0C) ((TH1F*)fListQAt0->FindObject("hT0OrEff"))->Fill(tracksAtT0);
 }
 
 
@@ -779,7 +854,7 @@ void AliAnalysisTaskPIDqa::FillHMPIDqa()
     //
     //basic track cuts
     //
-    ULong_t status=track->GetStatus();
+    const ULong_t status=track->GetStatus();
     // not that nice. status bits not in virtual interface
     // TPC refit + ITS refit +
     // TOF out + TOFpid +
@@ -787,7 +862,7 @@ void AliAnalysisTaskPIDqa::FillHMPIDqa()
     if (!((status & AliVTrack::kTPCrefit) == AliVTrack::kTPCrefit) ||
         !((status & AliVTrack::kITSrefit) == AliVTrack::kITSrefit) ) continue;
 
-    Float_t nCrossedRowsTPC = track->GetTPCClusterInfo(2,1);
+    const Float_t nCrossedRowsTPC = track->GetTPCClusterInfo(2,1);
     Float_t  ratioCrossedRowsOverFindableClustersTPC = 1.0;
     if (track->GetTPCNclsF()>0) {
       ratioCrossedRowsOverFindableClustersTPC = nCrossedRowsTPC/track->GetTPCNclsF();
@@ -795,12 +870,22 @@ void AliAnalysisTaskPIDqa::FillHMPIDqa()
 
     if ( nCrossedRowsTPC<70 || ratioCrossedRowsOverFindableClustersTPC<.8 ) continue;
     
-    Double_t mom = track->P();
-    Double_t ckovAngle = track->GetHMPIDsignal();
+    const Double_t mom = track->P();
+    const Double_t ckovAngle = track->GetHMPIDsignal();
+
+    Int_t nhists=0;
+    for (Int_t ispecie=0; ispecie<AliPID::kSPECIESC; ++ispecie){
+      if (ispecie==AliPID::kElectron || ispecie==AliPID::kMuon) continue;
+      TH2 *h=(TH2*)fListQAhmpid->At(nhists);
+      if (!h) {++nhists; continue;}
+      const Double_t nSigma=fPIDResponse->NumberOfSigmasHMPID(track, (AliPID::EParticleType)ispecie);
+      h->Fill(mom,nSigma);
+      ++nhists;
+    }
     
-    TH1F *hThetavsMom = (TH1F*)fListQAhmpid->At(0);;
+    TH1F *hThetavsMom = (TH1F*)fListQAhmpid->At(AliPID::kSPECIESC);
     
-    hThetavsMom->Fill(mom,ckovAngle);    
+    if (hThetavsMom) hThetavsMom->Fill(mom,ckovAngle);
   
   }
 }
@@ -1098,7 +1183,7 @@ void AliAnalysisTaskPIDqa::SetupTPCqa()
   TH2F *hSig = new TH2F("hSigP_TPC",
                         "TPC signal vs. p;p [GeV]; TPC signal [arb. units]",
                         vX->GetNrows()-1,vX->GetMatrixArray(),
-                        300,0,300);
+                        500,0,1000);
   fListQAtpc->Add(hSig); //3*AliPID::kSPECIESC
 
   delete vX;  
@@ -1140,7 +1225,6 @@ void AliAnalysisTaskPIDqa::SetupTOFqa()
     fListQAtof->Add(hNsigmaP);
   }
 
-  // for Kaons PID we differentiate on Time Zero
   TH1F *hnSigT0Fill = new TH1F("hNsigma_TOF_Pion_T0-Fill","TOF n#sigma (Pion) T0-FILL [0.75-1.25. GeV/c]",200,-10,10);
   fListQAtof->Add(hnSigT0Fill);
   TH1F *hnSigT0T0 = new TH1F("hNsigma_TOF_Pion_T0-T0","TOF n#sigma (Pion) T0-T0 [0.75-1.25 GeV/c]",200,-10,10);
@@ -1149,7 +1233,9 @@ void AliAnalysisTaskPIDqa::SetupTOFqa()
   fListQAtof->Add(hnSigT0TOF);
   TH1F *hnSigT0Best = new TH1F("hNsigma_TOF_Pion_T0-Best","TOF n#sigma (Pion) T0-Best [0.75-1.25 GeV/c]",200,-10,10);
   fListQAtof->Add(hnSigT0Best);
-
+  TH1F *hnDeltaPi = new TH1F("hDelta_TOF_Pion","DeltaT (Pion) [0.75-1.25 GeV/c]",50,-500,500);
+  fListQAtof->Add(hnDeltaPi);
+  
   TH2F *hSig = new TH2F("hSigP_TOF",
                         "TOF signal vs. p;p [GeV]; TOF signal [ns]",
                         vX->GetNrows()-1,vX->GetMatrixArray(),
@@ -1164,9 +1250,9 @@ void AliAnalysisTaskPIDqa::SetupTOFqa()
   TH1F *hStartTimeResTOF = new TH1F("hStartTimeRes_TOF","StartTime resolution [ps]",100,0,500);
   fListQAtof->Add(hStartTimeResTOF);
 
-  TH1F *hnTracksAtTOF = new TH1F("hnTracksAt_TOF","Matched tracks at TOF",20,0,20);
+  TH1F *hnTracksAtTOF = new TH1F("hnTracksAt_TOF","Matched tracks at TOF",100,0,100);
   fListQAtof->Add(hnTracksAtTOF);
-  TH1F *hT0MakerEff = new TH1F("hT0MakerEff","Events with T0-TOF vs nTracks",20,0,20);
+  TH1F *hT0MakerEff = new TH1F("hT0MakerEff","Events with T0-TOF vs nTracks",100,0,100);
   fListQAtof->Add(hT0MakerEff);
 
   // this in principle should stay on a T0 PID QA, but are just the data prepared for TOF use
@@ -1176,6 +1262,36 @@ void AliAnalysisTaskPIDqa::SetupTOFqa()
   fListQAtof->Add(hStartTimeCT0);
   TH1F *hStartTimeACT0 = new TH1F("hStartTimeAC_T0","StartTime from T0AC [ps]",1000,-1000,1000);;
   fListQAtof->Add(hStartTimeACT0);
+}
+
+
+//______________________________________________________________________________
+void AliAnalysisTaskPIDqa::SetupT0qa()
+{
+  //
+  // Create the T0 qa objects
+  //
+  
+  // these are similar to plots inside TOFqa, but these are for all events
+  TH1F *hStartTimeAT0 = new TH1F("hStartTimeA_T0","StartTime from T0A [ps]",1000,-1000,1000);
+  fListQAt0->Add(hStartTimeAT0);
+  TH1F *hStartTimeCT0 = new TH1F("hStartTimeC_T0","StartTime from T0C [ps]",1000,-1000,1000);
+  fListQAt0->Add(hStartTimeCT0);
+  TH1F *hStartTimeACT0 = new TH1F("hStartTimeAC_T0","StartTime from T0AC [ps]",1000,-1000,1000);;
+  fListQAt0->Add(hStartTimeACT0);
+
+  TH1F *hnTracksAtT0 = new TH1F("hnTracksAt_T0","Tracks for events selected for T0",100,0,100);
+  fListQAt0->Add(hnTracksAtT0);
+  TH1F *hT0AEff = new TH1F("hT0AEff","Events with T0A vs nTracks",100,0,100);
+  fListQAt0->Add(hT0AEff);
+  TH1F *hT0CEff = new TH1F("hT0CEff","Events with T0C vs nTracks",100,0,100);
+  fListQAt0->Add(hT0CEff);
+  TH1F *hT0AndEff = new TH1F("hT0AndEff","Events with T0AC (AND) vs nTracks",100,0,100);
+  fListQAt0->Add(hT0AndEff);
+  TH1F *hT0OrEff = new TH1F("hT0OrEff","Events with T0AC (OR) vs nTracks",100,0,100);
+  fListQAt0->Add(hT0OrEff);
+
+
 }
 
 //______________________________________________________________________________
@@ -1227,10 +1343,28 @@ void AliAnalysisTaskPIDqa::SetupHMPIDqa()
   //
   // Create the HMPID qa objects
   //
+
+  TVectorD *vX=MakeLogBinning(200,.1,30);
+
+  // nSigmas
+  Int_t nhists=0;
+  for (Int_t ispecie=0; ispecie<AliPID::kSPECIES; ++ispecie){
+    if (ispecie==AliPID::kElectron || ispecie==AliPID::kMuon) continue;
+    TH2F *hNsigmaP = new TH2F(Form("hNsigmaP_HMPID_%s",AliPID::ParticleName(ispecie)),
+                              Form("HMPID n#sigma %s vs. p;p [GeV]; n#sigma",AliPID::ParticleName(ispecie)),
+                              vX->GetNrows()-1,vX->GetMatrixArray(),
+                              200,-10,10);
+    fListQAhmpid->AddAt(hNsigmaP, nhists);
+    ++nhists;
+  }
   
-  TH2F *hCkovAnglevsMom   = new TH2F("hCkovAnglevsMom",  "Cherenkov angle vs momnetum",500,0,5.,500,0,1);
-  fListQAhmpid->Add(hCkovAnglevsMom);
+  // cherenkov angle
+  TH2F *hCkovAnglevsMom   = new TH2F("hCkovAnglevsMom",  "Cherenkov angle vs momentum",
+                                     vX->GetNrows()-1,vX->GetMatrixArray(),
+                                     500,0,1);
+  fListQAhmpid->AddAt(hCkovAnglevsMom,nhists);
   
+  delete vX;
 }
 
 //______________________________________________________________________________
@@ -1240,13 +1374,13 @@ void AliAnalysisTaskPIDqa::SetupTOFHMPIDqa()
   // Create the HMPID qa objects
   //
   
-  TH2F *hCkovAnglevsMomPion   = new TH2F("hCkovAnglevsMom_pion",  "Cherenkov angle vs momnetum for pions",500,0,5.,500,0,1);
+  TH2F *hCkovAnglevsMomPion   = new TH2F("hCkovAnglevsMom_pion",  "Cherenkov angle vs momentum for pions",500,0,5.,500,0,1);
   fListQAtofhmpid->Add(hCkovAnglevsMomPion);
   
-  TH2F *hCkovAnglevsMomKaon   = new TH2F("hCkovAnglevsMom_kaon",  "Cherenkov angle vs momnetum for kaons",500,0,5.,500,0,1);
+  TH2F *hCkovAnglevsMomKaon   = new TH2F("hCkovAnglevsMom_kaon",  "Cherenkov angle vs momentum for kaons",500,0,5.,500,0,1);
   fListQAtofhmpid->Add(hCkovAnglevsMomKaon);
   
-  TH2F *hCkovAnglevsMomProton = new TH2F("hCkovAnglevsMom_proton","Cherenkov angle vs momnetum for protons",500,0,5.,500,0,1);
+  TH2F *hCkovAnglevsMomProton = new TH2F("hCkovAnglevsMom_proton","Cherenkov angle vs momentum for protons",500,0,5.,500,0,1);
   fListQAtofhmpid->Add(hCkovAnglevsMomProton);
   
   

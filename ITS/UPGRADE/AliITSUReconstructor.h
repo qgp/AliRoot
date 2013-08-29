@@ -12,6 +12,7 @@
 
 #include "AliReconstructor.h"
 #include "AliITSURecoParam.h"
+#include "AliITSURecoDet.h"
 
 class AliTracker;
 class AliTrackleter;
@@ -34,10 +35,10 @@ public:
   //
   TClonesArray*          GetClusters(Int_t lrID)            const {return fClusters ? fClusters[lrID] : 0;}
   AliITSUGeomTGeo*       GetGeom()                          const {return (AliITSUGeomTGeo*)fGeom;}
+  AliITSURecoDet*        GetITSInterface();
   //
-  Int_t                  LoadClusters(TTree* treeRP);
+  Int_t                  LoadClusters(TTree* treeRP)        {return GetITSInterface()->LoadClusters(treeRP);}
   //
-
   static const AliITSURecoParam* GetRecoParam() { 
     return dynamic_cast<const AliITSURecoParam*>(AliReconstructor::GetRecoParam(0)); }
 
@@ -45,6 +46,7 @@ private:
   AliITSUReconstructor(const AliITSUReconstructor &); //Not implemented
   AliITSUReconstructor& operator=(const AliITSUReconstructor &); //Not implemented
   AliITSUGeomTGeo* fGeom;          // geometry wrapper
+  AliITSURecoDet*  fITS;           // interface to ITS (reconstruction oriented)
   TObjArray        fClusterFinders; // array of clusterfinders per layer
   TClonesArray**   fClusters;      // container for recpoints TClonesArrays
   //

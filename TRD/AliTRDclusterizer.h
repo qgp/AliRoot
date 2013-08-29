@@ -91,7 +91,7 @@ class AliTRDclusterizer : public TNamed
   Bool_t   ReadTracks();
 
   Bool_t   WriteClusters(Int_t det);
-  void     ResetRecPoints();
+  void     ResetRecPoints()                { fNoOfClusters = 0;}
   virtual TClonesArray    *RecPoints();
   virtual TClonesArray    *TrackletsArray(const TString &trkltype = "");
   virtual TClonesArray    *TracksArray();
@@ -145,13 +145,7 @@ protected:
   TClonesArray        *fTracklets;                //! Array of online tracklets
   TClonesArray        *fTracks;                   //! Array of GTU tracks
 
-  TTree               *fTrackletTree;             //! Tree for tracklets
-
   AliTRDdigitsManager *fDigitsManager;            //! TRD digits manager
-
-  UInt_t              **fTrackletContainer;       //! tracklet container
-					          // legacy code to avoid breakint AliHLTTRDClusterizer
-					          // but it's useless
 
   Int_t                fRawVersion;               //  Expected raw version of the data - default is 2
 

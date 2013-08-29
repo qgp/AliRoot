@@ -72,7 +72,7 @@ public:
    virtual void        SetGridWorkingDir(const char *name="workdir")     {fGridWorkingDir = name;}
    virtual void        SetGridDataDir(const char *name)                  {fGridDataDir = name;}
    virtual void        SetDataPattern(const char *pattern="*AliESDs.root") {fDataPattern = pattern;}
-   virtual void        SetFriendChainName(const char *name="")           {fFriendChainName = name;}
+   virtual void        SetFriendChainName(const char *name="", const char *libnames="");
    virtual void        SetDefaultOutputs(Bool_t flag);
    virtual void        SetGridOutputDir(const char *name="output")       {fGridOutputDir = name;}
    virtual void        SetOutputArchive(const char *list="log_archive.zip:std*@disk=1 root_archive.zip:*.root@disk=2");
@@ -96,6 +96,7 @@ public:
    virtual void        SetFastReadOption(Bool_t on=kTRUE)                {fFastReadOption = on ? 1 : 0;}
    virtual void        SetOverwriteMode(Bool_t on=kTRUE)                 {fOverwriteMode = on ? 1 : 0;}
    virtual void        SetDropToShell(Bool_t drop=true)                  {fDropToShell = drop;}
+   virtual void        SetTreeName(const char *name)                     {fTreeName = name;}
 
    TGridJDL           *GetGridJDL() const {return fGridJDL;}
    TGridJDL           *GetMergingJDL() const {return fMergingJDL;}
@@ -107,6 +108,7 @@ public:
    Int_t               GetNmodules() const;
    AliAnalysisTaskCfg *GetModule(const char *name);
    Bool_t              LoadModules();
+   Bool_t              LoadFriendLibs() const;
    Bool_t              GenerateTest(const char *name, const char *modname="");
    Bool_t              GenerateTrain(const char *name);
    virtual Bool_t      CreateDataset(const char *pattern);
@@ -146,14 +148,15 @@ public:
    virtual void        SetProofReset(Int_t mode)                         {fProofReset = mode;}
    virtual void        SetNproofWorkers(Int_t nworkers)                  {fNproofWorkers = nworkers;}
    virtual void        SetNproofWorkersPerSlave(Int_t nworkers)          {fNproofWorkersPerSlave = nworkers;}
-   virtual void        SetRootVersionForProof(const char *version)       {fRootVersionForProof = version;}
+   virtual void        SetRootVersionForProof(const char *version);
    virtual void        SetAliRootMode(const char *mode)                  {fAliRootMode = mode;}
    virtual void        SetProofProcessOpt(const char *proofOpt="")       {fProofProcessOpt = proofOpt;}
    virtual TString     GetProofProcessOpt()                              {return fProofProcessOpt;}
    // .txt file containing the list of files to be chained in test mode
    virtual void        SetFileForTestMode(const char *filename)          {fFileForTestMode = filename;}
    virtual TChain     *GetChainForTestMode(const char *treeName) const;
-
+   virtual const TString& GetGridJobIDs() const { return fGridJobIDs; }
+   virtual const TString& GetGridStages() const { return fGridStages; }
 protected:
    void                CdWork();
    Bool_t              CheckInputData();
@@ -229,7 +232,6 @@ private:
    TString          fProofCluster;    // Proof cluster name
    TString          fProofDataSet;    // Proof dataset to be used
    TString          fFileForTestMode; // .txt file for the chain to be used in PROOF test mode
-   TString          fRootVersionForProof; // ROOT version to be used in PROOF mode. The default one taken if empty.
    TString          fAliRootMode;     // AliRoot mode among the list supported by the proof cluster
    TString          fProofProcessOpt; // Option passed to proof process
    TString          fMergeDirName;    // Name of the directory that should be added to the output directory
@@ -238,7 +240,11 @@ private:
    TObjArray       *fModules;         // List of AliAnalysisTaskCfg modules
    TMap             fProofParam;      // Key-value pairs for proof mode
    Bool_t           fDropToShell;     // If true, execute aliensh on start
-   
-   ClassDef(AliAnalysisAlien, 21)   // Class providing some AliEn utilities
+   TString          fGridJobIDs;      // List of last committed jobs
+   TString          fGridStages;      // List of last committed jobs
+   TString          fFriendLibs;      // List of libs (separated by blacs) needed for friends processing
+   TString          fTreeName;        // Name of the tree to be analyzed
+
+   ClassDef(AliAnalysisAlien, 25)   // Class providing some AliEn utilities
 };
 #endif

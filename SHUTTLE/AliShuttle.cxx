@@ -28,6 +28,7 @@
 // For detSpec is used the alias name.
 //
 
+#include <stdexcept>
 #include "AliShuttle.h"
 
 #include "AliCDBManager.h"
@@ -67,6 +68,7 @@
 #include <sys/wait.h>
 
 #include <signal.h>
+using namespace std;
 
 ClassImp(AliShuttle)
 
@@ -951,8 +953,12 @@ AliShuttleStatus* AliShuttle::ReadShuttleStatus()
 	}
 
 	Int_t path1 = GetCurrentRun()/10000;
-	fStatusEntry = AliCDBManager::Instance()->GetStorage(GetLocalCDB())
-		->Get(Form("/SHUTTLE/%s/%d", fCurrentDetector.Data(), path1), GetCurrentRun());
+	try{
+                fStatusEntry = AliCDBManager::Instance()->GetStorage(GetLocalCDB())
+                        ->Get(Form("/SHUTTLE/%s/%d", fCurrentDetector.Data(), path1), GetCurrentRun());
+        } catch(std::exception& x) {
+                AliInfo(TString::Format("%s",x.what()));
+        }
 
 	if (!fStatusEntry) return 0;
 	fStatusEntry->SetOwner(1);
@@ -1433,7 +1439,10 @@ Bool_t AliShuttle::Process(AliShuttleLogbookEntry* entry)
 			{
 				Long_t expiredTime = time(0) - begin;
 
-				if (expiredTime > fConfig->GetPPTimeOut())
+				// the run-dependent timeout is the timeout from the configuration plus a twentieth of
+				// the run duration, e.g. 3 additional minutes for 1h run or 1/2h for a 10h run
+				Int_t runDepTimeOut = fConfig->GetPPTimeOut() + (GetCurrentEndTime() - GetCurrentStartTime()) * 0.05;
+				if (expiredTime > runDepTimeOut)
 				{
                                         TString logMsg;
 					AliShuttleStatus *currentStatus = ReadShuttleStatus();

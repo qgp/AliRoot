@@ -35,6 +35,7 @@
 #include "AliAODVZERO.h"
 #include "AliAODHMPIDrings.h"
 #include "AliAODZDC.h"
+#include "AliAODTrdTrack.h"
 #ifdef MFT_UPGRADE
 #include "AliAODMFT.h"
 #endif
@@ -67,6 +68,7 @@ class AliAODEvent : public AliVEvent {
 		       kAODVZERO,
 		       kAODZDC,
 		       kTOFHeader,                       
+		       kAODTrdTracks,
 #ifdef MFT_UPGRADE
 	           kAODVZERO,
 #endif
@@ -130,7 +132,8 @@ class AliAODEvent : public AliVEvent {
   Double_t  GetZDCN2Energy()        const { return fHeader ? fHeader->GetZDCN2Energy() : -999.; }
   Double_t  GetZDCP2Energy()        const { return fHeader ? fHeader->GetZDCP2Energy() : -999.; }
   Double_t  GetZDCEMEnergy(Int_t i) const { return fHeader ? fHeader->GetZDCEMEnergy(i) : -999.; }
-
+  Int_t     GetNumberOfESDTracks()  const { return fHeader ? fHeader->GetNumberOfESDTracks() : 0; }
+  
   void SetTOFHeader(const AliTOFHeader * tofEventTime);
   const AliTOFHeader *GetTOFHeader() const {return fTOFHeader;}
   Float_t GetEventTimeSpread() const {if (fTOFHeader) return fTOFHeader->GetT0spread(); else return 0.;}
@@ -184,8 +187,8 @@ class AliAODEvent : public AliVEvent {
 
   // -- EMCAL and PHOS Cluster
   TClonesArray *GetCaloClusters()          const { return fCaloClusters; }
-  Int_t         GetNumberOfCaloClusters()  const { return fCaloClusters->GetEntriesFast(); }
-  AliAODCaloCluster *GetCaloCluster(Int_t nCluster) const { return (AliAODCaloCluster*)fCaloClusters->UncheckedAt(nCluster); }
+  Int_t         GetNumberOfCaloClusters()  const { return fCaloClusters?fCaloClusters->GetEntriesFast():0; }
+  AliAODCaloCluster *GetCaloCluster(Int_t nCluster) const { return fCaloClusters?(AliAODCaloCluster*)fCaloClusters->UncheckedAt(nCluster):0x0; }
   Int_t         AddCaloCluster(const AliAODCaloCluster* clus)
   {new((*fCaloClusters)[fCaloClusters->GetEntriesFast()]) AliAODCaloCluster(*clus); return fCaloClusters->GetEntriesFast()-1;}
   AliAODCaloTrigger *GetCaloTrigger(TString calo) const 
@@ -215,12 +218,12 @@ class AliAODEvent : public AliVEvent {
 
   // -- HMPID objects 
   TClonesArray *GetHMPIDrings()       const {return fHMPIDrings; } 
-  Int_t         GetNHMPIDrings();
-  AliAODHMPIDrings *GetHMPIDring(Int_t nRings);
+  Int_t         GetNHMPIDrings()      const;
+  AliAODHMPIDrings *GetHMPIDring(Int_t nRings) const;
   Int_t         AddHMPIDrings(const  AliAODHMPIDrings* ring) 
   {new((*fHMPIDrings)[fHMPIDrings->GetEntriesFast()]) AliAODHMPIDrings(*ring); return fHMPIDrings->GetEntriesFast()-1;}
   
-  AliAODHMPIDrings *GetHMPIDringForTrackID(Int_t trackID);
+  AliAODHMPIDrings *GetHMPIDringForTrackID(Int_t trackID) const;
   
   
   // -- Jet
@@ -248,6 +251,13 @@ class AliAODEvent : public AliVEvent {
   Int_t         AddDimuon(const AliAODDimuon* dimu)
     {new((*fDimuons)[fDimuons->GetEntriesFast()]) AliAODDimuon(*dimu); return fDimuons->GetEntriesFast()-1;}
   
+  // // -- TRD
+  Int_t GetNumberOfTrdTracks() const { return fTrdTracks ? fTrdTracks->GetEntriesFast() : 0; }
+  AliAODTrdTrack* GetTrdTrack(Int_t i) const {
+    return (AliAODTrdTrack *) (fTrdTracks ? fTrdTracks->At(i) : 0x0);
+  }
+  AliAODTrdTrack& AddTrdTrack(const AliVTrdTrack *track);
+
   // -- Services
   void    CreateStdContent();
   void    SetStdNames();
@@ -262,7 +272,8 @@ class AliAODEvent : public AliVEvent {
 		   Int_t fmdClusSize = 0, 
 		   Int_t pmdClusSize = 0,
                    Int_t hmpidRingsSize = 0,
-		   Int_t dimuonArrsize =0
+		   Int_t dimuonArrsize =0,
+		   Int_t nTrdTracks = 0
 		   );
   void    ClearStd();
   void    Reset(); 
@@ -333,6 +344,7 @@ class AliAODEvent : public AliVEvent {
 			     //  combinatorial algorithm.
                              //  It contains also TOF time resolution
                              //  and T0spread as written in OCDB
+  TClonesArray    *fTrdTracks;    //! TRD AOD tracks (triggered)
 #ifdef MFT_UPGRADE
   AliAODMFT       *fAODMFT;       //! VZERO AOD
 #endif

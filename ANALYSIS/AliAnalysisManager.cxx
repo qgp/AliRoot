@@ -63,6 +63,7 @@ ClassImp(AliAnalysisManager)
 
 AliAnalysisManager *AliAnalysisManager::fgAnalysisManager = NULL;
 TString AliAnalysisManager::fgCommonFileName = "";
+TString AliAnalysisManager::fgMacroNames = "";
 Int_t AliAnalysisManager::fPBUpdateFreq = 1;
 
 //______________________________________________________________________________
@@ -292,8 +293,8 @@ void AliAnalysisManager::CreateReadCache()
       if (fDebug) Info("CreateReadCache","=== Read caching disabled ===");
       return;
    }
-//   gEnv->SetValue("TFile.AsyncPrefetching",(Int_t)fAsyncReading);
-//   if (fAsyncReading) gEnv->SetValue("Cache.Directory",Form("file://%s/cache", gSystem->WorkingDirectory()));
+   gEnv->SetValue("TFile.AsyncPrefetching",(Int_t)fAsyncReading);
+   if (fAsyncReading) gEnv->SetValue("Cache.Directory",Form("file://%s/cache", gSystem->WorkingDirectory()));
    if (fAsyncReading) gEnv->SetValue("TFile.AsyncReading",1);
    fTree->SetCacheSize(fCacheSize);
    TTreeCache::SetLearnEntries(1);  //<<< we can take the decision after 1 entry
@@ -311,7 +312,7 @@ Int_t AliAnalysisManager::GetEntry(Long64_t entry, Int_t getall)
    fCurrentEntry = entry;
    if (!fAutoBranchHandling)
      return 123456789;
-   if (!fTree) return -1; 
+   if (!fTree || !fTree->GetTree()) return -1;
    fIOTimer->Start(kTRUE); 
    Long64_t readbytes = fTree->GetTree()->GetEntry(entry, getall);
    fIOTimer->Stop();
@@ -979,9 +980,11 @@ void AliAnalysisManager::UnpackOutput(TList *source)
             // If task is active, execute it
             if (task->IsPostEventLoop() && task->IsActive()) {
                if (fDebug > 1) printf("== Executing post event loop task %s\n", task->GetName());
+               if (fStatistics) fStatistics->StartTimer(GetTaskIndex(task), task->GetName(), task->ClassName());
                task->ExecuteTask();
             }   
          }
+         if (fStatistics) fStatistics->StopTimer();
       }   
    }
    fIOTimer->Stop();
@@ -1354,6 +1357,14 @@ AliAnalysisTask *AliAnalysisManager::GetTask(const char *name) const
 }
 
 //______________________________________________________________________________
+Int_t AliAnalysisManager::GetTaskIndex(const AliAnalysisTask *task) const
+{
+// Returns task inded in the manager's list, -1 if not registered.
+   if (!fTasks) return -1;
+   return fTasks->IndexOf(task);
+}  
+
+//______________________________________________________________________________
 AliAnalysisDataContainer *AliAnalysisManager::CreateContainer(const char *name, 
                                 TClass *datatype, EAliAnalysisContType type, const char *filename)
 {
@@ -1689,6 +1700,25 @@ void AliAnalysisManager::RunLocalInit()
 }   
 
 //______________________________________________________________________________
+void AliAnalysisManager::InputFileFromTree(TTree * const tree, TString &fname)
+{
+// Retrieves name of the file from tree
+   fname = "";
+   if (!tree) return;
+   TFile *file = tree->GetCurrentFile();
+   TString basename;
+   if (!file) {
+      TChain *chain = dynamic_cast<TChain*>(tree);
+      if (!chain || !chain->GetNtrees()) return;
+      basename = gSystem->BaseName(chain->GetListOfFiles()->First()->GetTitle());
+   } else {   
+      basename = gSystem->BaseName(file->GetName());
+   }   
+   Int_t index = basename.Index("#");
+   fname = basename(index+1, basename.Length());
+}   
+
+//______________________________________________________________________________
 Long64_t AliAnalysisManager::StartAnalysis(const char *type, Long64_t nentries, Long64_t firstentry)
 {
 // Start analysis having a grid handler.
@@ -1729,6 +1759,11 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree * const tree,
    if (anaType.Contains("proof"))     fMode = kProofAnalysis;
    else if (anaType.Contains("grid")) fMode = kGridAnalysis;
    else if (anaType.Contains("mix"))  fMode = kMixingAnalysis;
+   if (fInputEventHandler) {
+      TString fname;
+      InputFileFromTree(tree, fname);
+      if (fname.Length()) fInputEventHandler->SetInputFileName(fname);
+   }
 
    if (fMode == kGridAnalysis) {
       fIsRemote = kTRUE;
@@ -2208,8 +2243,10 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
       while ((task=(AliAnalysisTask*)next1())) {
          if (fDebug >1) {
             cout << "    Executing task " << task->GetName() << endl;
-         }   	 
+         }
+         if (fStatistics) fStatistics->StartTimer(GetTaskIndex(task), task->GetName(), task->ClassName());
          task->ExecuteTask(option);
+         if (fStatistics) fStatistics->StopTimer();
          gROOT->cd();
          if (getsysInfo && ((fNcalls%fNSysInfo)==0)) 
             AliSysInfo::AddStamp(task->ClassName(), fNcalls, itask, 1);
@@ -2250,7 +2287,9 @@ void AliAnalysisManager::ExecAnalysis(Option_t *option)
       if (fDebug > 1) {
          cout << "    Executing task " << task->GetName() << endl;
       }   
+      if (fStatistics) fStatistics->StartTimer(GetTaskIndex(task), task->GetName(), task->ClassName());
       task->ExecuteTask(option);
+      if (fStatistics) fStatistics->StopTimer();
       gROOT->cd();
    }   
    fCPUTimer->Stop();
@@ -2744,21 +2783,18 @@ void AliAnalysisManager::AddClassDebug(const char *className, Int_t debugLevel)
       fDebugOptions->SetOwner(kTRUE);
    }
 
-   // substracting DebugOffset, beacuse of AliLog::SetClassDebugLevel()
-   debugLevel -= AliLog::kDebug-1;
-
    TNamed *debugOpt = (TNamed*)fDebugOptions->FindObject(className);
    if (!debugOpt) {
-     AliInfo(TString::Format("Adding debug level %d for class %s",debugLevel+AliLog::kDebug-1,className).Data());
+     AliInfo(TString::Format("Adding debug level %d for class %s",debugLevel,className).Data());
      fDebugOptions->Add(new TNamed(className,TString::Format("%d",debugLevel).Data()));
    } else {
       TString oldDebugStr = debugOpt->GetTitle();
       Int_t oldDebug = oldDebugStr.Atoi();
       if (debugLevel > oldDebug) {
-         AliWarning(TString::Format("Overwriting debug level to %d class %s, because it is higher then previously set (%d).",debugLevel+AliLog::kDebug-1,className,oldDebug+AliLog::kDebug-1).Data());
+         AliWarning(TString::Format("Overwriting debug level to %d class %s, because it is higher then previously set (%d).",debugLevel,className,oldDebug).Data());
          debugOpt->SetTitle(TString::Format("%d",debugLevel).Data());
       } else {
-         AliWarning(TString::Format("Ignoring debug level to %d class %s, because it is smaller then previously set (%d).",debugLevel+AliLog::kDebug-1,className,oldDebug+AliLog::kDebug-1).Data());
+         AliWarning(TString::Format("Ignoring debug level to %d class %s, because it is smaller then previously set (%d).",debugLevel,className,oldDebug).Data());
       }
    }
 }
@@ -2775,10 +2811,41 @@ void AliAnalysisManager::ApplyDebugOptions()
    TString debugLevel;
    while ((debug=dynamic_cast<TNamed*>(next()))) {
       debugLevel = debug->GetTitle();
-      AliInfo(TString::Format("ApplyDebugOptions : Class=%s debulLevel=%d",debug->GetName(),debugLevel.Atoi()+AliLog::kDebug-1).Data());
+      AliInfo(TString::Format("Class=%s debulLevel=%d",debug->GetName(),debugLevel.Atoi()).Data());
       AliLog::SetClassDebugLevel(debug->GetName(), debugLevel.Atoi());
    }
 }
+
+//______________________________________________________________________________
+Bool_t AliAnalysisManager::IsMacroLoaded(const char filename)
+{
+// Check if a macro was loaded.
+   return fgMacroNames.Contains(filename);
+}
+   
+//______________________________________________________________________________
+Int_t AliAnalysisManager::LoadMacro(const char *filename, Int_t *error, Bool_t check)
+{
+// Redirection of gROOT->LoadMacro which makes sure the same macro is not loaded 
+// twice
+   TString macroName = gSystem->BaseName(filename);
+   // Strip appended +, ++, +g, +O
+   Int_t index = macroName.Index("+");
+   if (index>0) macroName.Remove(index);
+   if (fgMacroNames.Contains(macroName)) {
+      // Macro with the same name loaded already in this root session, do 
+      // nothing
+      error = 0;
+      return 0;
+   }
+   Int_t ret = gROOT->LoadMacro(filename,error,check);
+   // In case of error return the error code
+   if (ret) return ret;
+   // Append the macro name to the loaded macros list
+   fgMacroNames += macroName;
+   fgMacroNames += " ";
+   return ret;
+}   
 
 //______________________________________________________________________________
 void AliAnalysisManager::Lock()
