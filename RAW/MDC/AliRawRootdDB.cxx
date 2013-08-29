@@ -39,7 +39,7 @@ AliRawRootdDB::AliRawRootdDB(AliRawEventV2 *event,
 {
    // Create a new raw DB that will be accessed via rootd daemon.
 
-   if (fRawDB) fRawDB->UseCache(50, 0x200000);  //0x100000 = 1MB)
+   //PH if (fRawDB) fRawDB->UseCache(50, 0x200000);  //0x100000 = 1MB)
 }
 
 //______________________________________________________________________________

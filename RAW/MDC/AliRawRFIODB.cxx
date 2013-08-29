@@ -57,7 +57,7 @@ AliRawRFIODB::AliRawRFIODB(AliRawEventV2 *event,
       init = 1;
    }
 
-   if (fRawDB) fRawDB->UseCache(50, 0x200000);  //0x100000 = 1MB)
+   //PH if (fRawDB) fRawDB->UseCache(50, 0x200000);  //0x100000 = 1MB)
 }
 
 //______________________________________________________________________________
