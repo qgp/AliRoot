@@ -88,7 +88,7 @@ Int_t loadlibsrec ()
   if ( gSystem->Load("libMFTrec") < 0 ) return ret; ret--;
   if ( gSystem->Load("libMFTsim") < 0 ) return ret; ret--;
   #endif
-  // if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
+  if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
   
   return 0;
 }

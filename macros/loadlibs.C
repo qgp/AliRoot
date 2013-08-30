@@ -27,6 +27,7 @@ Int_t loadlibs ()
 
   if ( gSystem->Load("libSTEERBase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libESD") < 0 ) return ret; ret--;
+  if ( gSystem->Load("libGui") < 0 ) return ret; ret--;
   if ( gSystem->Load("libCDB") < 0 ) return ret; ret--;
   if ( gSystem->Load("libRAWDatabase") < 0 ) return ret; ret--;
   if ( gSystem->Load("libRAWDatarec") < 0 ) return ret; ret--;
@@ -97,10 +98,10 @@ Int_t loadlibs ()
   if ( gSystem->Load("libTOFsim") < 0 ) return ret; ret--;
   if ( gSystem->Load("libTOFrec") < 0 ) return ret; ret--;
 
-  // if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
-  // if ( gSystem->Load("libHLTinterface") < 0 ) return ret; ret--;
-  // if ( gSystem->Load("libHLTsim") < 0 ) return ret; ret--;
-  // if ( gSystem->Load("libHLTrec") < 0 )  return ret; ret--;
+  if ( gSystem->Load("libHLTbase") < 0 ) return ret; ret--;
+  if ( gSystem->Load("libHLTinterface") < 0 ) return ret; ret--;
+  if ( gSystem->Load("libHLTsim") < 0 ) return ret; ret--;
+  if ( gSystem->Load("libHLTrec") < 0 )  return ret; ret--;
 	
   #ifdef MFT_UPGRADE
   if ( gSystem->Load("libMFTbase") < 0 ) return ret; ret--;

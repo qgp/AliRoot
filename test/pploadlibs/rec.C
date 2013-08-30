@@ -3,7 +3,7 @@ void rec() {
 
   AliReconstruction reco;
 
-  reco.SetRunReconstruction("ALL -HLT");
+  reco.SetRunReconstruction("ALL");
 
   reco.SetWriteESDfriend();
   reco.SetWriteAlignmentData();
