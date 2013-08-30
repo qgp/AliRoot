@@ -86,6 +86,8 @@ set ( SRCS
     AliHLTDataInflater.cxx
     AliHLTDataInflaterSimple.cxx
     AliHLTDataInflaterHuffman.cxx
+    AliHLT_C_Component_WrapperInterface.cxx 
+    AliHLTDataTypes.cxx
     )
 
 # Headers from sources
@@ -93,11 +95,9 @@ string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 
 # Additional header files with no implementation
 set(HDRS ${HDRS} 
-  AliHLTDataTypes.h
   AliHLTLoggingVariadicFree.h 
   AliHLTExternalTrackParam.h 
   AliHLTCommonCDBEntries.h 
-  AliHLT_C_Component_WrapperInterface.h 
   AliHLTDefinitions.h 
   AliHLTStdIncludes.h
   )
