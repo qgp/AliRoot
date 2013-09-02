@@ -72,26 +72,10 @@ class AliHLTTPCHWCFData : public AliHLTLogging {
   bool CheckAssumption(int format, const AliHLTUInt8_t* pData, int size) const;
 
   // check if index is within bounds
-  bool CheckBounds(int i) const {
-    if (fVersion<0) {
-      ALIHLTERRORGUARD(1, "");
-      return false;
-    }
-    int elementsize=GetElementSize(fVersion);
-    if (elementsize<0) return false;
-    return ((i+1)*elementsize+fRCUTrailerSize<=fBufferSize);
-  }
+  bool CheckBounds(int i) const;
 
   // get the size of one element
-  int GetElementSize(int version) const {
-    switch (version) {
-    case 0: return sizeof(AliHLTTPCHWClusterV0);
-    case 1: return sizeof(AliHLTTPCHWClusterV1);
-    default:
-      ALIHLTERRORGUARD(1, "invalid format version %d", fVersion);
-    }
-    return -1;
-  }
+  int GetElementSize(int version) const;
 
   // pointer to RCU trailer
   const AliHLTUInt8_t*  GetRCUTrailer() const
@@ -315,4 +299,24 @@ class AliHLTTPCHWCFData : public AliHLTLogging {
 
   ClassDef(AliHLTTPCHWCFData, 0)
 };
+
+inline   bool AliHLTTPCHWCFData::CheckBounds(int i) const {
+    if (fVersion<0) {
+      ALIHLTERRORGUARD(1, "");
+      return false;
+    }
+    int elementsize=GetElementSize(fVersion);
+    if (elementsize<0) return false;
+    return ((i+1)*elementsize+fRCUTrailerSize<=fBufferSize);
+  }
+
+inline  int AliHLTTPCHWCFData::GetElementSize(int version) const {
+    switch (version) {
+    case 0: return sizeof(AliHLTTPCHWClusterV0);
+    case 1: return sizeof(AliHLTTPCHWClusterV1);
+    default:
+      ALIHLTERRORGUARD(1, "invalid format version %d", fVersion);
+    }
+    return -1;
+  }
 #endif

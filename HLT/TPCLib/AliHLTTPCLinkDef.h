@@ -73,7 +73,7 @@
 #pragma link C++ class AliHLTTPCDataCompressionMonitorComponent+;
 #pragma link C++ class AliHLTTPCDataCompressionDecoder+;
 #pragma link C++ class AliHLTTPCDataCompressionFilterComponent+;
-#pragma link C++ class AliHLTTPCDataCompressionIDMap+;
+//#pragma link C++ class AliHLTTPCDataCompressionIDMap+;
 #pragma link C++ class AliHLTTPCDataPublisherComponent+;
 #pragma link C++ class AliHLTTPCClusterHistoComponent+;
 #pragma link C++ class AliHLTTPCTrackHistoComponent+;
