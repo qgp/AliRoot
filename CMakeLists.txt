@@ -76,6 +76,7 @@ add_subdirectory (TTherminator)
 add_subdirectory (TPHIC)
 add_subdirectory (THydjet)
 add_subdirectory (PWG)
+add_subdirectory (Vc)
 add_subdirectory (HLT)
 
 # Installation
