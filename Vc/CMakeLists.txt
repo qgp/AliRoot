@@ -1,3 +1,4 @@
+include("${CMAKE_SOURCE_DIR}/Vc/Vc.cmake")
 macro(vc_add_target_property _target _prop _value)
    get_target_property(_oldprop "${_target}" ${_prop})
    if(NOT _oldprop)
@@ -31,7 +32,7 @@ else()
    add_library(Vc STATIC ${_srcs})
 endif()
 string(REPLACE "-Weffc++" "" CXXFLAGS "${CXXFLAGS}")
-vc_add_target_property(Vc COMPILE_FLAGS "-DVC_COMPILE_LIB ${CXXFLAGS} -O3 ${Vc_DEFINITIONS}")
+vc_add_target_property(Vc COMPILE_FLAGS "-DVC_COMPILE_LIB ${CXXFLAGS} -O3 ${Vc_DEFINITIONS} -fPIC")
 vc_add_target_property(Vc LABELS "other")
 
 # vim: ft=cmake sw=3 et

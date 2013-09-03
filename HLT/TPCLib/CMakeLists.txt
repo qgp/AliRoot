@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 2.8)
 
 include ("${CMAKE_SOURCE_DIR}/HLT/CMakehlt.conf")
+include ("${CMAKE_SOURCE_DIR}/Vc/Vc.cmake")
+ALICE_UseVc()
 
 # Module
 set (MODULE AliHLTTPC)
@@ -151,6 +153,9 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/G__${MODULE}.cxx ${CMAKE_C
 
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
+
+# Link with libVc.a
+target_link_libraries(${MODULE} Vc)
 
 # Additional compilation flags
 set_target_properties(${MODULE} PROPERTIES
