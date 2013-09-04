@@ -29,7 +29,7 @@
 #include "TArrayL64.h"
 #include "TClass.h"
 #include "TInterpreter.h"
-#include "TCint.h"
+// #include "TCint.h"
 
 ClassImp(AliHLTGlobalTriggerWrapper)
 
@@ -144,7 +144,7 @@ AliHLTGlobalTriggerWrapper::~AliHLTGlobalTriggerWrapper()
   // Default destructor.
   
   fClass->Destructor(fObject);
-  G__set_errmsgcallback(NULL);
+  // G__set_errmsgcallback(NULL);
 }
 
 
@@ -165,7 +165,8 @@ void AliHLTGlobalTriggerWrapper::FillFromMenu(const AliHLTTriggerMenu& menu)
   {
     fCallFailed = true;
     HLTError(gCINTErrorMessage.Data());
-    HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
+    HLTFatal("Error interpreting the code for class '%s' at line ???.", fClass->GetName());
+    // HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
   }
 }
 
@@ -181,7 +182,8 @@ void AliHLTGlobalTriggerWrapper::NewEvent()
   {
     fCallFailed = true;
     HLTError(gCINTErrorMessage.Data());
-    HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
+    HLTFatal("Error interpreting the code for class '%s' at line ???.", fClass->GetName());
+    // HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
   }
 }
 
@@ -210,7 +212,8 @@ void AliHLTGlobalTriggerWrapper::Add(
   {
     fCallFailed = true;
     HLTError(gCINTErrorMessage.Data());
-    HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
+    HLTFatal("Error interpreting the code for class '%s' at line ???.", fClass->GetName());
+    // HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
   }
 }
 
@@ -237,7 +240,8 @@ bool AliHLTGlobalTriggerWrapper::CalculateTriggerDecision(bool& triggerResult, A
   {
     fCallFailed = true;
     HLTError(gCINTErrorMessage.Data());
-    HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
+    HLTFatal("Error interpreting the code for class '%s' at line ??.", fClass->GetName());
+    // HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
     return false;
   }
   return bool(retval);
@@ -255,7 +259,8 @@ const TArrayL64& AliHLTGlobalTriggerWrapper::GetCounters() const
   {
     fCallFailed = true;
     HLTError(gCINTErrorMessage.Data());
-    HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
+    HLTFatal("Error interpreting the code for class '%s' at line ???.", fClass->GetName());
+    // HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
   }
   static const TArrayL64 emptyArray;
   const TArrayL64* ptr = &emptyArray; // Make sure we do not return a NULL pointer.
@@ -281,7 +286,8 @@ void AliHLTGlobalTriggerWrapper::SetCounters(const TArrayL64& counters)
   {
     fCallFailed = true;
     HLTError(gCINTErrorMessage.Data());
-    HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
+    HLTFatal("Error interpreting the code for class '%s' at line ???.", fClass->GetName());
+    // HLTFatal("Error interpreting the code for class '%s' at line %d.", fClass->GetName(), G__lasterror_linenum());
   }
 }
 
