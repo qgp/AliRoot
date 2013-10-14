@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.6 FATAL_ERROR)
 project (AliRoot CXX C)
 enable_language(Fortran OPTIONAL)
 # Specify the languages of the project
@@ -11,8 +11,11 @@ message("CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 message("AliRoot_BINARY_DIR: ${AliRoot_BINARY_DIR}")
 message("AliRoot_SOURCE_DIR: ${AliRoot_SOURCE_DIR}")
 message("CMAKE_SYSTEM: ${CMAKE_SYSTEM}")
-# Temporary installation in the source tree 
-set(CMAKE_INSTALL_PREFIX ${AliRoot_SOURCE_DIR})
+# Set the default install dir to the source directory
+IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    SET(CMAKE_INSTALL_PREFIX ${AliRoot_SOURCE_DIR} CACHE PATH "Install in the
+    source directory if CMAKE_INSTALL_PREFIX is not specified" FORCE)
+ENDIF()
 message("CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 
 # Additional modules
@@ -24,18 +27,18 @@ find_package(ROOT REQUIRED)
 # Subversion
 find_package(Subversion)
 if(SUBVERSION_FOUND)
-  if(EXISTS ${PROJECT_SOURCE_DIR}/.svn)
-    Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Project)
-    set(ALIROOTURL ${Project_WC_URL})
-    set(ALIROOTREV ${Project_WC_REVISION})
-  endif(EXISTS ${PROJECT_SOURCE_DIR}/.svn)
-endif(SUBVERSION_FOUND)
+    if(EXISTS ${PROJECT_SOURCE_DIR}/.svn)
+	Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Project)
+	set(ALIROOTURL ${Project_WC_URL})
+	set(ALIROOTREV ${Project_WC_REVISION})
+    endif()
+endif()
 
 #Create ARVersion.h
 configure_file (
-  "${PROJECT_SOURCE_DIR}/ARVersion.h.in"
-  "${PROJECT_BINARY_DIR}/ARVersion.h"
-  )
+    "${PROJECT_SOURCE_DIR}/ARVersion.h.in"
+    "${PROJECT_BINARY_DIR}/ARVersion.h"
+    )
 
 # Root include directories
 include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR})
