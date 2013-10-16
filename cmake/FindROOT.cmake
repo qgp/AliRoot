@@ -30,6 +30,8 @@ message(STATUS "Check for root-config: ${ROOT_CONFIG}")
 message(STATUS "Check for rootcint: ${ROOTCINT}")
 message(STATUS "Check for root.exe: ${ROOTEXE}")
 
+execute_process(COMMAND ${ROOT_CONFIG} --incdir OUTPUT_VARIABLE ROOT_INCDIR )
+execute_process(COMMAND ${ROOT_CONFIG} --libdir OUTPUT_VARIABLE ROOT_LIBDIR )
 set(ROOTSYS $ENV{ROOTSYS} CACHE STRING "" FORCE)
 if(NOT ROOTSYS)
   message(STATUS "Environment variable $ROOTSYS is not set !")

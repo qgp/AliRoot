@@ -41,7 +41,7 @@ configure_file (
     )
 
 # Root include directories
-include_directories( ${ROOTSYS}/include ${CMAKE_SOURCE_DIR})
+include_directories( ${ROOT_INCDIR} ${CMAKE_SOURCE_DIR})
 
 # include the libraries
 add_subdirectory (STEER)

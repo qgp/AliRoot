@@ -30,10 +30,10 @@ if(RULECHECKER_JAR AND RULECHECKER_RULES AND RULECHECKER_SRCML AND JAVA_RUNTIME 
   set(FACTFILE ${CMAKE_BINARY_DIR}/factFile.xml)
   set(_factfile_deps)
   
-  file(GLOB_RECURSE _root_headers  ${ROOTSYS}/include/*.h)
+  file(GLOB_RECURSE _root_headers  ${ROOT_INCDIR}/*.h)
   foreach(_root_header ${_root_headers})
     if(NOT _root_header MATCHES ".*G__ci.h")
-      string (REGEX REPLACE "${ROOTSYS}/include/" "" _rel_root_header ${_root_header})
+      string (REGEX REPLACE "${ROOT_INCDIR}/" "" _rel_root_header ${_root_header})
       string (REGEX REPLACE "h$" "h.xml" _rel_root_hxml ${_rel_root_header})
       get_filename_component(_rel_root_header_path ${_rel_root_hxml} PATH)
       set(_root_hxml ${CMAKE_BINARY_DIR}/roothxml/${_rel_root_hxml})
