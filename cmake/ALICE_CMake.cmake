@@ -407,7 +407,7 @@ macro(ALICE_GenerateDictionary)
     # and so that the interpreter can parse the header files. 
     #
     # THIS SHOULD BE A TEMPORARY HACK!
-    ALICE_Format(DINC "-I{PROJECT_SOURCE_DIR}/" "" 
+    ALICE_Format(DINC "-I${PROJECT_SOURCE_DIR}/" "" 
       "${DINC};${CMAKE_INCLUDE_EXPORT_DIRECTORY}")
   else()
   ALICE_Format(DINC "-I" "" "${DINC};${CMAKE_INCLUDE_EXPORT_DIRECTORY}")
@@ -451,6 +451,7 @@ macro(ALICE_BuildLibrary)
   include_directories(${PINC})  
   include_directories(${EINCLUDE})
   include_directories(${CMAKE_INCLUDE_EXPORT_DIRECTORY})
+  include_directories(${CMAKE_SOURCE_DIR})
   
   add_library(${PACKAGE} SHARED ${PCS} ${PFS} ${PS} ${PDS})
   set_target_properties(${PACKAGE} PROPERTIES SUFFIX .so)  
