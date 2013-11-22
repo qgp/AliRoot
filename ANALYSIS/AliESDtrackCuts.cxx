@@ -2326,42 +2326,50 @@ Int_t AliESDtrackCuts::GetReferenceMultiplicity(const AliESDEvent* esd, MultEstT
     if (TMath::Abs(spdmult->GetEta(i)) > etaRange) continue; // eta selection for tracklets
     
     // if counting tracks+tracklets, check if clusters were already used in tracks
-    Int_t id1,id2,id3,id4;
-    spdmult->GetTrackletTrackIDs(i,0,id1,id2); // references for eventual Global/ITS_SA tracks
-    AliESDtrack* tr1 = id1>=0 ? esd->GetTrack(id1) : 0;
-    spdmult->GetTrackletTrackIDs(i,1,id3,id4); // references for eventual ITS_SA_pure tracks
-    AliESDtrack* tr3 = id3>=0 ? esd->GetTrack(id3) : 0;
-
+    Int_t id1, id2, id3, id4;
+    spdmult->GetTrackletTrackIDs ( i, 0, id1, id2 ); // references for eventual Global/ITS_SA tracks
+    spdmult->GetTrackletTrackIDs ( i, 1, id3, id4 ); // references for eventual ITS_SA_pure tracks
+    
     // are both clusters from the same tracks? If not, skip the tracklet (shouldn't change things much)
-    if ((id1!=id2 && id1>=0 && id2>=0) || (id3!=id4 && id3>=0 && id4>=0)) continue;
-
-    Bool_t bUsedInGlobal = (id1 != -1) ? globalBits.TestBitNumber(id1) : 0;// has associated global track been associated to a previous tracklet?
-    Bool_t bUsedInPureITS = (id3 != -1) ? pureITSBits.TestBitNumber(id3) : 0;// has associated pure ITS track been associated to a previous tracklet?
+    if ( ( id1 != id2 && id1 >= 0 && id2 >= 0 ) || ( id3 != id4 && id3 >= 0 && id4 >= 0 ) ) continue;
+    
+    //referenced track
+    //at this point we either have id1 = id2 (id3 = id4) or only one of the ids pair is -1
+    // id1>=0, id2>=0, id1=id2	: tracklet has associated track
+    // id1>=0, id2 = -1		: 1st layer cluster has associated track
+    // id1=-1, id2>=0		: 2nd layer cluster has associated track
+    // id1=-1, id2=-1		: tracklet has no associated track
+    
+    Int_t bUsedInGlobal(-1);
+    if ( id1 != -1 ) bUsedInGlobal = globalBits.TestBitNumber(id1);
+    else if ( id2 != -1) bUsedInGlobal = globalBits.TestBitNumber(id2);// has associated global track been associated to a previous tracklet?
+    Int_t bUsedInPureITS(-1);
+    if ( id3 != -1 ) bUsedInPureITS = pureITSBits.TestBitNumber(id3);
+    else if ( id4 != -1) bUsedInPureITS = pureITSBits.TestBitNumber(id4); // has associated pure ITS track been associated to a previous tracklet?
+    
+    AliESDtrack* tr_global = bUsedInGlobal >= 0 ? esd->GetTrack ( bUsedInGlobal ) : 0;
+    AliESDtrack* tr_itssa = bUsedInPureITS >= 0 ? esd->GetTrack ( bUsedInPureITS ) : 0;
+    //
+    // has associated pure ITS track been associated to a previous tracklet?
     //*******************************************************************************************************
     if (trackType == kTrackletsITSTPC) {
-      // count tracklets towards global+complementary tracks
-      if (  (tr1 && !tr1->TestBit(kSecBit)) &&   // reject as secondary
-        (tr1 &&  tr1->TestBit(kRejBit)) ) {  // count tracklet as bad quality track
-          if(!bUsedInGlobal){
-            ++trackletsITSTPC_complementary;
-            if(id1>=0) globalBits.SetBitNumber(id1); // mark global track linked to this tracklet as "associated"
-          }
-      }
-      else if(id1<0) {
-        ++trackletsITSTPC_complementary; // if no associated track, count the tracklet
-      }
+	    //*******************************************************************************************************
+	    // count tracklets towards global+complimentary tracks
+	    if ( ( tr_global && !tr_global->TestBit ( kSecBit ) ) && ( tr_global &&  tr_global->TestBit ( kRejBit ) ) ) {  // count tracklet as bad quality track
+		    globalBits.SetBitNumber( bUsedInGlobal ); // mark global track linked to this tracklet as used
+		    ++trackletsITSTPC_complementary;
+	    } 
+	    
+	    if ( bUsedInGlobal < 0 ) ++trackletsITSTPC_complementary; //no associated track, just count the tracklet
     } else {
-      // count tracklets towards ITS_SA_pure tracks
-      if (  (tr3 && !tr3->TestBit(kSecBit)) &&   // reject as secondary
-        (tr3 &&  tr3->TestBit(kRejBit)) ) { // count tracklet as bad quality track
-        if(!bUsedInPureITS) {
-          ++trackletsITSSA_complementary;
-          if(id3>=0) pureITSBits.SetBitNumber(id3); // mark global track linked to this tracklet as "associated"
-        }
-      }
-      else if(id3<0) {
-        ++trackletsITSSA_complementary; // if no associated track, count the tracklet
-      }
+	    //*******************************************************************************************************
+	    // count tracklets towards ITS_SA_pure tracks
+	    if ( ( tr_itssa && !tr_itssa->TestBit ( kSecBit ) ) && ( tr_itssa &&  tr_itssa->TestBit ( kRejBit ) ) ) {  // count tracklet as bad quality track
+		    pureITSBits.SetBitNumber( bUsedInPureITS ); // mark ITS pure SA track linked to this tracklet as used
+		    ++trackletsITSSA_complementary;
+	    } 
+	    
+	    if ( bUsedInPureITS < 0 ) ++trackletsITSSA_complementary; //no associated track, just count the tracklet
     }
   }
   
