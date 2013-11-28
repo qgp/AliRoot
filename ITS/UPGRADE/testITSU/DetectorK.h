@@ -56,7 +56,7 @@ class DetectorK : public TNamed {
   DetectorK(char *name,char *title);
   virtual ~DetectorK();
 
-  enum {kNptBins = 100}; // less then 400 !!
+  enum {kNptBins = 50}; // less then 400 !!
  
   void AddLayer(char *name, Float_t radius, Float_t radL, Float_t phiRes=999999, Float_t zRes=999999, Float_t eff=0.95);
 
@@ -115,7 +115,7 @@ class DetectorK : public TNamed {
   Float_t GetNumberOfActiveLayers() const {return fNumberOfActiveLayers; }
   Float_t GetNumberOfActiveITSLayers() const {return fNumberOfActiveITSLayers; }
 
-  void SolveViaBilloir(Int_t flagD0=1,Int_t print=1, Bool_t allPt=1, Double_t meanPt =0.250, char* detLayer=((char*)""));
+  void SolveViaBilloir(Int_t flagD0=1,Int_t print=1, Bool_t allPt=1, Double_t meanPt =0.095, char* detLayer=((char*)""));
 
   // Helper functions
   Double_t ThetaMCS                 ( Double_t mass, Double_t RadLength, Double_t momentum ) const;
@@ -189,6 +189,10 @@ class DetectorK : public TNamed {
   Double_t fResolutionRPhiLay[kNptBins];                        // array of rphi resolution
   Double_t fResolutionZLay[kNptBins];                           // array of z resolution
   Double_t fEfficProlongLay[kNptBins];                           // array of z resolution
+
+  static const Double_t kPtMinFix;
+  static const Double_t kPtMaxFix;
+  static const Double_t kMinRadTPCTrack;
 
   ClassDef(DetectorK,1);
 };
