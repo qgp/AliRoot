@@ -2434,9 +2434,9 @@ void AliReconstruction::SlaveTerminate()
 
    // Add the AliRoot version that created this file
    TString sVersion("aliroot ");
-   sVersion += ALIROOT_SVN_BRANCH;
+   sVersion += ALIROOT_BRANCH;
    sVersion += ":";
-   sVersion += ALIROOT_SVN_REVISION;
+   sVersion += ALIROOT_REVISION;
    sVersion += "; root ";
    sVersion += ROOT_SVN_BRANCH;
    sVersion += ":";
