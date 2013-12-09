@@ -2140,6 +2140,9 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToEMCalSurface(AliVTrack *track,
     return kFALSE;
 
   track->SetTrackPhiEtaPtOnEMCal(phiout, etaout, ptout);
+
+  if(trackParam) delete trackParam;
+
   return kTRUE;
 }
 
