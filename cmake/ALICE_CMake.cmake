@@ -454,7 +454,8 @@ macro(ALICE_BuildExecutable)
   set(CMAKE_Fortran_FLAGS "${PEDEFINE} ${PFFLAGS} ${EXEFLAGS}")
   set(CMAKE_SHARED_LINKER_FLAGS ${PSOFLAGS}) 
   set(CMAKE_MODULE_LINKER_FLAGS ${PLDFLAGS})
-  
+  set(CMAKE_EXE_LINKER_FLAGS ${PLDFLAGS})
+
   separate_arguments(PINC)
   separate_arguments(EINCLUDE)
   separate_arguments(PELIBSDIR)
