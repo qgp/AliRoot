@@ -54,7 +54,7 @@ const TString         AliEMCALLoader::fgkECADigitsBranchName("DIGITS");//Name fo
 const TString         AliEMCALLoader::fgkECASDigitsBranchName("SDIGITS");//Name for branch with ECA SDigits
 
 AliEMCALCalibData*    AliEMCALLoader::fgCalibData = 0; //calibration data
-//AliCaloCalibPedestal* AliEMCALLoader::fgCaloPed   = 0; //dead map data
+AliCaloCalibPedestal* AliEMCALLoader::fgCaloPed   = 0; //dead map data
 AliEMCALSimParam*     AliEMCALLoader::fgSimParam  = 0; //simulation parameters
 
 //____________________________________________________________________________ 
@@ -123,24 +123,24 @@ AliEMCALCalibData* AliEMCALLoader::CalibData()
 }
 
 //____________________________________________________________________________ 
-//AliCaloCalibPedestal* AliEMCALLoader::PedestalData()
-//{ 
-//	// Check if the instance of AliCaloCalibPedestal exists, if not, create it if 
-//	// the OCDB is available, and finally return it.
-//	
-//	if(!fgCaloPed && (AliCDBManager::Instance()->IsDefaultStorageSet()))
-//    {
-//		AliCDBEntry *entry = (AliCDBEntry*) 
-//		AliCDBManager::Instance()->Get("EMCAL/Calib/Pedestals");
-//		if (entry) fgCaloPed =  (AliCaloCalibPedestal*) entry->GetObject();
-//    }
-//	
-//	if(!fgCaloPed)
-//		AliFatal("Pedestal info not found in CDB!");
-//	
-//	return fgCaloPed;
-//	
-//}
+AliCaloCalibPedestal* AliEMCALLoader::PedestalData()
+{ 
+	// Check if the instance of AliCaloCalibPedestal exists, if not, create it if 
+	// the OCDB is available, and finally return it.
+	
+	if(!fgCaloPed && (AliCDBManager::Instance()->IsDefaultStorageSet()))
+   {
+		AliCDBEntry *entry = (AliCDBEntry*) 
+		AliCDBManager::Instance()->Get("EMCAL/Calib/Pedestals");
+		if (entry) fgCaloPed =  (AliCaloCalibPedestal*) entry->GetObject();
+   }
+	
+	if(!fgCaloPed)
+		AliFatal("Pedestal info not found in CDB!");
+	
+	return fgCaloPed;
+	
+}
 
 //____________________________________________________________________________ 
 AliEMCALSimParam* AliEMCALLoader::SimulationParameters()

@@ -86,6 +86,7 @@
 #include "AliEMCALCalibData.h"
 #include "AliEMCALSimParam.h"
 #include "AliEMCALRawDigit.h"
+#include "AliCaloCalibPedestal.h"
 
 namespace
 {
@@ -489,7 +490,7 @@ void AliEMCALDigitizer::Digitize(Int_t event)
         }//absID==nextSig
         
         // add the noise now
-        energy += TMath::Abs(gRandom->Gaus(0., fPinNoise)) ;
+        energy += gRandom->Gaus(0., fPinNoise) ;
         // JLK 26-June-2008
         //Now digitize the energy according to the sDigitizer method,
         //which merely converts the energy to an integer.  Later we will
@@ -601,6 +602,38 @@ Float_t AliEMCALDigitizer::DigitizeEnergy(Float_t energy, Int_t AbsId)
   
   return channel ;
   
+}
+
+//_____________________________________________________________________
+void AliEMCALDigitizer::Decalibrate(AliEMCALDigit *digit)
+{ 
+  // Load Geometry
+  const AliEMCALGeometry *geom = AliEMCALGeometry::GetInstance();
+  
+  if (!geom) {
+    AliFatal("Did not get geometry from EMCALLoader");
+    return;
+  }
+  
+  Int_t absId   = digit->GetId();
+  Int_t iSupMod = -1;
+  Int_t nModule = -1;
+  Int_t nIphi   = -1;
+  Int_t nIeta   = -1;
+  Int_t iphi    = -1;
+  Int_t ieta    = -1;
+  
+  Bool_t bCell = geom->GetCellIndex(absId, iSupMod, nModule, nIphi, nIeta) ;
+  
+  if (!bCell) Error("Decalibrate","Wrong cell id number : absId %i ", absId) ;
+  geom->GetCellPhiEtaIndexInSModule(iSupMod,nModule,nIphi, nIeta,iphi,ieta);
+  
+  if (fCalibData) {
+    fADCchannelEC = fCalibData->GetADCchannel(iSupMod,ieta,iphi);
+    float factor = 1./(fADCchannelEC/0.0162);
+    	   
+    *digit = *digit * factor;
+  }
 }
 
 //____________________________________________________________________________
@@ -740,6 +773,10 @@ void AliEMCALDigitizer::Digits2FastOR(TClonesArray* digitsTMP, TClonesArray* dig
       TIter NextDigit(digits);
       while (AliEMCALDigit* digit = (AliEMCALDigit*)NextDigit())
       {
+        if (IsDead(digit)) continue;
+        
+        Decalibrate(digit);
+        
         Int_t id = digit->GetId();
         
         Int_t trgid;
@@ -773,7 +810,7 @@ void AliEMCALDigitizer::Digits2FastOR(TClonesArray* digitsTMP, TClonesArray* dig
         if (digit)
         {
           Int_t     id = digit->GetId();
-          Float_t time = digit->GetTime();
+          Float_t time = 50.e-9;
           
           Double_t depositedEnergy = 0.;
           for (Int_t j = 1; j <= digit->GetNprimary(); j++) depositedEnergy += digit->GetDEPrimary(j);
@@ -783,14 +820,17 @@ void AliEMCALDigitizer::Digits2FastOR(TClonesArray* digitsTMP, TClonesArray* dig
           // FIXME: Check digit time!
           if (depositedEnergy)
           {
+            depositedEnergy += gRandom->Gaus(0., .08);
             DigitalFastOR(time, depositedEnergy, timeSamples, nSamples);
             
             for (Int_t j=0;j<nSamples;j++) 
             {
-              timeSamples[j] = ((j << 12) & 0xFF000) | (timeSamples[j] & 0xFFF);
+              if (AliDebugLevel()) printf("timeSamples[%d]: %d\n",j,timeSamples[j]);
+              timeSamples[j] = ((j << 16) | (timeSamples[j] & 0xFFFF));
             }
             
             new((*digitsTRG)[digitsTRG->GetEntriesFast()]) AliEMCALRawDigit(id, timeSamples, nSamples);
+            if (AliDebugLevel()) ((AliEMCALRawDigit*)digitsTRG->At(digitsTRG->GetEntriesFast() - 1))->Print("");
           }
         }
       }
@@ -807,11 +847,12 @@ void AliEMCALDigitizer::DigitalFastOR( Double_t time, Double_t dE, Int_t timeSam
 {
 	// parameters:	
 	// id: 0..95
-	const Int_t    reso = 11;      // 11-bit resolution ADC
-	const Double_t vFSR = 1;       // Full scale input voltage range
-	const Double_t dNe   = 125;     // signal of the APD per MeV of energy deposit in a tower: 125 photo-e-/MeV @ M=30
+  const Int_t    reso = 12;      // 11-bit resolution ADC
+  const Double_t vFSR = 2.;      // Full scale input voltage range 2V (p-p)
+//   const Double_t dNe  = 125;     // signal of the APD per MeV of energy deposit in a tower: 125 photo-e-/MeV @ M=30
+  const Double_t dNe  = 125/1.3; // F-ALTRO max V. FEE: factor 4 
 	const Double_t vA   = .136e-6; // CSP output range: 0.136uV/e-
-	const Double_t rise = 40e-9;   // rise time (10-90%) of the FastOR signal before shaping
+  const Double_t rise = 50e-9;   // rise time (10-90%) of the FastOR signal before shaping
 	
 	const Double_t kTimeBinWidth = 25E-9; // sampling frequency (40MHz)
 	
@@ -827,7 +868,14 @@ void AliEMCALDigitizer::DigitalFastOR( Double_t time, Double_t dE, Int_t timeSam
 		// FIXME: add noise (probably not simply Gaussian) according to DA measurements
 		// probably plan an access to OCDB
 		
-		timeSamples[iTime] = int((TMath::Power(2, reso) / vFSR) * signalF.Eval(iTime * kTimeBinWidth) + 0.5);
+	  Double_t sig = signalF.Eval(iTime * kTimeBinWidth);
+	  if (TMath::Abs(sig) > vFSR/2.) {
+	    AliError("Signal overflow!");
+	    timeSamples[iTime] = (1 << reso) - 1;
+	  } else {
+	    AliDebug(999,Form("iTime: %d sig: %f\n",iTime,sig));
+	    timeSamples[iTime] = ((1 << reso) / vFSR) * sig + 0.5;
+	  }
 	}
 }
 
@@ -1188,4 +1236,79 @@ void AliEMCALDigitizer::WriteDigits(TClonesArray* digits, const char* branchName
 void AliEMCALDigitizer::Browse(TBrowser* b)
 {
   TTask::Browse(b);
+}
+
+//__________________________________________________________________
+Bool_t AliEMCALDigitizer::IsDead(AliEMCALDigit *digit) 
+{
+  AliRunLoader *runLoader = AliRunLoader::Instance();
+  AliEMCALLoader *emcalLoader = dynamic_cast<AliEMCALLoader*>(runLoader->GetDetectorLoader("EMCAL"));
+  if (!emcalLoader) AliFatal("Did not get the  Loader");
+  
+  AliCaloCalibPedestal *caloPed = emcalLoader->PedestalData();
+  if (!caloPed) {
+    AliWarning("Could not access pedestal data! No dead channel removal applied");
+    return kFALSE;
+  }
+  
+  // Load Geometry
+  const AliEMCALGeometry *geom = AliEMCALGeometry::GetInstance();
+  if (!geom) AliFatal("Did not get geometry from EMCALLoader");
+  
+  Int_t absId   = digit->GetId();
+  Int_t iSupMod = -1;
+  Int_t nModule = -1;
+  Int_t nIphi   = -1;
+  Int_t nIeta   = -1;
+  Int_t iphi    = -1;
+  Int_t ieta    = -1;
+  
+  Bool_t bCell = geom->GetCellIndex(absId, iSupMod, nModule, nIphi, nIeta) ;
+  
+  if (!bCell) Error("IsDead","Wrong cell id number : absId %i ", absId) ;
+  geom->GetCellPhiEtaIndexInSModule(iSupMod,nModule,nIphi, nIeta,iphi,ieta);
+
+  Int_t channelStatus = (Int_t)(caloPed->GetDeadMap(iSupMod))->GetBinContent(ieta,iphi);
+
+  if (channelStatus == AliCaloCalibPedestal::kDead) 
+    return kTRUE;
+  else
+    return kFALSE;
+}
+
+//__________________________________________________________________
+Bool_t AliEMCALDigitizer::IsDead(Int_t absId)
+{
+  AliRunLoader *runLoader = AliRunLoader::Instance();
+  AliEMCALLoader *emcalLoader = dynamic_cast<AliEMCALLoader*>(runLoader->GetDetectorLoader("EMCAL"));
+  if (!emcalLoader) AliFatal("Did not get the  Loader");
+    
+  AliCaloCalibPedestal *caloPed = emcalLoader->PedestalData();
+  if (!caloPed) {
+    AliWarning("Could not access pedestal data! No dead channel removal applied");
+    return kFALSE;
+  }
+    
+    // Load Geometry
+  const AliEMCALGeometry *geom = AliEMCALGeometry::GetInstance();
+  if (!geom) AliFatal("Did not get geometry from EMCALLoader");
+    
+  Int_t iSupMod = -1;
+  Int_t nModule = -1;
+  Int_t nIphi   = -1;
+  Int_t nIeta   = -1;
+  Int_t iphi    = -1;
+  Int_t ieta    = -1;
+  
+  Bool_t bCell = geom->GetCellIndex(absId, iSupMod, nModule, nIphi, nIeta) ;
+  
+  if (!bCell) Error("IsDead","Wrong cell id number : absId %i ", absId) ;
+  geom->GetCellPhiEtaIndexInSModule(iSupMod,nModule,nIphi, nIeta,iphi,ieta);
+    
+  Int_t channelStatus = (Int_t)(caloPed->GetDeadMap(iSupMod))->GetBinContent(ieta,iphi);
+    
+  if (channelStatus == AliCaloCalibPedestal::kDead)
+    return kTRUE;
+  else
+    return kFALSE;
 }

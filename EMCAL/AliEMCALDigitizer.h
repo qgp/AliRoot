@@ -92,8 +92,10 @@ private:
   Float_t DigitizeEnergy(Float_t energy, Int_t AbsId) ;
   void    Digits2FastOR(TClonesArray*digitsTMP, TClonesArray* digitsTRG);
   void    DigitalFastOR(Double_t time, Double_t dE, Int_t timeSamples[], Int_t nSamples);
-	
-	
+  void    Decalibrate(AliEMCALDigit *digit);
+  Bool_t  IsDead(AliEMCALDigit *digit);
+  Bool_t  IsDead(Int_t absId);
+ 	
 private:
   
   Bool_t  fDefaultInit;           //! Says if the task was created by defaut ctor (only parameters are initialized)

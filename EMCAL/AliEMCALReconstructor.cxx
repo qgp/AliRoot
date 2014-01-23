@@ -354,11 +354,8 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   
   if (esdV0) 
     {
-      for (Int_t i = 0; i < 32; i++)
-	{
-	  v0M[0] += (Int_t)esdV0->GetAdcV0C(i);
-	  v0M[1] += (Int_t)esdV0->GetAdcV0A(i);
-	}
+      v0M[0] = esdV0->GetTriggerChargeC();
+      v0M[1] = esdV0->GetTriggerChargeA();
     }
   else
     {
@@ -379,7 +376,7 @@ void AliEMCALReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
   branchtrg->GetEntry(0);
   
   // Note: fgTriggerProcessor reset done at the end of this method
-//   fgTriggerProcessor->Digits2Trigger(fgTriggerDigits, v0M, fTriggerData);
+  fgTriggerProcessor->Digits2Trigger(fgTriggerDigits, v0M, fTriggerData);
   
   // Fill ESD
   AliESDCaloTrigger* trgESD = esd->GetCaloTrigger("EMCAL");
