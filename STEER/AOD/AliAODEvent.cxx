@@ -68,6 +68,7 @@ AliAODEvent::AliAODEvent() :
   fAODObjects(0),
   fAODFolder(0),
   fConnected(kFALSE),
+  fTracksConnected(kFALSE),
   fHeader(0),
   fTracks(0),
   fVertices(0),
@@ -103,6 +104,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   fAODObjects(new TList()),
   fAODFolder(0),
   fConnected(kFALSE),
+  fTracksConnected(kFALSE),
   fHeader(new AliAODHeader(*aod.fHeader)),
   fTracks(new TClonesArray(*aod.fTracks)),
   fVertices(new TClonesArray(*aod.fVertices)),
@@ -154,6 +156,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   AddObject(fAODVZERO);
 #endif
   fConnected = aod.fConnected;
+  ConnectTracks();
   GetStdContent();
   CreateStdFolders();
 }
@@ -250,6 +253,8 @@ AliAODEvent & AliAODEvent::operator=(const AliAODEvent& aod) {
     }
   }  
   fConnected = aod.fConnected;
+  fTracksConnected = kFALSE;
+  ConnectTracks();
   return *this;
 }
 
@@ -282,6 +287,15 @@ void AliAODEvent::AddObject(TObject* obj)
     fAODObjects->AddLast(obj);
   }
 }
+
+//______________________________________________________________________________
+Int_t AliAODEvent::AddTrack(const AliAODTrack* trk)
+{
+// Add new AOD track. Make sure to set the event if needed.
+  AliAODTrack *track =  new((*fTracks)[fTracks->GetEntriesFast()]) AliAODTrack(*trk);
+  track->SetAODEvent(this);
+  return fTracks->GetEntriesFast()-1;
+}  
 
 //______________________________________________________________________________
 void AliAODEvent::RemoveObject(TObject* obj) 
@@ -374,6 +388,7 @@ void AliAODEvent::SetStdNames()
   }
 } 
 
+//______________________________________________________________________________
 void AliAODEvent::CreateStdFolders()
 {
     // Create the standard folder structure
@@ -427,19 +442,20 @@ void AliAODEvent::GetStdContent()
 
 //______________________________________________________________________________
 void AliAODEvent::ResetStd(Int_t trkArrSize, 
-			   Int_t vtxArrSize, 
-			   Int_t v0ArrSize,
-			   Int_t cascadeArrSize,
-			   Int_t jetSize, 
-			   Int_t caloClusSize, 
-			   Int_t fmdClusSize, 
-			   Int_t pmdClusSize,
-                           Int_t hmpidRingsSize,
-			   Int_t dimuonArrSize,
-			   Int_t nTrdTracks
+            Int_t vtxArrSize, 
+            Int_t v0ArrSize,
+            Int_t cascadeArrSize,
+            Int_t jetSize, 
+            Int_t caloClusSize, 
+            Int_t fmdClusSize, 
+            Int_t pmdClusSize,
+            Int_t hmpidRingsSize,
+            Int_t dimuonArrSize,
+            Int_t nTrdTracks
 			   )
 {
   // deletes content of standard arrays and resets size 
+  fTracksConnected = kFALSE;
   if (fTracks) {
     fTracks->Delete();
     if (trkArrSize > fTracks->GetSize()) 
@@ -511,11 +527,13 @@ void AliAODEvent::ResetStd(Int_t trkArrSize,
 
 }
 
+//______________________________________________________________________________
 void AliAODEvent::ClearStd()
 {
   // clears the standard arrays
   if (fHeader)
     fHeader        ->Clear();
+  fTracksConnected = kFALSE;
   if (fTracks)
     fTracks        ->Delete();
   if (fVertices)
@@ -876,6 +894,7 @@ void AliAODEvent::Print(Option_t *) const
   return;
 }
 
+//______________________________________________________________________________
 void AliAODEvent::AssignIDtoCollection(const TCollection* col)
 {
     // Static method which assigns a ID to each object in a collection
@@ -888,6 +907,7 @@ void AliAODEvent::AssignIDtoCollection(const TCollection* col)
 	TProcessID::AssignID(obj);
 }
 
+//______________________________________________________________________________
 Bool_t AliAODEvent::IsPileupFromSPDInMultBins() const {
     Int_t nTracklets=GetTracklets()->GetNumberOfTracklets();
     if(nTracklets<20) return IsPileupFromSPD(3,0.8);
@@ -895,13 +915,13 @@ Bool_t AliAODEvent::IsPileupFromSPDInMultBins() const {
     else return IsPileupFromSPD(5,0.8);
 }
 
+//______________________________________________________________________________
 void AliAODEvent::Reset()
 {
   // Handle the cases
   // Std content + Non std content
 
   ClearStd();
-
   if(fAODObjects->GetSize()>kAODListN){
     // we have non std content
     // this also covers aodfriends
@@ -1013,3 +1033,14 @@ AliAODHMPIDrings *AliAODEvent::GetHMPIDring(Int_t nRings) const
 AliAODTrdTrack& AliAODEvent::AddTrdTrack(const AliVTrdTrack *track) {
   return *(new ((*fTrdTracks)[fTrdTracks->GetEntriesFast()]) AliAODTrdTrack(*track));
 }
+
+//______________________________________________________________________________
+void AliAODEvent::ConnectTracks() {
+// Connect tracks to this event
+  if (fTracksConnected || !fTracks || !fTracks->GetEntriesFast()) return;
+  AliAODTrack *track;
+  TIter next(fTracks);
+  while ((track=(AliAODTrack*)next())) track->SetAODEvent(this);
+  fTracksConnected = kTRUE;
+}
+

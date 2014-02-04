@@ -404,6 +404,7 @@ public:
   }
   virtual void Print(Option_t * opt) const ;
   const AliESDEvent* GetESDEvent() const {return fESDEvent;}
+  const AliVEvent* GetEvent() const {return (AliVEvent*)fESDEvent;}
   void         SetESDEvent(const AliESDEvent* evt) {fESDEvent = evt;}
 
   // Trasient PID object, is owned by the track
