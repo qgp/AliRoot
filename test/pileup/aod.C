@@ -12,5 +12,5 @@ void aod(){
   gSystem->Load("libAliPythia6");  // ALICE specific implementations
   gSystem->Load("libdpmjet");
   gSystem->Load("libTDPMjet");
-  gROOT->Macro("$ALICE_ROOT/STEER/CreateAODfromESD.C");
+  gROOT->Macro("$ALICE_ROOT/STEER/CreateAODfromESD.C\(\"AliESDs.root\",\"AliAODs.root\",\"local://$ALICE_ROOT/OCDB\",\"local://.\"\)");
 }

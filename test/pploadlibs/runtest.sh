@@ -13,7 +13,7 @@ ${REXE} -b -q sim.C      2>&1 | tee sim.log
 mv syswatch.log simwatch.log
 ${REXE} -b -q rec.C      2>&1 | tee rec.log
 mv syswatch.log recwatch.log
-${REXE} -b -q ${ALICE_ROOT}/STEER/CreateAODfromESD.C 2>&1 | tee aod.log
+${REXE} -b -q ${ALICE_ROOT}/STEER/CreateAODfromESD.C\(\"AliESDs.root\",\"AliAODs.root\",\"local://$ALICE_ROOT/OCDB\",\"local://.\"\) 2>&1 | tee aod.log
 
 
 
