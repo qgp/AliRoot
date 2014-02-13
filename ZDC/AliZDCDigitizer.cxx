@@ -355,7 +355,7 @@ void AliZDCDigitizer::Exec(Option_t* /*option*/)
     
     printf("fSpectators2Track %d  fIspASystem%d \n",fSpectators2Track,fIspASystem);
     
-    if((fSpectators2Track==kTRUE) && (fIspASystem==kFALSE)){
+    if(hijingHeader && (fSpectators2Track==kTRUE) && (fIspASystem==kFALSE)){
       impPar = hijingHeader->ImpactParameter(); 
       specNProj = hijingHeader->ProjSpectatorsn();
       specPProj = hijingHeader->ProjSpectatorsp();
