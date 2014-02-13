@@ -36,8 +36,8 @@ private:
 	AliEMCALTriggerDCSConfig(const AliEMCALTriggerDCSConfig &cd);            // Not implemented
 	AliEMCALTriggerDCSConfig &operator=(const AliEMCALTriggerDCSConfig &cd); // Not implemented
 
-	TClonesArray*                fTRUArr; //
-	AliEMCALTriggerSTUDCSConfig* fSTUObj; //
+	TClonesArray*                fTRUArr; // TRU array
+	AliEMCALTriggerSTUDCSConfig* fSTUObj; // STU
 
 	ClassDef(AliEMCALTriggerDCSConfig,1)  //
 };

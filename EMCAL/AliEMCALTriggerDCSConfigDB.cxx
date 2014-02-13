@@ -233,7 +233,7 @@ void AliEMCALTriggerDCSConfigDB::Invalidate()
 const AliEMCALTriggerDCSConfig* AliEMCALTriggerDCSConfigDB::GetTriggerDCSConfig()
 {
 	//
-	//
+	// Get DCS config
 	//
 	const AliEMCALTriggerDCSConfig* dcsConf = dynamic_cast<const AliEMCALTriggerDCSConfig*>(GetCachedCDBObject(kIDTriggerConfig));
 	
@@ -244,81 +244,4 @@ const AliEMCALTriggerDCSConfig* AliEMCALTriggerDCSConfigDB::GetTriggerDCSConfig(
 	}
 	else
 		return dcsConf;
-}
-
-//_____________________________________________________________________________
-void AliEMCALTriggerDCSConfigDB::GetSTUSegmentation(Int_t ssg[], Int_t spg[], Int_t ssj[], Int_t spj[])
-{
-	//
-	//
-	//
-	const AliEMCALTriggerDCSConfig* dcsConf = dynamic_cast<const AliEMCALTriggerDCSConfig*>(GetCachedCDBObject(kIDTriggerConfig));
-  if(dcsConf){
-    AliEMCALTriggerSTUDCSConfig* stuConf = dcsConf->GetSTUDCSConfig();
-    if(stuConf){
-      Int_t fw = stuConf->GetFw();
-      
-      switch ( fw )
-      {
-        case 2223:
-          ssg[0] = 1;
-          ssg[1] = 1;
-          spg[0] = 2;
-          spg[1] = 2;
-          
-          ssj[0] = 4;
-          ssj[1] = 4;
-          spj[0] = 2;
-          spj[1] = 2;
-          break;
-        default:
-          AliError("Firmware version do not match!");
-          break;
-      }
-    }
-    else {
-      AliError("STUDCSConfig is null!");
-    }
-  }
-  else {
-    AliError("DCSConfig is null!");
-  }
-  
-}
-
-//_____________________________________________________________________________
-Int_t AliEMCALTriggerDCSConfigDB::GetTRUSegmentation(Int_t iTRU)
-{
-	//
-	const AliEMCALTriggerDCSConfig* dcsConf = dynamic_cast<const AliEMCALTriggerDCSConfig*>(GetCachedCDBObject(kIDTriggerConfig));
-  if(dcsConf){	
-    AliEMCALTriggerTRUDCSConfig* truConf = dcsConf->GetTRUDCSConfig(iTRU);
-    if(truConf){
-      Int_t sel = truConf->GetL0SEL();
-	
-      if (sel & 0x0001)
-        return 2;
-      else
-        return 1;
-    } else AliError("TRUDCSConf Null!") ;
-  }else AliError("TriggerDCSConf Null!") ;
-  
-  return -1;
-}
-
-//_____________________________________________________________________________
-Int_t AliEMCALTriggerDCSConfigDB::GetTRUGTHRL0(Int_t iTRU)
-{
-	//
-	//
-	//
-	const AliEMCALTriggerDCSConfig* dcsConf = dynamic_cast<const AliEMCALTriggerDCSConfig*>(GetCachedCDBObject(kIDTriggerConfig));
-  if(dcsConf){	
-    AliEMCALTriggerTRUDCSConfig* truConf = dcsConf->GetTRUDCSConfig(iTRU);
-    if(truConf){
-      return truConf->GetGTHRL0();
-    } else AliError("TRUDCSConf Null!") ;
-  }else AliError("TriggerDCSConf Null!") ;
-  
-  return -1;
 }

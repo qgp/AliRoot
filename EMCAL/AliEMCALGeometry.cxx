@@ -1646,3 +1646,70 @@ void AliEMCALGeometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, cons
   }
   
 }
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeometry::GetTRUIndexFromOnlineIndex(const Int_t id, Int_t& idx) const
+{
+  //Trigger mapping method, from STU index get TRU index 
+  
+  if (id > 31 || id < 0) 
+  {
+    AliError(Form("TRU index out of range: %d",id));
+    return kFALSE;
+  }
+  if (id == 31) {
+    idx = 31;
+    return kTRUE;
+  }
+  idx = ((id % 6) < 3) ? 6 * int(id / 6) + 2 * (id % 3) : 6 * int(id / 6) + 2 * (2 - (id % 3)) + 1;
+  return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Int_t AliEMCALGeometry::GetTRUIndexFromOnlineIndex(const Int_t id) const
+{
+  //Trigger mapping method, from STU index get TRU index 
+  
+  if (id > 31 || id < 0) 
+  {
+    AliError(Form("TRU index out of range: %d",id));
+  }
+  if (id == 31) {
+    return 31;
+  }
+  Int_t idx = ((id % 6) < 3) ? 6 * int(id / 6) + 2 * (id % 3) : 6 * int(id / 6) + 2 * (2 - (id % 3)) + 1;
+  return idx;
+}
+
+//________________________________________________________________________________________________
+Bool_t AliEMCALGeometry::GetOnlineIndexFromTRUIndex(const Int_t id, Int_t& idx) const
+{
+  //Trigger mapping method, from STU index get TRU index 
+  
+  if (id > 31 || id < 0) 
+  {
+    AliError(Form("TRU index out of range: %d",id));
+    return kFALSE;
+  }
+  if (id == 31) {
+    idx = 31;
+    return kTRUE;
+  }
+  idx = (id % 2) ? int((6 - (id % 6)) / 2) + 3 * (2 * int(id / 6) + 1) : 3 * int(id / 6) + int(id / 2);
+  return kTRUE;
+}
+
+//________________________________________________________________________________________________
+Int_t AliEMCALGeometry::GetOnlineIndexFromTRUIndex(const Int_t id) const
+{
+  //Trigger mapping method, from STU index get TRU index 
+  
+  if (id > 31 || id < 0) 
+  {
+    AliError(Form("TRU index out of range: %d",id));
+  }
+  if (id == 31) {
+    return 31;
+  }
+  Int_t idx = (id % 2) ? int((6 - (id % 6)) / 2) + 3 * (2 * int(id / 6) + 1) : 3 * int(id / 6) + int(id / 2);
+  return idx;
+}

@@ -287,9 +287,9 @@ void AliEMCALTriggerSTU::ComputeThFromV0(const Int_t M[])
 	if (!(M[0] + M[1])) AliWarning("V0A + V0C is null!"); // 0/1: V0C/V0A
 
 	
-	fGammaTh = fDCSConfig->GetGA()*(M[0] + M[1])*(M[0] + M[1]) + fDCSConfig->GetGB()*(M[0] + M[1]) + fDCSConfig->GetGC();
+	fGammaTh = fDCSConfig->GetG(0,0)*(M[0] + M[1])*(M[0] + M[1]) + fDCSConfig->GetG(1,0)*(M[0] + M[1]) + fDCSConfig->GetG(2,0);
 	
-	fJetTh   = fDCSConfig->GetJA()*(M[0] + M[1])*(M[0] + M[1]) + fDCSConfig->GetJB()*(M[0] + M[1]) + fDCSConfig->GetJC();	
+	fJetTh   = fDCSConfig->GetJ(0,0)*(M[0] + M[1])*(M[0] + M[1]) + fDCSConfig->GetJ(1,0)*(M[0] + M[1]) + fDCSConfig->GetJ(2,0); 
 }
 
 //___________

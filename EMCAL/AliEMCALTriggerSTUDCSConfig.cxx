@@ -23,38 +23,37 @@ Author: R. GUERNANE LPSC Grenoble CNRS/IN2P3
 */
 
 #include "AliEMCALTriggerSTUDCSConfig.h"
+#include "TVector2.h"
 
 ClassImp(AliEMCALTriggerSTUDCSConfig)
   
 //_____________________________________________________________________________
-AliEMCALTriggerSTUDCSConfig::AliEMCALTriggerSTUDCSConfig() : TObject()
-  ,fGA(0)
-  ,fGB(1)
-  ,fGC(0)
-  ,fJA(0)
-  ,fJB(1)
-  ,fJC(0)
-  ,fGetRawData(0)
-  ,fRegion(0xFFFFFFFF)
-  ,fFw(2223)
+AliEMCALTriggerSTUDCSConfig::AliEMCALTriggerSTUDCSConfig() : TObject(),
+fGetRawData(1),
+fRegion(0xFFFFFFFF),
+fFw(0x2A012)
 {
   //
   // AliEMCALTriggerSTUDCSConfig default constructor
   //
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 2; j++) {
+      fG[i][j] = 0;
+      fJ[i][j] = 0;
+    } 
+  }
 }
 
 //_____________________________________________________________________________
 void AliEMCALTriggerSTUDCSConfig::GetSegmentation(TVector2& v1, TVector2& v2, TVector2& v3, TVector2& v4) const
 {
-	//
-	switch (fFw)
-	{
-		case 2223:
-			v1.Set(1., 1.);
-			v2.Set(2., 2.);
-			v3.Set(4., 4.);
-			v4.Set(2., 2.);
-			break;
-	}
+  // Get Segmentation
+  
+  v1.Set(1., 1.);
+  v2.Set(2., 2.);
+  v3.Set(4., 4.);
+  
+  Double_t js = 2 + (fFw >> 16);
+  v4.Set(js, js);
 }
 

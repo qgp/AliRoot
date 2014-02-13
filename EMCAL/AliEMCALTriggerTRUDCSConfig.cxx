@@ -28,10 +28,12 @@ ClassImp(AliEMCALTriggerTRUDCSConfig)
   
 //_____________________________________________________________________________
 AliEMCALTriggerTRUDCSConfig::AliEMCALTriggerTRUDCSConfig() : TObject()
-,fSELPF(0)
-,fL0SEL(0)
+,fSELPF(0x1e1f)
+,fL0SEL(0x1)
 ,fL0COSM(0)
 ,fGTHRL0(0)
+,fRLBKSTU(0)
+,fFw(0x21)
 {
 	//
 	// AliEMCALTriggerTRUDCSConfig default constructor
@@ -39,4 +41,13 @@ AliEMCALTriggerTRUDCSConfig::AliEMCALTriggerTRUDCSConfig() : TObject()
 	for (Int_t i=0;i<6;i++) fMaskReg[i] = 0;
 }
 
+//_____________________________________________________________________________
+Int_t AliEMCALTriggerTRUDCSConfig::GetSegmentation()
+{
+	//
+	if (fL0SEL & 0x0001)
+	   return 2;
+	   else
+		return 1;
+}
 

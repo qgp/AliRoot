@@ -32,6 +32,9 @@ Author: R. GUERNANE LPSC Grenoble CNRS/IN2P3
 #include "AliCaloBunchInfo.h"
 #include "AliRawReader.h"
 #include "AliEMCALTriggerDCSConfigDB.h"
+#include "AliEMCALTriggerDCSConfig.h"
+#include "AliEMCALTriggerTRUDCSConfig.h"
+#include "AliEMCALTriggerSTUDCSConfig.h"
 #include "AliEMCALTriggerData.h"
 #include "AliEMCALTriggerPatch.h"
 #include "AliLog.h"
@@ -284,8 +287,14 @@ void AliEMCALTriggerRawDigitMaker::PostProcess()
 	AliEMCALTriggerRawDigit* dig = 0x0;
 	
 	Int_t sizeL1gsubr[2], sizeL1gpatch[2], sizeL1jsubr[2], sizeL1jpatch[2];
+	TVector2 sL1gsubr, sL1gpatch, sL1jsubr, sL1jpatch;
 	
-	fDCSConfig->GetSTUSegmentation(sizeL1gsubr, sizeL1gpatch, sizeL1jsubr, sizeL1jpatch);
+	fDCSConfig->GetTriggerDCSConfig()->GetSTUDCSConfig()->GetSegmentation(sL1gsubr, sL1gpatch, sL1jsubr, sL1jpatch);
+	sizeL1gsubr[0] =  sL1gsubr.X();  sizeL1gsubr[1] = sL1gsubr.Y();
+	sizeL1gpatch[0] = sL1gpatch.X(); sizeL1gpatch[1] = sL1gpatch.Y();
+	sizeL1jsubr[0] =  sL1jsubr.X();  sizeL1jsubr[1] = sL1jsubr.Y();
+	sizeL1jpatch[0] = sL1jpatch.X(); sizeL1jpatch[1] = sL1jpatch.Y();
+
 	
 	fRawReader->Reset();
 	fRawReader->Select("EMCAL",44);	
@@ -396,7 +405,11 @@ void AliEMCALTriggerRawDigitMaker::PostProcess()
 			
 			if (AliDebugLevel()) printf("| STU => Found L0 patch id: %2d in TRU# %2d\n", x, iTRU);
 			
-			const Int_t sizePatchL0 = fDCSConfig->GetTRUSegmentation(iTRU) * fDCSConfig->GetTRUSegmentation(iTRU);
+			// const Int_t sizePatchL0 = fDCSConfig->GetTRUSegmentation(iTRU) * fDCSConfig->GetTRUSegmentation(iTRU);
+			const Int_t sizePatchL0 = 
+			  ((AliEMCALTriggerTRUDCSConfig*)fDCSConfig->GetTriggerDCSConfig()->GetTRUArr()->At(fGeometry->GetOnlineIndexFromTRUIndex(iTRU)))->GetSegmentation() 
+			  * 
+			  ((AliEMCALTriggerTRUDCSConfig*)fDCSConfig->GetTriggerDCSConfig()->GetTRUArr()->At(fGeometry->GetOnlineIndexFromTRUIndex(iTRU)))->GetSegmentation();
 			
 			Int_t idFastOR[4];
 			for (Int_t j = 0; j < 4; j++) idFastOR[j] = -1;
