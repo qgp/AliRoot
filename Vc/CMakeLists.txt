@@ -11,6 +11,6 @@ vc_compile_for_all_implementations(_objs0 src/trigonometric.cpp FLAGS ${libvc_co
 vc_compile_for_all_implementations(_objs1 src/avx_sorthelper.cpp FLAGS ${libvc_compile_flags} ONLY AVX)
 set(_srcs src/const.cpp src/cpuid.cpp src/support.cpp ${_objs0} ${_objs1})
 add_library(Vc STATIC ${_srcs})
-add_target_property(Vc COMPILE_FLAGS "${libvc_compile_flags} ${Vc_DEFINITIONS}")
+add_target_property(Vc COMPILE_FLAGS "${libvc_compile_flags} ${Vc_DEFINITIONS} -fPIC")
 
 # vim: ft=cmake sw=3 et
