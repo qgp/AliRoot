@@ -93,6 +93,8 @@
 //  TGeoManager::Import("geometry.root");
 
 
+#include <cstdlib>
+
 // --- ROOT system ---
 
 #include <TParticle.h>

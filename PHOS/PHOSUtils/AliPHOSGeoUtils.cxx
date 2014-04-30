@@ -25,6 +25,8 @@
 //                  
 // -- Author: Yves Schutz (SUBATECH) & Dmitri Peressounko (RRC "KI" & SUBATECH)
 
+#include <cstdlib>
+
 // --- ROOT system ---
 
 #include "TClonesArray.h"

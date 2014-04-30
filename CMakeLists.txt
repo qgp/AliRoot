@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8.6 FATAL_ERROR)
+cmake_minimum_required (VERSION 2.8.8 FATAL_ERROR)
 project (AliRoot CXX C)
 enable_language(Fortran OPTIONAL)
 # Specify the languages of the project
@@ -24,13 +24,21 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # Search for Root
 find_package(ROOT REQUIRED)
 
-# Subversion
-find_package(Subversion)
-if(SUBVERSION_FOUND)
-    if(EXISTS ${PROJECT_SOURCE_DIR}/.svn)
-	Subversion_WC_INFO(${PROJECT_SOURCE_DIR} Project)
-	set(ALIROOTURL ${Project_WC_URL})
-	set(ALIROOTREV ${Project_WC_REVISION})
+# Git
+find_package(Git)
+if(GIT_FOUND)
+    if(EXISTS ${PROJECT_SOURCE_DIR}/.git)
+      execute_process(COMMAND "${GIT_EXECUTABLE}" describe --all
+	WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+	OUTPUT_VARIABLE ALIROOTURL
+	OUTPUT_STRIP_TRAILING_WHITESPACE)
+	execute_process(COMMAND "${GIT_EXECUTABLE}" describe --always
+	WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+	OUTPUT_VARIABLE   ALIROOTREV
+	OUTPUT_STRIP_TRAILING_WHITESPACE)
+    else()
+      set(ALIROOTURL "Undefined")
+      set(ALIROOTREV "Undefined")
     endif()
 endif()
 
