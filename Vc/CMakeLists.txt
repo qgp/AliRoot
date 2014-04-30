@@ -1,3 +1,4 @@
+include("${CMAKE_SOURCE_DIR}/Vc/Vc.cmake")
 include("${Vc_CMAKE_MODULES_DIR}/AddTargetProperty.cmake")
 
 include_directories("${Vc_INCLUDE_DIR}")
