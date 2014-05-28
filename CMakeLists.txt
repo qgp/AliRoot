@@ -1,6 +1,14 @@
 cmake_minimum_required (VERSION 2.8.8 FATAL_ERROR)
 project (AliRoot CXX C)
-enable_language(Fortran OPTIONAL)
+
+# If no Fortran, i.e on Windows
+include(CheckLanguage)
+check_language(Fortran)
+if(CMAKE_Fortran_COMPILER)
+  enable_language(Fortran OPTIONAL)
+else()
+  message(STATUS "No Fortran support")
+endif()
 # Specify the languages of the project
 # Sets the following variables:
 #   CMAKE_CXX_COMPILER
