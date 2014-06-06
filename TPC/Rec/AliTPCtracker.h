@@ -1,3 +1,4 @@
+
 #ifndef ALITPCTRACKER_H
 #define ALITPCTRACKER_H
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
@@ -14,6 +15,7 @@
 //-------------------------------------------------------
 
 #include <TArrayI.h>
+#include <TMatrixD.h>
 #include "AliTracker.h"
 #include "AliTPCreco.h"
 #include "AliTPCclusterMI.h"
@@ -60,6 +62,7 @@ public:
     kStreamFindMultiMC        =0x10000,    // flag: stream MC infomation about the multiple find track (ONLY for MC data)
     kStreamFindCurling        =0x20000,    // flag: stream track infroamtion in the FindCurling tracks method
     kStreamFindKinks          =0x40000,    // flag: stream track infroamtion in the FindKinks method
+    kStreamSeeddEdx           =0x80000     // flag: stream TPC dEdx intermediate information  AliTPCseed::CookdEdxNorm (to check and validate methods used in calibration)
   };
   AliTPCtracker();
   AliTPCtracker(const AliTPCParam *par); 
@@ -81,6 +84,8 @@ public:
   virtual void FillClusterArray(TObjArray* array) const;
   void   Transform(AliTPCclusterMI * cluster);
   void ApplyTailCancellation();
+  void ApplyXtalkCorrection();
+  void CalculateXtalkCorrection();
   void GetTailValue(Float_t ampfactor,Double_t &ionTailMax,Double_t &ionTailTotal,TGraphErrors **graphRes,Float_t *indexAmpGraphs,AliTPCclusterMI *cl0,AliTPCclusterMI *cl1);
   //
   void FillESD(const TObjArray* arr);
@@ -242,6 +247,8 @@ private:
    TTreeSRedirector *fDebugStreamer;     //!debug streamer
    Int_t  fUseHLTClusters;              // use HLT clusters instead of offline clusters
    //
+  
+   TObjArray * fCrossTalkSignalArray;  // for 36 sectors    
    TClonesArray* fSeedsPool;            //! pool of seeds
    TArrayI fFreeSeedsID;                //! array of ID's of freed seeds
    Int_t fNFreeSeeds;                   //! number of seeds freed in the pool
