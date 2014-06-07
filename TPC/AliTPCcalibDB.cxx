@@ -424,7 +424,8 @@ void AliTPCcalibDB::Update(){
 
   entry          = GetCDBEntry("TPC/Calib/RecoParam");
   if (entry){
-    entry->SetOwner(kTRUE);
+    //    entry->SetOwner(kTRUE);
+    entry->SetOwner(kFALSE); //hack
     fRecoParamList = dynamic_cast<TObjArray*>(entry->GetObject());
 
   }else{
