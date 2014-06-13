@@ -956,7 +956,7 @@ Int_t AliTRDtrackerV1::FollowBackProlongation(AliTRDtrackV1 &t)
     // tilt correction options
     // 0 : no correction
     // 2 : pseudo tilt correction
-    if(!ptrTracklet->FitRobust(fGeom->GetPadPlane(ily, stk), prod>0.)){
+    if(!ptrTracklet->FitRobust(fGeom->GetPadPlane(ily, stk), prod>0., t.Charge())){
       t.SetErrStat(AliTRDtrackV1::kNoFit, ily);
       AliDebug(4, "Failed Tracklet Fit");
       continue;
@@ -1016,8 +1016,6 @@ Int_t AliTRDtrackerV1::FollowBackProlongation(AliTRDtrackV1 &t)
      
      // update Kalman with the TRD measurement
      if (chi2> fkRecoParam->GetChi2Cut()){ // MI parameterizad chi2 cut 03.05.2014
-       //       if(chi2>10){ // RS
-       //    if(chi2>1e+10){ // TODO
       t.SetErrStat(AliTRDtrackV1::kChi2, ily);
       if(debugLevel > 2){
         UChar_t status(t.GetStatusTRD());

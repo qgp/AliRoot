@@ -91,7 +91,7 @@ public:
   void      CookLabels();
   Bool_t    CookPID();
   Bool_t    Fit(UChar_t opt=0); // OBSOLETE
-  Bool_t    FitRobust(AliTRDpadPlane *pp, Bool_t sgn, Int_t opt=0);
+  Bool_t    FitRobust(AliTRDpadPlane *pp, Bool_t sgn, Int_t chg, Int_t opt=0);
   Double_t  EstimatedCrossPoint(AliTRDpadPlane *pp);
   Bool_t    Init(const AliTRDtrackV1 *track);
   void      Init(const AliRieman *fit);
@@ -217,7 +217,7 @@ public:
 protected:
   void      Copy(TObject &ref) const;
   void      UnbiasDZDX(Bool_t rc);
-  Double_t  UnbiasY(Bool_t rc, Bool_t sgn);
+  Double_t  UnbiasY(Bool_t rc, Bool_t sgn, Int_t chg);
 
 private:
   inline void SetN(Int_t n);

@@ -204,7 +204,7 @@ private:
   Double_t  fdzdxCorrFactor[2];      // correction of dzdx estimation due to z bias; [0] for !RC, [1] for RC
   Double_t  fdzdxCorrRCbias[2];      // correction of dzdx estimation bias for RC; [0] for dz/dx>0, [1] for dz/dx<0
   Double_t  fdzdxXcrossFactor;       // bias in dzdx of estimated xcross [RC]
-  Double_t  fYcorrTailCancel[4][2];  // y linear dydx-ExB correction due to wrong tail cancellation. [0] opposite sign !RC, [1] same sign !RC, [2] opposite sign RC, [3] same sign RC
+  Double_t  fYcorrTailCancel[3][2];  // y linear q/pt correction due to wrong tail cancellation. [0] opposite sign !RC, [1] same sign !RC, [2] RC
   Double_t  fS2Ycorr[2];             // inflation factor of error parameterization in r-phi due to wrong estimation of residuals. [0] opposite sign, [1] same sign
   
   // Clusterization parameter
@@ -220,7 +220,7 @@ private:
   Int_t     fNumberOfPresamples;     // number of presamples 
   Int_t     fNumberOfPostsamples;     // number of postsamples 
 
-  ClassDef(AliTRDrecoParam, 14)       // Reconstruction parameters for TRD detector
+  ClassDef(AliTRDrecoParam, 13)       // Reconstruction parameters for TRD detector
 
 };
 
@@ -276,7 +276,7 @@ inline void AliTRDrecoParam::SetTCParams(Double_t *par)
 //___________________________________________________
 inline void AliTRDrecoParam::GetYcorrTailCancel(Int_t it, Double_t par[2]) const
 {
-  if(it<0||it>3) return;
+  if(it<0||it>2) return;
   par[0] = fYcorrTailCancel[it][0]; par[1] = fYcorrTailCancel[it][1]; 
 }
 

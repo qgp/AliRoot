@@ -662,7 +662,7 @@ void AliTRDseedV1::UnbiasDZDX(Bool_t rc)
 }
 
 //____________________________________________________________________
-Double_t AliTRDseedV1::UnbiasY(Bool_t rc, Bool_t sgn)
+Double_t AliTRDseedV1::UnbiasY(Bool_t rc, Bool_t sgn, Int_t chg)
 {
 // correct y coordinate for tail cancellation. This should be fixed by considering TC as a function of q/pt. 
 //  rc : TRUE if tracklet crosses rows
@@ -671,14 +671,13 @@ Double_t AliTRDseedV1::UnbiasY(Bool_t rc, Bool_t sgn)
   
   const AliTRDrecoParam* const recoParam = fkReconstructor->GetRecoParam();
   if(!recoParam) return 0.;
-  Double_t dphi(fYref[1] - fExB);
   Double_t par[2]={0.};
-  if(rc) recoParam->GetYcorrTailCancel(sgn?3:2, par);
-  else {
-    if(TMath::Abs(dphi)<0.2) return 0.;
-    recoParam->GetYcorrTailCancel(sgn?1:0, par);
-  }  
-  return par[0]+par[1]*dphi;  
+  if(rc) recoParam->GetYcorrTailCancel(2, par);
+  else{
+    if(sgn && 1./fPt > 1.5)  recoParam->GetYcorrTailCancel(1, par);
+    else if(!sgn)  recoParam->GetYcorrTailCancel(0, par);
+  }
+  return par[0]+par[1]*chg/fPt;
 }
 
 
@@ -2162,7 +2161,7 @@ Bool_t AliTRDseedV1::Fit(UChar_t opt)
 
 
 //____________________________________________________________________
-Bool_t AliTRDseedV1::FitRobust(AliTRDpadPlane *pp, Bool_t sgn, Int_t opt)
+Bool_t AliTRDseedV1::FitRobust(AliTRDpadPlane *pp, Bool_t sgn, Int_t chg, Int_t opt)
 {
 //
 // Linear fit of the clusters attached to the tracklet
@@ -2216,7 +2215,7 @@ Bool_t AliTRDseedV1::FitRobust(AliTRDpadPlane *pp, Bool_t sgn, Int_t opt)
   Int_t n(0),          // clusters used in fit 
         row[]={-1, -1},// pad row spanned by the tracklet
         col(-1);       // pad column of current cluster
-  Double_t ycorr(UnbiasY(IsRowCross(), sgn)),
+  Double_t ycorr(UnbiasY(IsRowCross(), sgn, chg)),
            kS2Ycorr(recoParam->GetS2Ycorr(sgn));
         
   AliTRDcluster *c(NULL), **jc = &fClusters[0];

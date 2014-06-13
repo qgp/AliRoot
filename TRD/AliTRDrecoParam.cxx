@@ -156,7 +156,7 @@ AliTRDrecoParam::AliTRDrecoParam(const AliTRDrecoParam &ref)
   // tracklet params
   memcpy(fdzdxCorrFactor, ref.fdzdxCorrFactor, 2*sizeof(Double_t));
   memcpy(fdzdxCorrRCbias, ref.fdzdxCorrRCbias, 2*sizeof(Double_t));
-  memcpy(fYcorrTailCancel, ref.fdzdxCorrRCbias, 8*sizeof(Double_t));
+  memcpy(fYcorrTailCancel, ref.fdzdxCorrRCbias, 6*sizeof(Double_t));
   memcpy(fS2Ycorr, ref.fS2Ycorr, 2*sizeof(Double_t));
 }
 
@@ -215,7 +215,7 @@ AliTRDrecoParam& AliTRDrecoParam::operator=(const AliTRDrecoParam &ref)
   // tracklet params
   memcpy(fdzdxCorrFactor, ref.fdzdxCorrFactor, 2*sizeof(Double_t));
   memcpy(fdzdxCorrRCbias, ref.fdzdxCorrRCbias, 2*sizeof(Double_t));
-  memcpy(fYcorrTailCancel, ref.fdzdxCorrRCbias, 8*sizeof(Double_t));
+  memcpy(fYcorrTailCancel, ref.fdzdxCorrRCbias, 6*sizeof(Double_t));
   memcpy(fS2Ycorr, ref.fS2Ycorr, 2*sizeof(Double_t));
   return *this;
 }
@@ -355,10 +355,9 @@ void  AliTRDrecoParam::SetTrackletParams(Double_t *par)
     fYcorrTailCancel[0][0] = par[5]; fYcorrTailCancel[0][1] = par[6];  // opposite sign !RC
     fYcorrTailCancel[1][0] = par[7]; fYcorrTailCancel[1][1] = par[8];  // same sign !RC
     fYcorrTailCancel[2][0] = par[9]; fYcorrTailCancel[2][1] = par[10]; // RC
-    fYcorrTailCancel[3][0] = par[11];fYcorrTailCancel[3][1] = par[12]; // RC
     // inflation factor of error parameterization in r-phi due to wrong estimation of residuals. 
-    fS2Ycorr[0] = par[13];  // opposite sign, 
-    fS2Ycorr[1] = par[14];  // same sign
+    fS2Ycorr[0] = par[11];  // opposite sign, 
+    fS2Ycorr[1] = par[12];  // same sign
     
   } else {
     // correct dzdx for the bias in z
@@ -369,11 +368,10 @@ void  AliTRDrecoParam::SetTrackletParams(Double_t *par)
     fdzdxCorrRCbias[1] = -0.012; // dz/dx < 0
     /// correct x_cross for the bias in dzdx
     fdzdxXcrossFactor  = 0.14;
-    // y linear tg(phi)-ExB correction due to wrong tail cancellation. 
-    fYcorrTailCancel[0][0] =-0.02; fYcorrTailCancel[0][1] = 0.13;   // opposite sign !RC
-    fYcorrTailCancel[1][0] = 0.01; fYcorrTailCancel[1][1] = 0.115;  // same sign !RC
-    fYcorrTailCancel[2][0] = 0.003;fYcorrTailCancel[2][1] = 0.075;  // opposite sign RC
-    fYcorrTailCancel[3][0] = 0.005;fYcorrTailCancel[3][1] = 0.1;    // same sign RC
+    // y linear q/pt correction due to wrong tail cancellation. 
+    fYcorrTailCancel[0][0] = 0.;   fYcorrTailCancel[0][1] = 0.027;  // opposite sign !RC
+    fYcorrTailCancel[1][0] = 0.04; fYcorrTailCancel[1][1] = 0.027;  // same sign !RC
+    fYcorrTailCancel[2][0] = 0.013;fYcorrTailCancel[2][1] = 0.018;  // RC
     // inflation factor of error parameterization in r-phi due to wrong estimation of residuals. 
     fS2Ycorr[0] = 5.;  // opposite sign, 
     fS2Ycorr[1] = 10;  // same sign
