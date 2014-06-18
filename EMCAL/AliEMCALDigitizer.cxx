@@ -768,8 +768,10 @@ void AliEMCALDigitizer::Digits2FastOR(TClonesArray* digitsTMP, TClonesArray* dig
       // build FOR from simulated digits
       // and xfer to the corresponding TRU input (mapping)
       
-      TClonesArray* digits = emcalLoader->Digits();
-      
+      TClonesArray* sdigits = emcalLoader->SDigits();
+
+      TClonesArray *digits = (TClonesArray*)sdigits->Clone();
+
       TIter NextDigit(digits);
       while (AliEMCALDigit* digit = (AliEMCALDigit*)NextDigit())
       {
