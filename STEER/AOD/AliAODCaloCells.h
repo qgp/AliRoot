@@ -74,7 +74,7 @@ class AliAODCaloCells : public AliVCaloCells
   Bool_t      fIsSorted;     //! true if cell arrays are sorted by index
   Char_t      fType;         // Cell type
   
-  ClassDef(AliAODCaloCells, 4);
+  ClassDef(AliAODCaloCells, 5);
   
 };
 
@@ -123,7 +123,10 @@ Bool_t AliAODCaloCells::GetCellHighGain(Short_t cellNumber)
 
   Short_t pos = TMath::BinarySearch(fNCells, fCellNumber, cellNumber);
   if (pos>=0 && pos < fNCells && fCellNumber[pos] == cellNumber ) {
-    return fHGLG[pos];
+    if(fHGLG)
+      return fHGLG[pos];
+    else //old version of AOD, 
+      return !(fMCLabel[pos]==-2) ;
   } else {
     return 0.;
   }
@@ -157,7 +160,10 @@ Double_t AliAODCaloCells::GetAmplitude(Short_t pos) const
 Bool_t AliAODCaloCells::GetHighGain(Short_t pos) const 
 { 
   if (pos>=0 && pos<fNCells) {
-    return fHGLG[pos];
+    if(fHGLG)
+      return fHGLG[pos];
+    else //Old version of AOD store this flag in MCLabel
+      return !(fMCLabel[pos]==-2) ;
   } else {
     return 0.;
   }

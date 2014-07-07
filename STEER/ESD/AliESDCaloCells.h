@@ -77,7 +77,7 @@ class AliESDCaloCells : public AliVCaloCells
   Bool_t      fIsSorted;     //! true if cell arrays are sorted by index
   Char_t      fType;         // Cell type
 
-  ClassDef(AliESDCaloCells, 4);
+  ClassDef(AliESDCaloCells, 5);
 };
 
 
@@ -127,7 +127,10 @@ Bool_t AliESDCaloCells::GetCellHighGain(Short_t cellNumber)
 
   Short_t pos = TMath::BinarySearch(fNCells, fCellNumber, cellNumber);
   if (pos>=0 && pos < fNCells && fCellNumber[pos] == cellNumber ) {
-    return fHGLG[pos];
+    if(fHGLG)
+      return fHGLG[pos];
+    else //old version of ESD, for data HG flag stored in MCLabel 
+      return !(fMCLabel[pos]==-2) ;
   } else {
     return 0.;
   }
@@ -159,7 +162,10 @@ Double_t AliESDCaloCells::GetAmplitude(Short_t pos) const
 Bool_t AliESDCaloCells::GetHighGain(Short_t pos) const 
 { 
   if (pos>=0 && pos<fNCells) {
-    return fHGLG[pos];
+    if(fHGLG)
+      return fHGLG[pos];
+    else //old version of ESD, for data HG flag stored in MCLabel 
+      return !(fMCLabel[pos]==-2) ;
   } else {
     return 0.;
   }
