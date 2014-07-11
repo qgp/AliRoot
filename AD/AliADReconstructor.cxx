@@ -18,21 +18,32 @@
 //                                                                          //
 //  Class for AD reconstruction                                         //
 //////////////////////////////////////////////////////////////////////////////
+#include <TParameter.h>
 
 #include "AliRawReader.h"
+#include "AliGRPObject.h"
+#include "AliCDBManager.h"
+#include "AliCDBStorage.h"
+#include "AliCDBEntry.h"
+#include "AliESDEvent.h"
 
 #include "AliADReconstructor.h"
-#include "AliESDEvent.h"
 #include "AliADdigit.h"
 #include "AliESDAD.h"
+#include "AliADConst.h"
+#include "AliADCalibData.h"
+#include "AliADRawStream.h"
 
 ClassImp(AliADReconstructor)
-
+//_____________________________________________________________________________
 AliADReconstructor:: AliADReconstructor():
   AliReconstructor(),
   fESDAD(0x0),
+  fCalibData(NULL),
   fDigitsArray(0)
+
 {
+  fCalibData = GetCalibData();
   // Default constructor  
   // Get calibration data
 
@@ -63,12 +74,55 @@ void AliADReconstructor::Init()
     fESDAD  = new AliESDAD;
 }
 
-void AliADReconstructor::ConvertDigits(AliRawReader* /*rawReader*/, TTree* /*digitsTree*/) const
+//_____________________________________________________________________________
+void AliADReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digitsTree) const
 {
+// converts RAW to digits 
 
-  printf("Converting digits for AD .. not implemented \n");
+  if (!digitsTree) {
+    AliError("No digits tree!");
+    return;
+  }
+
+  if (!fDigitsArray){
+    fDigitsArray = new TClonesArray("AliADdigit", 16);
+    digitsTree->Branch("ADDigit", &fDigitsArray);
+    }
+
+  rawReader->Reset();
+  AliADRawStream rawStream(rawReader);
+  if (rawStream.Next()) { 
+
+    for(Int_t iChannel=0; iChannel < 16; ++iChannel) {
+      Int_t offlineCh = rawStream.GetOfflineChannel(iChannel);
+      // ADC charge samples
+      Short_t chargeADC[kNClocks];
+      for(Int_t iClock=0; iClock < kNClocks; ++iClock) {
+	chargeADC[iClock] = rawStream.GetPedestal(iChannel,iClock);
+      }
+      // Integrator flag
+      Bool_t integrator = rawStream.GetIntegratorFlag(iChannel,kNClocks/2);
+      Bool_t BBflag = rawStream.GetBBFlag(iChannel,kNClocks/2); 
+      Bool_t BGflag = rawStream.GetBGFlag(iChannel,kNClocks/2);
+   
+      // HPTDC data (leading time and width)
+      Int_t board = AliADCalibData::GetBoardNumber(offlineCh);
+      Float_t time = rawStream.GetTime(iChannel)*fCalibData->GetTimeResolution(board);
+      Float_t width = rawStream.GetWidth(iChannel)*fCalibData->GetWidthResolution(board);
+      // Add a digit
+      if(!fCalibData->IsChannelDead(iChannel)){
+	  new ((*fDigitsArray)[fDigitsArray->GetEntriesFast()]) AliADdigit(offlineCh, time, width,integrator, chargeADC, BBflag, BGflag);
+      }
+    }
+
+    digitsTree->Fill();
+  }
+
+  fDigitsArray->Clear();
+
 }
 
+//_____________________________________________________________________________
 void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliESDEvent* esd) const
 {
 
@@ -98,7 +152,7 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
     
   for (Int_t d=0; d<nDigits; d++) {    
     AliADdigit* digit = (AliADdigit*) fDigitsArray->At(d);
-    Int_t module = digit->GetCell();
+    Int_t module = digit->PMNumber();
  //   printf("AD Module: %d\n",module);
     ADHits[module] = kTRUE;
   }  
@@ -115,6 +169,32 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
     }
 
   fDigitsArray->Clear();
+}
+
+//_____________________________________________________________________________
+AliADCalibData* AliADReconstructor::GetCalibData() const
+{
+  AliCDBManager *man = AliCDBManager::Instance();
+
+  AliCDBEntry *entry=0;
+
+  //entry = man->Get("AD/Calib/Data");
+  //if(!entry){
+    //AliWarning("Load of calibration data from default storage failed!");
+    //AliWarning("Calibration data will be loaded from local storage ($ALICE_ROOT)");
+	
+    man->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
+    man->SetRun(1);
+    entry = man->Get("AD/Calib/Data");
+  //}
+  // Retrieval of data in directory AD/Calib/Data:
+
+  AliADCalibData *calibdata = 0;
+
+  if (entry) calibdata = (AliADCalibData*) entry->GetObject();
+  if (!calibdata)  AliFatal("No calibration data from calibration database !");
+
+  return calibdata;
 }
 
 
