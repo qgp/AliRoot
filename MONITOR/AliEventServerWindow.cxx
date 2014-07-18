@@ -111,22 +111,27 @@ void AliEventServerWindow::InitDIMListeners()
 
 void AliEventServerWindow::FillRunsFromDatabase()
 {
-	TEnv settings(ALIEVENTSERVER_CONF);
-
+	TEnv settings;
+	settings.ReadFile(AliEventServerUtil::GetPathToServerConf(), kEnvUser);
+	
 	TString dbHost = settings.GetValue("logbook.host", DEFAULT_LOGBOOK_HOST);
 	TString dbPort =  Form("%d", settings.GetValue("logbook.port", DEFAULT_LOGBOOK_PORT));
 	TString dbName =  settings.GetValue("logbook.db", DEFAULT_LOGBOOK_DB);
 	TString user =  settings.GetValue("logbook.user", DEFAULT_LOGBOOK_USER);
 	TString password = settings.GetValue("logbook.pass", DEFAULT_LOGBOOK_PASS);
 
-  TSQLServer* server = TSQLServer::Connect(Form("mysql://%s:%s/%s", dbHost.Data(), dbPort.Data(), dbName.Data()), user.Data(), password.Data());
+	TString connStr = Form("mysql://%s:%s/%s", dbHost.Data(), dbPort.Data(), dbName.Data()) ;
+
+	AliInfo(Form("connecting to %s", connStr.Data()) );
+
+  TSQLServer* server = TSQLServer::Connect(connStr.Data(), user.Data(), password.Data());
   if (!server) {
     AliWarning("ERROR: Could not connect to DAQ Logbook");
     return;
   }
   TString sqlQuery;
   TTimeStamp ts;
-  sqlQuery.Form("SELECT run FROM logbook WHERE DAQ_time_start > %u AND DAQ_time_end IS NULL AND partition REGEXP 'PHYSICS.*'",
+  sqlQuery.Form("SELECT run FROM logbook WHERE DAQ_time_start > %u AND DAQ_time_end IS NULL AND `partition` REGEXP 'PHYSICS.*'",
     (UInt_t)ts.GetSec()-86400);
   TSQLResult* result = server->Query(sqlQuery);
   if (!result)

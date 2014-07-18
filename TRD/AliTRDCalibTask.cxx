@@ -115,6 +115,7 @@ AliTRDCalibTask::AliTRDCalibTask(const char *name)
   fNbTrackletsOffline(0),
   fNbTrackletsStandalone(0),
   fAbsoluteGain(0),
+  fTOFbc(0),
   fCH2dSum(0),
   fPH2dSum(0),
   fCH2dSM(0),
@@ -145,6 +146,7 @@ AliTRDCalibTask::AliTRDCalibTask(const char *name)
   fMinNbContributors(0),
   fRangePrimaryVertexZ(9999999.0),
   fRejectPileUpWithSPD(kFALSE),
+  fRejectPileUpWithTOF(kFALSE),
   fMinNbTracks(9),
   fMaxNbTracks(999999999),
   fCutWithVdriftCalib(kFALSE),
@@ -224,6 +226,7 @@ AliTRDCalibTask::~AliTRDCalibTask()
   if(fNbTrackletsOffline) delete fNbTrackletsOffline;
   if(fNbTrackletsStandalone) delete fNbTrackletsStandalone;
   if(fAbsoluteGain) delete fAbsoluteGain;
+  if(fTOFbc) delete fTOFbc;
   if(fCH2dSum) delete fCH2dSum;
   if(fPH2dSum) delete fPH2dSum;
   if(fCH2dSM) delete fCH2dSM;
@@ -364,6 +367,14 @@ void AliTRDCalibTask::UserCreateOutputObjects()
   fAbsoluteGain->SetStats(0);
   fAbsoluteGain->Sumw2();
   fListHist->Add(fAbsoluteGain);
+
+  fTOFbc = new TH2F(Form("TOFbc_%s",(const char*)fName),"TOFbc", 200, -150., 50., nBinsPt, binLimPt);
+  fTOFbc->SetYTitle("Momentum");
+  fTOFbc->SetXTitle("TOF bc");
+  fTOFbc->SetZTitle("counts");
+  fTOFbc->SetStats(0);
+  fTOFbc->Sumw2();
+  fListHist->Add(fTOFbc);
   
   if(IsPHQon()){
     printf("\n        AliTRDCalibTask PHQ is on!!     \n\n");
@@ -809,6 +820,13 @@ void AliTRDCalibTask::UserExec(Option_t *)
       //printf("Not a good track\n");
       continue;
     }
+    
+    Int_t nbcrossing = fkEsdTrack->GetTOFBunchCrossing();
+    fTOFbc->Fill(nbcrossing,fkEsdTrack->Pt());
+    // TOF pile-up rejection is asked
+    if(fRejectPileUpWithTOF) {
+      if(TMath::Abs(nbcrossing)>0.5) continue;
+    }
 
     // First Absolute gain calibration
     Int_t trdNTracklets = (Int_t) fkEsdTrack->GetTRDntracklets();
@@ -855,7 +873,8 @@ void AliTRDCalibTask::UserExec(Option_t *)
       Int_t nbtracklets = 0;
       
       // Check some stuff
-      Bool_t standalonetracklet = kFALSE;  
+      // Coverity
+      //Bool_t standalonetracklet = kFALSE;  
       const AliTRDseedV1 *tracklet = 0x0;
       //////////////////////////////////////
       // Loop tracklets
@@ -872,8 +891,9 @@ void AliTRDCalibTask::UserExec(Option_t *)
 	if(!(tracklet = fTrdTrack->GetTracklet(itr))) continue;
 	if(!tracklet->IsOK()) continue;
 	++nbtracklets;
-	standalonetracklet = kFALSE; 
-	if(tracklet->IsStandAlone()) standalonetracklet = kTRUE;
+        // Coverity
+	//standalonetracklet = kFALSE; 
+	//if(tracklet->IsStandAlone()) standalonetracklet = kTRUE;
 	
 	nbclusters = 0;
 	memset(phtb, 0, AliTRDseedV1::kNtb*sizeof(Double_t));
@@ -1493,7 +1513,8 @@ Bool_t AliTRDCalibTask::FindP1TrackPHtrackletV1Test(const AliTRDseedV1 *tracklet
   ////////////
   // results of the linear fit
   Double_t dydt                       = 0.0;                                // dydt tracklet after straight line fit
-  Double_t errorpar                   = 0.0;                                // error after straight line fit on dy/dt
+  // Coverity
+  //Double_t errorpar                   = 0.0;                                // error after straight line fit on dy/dt
   Double_t pointError                 = 0.0;                                // error after straight line fit 
   // pad row problemes: avoid tracklet that cross pad rows, tilting angle in the constant
   Int_t    crossrow                   = 0;                                  // if it crosses a pad row
@@ -1567,7 +1588,8 @@ Bool_t AliTRDCalibTask::FindP1TrackPHtrackletV1Test(const AliTRDseedV1 *tracklet
   linearFitterTracklet.Eval();
   linearFitterTracklet.GetParameters(pars);
   pointError  =  TMath::Sqrt(linearFitterTracklet.GetChisquare()/(nbli-2));
-  errorpar    =  linearFitterTracklet.GetParError(1)*pointError;
+  // Coverity
+  //errorpar    =  linearFitterTracklet.GetParError(1)*pointError;
   dydt        = pars[1]; 
   //printf("chis %f, nbli %d, pointError %f, parError %f, errorpar %f\n",linearFitterTracklet->GetChisquare(),nbli,pointError,linearFitterTracklet->GetParError(1),errorpar);
   linearFitterTracklet.ClearPoints();  
