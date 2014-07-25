@@ -66,6 +66,7 @@ AliTPCRecoParam::AliTPCRecoParam():
   fUseOuterDetectors(kFALSE),
   fMaxChi2TPCTRD(36),     // maximal allowed chi2 between the TRD in and TPC out to be accepted for refit
   fMaxChi2TPCITS(36),     // maximal allowed chi2 between the ITS in and TPC out to be accepted for backpropagation
+  fUseOulierClusterFilter(0),  // swith to use outlier cluster filter
   fDumpSignal(kFALSE),
   fFirstBin(0),
   fLastBin(-1),
@@ -122,6 +123,10 @@ AliTPCRecoParam::AliTPCRecoParam():
   // systematic error parameterization at INNER wall of the TPC
   fSystematicErrorClusterInner[0]=0.5;   // 0.5 cm
   fSystematicErrorClusterInner[1]=5;     // 5 cm slope  
+  //
+  fSystematicErrorCluster[0]=0;   // sy cluster error
+  fSystematicErrorCluster[1]=0;   // sz cluster error  
+
   //
   fCutSharedClusters[0]=0.5; // maximal allowed fraction of shared clusters - shorter track
   fCutSharedClusters[1]=0.25; // maximal allowed fraction of shared clusters - longer  track
