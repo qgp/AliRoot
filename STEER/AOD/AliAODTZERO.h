@@ -46,7 +46,10 @@ public:
   void SetT0VertexRaw(Float_t vtx) { fT0VertexRaw = vtx;}
   void SetT0zVertex(Double32_t z) {fT0zVertex = z;}
   void SetAmp(Int_t pmt, Float_t amp) {fT0Amp[pmt]=amp;}
-       
+  //T0 triggers
+  void SetT0Trig(Int_t tvdc) {fT0trig = tvdc;}
+  Bool_t GetT0Trig(Int_t i) {return (fT0trig&(1<<i)) != 0;}
+    
   
 protected:
   Double32_t   fT0TOF[3];    // interaction time in ps with 1st time( A&C, A, C)
@@ -57,8 +60,9 @@ protected:
   Float_t      fT0VertexRaw; // raw T0 vertex without any cuts 
   Double32_t   fT0zVertex;    // reconstructed T0 vertex
   Float_t fT0Amp[26];          //amplitude on PMTs and MPD
+  Int_t        fT0trig;            // T0 trigger signals
 
-  ClassDef(AliAODTZERO,4)
+  ClassDef(AliAODTZERO,5)
 };
 
 #endif
