@@ -1,4 +1,4 @@
-# -*- mode: cmake -*-
+# -*- mode: cmake -*-/usr/share/applications/thunderbird.desktop 
 
 # Top level CMakeList.txt file for the AliRoot Build System
 #
@@ -27,8 +27,8 @@ endif(NOT ALICE_ROOT)
 
 set(ALICE_INSTALL $ENV{ALICE_INSTALL})
 # Set AliRoot Installation directory 
-# If CMAKE_INSTALL_PREFIX was not set than we set it to ALICE_INSTALL. 
-# If ALICE_INSTALL was not defined than it will default to source directory
+# If CMAKE_INSTALL_PREFIX was not set, then we set it to ALICE_INSTALL. 
+# If ALICE_INSTALL was not defined, then it will default to the source directory
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     if(ALICE_INSTALL)
 	message(STATUS "AliRoot files will be installed in ${ALICE_INSTALL}")
@@ -141,7 +141,7 @@ set(BINLIBDIRS "-L${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 
 # Standard Modules
 # ------------------------------
-set(ALIROOTMODULES STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS AD ACORDE HMPID T0 BCM STRUCT VZERO THijing THbtp EMCAL THerwig TEPEMGEN FASTSIM TPHIC RAW MONITOR STORAGE ANALYSIS JETAN HLT STAT TTherminator CORRFW DPMJET TDPMjet STARLIGHT PWGPP PWG PWGCF PWGGA PWGHF PWGDQ PWGJE PWGLF PWGUD TRIGGER PYTHIA8 TAmpt OADB MFT TEvtGen FIT)
+set(ALIROOTMODULES STEER PHOS TRD TPC ZDC MUON PMD FMD TOF ITS AD ACORDE HMPID T0 BCM STRUCT VZERO THijing THbtp EMCAL THerwig TEPEMGEN FASTSIM TPHIC RAW MONITOR ANALYSIS JETAN HLT STAT TTherminator CORRFW DPMJET TDPMjet STARLIGHT PWGPP PWG PWGCF PWGGA PWGHF PWGDQ PWGJE PWGLF PWGUD TRIGGER PYTHIA8 TAmpt OADB MFT TEvtGen FIT)
 
 if(THydjet)
   list(APPEND ALIROOTMODULES THydjet)
@@ -187,7 +187,12 @@ set(LIBS ${ROOTCLIBS} ${ROOTPLIBS} ${SYSLIBS})
 
 # Configure ARVerion.h
 # ------------------------------
-#If the sources were taken from Git
+# If the sources were taken from Git
+# Sets 3 git variables
+#  - GIT_REFSPEC - complete name of the current reference
+#  - ALIROOT_BRANCH - name of the branch or tag extracted from the current reference
+#  - GIT_SHA1 - current hash in the long format
+#  - GIT_SHORT_SHA1 - current hash in the short format
 if(EXISTS ${PROJECT_SOURCE_DIR}/.git/)
  include(GetGitRevisionDescription)
  
@@ -216,7 +221,20 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/.git/)
   endif()
 
   set(ALIROOT_BRANCH ${SHORT_BRANCH})
-  message(STATUS "Aliroot branch/tag: \"${ALIROOT_BRANCH}\" - Revision:  \"${GIT_SHA1}\" ")
+  
+  # generate the short version of the revision hash
+  execute_process(COMMAND git rev-parse --short ${GIT_SHA1} 
+                          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} 
+                          OUTPUT_STRIP_TRAILING_WHITESPACE 
+                          RESULT_VARIABLE res
+                          OUTPUT_VARIABLE GIT_SHORT_SHA1)
+
+  # if the rev-parse fails we set the short sha to the long initial one
+  if(NOT res EQUAL 0)
+    set(GIT_SHORT_SHA1 ${GIT_SHA1})
+  endif()
+  
+  message(STATUS "Aliroot branch/tag: \"${ALIROOT_BRANCH}\" - Revision:  \"${GIT_SHORT_SHA1}\" ")
 
  else()
   message("Git not installed. I can't tell you which revision you are using!")
