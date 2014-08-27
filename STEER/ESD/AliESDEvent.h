@@ -31,6 +31,7 @@
 #include "AliESDZDC.h"
 #include "AliESDACORDE.h"
 #include "AliESDAD.h"
+#include "AliMultiplicity.h"
 
 // AliESDtrack has to be included so that the compiler 
 // knows its inheritance tree (= that it is a AliVParticle).
@@ -56,7 +57,6 @@ class AliESDPmdTrack;
 class AliESDFMD;
 class AliESDkink;
 class AliESDv0;
-class AliMultiplicity;
 class AliRawDataErrorLog;
 class AliESDRun;
 class AliESDTrdTrigger;
@@ -308,15 +308,16 @@ public:
 
   TClonesArray *GetESDTOFClusters() const {return fESDTOFClusters;}
   TClonesArray *GetESDTOFHits() const {return fESDTOFHits;}
-  TClonesArray *GetESDTOFMatches() const {return fESDTOFMatchess;}
+  TClonesArray *GetESDTOFMatches() const {return fESDTOFMatches;}
 
   void SetTOFcluster(Int_t ntofclusters,AliESDTOFCluster *cluster,Int_t *mapping=NULL);
   void SetTOFcluster(Int_t ntofclusters,AliESDTOFCluster *cluster[],Int_t *mapping=NULL);
   Int_t GetNTOFclusters() const {return fESDTOFClusters ? fESDTOFClusters->GetEntriesFast() : 0;}
 
+  Int_t GetNumberOfITSClusters(Int_t lr) const {return fSPDMult ? fSPDMult->GetNumberOfITSClusters(lr) : 0;}
   void SetMultiplicity(const AliMultiplicity *mul);
 
-  const AliMultiplicity *GetMultiplicity() const {return fSPDMult;}
+  AliMultiplicity *GetMultiplicity() const {return fSPDMult;}
   void   EstimateMultiplicity(Int_t &tracklets,Int_t &trITSTPC,Int_t &trITSSApure,
 			      Double_t eta=1.,Bool_t useDCAFlag=kTRUE,Bool_t useV0Flag=kTRUE) const;
 
@@ -575,7 +576,7 @@ protected:
   TClonesArray *fCosmicTracks;     //! Tracks created by cosmics finder
   TClonesArray *fESDTOFClusters;    //! TOF clusters
   TClonesArray *fESDTOFHits;        //! TOF hits (used for clusters)
-  TClonesArray *fESDTOFMatchess;      //! TOF matching info (with the reference to tracks)
+  TClonesArray *fESDTOFMatches;    //! TOF matching info (with the reference to tracks)
   TClonesArray *fErrorLogs;        //! Raw-data reading error messages
  
   Bool_t fOldMuonStructure;        //! Flag if reading ESD with old MUON structure
@@ -599,7 +600,7 @@ protected:
   UInt_t fDAQDetectorPattern; // Detector pattern from DAQ: bit 0 is SPD, bit 4 is TPC, etc. See event.h
   UInt_t fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
 
-  ClassDef(AliESDEvent,22)  //ESDEvent class 
+  ClassDef(AliESDEvent,23)  //ESDEvent class 
 };
 #endif 
 

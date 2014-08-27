@@ -129,14 +129,16 @@ public:
     virtual Int_t     BgLabelToIndex(Int_t label);
     static  Int_t     BgLabelOffset() {return fgkBgLabelOffset;}
     virtual Bool_t    IsFromBGEvent(Int_t index);
-        TString  GetGenerator(Int_t index); 
-  Bool_t GetCocktailGenerator(Int_t index,TString &nameGen);
+    TList*  GetCocktailList();
+    TString  GetGenerator(Int_t index); 
+    Bool_t GetCocktailGenerator(Int_t index,TString &nameGen);
     virtual Bool_t    IsSecondaryFromWeakDecay(Int_t index);
     virtual Bool_t    IsSecondaryFromMaterial(Int_t index);
     // External particle array
-    virtual void      SetParticleArray(TClonesArray* mcParticles) 
-	{fMCParticles = mcParticles; fNparticles = fMCParticles->GetEntries(); fExternal = kTRUE;}
-    
+  virtual void      SetParticleArray(TClonesArray* mcParticles); 
+    //External Header 
+     virtual void SetExternalHeader(AliVHeader* aodmcHeader)
+       {fAODMCHeader=aodmcHeader;}  
   virtual AliGenEventHeader *FindHeader(Int_t ipart);
     //Following needed only for mixed event
   virtual Int_t        EventIndex(Int_t)       const {return 0;}
@@ -148,12 +150,14 @@ public:
 
   virtual AliVVZERO    *GetVZEROData() const {return 0;}
   virtual AliVZDC      *GetZDCData()   const {return 0;}
-    
+
 
 private:
     virtual void      ReorderAndExpandTreeTR();
     virtual Int_t     FindIndexAndEvent(Int_t oldidx, AliMCEvent*& event) const;
     void 	      UpdateEventInformation();
+    virtual void      AssignGeneratorIndex();    
+    virtual void      AssignGeneratorIndex(Int_t index, Int_t dmin, Int_t dmax);    
     
 private: 
     // Stanndard implementation for ESD production
@@ -161,6 +165,7 @@ private:
     TClonesArray     *fMCParticles;      // Pointer to list of particles
     TObjArray        *fMCParticleMap;    // Map of MC Particles
     AliHeader        *fHeader;           // Current pointer to header
+    AliVHeader       *fAODMCHeader;      //Current pointer to AODMC header
     TClonesArray     *fTRBuffer;         // Track reference buffer    
     TClonesArray     *fTrackReferences;  // Array of track references
     TTree            *fTreeTR;           // Pointer to Track Reference Tree
@@ -175,7 +180,6 @@ private:
     static   Int_t        fgkBgLabelOffset;  // Standard branch name    
     mutable  AliVVertex*  fVertex;           // MC Vertex
     Int_t             fNBG;              //! Background particles in current event
-    
     ClassDef(AliMCEvent, 2)              // AliVEvent realisation for MC data
 };
 

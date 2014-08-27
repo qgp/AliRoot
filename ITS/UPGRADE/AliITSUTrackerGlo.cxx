@@ -441,11 +441,16 @@ Int_t AliITSUTrackerGlo::LoadClusters(TTree * treeRP)
 void AliITSUTrackerGlo::UnloadClusters()
 {
   //
-  // To be implemented 
+  // Remove clusters from the memory 
   //
-  
-  Info("UnloadClusters","To be implemented");
+  AliITSURecoDet *det=fReconstructor->GetITSInterface();
+  Int_t nlayers=det->GetNLayersActive();
+  for (Int_t i=0; i<nlayers; i++) {
+      TClonesArray *clusters=*(det->GetLayerActive(i)->GetClustersAddress());
+      clusters->Delete();
+  }
 } 
+
 //_________________________________________________________________________
 AliCluster * AliITSUTrackerGlo::GetCluster(Int_t /*index*/) const
 {
@@ -1665,7 +1670,7 @@ Bool_t AliITSUTrackerGlo::AddSeedBranch(AliITSUSeed* seed)
     AliITSUSeed** tmpArr = fLayerCandidates;
     fLayerCandidates = new AliITSUSeed*[fLayerMaxCandidates];
     memcpy(fLayerCandidates,tmpArr,(fNCandidatesAdded+fNBranchesAdded)*sizeof(AliITSUSeed*));
-    delete tmpArr; // delete only array, not objects
+    delete[] tmpArr; // delete only array, not objects
   }
   AliITSUSeed** branches = &fLayerCandidates[fNCandidatesAdded]; // note: fNCandidatesAdded is incremented after adding all branches of current seed
   int slot=fNBranchesAdded++;

@@ -938,7 +938,7 @@ Bool_t AliTriggerAnalysis::IsOfflineTriggerFired(const AliESDEvent* aEsd, Trigge
     const AliESDVertex* vertex = aEsd->GetPrimaryVertexSPD();
     const AliMultiplicity* mult = aEsd->GetMultiplicity();
 
-    if (mult && vertex && vertex->GetNContributors() > 0 && (!vertex->IsFromVertexerZ() || vertex->GetDispersion() < 0.02) && TMath::Abs(vertex->GetZv()) < 5.5) 
+    if (mult && vertex && vertex->GetNContributors() > 0 && (!vertex->IsFromVertexerZ() || vertex->GetDispersion() < 0.02) && TMath::Abs(vertex->GetZ()) < 5.5) 
     {
       for (Int_t i=0; i<mult->GetNumberOfTracklets(); ++i)
       {
@@ -966,7 +966,7 @@ Bool_t AliTriggerAnalysis::IsOfflineTriggerFired(const AliESDEvent* aEsd, Trigge
     fEsdTrackCuts->GetPtRange(ptmin,ptmax);
     AliDebug(3, Form("ptmin = %f, ptmax = %f\n",ptmin, ptmax));
 
-    if (vertex && vertex->GetNContributors() > 0 && (!vertex->IsFromVertexerZ() || vertex->GetDispersion() < 0.02) && TMath::Abs(vertex->GetZv()) < 10.) {
+    if (vertex && vertex->GetNContributors() > 0 && (!vertex->IsFromVertexerZ() || vertex->GetDispersion() < 0.02) && TMath::Abs(vertex->GetZ()) < 10.) {
       AliDebug(3,Form("Check on the vertex passed\n"));
       for (Int_t i=0; i<aEsd->GetNumberOfTracks(); ++i){
 	if (fTPCOnly == kFALSE){
@@ -1583,11 +1583,12 @@ Bool_t AliTriggerAnalysis::ZDCTimeBGTrigger(const AliESDEvent *aEsd, AliceSide s
   Bool_t znabadhit = kFALSE;
   Bool_t zncbadhit = kFALSE;
 
-  Float_t tdcC=999, tdcCcorr=999, tdcA=999, tdcAcorr=999;
+  //  Float_t tdcC=999, tdcA=999;
+  Float_t tdcCcorr=999, tdcAcorr=999;
   for(Int_t i = 0; i < 4; ++i) {
     if (zdcData->GetZDCTDCData(10,i) != 0) {
       znc = kTRUE;
-      tdcC = 0.025*(zdcData->GetZDCTDCData(10,i)-zdcData->GetZDCTDCData(14,i));
+      //      tdcC = 0.025*(zdcData->GetZDCTDCData(10,i)-zdcData->GetZDCTDCData(14,i));
       tdcCcorr = zdcData->GetZDCTDCCorrected(10,i);
       if((TMath::Abs(tdcCcorr)<fZDCCutZNCTimeCorrMax) && (TMath::Abs(tdcCcorr)>fZDCCutZNCTimeCorrMin)) zncbadhit = kTRUE;
     }
@@ -1595,7 +1596,7 @@ Bool_t AliTriggerAnalysis::ZDCTimeBGTrigger(const AliESDEvent *aEsd, AliceSide s
   for(Int_t j = 0; j < 4; ++j) {
     if (zdcData->GetZDCTDCData(12,j) != 0) {
       zna = kTRUE;
-      tdcA = 0.025*(zdcData->GetZDCTDCData(12,j)-zdcData->GetZDCTDCData(14,j));
+      //      tdcA = 0.025*(zdcData->GetZDCTDCData(12,j)-zdcData->GetZDCTDCData(14,j));
       tdcAcorr = zdcData->GetZDCTDCCorrected(12,j);
       if((TMath::Abs(tdcAcorr)<fZDCCutZNATimeCorrMax) && (TMath::Abs(tdcAcorr)>fZDCCutZNATimeCorrMin)) znabadhit = kTRUE;
     }

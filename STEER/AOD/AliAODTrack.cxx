@@ -635,6 +635,17 @@ Bool_t AliAODTrack::MatchTriggerDigits() const
 }
 
 //______________________________________________________________________________
+Int_t AliAODTrack::GetMuonTrigDevSign() const
+{
+  /// Return the sign of the  MTR deviation
+
+  Int_t signInfo = (Int_t)((fMUONtrigHitsMapTrg>>30)&0x3);
+  // Dummy value for old AODs which do not have the info
+  if ( signInfo == 0 ) return -999;
+  return signInfo - 2;
+}
+
+//______________________________________________________________________________
 Bool_t AliAODTrack::PropagateToDCA(const AliVVertex *vtx, 
     Double_t b, Double_t maxd, Double_t dz[2], Double_t covar[3])
 {
@@ -1138,4 +1149,40 @@ Double_t AliAODTrack::GetMassForTracking() const
 //_______________________________________________________
 const AliTOFHeader* AliAODTrack::GetTOFHeader() const {
   return fAODEvent->GetTOFHeader();
+}
+//_______________________________________________________
+Int_t AliAODTrack::GetNcls(Int_t idet) const
+{
+  // Get number of clusters by subdetector index
+  //
+  Int_t ncls = 0;
+  switch(idet){
+  case 0:
+    ncls = GetITSNcls();
+    break;
+  case 1:
+    ncls = (Int_t)GetTPCNcls();
+    break;
+  case 2:
+    ncls = (Int_t)GetTRDncls();
+    break;
+  case 3:
+    break;
+    /*if (fTOFindex != -1)
+      ncls = 1;*/
+    break;
+  case 4: //PHOS
+    break;
+  case 5: //HMPID
+    break;
+    if ((GetHMPIDcluIdx() >= 0) && (GetHMPIDcluIdx() < 7000000)) {
+      if ((GetHMPIDcluIdx()%1000000 != 9999) && (GetHMPIDcluIdx()%1000000 != 99999)) {
+	ncls = 1;
+	}
+    }    
+    break;
+  default:
+    break;
+  }
+  return ncls;
 }

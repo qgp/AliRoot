@@ -410,7 +410,7 @@ Bool_t  AliESD::RemoveTrack(Int_t rm) {
   if (rm==last) return kTRUE;
 
   AliESDtrack *t=GetTrack(last);
-  if (!t) {AliFatal(Form("NULL pointer for ESD track %d",last));}
+  if (!t) {AliFatal(Form("NULL pointer for ESD track %d",last)); return kFALSE;}
   t->SetID(rm);
   new (a[rm]) AliESDtrack(*t);
   delete a.RemoveAt(last);
@@ -530,7 +530,7 @@ Bool_t AliESD::Clean(Float_t *cleanPars) {
   Int_t nTracks=GetNumberOfTracks();
   for (Int_t i=nTracks-1; i>=0; i--) {
     AliESDtrack *track=GetTrack(i);
-    if (!track) {AliFatal(Form("NULL pointer for ESD track %d",i));}
+    if (!track) {AliFatal(Form("NULL pointer for ESD track %d",i)); return kFALSE;}
     Float_t xy,z; track->GetImpactParameters(xy,z);
     if ((TMath::Abs(xy) > dmax) || (vtxOK && (TMath::Abs(z) > zmax))) {
       if (RemoveTrack(i)) rc=kTRUE;
@@ -565,9 +565,9 @@ void AliESD::Print(Option_t *) const
 	 GetTriggerMask(),
 	 GetMagneticField() );
     printf("Vertex: (%.4f +- %.4f, %.4f +- %.4f, %.4f +- %.4f) cm\n",
-	   fPrimaryVertex.GetXv(), fPrimaryVertex.GetXRes(),
-	   fPrimaryVertex.GetYv(), fPrimaryVertex.GetYRes(),
-	   fPrimaryVertex.GetZv(), fPrimaryVertex.GetZRes());
+	   fPrimaryVertex.GetX(), fPrimaryVertex.GetXRes(),
+	   fPrimaryVertex.GetY(), fPrimaryVertex.GetYRes(),
+	   fPrimaryVertex.GetZ(), fPrimaryVertex.GetZRes());
     printf("Mean vertex in RUN: X=%.4f Y=%.4f cm\n",
 	   GetDiamondX(),GetDiamondY());
     printf("SPD Multiplicity. Number of tracklets %d \n",
@@ -629,8 +629,8 @@ void AliESD::SetDiamond(const AliESDVertex *vertex)
   //
   // Set the interaction diamond
   //  
-    fDiamondXY[0]=vertex->GetXv();
-    fDiamondXY[1]=vertex->GetYv();
+    fDiamondXY[0]=vertex->GetX();
+    fDiamondXY[1]=vertex->GetY();
     Double_t cov[6];
     vertex->GetCovMatrix(cov);
     fDiamondCovXY[0]=cov[0];

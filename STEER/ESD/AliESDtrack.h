@@ -162,11 +162,10 @@ public:
   Bool_t GetOuterExternalParameters
         (Double_t &alpha, Double_t &x, Double_t p[5]) const;
   Bool_t GetOuterExternalCovariance(Double_t cov[15]) const;
-
+  
   Bool_t GetOuterHmpExternalParameters
         (Double_t &alpha, Double_t &x, Double_t p[5]) const;
-  Bool_t GetOuterHmpExternalCovariance(Double_t cov[15]) const;
-
+  Bool_t GetOuterHmpExternalCovariance(Double_t cov[15]) const; 
   
   Int_t GetNcls(Int_t idet) const;
   Int_t GetClusters(Int_t idet, Int_t *idx) const;
@@ -324,19 +323,19 @@ public:
   void    SortTOFcluster(); // RS? Not to be used?
   void    ReMapTOFcluster(Int_t ncl,Int_t *mapping);  // RS? Not to be used?
 
-  void    SetTOFsignal(Double_t tof) {fTOFsignal=tof;}
+  void    SetTOFsignal(Double_t tof);
   Double_t GetTOFsignal() const;
-  void    SetTOFsignalToT(Double_t ToT) {fTOFsignalToT=ToT;}
+  void    SetTOFsignalToT(Double_t ToT);
   Double_t GetTOFsignalToT() const;
-  void    SetTOFsignalRaw(Double_t tof) {fTOFsignalRaw=tof;}
+  void    SetTOFsignalRaw(Double_t tof);
   Double_t GetTOFsignalRaw() const;
-  void    SetTOFsignalDz(Double_t dz) {fTOFsignalDz=dz;}
+  void    SetTOFsignalDz(Double_t dz);
   Double_t GetTOFsignalDz() const;
-  void    SetTOFsignalDx(Double_t dx) {fTOFsignalDx=dx;}
+  void    SetTOFsignalDx(Double_t dx);
   Double_t GetTOFsignalDx() const;
-  void     SetTOFDeltaBC(Short_t deltaBC) {fTOFdeltaBC=deltaBC;};
+  void     SetTOFDeltaBC(Short_t deltaBC);
   Short_t  GetTOFDeltaBC() const;
-  void     SetTOFL0L1(Short_t l0l1) {fTOFl0l1=l0l1;};
+  void     SetTOFL0L1(Short_t l0l1);
   Short_t  GetTOFL0L1() const;
   Double_t GetTOFchi2() const {return fTOFchi2;};
   void    SetTOFpid(const Double_t *p);
@@ -348,7 +347,7 @@ public:
   Int_t   GetTOFCalChannel() const;
   Int_t   GetTOFcluster() const;
   void    SetTOFcluster(Int_t index) {fTOFindex=index;}
-  void    SetTOFCalChannel(Int_t index) {fTOFCalChannel=index;}
+  void    SetTOFCalChannel(Int_t index);
   Int_t   GetTOFclusterN() const;
   Bool_t  IsTOFHitAlreadyMatched() const;
   void    SetTOFsignalTunedOnData(Double_t signal){fTOFsignalTuned=signal;}

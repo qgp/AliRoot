@@ -25,6 +25,7 @@
 #include "TRefArray.h"
 #include "AliTOFHeader.h"
 #include "AliVTrdTrack.h"
+#include "AliVMultiplicity.h"
 class AliCentrality;
 class AliEventplane;
 class AliVVZERO;
@@ -177,6 +178,10 @@ public:
 				 const{
     return kFALSE;
   }
+
+  // Tracklets
+  virtual AliVMultiplicity* GetMultiplicity() const {return 0;}
+  virtual Int_t             GetNumberOfITSClusters(Int_t) const {return 0;}
 
   virtual Bool_t IsPileupFromSPDInMultBins() const {
     return kFALSE;    

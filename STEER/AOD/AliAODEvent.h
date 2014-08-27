@@ -130,7 +130,7 @@ class AliAODEvent : public AliVEvent {
   Double_t  GetZDCP2Energy()        const { return fHeader ? fHeader->GetZDCP2Energy() : -999.; }
   Double_t  GetZDCEMEnergy(Int_t i) const { return fHeader ? fHeader->GetZDCEMEnergy(i) : -999.; }
   Int_t     GetNumberOfESDTracks()  const { return fHeader ? fHeader->GetNumberOfESDTracks() : 0; }
-  
+  Int_t     GetNumberOfITSClusters(Int_t lr) const {return fHeader ? (int)fHeader->GetNumberOfITSClusters(lr) : 0;}
   void SetTOFHeader(const AliTOFHeader * tofEventTime);
   const AliTOFHeader *GetTOFHeader() const {return fTOFHeader;}
   Float_t GetEventTimeSpread() const {if (fTOFHeader) return fTOFHeader->GetT0spread(); else return 0.;}
@@ -141,8 +141,7 @@ class AliAODEvent : public AliVEvent {
   // -- Tracks
   TClonesArray *GetTracks()              const { return fTracks; }
   void          ConnectTracks();
-  Int_t         GetNTracks()             const { return fTracks? fTracks->GetEntriesFast() : 0; }
-  Int_t         GetNumberOfTracks()      const { return GetNTracks(); }
+  Int_t         GetNumberOfTracks()      const { return fTracks? fTracks->GetEntriesFast() : 0; }
   AliAODTrack  *GetTrack(Int_t nTrack)   const { return fTracks ? (AliAODTrack*)fTracks->UncheckedAt(nTrack):0; }
   Int_t         AddTrack(const AliAODTrack* trk);
   Int_t         GetMuonTracks(TRefArray *muonTracks) const;
@@ -160,6 +159,8 @@ class AliAODEvent : public AliVEvent {
   // primary vertex
   virtual AliAODVertex *GetPrimaryVertex() const { return GetVertex(0); }
   virtual AliAODVertex *GetPrimaryVertexSPD() const;
+  virtual AliAODVertex *GetVertex() const { return GetPrimaryVertexSPD(); }
+  virtual AliAODVertex *GetPrimaryVertexTPC() const;
 
   // -- Pileup vertices 
   Int_t         GetNumberOfPileupVerticesTracks()   const;
@@ -233,8 +234,8 @@ class AliAODEvent : public AliVEvent {
     {new((*fJets)[fJets->GetEntriesFast()]) AliAODJet(*vtx); return fJets->GetEntriesFast()-1;}
 
   // -- Tracklets
-  AliAODTracklets *GetTracklets() const { return fTracklets; }
-
+  AliAODTracklets *GetTracklets() const { return fTracklets; }  
+  AliAODTracklets *GetMultiplicity() const {return GetTracklets();}
   // -- Calorimeter Cells
   AliAODCaloCells *GetEMCALCells() const { return fEmcalCells; }
   AliAODCaloCells *GetPHOSCells() const { return fPhosCells; }

@@ -490,7 +490,9 @@ void AliAODEvent::ResetStd(Int_t trkArrSize,
   }
   if (fTrdTracks) {
     // no pointers in there, so cheaper Clear suffices
-    fTrdTracks->Clear("C");
+//    fTrdTracks->Clear("C");
+    // Not quite: AliAODTrdTrack has a clones array of tracklets inside
+    fTrdTracks->Delete();
     if (nTrdTracks > fTrdTracks->GetSize())
       fTrdTracks->Expand(nTrdTracks);
   }
@@ -616,7 +618,7 @@ Int_t AliAODEvent::GetMuonTracks(TRefArray *muonTracks) const
   muonTracks->Clear();
 
   AliAODTrack *track = 0;
-  for (Int_t iTrack = 0; iTrack < GetNTracks(); iTrack++) {
+  for (Int_t iTrack = 0; iTrack < GetNumberOfTracks(); iTrack++) {
     track = GetTrack(iTrack);
     if (track->IsMuonTrack()) {
       muonTracks->Add(track);
@@ -632,7 +634,7 @@ Int_t AliAODEvent::GetNumberOfMuonTracks() const
 {
   // get number of muon tracks
   Int_t nMuonTracks=0;
-  for (Int_t iTrack = 0; iTrack < GetNTracks(); iTrack++) {
+  for (Int_t iTrack = 0; iTrack < GetNumberOfTracks(); iTrack++) {
     if ((GetTrack(iTrack))->IsMuonTrack()) {
        nMuonTracks++;
     }
@@ -649,7 +651,7 @@ Int_t AliAODEvent::GetMuonGlobalTracks(TRefArray *muonGlobalTracks) const       
   muonGlobalTracks->Clear();
 
   AliAODTrack *track = 0;
-  for (Int_t iTrack = 0; iTrack < GetNTracks(); iTrack++) {
+  for (Int_t iTrack = 0; iTrack < GetNumberOfTracks(); iTrack++) {
     track = GetTrack(iTrack);
     if (track->IsMuonGlobalTrack()) {
       muonGlobalTracks->Add(track);
@@ -665,7 +667,7 @@ Int_t AliAODEvent::GetNumberOfMuonGlobalTracks() const                          
 {
   // get number of muon global tracks
   Int_t nMuonGlobalTracks=0;
-  for (Int_t iTrack = 0; iTrack < GetNTracks(); iTrack++) {
+  for (Int_t iTrack = 0; iTrack < GetNumberOfTracks(); iTrack++) {
     if ((GetTrack(iTrack))->IsMuonGlobalTrack()) {
        nMuonGlobalTracks++;
     }
@@ -819,6 +821,16 @@ AliAODVertex* AliAODEvent::GetPrimaryVertexSPD() const{
   for(Int_t iVert=0; iVert<nVertices; iVert++){
     AliAODVertex *v=GetVertex(iVert);
     if(v->GetType()==AliAODVertex::kMainSPD) return v;
+  }
+  return 0;
+}
+//______________________________________________________________________________
+AliAODVertex* AliAODEvent::GetPrimaryVertexTPC() const{
+  // Get SPD primary vertex
+  Int_t nVertices=GetNumberOfVertices();
+  for(Int_t iVert=0; iVert<nVertices; iVert++){
+    AliAODVertex *v=GetVertex(iVert);
+    if(v->GetType()==AliAODVertex::kMainTPC) return v;
   }
   return 0;
 }
