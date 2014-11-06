@@ -68,7 +68,7 @@ private:
   TTree          *fHPTTree;      // tree with high mometa tracks - full calib info
   //
   AliStack       *fStack;        // pointer to kinematic tree        
-  AliVEvent    *fVevent;              //! current ED to proccess - NOT OWNER
+  AliVEvent      *fVevent;              //! current ED to proccess - NOT OWNER
   TDatabasePDG   *fPdg;              //! particle database
   TObjArray      *fParticles;         // array of selected MC particles
   TObjArray      *fV0s;               // array of V0s

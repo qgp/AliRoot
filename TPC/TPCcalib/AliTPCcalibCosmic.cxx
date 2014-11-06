@@ -1136,8 +1136,8 @@ void AliTPCcalibCosmic::FindCosmicPairs(const AliVEvent *event) {
 	  "vTPC.="<<vertexTPC<<         //primary vertex -TPC
 	  "t0.="<<track0<<              //track0
 	  "t1.="<<track1<<              //track1
-      "ft0.="<<friendTrack0<<       //track0
-      "ft1.="<<friendTrack1<<       //track1
+	  "ft0.="<<friendTrack0<<       //track0
+	  "ft1.="<<friendTrack1<<       //track1
  	  "s0.="<<seed0<<               //track0
  	  "s1.="<<seed1<<               //track1
 	  "\n";      

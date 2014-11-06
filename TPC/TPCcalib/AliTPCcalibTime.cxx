@@ -387,6 +387,8 @@ void AliTPCcalibTime::Process(AliVEvent *event){
   if (Vfriend->TestSkipBit()) return;
   
   ResetCurrent();
+
+  //AliESDEvent *ev=(AliESDEvent*)event;
   //if(IsLaser  (event)) 
   ProcessLaser (event);
   //if(IsCosmics(event)) 
@@ -396,7 +398,6 @@ void AliTPCcalibTime::Process(AliVEvent *event){
 
   stopWatch.Stop();
   AliSysInfo::AddStamp("AliTPCcalibTime::Process()",event->GetNumberOfTracks(),stopWatch.RealTime()*1000,stopWatch.CpuTime()*1000);
-
 }
 
 void AliTPCcalibTime::ProcessLaser(AliVEvent *event){
@@ -537,7 +538,7 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
     return;
   }  
   if (event->GetTimeStamp() == 0 ) {
-    Printf("no time stamp!");
+    //Printf("no time stamp!");
     return;
   }
   
@@ -555,7 +556,7 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
   
   if (GetDebugLevel()>20) printf("Hallo world: Im here\n");
   AliVfriendEvent *vFriend=event->FindFriend();
-  
+
   TObjArray  tpcSeeds(ntracks);
   Double_t vtxx[3]={0,0,0};
   Double_t svtxx[3]={0.000001,0.000001,100.};
@@ -569,13 +570,16 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
     clusterSideA[i]=0;
     clusterSideC[i]=0;
     AliVTrack *track = event->GetVTrack(i);
-    
+    if(!track) continue;
+
     AliExternalTrackParam trckIn;
     if ( (track->GetTrackParamIp(trckIn)) <0) continue;
+    AliExternalTrackParam * trackIn = &trckIn;
 
     AliExternalTrackParam trckOut;
     if ( (track->GetTrackParamOp(trckOut)) <0) continue;
-    
+    AliExternalTrackParam * trackOut = &trckOut;
+
     AliVfriendTrack *friendTrack = const_cast<AliVfriendTrack*>(vFriend->GetTrack(i));
     if (!friendTrack) continue;
     if (friendTrack) ProcessSame(track,friendTrack,event);
@@ -621,6 +625,7 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
       if (!track1) continue;
       AliExternalTrackParam trck1Out;
       if ( (track1->GetTrackParamOp(trck1Out)) < 0) continue;
+      AliExternalTrackParam * track1Out = &trck1Out;
       if (track0->GetTPCNcls()+ track1->GetTPCNcls()< kMinClusters) continue;
       Int_t nAC = TMath::Max( TMath::Min(clusterSideA[i], clusterSideC[j]), 
 			      TMath::Min(clusterSideC[i], clusterSideA[j]));
@@ -1346,7 +1351,6 @@ Bool_t AliTPCcalibTime::IsSame(const AliVTrack *const tr0, const AliVTrack *cons
 
   AliExternalTrackParam trck1In;
   tr1->GetTrackParamIp(trck1In);
-
   if (trck0Out.GetZ()*trck0In.GetZ()>0) result&=kFALSE;
   if (trck1Out.GetZ()*trck1In.GetZ()>0) result&=kFALSE;
 
@@ -1589,7 +1593,6 @@ void  AliTPCcalibTime::ProcessAlignITS(AliVTrack *const track, const AliVfriendT
   if (trackIn->GetX()>90)   return;
   //
   AliExternalTrackParam &pTPC=(AliExternalTrackParam &)(*trackIn);
-
   //  
   AliExternalTrackParam pITS;   // ITS standalone if possible
   AliExternalTrackParam pITS2;  //TPC-ITS track
