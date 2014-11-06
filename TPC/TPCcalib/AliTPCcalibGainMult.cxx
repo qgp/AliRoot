@@ -44,6 +44,10 @@ Send comments etc. to: A.Kalweit@gsi.de, marian.ivanov@cern.ch
 #include "AliTPCClusterParam.h"
 #include "AliTPCseed.h"
 #include "AliESDVertex.h"
+//#include "AliESDEvent.h"
+//#include "AliESDfriend.h"
+#include "AliESDfriendTrack.h"
+#include "AliESDInputHandler.h"
 #include "AliAnalysisManager.h"
 #include "AliTPCParam.h"
 
@@ -317,17 +321,22 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
   //const Double_t kMaxDCAR=10; // maximal DCA R of the track
   //const Double_t kMaxDCAZ=5;  // maximal DCA Z of the track
   //  const Double_t kMIPPt=0.525; // MIP pt
+
+    //Printf("AliTPCcalibGainMult::Process()...");
+
+    //AliESDEvent *event=(AliESDEvent*)event;
   
   if (!event) {
-    //Printf("ERROR AliTPCcalibGainMult::Process(): event not available");
+    Printf("ERROR AliTPCcalibGainMult::Process(): event not available");
     return;
   }  
   fCurrentEvent=event;
   fMagF = event->GetMagneticField();
-  Int_t ntracks=event->GetNumberOfTracks();
+  Int_t ntracks=event->GetNumberOfTracks();  
+  //AliESDfriend *esdFriend=static_cast<AliESDfriend*>(event->FindFriend());
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
-    //Printf("ERROR: eventFriend not available");
+    Printf("ERROR: esdFriend not available");
     delete fPIDMatrix;
     return;
   }
@@ -366,13 +375,16 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
   //
   for (Int_t i=0;i<ntracks;++i) {
     //
+    //AliESDtrack *track = (AliESDtrack*)(event->GetTrack(i));
     AliVTrack *track = event->GetVTrack(i);
     if (!track) continue;
     //   
 
     AliExternalTrackParam trckIn;
+    track->GetTrackParamIp(trckIn);
     if ( (track->GetTrackParamIp(trckIn)) < 0) continue;
     AliExternalTrackParam * trackIn = &trckIn;
+    if (!trackIn) continue;
   
     // calculate necessary track parameters
     Double_t meanP = trackIn->GetP();
@@ -393,6 +405,9 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
     if (TMath::Abs(trackIn->Eta()) > fCutEtaWindow) continue;
 
     UInt_t status = track->GetStatus();
+    //if ((status&AliESDtrack::kTPCrefit)==0) continue;
+    //if ((status&AliESDtrack::kITSrefit)==0 && fCutRequireITSrefit) continue; // ITS cluster
+
     if ((status&AliVTrack::kTPCrefit)==0) continue;
     if ((status&AliVTrack::kITSrefit)==0 && fCutRequireITSrefit) continue; // ITS cluster
 
@@ -410,7 +425,8 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
     if (primVtxDCA < 3 && track->GetNcls(0) > 3 && track->GetKinkIndex(0) == 0 && ncls > 100) fHistQA->Fill(meanP, track->GetTPCsignal(), 5);
 
     // Get seeds
-    AliVfriendTrack *friendTrack = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(i));
+    //AliESDfriendTrack *friendTrack = friendEvent->GetTrack(i);
+    const AliVfriendTrack *friendTrack = friendEvent->GetTrack(i);
     if (!friendTrack) continue;
     AliTPCseed *seed = 0;
     AliTPCseed tpcSeed;
@@ -420,9 +436,10 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
     if (seed) { // seed the container with track parameters and the clusters
       // 
       AliExternalTrackParam trckOut;
+      friendTrack->GetTrackParamTPCOut(trckOut);
       if ( (friendTrack->GetTrackParamTPCOut(trckOut)) <0) continue;
       AliExternalTrackParam * trackOut = &trckOut;  // tack at the outer radius of TPC
-
+      if (!trackOut) continue;
       Double_t meanDrift = 250 - 0.5*TMath::Abs(trackIn->GetZ() + trackOut->GetZ());
       Double_t dipAngleTgl  = trackIn->GetTgl();
       //
@@ -870,15 +887,22 @@ void AliTPCcalibGainMult::DumpTrack(AliVTrack * track, AliVfriendTrack *ftrack, 
   Double_t normdEdx= track->GetTPCsignal()/(medianMIP0); // TPC signal normalized to the MIP
   //
   AliExternalTrackParam trckIn;
+  track->GetTrackParamIp(trckIn);
   if ( (track->GetTrackParamIp(trckIn)) <0) return;
   AliExternalTrackParam * trackIn  = &trckIn;
+  if (!trackIn) return;
 
   AliExternalTrackParam trckOut;
+  track->GetTrackParamOp(trckOut);
   if ( (track->GetTrackParamOp(trckOut)) <0) return;
   AliExternalTrackParam * trackOut  = &trckOut;
+  if (!trackOut) return;
 
   AliExternalTrackParam trckTPCOut;
+  ftrack->GetTrackParamTPCOut(trckTPCOut);
   if ( (ftrack->GetTrackParamTPCOut(trckTPCOut)) <0) return;
+  AliExternalTrackParam * tpcOut  = &trckTPCOut;
+  if (!tpcOut) return;
 
   if (trckIn.GetZ()*trckOut.GetZ()<0) return;  // remove crossing tracks
   //
@@ -1306,7 +1330,8 @@ void AliTPCcalibGainMult::ProcessV0s(AliVEvent *event){
   // Select the K0s and gamma  - and sign daughter products 
   //  
   TTreeSRedirector * pcstream =  GetDebugStreamer();
-  AliKFParticle::SetField(event->GetMagneticField());
+  AliKFParticle::SetField(event->GetMagneticField()); 
+  //AliESDfriend *esdFriend=static_cast<AliESDfriend*>(event->FindFriend());
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
     //Printf("ERROR: friendEvent not available");
@@ -1324,16 +1349,24 @@ void AliTPCcalibGainMult::ProcessV0s(AliVEvent *event){
   //
   Int_t nv0 = event->GetNumberOfV0s(); 
 
+
+  //AliESDVertex *vertex= (AliESDVertex *)event->GetPrimaryVertex();
   AliESDVertex vtx;
   event->GetPrimaryVertex(vtx);
   AliESDVertex *vertex=&vtx;
+
   AliKFVertex kfvertex=*vertex;
+
+
   //
   for (Int_t iv0=0;iv0<nv0;iv0++){
+    //AliESDv0 *v0 = event->GetV0(iv0);
     AliESDv0 v0dummy;
+    event->GetV0(v0dummy, iv0);
     if( (event->GetV0(v0dummy, iv0)) < 0) continue;
     AliESDv0 *v0 = &v0dummy;
 
+    if (!v0) continue;
     if (v0->GetOnFlyStatus()<0.5) continue;
     if (v0->GetPindex()<0) continue;
     if (v0->GetNindex()<0) continue;
@@ -1385,6 +1418,8 @@ void AliTPCcalibGainMult::ProcessV0s(AliVEvent *event){
     //
     Int_t pindex = (v0->GetParamP()->GetSign()>0) ? v0->GetPindex() : v0->GetNindex();
     Int_t nindex = (v0->GetParamP()->GetSign()>0) ? v0->GetNindex() : v0->GetPindex();
+    //AliESDtrack * trackP = (AliESDtrack*)event->GetTrack(pindex);
+    //AliESDtrack * trackN = (AliESDtrack*)event->GetTrack(nindex);
     AliVTrack * trackP = event->GetVTrack(pindex);
     AliVTrack * trackN = event->GetVTrack(nindex);
     if (!trackN) continue;
@@ -1402,8 +1437,10 @@ void AliTPCcalibGainMult::ProcessV0s(AliVEvent *event){
     if (TMath::Abs(eta)>1) continue;
     //
     //
-    AliVfriendTrack *friendTrackP = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(pindex));
-    AliVfriendTrack *friendTrackN = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(nindex));
+    //AliESDfriendTrack *friendTrackP = friendEvent->GetTrack(pindex);
+    //AliESDfriendTrack *friendTrackN = friendEvent->GetTrack(nindex);
+    const AliVfriendTrack *friendTrackP = friendEvent->GetTrack(pindex);
+    const AliVfriendTrack *friendTrackN = friendEvent->GetTrack(nindex);
     if (!friendTrackP) continue;
     if (!friendTrackN) continue;
     //AliTPCseed *seedP = 0;
@@ -1456,6 +1493,7 @@ void AliTPCcalibGainMult::ProcessCosmic(const AliVEvent *event) {
   event->GetPrimaryVertexTPC(vtxTPC);
   AliESDVertex *vertexTPC=&vtxTPC;
 
+  //AliESDfriend *esdFriend=static_cast<AliESDfriend*>(event->FindListObject("AliESDfriend"));
   AliVfriendEvent *friendEvent=event->FindFriend();
   const Double_t kMinPt=4;
   const Double_t kMinPtMax=0.8;
@@ -1544,9 +1582,9 @@ void AliTPCcalibGainMult::ProcessCosmic(const AliVEvent *event) {
 	  "\n";      
       }
       //
-      AliVfriendTrack *friendTrack0 = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(itrack0));
+      const AliVfriendTrack *friendTrack0 = friendEvent->GetTrack(itrack0);
       if (!friendTrack0) continue;
-      AliVfriendTrack *friendTrack1 = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(itrack1));
+      const AliVfriendTrack *friendTrack1 = friendEvent->GetTrack(itrack1);
       if (!friendTrack1) continue;
       AliTPCseed *seed0 = 0;   
       AliTPCseed *seed1 = 0;
@@ -1571,12 +1609,20 @@ void AliTPCcalibGainMult::ProcessCosmic(const AliVEvent *event) {
 	  "vTPC.="<<vertexTPC<<         //primary vertex -TPC
 	  "t0.="<<track0<<              //track0
 	  "t1.="<<track1<<              //track1
-      "ft0.="<<friendTrack0<<       //track0
-      "ft1.="<<friendTrack1<<       //track1
+      //"ft0.="<<friendTrack0<<       //track0
+      //"ft1.="<<friendTrack1<<       //track1
  	  "s0.="<<seed0<<               //track0
  	  "s1.="<<seed1<<               //track1
 	  "\n";      
       }
+
+      if ((pcstream)&&((AliESDfriendTrack*)friendTrack0)){
+          (*pcstream)<<"ft0.="<<((AliESDfriendTrack*)friendTrack0)<<"\n";
+      }
+      if ((pcstream)&&((AliESDfriendTrack*)friendTrack1)){
+          (*pcstream)<<"ft1.="<<((AliESDfriendTrack*)friendTrack1)<<"\n";
+      }
+
 
       if (!seed0) continue;
       if (!seed1) continue;
@@ -1660,13 +1706,13 @@ void AliTPCcalibGainMult::ProcessKinks(const AliVEvent *event){
   const Double_t kMaxR=230;
   const Int_t    kMinNcl=110;
   //
-  Int_t nkinks = event->GetNumberOfKinks();
+  Int_t nkinks = event->GetNumberOfKinks(); 
+  //AliESDVertex *vertex= (AliESDVertex *)event->GetPrimaryVertex();
+  AliESDVertex vtx;
+  event->GetPrimaryVertex(vtx);
+  AliESDVertex *vertex=&vtx;
 
-  //AliESDVertex vtx;
-  //event->GetPrimaryVertex(vtx);
-  //AliESDVertex *vertex=&vtx;
-  //AliKFVertex kfvertex=*vertex;  //unused variable
-
+  AliKFVertex kfvertex=*vertex;
   TTreeSRedirector * pcstream =  GetDebugStreamer();
   //
   for (Int_t ikink=0;ikink<nkinks;ikink++){
@@ -1743,8 +1789,8 @@ void AliTPCcalibGainMult::ProcessKinks(const AliVEvent *event){
     if (TMath::Abs(eta)>1) continue;
     //
     //
-    AliVfriendTrack *friendTrackM = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(kink->GetIndex(0)));
-    AliVfriendTrack *friendTrackD = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(kink->GetIndex(1)));
+    const AliVfriendTrack *friendTrackM = friendEvent->GetTrack(kink->GetIndex(0));
+    const AliVfriendTrack *friendTrackD = friendEvent->GetTrack(kink->GetIndex(1));
     if (!friendTrackM) continue;
     if (!friendTrackD) continue;
     //AliTPCseed *seedM = 0;
@@ -1767,7 +1813,7 @@ void AliTPCcalibGainMult::DumpHPT(const AliVEvent *event){
   AliKFParticle::SetField(event->GetMagneticField()); 
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
-    //Printf("ERROR: eventFriend not available");
+    //Printf("ERROR: esdFriend not available");
    return;
   }
   if (friendEvent->TestSkipBit()) return;
@@ -1783,19 +1829,23 @@ void AliTPCcalibGainMult::DumpHPT(const AliVEvent *event){
     //   
 
     AliExternalTrackParam trckIn;
+    track->GetTrackParamIp(trckIn);
     if ((track->GetTrackParamIp(trckIn)) <0) continue;
     AliExternalTrackParam * trackIn = &trckIn;
-
+    if (!trackIn) continue;
     if ((status&AliVTrack::kTPCrefit)==0) continue;
     if ((status&AliVTrack::kITSrefit)==0) continue;
-    AliVfriendTrack *friendTrack = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(i));
+    const AliVfriendTrack *friendTrack = friendEvent->GetTrack(i);
     if (!friendTrack) continue;
-
     AliExternalTrackParam prmitsOut;
+    friendTrack->GetTrackParamITSOut(prmitsOut);
     if ((friendTrack->GetTrackParamITSOut(prmitsOut)) < 0) continue;
     AliExternalTrackParam * itsOut = &prmitsOut;
+    if (!itsOut) continue;
 
+    //AliExternalTrackParam * itsOut2 = (AliExternalTrackParam *)(friendTrack->GetITSOut()->Clone());
     AliExternalTrackParam * itsOut2 = (AliExternalTrackParam *)(itsOut->Clone());
+
     AliExternalTrackParam * tpcIn2 = (AliExternalTrackParam *)(trackIn->Clone());
     if (!itsOut2->Rotate(trackIn->GetAlpha())) continue;
     //Double_t xmiddle=0.5*(itsOut2->GetX()+tpcIn2->GetX());
@@ -1804,9 +1854,10 @@ void AliTPCcalibGainMult::DumpHPT(const AliVEvent *event){
     if (!tpcIn2->PropagateTo(xmiddle,event->GetMagneticField())) continue;
     //
     AliExternalTrackParam prmtpcInner;
+    track->GetTrackParamTPCInner(prmtpcInner);
     if ((track->GetTrackParamTPCInner(prmtpcInner)) < 0) continue;
     AliExternalTrackParam * tpcInner = &prmtpcInner;
-
+    if (!tpcInner) continue;
     tpcInner->Rotate(track->GetAlpha());
     tpcInner->PropagateTo(track->GetX(),event->GetMagneticField());
     track->ResetTrackParamTPCInner(&prmtpcInner);
@@ -1815,9 +1866,11 @@ void AliTPCcalibGainMult::DumpHPT(const AliVEvent *event){
     // tpc constrained
     //
     AliExternalTrackParam prmtpcInnerC;
+    track->GetTrackParamTPCInner(prmtpcInnerC);
     if ((track->GetTrackParamTPCInner(prmtpcInnerC)) < 0) continue;
     AliExternalTrackParam * tpcInnerC = &prmtpcInnerC;
-
+    //AliExternalTrackParam * tpcInnerC = (AliExternalTrackParam *)(track->GetTPCInnerParam()->Clone());
+    if (!tpcInnerC) continue;
     tpcInnerC->Rotate(track->GetAlpha());
     tpcInnerC->PropagateTo(track->GetX(),event->GetMagneticField());
 
@@ -1825,6 +1878,7 @@ void AliTPCcalibGainMult::DumpHPT(const AliVEvent *event){
     AliESDVertex dummyvtx;
     event->GetPrimaryVertex(dummyvtx);
     AliESDVertex *vtx=&dummyvtx;
+
   
     if (!tpcInnerC->PropagateToDCA(vtx, event->GetMagneticField(), 3, dz, cov)) continue;
     Double_t covar[6]; vtx->GetCovMatrix(covar);
@@ -1875,7 +1929,7 @@ void AliTPCcalibGainMult::ProcessTOF(const AliVEvent *event){
   AliKFParticle::SetField(event->GetMagneticField()); 
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
-    //Printf("ERROR: eventFriend not available");
+    //Printf("ERROR: esdFriend not available");
    return;
   }
   //if (esdFriend->TestSkipBit()) return;
@@ -1897,9 +1951,7 @@ void AliTPCcalibGainMult::ProcessTOF(const AliVEvent *event){
       AliVTrack *track = event->GetVTrack(i);
       if (!track) continue;
       if (!track->IsOn(AliVTrack::kTIME)) continue;
-      AliExternalTrackParam trkprm;
-      track->GetTrackParam(trkprm);
-      if (TMath::Abs(trkprm.GetZ())>kMaxDCAZ) continue;         // remove overlaped events
+      if (TMath::Abs(track->GetZ())>kMaxDCAZ) continue;         // remove overlaped events
       if (TMath::Abs(track->GetTOFsignalDz())>kMaxD) continue;
       Double_t times[1000];
       track->GetIntegratedTimes(times);
@@ -1932,9 +1984,7 @@ void AliTPCcalibGainMult::ProcessTOF(const AliVEvent *event){
     AliVTrack *track = event->GetVTrack(i);
     if (!track) continue;
     if (!track->IsOn(AliVTrack::kTIME)) continue;
-    AliExternalTrackParam trkprm;
-    track->GetTrackParam(trkprm);
-    if (TMath::Abs(trkprm.GetZ())>kMaxDCAZ) continue;          //remove overlapped events
+    if (TMath::Abs(track->GetZ())>kMaxDCAZ) continue;          //remove overlapped events
     if (TMath::Abs(track->GetTOFsignalDz())>kMaxD) continue;
     Double_t times[1000];
     track->GetIntegratedTimes(times);  
