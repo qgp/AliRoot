@@ -317,17 +317,22 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
   //const Double_t kMaxDCAR=10; // maximal DCA R of the track
   //const Double_t kMaxDCAZ=5;  // maximal DCA Z of the track
   //  const Double_t kMIPPt=0.525; // MIP pt
+
+    //Printf("AliTPCcalibGainMult::Process()...");
+
+    //AliESDEvent *event=(AliESDEvent*)event;
   
   if (!event) {
-    //Printf("ERROR AliTPCcalibGainMult::Process(): event not available");
+    Printf("ERROR AliTPCcalibGainMult::Process(): event not available");
     return;
   }  
   fCurrentEvent=event;
   fMagF = event->GetMagneticField();
-  Int_t ntracks=event->GetNumberOfTracks();
+  Int_t ntracks=event->GetNumberOfTracks();  
+  //AliESDfriend *esdFriend=static_cast<AliESDfriend*>(event->FindFriend());
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
-    //Printf("ERROR: eventFriend not available");
+    Printf("ERROR: esdFriend not available");
     delete fPIDMatrix;
     return;
   }
@@ -874,6 +879,7 @@ void AliTPCcalibGainMult::DumpTrack(AliVTrack * track, AliVfriendTrack *ftrack, 
 
   AliExternalTrackParam trckTPCOut;
   if ( (ftrack->GetTrackParamTPCOut(trckTPCOut)) <0) return;
+  AliExternalTrackParam * tpcOut  = &trckTPCOut;
 
   if (trckIn.GetZ()*trckOut.GetZ()<0) return;  // remove crossing tracks
   //
@@ -1323,6 +1329,8 @@ void AliTPCcalibGainMult::ProcessV0s(AliVEvent *event){
   event->GetPrimaryVertex(vtx);
   AliESDVertex *vertex=&vtx;
   AliKFVertex kfvertex=*vertex;
+
+
   //
   for (Int_t iv0=0;iv0<nv0;iv0++){
     AliESDv0 v0dummy;
@@ -1566,8 +1574,8 @@ void AliTPCcalibGainMult::ProcessCosmic(const AliVEvent *event) {
 	  "vTPC.="<<vertexTPC<<         //primary vertex -TPC
 	  "t0.="<<track0<<              //track0
 	  "t1.="<<track1<<              //track1
-      "ft0.="<<friendTrack0<<       //track0
-      "ft1.="<<friendTrack1<<       //track1
+	  "ft0.="<<friendTrack0<<       //track0
+	  "ft1.="<<friendTrack1<<       //track1
  	  "s0.="<<seed0<<               //track0
  	  "s1.="<<seed1<<               //track1
 	  "\n";      
