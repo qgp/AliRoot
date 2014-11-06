@@ -23,6 +23,7 @@ class TTree;
 class AliExternalTrackParam;
 class AliTPCPointCorrection;
 class AliTPCseed;
+class AliVEvent;
 
 class AliTPCcalibAlign:public AliTPCcalibBase {
 public:
