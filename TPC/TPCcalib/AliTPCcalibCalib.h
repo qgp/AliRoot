@@ -10,7 +10,9 @@
 
 #include "AliTPCcalibBase.h"
 class AliTPCseed;
+//class AliESDEvent;
 class AliVEvent;
+//class AliESDtrack;
 class AliVTrack;
 class TCollection;
 class TTreeSRedirector;
@@ -29,6 +31,7 @@ public:
   
   Bool_t  RefitTrack(AliVTrack * track, AliTPCseed *seed, Float_t magesd);
   Bool_t  RejectCluster(AliTPCclusterMI* cl, AliExternalTrackParam * param);
+  //void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliVTrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
 

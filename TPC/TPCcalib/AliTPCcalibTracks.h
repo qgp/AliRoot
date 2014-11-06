@@ -35,14 +35,16 @@ class AliTPCClusterParam;
 class TTreeSRedirector;
 class AliTPCROC;
 class AliTPCseed;
-class AliVTrack;
+//class AliESDtrack;
 class AliTPCclusterMI;
 class AliTPCcalibTracksCuts;
 class AliTPCCalPad;
 class TChain;
 class TTree;
 class TMutex;
+//class AliESDEvent;
 class AliVEvent;
+class AliVTrack;
 
 using namespace std;
 
@@ -56,7 +58,9 @@ public :
   virtual ~AliTPCcalibTracks();                // destructor
   
   virtual void            Process(AliTPCseed *track);  // to be called by the Selector
+  //void     Process(AliESDEvent *event) {AliTPCcalibBase::Process(event);}
   void     Process(AliVEvent *event) {AliTPCcalibBase::Process(event);}
+  //void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliVTrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   virtual Long64_t Merge(TCollection *li);
   void    AddHistos(AliTPCcalibTracks* calib);

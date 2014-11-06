@@ -132,9 +132,10 @@ using namespace std;
 //
 #include "AliMagF.h"
 #include "AliTracker.h"
-#include "AliVTrack.h"
-#include "AliVfriendEvent.h"
-#include "AliVfriendTrack.h"
+#include "AliESD.h"
+//#include "AliESDtrack.h"
+//#include "AliESDfriend.h"
+//#include "AliESDfriendTrack.h"
 #include "AliTPCseed.h"
 #include "AliTPCclusterMI.h"
 #include "AliTPCROC.h"
