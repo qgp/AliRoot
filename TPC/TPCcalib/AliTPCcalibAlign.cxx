@@ -118,6 +118,12 @@
 //#include "AliVEventHandler.h"
 //#include "AliAnalysisManager.h"
 
+#include "AliVEvent.h"
+#include "AliVfriendEvent.h"
+#include "AliVTrack.h"
+#include "AliVfriendTrack.h"
+#include "AliESDVertex.h"
+
 #include "AliTPCTracklet.h"
 #include "TH1D.h"
 #include "TH2F.h"
@@ -630,8 +636,6 @@ void  AliTPCcalibAlign::ExportTrackPoints(AliVEvent *event){
   // Export track points for alignment - calibration
   // export space points for pairs of tracks if possible
   //
-  //
-
   AliVfriendEvent *Vfriend=event->FindFriend();
   if (!Vfriend) return;
   Int_t ntracks=event->GetNumberOfTracks();
@@ -779,11 +783,11 @@ void  AliTPCcalibAlign::ExportTrackPoints(AliVEvent *event){
       Bool_t isVertex=(tpcVertex)? kTRUE:kFALSE;
       Double_t tof0=track0->GetTOFsignal();
       Double_t tof1=(track1P) ?  track1P->GetTOFsignal(): 0;
-      static AliExternalTrackParam dummy;
-      AliExternalTrackParam *p0In  = &dummy;
-      AliExternalTrackParam *p1In  = &dummy;
-      AliExternalTrackParam *p0Out = &dummy;
-      AliExternalTrackParam *p1Out = &dummy;
+      static AliExternalTrackParam param;
+      AliExternalTrackParam *p0In  = &param;
+      AliExternalTrackParam *p1In  = &param;
+      AliExternalTrackParam *p0Out = &param;
+      AliExternalTrackParam *p1Out = &param;
       AliESDVertex vdummy;
       AliESDVertex *pvertex= (tpcVertex)? (AliESDVertex *)tpcVertex: &vdummy;
       if (track0) {
@@ -2696,7 +2700,6 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
   Int_t detector=-1;
   //
   //
-
   AliExternalTrackParam trackIn;
   fCurrentTrack->GetTrackParamIp(trackIn);
   AliExternalTrackParam trackOut;

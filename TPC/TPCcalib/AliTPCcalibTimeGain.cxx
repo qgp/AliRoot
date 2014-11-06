@@ -163,6 +163,11 @@ TGaxis *axis = new TGaxis(xmax,ymin,xmax,ymax,ymin,ymax,50510,"+L");
 #include "AliVfriendTrack.h"
 #include "AliAnalysisManager.h"
 
+#include "AliVEvent.h"
+#include "AliVTrack.h"
+#include "AliVfriendEvent.h"
+#include "AliVfriendTrack.h"
+
 #include "AliTracker.h"
 #include "AliMagF.h"
 #include "AliTPCCalROC.h"
@@ -314,6 +319,8 @@ void AliTPCcalibTimeGain::Process(AliVEvent *event) {
   //
   // main track loop
   //
+    //Printf("AliTPCcalibTimeGain::Process(event)...");
+
   if (!event) {
     Printf("ERROR: event not available");
     return;
@@ -329,9 +336,6 @@ void AliTPCcalibTimeGain::Process(AliVEvent *event) {
   } else {
     ProcessBeamEvent(event);
   }
-  
-
-  
   
 }
 
@@ -413,6 +417,7 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
   //
   UInt_t time = event->GetTimeStamp();
   Int_t nFriendTracks = vFriend->GetNumberOfTracks();
+  if (!time) Printf("ERROR: no time stamp available!");
   Int_t runNumber = event->GetRunNumber();
   //
   // track loop
@@ -481,10 +486,12 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
 								    fAlephParameters[4]);
 	tpcSignal /= corrFactor; 
       }	
+      //Printf("Fill DeDx histo..");
       fHistDeDxTotal->Fill(meanP, tpcSignal);
       //
       //dE/dx, time, type (1-muon cosmic,2-pion beam data, 3&4 protons), momenta, runNumner, eta
       Double_t vec[7] = {tpcSignal,static_cast<Double_t>(time),static_cast<Double_t>(particleCase),meanDrift,meanP,static_cast<Double_t>(runNumber), eta};
+      //Printf("Fill Gain histo in track loop...");
       fHistGainTime->Fill(vec);
 
     }
@@ -509,6 +516,7 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
     for(Int_t idaughter = 0; idaughter < 2; idaughter++) { // daughter loop
       Int_t index = idaughter == 0 ? v0->GetPindex() : v0->GetNindex();
       AliVTrack * trackP = event->GetVTrack(index);
+      if (!trackP) continue; //Printf("***ERROR*** trackP not available!");
       AliVfriendTrack *friendTrackP = const_cast<AliVfriendTrack*>(vFriend->GetTrack(index));
       if (!friendTrackP) continue;
 
@@ -539,7 +547,8 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
 	Double_t tpcSignal = GetTPCdEdx(seed);
 	//dE/dx, time, type (1-muon cosmic,2-pion beam data), momenta
 	Double_t vec[6] = {tpcSignal,static_cast<Double_t>(time),1,meanDrift,meanP,static_cast<Double_t>(runNumber)};
-	fHistGainTime->Fill(vec);
+    //Printf("Fill Gain histo in v0 loop...");
+    fHistGainTime->Fill(vec);
       }
     }
     

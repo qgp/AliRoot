@@ -70,7 +70,7 @@ public:
     {fUseFixedDriftV = 1; fFixedFitAside0=aside0; fFixedFitAside1=aside1;
     fFixedFitCside0=cside0; fFixedFitCside1=cside1;}
 
-  AliVEvent  * fV;             //! V event  - not OWNER
+  AliVEvent       * fV;             //! V event  - not OWNER
   AliVfriendEvent * fVfriend;       //! V friend event  - not OWNER
   Int_t          fNtracks;         //! counter of associated laser tracks
   //
