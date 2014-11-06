@@ -8,7 +8,9 @@
 class TH2F;
 class TH1F;
 class TList;
+//class AliESDEvent;
 class AliVEvent;
+//class AliESDtrack;
 class AliVTrack;
 class THnSparse;
 
@@ -51,6 +53,7 @@ public:
   static void       BinLogX(TH1 *const h);   // method for correct histogram binning
   static void       BinLogX(THnSparse *const h, Int_t axisDim);   // method for correct histogram binning
 
+  //void     Process(AliESDtrack *const track, Int_t runNo=-1) {AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliVTrack *const track, Int_t runNo=-1) {AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliTPCseed *const track)  {return AliTPCcalibBase::Process(track);}
   virtual void  Terminate();

@@ -20,12 +20,15 @@ class TH3F;
 class TH2F;
 class TH1D;
 class TList;
+//class AliESDEvent;
 class AliVEvent;
+//class AliESDtrack;
 class AliVTrack;
 class AliExternalTrackParam;
 class AliTPCcalibLaser;
 class TGraphErrors;
 class AliSplineFit;
+//class AliESDfriendTrack;
 class AliVfriendTrack;
 class AliVfriendEvent;
 
@@ -41,6 +44,9 @@ public:
   //static Bool_t          IsLaser      (const AliESDEvent *const event) const;
   //static Bool_t          IsCosmics    (const AliESDEvent *const event) const;
   //static Bool_t          IsBeam       (const AliESDEvent *const event) const;
+  //void                   ProcessLaser (AliESDEvent *event);
+  //void                   ProcessCosmic(const AliESDEvent *const event);
+  //void                   ProcessBeam  (const AliESDEvent *const event);
   void                   ProcessLaser (AliVEvent *event);
   void                   ProcessCosmic(const AliVEvent *const event);
   void                   ProcessBeam  (const AliVEvent *const event);
@@ -48,20 +54,21 @@ public:
   Bool_t                 IsPair(const AliExternalTrackParam *tr0, const AliExternalTrackParam *tr1);
   Bool_t                 IsCross(const AliVTrack *const tr0, const AliVTrack *const tr1);
   Bool_t                 IsSame (const AliVTrack *const tr0, const AliVTrack *const tr1);
-  void                   ProcessSame(const AliVTrack *const track, AliVfriendTrack *const friendTrack, const AliVEvent *const event);
-  void                   ProcessAlignITS(AliVTrack *const track, const AliVfriendTrack *const friendTrack, const AliVEvent *const event, AliVfriendEvent *const vFriend);
-  void                   ProcessAlignTRD(AliVTrack* const track, AliVfriendTrack *const friendTrack);
+  void                   ProcessSame(const AliVTrack *const track, const AliVfriendTrack *const friendTrack, const AliVEvent *const event);
+  void                   ProcessAlignITS(AliVTrack *const track, const AliVfriendTrack *const friendTrack, const AliVEvent *const event, AliVfriendEvent *const friendEvent);
+  void                   ProcessAlignTRD(AliVTrack* const track, const AliVfriendTrack *const friendTrack);
   void                   ProcessAlignTOF(AliVTrack* const track, const AliVfriendTrack *const friendTrack);
 
-  THnSparse*    GetHistVdriftLaserA(Int_t index=1) const {return fHistVdriftLaserA[index];}
-  THnSparse*    GetHistVdriftLaserC(Int_t index=1) const {return fHistVdriftLaserC[index];}
+  THnSparse*    GetHistVdriftLaserA(Int_t index=1) const {return fHistVdriftLaserA[index];};
+  THnSparse*    GetHistVdriftLaserC(Int_t index=1) const {return fHistVdriftLaserC[index];};
   THnSparse*    GetHistoDrift(const char* name) const;
   TObjArray*    GetHistoDrift() const;
   TGraphErrors* GetGraphDrift(const char* name);
   TObjArray*    GetGraphDrift();
   AliSplineFit* GetFitDrift(const char* name);
 //  TObjArray*    GetFitDrift();
-  TH1F*         GetCosmiMatchingHisto(Int_t index=0) const {return fCosmiMatchingHisto[index];}
+  TH1F*         GetCosmiMatchingHisto(Int_t index=0) const {return fCosmiMatchingHisto[index];};
+  //void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliVTrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
   TObjArray* GetAlignITSTPC() const {return fAlignITSTPC;}              // alignemnt array ITS TPC match
