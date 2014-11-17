@@ -90,15 +90,10 @@
 #include "TLinearFitter.h"
 #include "AliTPCcalibLaser.h"
 #include "AliExternalTrackParam.h"
-//#include "AliESDEvent.h"
-//#include "AliESDfriend.h"
-//#include "AliESDtrack.h"
-
 #include "AliVEvent.h"
-#include "AliVTrack.h"
 #include "AliVfriendEvent.h"
+#include "AliVTrack.h"
 #include "AliVfriendTrack.h"
-
 #include "AliTPCTracklet.h"
 #include "TH1D.h"
 #include "TH1F.h"
@@ -143,12 +138,12 @@ ClassImp(AliTPCcalibLaser)
 
 AliTPCcalibLaser::AliTPCcalibLaser():
   AliTPCcalibBase(),
-  fEvent(0),
-  fEventFriend(0),
+  fV(0),
+  fVfriend(0),
   fNtracks(0),
   fTracksMirror(336),
-  fTracks(336),
-  fTracksEsdParam(336),
+  fTracksV(336),
+  fTracksVParam(336),
   fTracksTPC(336),
   fFullCalib(kTRUE),
   fDeltaZ(336),
@@ -252,12 +247,12 @@ AliTPCcalibLaser::AliTPCcalibLaser():
 
 AliTPCcalibLaser::AliTPCcalibLaser(const Text_t *name, const Text_t *title, Bool_t full):
   AliTPCcalibBase(),
-  fEvent(0),
-  fEventFriend(0),
+  fV(0),
+  fVfriend(0),
   fNtracks(0),
   fTracksMirror(336),
-  fTracks(336),
-  fTracksEsdParam(336),
+  fTracksV(336),
+  fTracksVParam(336),
   fTracksTPC(336),
   fFullCalib(full),
   //
@@ -368,12 +363,12 @@ AliTPCcalibLaser::AliTPCcalibLaser(const Text_t *name, const Text_t *title, Bool
 
 AliTPCcalibLaser::AliTPCcalibLaser(const AliTPCcalibLaser& calibLaser):
   AliTPCcalibBase(calibLaser), 
-  fEvent(0),
-  fEventFriend(0),
+  fV(0),
+  fVfriend(0),
   fNtracks(0),
   fTracksMirror(336),
-  fTracks(336),
-  fTracksEsdParam(336),
+  fTracksV(336),
+  fTracksVParam(336),
   fTracksTPC(336),
   fFullCalib(calibLaser.fFullCalib),
   //
@@ -582,7 +577,7 @@ AliTPCcalibLaser::~AliTPCcalibLaser() {
 
 
 
-void AliTPCcalibLaser::Process(AliVEvent *event) {
+void AliTPCcalibLaser::Process(AliVEvent * event) {
   //
   //
   // Loop over tracks and call  Process function
@@ -590,25 +585,24 @@ void AliTPCcalibLaser::Process(AliVEvent *event) {
   const Int_t  kMinTracks=20;
   const Int_t  kMinClusters=40;
 
-  fEvent = event;
-  if (!fEvent) {
-      //Printf("****ERROR AliTPCcalibLaser::Process(): Event not available!!********");
+  fV = event;
+  if (!fV) {
     return;
   }
-  fEventFriend=fEvent->FindFriend();
-  if (!fEventFriend) {
+  fVfriend=fV->FindFriend();
+  if (!fVfriend) {
     return;
   }
-  if (fEventFriend->TestSkipBit()) return;
-  if (fEvent->GetNumberOfTracks()<kMinTracks) return; //not enough tracks
+  if (fVfriend->TestSkipBit()) return;
+  if (fV->GetNumberOfTracks()<kMinTracks) return; //not enough tracks
   AliDebug(4,Form("Event number in current file: %d",event->GetEventNumberInFile()));
   //
   // find CE background if present
   //
   if (AliTPCLaserTrack::GetTracks()==0) AliTPCLaserTrack::LoadTracks();
   TH1D hisCE("hhisCE","hhisCE",100,-100,100);  
-  for (Int_t i=0;i<fEvent->GetNumberOfTracks();++i) {
-    AliVTrack *track=fEvent->GetVTrack(i);
+  for (Int_t i=0;i<fV->GetNumberOfTracks();++i) {
+    AliVTrack *track=fV->GetVTrack(i);
     if (!track) continue;
 
     AliExternalTrackParam trkprm;
@@ -622,20 +616,20 @@ void AliTPCcalibLaser::Process(AliVEvent *event) {
 
 
   fTracksTPC.Clear();
-  fTracks.Clear();
-  fTracksEsdParam.Delete();
+  fTracksV.Clear();
+  fTracksVParam.Delete();
   for (Int_t id=0; id<336;id++) {
     fCounter[id]=0;
     fClusterCounter[id]=0;
     fClusterSatur[id]=0;
   }
   //
-  Int_t n=fEvent->GetNumberOfTracks();
+  Int_t n=fV->GetNumberOfTracks();
   Int_t counter=0;
   for (Int_t i=0;i<n;++i) {
-    const AliVfriendTrack *friendTrack=fEventFriend->GetTrack(i);
+    AliVfriendTrack *friendTrack=const_cast<AliVfriendTrack*>(fVfriend->GetTrack(i));
     if (!friendTrack) continue;
-    AliVTrack *track= fEvent->GetVTrack(i);
+    AliVTrack *track=fV->GetVTrack(i);
     if (!track) continue;
     AliExternalTrackParam prm;
     track->GetTrackParam(prm);
@@ -700,7 +694,7 @@ void AliTPCcalibLaser::MakeDistHisto(Int_t id){
 
     AliExternalTrackParam *param=(AliExternalTrackParam*)fTracksVParam.At(id);
     AliTPCLaserTrack *ltrp = ( AliTPCLaserTrack*)fTracksMirror.At(id);
-    AliVTrack   *track    = (AliVTrack*)fTracks.At(id);
+    AliVTrack   *track    = (AliVTrack*)fTracksV.At(id);
     if (!param) return;
     if (!ltrp) return;
     if (!track) return;
@@ -807,7 +801,7 @@ void AliTPCcalibLaser::FitDriftV(){
       if (!AcceptLaser(id)) continue;
       if ( fClusterSatur[id]>kSaturCut)  continue;
       if ( fClusterCounter[id]<kMinClusters)  continue;
-      AliVTrack   *track    = (AliVTrack*)fTracks.At(id);
+      AliVTrack   *track    = (AliVTrack*)fTracksV.At(id);
       if (track->GetTPCsignal()<kMinSignal) continue;
       AliExternalTrackParam *param=(AliExternalTrackParam*)fTracksVParam.At(id);
       AliTPCLaserTrack *ltrp = ( AliTPCLaserTrack*)fTracksMirror.At(id);
@@ -1110,7 +1104,7 @@ Bool_t  AliTPCcalibLaser::FitDriftV(Float_t minFraction){
       if (!AcceptLaser(id)) continue;
       if ( fClusterSatur[id]>kSaturCut)  continue;
       if ( fClusterCounter[id]<kMinClusters)  continue;
-      AliVTrack   *track    = (AliVTrack*)fTracks.At(id);
+      AliVTrack   *track    = (AliVTrack*)fTracksV.At(id);
       if (track->GetTPCsignal()<kMinSignal) continue;
       AliExternalTrackParam *param=(AliExternalTrackParam*)fTracksVParam.At(id);
       AliTPCLaserTrack *ltrp = ( AliTPCLaserTrack*)fTracksMirror.At(id);
@@ -1373,10 +1367,8 @@ Int_t  AliTPCcalibLaser::FindMirror(AliVTrack *track, AliTPCseed *seed){
   // add the corresponding tracks
 
   AliExternalTrackParam trckOut;
-  track->GetTrackParamOp(trckOut);
   if ((track->GetTrackParamOp(trckOut)) < 0) return -1;
   AliExternalTrackParam * trackOut = &trckOut;
-  if (!trackOut) return -1;
 
   Float_t kRadius0  = 252;
   Float_t kRadius   = 254.2;
@@ -1404,7 +1396,6 @@ Int_t  AliTPCcalibLaser::FindMirror(AliVTrack *track, AliTPCseed *seed){
 
   Int_t side= 0;
   if (csideC>0.5*seed->GetNumberOfClusters()) side=1;
-
 
   AliExternalTrackParam param(*trackOut);
   AliTracker::PropagateTrackTo(&param,kRadius0,TDatabasePDG::Instance()->GetParticle("mu+")->Mass(),3,kTRUE);
@@ -1450,8 +1441,8 @@ Int_t  AliTPCcalibLaser::FindMirror(AliVTrack *track, AliTPCseed *seed){
   
   if (accept){
     fClusterCounter[id]=countercl;
-    fTracksEsdParam.AddAt(param.Clone(),id);
-    fTracks.AddAt(track,id);
+    fTracksVParam.AddAt(param.Clone(),id);
+    fTracksV.AddAt(track,id);
     fTracksTPC.AddAt(seed,id);
   }
   return id;
@@ -1463,8 +1454,8 @@ void AliTPCcalibLaser::DumpLaser(Int_t id) {
   //
   //  Dump Laser info to the tree
   //
-  AliVTrack   *track    = (AliVTrack*)fTracks.At(id);
-  AliExternalTrackParam *param=(AliExternalTrackParam*)fTracksEsdParam.At(id);
+  AliVTrack   *track    = (AliVTrack*)fTracksV.At(id);
+  AliExternalTrackParam *param=(AliExternalTrackParam*)fTracksVParam.At(id);
   AliTPCLaserTrack *ltrp = ( AliTPCLaserTrack*)fTracksMirror.At(id);
   //
   // Fast laser ID
@@ -1484,7 +1475,7 @@ void AliTPCcalibLaser::DumpLaser(Int_t id) {
   
   if (fStreamLevel>0){
     TTreeSRedirector *cstream = GetDebugStreamer();
-    Int_t time = fEvent->GetTimeStamp();
+    Int_t time = fV->GetTimeStamp();
     Bool_t accept = AcceptLaser(id);
     if (cstream){
       (*cstream)<<"Track"<<
