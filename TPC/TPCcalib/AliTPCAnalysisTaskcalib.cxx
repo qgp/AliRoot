@@ -29,12 +29,6 @@
 #include "AliVfriendTrack.h"
 #include "AliTPCseed.h"
 #include "AliVEventHandler.h"
-#include "AliVEvent.h"
-#include "AliVfriendEvent.h"
-#include "AliVTrack.h"
-#include "AliVfriendTrack.h"
-#include "AliVEventHandler.h"
-
 #include "AliAnalysisManager.h"
 #include "TFile.h"
 #include "TSystem.h"
@@ -203,7 +197,6 @@ void AliTPCAnalysisTaskcalib::Process(AliTPCseed *track) {
   //
   // Process TPC track
   //
-    //Printf("AliTPCAnalysisTaskcalib::Process(TPC track)...");
   AliTPCcalibBase *job=0;
   Int_t njobs = fCalibJobs->GetEntriesFast();
   for (Int_t i=0;i<njobs;i++){
@@ -218,7 +211,6 @@ void AliTPCAnalysisTaskcalib::Process(AliVTrack *track, Int_t run) {
   //
   // Process V track
   //
-    //Printf("AliTPCAnalysisTaskcalib::Process(ESD track)...");
   AliTPCcalibBase *job=0;
   Int_t njobs = fCalibJobs->GetEntriesFast();
   for (Int_t i=0;i<njobs;i++){
