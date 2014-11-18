@@ -387,8 +387,6 @@ void AliTPCcalibTime::Process(AliVEvent *event){
   if (Vfriend->TestSkipBit()) return;
   
   ResetCurrent();
-
-  //AliESDEvent *ev=(AliESDEvent*)event;
   //if(IsLaser  (event)) 
   ProcessLaser (event);
   //if(IsCosmics(event)) 
@@ -538,7 +536,7 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
     return;
   }  
   if (event->GetTimeStamp() == 0 ) {
-    //Printf("no time stamp!");
+    Printf("no time stamp!");
     return;
   }
   
@@ -570,16 +568,13 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
     clusterSideA[i]=0;
     clusterSideC[i]=0;
     AliVTrack *track = event->GetVTrack(i);
-    if(!track) continue;
-
+    
     AliExternalTrackParam trckIn;
     if ( (track->GetTrackParamIp(trckIn)) <0) continue;
-    AliExternalTrackParam * trackIn = &trckIn;
 
     AliExternalTrackParam trckOut;
     if ( (track->GetTrackParamOp(trckOut)) <0) continue;
-    AliExternalTrackParam * trackOut = &trckOut;
-
+    
     AliVfriendTrack *friendTrack = const_cast<AliVfriendTrack*>(vFriend->GetTrack(i));
     if (!friendTrack) continue;
     if (friendTrack) ProcessSame(track,friendTrack,event);
@@ -625,7 +620,6 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
       if (!track1) continue;
       AliExternalTrackParam trck1Out;
       if ( (track1->GetTrackParamOp(trck1Out)) < 0) continue;
-      AliExternalTrackParam * track1Out = &trck1Out;
       if (track0->GetTPCNcls()+ track1->GetTPCNcls()< kMinClusters) continue;
       Int_t nAC = TMath::Max( TMath::Min(clusterSideA[i], clusterSideC[j]), 
 			      TMath::Min(clusterSideC[i], clusterSideA[j]));
@@ -666,7 +660,7 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
       AliExternalTrackParam param0;
       track0->GetTrackParam(param0);
       AliExternalTrackParam param1;
-      track1->GetTrackParam(param1);
+      param1.CopyFromVTrack(track1);
 
       //
       // Propagate using Magnetic field and correct fo material budget
@@ -1593,6 +1587,7 @@ void  AliTPCcalibTime::ProcessAlignITS(AliVTrack *const track, const AliVfriendT
   if (trackIn->GetX()>90)   return;
   //
   AliExternalTrackParam &pTPC=(AliExternalTrackParam &)(*trackIn);
+
   //  
   AliExternalTrackParam pITS;   // ITS standalone if possible
   AliExternalTrackParam pITS2;  //TPC-ITS track
@@ -1985,7 +1980,7 @@ void  AliTPCcalibTime::ProcessAlignTOF(AliVTrack *const track, const AliVfriendT
     Float_t xyz[3];
     point.GetXYZ(xyz);
     Double_t r=TMath::Sqrt(xyz[0]*xyz[0]+xyz[1]*xyz[1]);
-    if (r<370)  continue;
+    if (r<370)  continue;   // I will be happy to use flag in case it will be implemented in AliTrackPoint - should be requested
     if (r>400)  continue;
     AliTracker::PropagateTrackToBxByBz(&pTPC,r,mass,2.,kTRUE);
     AliTracker::PropagateTrackToBxByBz(&pTPC,r,mass,0.1,kTRUE);    
