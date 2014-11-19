@@ -181,6 +181,8 @@ void AliTPCAnalysisTaskcalib::Process(AliVEvent *event) {
   //
   // Process V event
   //
+
+    //Printf("AliTPCAnalysisTaskcalib::Process event");
   AliTPCcalibBase *job=0;
   Int_t njobs = fCalibJobs->GetEntriesFast();
   for (Int_t i=0;i<njobs;i++){
