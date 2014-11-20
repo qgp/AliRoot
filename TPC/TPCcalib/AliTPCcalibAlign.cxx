@@ -118,12 +118,6 @@
 //#include "AliVEventHandler.h"
 //#include "AliAnalysisManager.h"
 
-#include "AliVEvent.h"
-#include "AliVfriendEvent.h"
-#include "AliVTrack.h"
-#include "AliVfriendTrack.h"
-#include "AliESDVertex.h"
-
 #include "AliTPCTracklet.h"
 #include "TH1D.h"
 #include "TH2F.h"
@@ -490,7 +484,7 @@ void AliTPCcalibAlign::Process(AliVEvent *event) {
   //
   for (Int_t i0=0;i0<ntracks;++i0) {
     AliVTrack *track0 = event->GetVTrack(i0);
-    //if (!track0) Printf("ERROR! NO TRACK!!");
+    if (!track0) Printf("ERROR! NO TRACK!!");
     AliVfriendTrack *friendTrack = 0;
     AliTPCseed *seed0 = 0;
     //
@@ -783,15 +777,15 @@ void  AliTPCcalibAlign::ExportTrackPoints(AliVEvent *event){
       Bool_t isVertex=(tpcVertex)? kTRUE:kFALSE;
       Double_t tof0=track0->GetTOFsignal();
       Double_t tof1=(track1P) ?  track1P->GetTOFsignal(): 0;
-      static AliExternalTrackParam param;
-      AliExternalTrackParam *p0In  = &param;
-      AliExternalTrackParam *p1In  = &param;
-      AliExternalTrackParam *p0Out = &param;
-      AliExternalTrackParam *p1Out = &param;
+      static AliExternalTrackParam dummy;
+      AliExternalTrackParam *p0In  = &dummy;
+      AliExternalTrackParam *p1In  = &dummy;
+      AliExternalTrackParam *p0Out = &dummy;
+      AliExternalTrackParam *p1Out = &dummy;
       AliESDVertex vdummy;
       AliESDVertex *pvertex= (tpcVertex)? (AliESDVertex *)tpcVertex: &vdummy;
       if (track0) {
-    track0->GetTrackParam(*p0In);
+    p0In->CopyFromVTrack(track0);
 
     AliExternalTrackParam trckOut;
     track0->GetTrackParamOp(trckOut);
@@ -799,7 +793,7 @@ void  AliTPCcalibAlign::ExportTrackPoints(AliVEvent *event){
     p0Out=new AliExternalTrackParam(*trackout);
       }
       if (track1P) {
-    track1P->GetTrackParam(*p1In);
+    p1In->CopyFromVTrack(track1P);
 
     AliExternalTrackParam trck1POut;
     track1P->GetTrackParamOp(trck1POut);
@@ -2662,11 +2656,16 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
   // 3. Refit the track - out-in
   // 4. Combine In and Out track - - fil cluster residuals
   //
+    //Printf("AliTPCcalibAlign::UpdateClusterDeltaField()");
 
-  if (!fCurrentFriendTrack) return;
+  if (!fCurrentFriendTrack) {
+      Printf("UpdateClusterDeltaField(): no friend track!");
+      return;}
 
   AliExternalTrackParam trckTPCOut;
-  if((fCurrentFriendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) return;
+  if((fCurrentFriendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) {
+      Printf("UpdateClusterDeltaField(): no TCP Out param at friend track!");
+      return;}
 
   const Double_t kPtCut=1.0;    // pt
   const Double_t kSnpCut=0.2; // snp cut
@@ -2678,7 +2677,9 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
   const Double_t kSigma=0.3;       // error increase towards edges of TPC 
   const Double_t kSkipBoundary=7.5;  // skip track updates in the boundary IFC,OFC, IO
   //
-  if (!fCurrentTrack) return;
+  if (!fCurrentTrack) {
+      Printf("UpdateClusterDeltaField(): no current track!");
+      return;}
   if (!fCurrentFriendTrack) return;
   Float_t vertexXY=0,vertexZ=0;
   fCurrentTrack->GetImpactParameters(vertexXY,vertexZ);
@@ -2700,6 +2701,7 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
   Int_t detector=-1;
   //
   //
+
   AliExternalTrackParam trackIn;
   fCurrentTrack->GetTrackParamIp(trackIn);
   AliExternalTrackParam trackOut;
@@ -2759,7 +2761,7 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
     cov[2]+=kSigma/dedge;      // bigger error close to the boundary
     cov[0]*=cov[0];
     cov[2]*=cov[2];
-    if (!AliTracker::PropagateTrackToBxByBz(&trackOut, r[0],mass,1.,kFALSE)) continue;
+    if (!AliTracker::PropagateTrackToBxByBz(&trackOut, r[0],mass,1.,kFALSE)) continue;    //??
     if (TMath::Abs(dedge)<kEdgeCut) continue;
     //
     Bool_t doUpdate=kTRUE;
