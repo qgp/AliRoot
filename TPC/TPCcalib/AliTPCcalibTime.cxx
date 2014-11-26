@@ -1372,96 +1372,43 @@ Bool_t AliTPCcalibTime::IsSame(const AliVTrack *const tr0, const AliVTrack *cons
 
 
 void  AliTPCcalibTime::ProcessSame(const AliVTrack *const track, AliVfriendTrack *const friendTrack, const AliVEvent *const event){
-  //
-  // Process  TPC tracks crossing CE
-  //
-  // 0. Select only track crossing the CE
-  // 1. Cut on the track length
-  // 2. Refit the the track on A and C side separatelly
-  // 3. Fill time histograms
-  const Int_t kMinNcl=100;
-  const Int_t kMinNclS=25;  // minimul number of clusters on the sides
-  const Double_t pimass=TDatabasePDG::Instance()->GetParticle("pi+")->Mass();
-  const Double_t kMaxDy=1;  // maximal distance in y
-  const Double_t kMaxDsnp=0.05;  // maximal distance in snp
-  const Double_t kMaxDtheta=0.05;  // maximal distance in theta
-  
-  AliExternalTrackParam trckTPCOut;
-  if ( (friendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) return;
+    //
+    // Process  TPC tracks crossing CE
+    //
+    // 0. Select only track crossing the CE
+    // 1. Cut on the track length
+    // 2. Refit the the track on A and C side separatelly
+    // 3. Fill time histograms
+    const Int_t kMinNcl=100;
+    const Int_t kMinNclS=25;  // minimul number of clusters on the sides
+    const Double_t pimass=TDatabasePDG::Instance()->GetParticle("pi+")->Mass();
+    const Double_t kMaxDy=1;  // maximal distance in y
+    const Double_t kMaxDsnp=0.05;  // maximal distance in snp
+    const Double_t kMaxDtheta=0.05;  // maximal distance in theta
 
-  AliExternalTrackParam trckIn;
-  track->GetTrackParam(trckIn);
-  //
-  // 0. Select only track crossing the CE
-  //
-  if (trckIn.GetZ()*trckTPCOut.GetZ()>0) return;
-  //
-  // 1. cut on track length
-  //
-  if (track->GetTPCNcls()<kMinNcl) return;
-  //
-  // 2. Refit track sepparatel on A and C side
-  //
-  TObject *calibObject;
-  AliTPCseed *seed = 0;
-  for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
-    if ((seed=dynamic_cast<AliTPCseed*>(calibObject))) break;
-  }
-  if (!seed) return;
-  //
-  AliExternalTrackParam trackIn;
-  track->GetTrackParamIp(trackIn);
-  AliExternalTrackParam trackOut;
-  track->GetTrackParamOp(trackOut);
+    AliExternalTrackParam trckTPCOut;
+    if ( (friendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) return;
 
-  Double_t cov[3]={0.01,0.,0.01}; //use the same errors
-  Double_t xyz[3]={0,0.,0.0};  
-  Double_t bz   =0;
-  Int_t nclIn=0,nclOut=0;
-  trackIn.ResetCovariance(1000.);
-  trackOut.ResetCovariance(1000.);
-  //
-  //2.a Refit inner
-  // 
-  Int_t sideIn=0;
-  for (Int_t irow=0;irow<159;irow++) {
-    AliTPCclusterMI *cl=seed->GetClusterPointer(irow);
-    if (!cl) continue;
-    if (cl->GetX()<80) continue;
-    if (sideIn==0){
-      if (cl->GetDetector()%36<18) sideIn=1;
-      if (cl->GetDetector()%36>=18) sideIn=-1;
+    AliExternalTrackParam trckIn;
+    track->GetTrackParamIp(trckIn);
+    //
+    // 0. Select only track crossing the CE
+    //
+
+    if (trckIn.GetZ()*trckTPCOut.GetZ()>0) return;
+    //
+    // 1. cut on track length
+    //
+    if (track->GetTPCNcls()<kMinNcl) return;
+    //
+    // 2. Refit track sepparatel on A and C side
+    //
+    TObject *calibObject;
+    AliTPCseed *seed = 0;
+    for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
+      if ((seed=dynamic_cast<AliTPCseed*>(calibObject))) break;
     }
-    if (sideIn== -1 && (cl->GetDetector()%36)<18) break;
-    if (sideIn==  1 &&(cl->GetDetector()%36)>=18) break;
-    Int_t sector = cl->GetDetector();
-    Float_t dalpha = TMath::DegToRad()*(sector%18*20.+10.)-trackIn.GetAlpha();
-    if (TMath::Abs(dalpha)>0.01){
-      if (!trackIn.Rotate(TMath::DegToRad()*(sector%18*20.+10.))) break;
-    }
-    Double_t r[3]={cl->GetX(),cl->GetY(),cl->GetZ()};
-    trackIn.GetXYZ(xyz);
-    bz = AliTracker::GetBz(xyz);
-    AliTracker::PropagateTrackToBxByBz(&trackIn,r[0],pimass,1.,kFALSE);
-    if (!trackIn.PropagateTo(r[0],bz)) break;
-    nclIn++;
-    trackIn.Update(&r[1],cov);    
-  }
-  //
-  //2.b Refit outer
-  //
-  Int_t sideOut=0;
-  for (Int_t irow=159;irow>0;irow--) {
-    AliTPCclusterMI *cl=seed->GetClusterPointer(irow);
-    if (!cl) continue;
-    if (cl->GetX()<80) continue;
-    if (sideOut==0){
-      if (cl->GetDetector()%36<18) sideOut=1;
-      if (cl->GetDetector()%36>=18) sideOut=-1;
-      if (sideIn==sideOut) break;
-    }
-    if (sideOut== -1 && (cl->GetDetector()%36)<18) break;
-    if (sideOut==  1 &&(cl->GetDetector()%36)>=18) break;
+    if (!seed) return;
     //
 
     AliExternalTrackParam trackIn;
@@ -1851,7 +1798,7 @@ void  AliTPCcalibTime::ProcessAlignTRD(AliVTrack *const track, AliVfriendTrack *
   AliExternalTrackParam &pTPC = trckTPCOut;
 
   AliTracker::PropagateTrackToBxByBz(&pTPC,kRefX,0.1,0.1,kFALSE);
-  friendTrack->ResetTrackParamTPCOut(&trckTPCOut);
+  //friendTrack->ResetTrackParamTPCOut(&trckTPCOut);
   AliExternalTrackParam *pTRDtrack = 0; 
   TObject *calibObject=0;
   for (Int_t l=0;(calibObject=((AliVfriendTrack*)friendTrack)->GetCalibObject(l));++l) {
