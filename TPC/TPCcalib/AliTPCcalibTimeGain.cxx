@@ -498,7 +498,7 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
     AliTPCseed *seed = 0;
     for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
       if ((seed=dynamic_cast<AliTPCseed*>(calibObject))) break;
-    }    
+    }
 
     if (seed) {
       Int_t particleCase = 0;
@@ -528,6 +528,7 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
       Double_t vec[7] = {tpcSignal,static_cast<Double_t>(time),static_cast<Double_t>(particleCase),meanDrift,meanP,static_cast<Double_t>(runNumber), eta};
       //Printf("Fill Gain histo in track loop...");
       fHistGainTime->Fill(vec);
+
     }
     
   } // end track loop
