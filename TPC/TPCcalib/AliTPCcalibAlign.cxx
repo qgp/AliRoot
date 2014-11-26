@@ -484,7 +484,7 @@ void AliTPCcalibAlign::Process(AliVEvent *event) {
   //
   for (Int_t i0=0;i0<ntracks;++i0) {
     AliVTrack *track0 = event->GetVTrack(i0);
-    if (!track0) Printf("ERROR! NO TRACK!!");
+    //if (!track0) Printf("ERROR! NO TRACK!!");
     AliVfriendTrack *friendTrack = 0;
     AliTPCseed *seed0 = 0;
     //
@@ -2656,16 +2656,11 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
   // 3. Refit the track - out-in
   // 4. Combine In and Out track - - fil cluster residuals
   //
-    //Printf("AliTPCcalibAlign::UpdateClusterDeltaField()");
 
-  if (!fCurrentFriendTrack) {
-      Printf("UpdateClusterDeltaField(): no friend track!");
-      return;}
+  if (!fCurrentFriendTrack) return;
 
   AliExternalTrackParam trckTPCOut;
-  if((fCurrentFriendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) {
-      Printf("UpdateClusterDeltaField(): no TCP Out param at friend track!");
-      return;}
+  if((fCurrentFriendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) return;
 
   const Double_t kPtCut=1.0;    // pt
   const Double_t kSnpCut=0.2; // snp cut
@@ -2677,9 +2672,7 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
   const Double_t kSigma=0.3;       // error increase towards edges of TPC 
   const Double_t kSkipBoundary=7.5;  // skip track updates in the boundary IFC,OFC, IO
   //
-  if (!fCurrentTrack) {
-      Printf("UpdateClusterDeltaField(): no current track!");
-      return;}
+  if (!fCurrentTrack) return;
   if (!fCurrentFriendTrack) return;
   Float_t vertexXY=0,vertexZ=0;
   fCurrentTrack->GetImpactParameters(vertexXY,vertexZ);
@@ -2761,7 +2754,7 @@ void AliTPCcalibAlign::UpdateClusterDeltaField(const AliTPCseed * seed){
     cov[2]+=kSigma/dedge;      // bigger error close to the boundary
     cov[0]*=cov[0];
     cov[2]*=cov[2];
-    if (!AliTracker::PropagateTrackToBxByBz(&trackOut, r[0],mass,1.,kFALSE)) continue;    //??
+    if (!AliTracker::PropagateTrackToBxByBz(&trackOut, r[0],mass,1.,kFALSE)) continue;
     if (TMath::Abs(dedge)<kEdgeCut) continue;
     //
     Bool_t doUpdate=kTRUE;
