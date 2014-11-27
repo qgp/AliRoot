@@ -66,7 +66,9 @@ set(SRCS
     AliHLTMUONTrigRecsDebugBlockStruct.cxx
     AliHLTMUONUtils.cxx
     OfflineInterface/AliHLTMUONAgent.cxx
+    OfflineInterface/AliHLTMUONClusterWriterComponent.cxx
     OfflineInterface/AliHLTMUONDigitPublisherComponent.cxx
+    OfflineInterface/AliHLTMUONDigitReaderComponent.cxx
     OfflineInterface/AliHLTMUONESDMaker.cxx
     OfflineInterface/AliHLTMUONRecHitsSource.cxx
     OfflineInterface/AliHLTMUONRootifierComponent.cxx
@@ -80,6 +82,7 @@ set(SRCS
     OnlineAnalysis/AliHLTMUONHitReconstructor.cxx
     OnlineAnalysis/AliHLTMUONMansoTrackerFSMComponent.cxx
     OnlineAnalysis/AliHLTMUONMansoTrackerFSM.cxx
+    OnlineAnalysis/AliHLTMUONPreclusterFinderComponent.cxx
     OnlineAnalysis/AliHLTMUONTriggerReconstructorComponent.cxx
     OnlineAnalysis/AliHLTMUONTriggerReconstructor.cxx
     utils/AliHLTMUONClusterHistoComponent.cxx

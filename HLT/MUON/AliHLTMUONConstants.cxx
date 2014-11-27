@@ -282,11 +282,19 @@ const AliHLTComponentDataType& AliHLTMUONConstants::ESDDataType()
 }
 
 
+const AliHLTComponentDataType& AliHLTMUONConstants::DigitStoreDataType()
+{
+	// Returns the offline algorithm's digit store object type.
+	static const AliHLTComponentDataType digitStoreDataType = AliHLTComponentDataTypeInitializer("DIGSTORE", kAliHLTDataOriginMUON);
+	return digitStoreDataType;
+}
+
+
 const AliHLTComponentDataType& AliHLTMUONConstants::ClusterStoreDataType()
 {
-	// Returns the offline algorithm's cluster store object type.
-	static const AliHLTComponentDataType clusterStoreDataType = AliHLTComponentDataTypeInitializer("CLUSTORE", kAliHLTDataOriginMUON);
-	return clusterStoreDataType;
+  // Returns the offline algorithm's cluster store object type.
+  static const AliHLTComponentDataType clusterStoreDataType = AliHLTComponentDataTypeInitializer("CLUSTORE", kAliHLTDataOriginMUON);
+  return clusterStoreDataType;
 }
 
 

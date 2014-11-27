@@ -90,6 +90,7 @@ public:
 	static const AliHLTComponentDataType& PairsDecisionBlockDataType();
 	static const AliHLTComponentDataType& RootifiedEventDataType();
 	static const AliHLTComponentDataType& ESDDataType();
+        static const AliHLTComponentDataType& DigitStoreDataType();
 	static const AliHLTComponentDataType& ClusterStoreDataType();
 	static const AliHLTComponentDataType& HistogramDataType();
 	

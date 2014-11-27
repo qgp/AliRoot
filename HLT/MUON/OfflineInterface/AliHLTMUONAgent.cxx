@@ -39,6 +39,9 @@
 #include "AliHLTMUONClusterFinderComponent.h"
 #include "AliHLTMUONRawDataHistoComponent.h"
 #include "AliHLTMUONClusterHistoComponent.h"
+#include "AliHLTMUONPreclusterFinderComponent.h"
+#include "AliHLTMUONClusterWriterComponent.h"
+#include "AliHLTMUONDigitReaderComponent.h"
 #include "AliHLTOUTHandlerChain.h"
 #include "AliHLTOUTHandlerIgnore.h"
 #include "AliRawReader.h"
@@ -488,6 +491,9 @@ int AliHLTMUONAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
 	pHandler->AddComponent(new AliHLTMUONClusterFinderComponent);
 	pHandler->AddComponent(new AliHLTMUONRawDataHistoComponent);
 	pHandler->AddComponent(new AliHLTMUONClusterHistoComponent);
+        pHandler->AddComponent(new AliHLTMUONPreclusterFinderComponent);
+        pHandler->AddComponent(new AliHLTMUONClusterWriterComponent);
+        pHandler->AddComponent(new AliHLTMUONDigitReaderComponent);
 	return 0;
 }
 
