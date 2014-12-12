@@ -43,6 +43,7 @@ struct AliHLTMUONMansoCandidateStruct;
 struct AliHLTMUONTrackStruct;
 struct AliHLTMUONTrackDecisionStruct;
 struct AliHLTMUONPairDecisionStruct;
+struct AliHLTMUONPreClusterStruct;
 } // extern "C"
 
 /**
@@ -66,6 +67,7 @@ public:
 	static const AliHLTMUONTrackStruct& NilTrackStruct();
 	static const AliHLTMUONTrackDecisionStruct& NilTrackDecisionStruct();
 	static const AliHLTMUONPairDecisionStruct& NilPairDecisionStruct();
+	static const AliHLTMUONPreClusterStruct& NilPreClusterStruct();
 
 	// Methods returning HLT component input and output data block types:
 	
@@ -88,6 +90,7 @@ public:
 	static const AliHLTComponentDataType& TracksBlockDataType();
 	static const AliHLTComponentDataType& SinglesDecisionBlockDataType();
 	static const AliHLTComponentDataType& PairsDecisionBlockDataType();
+	static const AliHLTComponentDataType& PreClustersBlockDataType();
 	static const AliHLTComponentDataType& RootifiedEventDataType();
 	static const AliHLTComponentDataType& ESDDataType();
         static const AliHLTComponentDataType& DigitStoreDataType();

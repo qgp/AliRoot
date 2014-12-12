@@ -36,6 +36,7 @@
 #include "AliHLTMUONTracksBlockStruct.h"
 #include "AliHLTMUONSinglesDecisionBlockStruct.h"
 #include "AliHLTMUONPairsDecisionBlockStruct.h"
+#include "AliHLTMUONPreClustersBlock.h"
 
 ClassImp(AliHLTMUONConstants);
 
@@ -178,6 +179,14 @@ const AliHLTMUONPairDecisionStruct& AliHLTMUONConstants::NilPairDecisionStruct()
 }
 
 
+const AliHLTMUONPreClusterStruct& AliHLTMUONConstants::NilPreClusterStruct()
+{
+	// Returns a nil precluster structure.
+	static const AliHLTMUONPreClusterStruct nilPreClusterStruct = {0, NULL};
+	return nilPreClusterStruct;
+}
+
+
 const AliHLTComponentDataType& AliHLTMUONConstants::DDLRawDataType()
 {
 	// Returns the raw data type for MUON DDLs.
@@ -263,6 +272,14 @@ const AliHLTComponentDataType& AliHLTMUONConstants::PairsDecisionBlockDataType()
 	// Returns a trigger decision block type for pairs of particles.
 	static const AliHLTComponentDataType pairsDecisionBlockDataType = AliHLTComponentDataTypeInitializer("DECIDPAR", kAliHLTDataOriginMUON);
 	return pairsDecisionBlockDataType;
+}
+
+
+const AliHLTComponentDataType& AliHLTMUONConstants::PreClustersBlockDataType()
+{
+	// Returns a preclusters block type.
+	static const AliHLTComponentDataType preClustersBlockDataType = AliHLTComponentDataTypeInitializer("PRECLUST", kAliHLTDataOriginMUON);
+	return preClustersBlockDataType;
 }
 
 

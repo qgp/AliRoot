@@ -55,6 +55,7 @@ set(SRCS
     AliHLTMUONMansoTrack.cxx
     AliHLTMUONMansoTracksBlockStruct.cxx
     AliHLTMUONPairsDecisionBlockStruct.cxx
+    AliHLTMUONPreClustersBlock.cxx
     AliHLTMUONProcessor.cxx
     AliHLTMUONRecHit.cxx
     AliHLTMUONRecHitsBlockStruct.cxx

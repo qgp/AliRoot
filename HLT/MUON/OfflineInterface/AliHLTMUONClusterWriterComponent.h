@@ -14,7 +14,9 @@
 ///  @brief  cluster writer sink component for the dimuon HLT.
 ///
 
+#include <vector>
 #include "AliHLTDataSink.h"
+#include "AliHLTMUONPreClustersBlock.h"
 
 class TFile;
 class TTree;
@@ -68,10 +70,13 @@ private:
   void CleanMemory();
   
   void StoreClusters(const AliMUONVClusterStore* clStore);
+  void StorePreClusters(int deId);
   
   TFile* fFile; ///< output file
   TTree* fTree; ///< output tree
   AliMUONVClusterStore *fClusterStore; ///< list of clusters in an AliMUONVCluster format
+  AliHLTMUONPreClustersBlock fPreClusterBlock; ///< to read preclusters data blocks
+  std::vector<UInt_t> fDigitIds; ///< Id if digits attached to the current precluster
   
   ClassDef(AliHLTMUONClusterWriterComponent, 0)
 };

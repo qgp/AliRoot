@@ -19,8 +19,8 @@
 #include "AliHLTProcessor.h"
 #include "AliMUONTrackerDDLDecoderEventHandler.h"
 #include "AliMUONTrackerDDLDecoder.h"
+#include "AliHLTMUONPreClustersBlock.h"
 
-class AliMUONVClusterStore;
 class AliMUONVDigitStore;
 
 /**
@@ -59,7 +59,9 @@ protected:
   
   virtual int DoInit(int argc, const char** argv);
   virtual int DoDeinit();
-  virtual int DoEvent(const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData);
+  virtual int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
+                      AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr,
+                      AliHLTUInt32_t& size, AliHLTComponentBlockDataList& outputBlocks);
   using AliHLTProcessor::DoEvent;
   
 private:
@@ -78,7 +80,7 @@ private:
   
   // pad structure in the internal mapping
   struct mpPad {
-    UInt_t id; // unique ID
+    UShort_t iDigit; // index of the corresponding digit
     UChar_t nNeighbours; // number of neighbours
     UShort_t neighbours[10]; // indices of neighbours in array stored in mpDE
     Float_t area[2][2]; // 2D area
@@ -92,6 +94,7 @@ private:
     UShort_t nPads[2]; // number of pads on each plane
     mpPad *pads; // array of pads on both planes
     TExMap padIndices[2]; // indices of pads from their ID
+    std::vector<AliHLTMUONChannelStruct*> digits; // list of digits
     UShort_t nFiredPads[2]; // number of fired pads on each plane
     std::vector<UShort_t> firedPads[2]; // indices of fired pads on each plane
     UShort_t nOrderedPads[2]; // current number of fired pads in the following arrays
@@ -132,17 +135,21 @@ private:
   Bool_t AreOverlapping(preCluster &cl1, preCluster &cl2, mpDE &de, Float_t precision);
   Bool_t AreOverlapping(Float_t area1[2][2], Float_t area2[2][2], Float_t precision);
   
-  void StorePreClusters();
+  //void StorePreClusters();
+  Int_t StorePreClusters(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size);
   
   static const UChar_t fgkNDEs = 156; ///< number of DEs
   
   AliMUONTrackerDDLDecoder<RawDecoderHandler> fRawDecoder; ///< raw decoder
   Bool_t fBadEvent; ///< flag to identify events with raw data decoding issue
+  
   mpDE fMpDEs[fgkNDEs]; ///< internal mapping
   TExMap fDEIndices; ///< maps DE indices from DE IDs
+  
   UShort_t fNPreClusters[fgkNDEs][2]; ///< number of preclusters in each cathods of each DE
   std::vector<preCluster*> fPreClusters[fgkNDEs][2]; ///< list of preclusters in each cathods of each DE
-  AliMUONVClusterStore *fClusterStore; ///< list of preclusters in an AliMUONVCluster format
+  
+  AliHLTMUONPreClustersBlock fPreClusterBlock; ///< to fill preclusters data blocks
   
   ClassDef(AliHLTMUONPreclusterFinderComponent, 0)
 };

@@ -46,7 +46,9 @@ AliHLTMUONClusterWriterComponent::AliHLTMUONClusterWriterComponent() :
 AliHLTDataSink(),
 fFile(0x0),
 fTree(0x0),
-fClusterStore(0x0)
+fClusterStore(0x0),
+fPreClusterBlock(),
+fDigitIds()
 {
   /// Default constructor
 }
@@ -81,6 +83,7 @@ void AliHLTMUONClusterWriterComponent::GetInputDataTypes(AliHLTComponentDataType
   /// Inherited from AliHLTComponent. Returns the list of expected input data types.
   list.clear();
   list.push_back(AliHLTMUONConstants::ClusterStoreDataType());
+  list.push_back(AliHLTMUONConstants::PreClustersBlockDataType());
 }
 
 //_________________________________________________________________________________________________
@@ -145,6 +148,8 @@ int AliHLTMUONClusterWriterComponent::DoInit(int argc, const char** argv)
     return -EIO;
   }
   
+  fDigitIds.reserve(100);
+  
   return 0;
 }
 
@@ -183,21 +188,32 @@ int AliHLTMUONClusterWriterComponent::DumpEvent(const AliHLTComponentEventData& 
   fClusterStore->Clear();
   
   // loop over objects in blocks of data type "ClusterStore"
-  const TObject* pObj = GetFirstInputObject(AliHLTMUONConstants::ClusterStoreDataType());
+  const TObject *pObj = GetFirstInputObject(AliHLTMUONConstants::ClusterStoreDataType());
   while (pObj) {
     
-    // make sure the block indeed contains a cluster store
     const AliMUONVClusterStore *pClStore = dynamic_cast<const AliMUONVClusterStore*>(pObj);
-    if (! pClStore) {
+    if (pClStore) StoreClusters(pClStore);
+    else {
       HLTError("The data block of type \"ClusterStore\" does not contains a cluster store.");
       iResult = -EFTYPE;
-      continue;
     }
     
-    // transfert the clusters to the internal cluster store
-    StoreClusters(pClStore);
-    
     pObj = GetNextInputObject();
+    
+  }
+  
+  // loop over blocks of data type "PreClustersBlock"
+  const AliHLTComponentBlockData *pBlock = GetFirstInputBlock(AliHLTMUONConstants::PreClustersBlockDataType());
+  while (pBlock) {
+    
+    int status = fPreClusterBlock.Reset(pBlock->fPtr, pBlock->fSize, false);
+    if (status >= 0) StorePreClusters(pBlock->fSpecification);
+    else {
+      HLTError("Invalid data block of type \"PreClustersBlock\" for DE %d.",pBlock->fSpecification);
+      iResult = status;
+    }
+    
+    pBlock = GetNextInputBlock();
     
   }
   
@@ -224,6 +240,32 @@ void AliHLTMUONClusterWriterComponent::StoreClusters(const AliMUONVClusterStore*
     
     // add the cluster to the internal store
     if (fClusterStore->Add(*cluster)) ++clIndex;
+    
+  }
+  
+}
+
+//_________________________________________________________________________________________________
+void AliHLTMUONClusterWriterComponent::StorePreClusters(int deId)
+{
+  /// transfert the preclusters to the internal cluster store
+  
+  AliMUONVCluster *cluster(0x0);
+  Int_t clIndex = fClusterStore->GetSize();
+  Int_t chId(deId/100-1);
+  
+  const std::vector<AliHLTMUONPreClusterStruct> &preclusters = fPreClusterBlock.GetPreClusters();
+  for (std::vector<const AliHLTMUONPreClusterStruct>::iterator precluster = preclusters.begin(); precluster != preclusters.end(); ++precluster) {
+    
+    // store a new cluster (its ID has to be unique to add it to the new store)
+    cluster = fClusterStore->Add(chId, deId, clIndex);
+    ++clIndex;
+    
+    // add the list of digit Ids
+    fDigitIds.clear();
+    for (AliHLTUInt32_t iDigit = 0; iDigit < precluster->fNDigits; ++iDigit)
+      fDigitIds.push_back(precluster->fDigits[iDigit].fRawDataWord);
+    cluster->SetDigitsId(precluster->fNDigits, &fDigitIds.front());
     
   }
   

@@ -36,8 +36,6 @@
 #include "AliMUONConstants.h"
 #include "AliMUONVDigit.h"
 #include "AliMUONVDigitStore.h"
-#include "AliMUONVCluster.h"
-#include "AliMUONClusterStoreV2.h"
 
 // MUON mapping
 #include "AliMpDDLStore.h"
@@ -66,7 +64,7 @@ AliHLTProcessor(),
 fRawDecoder(),
 fBadEvent(kFALSE),
 fDEIndices(),
-fClusterStore(0x0)
+fPreClusterBlock()
 {
   /// Default constructor
   fRawDecoder.GetHandler().SetParent(this);
@@ -98,14 +96,14 @@ void AliHLTMUONPreclusterFinderComponent::GetInputDataTypes(AliHLTComponentDataT
 AliHLTComponentDataType AliHLTMUONPreclusterFinderComponent::GetOutputDataType()
 {
   /// Inherited from AliHLTComponent. Returns the output data type.
-  return AliHLTMUONConstants::ClusterStoreDataType();
+  return AliHLTMUONConstants::PreClustersBlockDataType();
 }
 
 //_________________________________________________________________________________________________
 void AliHLTMUONPreclusterFinderComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
 {
   /// Inherited from AliHLTComponent. Returns an estimate of the expected output data size.
-  constBase = sizeof(AliMUONVClusterStore) + 1024*1024;
+  constBase = 1024*1024;
   inputMultiplier = 1;
 }
 
@@ -209,9 +207,6 @@ int AliHLTMUONPreclusterFinderComponent::DoInit(int argc, const char** argv)
     }
   }
   
-  // prepare storage of preclusters in an AliMUONVCluster format
-  fClusterStore = new AliMUONClusterStoreV2();
-  
   return 0;
 }
 
@@ -224,7 +219,12 @@ int AliHLTMUONPreclusterFinderComponent::DoDeinit()
   
   for (UChar_t iDE = 0; iDE < fgkNDEs; ++iDE) {
     
-    delete[] fMpDEs[iDE].pads;
+    mpDE &de(fMpDEs[iDE]);
+    
+    delete[] de.pads;
+    
+    for (UShort_t iDigit = 0; iDigit < static_cast<UShort_t>(de.digits.size()); ++iDigit)
+      delete de.digits[iDigit];
     
     for (UChar_t iPlane = 0; iPlane < 2; ++iPlane) {
       for (UShort_t iCluster = 0; iCluster < static_cast<UShort_t>(fPreClusters[iDE][iPlane].size()); ++iCluster) {
@@ -233,9 +233,6 @@ int AliHLTMUONPreclusterFinderComponent::DoDeinit()
     }
     
   }
-  
-  delete fClusterStore;
-  fClusterStore = 0x0;
   
   AliMpCDB::UnloadAll();
   
@@ -246,35 +243,42 @@ int AliHLTMUONPreclusterFinderComponent::DoDeinit()
 
 //_________________________________________________________________________________________________
 int AliHLTMUONPreclusterFinderComponent::DoEvent(const AliHLTComponentEventData& /*evtData*/,
-                                                 AliHLTComponentTriggerData& /*trigData*/)
+                                                 const AliHLTComponentBlockData* /*blocks*/,
+                                                 AliHLTComponentTriggerData& /*trigData*/,
+                                                 AliHLTUInt8_t* outputPtr,
+                                                 AliHLTUInt32_t& size,
+                                                 AliHLTComponentBlockDataList& /*outputBlocks*/)
 {
   /// Inherited from AliHLTProcessor. Processes the new event data.
-  
-  fBadEvent = kFALSE;
-  Int_t nblocks(0);
-  Int_t specification(0);
   
   // skip non physics events (e.g. SOR, EOR)
   if (!IsDataEvent()) return 0;
   
+  fBadEvent = kFALSE;
+  Bool_t inBlocks = kFALSE;
+  
   // reset fired pad and precluster information
   ResetPadsAndPreclusters();
-  fClusterStore->Clear();
   
   // loop over blocks of the data type "DDLRaw"
   const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(AliHLTMUONConstants::DDLRawDataType());
-  while (pBlock && !fBadEvent) {
+  while (pBlock) {
     
-    ++nblocks;
-    specification |= pBlock->fSpecification;
-    
-    // decode the block to get the fired pads
+    // get the pointer to the begining and the size of the raw data block (after the CDH)
     AliHLTCDHWrapper cdh(pBlock->fPtr);
     AliHLTUInt32_t headerSize = cdh.GetHeaderSize();
     AliHLTUInt32_t totalDDLSize = pBlock->fSize;
     AliHLTUInt32_t ddlRawDataSize = totalDDLSize - headerSize;
-    AliHLTUInt32_t* buffer = reinterpret_cast<AliHLTUInt32_t*>(pBlock->fPtr) + headerSize/sizeof(AliHLTUInt32_t);
+    AliHLTUInt32_t *buffer = reinterpret_cast<AliHLTUInt32_t*>(pBlock->fPtr) + headerSize/sizeof(AliHLTUInt32_t);
+    
+    // decode the block to get the fired pads
     fRawDecoder.Decode(buffer,ddlRawDataSize);
+    if (fBadEvent) {
+      HLTError("Error found while decoding the raw data block.");
+      return -EFTYPE;
+    }
+    
+    inBlocks = kTRUE;
     
     pBlock = GetNextInputBlock();
     
@@ -282,37 +286,33 @@ int AliHLTMUONPreclusterFinderComponent::DoEvent(const AliHLTComponentEventData&
   
   // loop over objects in blocks of data type "DigitStore"
   const TObject* pObj = GetFirstInputObject(AliHLTMUONConstants::DigitStoreDataType());
-  while (pObj && !fBadEvent) {
+  while (pObj) {
     
     // make sure the block indeed contains a digit store
     const AliMUONVDigitStore *pDigitStore = dynamic_cast<const AliMUONVDigitStore*>(pObj);
     if (! pDigitStore) {
       HLTError("The data block of type \"DigitStore\" does not contains a digit store.");
-      fBadEvent = kTRUE;
-      break;
+      return -EFTYPE;
     }
-    
-    ++nblocks;
     
     // load the digits to get the fired pads
     LoadDigits(pDigitStore);
+    
+    inBlocks = kTRUE;
     
     pObj = GetNextInputObject();
     
   }
   
-  if (nblocks > 0 && !fBadEvent) {
+  if (inBlocks) {
     
     // preclusterize each cathod separately then merge them
     PreClusterizeRecursive();
     MergePreClusters();
     
     // store preclusters in a cluster store
-    StorePreClusters();
-    
-    // register preclusters
-    if (fClusterStore->GetSize() > 0)
-      PushBack(fClusterStore, AliHLTMUONConstants::ClusterStoreDataType(), specification);
+    Int_t status = StorePreClusters(outputPtr, size);
+    if (status < 0) return status;
     
   }
   
@@ -360,8 +360,8 @@ void AliHLTMUONPreclusterFinderComponent::CreateMapping()
       
       de.nPads[iPlane[0]] = seg[0]->NofPads();
       de.nPads[iPlane[1]] = seg[1]->NofPads();
-      
       de.pads = new mpPad[de.nPads[0]+de.nPads[1]];
+      de.digits.reserve((de.nPads[0]/10+de.nPads[1]/10)); // 10% occupancy
       de.nOrderedPads[0] = 0;
       de.orderedPads[0].reserve((de.nPads[0]/10+de.nPads[1]/10)); // 10% occupancy
       de.nOrderedPads[1] = 0;
@@ -385,7 +385,7 @@ void AliHLTMUONPreclusterFinderComponent::CreateMapping()
           padId = AliMUONVDigit::BuildUniqueID(deId, pad.GetManuId(), pad.GetManuChannel(), iCath);
           de.padIndices[iPlane[iCath]].Add(padId, iPad);
           
-          de.pads[iPad].id = padId;
+          de.pads[iPad].iDigit = 0;
           de.pads[iPad].nNeighbours = 0;
           de.pads[iPad].area[0][0] = pad.GetPositionX() - pad.GetDimensionX();
           de.pads[iPad].area[0][1] = pad.GetPositionX() + pad.GetDimensionX();
@@ -472,8 +472,16 @@ void AliHLTMUONPreclusterFinderComponent::LoadDigits(const AliMUONVDigitStore* d
     iPlane = (digit->Cathode() == de.iCath[0]) ? 0 : 1;
     iPad = de.padIndices[iPlane].GetValue(digit->GetUniqueID());
     
-    // set this pad as fired
+    // register this digit
+    UShort_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
+    if (iDigit >= static_cast<UShort_t>(de.digits.size())) de.digits.push_back(new AliHLTMUONChannelStruct);
+    AliHLTMUONChannelStruct *digit2 = de.digits[iDigit];
+    digit2->fSignal = static_cast<UShort_t>(digit->ADC());
+    digit2->fRawDataWord = digit->GetUniqueID();
+    de.pads[iPad].iDigit = iDigit;
     de.pads[iPad].useMe = kTRUE;
+    
+    // set this pad as fired
     if (de.nFiredPads[iPlane] < static_cast<UShort_t>(de.firedPads[iPlane].size()))
       de.firedPads[iPlane][de.nFiredPads[iPlane]] = iPad;
     else de.firedPads[iPlane].push_back(iPad);
@@ -490,6 +498,8 @@ void AliHLTMUONPreclusterFinderComponent::ResetPadsAndPreclusters()
   
   AliCodeTimerAutoGeneral("",0);
   
+  mpPad *pad(0x0);
+  
   // loop over DEs
   for (UChar_t iDE = 0; iDE < fgkNDEs; ++iDE) {
     
@@ -504,7 +514,9 @@ void AliHLTMUONPreclusterFinderComponent::ResetPadsAndPreclusters()
       // loop over fired pads
       for (UShort_t iFiredPad = 0; iFiredPad < de.nFiredPads[iPlane]; ++iFiredPad) {
         
-        de.pads[de.firedPads[iPlane][iFiredPad]].useMe = kFALSE;
+        pad = &de.pads[de.firedPads[iPlane][iFiredPad]];
+        pad->iDigit = 0;
+        pad->useMe = kFALSE;
         
       }
       
@@ -773,23 +785,26 @@ Bool_t AliHLTMUONPreclusterFinderComponent::AreOverlapping(Float_t area1[2][2], 
 }
 
 //_________________________________________________________________________________________________
-void AliHLTMUONPreclusterFinderComponent::StorePreClusters()
+Int_t AliHLTMUONPreclusterFinderComponent::StorePreClusters(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size)
 {
   /// store the preclusters into AliMUONVCluster
   
   AliCodeTimerAutoGeneral("",0);
   
   preCluster *cl(0x0);
-  AliMUONVCluster *cluster(0x0);
-  Int_t clusterIndex = fClusterStore->GetSize();
+  AliHLTMUONChannelStruct *digit(0x0);
+  AliHLTUInt32_t totalBytesUsed(0);
+  Int_t status(0);
   
   // loop over DEs
   for (UChar_t iDE = 0; iDE < fgkNDEs; ++iDE) {
     
-    mpDE &de(fMpDEs[iDE]);
+    if (fNPreClusters[iDE][0] + fNPreClusters[iDE][1] == 0) continue;
     
-    // temporary array of IDs
-    UInt_t *digitsId = new UInt_t[de.nOrderedPads[1]];
+    status = fPreClusterBlock.Reset(outputPtr+totalBytesUsed, size-totalBytesUsed, true);
+    if (status < 0) return status;
+    
+    mpDE &de(fMpDEs[iDE]);
     
     // loop over planes
     for (UChar_t iPlane = 0; iPlane < 2; ++iPlane) {
@@ -799,29 +814,36 @@ void AliHLTMUONPreclusterFinderComponent::StorePreClusters()
         
         if (!fPreClusters[iDE][iPlane][iCluster]->storeMe) continue;
         
+        // add the precluster with its first digit
         cl = fPreClusters[iDE][iPlane][iCluster];
-        cluster = fClusterStore->Add(de.id/100-1, de.id, clusterIndex);
-        ++clusterIndex;
+        digit = de.digits[de.pads[de.orderedPads[1][cl->firstPad]].iDigit];
+        status = fPreClusterBlock.StartPreCluster(*digit);
+        if (status < 0) return status;
         
-        // loop over pads
-        Int_t nDigits(0);
-        for (UShort_t iOrderPad = cl->firstPad; iOrderPad <= cl->lastPad; ++iOrderPad) {
+        // loop over other pads and add corresponding digits
+        for (UShort_t iOrderPad = cl->firstPad+1; iOrderPad <= cl->lastPad; ++iOrderPad) {
           
-          digitsId[nDigits] = de.pads[de.orderedPads[1][iOrderPad]].id;
-          ++nDigits;
+          digit = de.digits[de.pads[de.orderedPads[1][iOrderPad]].iDigit];
+          status = fPreClusterBlock.AddDigit(*digit);
+          if (status < 0) return status;
           
         }
-        
-        cluster->SetDigitsId(nDigits, digitsId);
         
       }
       
     }
     
-    // clean memory
-    delete[] digitsId;
+    if (fPreClusterBlock.GetNPreClusters() == 0) continue;
+    
+    // register the preclusters data block for this DE
+    AliHLTUInt32_t bytesUsed(fPreClusterBlock.BytesUsed());
+    status = PushBack(outputPtr+totalBytesUsed, bytesUsed, AliHLTMUONConstants::PreClustersBlockDataType(), de.id);
+    if (status < 0) return status;
+    totalBytesUsed += bytesUsed;
     
   }
+  
+  return status;
   
 }
 
@@ -857,8 +879,16 @@ void AliHLTMUONPreclusterFinderComponent::RawDecoderHandler::OnData(UInt_t data,
   UInt_t padId = AliMUONVDigit::BuildUniqueID(fDetElemId, manuId, manuChannel, iCath);
   UShort_t iPad = de.padIndices[iPlane].GetValue(padId);
   
-  // set this pad as fired
+  // register this digit
+  UShort_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
+  if (iDigit >= static_cast<UShort_t>(de.digits.size())) de.digits.push_back(new AliHLTMUONChannelStruct);
+  AliHLTMUONChannelStruct *digit = de.digits[iDigit];
+  digit->fSignal = adc;
+  digit->fRawDataWord = padId;
+  de.pads[iPad].iDigit = iDigit;
   de.pads[iPad].useMe = kTRUE;
+  
+  // set this pad as fired
   if (de.nFiredPads[iPlane] < static_cast<UShort_t>(de.firedPads[iPlane].size()))
     de.firedPads[iPlane][de.nFiredPads[iPlane]] = iPad;
   else de.firedPads[iPlane].push_back(iPad);
