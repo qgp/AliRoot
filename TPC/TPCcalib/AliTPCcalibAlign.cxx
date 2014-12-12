@@ -502,7 +502,10 @@ void AliTPCcalibAlign::Process(AliVEvent *event) {
     fCurrentSeed=seed0;
     fCurrentEvent=event;
 
-    Double_t scalept= TMath::Min(1./TMath::Abs(track0->GetParameter()[4]),2.);
+    AliExternalTrackParam prm0;
+    track0->GetTrackParam(prm0);
+    Double_t scalept= TMath::Min(1./TMath::Abs(prm0.GetParameter()[4]),2.);
+
     Bool_t   isSelected = (TMath::Exp(2*scalept)>kptDownscale*gRandom->Rndm());
     if (isSelected) ProcessSeed(seed0);
   }
