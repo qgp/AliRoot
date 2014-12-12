@@ -2306,7 +2306,9 @@ void        AliTPCcalibTime::FillResHistoTPC(const AliVTrack * pTrack){
   AliExternalTrackParam * constrainedParam = &cnstrPrm;
   AliExternalTrackParam lits(*constrainedParam);
 
-  if (TMath::Abs(pTrack->GetY())>3) return;  // beam pipe
+  AliExternalTrackParam ptrkprm;
+  pTrack->GetTrackParam(ptrkprm);
+  if (TMath::Abs(ptrkprm.GetY())>3) return;  // beam pipe
   pTPCvertex.Rotate(lits.GetAlpha());
   //pTPCvertex.PropagateTo(pTPCvertex->GetX(),fMagF);
   AliTracker::PropagateTrackToBxByBz(&pTPCvertex,lits.GetX(),0.1,2,kFALSE);
