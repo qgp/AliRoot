@@ -93,7 +93,7 @@ private:
     UChar_t iCath[2]; // cathod index corresponding to each plane
     UShort_t nPads[2]; // number of pads on each plane
     mpPad *pads; // array of pads on both planes
-    TExMap padIndices[2]; // indices of pads from their ID
+    TExMap padIndices[2]; // indices+1 of pads from their ID
     std::vector<AliHLTMUONChannelStruct*> digits; // list of digits
     UShort_t nFiredPads[2]; // number of fired pads on each plane
     std::vector<UShort_t> firedPads[2]; // indices of fired pads on each plane

@@ -383,7 +383,7 @@ void AliHLTMUONPreclusterFinderComponent::CreateMapping()
           AliMpPad pad = padIt->CurrentItem();
           
           padId = AliMUONVDigit::BuildUniqueID(deId, pad.GetManuId(), pad.GetManuChannel(), iCath);
-          de.padIndices[iPlane[iCath]].Add(padId, iPad);
+          de.padIndices[iPlane[iCath]].Add(padId, iPad+1);
           
           de.pads[iPad].iDigit = 0;
           de.pads[iPad].nNeighbours = 0;
@@ -471,6 +471,11 @@ void AliHLTMUONPreclusterFinderComponent::LoadDigits(const AliMUONVDigitStore* d
     mpDE &de(fMpDEs[fDEIndices.GetValue(digit->DetElemId())]);
     iPlane = (digit->Cathode() == de.iCath[0]) ? 0 : 1;
     iPad = de.padIndices[iPlane].GetValue(digit->GetUniqueID());
+    if (iPad == 0) {
+      HLTWarning("pad ID %u does not exist in the mapping");
+      continue;
+    }
+    --iPad;
     
     // register this digit
     UShort_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
@@ -878,6 +883,8 @@ void AliHLTMUONPreclusterFinderComponent::RawDecoderHandler::OnData(UInt_t data,
   // get pad index
   UInt_t padId = AliMUONVDigit::BuildUniqueID(fDetElemId, manuId, manuChannel, iCath);
   UShort_t iPad = de.padIndices[iPlane].GetValue(padId);
+  if (iPad == 0) return;
+  --iPad;
   
   // register this digit
   UShort_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
