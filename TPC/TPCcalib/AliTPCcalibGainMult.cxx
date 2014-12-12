@@ -1942,7 +1942,9 @@ void AliTPCcalibGainMult::ProcessTOF(const AliVEvent *event){
       AliVTrack *track = event->GetVTrack(i);
       if (!track) continue;
       if (!track->IsOn(AliVTrack::kTIME)) continue;
-      if (TMath::Abs(track->GetZ())>kMaxDCAZ) continue;         // remove overlaped events
+      AliExternalTrackParam trkprm;
+      track->GetTrackParam(trkprm);
+      if (TMath::Abs(trkprm.GetZ())>kMaxDCAZ) continue;         // remove overlaped events
       if (TMath::Abs(track->GetTOFsignalDz())>kMaxD) continue;
       Double_t times[1000];
       track->GetIntegratedTimes(times);
@@ -1975,7 +1977,9 @@ void AliTPCcalibGainMult::ProcessTOF(const AliVEvent *event){
     AliVTrack *track = event->GetVTrack(i);
     if (!track) continue;
     if (!track->IsOn(AliVTrack::kTIME)) continue;
-    if (TMath::Abs(track->GetZ())>kMaxDCAZ) continue;          //remove overlapped events
+    AliExternalTrackParam trkprm;
+    track->GetTrackParam(trkprm);
+    if (TMath::Abs(trkprm.GetZ())>kMaxDCAZ) continue;          //remove overlapped events
     if (TMath::Abs(track->GetTOFsignalDz())>kMaxD) continue;
     Double_t times[1000];
     track->GetIntegratedTimes(times);  
