@@ -659,8 +659,10 @@ void  AliTPCcalibAlign::ExportTrackPoints(AliVEvent *event){
   AliESDVertex tpcVtx;
   // get the primary vertex TPC
   if (ntracks>kMinVertexTracks) {
-      if ( (event->GetPrimaryVertexSPD(tpcVtx)) == 0) tpcVertex=&tpcVtx;
-    if (tpcVertex->GetNContributors()<kMinVertexTracks) tpcVertex=0;
+    if ( (event->GetPrimaryVertexSPD(tpcVtx)) == 0 ) {
+      tpcVertex=&tpcVtx;
+      if (tpcVertex->GetNContributors()<kMinVertexTracks) tpcVertex=0;
+    }
   }
   //
   Float_t dca0[2];
