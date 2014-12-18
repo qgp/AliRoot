@@ -166,7 +166,7 @@ void     AliTPCcalibCalib::Process(AliVEvent *event){
     AliExternalTrackParam prmtpcOut;
     if((friendTrack->GetTrackParamTPCOut(prmtpcOut)) < 0) continue;
 
-    TObject *calibObject;
+    AliTPCseed tpcSeed;
     AliTPCseed *seed = 0;
     if (friendTrack->GetTPCseed(tpcSeed)==0) seed=&tpcSeed;
     if (!seed) continue;
