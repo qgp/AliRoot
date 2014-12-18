@@ -844,7 +844,6 @@ void AliTPCcalibTime::ProcessBeam(const AliVEvent *const event){
     if (TMath::Abs(trkprm.GetTgl())>kMaxTgl) continue;
     if (TMath::Abs(track->Pt())<kMinPt) continue;
 
-    TObject *calibObject=0;
     AliTPCseed *seed = 0;
     Int_t nA=0, nC=0;
     AliTPCseed tpcSeed;
@@ -1405,11 +1404,9 @@ void  AliTPCcalibTime::ProcessSame(const AliVTrack *const track, AliVfriendTrack
     //
     // 2. Refit track sepparatel on A and C side
     //
-    TObject *calibObject;
     AliTPCseed *seed = 0;
-    for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
-      if ((seed=dynamic_cast<AliTPCseed*>(calibObject))) break;
-    }
+    AliTPCseed tpcSeed;
+    if (friendTrack->GetTPCseed(tpcSeed)==0) seed=&tpcSeed;
     if (!seed) return;
     //
 

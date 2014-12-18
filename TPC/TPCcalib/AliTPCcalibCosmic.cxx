@@ -1121,12 +1121,8 @@ void AliTPCcalibCosmic::FindCosmicPairs(const AliVEvent *event) {
       AliTPCseed tpcSeed0;
       AliTPCseed tpcSeed1;
       //
-      for (Int_t l=0;(calibObject=friendTrack0->GetCalibObject(l));++l) {
-	if ((seed0=dynamic_cast<AliTPCseed*>(calibObject))) break;
-      }
-      for (Int_t l=0;(calibObject=friendTrack1->GetCalibObject(l));++l) {
-	if ((seed1=dynamic_cast<AliTPCseed*>(calibObject))) break;
-      }
+      if (friendTrack0->GetTPCseed(tpcSeed0)==0) seed0=&tpcSeed0;
+      if (friendTrack1->GetTPCseed(tpcSeed1)==0) seed1=&tpcSeed1;
 
       //
       if (pcstream){

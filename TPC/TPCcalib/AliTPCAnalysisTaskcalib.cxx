@@ -105,9 +105,6 @@ void AliTPCAnalysisTaskcalib::Exec(Option_t *) {
   Int_t run = fV->GetRunNumber();
   for (Int_t i=0;i<n;++i) {
     AliVfriendTrack *friendTrack=const_cast<AliVfriendTrack*>(fVfriend->GetTrack(i));
-    AliVTrack *track=fV->GetVTrack(i);
-    TObject *calibObject=0;
-    AliTPCseed *seed=0;
     if (!friendTrack) continue;
     AliVTrack *track=fV->GetVTrack(i);
     AliTPCseed *seed=0;

@@ -487,9 +487,8 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
     
     // Get seeds
     AliTPCseed *seed = 0;
-    for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
-      if ((seed=dynamic_cast<AliTPCseed*>(calibObject))) break;
-    }
+    AliTPCseed tpcSeed;
+    if (friendTrack->GetTPCseed(tpcSeed)==0) seed=&tpcSeed;
 
     if (seed) {
       Int_t particleCase = 0;
