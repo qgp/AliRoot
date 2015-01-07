@@ -44,7 +44,7 @@ AliAnalysisTaskME::AliAnalysisTaskME():
     fInputHandler(0x0),
     fOutputAOD(0x0),
     fTreeA(0x0),
-    fOfflineTriggerMask(0)
+    fOfflineTriggerMask()
 {
   // Default constructor
 }
@@ -57,7 +57,7 @@ AliAnalysisTaskME::AliAnalysisTaskME(const char* name):
     fInputHandler(0x0),
     fOutputAOD(0x0),
     fTreeA(0x0),
-    fOfflineTriggerMask(0)
+    fOfflineTriggerMask()
 {
   // Default constructor
     DefineInput (0, TChain::Class());
@@ -72,7 +72,7 @@ AliAnalysisTaskME::AliAnalysisTaskME(const AliAnalysisTaskME& obj):
     fInputHandler(0x0),
     fOutputAOD(0x0),
     fTreeA(0x0),
-    fOfflineTriggerMask(0)
+    fOfflineTriggerMask()
 {
 // Copy constructor
     fDebug        = obj.fDebug;
@@ -156,7 +156,7 @@ void AliAnalysisTaskME::Exec(Option_t* option)
 	((AliAnalysisManager::GetAnalysisManager())->GetOutputEventHandler());         
 //
 // Was event selected ? If no event selection mechanism, the event SHOULD be selected (AG)
-    UInt_t isSelected = AliVEvent::kAny;
+    AliBits isSelected = AliVEvent::kAny;
     if(fInputHandler && fInputHandler->GetEventSelection()) {
       // Get the actual offline trigger mask for the event and AND it with the
       // requested mask. If no mask requested select by default the event.

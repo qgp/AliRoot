@@ -11,6 +11,7 @@
 //-------------------------------------------------------------------------
 
 #include <TNamed.h>
+#include "AliBits.h"
 
 class AliVCuts : public TNamed {
 
@@ -22,6 +23,7 @@ class AliVCuts : public TNamed {
   AliVCuts& operator=(const AliVCuts& evt);
   virtual Bool_t IsSelected(TObject* /* obj  */)  = 0;
   virtual UInt_t GetSelectionMask(const TObject* /* obj */) { return 0; }
+  virtual AliBits GetSelectionBits(const TObject* /* obj */) { return AliBits(); }
   virtual TObject *GetStatistics(Option_t *) const {return 0;}
   ClassDef(AliVCuts,1);
 };

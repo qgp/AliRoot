@@ -153,10 +153,10 @@ Bool_t AliMultiEventInputHandler::BeginEvent(Long64_t /*entry*/)
   // Event selection
   // 
     if (fFormat == 0) {
-      fIsSelectedResult = 0;
+      fIsSelectedResult = AliBits();
       if (fEventCuts && !IsUserCallSelectionMask())
 	fIsSelectedResult = 
-	  fEventCuts->GetSelectionMask((AliESDEvent*)fEventBuffer[fIndex]); 
+	  fEventCuts->GetSelectionBits((AliESDEvent*)fEventBuffer[fIndex]); 
     }
     
     return kTRUE;

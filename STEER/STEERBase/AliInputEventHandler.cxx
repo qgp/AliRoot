@@ -38,7 +38,7 @@ AliInputEventHandler::AliInputEventHandler() :
     fInputFileName(),
     fNewEvent(kTRUE),
     fEventCuts(0),
-    fIsSelectedResult(0),
+    fIsSelectedResult(),
     fMixingHandler(0),
     fParentHandler(0),
     fUserInfo(0)
@@ -61,7 +61,7 @@ AliInputEventHandler::AliInputEventHandler(const char* name, const char* title):
     fInputFileName(),
     fNewEvent(kTRUE),
     fEventCuts(0),
-    fIsSelectedResult(0),
+    fIsSelectedResult(),
     fMixingHandler(0),
     fParentHandler(0),
     fUserInfo(0)

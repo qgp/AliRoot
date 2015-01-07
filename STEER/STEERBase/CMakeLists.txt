@@ -132,6 +132,7 @@ set(SRCS
     AliVVZERO.cxx
     AliVZDC.cxx
     TTreeStream.cxx
+    AliBits.cxx
    )
 
 # Headers from sources

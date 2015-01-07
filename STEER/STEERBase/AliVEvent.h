@@ -26,6 +26,7 @@
 #include "AliTOFHeader.h"
 #include "AliVTrdTrack.h"
 #include "AliVMultiplicity.h"
+#include "AliBits.h"
 class AliVfriendEvent;
 class AliCentrality;
 class AliEventplane;
@@ -37,53 +38,77 @@ class AliESDv0;
 class AliESDVertex;
 class AliVTrack;
 
+
 class AliVEvent : public TObject {
 
 public:
   enum EDataLayoutType { kESD, kMC, kAOD, kMixed, kFlat };
-  enum EOfflineTriggerTypes { 
-      kMB           = BIT(0), // Minimum bias trigger, i.e. interaction trigger, offline SPD or V0 selection
-      kINT7         = BIT(1), // V0AND trigger, offline V0 selection
-      kMUON         = BIT(2), // Muon trigger, offline SPD or V0 selection
-      kHighMult     = BIT(3), // High-multiplicity trigger (threshold defined online), offline SPD or V0 selection
-      kEMC1         = BIT(4), // EMCAL trigger
-      kCINT5        = BIT(5), // Minimum bias trigger without SPD. i.e. interaction trigger, offline V0 selection
-      kCMUS5        = BIT(6), // Muon trigger, offline V0 selection
-      kMUSPB        = BIT(6), // idem for PbPb
-      kMUSH7        = BIT(7), // Muon trigger: high pt, single muon, offline V0 selection, CINT7 suite
-      kMUSHPB       = BIT(7), // idem for PbPb
-      kMUL7         = BIT(8), // Muon trigger: like sign dimuon, offline V0 selection, CINT7 suite
-      kMuonLikePB   = BIT(8), // idem for PbPb
-      kMUU7         = BIT(9), // Muon trigger, unlike sign dimuon, offline V0 selection, CINT7 suite
-      kMuonUnlikePB = BIT(9), // idem for PbPb
-      kEMC7         = BIT(10), // EMCAL trigger, CINT7 suite
-      kEMC8         = BIT(10), // EMCAL trigger, CINT8 suite
-      kMUS7         = BIT(11), // Muon trigger: low pt, single muon, offline V0 selection, CINT7 suite
-      kPHI1         = BIT(12), // PHOS trigger, CINT1 suite
-      kPHI7         = BIT(13), // PHOS trigger, CINT7 suite
-      kPHI8         = BIT(13), // PHOS trigger, CINT8 suite
-      kPHOSPb       = BIT(13), // idem for PbPb
-      kEMCEJE       = BIT(14), // EMCAL jet patch trigger
-      kEMCEGA       = BIT(15), // EMCAL gamma trigger
-      kCentral      = BIT(16), // PbPb central collision trigger
-      kSemiCentral  = BIT(17), // PbPb semicentral collision trigger
-      kDG5          = BIT(18), // Double gap diffractive
-      kZED          = BIT(19), // ZDC electromagnetic dissociation
-      kSPI7         = BIT(20), // Power interaction trigger
-      kSPI          = BIT(20), // Power interaction trigger
-      kINT8                 = BIT(21), // CINT8 trigger: 0TVX (T0 vertex) triger
-      kMuonSingleLowPt8     = BIT(22), // Muon trigger : single muon, low pt, T0 selection, CINT8 suite
-      kMuonSingleHighPt8    = BIT(23), // Muon trigger : single muon, high pt, T0 selection, CINT8 suite
-      kMuonLikeLowPt8       = BIT(24), // Muon trigger : like sign muon, low pt, T0 selection, CINT8 suite
-      kMuonUnlikeLowPt8     = BIT(25), // Muon trigger : unlike sign muon, low pt, T0 selection, CINT8 suite
-      kMuonUnlikeLowPt0     = BIT(26), // Muon trigger : unlike sign muon, low pt, no additional L0 requirement
-      kUserDefined  = BIT(27), // Set when custom trigger classes are set in AliPhysicsSelection, offline SPD or V0 selection
-      kTRD          = BIT(28), // TRD trigger
-      // Bits 29 and above are reserved for FLAGS
-      kFastOnly     = BIT(30), // The fast cluster fired. This bit is set in to addition another trigger bit, e.g. kMB
-      kAny          = 0xffffffff, // to accept any trigger
-      kAnyINT       = kMB | kINT7 | kCINT5 | kINT8 | kSPI7 // to accept any interaction (aka minimum bias) trigger
-  };
+  typedef AliBits EOfflineTriggerTypes;
+  static const Int_t NTRIGGERBITS;
+  static const AliBits kMB;                // Minimum bias [INT1 = (V0A | V0C | SPD) in pp] or [PBI = (V0A & V0C & ZDCtime) in PbPb2011] 
+  static const AliBits kINT7;              // Minimum bias INT7 = V0A & V0C
+  static const AliBits kMUON;              // low-pt single muon, INT1 suite
+  static const AliBits kHighMult;          // High-multiplicity trigger (threshold defined online)
+  static const AliBits kEMC1;              // EMCAL L0 trigger, INT1 suite
+  static const AliBits kCINT5;             // Minimum bias INT5 = V0A | V0C
+  static const AliBits kCMUS5;             // low-pt single muon, INT5 suite
+  static const AliBits kMUSPB;             // low-pt single muon, PBI suite
+  static const AliBits kMUSH7;             // high-pt single muon, INT7 suite
+  static const AliBits kMUSHPB;            // high-pt single muon, PBI suite
+  static const AliBits kMUL7;              // low-pt like sign dimuon, INT7 suite
+  static const AliBits kMuonLikePB;        // low-pt like sign dimuon, PBI suite
+  static const AliBits kMUU7;              // low-pt unlike sign dimuon, INT7 suite
+  static const AliBits kMuonUnlikePB;      // low-pt unlike sign dimuon, PBI suite
+  static const AliBits kEMC7;              // EMCAL L0 trigger, INT7 suite
+  static const AliBits kMUS7;              // low-pt single muon, INT7 suite
+  static const AliBits kPHI1;              // PHOS L0 trigger, INT1 suite
+  static const AliBits kPHI7;              // PHOS L0 trigger, INT7 suite
+  static const AliBits kPHOSPb;            // PHOS L0 trigger, PBI suite
+  static const AliBits kEMCEJE;            // EMCAL L1 jet trigger
+  static const AliBits kEMCEGA;            // EMCAL L1 gamma trigger
+  static const AliBits kCentral;           // Central PbPb trigger
+  static const AliBits kSemiCentral;       // Semicentral PbPb trigger
+  static const AliBits kDG5;               // Double gap diffractive
+  static const AliBits kZED;               // ZDC electromagnetic dissociation
+  static const AliBits kSPI7;              // Power interaction trigger, INT7 suite
+  static const AliBits kSPI;               // Power interaction trigger
+  static const AliBits kINT8;              // INT8 = 0TVX = T0-vertex requirement
+  static const AliBits kMuonSingleLowPt8;  // low-pt single muon, INT8 suite
+  static const AliBits kMuonSingleHighPt8; // high-pt single muon, INT8 suite
+  static const AliBits kMuonLikeLowPt8;    // low-pt like sign dimuon, INT8 suite
+  static const AliBits kMuonUnlikeLowPt8;  // low-pt unlike sign dimuon, INT8 suite
+  static const AliBits kMuonUnlikeLowPt0;  // low-pt unlike sign dimuon, no additional requirement
+  static const AliBits kUserDefined;       // Set when custom trigger classes are set in AliPhysicsSelection
+  static const AliBits kTRD;               // Mixture of TRD triggers
+  static const AliBits kUserDefined2;      // Set when custom trigger classes are set in AliPhysicsSelection
+  static const AliBits kFastOnly;          // The fast cluster fired. Set in addition to another trigger bit
+  static const AliBits kUserDefined3;      // Set when custom trigger classes are set in AliPhysicsSelection
+  static const AliBits kAny;               // Accept any trigger
+  static const AliBits kAnyINT;            // Any interaction (minimum bias) trigger
+  static const AliBits kPHI8;              // PHOS L0 trigger, INT8 suite
+  static const AliBits kEmcalL1GammaHigh7; // EMCAL L1 gamma trigger, high threshold, INT7 suite
+  static const AliBits kEmcalL1GammaLow7;  // EMCAL L1 gamma trigger, low threshold, INT7 suite
+  static const AliBits kEmcalL1JetHigh7;   // EMCAL L1 jet trigger, high threshold, INT7 suite
+  static const AliBits kEmcalL1JetLow7;    // EMCAL L1 jet trigger, low threshold, INT7 suite
+  static const AliBits kEMC8;              // EMCAL L0 trigger, INT8 suite
+  static const AliBits kEmcalL1GammaHigh8; // EMCAL L1 gamma trigger, high threshold, INT8 suite
+  static const AliBits kEmcalL1GammaLow8;  // EMCAL L1 gamma trigger, low threshold, INT8 suite
+  static const AliBits kEmcalL1JetHigh8;   // EMCAL L1 jet trigger, high threshold, INT8 suite
+  static const AliBits kEmcalL1JetLow8;    // EMCAL L1 jet trigger, low threshold, INT8 suite
+  static const AliBits kINT7HJT;           // TRD jet trigger, INT7 suite
+  static const AliBits kINT7HSE;           // TRD high-pt electron trigger, INT7 suite
+  static const AliBits kINT7HQU;           // TRD quarkonium trigger, INT7 suite
+  static const AliBits kEMC7HQU;           // TRD quarkonium trigger + EMCAL L0, INT7 suite
+  static const AliBits kEMC7HEE;           // TRD high-pt electron trigger in EMCAL acceptance + EMCAL L0, INT7 suite
+  static const AliBits kINT8HJT;           // TRD jet trigger, INT7 suite
+  static const AliBits kINT8HSE;           // TRD high-pt electron trigger, INT7 suite
+  static const AliBits kINT8HQU;           // TRD quarkonium trigger, INT7 suite
+  static const AliBits kEMC8HQU;           // TRD quarkonium trigger + EMCAL L0, INT7 suite
+  static const AliBits kEMC8HEE;           // TRD high-pt electron trigger in EMCAL acceptance + EMCAL L0, INT7 suite
+  static const AliBits kSPI8;              // Power interaction trigger, INT8 suite
+  static const AliBits kSTP;               // SPD topology trigger (2 hits in layer0 + 2 hits in layer1 + topology)
+  static const AliBits kOMU;               // TOF topology trigger (2 hits back-to-back)
+  static const AliBits kCUP7;              // Central barrel ultra-peripheral trigger (SPD and TOF topology, V0 veto)
 
   AliVEvent() { }
   virtual ~AliVEvent() { } 

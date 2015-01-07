@@ -134,9 +134,9 @@ Bool_t AliESDInputHandler::BeginEvent(Long64_t entry)
   //
   // Event selection
   // 
-  fIsSelectedResult = 0;
+  fIsSelectedResult = AliBits();
   if (fEventCuts && !IsUserCallSelectionMask())
-      fIsSelectedResult = fEventCuts->GetSelectionMask((AliESDEvent*)fEvent); 
+      fIsSelectedResult = fEventCuts->GetSelectionBits((AliESDEvent*)fEvent); 
   //
   // Friends
   ((AliESDEvent*)fEvent)->SetESDfriend(fFriend);
@@ -162,7 +162,7 @@ void AliESDInputHandler::CheckSelectionMask()
 {
 // This method can be called by a task only if IsUserCallSelectionMask is true.
    if (!fEventCuts || !IsUserCallSelectionMask()) return;
-   fIsSelectedResult = fEventCuts->GetSelectionMask((AliESDEvent*)fEvent);
+   fIsSelectedResult = fEventCuts->GetSelectionBits((AliESDEvent*)fEvent);
 }
 
 //______________________________________________________________________________

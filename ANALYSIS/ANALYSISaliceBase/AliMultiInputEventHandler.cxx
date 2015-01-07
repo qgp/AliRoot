@@ -251,7 +251,7 @@ Option_t *AliMultiInputEventHandler::GetDataType() const
 }
 
 //______________________________________________________________________________
-UInt_t  AliMultiInputEventHandler::IsEventSelected() 
+AliBits  AliMultiInputEventHandler::IsEventSelected() 
 {
   // returns if event is selected
   

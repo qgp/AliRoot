@@ -205,7 +205,7 @@ void AddAnalysisTasks(Int_t merge, const char *cdb_location){
       AliAnalysisTaskSEVertexingHF *taskvertexingHF = AddTaskVertexingHF();
       if (!taskvertexingHF) ::Warning("AnalysisTrainNew", "AliAnalysisTaskSEVertexingHF cannot run for this train conditions - EXCLUDED");
       else mgr->RegisterExtraFile("AliAOD.VertexingHF.root");
-      taskvertexingHF->SelectCollisionCandidates(0);
+      taskvertexingHF->SelectCollisionCandidates(AliBits());
    }   
       
    // PWGDQ JPSI filtering (only pp)
@@ -214,7 +214,7 @@ void AddAnalysisTasks(Int_t merge, const char *cdb_location){
       AliAnalysisTaskSE *taskJPSIfilter = AddTaskJPSIFilter();
       if (!taskJPSIfilter) ::Warning("AnalysisTrainNew", "AliAnalysisTaskDielectronFilter cannot run for this train conditions - EXCLUDED");
       else mgr->RegisterExtraFile("AliAOD.Dielectron.root");
-      taskJPSIfilter->SelectCollisionCandidates(0);
+      taskJPSIfilter->SelectCollisionCandidates(AliBits());
    }   
 
    // PWGHF D2h

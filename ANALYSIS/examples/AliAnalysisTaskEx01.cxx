@@ -182,14 +182,14 @@ void AliAnalysisTaskEx01::UserExec(Option_t *)
     // === Physics Selection Task ===
     // 
     // To perform a physics selection here, a bitwise operation is used against
-    // the UInt_t mask which is extracted in the following way:
+    // the AliBits mask which is extracted in the following way:
     //
-    //  UInt_t mask = ((AliInputEventHandler*)(AliAnalysisManager::GetAnalysisManager()->GetInputEventHandler()))->IsEventSelected();   
+    //  AliBits mask = fInputHandler->IsEventSelected();   
     //
     // This can be tested to produce the following
     //
-    //  Bool_t bMinBias = (mask == AliVEvent::kMB) ? 1 : 0; // check if minimum bias trigger class fired
-    //  Bool_t bHighMult = (mask == AliVEvent::kHighMult) ? 1 : 0; // check if high multiplicity trigger class fired
+    //  Bool_t bMinBias = (mask & AliVEvent::kMB) ? 1 : 0; // check if minimum bias trigger class fired
+    //  Bool_t bHighMult = (mask & AliVEvent::kHighMult) ? 1 : 0; // check if high multiplicity trigger class fired
     //
     // For more complicated trigger selections, one can directly test both
     // trigger classes and fired trigger inputs for a particular event, for e.g.

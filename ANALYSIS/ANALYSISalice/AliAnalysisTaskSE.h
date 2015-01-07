@@ -8,6 +8,7 @@
 
 #include "AliAnalysisTask.h"
 #include "AliVEvent.h"
+#include "AliBits.h"
 
 class AliAODEvent;
 class AliAODHeader;
@@ -53,7 +54,8 @@ class AliAnalysisTaskSE : public AliAnalysisTask
     // Helpers for adding branches to the AOD
     virtual void   AddAODBranch(const char* cname, void* addobj, const char *fname="");
     // Event Selection
-    virtual void   SelectCollisionCandidates(UInt_t offlineTriggerMask = AliVEvent::kMB) {fOfflineTriggerMask = offlineTriggerMask;}
+    virtual void   SelectCollisionCandidates(AliBits offlineTriggerMask = AliVEvent::kMB) {fOfflineTriggerMask = offlineTriggerMask;}
+
     // Loading the declared input branches
     void           LoadBranches() const;
  // Getters
@@ -69,7 +71,7 @@ class AliAnalysisTaskSE : public AliAnalysisTask
     virtual Bool_t        IsStandardAOD() const;
     virtual TList*        GetQAHistos()   const {return fHistosQA;}
     virtual Bool_t        IsEventInBinZero() { return kFALSE;}
-    virtual UInt_t        GetCollisionCandidates() const { return fOfflineTriggerMask;}
+    virtual AliBits       GetCollisionCandidates() const { return fOfflineTriggerMask;}
  protected:
     void ConnectMultiHandler();
     void DisconnectMultiHandler();
@@ -107,11 +109,11 @@ class AliAnalysisTaskSE : public AliAnalysisTask
     static TClonesArray*    fgAODDimuons;       //! Dimuons replication
     static TClonesArray*    fgAODHmpidRings;    //! HMPID replication
     // Event Selection
-    UInt_t fOfflineTriggerMask;   //  Task processes collision candidates only
+    AliBits fOfflineTriggerMask;   //  Task processes collision candidates only
     // Event Mixing
     AliMultiInputEventHandler *fMultiInputHandler;  //! pointer to multihandler
     AliInputEventHandler      *fMCEventHandler;     //! pointer to MCEventHandler
-    ClassDef(AliAnalysisTaskSE, 4); // Analysis task for standard jet analysis
+    ClassDef(AliAnalysisTaskSE, 5); // Analysis task for standard jet analysis
 };
  
 #endif

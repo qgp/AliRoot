@@ -3,7 +3,7 @@
 
 #include "AliVAODHeader.h"
 #include "AliNanoAODStorage.h"
-
+#include "AliBits.h"
 
 
 class AliNanoAODHeader : public AliVAODHeader, public AliNanoAODStorage
@@ -68,7 +68,7 @@ public:
   virtual Float_t        GetVZEROEqFactors(Int_t /* i */) const {AliError("Not Implemented"); return 0;};
   virtual void           SetVZEROEqFactors(const Float_t* /*factors*/) {AliError("Not Implemented"); } 
 
-  virtual UInt_t GetOfflineTrigger()  {AliError("Not Implemented"); return 0;};
+  virtual AliBits GetOfflineTrigger()  {AliError("Not Implemented"); return AliBits();};
 
 
   virtual void Print(Option_t* /*option = ""*/) const  {Printf("I'm a special header!");}
@@ -84,7 +84,7 @@ public:
   Double_t  GetMagneticField()      const { return GetVar(1); }
   Double_t  GetCentrality (/*estimator = "V0M"*/) const { return GetVar(0);}
   
-  ClassDef(AliNanoAODHeader, 1)
+  ClassDef(AliNanoAODHeader, 2)
 
 };
 

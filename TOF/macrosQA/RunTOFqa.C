@@ -5,12 +5,12 @@ void LoadLibraries();
 AliAnalysisAlien* CreateAlienHandler(const char *plugin_mode);
 
 Int_t  iCollisionType = 0;
-UInt_t kTriggerInt = AliVEvent::kAnyINT;
-UInt_t kTriggerMuonAll = AliVEvent::kMUL7 | AliVEvent::kMUSH7 | AliVEvent::kMUU7 | AliVEvent::kMUS7;
-UInt_t kTriggerMuonBarell = AliVEvent::kMUU7;
-UInt_t kTriggerEMC = AliVEvent::kEMC7;
-UInt_t kTriggerHM  = AliVEvent::kHighMult;
-UInt_t kTriggerMask = kTriggerInt;
+AliBits kTriggerInt = AliVEvent::kAnyINT;
+AliBits kTriggerMuonAll = AliVEvent::kMUL7 | AliVEvent::kMUSH7 | AliVEvent::kMUU7 | AliVEvent::kMUS7;
+AliBits kTriggerMuonBarell = AliVEvent::kMUU7;
+AliBits kTriggerEMC = AliVEvent::kEMC7;
+AliBits kTriggerHM  = AliVEvent::kHighMult;
+AliBits kTriggerMask = kTriggerInt;
 TString grid_datadir = "/alice/data/2011/LHC11h/";
 TString data_pattern = "*ESDs/pass1_std/*ESDs.root";
 Int_t runNumbers[5] = {166532};

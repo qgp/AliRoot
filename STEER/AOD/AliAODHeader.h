@@ -19,6 +19,7 @@
 #include <TBits.h>
 #include "AliCentrality.h"
 #include "AliEventplane.h"
+#include "AliBits.h"
 
 class TGeoHMatrix;
 class TString;
@@ -180,8 +181,8 @@ class AliAODHeader : public AliVAODHeader {
       return ((i >= 0) && (i < kNEMCALMatrix)) ? fEMCALMatrix[i] : NULL;
   }
   
-  UInt_t GetOfflineTrigger() { return fOfflineTrigger; }
-  void   SetOfflineTrigger(UInt_t trigger) { fOfflineTrigger = trigger; }
+  AliBits GetOfflineTrigger() { return fOfflineTrigger; }
+  void   SetOfflineTrigger(AliBits trigger) { fOfflineTrigger = trigger; }
   UInt_t GetNumberOfITSClusters(Int_t ilay) const {return fITSClusters[ilay];}
   void   SetITSClusters(Int_t ilay, UInt_t nclus);
   Int_t  GetTPConlyRefMultiplicity() const {return fTPConlyRefMult;}
@@ -252,7 +253,7 @@ class AliAODHeader : public AliVAODHeader {
   Double32_t      fDiamondSig2Z;    // Interaction diamond sigma^2 (z) in RUN
   TGeoHMatrix*    fPHOSMatrix[kNPHOSMatrix];   //PHOS module position and orientation matrices
   TGeoHMatrix*    fEMCALMatrix[kNEMCALMatrix]; //EMCAL supermodule position and orientation matrices
-  UInt_t      fOfflineTrigger;      // fired offline triggers for this event
+  AliBits     fOfflineTrigger;      // fired offline triggers for this event
   TString     fESDFileName;         // ESD file name to which this event belongs
   Int_t       fEventNumberESDFile;  // Event number in ESD file
   Int_t       fNumberESDTracks;     // Number of tracks in origingal ESD event

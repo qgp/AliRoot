@@ -193,7 +193,7 @@ void AliAnalysisStatistics::Print(const Option_t *) const
 }
 
 //______________________________________________________________________________
-const char *AliAnalysisStatistics::GetMaskAsString(UInt_t mask)
+const char *AliAnalysisStatistics::GetMaskAsString(AliBits mask)
 {
 // Returns a string corresponding to the offline mask.
    static TString smask;

@@ -261,7 +261,7 @@ void AddAnalysisTasks(const char *cdb_location){
       AliAnalysisTaskSEVertexingHF *taskvertexingHF = AddTaskVertexingHF();
       if (!taskvertexingHF) ::Warning("AnalysisTrainNew", "AliAnalysisTaskSEVertexingHF cannot run for this train conditions - EXCLUDED");
       else mgr->RegisterExtraFile("AliAOD.VertexingHF.root");
-      taskvertexingHF->SelectCollisionCandidates(0);
+      taskvertexingHF->SelectCollisionCandidates(AliBits());
    }   
       
    // PWGDQ JPSI filtering (only pp)
@@ -270,7 +270,7 @@ void AddAnalysisTasks(const char *cdb_location){
       AliAnalysisTaskSE *taskJPSIfilter = AddTaskJPSIFilter();
       if (!taskJPSIfilter) ::Warning("AnalysisTrainNew", "AliAnalysisTaskDielectronFilter cannot run for this train conditions - EXCLUDED");
       else mgr->RegisterExtraFile("AliAOD.Dielectron.root");
-      taskJPSIfilter->SelectCollisionCandidates(0);
+      taskJPSIfilter->SelectCollisionCandidates(AliBits());
    }   
 
    // PWGHF D2h
@@ -380,8 +380,8 @@ Bool_t LoadAnalysisLibraries()
 {
 // Load common analysis libraries.
    if (useTender || doCDBconnect) {
-      if (!LoadLibrary("Tender") ||
-          !LoadLibrary("TenderSupplies")) return kFALSE;
+      if (!LoadLibrary("TENDER") ||
+          !LoadLibrary("TENDERSupplies")) return kFALSE;
    }       
    // CDBconnect
    if (doCDBconnect && !useTender) {
@@ -450,8 +450,8 @@ Bool_t LoadLibrary(const char *module)
       return kTRUE;
    } 
    // Check if the library is already loaded
-   if (strlen(gSystem->GetLibraries(module, "", kFALSE)) > 0) return kTRUE;    
-   result = gSystem->Load(Form("lib%s", module));
+   if (strlen(gSystem->GetLibraries(Form("%s.so", module), "", kFALSE)) > 0) return kTRUE;    
+   result = gSystem->Load(Form("lib%s.so", module));
    if (result < 0) {
       ::Error("AnalysisTrainNew.C::LoadLibrary", "Could not load module %s", module);
       return kFALSE;

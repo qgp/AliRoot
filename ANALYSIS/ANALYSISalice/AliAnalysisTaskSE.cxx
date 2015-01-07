@@ -86,7 +86,7 @@ AliAnalysisTaskSE::AliAnalysisTaskSE():
     fTreeA(0x0),
     fCurrentRunNumber(-1),
     fHistosQA(0x0),
-    fOfflineTriggerMask(0),
+    fOfflineTriggerMask(),
     fMultiInputHandler(0),
     fMCEventHandler(0)
 {
@@ -105,7 +105,7 @@ AliAnalysisTaskSE::AliAnalysisTaskSE(const char* name):
     fTreeA(0x0),
     fCurrentRunNumber(-1),
     fHistosQA(0x0),
-    fOfflineTriggerMask(0),
+    fOfflineTriggerMask(),
     fMultiInputHandler(0),
     fMCEventHandler(0)
 {
@@ -126,7 +126,7 @@ AliAnalysisTaskSE::AliAnalysisTaskSE(const AliAnalysisTaskSE& obj):
     fTreeA(0x0),
     fCurrentRunNumber(-1),
     fHistosQA(0x0),
-    fOfflineTriggerMask(0),
+    fOfflineTriggerMask(),
     fMultiInputHandler(obj.fMultiInputHandler),
     fMCEventHandler(obj.fMCEventHandler)
 {
@@ -358,7 +358,7 @@ void AliAnalysisTaskSE::Exec(Option_t* option)
     AliAODInputHandler* aodH = dynamic_cast<AliAODInputHandler*>(fInputHandler);
 //
 // Was event selected ? If no event selection mechanism, the event SHOULD be selected (AG)
-    UInt_t isSelected = AliVEvent::kAny;
+    AliBits isSelected = AliVEvent::kAny;
     if( fInputHandler && (fInputHandler->GetEventSelection() || aodH)) {
       // Get the actual offline trigger mask for the event and AND it with the
       // requested mask. If no mask requested select by default the event.

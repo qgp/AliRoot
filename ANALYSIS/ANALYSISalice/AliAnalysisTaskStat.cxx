@@ -56,7 +56,7 @@ AliAnalysisTaskStat::~AliAnalysisTaskStat()
 } 
     
 //______________________________________________________________________________
-AliAnalysisTaskStat *AliAnalysisTaskStat::AddToManager(UInt_t offlineMask)
+AliAnalysisTaskStat *AliAnalysisTaskStat::AddToManager(AliBits offlineMask)
 {
 // Add this task to the analysis manager. By default it selects MB events.
   AliAnalysisManager *mgr = AliAnalysisManager::GetAnalysisManager();

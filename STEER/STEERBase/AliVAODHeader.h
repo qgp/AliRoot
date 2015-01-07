@@ -19,6 +19,7 @@
 #include <TBits.h>
 #include "AliCentrality.h"
 #include "AliEventplane.h"
+#include "AliBits.h"
 
 class TGeoHMatrix;
 class TString;
@@ -75,7 +76,7 @@ class AliVAODHeader : public AliVHeader {
   virtual const Float_t* GetVZEROEqFactors()                const  = 0;
   virtual Float_t        GetVZEROEqFactors(Int_t /* i */)   const  = 0;
   virtual void           SetVZEROEqFactors(const Float_t* /*factors*/)  = 0;
-  virtual UInt_t         GetOfflineTrigger()  = 0;
+  virtual AliBits        GetOfflineTrigger()  = 0;
   virtual Int_t          GetRefMultiplicity()    const  =0;
   virtual Double_t       GetEventplane()         const =0;
 

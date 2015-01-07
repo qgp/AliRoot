@@ -34,7 +34,7 @@ public:
   virtual ~AliAnalysisTaskStat();
 
   // Static method to add to the analysis manager
-  static AliAnalysisTaskStat *AddToManager(UInt_t offlineMask=0);
+  static AliAnalysisTaskStat *AddToManager(AliBits offlineMask);
 
   // Implementation of interface methods
   virtual void UserCreateOutputObjects();

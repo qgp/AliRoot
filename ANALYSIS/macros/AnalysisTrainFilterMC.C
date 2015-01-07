@@ -651,7 +651,7 @@ void AddAnalysisTasks(){
       // Now we need to keep in sync with the ESD filter
       if (!taskvertexingHF) ::Warning("AnalysisTrainNew", "AliAnalysisTaskSEVertexingHF cannot run for this train conditions - EXCLUDED");
       else mgr->RegisterExtraFile("AliAOD.VertexingHF.root");
-      taskvertexingHF->SelectCollisionCandidates(0);
+      taskvertexingHF->SelectCollisionCandidates(AliBits());
    }   
       
    // PWG3 electrons
@@ -667,7 +667,7 @@ void AddAnalysisTasks(){
       AliAnalysisTaskSE *taskJPSIfilter = AddTaskJPSIFilter();
       if (!taskJPSIfilter) ::Warning("AnalysisTrainNew", "AliAnalysisTaskDielectronFilter cannot run for this train conditions - EXCLUDED");
       else mgr->RegisterExtraFile("AliAOD.Dielectron.root");
-      taskJPSIfilter->SelectCollisionCandidates(0);
+      taskJPSIfilter->SelectCollisionCandidates(AliBits());
    }   
 
    // PWG3 JPSI

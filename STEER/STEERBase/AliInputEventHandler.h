@@ -12,7 +12,7 @@
 
 #include "AliVEventHandler.h"
 #include <TTree.h>
-
+#include "AliBits.h"
 
 class AliVCuts;
 class AliRunTag;
@@ -69,7 +69,7 @@ class AliInputEventHandler : public AliVEventHandler {
     virtual Bool_t       IsUserCallSelectionMask() const              {return TObject::TestBit(kUserCallSelectionMask);}
     virtual Bool_t       NewEvent()
 	{Bool_t ne = fNewEvent; fNewEvent = kFALSE; return ne;}
-    virtual UInt_t       IsEventSelected() 
+    virtual AliBits      IsEventSelected() 
         {return fIsSelectedResult;}
     virtual AliMCEvent*  MCEvent() const			      {return 0;}
     TList       *GetUserInfo() const                         {return fUserInfo;}
@@ -97,11 +97,11 @@ class AliInputEventHandler : public AliVEventHandler {
     TString         fInputFileName; // Name of the input file
     Bool_t          fNewEvent;     //  New event flag 
     AliVCuts*       fEventCuts;    //  Cuts on the event level
-    UInt_t          fIsSelectedResult; //  Selection result
+    AliBits         fIsSelectedResult; //  Selection result
     AliInputEventHandler* fMixingHandler; // Optionla plugin for mixing
     AliInputEventHandler* fParentHandler; // optional pointer to parent handlers (used in AliMultiInputEventHandler)
     TList           *fUserInfo;     //! transient user info for current tree
-    ClassDef(AliInputEventHandler, 7);
+    ClassDef(AliInputEventHandler, 8);
 };
 
 #endif

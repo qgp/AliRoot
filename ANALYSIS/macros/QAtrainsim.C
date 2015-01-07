@@ -6,14 +6,14 @@ void QAmerge(const char *, Int_t);
 Int_t iCollisionType = ; // 0=pp, 1=PbPb
 // Trigger mask.
 
-UInt_t kTriggerInt = AliVEvent::kAnyINT;
-UInt_t kTriggerMuonAll = AliVEvent::kMUL7 | AliVEvent::kMUSH7 | AliVEvent::kMUU7 | AliVEvent::kMUS7
+AliBits kTriggerInt = AliVEvent::kAnyINT;
+AliBits kTriggerMuonAll = AliVEvent::kMUL7 | AliVEvent::kMUSH7 | AliVEvent::kMUU7 | AliVEvent::kMUS7
                        | AliVEvent::kMUSPB | AliVEvent::kMUSHPB | AliVEvent::kMuonLikePB | AliVEvent::kMuonUnlikePB;
-UInt_t kTriggerMuonBarell = AliVEvent::kMUU7;
-UInt_t kTriggerEMC   = AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA;
-UInt_t kTriggerHM   = AliVEvent::kHighMult;
+AliBits kTriggerMuonBarell = AliVEvent::kMUU7;
+AliBits kTriggerEMC   = AliVEvent::kEMC7 | AliVEvent::kEMC8 | AliVEvent::kEMCEJE | AliVEvent::kEMCEGA;
+AliBits kTriggerHM   = AliVEvent::kHighMult;
 // Main trigger mask used:
-UInt_t kTriggerMask = kTriggerInt;
+AliBits kTriggerMask = kTriggerInt;
 
 Int_t runNumbers[5] = {158626};
 

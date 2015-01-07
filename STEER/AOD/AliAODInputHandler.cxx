@@ -131,7 +131,7 @@ Bool_t AliAODInputHandler::BeginEvent(Long64_t entry)
     if (prevRunNumber != fEvent->GetRunNumber() && NeedField()) {
       fEvent->InitMagneticField();
       prevRunNumber = fEvent->GetRunNumber();
-    } 
+    }
 
     AliAODMCHeader* mcHeader  = (AliAODMCHeader*) fEvent->GetList()->FindObject(AliAODMCHeader::StdBranchName());
     TClonesArray* mcParticles = (TClonesArray*)   (fEvent->FindListObject("mcparticles"));
@@ -147,7 +147,7 @@ Bool_t AliAODInputHandler::BeginEvent(Long64_t entry)
     if (fTreeToMerge) fTreeToMerge->GetEntry(GetReadEntry() + fMergeOffset);
   
     if (fEventCuts)
-      fIsSelectedResult = fEventCuts->GetSelectionMask(fEvent);
+      fIsSelectedResult = fEventCuts->GetSelectionBits(fEvent);
     else
       fIsSelectedResult = static_cast<AliVAODHeader*>(fEvent->GetHeader())->GetOfflineTrigger();
 

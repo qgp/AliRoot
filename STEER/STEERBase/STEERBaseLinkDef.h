@@ -149,6 +149,7 @@
 #pragma link C++ class AliMergeableCollectionIterator+;
 
 #pragma link C++ class AliVersion+;
+#pragma link C++ class AliBits+;
 
 #endif
 

@@ -66,7 +66,7 @@ AliAODHeader::AliAODHeader() :
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
-  fOfflineTrigger(0),
+  fOfflineTrigger(),
   fESDFileName(""),
   fEventNumberESDFile(-1),
   fNumberESDTracks(-1),
@@ -133,7 +133,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
-  fOfflineTrigger(0),
+  fOfflineTrigger(),
   fESDFileName(""),
   fEventNumberESDFile(-1),
   fNumberESDTracks(-1),
@@ -223,7 +223,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fTriggerCluster(trigClus),
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
-  fOfflineTrigger(0),
+  fOfflineTrigger(),
   fESDFileName(""),
   fEventNumberESDFile(-1),
   fNumberESDTracks(-1),
@@ -528,7 +528,7 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("ref. Mult.Comb |eta|<1. : %d\n", fRefMultComb10);
   printf("number of muons         : %d\n", fNMuons);
   printf("number of dimuons       : %d\n", fNDimuons);
-  printf("offline trigger         : %u\n", fOfflineTrigger);
+  fOfflineTrigger.Print();
 
   if (fQTheta) {
     for (UInt_t i = 0; i<(UInt_t)fNQTheta; i++) {
