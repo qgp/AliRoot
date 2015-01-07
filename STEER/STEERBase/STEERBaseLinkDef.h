@@ -150,6 +150,9 @@
 
 #pragma link C++ class AliVersion+;
 #pragma link C++ class AliBits+;
+#pragma link C++ function operator|(const AliBits&,const AliBits&);
+#pragma link C++ function operator&(const AliBits&,const AliBits&);
+#pragma link C++ function operator^(const AliBits&,const AliBits&);
 
 #endif
 
