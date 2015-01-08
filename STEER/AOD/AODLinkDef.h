@@ -17,13 +17,13 @@
 
 #pragma link C++ class AliAODEvent+;
 #pragma link C++ class AliAODHeader+;
-#pragma read                                              \
-    sourceClass="AliAODHeader"                            \
-    source="UInt_t fOfflineTrigger"                       \
-    version="[-25]"                                       \
-    targetClass="AliAODHeader"                            \
-    target="fOfflineTrigger"                              \
-    code="{fOfflineTrigger.Set(32,onfile.fOfflineTrigger);}"
+#pragma read                                                   \
+    sourceClass="AliAODHeader"                                 \
+    source="UInt_t fOfflineTrigger"                            \
+    version="[-25]"                                            \
+    targetClass="AliAODHeader"                                 \
+    target="fOfflineTrigger"                                   \
+    code="{fOfflineTrigger.Set(32,&(onfile.fOfflineTrigger));}"
 
 #pragma read                                              \
     sourceClass="AliAODPid"                               \
