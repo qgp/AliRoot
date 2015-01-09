@@ -73,6 +73,8 @@ the AliITS class.
 #include <TTree.h>
 #include <TVirtualMC.h>
 #include <TArrayI.h>
+#include <TGeoManager.h>
+#include <TGeoParallelWorld.h>
 #include "AliDetector.h"
 #include "AliITS.h"
 #include "AliITSDetTypeSim.h"
@@ -1401,6 +1403,77 @@ void AliITS::UpdateInternalGeometry(){
   AliITSInitGeometry initgeom;
   AliITSgeom* geom = initgeom.CreateAliITSgeom(version);
   SetITSgeom(geom);
+  // Add volumes in Parallel World
+  TGeoParallelWorld *pw = gGeoManager->GetParallelWorld();
+
+  if (pw && !pw->IsClosed()) {
+//    Int_t nPN = gGeoManager->GetListOfPhysicalNodes()->GetEntries();
+    for (Int_t i=0; i<6; ++i) printf("sens %d: %s\n", i,fIdName[i].Data());
+    TGeoIterator next(gGeoManager->GetTopVolume());
+    TString path;
+    TGeoNode *node;
+    while ((node=next())) {
+      next.GetPath(path);
+      if (path.Contains(fIdName[0].Data())
+          || path.Contains(fIdName[1].Data())
+          ||  path.Contains(fIdName[2].Data())
+          ||  path.Contains(fIdName[3].Data())
+          ||  path.Contains(fIdName[4].Data())
+          || path.Contains(fIdName[5].Data()) 
+      ) 
+      {
+//        printf("PW: adding %s\n", path.Data());
+        pw->AddNode(path);
+      }
+    }
+    // Now declare the list of overlapping volumes. Note that these can be
+    // automatically detected by the end of a simulation using PW without
+    // any overlaps defined. In this case the found overlaps can be printed
+    // using TGeoParallelWorld::PrintDetectedOverlaps
+    pw->AddOverlap("ITSSPDbus");
+    pw->AddOverlap("ITSSPDladderGlue");
+    pw->AddOverlap("ITSSPDpt1000");
+    pw->AddOverlap("ITSSPDgFoilKapL");
+    pw->AddOverlap("ITSSPDgFoilGlueL");
+    pw->AddOverlap("ITSSPDgFoilAluL");
+    pw->AddOverlap("ITSSPDCarbonFiberSupportSectorA0");
+    pw->AddOverlap("ITSSPDGrease");
+    pw->AddOverlap("ITSSPDgFoilKapR");
+    pw->AddOverlap("ITSSPDgFoilGlueR");
+    pw->AddOverlap("ITSSPDgFoilAluR");
+    pw->AddOverlap("ITSSPDCoolingTubeTA0");
+    pw->AddOverlap("ITSSPDCoolingTubeFluidTA1");
+    pw->AddOverlap("ITSSPDresistor");
+    pw->AddOverlap("ITSSPDclip");
+    pw->AddOverlap("ITSSPDcapacitor");
+    pw->AddOverlap("ITSsddBaseThermalBridge");
+    pw->AddOverlap("ITSsddHybridVol");
+    pw->AddOverlap("ITSsddHybridThBridge");
+    pw->AddOverlap("vScreenAl");
+    pw->AddOverlap("vScreenUpGlue");
+    pw->AddOverlap("vLowUpGlueBar1");
+    pw->AddOverlap("vLowAlBar1");
+    pw->AddOverlap("vLowUpGlueBar2");
+    pw->AddOverlap("vLowAlBar2");
+    pw->AddOverlap("vCableSegLay");
+    pw->AddOverlap("lowFLpieceA4");
+    pw->AddOverlap("lowFLpieceB4");
+    pw->AddOverlap("lowFLpieceA5");
+    pw->AddOverlap("lowFLpieceB5");
+    pw->AddOverlap("lowFLpieceA6");
+    pw->AddOverlap("lowFLpieceB6");
+    pw->AddOverlap("pascalCC1");
+    pw->AddOverlap("ambraCC1");
+    pw->AddOverlap("pascalCC2");
+    pw->AddOverlap("pascalCC3");
+    pw->AddOverlap("ccLayerB0");
+    pw->AddOverlap("ccLayerB1");
+    pw->AddOverlap("ccLayerB3");
+    pw->AddOverlap("ITSsddSMDend");
+    pw->AddOverlap("ITSsddCFSideBeamVol");
+    pw->AddOverlap("ITSsddSegment");
+    pw->AddOverlap("ITSsddAlFoilHybSide");
+  }
 }
 //______________________________________________________________________
 AliTriggerDetector* AliITS::CreateTriggerDetector() const {

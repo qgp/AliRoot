@@ -120,6 +120,7 @@
 #include <TFile.h>
 #include <TGeoGlobalMagField.h>
 #include <TGeoManager.h>
+#include <TGeoParallelWorld.h>
 #include <TObjString.h>
 #include <TROOT.h>
 #include <TSystem.h>
@@ -588,6 +589,9 @@ Bool_t AliSimulation::MisalignGeometry(AliRunLoader *runLoader)
     }
   }
 
+  // Create Parallel World
+  TGeoParallelWorld *pw = gGeoManager->CreateParallelWorld("Alice Parallel World");
+
   // Update the internal geometry of modules (ITS needs it)
   TString detStr = fLoadAlObjsListOfDets;
   TObjArray* detArray = runLoader->GetAliRun()->Detectors();
@@ -600,6 +604,11 @@ Bool_t AliSimulation::MisalignGeometry(AliRunLoader *runLoader)
     }
   } // end loop over detectors
 
+  // Close the Parallel World
+  pw->CloseGeometry();
+  gGeoManager->SetUseParallelWorldNav(kTRUE);
+  //Export misaligned geometry
+//  gGeoManager->Export("misaligned.root");
 
   if (delRunLoader) delete runLoader;
 
