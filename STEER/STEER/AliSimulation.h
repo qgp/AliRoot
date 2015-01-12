@@ -72,6 +72,10 @@ public:
                    {fAlignObjArray = array;
 		   fLoadAlignFromCDB = kFALSE;}
   void           SetUseMonitoring(Bool_t flag=kTRUE) {fUseMonitoring = flag;}
+  void           SetUsePWnavigation(Bool_t flag=kTRUE) {fUsePWnavigation = flag;}
+  Bool_t         IsUsingPWnavigation() const {return fUsePWnavigation;}
+  void           SetDetectPWoverlaps(Bool_t flag=kTRUE) {fDetectPWoverlaps = flag;}
+  Bool_t         IsDetectingPWoverlaps() const {return fDetectPWoverlaps;}
 
   Bool_t         MisalignGeometry(AliRunLoader *runLoader = NULL);
 
@@ -175,6 +179,8 @@ private:
   Bool_t         fWriteSelRawData;    // write detectors raw data in a separate file accoring to the trigger cluster
   Bool_t         fStopOnError;        // stop or continue on errors
   Bool_t         fUseMonitoring;      // monitor simulation timing per volume
+  Bool_t         fUsePWnavigation;    // Use parallel world navigation (false by default)
+  Bool_t         fDetectPWoverlaps;   // Parallel world in detect overlap mode (false by default)
 
   Int_t          fNEvents;            // number of events
   TString        fConfigFileName;     // name of the config file
@@ -224,7 +230,7 @@ private:
 
   Bool_t         fWriteGRPEntry;      // Write or not GRP entry corresponding to the settings in Config.C
 
-  ClassDef(AliSimulation, 13)  // class for running generation, simulation and digitization
+  ClassDef(AliSimulation, 14)  // class for running generation, simulation and digitization
 };
 
 #endif

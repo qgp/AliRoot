@@ -193,6 +193,8 @@ AliSimulation::AliSimulation(const char* configFileName,
   fWriteSelRawData(kFALSE),
   fStopOnError(kFALSE),
   fUseMonitoring(kFALSE),
+  fUsePWnavigation(kFALSE),
+  fDetectPWoverlaps(kFALSE),
   fNEvents(1),
   fConfigFileName(configFileName),
   fGAliceFileName("galice.root"),
@@ -606,7 +608,12 @@ Bool_t AliSimulation::MisalignGeometry(AliRunLoader *runLoader)
 
   // Close the Parallel World
   pw->CloseGeometry();
-  gGeoManager->SetUseParallelWorldNav(kTRUE);
+  gGeoManager->SetUseParallelWorldNav(fUsePWnavigation);
+  if (fDetectPWoverlaps) {
+     pw->SetUseOverlaps(kFALSE);
+     // Reset overlaps defined by detectors
+     pw->ResetOverlaps();
+  }   
   //Export misaligned geometry
 //  gGeoManager->Export("misaligned.root");
 
@@ -1265,7 +1272,10 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
 
   // End of this run, close files
   if(nEvents>0) FinishRun();
-
+  if (fUsePWnavigation && fDetectPWoverlaps) {
+     TGeoParallelWorld *pw = gGeoManager->GetParallelWorld();
+     if (pw) pw->PrintDetectedOverlaps();
+  }   
   AliSysInfo::AddStamp("Stop_ProcessRun");
   delete runLoader;
 
