@@ -29,6 +29,7 @@
 #include "AliHLTMUONRecHitsBlockStruct.h"
 #include "AliHLTMUONClustersBlockStruct.h"
 #include "AliHLTMUONChannelsBlockStruct.h"
+#include "AliHLTMUONDigitsBlockStruct.h"
 #include "AliHLTMUONMansoTracksBlockStruct.h"
 #include "AliHLTMUONMansoCandidatesBlockStruct.h"
 #include "AliHLTMUONTracksBlockStruct.h"
@@ -486,6 +487,10 @@ AliHLTMUONDataBlockType AliHLTMUONUtils::ParseCommandLineTypeString(const char* 
 	{
 		return kChannelsDataBlock;
 	}
+        else if (strcmp(type,"digits") == 0)
+        {
+		return kDigitsDataBlock;
+        }
 	else if (strcmp(type,"clusters") == 0)
 	{
 		return kClustersDataBlock;
@@ -538,6 +543,9 @@ const char* AliHLTMUONUtils::DataBlockTypeToString(AliHLTMUONDataBlockType type)
 		break;
 	case kChannelsDataBlock:
 		t = AliHLTMUONConstants::ChannelBlockDataType();
+		break;
+	case kDigitsDataBlock:
+		t = AliHLTMUONConstants::DigitBlockDataType();
 		break;
 	case kMansoTracksDataBlock:
 		t = AliHLTMUONConstants::MansoTracksBlockDataType();
@@ -990,6 +998,54 @@ bool AliHLTMUONUtils::HeaderOk(
 	}
 	
 	return result;
+}
+
+
+bool AliHLTMUONUtils::HeaderOk(
+                               const AliHLTMUONDigitsBlockStruct& block,
+                               WhyNotValid* reason, AliHLTUInt32_t& reasonCount
+                               )
+{
+  /// Method used to check if the header information corresponds to the
+  /// supposed type of the raw dHLT data block.
+  /// \param [in]  block  The data block to check.
+  /// \param [out] reason  If this is not NULL, then it is assumed to point
+  ///      to an array of at least 'reasonCount' number of elements. It will
+  ///      be filled with the reason codes describing why the header is not
+  ///      valid.
+  /// \param [in,out] reasonCount  This should initially specify the size of
+  ///      the array pointed to by 'reason'. It will be filled with the number
+  ///      of items actually filled into the reason array upon exit from this
+  ///      method.
+  /// \returns  true if there is no problem with the header and false otherwise.
+  
+  AliHLTUInt32_t maxCount = reasonCount;
+  reasonCount = 0;
+  bool result = true;
+  
+  // The block must have the correct type.
+  if (block.fHeader.fType != kDigitsDataBlock)
+  {
+    if (reason != NULL and reasonCount < maxCount)
+    {
+      reason[reasonCount] = kHeaderContainsWrongType;
+      reasonCount++;
+    }
+    result = false;
+  }
+  
+  // The block's record width must be the correct size.
+  if (block.fHeader.fRecordWidth != sizeof(AliHLTMUONDigitStruct))
+  {
+    if (reason != NULL and reasonCount < maxCount)
+    {
+      reason[reasonCount] = kHeaderContainsWrongRecordWidth;
+      reasonCount++;
+    }
+    result = false;
+  }
+  
+  return result;
 }
 
 
@@ -2042,6 +2098,112 @@ bool AliHLTMUONUtils::IntegrityOk(
 	}
 	
 	return result;
+}
+
+
+bool AliHLTMUONUtils::IntegrityOk(
+                                  const AliHLTMUONDigitStruct& digit,
+                                  WhyNotValid* reason,
+                                  AliHLTUInt32_t& reasonCount
+                                  )
+{
+  /// This method is used to check more extensively if the integrity of the
+  /// digit structure is OK and returns true in that case.
+  /// \param [in]  digit  The digit structure to check.
+  /// \param [out] reason  If this is not NULL, then it is assumed to point
+  ///      to an array of at least 'reasonCount' number of elements. It will
+  ///      be filled with the reason codes describing why the structure is
+  ///      not valid.
+  /// \param [in,out] reasonCount  This should initially specify the size of
+  ///      the array pointed to by 'reason'. It will be filled with the number
+  ///      of items actually filled into the reason array upon exit from this
+  ///      method.
+  /// \returns  true if there is no problem with the structure and false otherwise.
+  
+  AliHLTUInt32_t maxCount = reasonCount;
+  reasonCount = 0;
+  bool result = true;
+  
+  // Check that the digit ID has a valid value.
+  if (not (digit.fId > 0))
+  {
+    if (reason != NULL and reasonCount < maxCount)
+    {
+      reason[reasonCount] = kInvalidIdValue;
+      reasonCount++;
+    }
+    result = false;
+  }
+  
+  // Check that the ADC signal has a valid value, which fits into 12 bits.
+  if ((digit.fADC & (~0xFFF)) != 0)
+  {
+    if (reason != NULL and reasonCount < maxCount)
+    {
+      reason[reasonCount] = kInvalidSignal;
+      reasonCount++;
+    }
+    result = false;
+  }
+  
+  return result;
+}
+
+
+bool AliHLTMUONUtils::IntegrityOk(
+                                  const AliHLTMUONDigitsBlockStruct& block,
+                                  WhyNotValid* reason,
+                                  AliHLTUInt32_t* recordNum,
+                                  AliHLTUInt32_t& reasonCount
+                                  )
+{
+  /// This method is used to check more extensively if the integrity of the
+  /// dHLT internal digits data block is OK and returns true in that case.
+  /// \param [in]  block  The digits data block to check.
+  /// \param [out] reason  If this is not NULL, then it is assumed to point
+  ///      to an array of at least 'reasonCount' number of elements. It will
+  ///      be filled with the reason codes describing why the data block is
+  ///      not valid.
+  /// \param [out] recordNum  If this is not NULL, then it is assumed to point
+  ///      to an array of at least 'reasonCount' number of elements. It will
+  ///      be filled with the number of the digit structure that had a problem.
+  ///      The value 'recordNum[i]' will only contain a valid value if
+  ///      the corresponding 'reason[i]' contains one of:
+  ///        - kInvalidIdValue
+  ///        - kInvalidSignal
+  /// \note You can use RecordNumberWasSet(reason[i]) to check if 'recordNum[i]'
+  ///      was set and is valid or not.
+  /// \param [in,out] reasonCount  This should initially specify the size of
+  ///      the array pointed to by 'reason' and 'recordNum'. It will be filled
+  ///      with the number of items actually filled into the arrays upon exit
+  ///      from this method.
+  /// \returns  true if there is no problem with the data and false otherwise.
+  
+  AliHLTUInt32_t maxCount = reasonCount;
+  bool result = HeaderOk(block, reason, reasonCount);
+  
+  const AliHLTMUONDigitStruct* digit =
+		reinterpret_cast<const AliHLTMUONDigitStruct*>(&block + 1);
+  
+  // Check integrity of individual digit structures.
+  for (AliHLTUInt32_t i = 0; i < block.fHeader.fNrecords; i++)
+  {
+    AliHLTUInt32_t filledCount = maxCount - reasonCount;
+    if (not IntegrityOk(digit[i], reason+reasonCount, filledCount))
+    {
+      // reasons filled in IntegrityOk, now we just need to adjust
+      // reasonCount and fill the recordNum values.
+      if (recordNum != NULL)
+      {
+        for (AliHLTUInt32_t n = 0; n < filledCount; n++)
+          recordNum[reasonCount + n] = i;
+      }
+      reasonCount += filledCount;
+      result = false;
+    }
+  }
+  
+  return result;
 }
 
 

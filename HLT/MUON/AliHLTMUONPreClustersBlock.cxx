@@ -121,7 +121,7 @@ int AliHLTMUONPreClustersBlock::Reset(void *buffer, AliHLTUInt32_t size, bool wr
 }
 
 //_________________________________________________________________________________________________
-int AliHLTMUONPreClustersBlock::StartPreCluster(AliHLTMUONChannelStruct &digit)
+int AliHLTMUONPreClustersBlock::StartPreCluster(const AliHLTMUONDigitStruct &digit)
 {
   // start a new precluster
   
@@ -138,7 +138,7 @@ int AliHLTMUONPreClustersBlock::StartPreCluster(AliHLTMUONChannelStruct &digit)
   else fLastNDigits = reinterpret_cast<AliHLTUInt16_t*>(fLastDigit + 1);
   *fLastNDigits = 1;
   
-  fLastDigit = reinterpret_cast<AliHLTMUONChannelStruct*>(fLastNDigits + 1);
+  fLastDigit = reinterpret_cast<AliHLTMUONDigitStruct*>(fLastNDigits + 1);
   *fLastDigit = digit;
   
   *fNPreClusters += 1;
@@ -154,7 +154,7 @@ int AliHLTMUONPreClustersBlock::StartPreCluster(AliHLTMUONChannelStruct &digit)
 }
 
 //_________________________________________________________________________________________________
-int AliHLTMUONPreClustersBlock::AddDigit(AliHLTMUONChannelStruct &digit)
+int AliHLTMUONPreClustersBlock::AddDigit(const AliHLTMUONDigitStruct &digit)
 {
   // add a new digit to the current precluster
   
@@ -211,7 +211,7 @@ int AliHLTMUONPreClustersBlock::ReadBuffer()
   AliHLTMUONPreClusterStruct preCluster;
   AliHLTUInt32_t currentSize(fgkSizeOfUShort);
   AliHLTUInt16_t *nDigits(0x0);
-  AliHLTMUONChannelStruct *digit(0x0);
+  AliHLTMUONDigitStruct *digit(0x0);
   
   for (AliHLTUInt16_t i = 0; i < *fNPreClusters; ++i) {
     
@@ -227,7 +227,7 @@ int AliHLTMUONPreClustersBlock::ReadBuffer()
     
     currentSize += (*nDigits) * fgkSizeOfDigit;
     if (*nDigits > 0 && currentSize <= fSize) {
-      digit = reinterpret_cast<AliHLTMUONChannelStruct*>(nDigits + 1);
+      digit = reinterpret_cast<AliHLTMUONDigitStruct*>(nDigits + 1);
       preCluster.fNDigits = *nDigits;
       preCluster.fDigits = digit;
       fPreClusters->push_back(preCluster);

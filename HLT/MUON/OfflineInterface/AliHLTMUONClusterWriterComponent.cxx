@@ -264,7 +264,7 @@ void AliHLTMUONClusterWriterComponent::StorePreClusters(int deId)
     // add the list of digit Ids
     fDigitIds.clear();
     for (AliHLTUInt32_t iDigit = 0; iDigit < precluster->fNDigits; ++iDigit)
-      fDigitIds.push_back(precluster->fDigits[iDigit].fRawDataWord);
+      fDigitIds.push_back(precluster->fDigits[iDigit].fId);
     cluster->SetDigitsId(precluster->fNDigits, &fDigitIds.front());
     
   }

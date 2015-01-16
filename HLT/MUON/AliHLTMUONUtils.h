@@ -28,6 +28,8 @@ struct AliHLTMUONClusterStruct;
 struct AliHLTMUONClustersBlockStruct;
 struct AliHLTMUONChannelStruct;
 struct AliHLTMUONChannelsBlockStruct;
+struct AliHLTMUONDigitStruct;
+struct AliHLTMUONDigitsBlockStruct;
 struct AliHLTMUONMansoTrackStruct;
 struct AliHLTMUONMansoTracksBlockStruct;
 struct AliHLTMUONMansoCandidateStruct;
@@ -526,6 +528,24 @@ public:
 	
 	/**
 	 * Method used to check if the header information corresponds to the
+	 * supposed type of the digits data block.
+	 * This method will return either kHeaderContainsWrongType or
+	 * kHeaderContainsWrongRecordWidth as the reason code.
+	 * \param [in]  block  The data block to check.
+	 * \param [out] reason  If this is not NULL, then the variable pointed to
+	 *      by this pointer will be filled with the reason code describing why
+	 *      the header is not valid, if and only if a problem is found with
+	 *      the data.
+	 * \returns  true if there is no problem with the header and false otherwise.
+	 */
+	static bool HeaderOk(const AliHLTMUONDigitsBlockStruct& block, WhyNotValid* reason = NULL)
+	{
+		AliHLTUInt32_t count = 1;
+		return HeaderOk(block, reason, count);
+	}
+	
+	/**
+	 * Method used to check if the header information corresponds to the
 	 * supposed type of the Manso tracks data block.
 	 * This method will return either kHeaderContainsWrongType or
 	 * kHeaderContainsWrongRecordWidth as the reason code.
@@ -613,7 +633,7 @@ public:
 		AliHLTUInt32_t count = 1;
 		return HeaderOk(block, reason, count);
 	}
-
+	
 	/**
 	 * Methods used to check if the header information corresponds to the
 	 * supposed type of the data block.
@@ -648,6 +668,11 @@ public:
 			WhyNotValid* reason, AliHLTUInt32_t& reasonCount
 		);
 	
+	static bool HeaderOk(
+                       const AliHLTMUONDigitsBlockStruct& block,
+                       WhyNotValid* reason, AliHLTUInt32_t& reasonCount
+		);
+  
 	static bool HeaderOk(
 			const AliHLTMUONMansoTracksBlockStruct& block,
 			WhyNotValid* reason, AliHLTUInt32_t& reasonCount
@@ -875,6 +900,46 @@ public:
 	
 	/**
 	 * This method is used to check more extensively if the integrity of the
+	 * digit data structure is OK and returns true in that case.
+	 * \param [in]  digit  The digit structure to check.
+	 * \param [out] reason  If this is not NULL, then it will be filled with
+	 *      the reason code describing why the structure is not valid, if and
+	 *      only if a problem is found with the data.
+	 * \returns  true if there is no problem with the data and false otherwise.
+	 */
+	static bool IntegrityOk(
+                          const AliHLTMUONDigitStruct& digit,
+                          WhyNotValid* reason = NULL
+		)
+	{
+		AliHLTUInt32_t count = 1;
+		return IntegrityOk(digit, reason, count);
+	}
+	
+	/**
+	 * This method is used to check more extensively if the integrity of the
+	 * dHLT raw internal data block is OK and returns true in that case.
+	 * \param [in]  block  The digits data block to check.
+	 * \param [out] reason  If this is not NULL, then it will be filled with
+	 *      the reason code describing why the data block is not valid, if and
+	 *      only if a problem is found with the data.
+	 * \param [out] recordNum  If this is not NULL, then it will be filled with
+	 *      the number of the digit structure that had a problem. This value
+	 *      will only contain a valid value if the method
+	 *      RecordNumberWasSet(*reason) returns true. Thus, 'reason' must be set.
+	 * \returns  true if there is no problem with the data and false otherwise.
+	*/
+	static bool IntegrityOk(
+                          const AliHLTMUONDigitsBlockStruct& block,
+                          WhyNotValid* reason = NULL, AliHLTUInt32_t* recordNum = NULL
+		)
+	{
+		AliHLTUInt32_t count = 1;
+		return IntegrityOk(block, reason, recordNum, count);
+	}
+	
+	/**
+	 * This method is used to check more extensively if the integrity of the
 	 * Manso track structure is OK and returns true in that case.
 	 * \param [in]  track  The Manso track structure to check.
 	 * \param [out] reason  If this is not NULL, then it will be filled with
@@ -1072,7 +1137,7 @@ public:
 		AliHLTUInt32_t count = 1;
 		return IntegrityOk(block, reason, recordNum, count);
 	}
-
+        
 	/**
 	 * Methods used to check more extensively if the integrity of various
 	 * types of data blocks are Ok and returns true in that case.
@@ -1136,6 +1201,17 @@ public:
 		);
 	
 	static bool IntegrityOk(
+                          const AliHLTMUONDigitStruct& digit,
+                          WhyNotValid* reason, AliHLTUInt32_t& reasonCount
+		);
+	
+	static bool IntegrityOk(
+                          const AliHLTMUONDigitsBlockStruct& block,
+                          WhyNotValid* reason, AliHLTUInt32_t* recordNum,
+                          AliHLTUInt32_t& reasonCount
+		);
+	
+	static bool IntegrityOk(
 			const AliHLTMUONMansoTrackStruct& track,
 			WhyNotValid* reason, AliHLTUInt32_t& reasonCount
 		);
@@ -1189,7 +1265,7 @@ public:
 			WhyNotValid* reason, AliHLTUInt32_t* recordNum,
 			AliHLTUInt32_t& reasonCount
 		);
-	
+        
 	/**
 	 * Returns true if the \em recordNum in the corresponding IntegrityOk method
 	 * would have been set, if it returned false and a reason was set.

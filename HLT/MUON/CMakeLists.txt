@@ -50,6 +50,7 @@ set(SRCS
     AliHLTMUONClustersBlockStruct.cxx
     AliHLTMUONConstants.cxx
     AliHLTMUONDecision.cxx
+    AliHLTMUONDigitsBlockStruct.cxx
     AliHLTMUONEvent.cxx
     AliHLTMUONMansoCandidatesBlockStruct.cxx
     AliHLTMUONMansoTrack.cxx

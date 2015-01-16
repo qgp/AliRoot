@@ -31,6 +31,7 @@
 #include "AliHLTMUONRecHitsBlockStruct.h"
 #include "AliHLTMUONClustersBlockStruct.h"
 #include "AliHLTMUONChannelsBlockStruct.h"
+#include "AliHLTMUONDigitsBlockStruct.h"
 #include "AliHLTMUONMansoTracksBlockStruct.h"
 #include "AliHLTMUONMansoCandidatesBlockStruct.h"
 #include "AliHLTMUONTracksBlockStruct.h"
@@ -81,6 +82,14 @@ const AliHLTMUONChannelStruct& AliHLTMUONConstants::NilChannelStruct()
 	// Returns a nil tracking chamber channel structure.
 	static const AliHLTMUONChannelStruct nilChannelStruct = {0, 0, 0, 0, 0, 0};
 	return nilChannelStruct;
+}
+
+
+const AliHLTMUONDigitStruct& AliHLTMUONConstants::NilDigitStruct()
+{
+	// Returns a nil tracking chamber digit structure.
+	static const AliHLTMUONDigitStruct nilDigitStruct = {0, 0, 0};
+	return nilDigitStruct;
 }
 
 
@@ -232,6 +241,14 @@ const AliHLTComponentDataType& AliHLTMUONConstants::ChannelBlockDataType()
 	// Returns a debugging information block type for channels corresponding to clusters.
 	static const AliHLTComponentDataType channelBlockDataType = AliHLTComponentDataTypeInitializer("CHANNELS", kAliHLTDataOriginMUON);
 	return channelBlockDataType;
+}
+
+
+const AliHLTComponentDataType& AliHLTMUONConstants::DigitBlockDataType()
+{
+	// Returns a information block type for digits.
+	static const AliHLTComponentDataType digitBlockDataType = AliHLTComponentDataTypeInitializer("DIGITS  ", kAliHLTDataOriginMUON);
+	return digitBlockDataType;
 }
 
 

@@ -15,9 +15,11 @@
 ///
 
 #include "AliHLTDataSource.h"
+#include "AliHLTMUONDataBlockWriter.h"
 
 class TFile;
 class TTree;
+class AliMUONVDigit;
 class AliMUONVDigitStore;
 
 /**
@@ -55,7 +57,10 @@ protected:
   
   virtual int DoInit(int argc, const char** argv);
   virtual int DoDeinit();
-  virtual int GetEvent(const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData);
+  virtual int GetEvent(const AliHLTComponentEventData& evtData,
+                       AliHLTComponentTriggerData& trigData,
+                       AliHLTUInt8_t* outputPtr, AliHLTUInt32_t& size,
+                       AliHLTComponentBlockDataList& outputBlocks);
   using AliHLTDataSource::GetEvent;
   
 private:
@@ -68,9 +73,15 @@ private:
   
   void CleanMemory();
   
+  int CreateDigitBlock(AliHLTUInt8_t *outputPtr, AliHLTUInt32_t size,
+                       AliHLTMUONDigitsBlockWriter *&digitblock);
+  
+  int AddDigit(AliMUONVDigit &digit, AliHLTMUONDigitsBlockWriter &digitblock);
+  
   TFile* fFile; ///< input file
   TTree* fTree; ///< input tree
   AliMUONVDigitStore *fDigitStore; ///< list of digits in an AliMUONVDigit format
+  Bool_t fPerDE; ///< register digits per DE
   
   ClassDef(AliHLTMUONDigitReaderComponent, 0)
 };

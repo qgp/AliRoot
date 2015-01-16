@@ -36,6 +36,7 @@ struct AliHLTMUONTriggerRecordStruct;
 struct AliHLTMUONTrigRecInfoStruct;
 struct AliHLTMUONRecHitStruct;
 struct AliHLTMUONChannelStruct;
+struct AliHLTMUONDigitStruct;
 struct AliHLTMUONClusterStruct;
 struct AliHLTMUONMansoTrackStruct;
 struct AliHLTMUONMansoRoIStruct;
@@ -60,6 +61,7 @@ public:
 	static const AliHLTMUONTrigRecInfoStruct& NilTrigRecInfoStruct();
 	static const AliHLTMUONRecHitStruct& NilRecHitStruct();
 	static const AliHLTMUONChannelStruct& NilChannelStruct();
+	static const AliHLTMUONDigitStruct& NilDigitStruct();
 	static const AliHLTMUONClusterStruct& NilClusterStruct();
 	static const AliHLTMUONMansoTrackStruct& NilMansoTrackStruct();
 	static const AliHLTMUONMansoRoIStruct& NilMansoRoIStruct();
@@ -85,6 +87,7 @@ public:
 	static const AliHLTComponentDataType& RecHitsBlockDataType();
 	static const AliHLTComponentDataType& ClusterBlockDataType();
 	static const AliHLTComponentDataType& ChannelBlockDataType();
+	static const AliHLTComponentDataType& DigitBlockDataType();
 	static const AliHLTComponentDataType& MansoTracksBlockDataType();
 	static const AliHLTComponentDataType& MansoCandidatesBlockDataType();
 	static const AliHLTComponentDataType& TracksBlockDataType();

@@ -20,8 +20,7 @@
 #include "AliMUONTrackerDDLDecoderEventHandler.h"
 #include "AliMUONTrackerDDLDecoder.h"
 #include "AliHLTMUONPreClustersBlock.h"
-
-class AliMUONVDigitStore;
+#include "AliHLTMUONDataBlockReader.h"
 
 /**
  * @class AliHLTMUONPreclusterFinderComponent
@@ -94,7 +93,9 @@ private:
     UShort_t nPads[2]; // number of pads on each plane
     mpPad *pads; // array of pads on both planes
     TExMap padIndices[2]; // indices+1 of pads from their ID
-    std::vector<AliHLTMUONChannelStruct*> digits; // list of digits
+    std::vector<AliHLTMUONDigitStruct*> ownDigits; // list of digits produced when decoding raw data (owner)
+    UShort_t nOwnDigits; // number of digits produced when decoding raw data
+    std::vector<const AliHLTMUONDigitStruct*> digits; // list of pointers to digits (not owner)
     UShort_t nFiredPads[2]; // number of fired pads on each plane
     std::vector<UShort_t> firedPads[2]; // indices of fired pads on each plane
     UShort_t nOrderedPads[2]; // current number of fired pads in the following arrays
@@ -119,7 +120,7 @@ private:
   void CreateMapping();
   void FindNeighbours(mpDE &de, UChar_t iPlane);
   
-  void LoadDigits(const AliMUONVDigitStore* digitStore);
+  void LoadDigits(const AliHLTMUONDigitsBlockReader &dblock);
   void ResetPadsAndPreclusters();
   
   void PreClusterizeRecursive();

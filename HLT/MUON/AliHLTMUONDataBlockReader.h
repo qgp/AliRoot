@@ -32,6 +32,7 @@
 #include "AliHLTMUONRecHitsBlockStruct.h"
 #include "AliHLTMUONClustersBlockStruct.h"
 #include "AliHLTMUONChannelsBlockStruct.h"
+#include "AliHLTMUONDigitsBlockStruct.h"
 #include "AliHLTMUONMansoTracksBlockStruct.h"
 #include "AliHLTMUONMansoCandidatesBlockStruct.h"
 #include "AliHLTMUONTracksBlockStruct.h"
@@ -236,6 +237,11 @@ typedef AliHLTMUONDataBlockReader<
 		AliHLTMUONChannelsBlockStruct,
 		AliHLTMUONChannelStruct
 	> AliHLTMUONChannelsBlockReader;
+
+typedef AliHLTMUONDataBlockReader<
+		AliHLTMUONDigitsBlockStruct,
+		AliHLTMUONDigitStruct
+	> AliHLTMUONDigitsBlockReader;
 
 typedef AliHLTMUONDataBlockReader<
 		AliHLTMUONMansoTracksBlockStruct,

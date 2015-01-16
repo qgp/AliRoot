@@ -16,7 +16,7 @@
 
 #include <vector>
 #include "AliHLTLogging.h"
-#include "AliHLTMUONChannelsBlockStruct.h"
+#include "AliHLTMUONDigitsBlockStruct.h"
 
 extern "C"
 {
@@ -27,7 +27,7 @@ extern "C"
   struct AliHLTMUONPreClusterStruct
   {
     AliHLTUInt16_t fNDigits; // number of digits attached to this precluster
-    const AliHLTMUONChannelStruct *fDigits; // pointer to the 1st element of the array of digits
+    const AliHLTMUONDigitStruct *fDigits; // pointer to the 1st element of the array of digits
   };
 }
 
@@ -72,13 +72,13 @@ public:
    * Method to fill the buffer with a new precluster and its first digit
    * @param digit  Reference to the first digit to add to the new precluster.
    */
-  int StartPreCluster(AliHLTMUONChannelStruct &digit);
+  int StartPreCluster(const AliHLTMUONDigitStruct &digit);
   
   /**
    * Method to add a new digit to the current precluster
    * @param digit  Reference to the digit to add to the current precluster.
    */
-  int AddDigit(AliHLTMUONChannelStruct &digit);
+  int AddDigit(const AliHLTMUONDigitStruct &digit);
   
   /**
    * Return the number of bytes currently used for the data block in the buffer.
@@ -111,7 +111,7 @@ private:
   int ReadBuffer();
   
   static const AliHLTUInt32_t fgkSizeOfUShort = sizeof(AliHLTUInt16_t);
-  static const AliHLTUInt32_t fgkSizeOfDigit = sizeof(AliHLTMUONChannelStruct);
+  static const AliHLTUInt32_t fgkSizeOfDigit = sizeof(AliHLTMUONDigitStruct);
   
   AliHLTUInt32_t fSize; ///< total size of the buffer
   bool fWriteMode; ///< read/write mode
@@ -120,7 +120,7 @@ private:
   AliHLTUInt32_t fCurrentSize; ///< size of the used part of the buffer
   AliHLTUInt16_t *fNPreClusters; ///< number of preclusters
   AliHLTUInt16_t *fLastNDigits; ///< number of digits in the last precluster (write mode)
-  AliHLTMUONChannelStruct *fLastDigit; ///< current digit in the last precluster (write mode)
+  AliHLTMUONDigitStruct *fLastDigit; ///< current digit in the last precluster (write mode)
   std::vector<AliHLTMUONPreClusterStruct> *fPreClusters; ///< list of preclusters
   
 };

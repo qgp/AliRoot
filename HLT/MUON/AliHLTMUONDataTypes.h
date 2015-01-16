@@ -141,6 +141,7 @@ enum AliHLTMUONDataBlockType
 	kRecHitsDataBlock = 2000,
 	kClustersDataBlock = 2001,
 	kChannelsDataBlock = 2002,
+	kDigitsDataBlock = 2003,
 	kMansoTracksDataBlock = 3000,
 	kMansoCandidatesDataBlock = 3001,
 	kTracksDataBlock = 3100,
@@ -207,6 +208,7 @@ inline std::ostream& operator << (std::ostream& stream, AliHLTMUONDataBlockType 
 	case kRecHitsDataBlock:         stream << "kRecHitsDataBlock";         break;
 	case kClustersDataBlock:        stream << "kClustersDataBlock";        break;
 	case kChannelsDataBlock:        stream << "kChannelsDataBlock";        break;
+	case kDigitsDataBlock:          stream << "kDigitsDataBlock";          break;
 	case kMansoTracksDataBlock:     stream << "kMansoTracksDataBlock";     break;
 	case kMansoCandidatesDataBlock: stream << "kMansoCandidatesDataBlock"; break;
 	case kTracksDataBlock:          stream << "kTracksDataBlock";          break;

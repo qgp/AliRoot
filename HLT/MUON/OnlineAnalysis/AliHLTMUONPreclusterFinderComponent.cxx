@@ -35,7 +35,6 @@
 #include "AliMUONCDB.h"
 #include "AliMUONConstants.h"
 #include "AliMUONVDigit.h"
-#include "AliMUONVDigitStore.h"
 
 // MUON mapping
 #include "AliMpDDLStore.h"
@@ -89,7 +88,7 @@ void AliHLTMUONPreclusterFinderComponent::GetInputDataTypes(AliHLTComponentDataT
   /// Inherited from AliHLTComponent. Returns the list of expected input data types.
   list.clear();
   list.push_back(AliHLTMUONConstants::DDLRawDataType());
-  list.push_back(AliHLTMUONConstants::DigitStoreDataType());
+  list.push_back(AliHLTMUONConstants::DigitBlockDataType());
 }
 
 //_________________________________________________________________________________________________
@@ -103,8 +102,8 @@ AliHLTComponentDataType AliHLTMUONPreclusterFinderComponent::GetOutputDataType()
 void AliHLTMUONPreclusterFinderComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
 {
   /// Inherited from AliHLTComponent. Returns an estimate of the expected output data size.
-  constBase = 1024*1024;
-  inputMultiplier = 1;
+  constBase = 0;
+  inputMultiplier = 2;
 }
 
 //_________________________________________________________________________________________________
@@ -223,8 +222,8 @@ int AliHLTMUONPreclusterFinderComponent::DoDeinit()
     
     delete[] de.pads;
     
-    for (UShort_t iDigit = 0; iDigit < static_cast<UShort_t>(de.digits.size()); ++iDigit)
-      delete de.digits[iDigit];
+    for (UShort_t iDigit = 0; iDigit < static_cast<UShort_t>(de.ownDigits.size()); ++iDigit)
+      delete de.ownDigits[iDigit];
     
     for (UChar_t iPlane = 0; iPlane < 2; ++iPlane) {
       for (UShort_t iCluster = 0; iCluster < static_cast<UShort_t>(fPreClusters[iDE][iPlane].size()); ++iCluster) {
@@ -251,6 +250,8 @@ int AliHLTMUONPreclusterFinderComponent::DoEvent(const AliHLTComponentEventData&
 {
   /// Inherited from AliHLTProcessor. Processes the new event data.
   
+  AliCodeTimerAutoGeneral("",0);
+  
   // skip non physics events (e.g. SOR, EOR)
   if (!IsDataEvent()) return 0;
   
@@ -260,7 +261,8 @@ int AliHLTMUONPreclusterFinderComponent::DoEvent(const AliHLTComponentEventData&
   // reset fired pad and precluster information
   ResetPadsAndPreclusters();
   
-  // loop over blocks of the data type "DDLRaw"
+  // loop over blocks of the data type "DDL_RAW"
+  AliCodeTimerStartGeneral("LoadDigitsFromRaw");
   const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(AliHLTMUONConstants::DDLRawDataType());
   while (pBlock) {
     
@@ -283,26 +285,35 @@ int AliHLTMUONPreclusterFinderComponent::DoEvent(const AliHLTComponentEventData&
     pBlock = GetNextInputBlock();
     
   }
+  AliCodeTimerStopGeneral("LoadDigitsFromRaw");
   
-  // loop over objects in blocks of data type "DigitStore"
-  const TObject* pObj = GetFirstInputObject(AliHLTMUONConstants::DigitStoreDataType());
-  while (pObj) {
+  // loop over objects in blocks of data type "DIGITS"
+  AliCodeTimerStartGeneral("LoadDigits");
+  pBlock = GetFirstInputBlock(AliHLTMUONConstants::DigitBlockDataType());
+  while (pBlock) {
     
-    // make sure the block indeed contains a digit store
-    const AliMUONVDigitStore *pDigitStore = dynamic_cast<const AliMUONVDigitStore*>(pObj);
-    if (! pDigitStore) {
-      HLTError("The data block of type \"DigitStore\" does not contains a digit store.");
+    AliHLTMUONDigitsBlockReader dblock(pBlock->fPtr, pBlock->fSize);
+    
+    // make sure the block indeed contains a valid digits block
+    if (!dblock.BufferSizeOk()) {
+      HLTError("The buffer size does not match the expected size of the digit block.");
+      return -EILSEQ;
+    }
+    AliHLTMUONUtils::WhyNotValid reason;
+    if (!AliHLTMUONUtils::HeaderOk(dblock.BlockHeader(), &reason)) {
+      HLTError("Invalid digit block: %s", AliHLTMUONUtils::FailureReasonToMessage(reason));
       return -EFTYPE;
     }
     
     // load the digits to get the fired pads
-    LoadDigits(pDigitStore);
+    LoadDigits(dblock);
     
     inBlocks = kTRUE;
     
-    pObj = GetNextInputObject();
+    pBlock = GetNextInputBlock();
     
   }
+  AliCodeTimerStopGeneral("LoadDigits");
   
   if (inBlocks) {
     
@@ -361,6 +372,8 @@ void AliHLTMUONPreclusterFinderComponent::CreateMapping()
       de.nPads[iPlane[0]] = seg[0]->NofPads();
       de.nPads[iPlane[1]] = seg[1]->NofPads();
       de.pads = new mpPad[de.nPads[0]+de.nPads[1]];
+      de.ownDigits.reserve((de.nPads[0]/10+de.nPads[1]/10)); // 10% occupancy
+      de.nOwnDigits = 0;
       de.digits.reserve((de.nPads[0]/10+de.nPads[1]/10)); // 10% occupancy
       de.nOrderedPads[0] = 0;
       de.orderedPads[0].reserve((de.nPads[0]/10+de.nPads[1]/10)); // 10% occupancy
@@ -452,25 +465,21 @@ void AliHLTMUONPreclusterFinderComponent::FindNeighbours(mpDE &de, UChar_t iPlan
 }
 
 //_________________________________________________________________________________________________
-void AliHLTMUONPreclusterFinderComponent::LoadDigits(const AliMUONVDigitStore* digitStore)
+void AliHLTMUONPreclusterFinderComponent::LoadDigits(const AliHLTMUONDigitsBlockReader &dblock)
 {
   /// fill the mpDE structure with fired pads
-  
-  AliCodeTimerAutoGeneral("",0);
   
   UChar_t iPlane(0);
   UShort_t iPad(0);
   
   // loop over digits
-  AliMUONVDigit* digit = 0x0;
-  TIter nextDigit(digitStore->CreateIterator());
-  while ((digit = static_cast<AliMUONVDigit*>(nextDigit()))) {
+  for (AliHLTUInt32_t i = 0; i < dblock.Nentries(); ++i) {
     
-    if (digit->Charge() <= 0) continue;
+    const AliHLTMUONDigitStruct &digit(dblock[i]);
     
-    mpDE &de(fMpDEs[fDEIndices.GetValue(digit->DetElemId())]);
-    iPlane = (digit->Cathode() == de.iCath[0]) ? 0 : 1;
-    iPad = de.padIndices[iPlane].GetValue(digit->GetUniqueID());
+    mpDE &de(fMpDEs[fDEIndices.GetValue(AliMUONVDigit::DetElemId(digit.fId))]);
+    iPlane = (AliMUONVDigit::Cathode(digit.fId) == de.iCath[0]) ? 0 : 1;
+    iPad = de.padIndices[iPlane].GetValue(digit.fId);
     if (iPad == 0) {
       HLTWarning("pad ID %u does not exist in the mapping");
       continue;
@@ -479,10 +488,8 @@ void AliHLTMUONPreclusterFinderComponent::LoadDigits(const AliMUONVDigitStore* d
     
     // register this digit
     UShort_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
-    if (iDigit >= static_cast<UShort_t>(de.digits.size())) de.digits.push_back(new AliHLTMUONChannelStruct);
-    AliHLTMUONChannelStruct *digit2 = de.digits[iDigit];
-    digit2->fSignal = static_cast<UShort_t>(digit->ADC());
-    digit2->fRawDataWord = digit->GetUniqueID();
+    if (iDigit >= static_cast<UShort_t>(de.digits.size())) de.digits.push_back(&digit);
+    else de.digits[iDigit] = &digit;
     de.pads[iPad].iDigit = iDigit;
     de.pads[iPad].useMe = kTRUE;
     
@@ -529,6 +536,9 @@ void AliHLTMUONPreclusterFinderComponent::ResetPadsAndPreclusters()
       de.nFiredPads[iPlane] = 0;
       
     }
+    
+    // clear number of digits produced when decoding raw data
+    de.nOwnDigits = 0;
     
     // clear ordered number of fired pads
     de.nOrderedPads[0] = 0;
@@ -797,7 +807,7 @@ Int_t AliHLTMUONPreclusterFinderComponent::StorePreClusters(AliHLTUInt8_t* outpu
   AliCodeTimerAutoGeneral("",0);
   
   preCluster *cl(0x0);
-  AliHLTMUONChannelStruct *digit(0x0);
+  const AliHLTMUONDigitStruct *digit(0x0);
   AliHLTUInt32_t totalBytesUsed(0);
   Int_t status(0);
   
@@ -856,7 +866,7 @@ Int_t AliHLTMUONPreclusterFinderComponent::StorePreClusters(AliHLTUInt8_t* outpu
 void AliHLTMUONPreclusterFinderComponent::RawDecoderHandler::OnData(UInt_t data, bool /*parityError*/)
 {
   /// OnData is called for every raw data word found within a bus patch.
-  /// Every data ward received by a call to OnData is associated to the bus patch
+  /// Every data word received by a call to OnData is associated to the bus patch
   /// header received in the most recent call to OnNewBusPatch.
   /// The default behaviour of this method is to do nothing.
   /// - param UInt_t  This is the raw data word as found within the bus patch payload.
@@ -886,12 +896,18 @@ void AliHLTMUONPreclusterFinderComponent::RawDecoderHandler::OnData(UInt_t data,
   if (iPad == 0) return;
   --iPad;
   
-  // register this digit
+  // register this digit in the list of digits we own
+  if (de.nOwnDigits >= static_cast<UShort_t>(de.ownDigits.size())) de.ownDigits.push_back(new AliHLTMUONDigitStruct);
+  AliHLTMUONDigitStruct *digit = de.ownDigits[de.nOwnDigits];
+  digit->fId = padId;
+  digit->fIndex = iPad;
+  digit->fADC = adc;
+  ++de.nOwnDigits;
+  
+  // then in the list of fired digits
   UShort_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
-  if (iDigit >= static_cast<UShort_t>(de.digits.size())) de.digits.push_back(new AliHLTMUONChannelStruct);
-  AliHLTMUONChannelStruct *digit = de.digits[iDigit];
-  digit->fSignal = adc;
-  digit->fRawDataWord = padId;
+  if (iDigit >= static_cast<UShort_t>(de.digits.size())) de.digits.push_back(digit);
+  else de.digits[iDigit] = digit;
   de.pads[iPad].iDigit = iDigit;
   de.pads[iPad].useMe = kTRUE;
   
