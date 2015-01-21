@@ -51,9 +51,9 @@ AliADCalibData::AliADCalibData():
   // default constructor
   
     for(int t=0; t<16; t++) {
-        fMeanHV[t]      = 1600.0;
+        fMeanHV[t]      = 1400.0;
         fWidthHV[t]     = 0.0; 
-	fTimeOffset[t]  = 0.0;
+	fTimeOffset[t]  = 250.0;
         fTimeGain[t]    = 1.0;
 	fDeadChannel[t]= kFALSE;
 	fDiscriThr[t]  = 2.5;
@@ -67,9 +67,9 @@ AliADCalibData::AliADCalibData():
     for(int i=0; i<kNCIUBoards ;i++) {
 	fTimeResolution[i]  = 25./256.;     // Default time resolution
 	fWidthResolution[i] = 25./64.;     // Default time width resolution
-	fMatchWindow[i] = 4;
+	fMatchWindow[i] = 16;
 	fSearchWindow[i] = 16;
-	fTriggerCountOffset[i] = 3247;
+	fTriggerCountOffset[i] = 3553;
 	fRollOver[i] = 3563;
     }
     for(int i=0; i<kNCIUBoards ;i++) {
@@ -82,7 +82,8 @@ AliADCalibData::AliADCalibData():
 	fPedestalSubtraction[i] = kFALSE;
 	}
     for(Int_t j = 0; j < 16; ++j) {
-	fEnableCharge[j] = fEnableTiming[j] = kFALSE;
+	fEnableCharge[j] = kFALSE;
+	fEnableTiming[j] = kTRUE;
 	fPedestalOdd[j] = fPedestalEven[j] = 0;
 	fPedestalCutOdd[j] = fPedestalCutEven[j] = 0;
 	}
@@ -117,7 +118,7 @@ AliADCalibData::AliADCalibData(const char* name) :
    SetName(namst.Data());
    SetTitle(namst.Data());
    for(int t=0; t<16; t++) {
-       fMeanHV[t]      = 100.0;
+       fMeanHV[t]      = 1500.0;
        fWidthHV[t]     = 0.0; 
        fTimeOffset[t]  = 5.0;
        fTimeGain[t]    = 1.0;
@@ -148,7 +149,8 @@ AliADCalibData::AliADCalibData(const char* name) :
 	fPedestalSubtraction[i] = kFALSE;
 	}
     for(Int_t j = 0; j < 16; ++j) {
-	fEnableCharge[j] = fEnableTiming[j] = kFALSE;
+	fEnableCharge[j] = kFALSE;
+	fEnableTiming[j] = kTRUE;
 	fPedestalOdd[j] = fPedestalEven[j] = 0;
 	fPedestalCutOdd[j] = fPedestalCutEven[j] = 0;
 	}
@@ -241,18 +243,6 @@ AliADCalibData::~AliADCalibData()
 }
 
 //________________________________________________________________
-Int_t AliADCalibData::GetBoardNumber(Int_t channel)
-{
-  // Get FEE board number
-  // from offline channel index
-  if (channel >= 0 && channel < 8) return (0);
-  if (channel >=8 && channel < 16) return (1);
-
-  AliErrorClass(Form("Wrong channel index: %d",channel));
-  return -1;
-}
-
-//________________________________________________________________
 Float_t AliADCalibData::GetLightYields(Int_t channel)
 {
   // Get the light yield efficiency
@@ -314,7 +304,8 @@ Float_t AliADCalibData::GetGain(Int_t channel)
   Float_t hv = fMeanHV[channel];
   Float_t gain = 0;
   if (hv>0)
-    gain = TMath::Exp(fPMGainsA[channel]+fPMGainsB[channel]*TMath::Log(hv));
+    //gain = TMath::Exp(fPMGainsA[channel]+fPMGainsB[channel]*TMath::Log(hv));
+    gain = TMath::Power(hv/fPMGainsA[channel],fPMGainsB[channel])*kChargePerADC/kNPhotonsPerMIP;
   return gain;
 }
 
@@ -367,6 +358,19 @@ void AliADCalibData::FillDCSData(AliADDataDCS * data){
   	SetDeadMap(data->GetDeadMap());
 
 }
+//_____________________________________________________________________________
+void AliADCalibData::SetADCperMIP(Int_t nADCperMIP){
+	//Sets HV in a way to have uniform gains on PM according  
+	//to number of ADC per MIP 
+	if (!fPMGainsA) InitPMGains();
+	Double_t hv = 0;
+	for(Int_t channel = 0; channel<16; channel++){
+		hv = TMath::Power(nADCperMIP,1/fPMGainsB[channel])*fPMGainsA[channel];
+		SetMeanHV(hv,channel);
+		AliInfo(Form("HV on channel %d set to %f V",channel,hv));
+		}
+}
+
 //_____________________________________________________________________________
 void AliADCalibData::SetParameter(TString name, Int_t val){
 	// Set given parameter
@@ -1100,7 +1104,7 @@ Int_t AliADCalibData::GetOfflineChannelNumber(Int_t board, Int_t channel)
     return -1;
   }
 
-  Int_t offCh = (board+1)*channel;
+  Int_t offCh = kOfflineChannel[(board+1)*channel];
 
   return offCh;
 }
@@ -1109,7 +1113,19 @@ Int_t AliADCalibData::GetFEEChannelNumber(Int_t channel)
 {
   // Get FEE channel number
   // from offline channel index
-  if (channel >= 0 && channel < 16) return ((channel % 8));
+  if (channel >= 0 && channel < 16) return ((kOfflineChannel[channel] % 8));
+
+  AliErrorClass(Form("Wrong channel index: %d",channel));
+  return -1;
+}
+//________________________________________________________________
+Int_t AliADCalibData::GetBoardNumber(Int_t channel)
+{
+  // Get FEE board number
+  // from offline channel index
+  Int_t OnChannel = kOfflineChannel[channel];
+  if (OnChannel >= 0 && OnChannel < 8) return (0);
+  if (OnChannel >= 8 && OnChannel < 16) return (1);
 
   AliErrorClass(Form("Wrong channel index: %d",channel));
   return -1;
