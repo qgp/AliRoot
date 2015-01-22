@@ -18,11 +18,8 @@
 
 
 class AliExternalTrackParam;
-//class AliESDtrack;
-//class AliESDEvent;
-//class AliESDfriend;
-class AliVEvent;
 class AliVTrack;
+class AliVEvent;
 class AliVfriendEvent;
 class TGraphErrors;
 class TTree;
@@ -63,7 +60,6 @@ public:
   void   MakeFitHistos();
   void   UpdateFitHistos();
   void   MergeFitHistos(AliTPCcalibLaser * add);
-  //void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliVTrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
   //
@@ -74,12 +70,12 @@ public:
     {fUseFixedDriftV = 1; fFixedFitAside0=aside0; fFixedFitAside1=aside1;
     fFixedFitCside0=cside0; fFixedFitCside1=cside1;}
 
-  AliVEvent  * fEvent;             //! ESD event  - not OWNER
-  AliVfriendEvent * fEventFriend;       //! ESD event  - not OWNER
+  AliVEvent  * fV;             //! V event  - not OWNER
+  AliVfriendEvent * fVfriend;       //! V friend event  - not OWNER
   Int_t          fNtracks;         //! counter of associated laser tracks
   //
   TObjArray      fTracksMirror;    //! tracks with mirror information
-  TObjArray      fTracks;       //! tracks with reconstructed information -
+  TObjArray      fTracksV;       //! tracks with reconstructed information -
   //                               not owner ESD
   TObjArray      fTracksVParam;  //! tracks with reconstructed information -
   //                               is owner ESD at mirror
