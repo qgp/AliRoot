@@ -211,6 +211,11 @@ install(FILES ${PROJECT_BINARY_DIR}/version/AliRoot-config.cmake DESTINATION etc
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
+# Do not use @rpath ever, see http://www.cmake.org/cmake/help/v3.0/policy/CMP0042.html
+if (NOT CMAKE_VERSION VERSION_LESS "3.0.0")
+    cmake_policy(SET CMP0042 OLD)
+endif()
+
 # Set additional compilation flags according to ROOT's ones
 if (ROOT_HAS_CXX11 AND NOT CMAKE_CXX_FLAGS MATCHES "-std=c\\+\\+11")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
