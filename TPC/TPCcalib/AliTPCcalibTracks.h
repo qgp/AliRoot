@@ -43,7 +43,6 @@ class TChain;
 class TTree;
 class TMutex;
 class AliVEvent;
-class AliVTrack;
 
 using namespace std;
 
