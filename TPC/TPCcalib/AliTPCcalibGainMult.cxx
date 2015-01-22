@@ -324,11 +324,10 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
   }  
   fCurrentEvent=event;
   fMagF = event->GetMagneticField();
-  Int_t ntracks=event->GetNumberOfTracks();  
-  //AliESDfriend *esdFriend=static_cast<AliESDfriend*>(event->FindFriend());
+  Int_t ntracks=event->GetNumberOfTracks();
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
-    Printf("ERROR: esdFriend not available");
+    //Printf("ERROR: eventFriend not available");
     delete fPIDMatrix;
     return;
   }
@@ -875,7 +874,6 @@ void AliTPCcalibGainMult::DumpTrack(AliVTrack * track, AliVfriendTrack *ftrack, 
 
   AliExternalTrackParam trckTPCOut;
   if ( (ftrack->GetTrackParamTPCOut(trckTPCOut)) <0) return;
-  AliExternalTrackParam * tpcOut  = &trckTPCOut;
 
   if (trckIn.GetZ()*trckOut.GetZ()<0) return;  // remove crossing tracks
   //
@@ -1325,8 +1323,6 @@ void AliTPCcalibGainMult::ProcessV0s(AliVEvent *event){
   event->GetPrimaryVertex(vtx);
   AliESDVertex *vertex=&vtx;
   AliKFVertex kfvertex=*vertex;
-
-
   //
   for (Int_t iv0=0;iv0<nv0;iv0++){
     AliESDv0 v0dummy;
