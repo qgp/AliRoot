@@ -28,6 +28,9 @@
 # - ROOT_LIBRARIES - libraries needed for the package to be used
 # - ROOT_GLIBRARIES - regular + GUI ROOT libraries + path to be used during linking
 # - ROOT_INCLUDE_DIR - full path to ROOT include folder
+# - ROOT_CXX_FLAGS - flags used by the C++ compiler for building ROOT
+# - ROOT_HAS_LIBCXX - TRUE if ROOT was built against libc++ (as opposed to libstdc++)
+# - ROOT_HAS_CXX11 - TRUE if ROOT was built with C++11 support
 # - ROOT_HASALIEN - ROOT was built with AliEn support
 # - ROOT_HASOPENGL - ROOT was built with OpenGL support
 # - ROOT_HASXML - ROOT was built with XML support
@@ -116,6 +119,26 @@ if(ROOTSYS)
     endif(error)
     string(STRIP "${ROOT_INCDIR}" ROOT_INCDIR)
     set(ROOT_INCLUDE_DIR ${ROOT_INCDIR})
+
+    # Setting ROOT compiler flags (except the -I parts) to a variable
+    execute_process(COMMAND ${ROOT_CONFIG} --auxcflags OUTPUT_VARIABLE ROOT_CXX_FLAGS ERROR_VARIABLE error OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(error)
+        message(FATAL_ERROR "Error retrieving ROOT compiler flags: ${error}")
+    endif(error)
+    string(STRIP "${ROOT_CXX_FLAGS}" ROOT_CXX_FLAGS)
+
+    # Check if ROOT was built with libc++ and/or C++11 support
+    set(ROOT_HAS_LIBCXX FALSE)
+    set(ROOT_HAS_CXX11 FALSE)
+
+    if(ROOT_CXX_FLAGS MATCHES "-stdlib=libc\\+\\+")
+        set(ROOT_HAS_LIBCXX TRUE)
+    endif()
+
+    if(ROOT_CXX_FLAGS MATCHES "-std=c\\+\\+11")
+        message(STATUS "ROOT was built with C++11 support")
+        set(ROOT_HAS_CXX11 TRUE)
+    endif()
 
     # Checking for glibs
     execute_process(COMMAND ${ROOT_CONFIG} --noldflags --glibs OUTPUT_VARIABLE ROOT_GLIBS ERROR_VARIABLE error OUTPUT_STRIP_TRAILING_WHITESPACE )
