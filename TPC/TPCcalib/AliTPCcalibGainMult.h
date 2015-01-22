@@ -14,9 +14,7 @@
 #include "TVectorD.h"
 class TH1F;
 class TList;
-//class AliESDEvent;
 class AliVEvent;
-//class AliESDtrack;
 class AliVTrack;
 class AliVfriendTrack;
 class AliTPCseed;
@@ -32,15 +30,7 @@ public:
   void SetBBParam(TVectorD * param) {fBBParam=param;}
   //  virtual void Terminate();  
   //
-  //virtual void           Process(AliESDEvent *event);
   virtual void           Process(AliVEvent *event);
-
-  //virtual void           ProcessV0s(AliESDEvent *event);
-  //virtual void           ProcessCosmic(const AliESDEvent *event);
-  //virtual void           ProcessKinks(const AliESDEvent *event);
-  //virtual void           ProcessTOF(const AliESDEvent *event);
-  //virtual void           DumpHPT(const AliESDEvent *event);
-
   virtual void           ProcessV0s(AliVEvent *event);
   virtual void           ProcessCosmic(const AliVEvent *event);
   virtual void           ProcessKinks(const AliVEvent *event);
@@ -85,7 +75,6 @@ public:
   void SetAlephParameters(Float_t * parameters){for(Int_t j=0;j<5;j++) fAlephParameters[j] = parameters[j];}
   //
   //
-  //void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliVTrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
   //
