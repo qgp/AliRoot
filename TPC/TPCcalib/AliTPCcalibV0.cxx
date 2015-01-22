@@ -28,7 +28,6 @@
 #include "AliVfriendEvent.h"
 #include "AliVfriendTrack.h"
 #include "AliESDVertex.h"
-
 #include "AliMathBase.h" 
 #include "AliTPCseed.h"
 #include "AliTPCreco.h"
@@ -154,7 +153,7 @@ void  AliTPCcalibV0::DumpToTreeHPT(AliVEvent *ev){
 	Int_t eventNumber = ev->GetEventNumberInFile();
 	Bool_t hasFriend=(vFriend) ? (vFriend->GetTrack(i)!=0):0;
 	Bool_t hasITS=(track->GetNcls(0)>2);
-    printf("DUMPIONTrack:%s|%f|%d|%d|%d\n",filename.Data(),trkIn.Pt()*track->GetTPCsignal()/50., eventNumber,hasFriend,hasITS);
+	printf("DUMPIONTrack:%s|%f|%d|%d|%d\n",filename.Data(),trkIn.Pt()*track->GetTPCsignal()/50., eventNumber,hasFriend,hasITS);
       }
     }
     if (!isOK) continue;
@@ -179,24 +178,15 @@ void  AliTPCcalibV0::DumpToTreeHPT(AliVEvent *ev){
       fHPTTree = new TTree("HPT","HPT");
       fHPTTree->SetDirectory(0);
     }
-
-      //**********************TEMPORARY!!*******************************************
-      // more investigation is needed with Tree ///!!!
-      //all dummy stuff here is just for code to compile and work with ESD
-
-      AliESDfriendTrack *dummyfriendTrack=(AliESDfriendTrack*)friendTrack;
-      AliESDtrack *dummytrack=(AliESDtrack*)track;
-
-
     if (fHPTTree->GetEntries()==0){
       //
       fHPTTree->SetDirectory(0);
-      fHPTTree->Branch("t.",&dummytrack);
-      fHPTTree->Branch("ft.",&dummyfriendTrack);
+      fHPTTree->Branch("t.",&track);
+      fHPTTree->Branch("ft.",&friendTrack);
       fHPTTree->Branch("s.",&seed);
     }else{
-      fHPTTree->SetBranchAddress("t.",&dummytrack);
-      fHPTTree->SetBranchAddress("ft.",&dummyfriendTrack);
+      fHPTTree->SetBranchAddress("t.",&track);
+      fHPTTree->SetBranchAddress("ft.",&friendTrack);
       fHPTTree->SetBranchAddress("s.",&seed);
     }
     fHPTTree->Fill();
@@ -229,8 +219,7 @@ void  AliTPCcalibV0::DumpToTree(AliVEvent *ev){
     AliVTrack * track0 = fVevent->GetVTrack(v0->GetIndex(0)); // negative track
     AliVTrack * track1 = fVevent->GetVTrack(v0->GetIndex(1)); // positive track
     if (track0->GetTPCNcls()<kMinCluster) continue;
-    if (track0->GetKinkIndex(0)>0) continue;
-    if(!track1) continue;
+    if (track0->GetKinkIndex(0)>0) continue;    
     if (track1->GetTPCNcls()<kMinCluster) continue;
     if (track1->GetKinkIndex(0)>0) continue;
     if (v0->GetOnFlyStatus()==kFALSE) continue;
@@ -276,32 +265,22 @@ void  AliTPCcalibV0::DumpToTree(AliVEvent *ev){
       fV0Tree = new TTree("V0s","V0s");
       fV0Tree->SetDirectory(0);
     }
-
-    //**********************TEMPORARY!!*******************************************
-    // more investigation is needed with Tree ///!!!
-    //all dummy stuff here is just for code to compile and work with ESD
-
-    AliESDfriendTrack *dummyftrack0=(AliESDfriendTrack*)ftrack0;
-    AliESDfriendTrack *dummyftrack1=(AliESDfriendTrack*)ftrack1;
-    AliESDtrack *dummytrack0=(AliESDtrack*)track0;
-    AliESDtrack *dummytrack1=(AliESDtrack*)track1;
-
     if (fV0Tree->GetEntries()==0){
       //
       fV0Tree->SetDirectory(0);
       fV0Tree->Branch("v0.",&v0);
-      fV0Tree->Branch("t0.",&dummytrack0);
-      fV0Tree->Branch("t1.",&dummytrack1);
-      fV0Tree->Branch("ft0.",&dummyftrack0);
-      fV0Tree->Branch("ft1.",&dummyftrack1);
+      fV0Tree->Branch("t0.",&track0);
+      fV0Tree->Branch("t1.",&track1);
+      fV0Tree->Branch("ft0.",&ftrack0);
+      fV0Tree->Branch("ft1.",&ftrack1);
       fV0Tree->Branch("s0.",&seed0);
       fV0Tree->Branch("s1.",&seed1);
     }else{
       fV0Tree->SetBranchAddress("v0.",&v0);
-      fV0Tree->SetBranchAddress("t0.",&dummytrack0);
-      fV0Tree->SetBranchAddress("t1.",&dummytrack1);
-      fV0Tree->SetBranchAddress("ft0.",&dummyftrack0);
-      fV0Tree->SetBranchAddress("ft1.",&dummyftrack1);
+      fV0Tree->SetBranchAddress("t0.",&track0);
+      fV0Tree->SetBranchAddress("t1.",&track1);
+      fV0Tree->SetBranchAddress("ft0.",&ftrack0);
+      fV0Tree->SetBranchAddress("ft1.",&ftrack1);
       fV0Tree->SetBranchAddress("s0.",&seed0);
       fV0Tree->SetBranchAddress("s1.",&seed1);
     }
@@ -931,7 +910,6 @@ void AliTPCcalibV0::FilterV0s(AliVEvent* event){
   AliESDVertex *vertex=&vtx;
 
   AliKFVertex kfvertex=*vertex;
-
   //
   for (Int_t iv0=0;iv0<nv0;iv0++){
     //AliESDv0 *v0 = event->GetV0(iv0);
@@ -992,7 +970,7 @@ void AliTPCcalibV0::FilterV0s(AliVEvent* event){
 	  "tp.="<<trackP<<
 	  "tm.="<<trackN<<
 	  //
-      //"v.="<<vertex<<
+	  "v.="<<vertex<<
 	  "ncls="<<ncls<<
 	  "maxPt="<<maxPt<<
 	  "\n";        
