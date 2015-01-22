@@ -56,11 +56,7 @@
 
 
 #include "AliLog.h"
-#include "AliESDEvent.h"
-
 #include "AliVEvent.h"
-#include "AliVTrack.h"
-#include "AliVfriendTrack.h"
 
 
 ClassImp(AliTPCcalibBase)
