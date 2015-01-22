@@ -211,6 +211,14 @@ install(FILES ${PROJECT_BINARY_DIR}/version/AliRoot-config.cmake DESTINATION etc
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
+# Set additional compilation flags according to ROOT's ones
+if (ROOT_HAS_CXX11 AND NOT CMAKE_CXX_FLAGS MATCHES "-std=c\\+\\+11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+if (ROOT_HAS_LIBCXX AND NOT CMAKE_CXX_FLAGS MATCHES "-stdlib=libc\\+\\+")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif()
+
 # AliRoot base modules
 add_subdirectory(STEER)
 add_subdirectory(RAW)
@@ -297,3 +305,6 @@ if(SHUTTLE)
 endif(SHUTTLE)
 
 add_subdirectory(ALIROOT)
+
+# Report compilation flags
+message(STATUS "AliRoot Core will be built with the following extra C++ flags: ${CMAKE_CXX_FLAGS}")
