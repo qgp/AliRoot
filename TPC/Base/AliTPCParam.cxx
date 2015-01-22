@@ -115,7 +115,8 @@ AliTPCParam::AliTPCParam()
              fWmean(0.),
              fExp(0.),
              fEend(0.),
-             fBetheBloch(0x0),
+             fBetheBloch(0x0),   // dE/dx:BG  - used in the reconstruction
+             fBetheBlochMC(0x0), // dN_{prim}/dx:BG - used for the simulation of energy loss
 	     fGainSlopesHV(0),   // graph with the gain slope as function of HV - per chamber
 	     fGainSlopesPT(0),   // graph with the gain slope as function of P/T - per chamber
 	     fPadCoupling(0.),
@@ -516,6 +517,7 @@ void AliTPCParam::SetDefault()
   SetComposition(0.9,0.,0.1,0.,0.,0.);// Ne-CO2 90/10
   //
   SetBetheBloch(GetBetheBlochParamAlice());
+  SetBetheBlochMC(GetBetheBlochParamAliceMC());
   //
   //set electronivc parameters  
   //
@@ -589,6 +591,8 @@ Bool_t AliTPCParam::Update()
     fRotAngle[j+1] =  fRotAngle[i+1];
     fRotAngle[i+2] =angle;
     fRotAngle[j+2] =angle;    
+    fRotAngle[i+3] =angle;
+    fRotAngle[j+3] =angle;    
   }
   angle = fOuterAngleShift; 
   j=(fNInnerSector+fNOuterSector/2)*4;
@@ -599,6 +603,8 @@ Bool_t AliTPCParam::Update()
     fRotAngle[j+1] =  fRotAngle[i+1];
     fRotAngle[i+2] =angle;
     fRotAngle[j+2] =angle;    
+    fRotAngle[i+3] =angle;
+    fRotAngle[j+3] =angle;    
   }
 
   fZWidth = fTSample*fDriftV;  
@@ -1018,6 +1024,21 @@ TVectorD * AliTPCParam::GetBetheBlochParamAlice(){
   return new TVectorD(v);
 }
 
+TVectorD * AliTPCParam::GetBetheBlochParamAliceMC(){
+  //
+  //
+  //  Parameters of the BB for the Aleph parametrization AliMathBase::BetheBlochAleph
+  //  dNdx parameterization
+  TVectorD v(5);
+  v[0] =0.0820172 ;
+  v[1] =9.94795 ;
+  v[2] =8.97292e-05; 
+  v[3] =2.05873 ;
+  v[4] =1.65272 ;
+
+  return new TVectorD(v);
+}
+
 
 Double_t  AliTPCParam::BetheBlochAleph(Double_t bg, Int_t type){
   //
@@ -1028,7 +1049,7 @@ Double_t  AliTPCParam::BetheBlochAleph(Double_t bg, Int_t type){
     AliTPCParam* param = AliTPCcalibDB::Instance()->GetParameters();
     if (param) paramBB=param->GetBetheBlochParameters();
   } 
-  if (type>0){
+  if (type==1){
     paramBB = (TVectorD*)fBBParam->At(type);
   }
   if (!paramBB) return 0;

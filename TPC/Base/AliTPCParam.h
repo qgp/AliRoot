@@ -202,8 +202,14 @@ public:
     fBetheBloch=0;
     if (v) fBetheBloch=new TVectorD(*v);
   }
+  void   SetBetheBlochMC(TVectorD *v){
+    if (fBetheBlochMC) delete fBetheBlochMC;
+    fBetheBlochMC=0;
+    if (v) fBetheBlochMC=new TVectorD(*v);
+  }
   static TVectorD * GetBetheBlochParamNa49();
   static TVectorD * GetBetheBlochParamAlice();
+  static TVectorD * GetBetheBlochParamAliceMC();
   static void RegisterBBParam(TVectorD* param, Int_t position);
   //
   //set electronivc parameters  
@@ -344,6 +350,7 @@ public:
   Float_t  GetExp()const {return fExp;}
   Float_t  GetEend()const {return fEend;}
   TVectorD* GetBetheBlochParameters(){return fBetheBloch;} 
+  TVectorD* GetBetheBlochParametersMC(){return fBetheBlochMC;} 
   static Double_t BetheBlochAleph(Double_t bb, Int_t type=0);
   //
   //get Electronic parameters
@@ -484,6 +491,7 @@ protected :
   Float_t  fExp;             // de = f(E) - energy loss parametrization
   Float_t  fEend;            // upper cutoff for de generation
   TVectorD*  fBetheBloch;   // Bethe-Bloch parametrization
+  TVectorD*  fBetheBlochMC;   // Bethe-Bloch parametrization
   // gas mixture composition
   Float_t  fComposition[6]; 
   TGraphErrors * fGainSlopesHV;   // graph with the gain slope as function of HV - per chamber
@@ -538,7 +546,7 @@ protected :
 
   void CleanGeoMatrices();
 
-  ClassDef(AliTPCParam,8)  //parameter  object for set:TPC
+  ClassDef(AliTPCParam,10)  //parameter  object for set:TPC
 };
 
  
