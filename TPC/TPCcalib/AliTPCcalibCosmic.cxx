@@ -48,10 +48,6 @@
 #include "AliTPCclusterMI.h"
 #include "AliTPCseed.h"
 #include "AliESDVertex.h"
-#include "AliESDEvent.h"
-#include "AliESDtrack.h"
-#include "AliESDfriend.h"
-#include "AliESDInputHandler.h"
 #include "AliAnalysisManager.h"
 
 #include "AliVEvent.h"
@@ -1112,9 +1108,9 @@ void AliTPCcalibCosmic::FindCosmicPairs(const AliVEvent *event) {
       Int_t ntracksSPD = vertexSPD->GetNContributors();
       Int_t ntracksTPC = vertexTPC->GetNContributors();
       //
-      const AliVfriendTrack *friendTrack0 = friendEvent->GetTrack(itrack0);
+      AliVfriendTrack *friendTrack0 = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(itrack0));
       if (!friendTrack0) continue;
-      const AliVfriendTrack *friendTrack1 = friendEvent->GetTrack(itrack1);
+      AliVfriendTrack *friendTrack1 = const_cast<AliVfriendTrack*>(friendEvent->GetTrack(itrack1));
       if (!friendTrack1) continue;
       AliTPCseed *seed0 = 0;   
       AliTPCseed *seed1 = 0;
@@ -1140,28 +1136,11 @@ void AliTPCcalibCosmic::FindCosmicPairs(const AliVEvent *event) {
 	  "vTPC.="<<vertexTPC<<         //primary vertex -TPC
 	  "t0.="<<track0<<              //track0
 	  "t1.="<<track1<<              //track1
-      //"ft0.="<<dummyfriendTrack0<<       //track0
-      //"ft1.="<<dummyfriendTrack1<<       //track1
+      "ft0.="<<friendTrack0<<       //track0
+      "ft1.="<<friendTrack1<<       //track1
  	  "s0.="<<seed0<<               //track0
  	  "s1.="<<seed1<<               //track1
 	  "\n";      
-      }
-
-      //**********************TEMPORARY!!*******************************************
-      // more investigation is needed with Tree ///!!!
-      //all dummy stuff here is just for code to compile and work with ESD
-
-      AliESDfriendTrack *dummyfriendTrack0 = (AliESDfriendTrack*)friendTrack0;
-      AliESDfriendTrack *dummyfriendTrack1 = (AliESDfriendTrack*)friendTrack1;
-
-      AliESDtrack *dummytrack0 = (AliESDtrack*)track0;
-      AliESDtrack *dummytrack1 = (AliESDtrack*)track1;
-
-      if ((pcstream)&&(dummyfriendTrack0)){
-          (*pcstream)<<"ft0.="<<dummyfriendTrack0<<"\n";
-      }
-      if ((pcstream)&&(dummyfriendTrack1)){
-          (*pcstream)<<"ft1.="<<dummyfriendTrack1<<"\n";
       }
 
       if (!fCosmicTree) {
@@ -1171,15 +1150,15 @@ void AliTPCcalibCosmic::FindCosmicPairs(const AliVEvent *event) {
       if (fCosmicTree->GetEntries()==0){
 	//
 	fCosmicTree->SetDirectory(0);
-    fCosmicTree->Branch("t0.",&dummytrack0);
-    fCosmicTree->Branch("t1.",&dummytrack1);
-    fCosmicTree->Branch("ft0.",&dummyfriendTrack0);
-    fCosmicTree->Branch("ft1.",&dummyfriendTrack1);
+    fCosmicTree->Branch("t0.",&track0);
+    fCosmicTree->Branch("t1.",&track1);
+    fCosmicTree->Branch("ft0.",&friendTrack0);
+    fCosmicTree->Branch("ft1.",&friendTrack1);
       }else{
-    fCosmicTree->SetBranchAddress("t0.",&dummytrack0);
-    fCosmicTree->SetBranchAddress("t1.",&dummytrack1);
-    fCosmicTree->SetBranchAddress("ft0.",&dummyfriendTrack0);
-    fCosmicTree->SetBranchAddress("ft1.",&dummyfriendTrack1);
+    fCosmicTree->SetBranchAddress("t0.",&track0);
+    fCosmicTree->SetBranchAddress("t1.",&track1);
+    fCosmicTree->SetBranchAddress("ft0.",&friendTrack0);
+    fCosmicTree->SetBranchAddress("ft1.",&friendTrack1);
       }
       fCosmicTree->Fill();
     }
@@ -1205,10 +1184,10 @@ void AliTPCcalibCosmic::AddTree(TTree* treeOutput, TTree * treeInput){
   //  
   return;
   //if (TMath::Abs(fMagF)<0.1) return; // work around - otherwise crashes 
-  AliESDtrack *track0=new AliESDtrack;     ///!!!
-  AliESDtrack *track1=new AliESDtrack;
-  AliESDfriendTrack *ftrack0=new AliESDfriendTrack;
-  AliESDfriendTrack *ftrack1=new AliESDfriendTrack;
+  AliVTrack *track0 = 0;
+  AliVTrack *track1 = 0;
+  AliVfriendTrack *ftrack0 = 0;
+  AliVfriendTrack *ftrack1 = 0;
   treeInput->SetBranchAddress("t0.",&track0);	
   treeInput->SetBranchAddress("t1.",&track1);
   treeInput->SetBranchAddress("ft0.",&ftrack0);	
