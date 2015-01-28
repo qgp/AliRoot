@@ -29,6 +29,7 @@ add_subdirectory(MUONshuttle)
 add_subdirectory(MUONsim)
 add_subdirectory(MUONtrigger)
 add_subdirectory(mchview)
+add_subdirectory(MUONo2)
 
 if(DA)
     add_subdirectory(DA)
