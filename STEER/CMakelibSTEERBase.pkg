@@ -57,6 +57,7 @@ set ( SRCS
     STEERBase/AliTimeStamp.cxx 
     STEERBase/AliTriggerScalers.cxx 
     STEERBase/AliTriggerScalersRecord.cxx 
+    STEERBase/AliVAD.cxx 
     STEERBase/AliExternalTrackParam.cxx 
     STEERBase/AliQA.cxx 
     STEERBase/AliITSPidParams.cxx 

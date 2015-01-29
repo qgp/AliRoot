@@ -51,6 +51,7 @@ set ( SRCS
     ESD/AliESDCaloCells.cxx 
     ESD/AliESDACORDE.cxx 
     ESD/AliESDAD.cxx 
+    ESD/AliESDADfriend.cxx 
     ESD/AliESDVZEROfriend.cxx 
     ESD/AliESDHandler.cxx 
     ESD/AliTrackerBase.cxx  

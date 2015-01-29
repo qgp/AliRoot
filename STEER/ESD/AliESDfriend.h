@@ -14,6 +14,7 @@
 
 class AliESDVZEROfriend;
 class AliESDTZEROfriend;
+class AliESDADfriend;
 
 //_____________________________________________________________________________
 class AliESDfriend : public TObject {
@@ -40,6 +41,8 @@ public:
   AliESDVZEROfriend *GetVZEROfriend(){ return fESDVZEROfriend; }
   void SetTZEROfriend(AliESDTZEROfriend * obj);
   AliESDTZEROfriend *GetTZEROfriend(){ return fESDTZEROfriend; }
+  void SetADfriend(AliESDADfriend * obj);
+  AliESDADfriend *GetADfriend(){ return fESDADfriend; }
 
   void Ls(){
 	  return fTracks.ls();
@@ -60,6 +63,7 @@ protected:
   TClonesArray fTracks;    // ESD friend tracks
   AliESDVZEROfriend *fESDVZEROfriend; // VZERO object containing complete raw data
   AliESDTZEROfriend *fESDTZEROfriend; // TZERO calibration object
+  AliESDADfriend *fESDADfriend; // AD object containing complete raw data
   
   Int_t fNclustersTPC[72]; //cluster occupancy per sector per sector
   Int_t fNclustersTPCused[72]; //number of clusters used in tracking per sector
