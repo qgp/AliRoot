@@ -660,7 +660,7 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
       AliExternalTrackParam param0;
       track0->GetTrackParam(param0);
       AliExternalTrackParam param1;
-      param1.CopyFromVTrack(track1);
+      track1->GetTrackParam(param1);
 
       //
       // Propagate using Magnetic field and correct fo material budget
