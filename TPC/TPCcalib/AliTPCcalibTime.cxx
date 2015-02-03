@@ -1607,7 +1607,7 @@ void  AliTPCcalibTime::ProcessAlignITS(AliVTrack *const track, const AliVfriendT
   for (Int_t i=0; i<ntracks; i++){
     AliVTrack * trackITS = event->GetVTrack(i);
     if (!trackITS) continue;
-    if (trackITS->GetITSclusters(dummycl)<kMinITS) continue;  // minimal amount of clusters
+    if (trackITS->GetNumberOfITSClusters()<kMinITS) continue;  // minimal amount of clusters
     itsfriendTrack = const_cast<AliVfriendTrack*>(vFriend->GetTrack(i));
     if (!itsfriendTrack) continue;
 
@@ -1629,7 +1629,6 @@ void  AliTPCcalibTime::ProcessAlignITS(AliVTrack *const track, const AliVfriendT
   }
   if (!hasAlone) {
     if (track->GetNumberOfITSClusters()<kMinITS) return;
-    if (friendTrack->GetTrackParamITSOut(pITS2) != 0 ) return;
     pITS=pITS2;  // use combined track if it has ITS
   }
 
