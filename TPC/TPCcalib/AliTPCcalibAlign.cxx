@@ -785,7 +785,7 @@ void  AliTPCcalibAlign::ExportTrackPoints(AliVEvent *event){
       AliESDVertex vdummy;
       AliESDVertex *pvertex= (tpcVertex)? (AliESDVertex *)tpcVertex: &vdummy;
       if (track0) {
-    p0In->CopyFromVTrack(track0);
+    track0->GetTrackParam(*p0In);
 
     AliExternalTrackParam trckOut;
     track0->GetTrackParamOp(trckOut);
@@ -793,7 +793,7 @@ void  AliTPCcalibAlign::ExportTrackPoints(AliVEvent *event){
     p0Out=new AliExternalTrackParam(*trackout);
       }
       if (track1P) {
-    p1In->CopyFromVTrack(track1P);
+    track1P->GetTrackParam(*p1In);
 
     AliExternalTrackParam trck1POut;
     track1P->GetTrackParamOp(trck1POut);
