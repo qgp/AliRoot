@@ -40,7 +40,8 @@ public:
   //
   // addopt OCDB entry
   //
-  static Bool_t AddoptOCDBEntry( const char *finput, const char *output,  Int_t ustartRun, Int_t uendRun);
+  static Bool_t AddoptOCDBEntry( const char *finput, const char *output,  Int_t ustartRun, Int_t uendRun, Int_t addMetadata=1, TString issueTracking="");
+  static  Bool_t AddMetaData(AliCDBMetaData *metaDataIn, Int_t addMetaData, TString issueTracking);
 private:
   AliOCDBtoolkit(const AliOCDBtoolkit& source);
   AliOCDBtoolkit& operator= (const AliOCDBtoolkit& rec);

@@ -43,6 +43,7 @@
   (source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMapInfo )
   (source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMakeTable AliESDs.root ESD OCDBrec.list )
   (source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMakeTable galice.root MC OCDBsim.list )
+  (source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMakeTable galice.root MC OCDBsim.list )
 
 
 
@@ -784,11 +785,37 @@ void DumpTObjectArray(){
 }
 
 
-Bool_t AliOCDBtoolkit::AddoptOCDBEntry( const char *finput, const char *output,  Int_t ustartRun, Int_t uendRun){
+Bool_t  AliOCDBtoolkit::AddMetaData(AliCDBMetaData *metaDataIn, Int_t addMetaData, TString issueTracking){
+  //
+  // Add meta data 
+  //
+  if (addMetaData>0){
+    TString metaInfo = gSystem->GetFromPipe("(source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMapInfo )");
+    TObjArray * metaArray = metaInfo.Tokenize("\n");
+    if (metaArray==NULL) return kFALSE;
+    if (metaArray->GetSize()<=0) return kFALSE;
+    for (Int_t imeta=0; imeta<metaArray->GetSize(); imeta++){
+      if (metaArray->At(imeta)==NULL) continue;
+      TObjArray * tag = TString(metaArray->At(imeta)->GetName()).Tokenize(":");
+      if (tag && tag->GetSize()>1 ){
+	metaDataIn->SetProperty(tag->At(0)->GetName(),new TObjString(tag->At(1)->GetName()));
+      }
+      delete tag;
+    }
+    delete metaArray;
+  }
+  if (issueTracking){
+    metaDataIn->SetProperty("IssueTracking",new TObjString(issueTracking.Data()));
+  }
+}
+
+Bool_t AliOCDBtoolkit::AddoptOCDBEntry( const char *finput, const char *output,  Int_t ustartRun, Int_t uendRun, Int_t addMetadata, TString issueTracking){
   //
   // Addopt OCDB entry - keeping all of the CDBentry quantities
   // // Example usage: 
-  //  AliOCDBtoolkit::AddoptOCDBEntry("/cvmfs/alice.gsi.de/alice/simulation/2008/v4-15-Release/Residual/TPC/Calib/ClusterParam/Run127712_130850_v4_s0.root",0,0,AliCDBRunRange::Infinity())
+  //  AliOCDBtoolkit::AddoptOCDBEntry("/cvmfs/alice.gsi.de/alice/simulation/2008/v4-15-Release/Residual/TPC/Calib/ClusterParam/Run127712_130850_v4_s0.root",0,0,AliCDBRunRange::Infinity(), 1,\"ATO-97\")
+  // or: echo AliOCDBtoolkit::AddoptOCDBEntry\(\"/cvmfs/alice.gsi.de/alice/simulation/2008/v4-15-Release/Residual/TPC/Calib/RecoParam/Run166532_999999999_v8_s0.root\",0, 0,9999999, 1,\"ATO-97\"\)  | aliroot -b -l
+
   TFile * fin = TFile::Open(finput);
   if (!fin) return kFALSE;
   AliCDBEntry * entry = (AliCDBEntry*) fin->Get("AliCDBEntry");
@@ -808,6 +835,11 @@ Bool_t AliOCDBtoolkit::AddoptOCDBEntry( const char *finput, const char *output, 
   metaData->SetObjectClassName(metaDataIn->GetObjectClassName());
   metaData->SetResponsible(TString::Format("%s: copy",metaDataIn->GetResponsible()).Data());
   metaData->SetBeamPeriod(metaDataIn->GetBeamPeriod());
+  //
+  if (addMetadata==1){ // 
+    AliOCDBtoolkit::AddMetaData(metaData, addMetadata, issueTracking);
+  }
+
   //
   metaData->SetAliRootVersion(metaDataIn->GetAliRootVersion()); //root version
   metaData->SetComment((TString::Format("%s: copy",metaDataIn->GetComment()).Data()));
