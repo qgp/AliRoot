@@ -40,8 +40,9 @@
   ocdbMakeTable AliESDs.root ESD OCDBrec.list
   ocdbMakeTable galice.root MC OCDBsim.list
 
-  
-   
+  (source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMapInfo )
+  (source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMakeTable AliESDs.root ESD OCDBrec.list )
+  (source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh; ocdbMakeTable galice.root MC OCDBsim.list )
 
 
 
