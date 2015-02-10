@@ -99,6 +99,7 @@ set ( EXPORT
   AliGenCocktailAfterBurner.h 
   AliGenCocktail.h 
   AliOmegaDalitz.h
+  AliDecayerExodus.h 
   )
 
 set ( EINCLUDE FASTSIM THijing PYTHIA6 LHAPDF STEER/STEER STEER/ESD STEER/STEERBase)
