@@ -375,6 +375,8 @@ void AliTPCcalibTime::Process(AliVEvent *event){
   //
   // main function to make calibration
   //
+  TStopwatch stopWatch;
+  stopWatch.Start();
   if(!event) return;
   if (event->GetNumberOfTracks()<2) return; 
   AliVfriendEvent *Vfriend=event->FindFriend();
