@@ -87,6 +87,8 @@ void AliTPCAnalysisTaskcalib::Exec(Option_t *) {
   // Exec function
   // Loop over tracks and call  Process function
     //Printf(" **************** AliTPCAnalysisTaskcalib::Exec() **************** ");
+  TStopwatch stopWatch;
+  stopWatch.Start();
   if (!fV) {
     Printf("ERROR: fV not available");
     return;
