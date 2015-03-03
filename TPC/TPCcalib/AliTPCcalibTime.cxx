@@ -1955,13 +1955,14 @@ void  AliTPCcalibTime::ProcessAlignTOF(AliVTrack *const track, const AliVfriendT
 
   AliExternalTrackParam trckTPCOut;
   if ( (friendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) return;
-  AliExternalTrackParam * trackTPCOut = &trckTPCOut;
 
   AliExternalTrackParam trckIn;
   if ( (track->GetTrackParamIp(trckIn)) < 0) return;
 
   const AliTrackPointArray *points=friendTrack->GetTrackPointArray();
   if (!points) return;
+
+  AliExternalTrackParam * trackTPCOut = &trckTPCOut;
   AliExternalTrackParam pTPC(*trackTPCOut);
   AliExternalTrackParam pTOF(pTPC);
 
@@ -1975,7 +1976,7 @@ void  AliTPCcalibTime::ProcessAlignTOF(AliVTrack *const track, const AliVfriendT
     Float_t xyz[3];
     point.GetXYZ(xyz);
     Double_t r=TMath::Sqrt(xyz[0]*xyz[0]+xyz[1]*xyz[1]);
-    if (r<350)  continue;
+    if (r<370)  continue;
     if (r>400)  continue;
     AliTracker::PropagateTrackToBxByBz(&pTPC,r,mass,2.,kTRUE);
     AliTracker::PropagateTrackToBxByBz(&pTPC,r,mass,0.1,kTRUE);    
