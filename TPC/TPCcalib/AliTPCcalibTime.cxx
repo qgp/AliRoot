@@ -1953,13 +1953,14 @@ void  AliTPCcalibTime::ProcessAlignTOF(AliVTrack *const track, const AliVfriendT
 
   AliExternalTrackParam trckTPCOut;
   if ( (friendTrack->GetTrackParamTPCOut(trckTPCOut)) < 0) return;
-  AliExternalTrackParam * trackTPCOut = &trckTPCOut;
 
   AliExternalTrackParam trckIn;
   if ( (track->GetTrackParamIp(trckIn)) < 0) return;
 
   const AliTrackPointArray *points=friendTrack->GetTrackPointArray();
   if (!points) return;
+
+  AliExternalTrackParam * trackTPCOut = &trckTPCOut;
   AliExternalTrackParam pTPC(*trackTPCOut);
   AliExternalTrackParam pTOF(pTPC);
 
