@@ -569,11 +569,11 @@ void AliTPCcalibTime::ProcessCosmic(const AliVEvent *const event){
     clusterSideC[i]=0;
     AliVTrack *track = event->GetVTrack(i);
     
-    //AliExternalTrackParam trckIn;
-    //if ( (track->GetTrackParamIp(trckIn)) <0) continue;
+    AliExternalTrackParam trckIn;
+    if ( (track->GetTrackParamIp(trckIn)) <0) continue;
 
-    //AliExternalTrackParam trckOut;
-    //if ( (track->GetTrackParamOp(trckOut)) <0) continue;
+    AliExternalTrackParam trckOut;
+    if ( (track->GetTrackParamOp(trckOut)) <0) continue;
     
     AliVfriendTrack *friendTrack = const_cast<AliVfriendTrack*>(vFriend->GetTrack(i));
     if (!friendTrack) continue;
