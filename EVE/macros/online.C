@@ -4,7 +4,7 @@
  * full copyright notice.                                                 *
  **************************************************************************/
 
-#include <zmq.hpp>
+#include <zmq.h>
 
 class TEveProjectionManager;
 class TEveGeoShape;

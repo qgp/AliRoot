@@ -8,7 +8,7 @@
 #include <TStreamerInfo.h>
 #include <TThread.h>
 
-#include "zmq.hpp"
+#include "zmq.h"
 
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"

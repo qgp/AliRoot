@@ -31,7 +31,7 @@ if(ZEROMQ)
                 DOC "Path to libzmq)"
             )
 
-    find_path(ZEROMQ_INCLUDE_DIR NAMES zmq.h zmq_utils.h zmq.hpp}
+    find_path(ZEROMQ_INCLUDE_DIR NAMES zmq.h zmq_utils.h}
                 PATHS ${ZEROMQ}/include
                 NO_DEFAULT_PATH
                 DOC "Path to ZeroMQ include header files."
@@ -42,7 +42,7 @@ else(ZEROMQ)
                 DOC "Path to libzmq)"
             )
 
-    find_path(ZEROMQ_INCLUDE_DIR NAMES zmq.hpp zmq_utils.h}
+    find_path(ZEROMQ_INCLUDE_DIR NAMES zmq.h zmq_utils.h}
                 DOC "Path to ZeroMQ include header files."
             )
 endif(ZEROMQ)
