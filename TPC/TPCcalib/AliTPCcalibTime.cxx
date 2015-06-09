@@ -1593,6 +1593,14 @@ void  AliTPCcalibTime::ProcessAlignITS(AliVTrack *const track, const AliVfriendT
   AliExternalTrackParam pITS;   // ITS standalone if possible
   AliExternalTrackParam pITS2;  //TPC-ITS track
 
+  AliExternalTrackParam trckITSOut;
+
+  if ( (friendTrack->GetTrackParamITSOut(trckITSOut)) == 0 ){
+    pITS2=trckITSOut;  //TPC-ITS track - snapshot ITS out
+    pITS2.Rotate(pTPC.GetAlpha());
+    AliTracker::PropagateTrackToBxByBz(&pITS2,pTPC.GetX(),0.1,0.1,kFALSE);
+  }
+
   AliVfriendTrack *itsfriendTrack=0;
   //
   // try to find standalone ITS track corresponing to the TPC if possible
@@ -1603,19 +1611,17 @@ void  AliTPCcalibTime::ProcessAlignITS(AliVTrack *const track, const AliVfriendT
   for (Int_t i=0; i<ntracks; i++){
     AliVTrack * trackITS = event->GetVTrack(i);
     if (!trackITS) continue;
-    if (!trackITS->IsPureITSStandalone()) continue;
-    //if (trackITS->GetNumberOfITSClusters()<kMinITS) continue;  // minimal amount of clusters
-    //if (trackITS->GetNumberOfTPCClusters()>0) continue;
+    if (trackITS->GetNumberOfITSClusters()<kMinITS) continue;  // minimal amount of clusters
     itsfriendTrack = const_cast<AliVfriendTrack*>(vFriend->GetTrack(i));
     if (!itsfriendTrack) continue;
 
     AliExternalTrackParam itstrckOut;
-    if ( (itsfriendTrack->GetTrackParamITSOut(itstrckOut)) != 0) continue;
+    if ( (itsfriendTrack->GetTrackParamITSOut(itstrckOut)) < 0) continue;
     AliExternalTrackParam * ITStrackOut = &itstrckOut;
 
     if (TMath::Abs(pTPC.GetTgl()-ITStrackOut->GetTgl())> kMaxAngle) continue;
     if (TMath::Abs(pTPC.GetSigned1Pt()-ITStrackOut->GetSigned1Pt())> kMax1Pt) continue;
-    tmpParam=(*ITStrackOut);
+    pITS=(*ITStrackOut);
     //
     if (!tmpParam.RotateParamOnly(pTPC.GetAlpha())) continue;
     if (!tmpParam.PropagateParamOnlyTo(pTPC.GetX(),AliTrackerBase::GetBz())) continue;
@@ -1627,7 +1633,6 @@ void  AliTPCcalibTime::ProcessAlignITS(AliVTrack *const track, const AliVfriendT
   }
   if (!hasAlone) {
     if (track->GetNumberOfITSClusters()<kMinITS) return;
-    if (friendTrack->GetTrackParamITSOut(pITS2) != 0 ) return;
     pITS=pITS2;  // use combined track if it has ITS
   }
 
