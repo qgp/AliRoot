@@ -31,8 +31,8 @@
 
 //#include "Pythia8/Pythia.h"
 //#include "Pythia8/ParticleData.h"
-#include "pythia8175/include/Pythia.h"
-#include "pythia8175/include/ParticleData.h"
+#include "pythia8205/include/Pythia8/Pythia.h"
+#include "pythia8205/include/Pythia8/ParticleData.h"
 
 #include <string>
 #include <vector>
