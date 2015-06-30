@@ -754,8 +754,20 @@ GPUh() void AliHLTTPCCATracker::WriteOutput()
 
 			const AliHLTTPCCARow &row = fData.Row( iRow );
 
+			if (ih >= row.NHits())
+			{
+				printf("Array out of bounds access (Sector Row) (Hit %d / %d - NumC %d): Sector %d Row %d Index %d\n", ith, iTrack.NHits(), fClusterData->NumberOfClusters(), fParam.ISlice(), iRow, ih);
+				fflush(stdout);
+				continue;
+			}
 			int clusterIndex = fData.ClusterDataIndex( row, ih );
 
+			if (clusterIndex >= fClusterData->NumberOfClusters())
+			{
+				printf("Array out of bounds access (Cluster Data) (Hit %d / %d - NumC %d): Sector %d Row %d Hit %d, Clusterdata Index\n", ith, iTrack.NHits(), fClusterData->NumberOfClusters(), fParam.ISlice(), iRow, ih, clusterIndex);
+				fflush(stdout);
+				continue;
+			}
 			float origX = fClusterData->X( clusterIndex );
 			float origY = fClusterData->Y( clusterIndex );
 			float origZ = fClusterData->Z( clusterIndex );      

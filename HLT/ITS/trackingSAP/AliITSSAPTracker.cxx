@@ -266,9 +266,12 @@ Bool_t AliITSSAPTracker::FindTracklets()
     return kFALSE;
   }
   float rv2 = fSPDVertex->GetX()*fSPDVertex->GetX()+fSPDVertex->GetY()*fSPDVertex->GetY();
-  if (rv2>0.25*fgkRLayITS[kLrBeamPime]*fgkRLayITS[kLrBeamPime]) {
-    //    AliInfo("SPD vertex is too far from beam line");
+  float rv2_limit = 0.25*fgkRLayITS[kLrBeamPime]*fgkRLayITS[kLrBeamPime];
+  if (rv2>rv2_limit) {
+    AliInfo(Form("SPD vertex is too far from beam line: rv2=%f, rv2limit=%f", rv2, rv2_limit));
+#ifdef _DEBUG_
     fSPDVertex->Print();
+#endif
     return kFALSE;    
   } 
   fPhiShiftSc = fPhiShift*TMath::Abs(fBz/5.0);
