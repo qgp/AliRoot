@@ -54,6 +54,7 @@ public:
   void MakeDefaultPlots(TObjArray * const arr, TObjArray *picArray);
   void SetMaxVDriftCorr(Double_t maxVDriftCorr=0.03) {fMaxVdriftCorr=maxVDriftCorr;};
   Bool_t ValidateTimeDrift();
+  AliCDBEntry* GetDriftCDBentry() const { return fDriftCDBentry; }
   
   //
   // Gain part
