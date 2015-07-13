@@ -8,6 +8,7 @@
 
 #include "AliAnalysisTask.h"
 #include "AliVEvent.h"
+#include "AliBits.h"
 class AliAODEvent;
 class AliInputEventHandler;
 class TTree;
@@ -35,7 +36,7 @@ class AliAnalysisTaskME : public AliAnalysisTask
     virtual void UserExec(Option_t* /*option*/) {;}
     // Helpers for adding branches to the AOD
     virtual void   AddAODBranch(const char* cname, void* addobj, const char *fname="");
-    virtual void   SelectCollisionCandidates(AliBits offlineTriggerMask = AliVEvent::kMB) {fOfflineTriggerMask = offlineTriggerMask;}
+    virtual void   SelectCollisionCandidates(AliBits offlineTriggerMask) {fOfflineTriggerMask = offlineTriggerMask;}
     // Getters
     virtual Int_t          DebugLevel()              {return fDebug;     }
     virtual AliVEvent*     GetEvent(Int_t iev);

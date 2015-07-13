@@ -54,7 +54,7 @@ class AliAnalysisTaskSE : public AliAnalysisTask
     // Helpers for adding branches to the AOD
     virtual void   AddAODBranch(const char* cname, void* addobj, const char *fname="");
     // Event Selection
-    virtual void   SelectCollisionCandidates(AliBits offlineTriggerMask = AliVEvent::kMB) {fOfflineTriggerMask = offlineTriggerMask;}
+    virtual void   SelectCollisionCandidates(AliBits offlineTriggerMask) {fOfflineTriggerMask = offlineTriggerMask;}
 
     // Loading the declared input branches
     void           LoadBranches() const;

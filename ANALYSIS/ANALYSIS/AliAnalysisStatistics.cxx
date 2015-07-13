@@ -200,20 +200,22 @@ const char *AliAnalysisStatistics::GetMaskAsString(AliBits mask)
    smask = "ALL EVT.";
    if (!mask) return smask.Data();
    smask.Clear();
-   if (mask & AliVEvent::kMB)   smask = "MB";
-   if (mask & AliVEvent::kMUON) {
-      if (!smask.IsNull()) smask += " | ";
-      smask += "MUON";
-   }
-   if (mask & AliVEvent::kHighMult) {
-      if (!smask.IsNull()) smask += " | ";
-      smask += "HighMult";
-   }
-   if (mask & AliVEvent::kUserDefined) {
-      if (!smask.IsNull()) smask += " | ";
-      smask += "UserDefined";
-   }
-   if (mask ==  AliVEvent::kAny) smask = "ANY";
+// These aliases make no sense in run2, setting smask to ANY
+//   if (mask & AliVEvent::kMB)   smask = "MB";
+//   if (mask & AliVEvent::kMUON) {
+//      if (!smask.IsNull()) smask += " | ";
+//      smask += "MUON";
+//   }
+//   if (mask & AliVEvent::kHighMult) {
+//      if (!smask.IsNull()) smask += " | ";
+//      smask += "HighMult";
+//   }
+//   if (mask & AliVEvent::kUserDefined) {
+//      if (!smask.IsNull()) smask += " | ";
+//      smask += "UserDefined";
+//   }
+//   if (mask ==  AliVEvent::kAny) smask = "ANY";
+   smask = "ANY";
    return smask.Data();
 }
 
