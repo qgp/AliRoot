@@ -136,7 +136,7 @@ void AliEveEventManager::InitInternals()
     
 #ifdef ZMQ
     fDataSourceOnline = new AliEveDataSourceOnline();
-    fDataSourceHLTZMQ = new AliEveDataSourceHLTZMQ();
+    fDataSourceHLTZMQ = new AliEveDataSourceHLTZMQ();    
 #endif
     fDataSourceOffline = new AliEveDataSourceOffline();
 }
@@ -487,9 +487,10 @@ void AliEveEventManager::AutoLoadNextEvent()
     {
         Warning(kEH, "Called unexpectedly - ignoring the call. Should ONLY be called from an internal timer.");
         return;
-    }
+        }
     
     StopAutoLoadTimer();
+    cout<<"Calling NextEvent method on current data source"<<endl;
     fCurrentDataSource->NextEvent();
     if (fAutoLoad){
         StartAutoLoadTimer();
