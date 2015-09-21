@@ -358,7 +358,8 @@ void AliEveEventManagerWindow::DoSetEvent()
 void AliEveEventManagerWindow::DoRefresh()
 {
     // Refresh event status.
-    
+    TEnv settings;
+    AliEveInit::GetConfig(&settings);
     AliEveMultiView *mv = AliEveMultiView::Instance();
     AliEveGeomGentle *geomGentle = new AliEveGeomGentle();
     
@@ -371,8 +372,9 @@ void AliEveEventManagerWindow::DoRefresh()
     
     mv->InitGeomGentleTrd(geomGentle->GetGeomGentleTRD());
     mv->InitGeomGentleEmcal(geomGentle->GetGeomGentleEMCAL());
-    mv->InitGeomGentleMuon(geomGentle->GetGeomGentleMUON(true), kFALSE, kTRUE, kFALSE);
-    
+    if(settings.GetValue("MUON.show", true)){
+        mv->InitGeomGentleMuon(geomGentle->GetGeomGentleMUON(true), kFALSE, kTRUE, kFALSE);
+    }
     mv->SetDepth(0);
     
     Int_t ev = fM->GetEventId();
