@@ -31,6 +31,7 @@ AliEveDataSourceOnline::AliEveDataSourceOnline(bool storageManager) :
     fIsNewEventAvaliable(false),
     fFailCounter(0),
     fStorageDown(false),
+    fHasEventFromStorageManager(false),
     fFinished(false),
     fStorageManager(storageManager),
     fEventManager(0)
@@ -276,12 +277,34 @@ void AliEveDataSourceOnline::GotoEvent(Int_t event)
     }
 }
 
+void AliEveDataSourceOnline::SetEventFromStorageManager(AliESDEvent *event)
+{
+    fCurrentData.fESD = event;
+    fHasEventFromStorageManager = true;
+}
+
 void AliEveDataSourceOnline::NextEvent()
 {
 #if ROOT_VERSION_CODE < ROOT_VERSION(5,99,0)
     gCINTMutex->Lock();
 #endif
-    if(fIsNewEventAvaliable)
+    if(fHasEventFromStorageManager)
+    {
+        fEventManager->DestroyTransients();
+        fEventManager->DestroyElements();
+        
+        if(fCurrentData.fESD->GetRunNumber() != fEventManager->GetCurrentRun()){
+            fEventManager->ResetMagneticField();
+            fEventManager->SetCurrentRun(fCurrentData.fESD->GetRunNumber());
+        }
+        
+        fEventManager->SetHasEvent(true);
+        fEventManager->AfterNewEventLoaded();
+        fEventManager->NewEventLoaded();
+
+        fHasEventFromStorageManager = false;
+    }
+    else if(fIsNewEventAvaliable)
     {
         fEventManager->DestroyTransients();
         

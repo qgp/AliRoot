@@ -64,7 +64,8 @@ class AliEveDataSource : public TNamed
 public:
     AliEveDataSource(bool storageManager=false);
     ~AliEveDataSource();
-    
+
+    virtual void SetEventFromStorageManager(AliESDEvent *event);
     virtual void Init();
     virtual void GotoEvent(Int_t event);
     virtual void NextEvent();
