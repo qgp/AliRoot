@@ -53,18 +53,22 @@ macro(generate_dictionary DNAME LDNAME DHDRS DINCDIRS)
                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                       )
     else (ROOT_VERSION_MAJOR LESS 6)
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lib${DNAME}.rootmap ${CMAKE_CURRENT_BINARY_DIR}/G__${DNAME}.cxx
+      add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lib${DNAME}.rootmap ${CMAKE_CURRENT_BINARY_DIR}/G__${DNAME}.cxx ${CMAKE_CURRENT_BINARY_DIR}/G__${DNAME}_rdict.pcm
                        COMMAND
                          LD_LIBRARY_PATH=${ROOT_LIBDIR}:$ENV{LD_LIBRARY_PATH} ${ROOT_CINT}
                        ARGS
                          -f ${CMAKE_CURRENT_BINARY_DIR}/G__${DNAME}.cxx
                          -rmf ${CMAKE_CURRENT_BINARY_DIR}/lib${DNAME}.rootmap -rml lib${DNAME}
-                         ${GLOBALDEFINITIONS} ${EXTRADEFINITIONS}  ${INCLUDE_PATH} ${DHDRS} ${LDNAME}
+                         ${GLOBALDEFINITIONS} ${EXTRADEFINITIONS} ${INCLUDE_PATH} ${DHDRS} ${LDNAME}
                        DEPENDS
                          ${DHDRS} ${LDNAME} ${ROOT_CINT}
                        WORKING_DIRECTORY
                          ${CMAKE_CURRENT_BINARY_DIR}
                       )
+
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/lib${DNAME}.rootmap" DESTINATION lib)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/G__${DNAME}_rdict.pcm" DESTINATION lib)
+    
     endif (ROOT_VERSION_MAJOR LESS 6)
 
 endmacro(generate_dictionary)
@@ -185,7 +189,7 @@ macro(generateDA DETECTOR ALGORITHM STATIC_DEPENDENCIES)
     target_link_libraries(${DETECTOR}${ALGORITHM}da.exe ${STATIC_DEPENDENCIES} ${AMORE_AUXLIBS} daqDA ${DATE_MONLIBRARIES} ${DATE_RCPROXYLIBRARIES} Root RootExtra) # 1
 
     # different flags
-    set(MODULE_COMPILE_FLAGS "  ${DATE_CFLAGS} ${AMORE_CFLAGS}")
+    set(MODULE_COMPILE_FLAGS "-Wl,--no-as-needed  ${DATE_CFLAGS} ${AMORE_CFLAGS}")
     set(MODULE_LINK_FLAGS "${DATE_LDFLAGS} ${AMORE_STATICLIBS}")
 
     set_target_properties(${DETECTOR}${ALGORITHM}da.exe PROPERTIES COMPILE_FLAGS ${MODULE_COMPILE_FLAGS})
@@ -218,12 +222,12 @@ macro(createDArpm DETECTOR ALGORITHM)
         set(DA_NAME "daqDA-${DETECTOR}-${ALGORITHM}")
     endif()
 
-    configure_file("${AliRoot_SOURCE_DIR}/cmake/da.spec.in" "${_ALGORITHM}-da.spec" @ONLY)
+    configure_file("${AliRoot_SOURCE_DIR}/cmake/da.spec.in" "${DETECTOR}${_ALGORITHM}-da.spec" @ONLY)
 
     add_custom_command(TARGET ${DETECTOR}${ALGORITHM}da.exe POST_BUILD
-                       COMMAND mkdir ARGS -p da-${_ALGORITHM}-rpm/root/${DA_PREFIX}/
-                       COMMAND cp ARGS ${DETECTOR}${ALGORITHM}da.exe da-${_ALGORITHM}-rpm/root/${DA_PREFIX}/
-                       COMMAND rpmbuild ARGS --verbose --define "_topdir ${CMAKE_CURRENT_BINARY_DIR}/da-${_ALGORITHM}-rpm" --define "%buildroot ${CMAKE_CURRENT_BINARY_DIR}/da-${_ALGORITHM}-rpm/root" -bb ${_ALGORITHM}-da.spec
+                       COMMAND mkdir ARGS -p da-${DETECTOR}${_ALGORITHM}-rpm/root/${DA_PREFIX}/
+                       COMMAND cp ARGS ${DETECTOR}${ALGORITHM}da.exe da-${DETECTOR}${_ALGORITHM}-rpm/root/${DA_PREFIX}/
+                       COMMAND rpmbuild ARGS --verbose --define "_topdir ${CMAKE_CURRENT_BINARY_DIR}/da-${DETECTOR}${_ALGORITHM}-rpm" --define "%buildroot ${CMAKE_CURRENT_BINARY_DIR}/da-${DETECTOR}${_ALGORITHM}-rpm/root" -bb ${DETECTOR}${_ALGORITHM}-da.spec
                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} VERBATIM
                        COMMENT "RPM creation for ${DETECTOR}-${_ALGORITHM}"
     )
@@ -231,9 +235,101 @@ macro(createDArpm DETECTOR ALGORITHM)
     # make clean will remove also the rpm folder
     # Retrive the current list of file to be deleted - set_directory_property is overwriting, not adding to the list
     get_directory_property(_clean_files ADDITIONAL_MAKE_CLEAN_FILES)
-    set(_clean_files da-${_ALGORITHM}-rpm  ${_clean_files})
+    set(_clean_files da-${DETECTOR}${_ALGORITHM}-rpm  ${_clean_files})
     set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${_clean_files}")
     
     # install RPM into $CMAKE_INSTALL_PREFIX/darpms
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/da-${_ALGORITHM}-rpm/RPMS/ DESTINATION darpms PATTERN "\\.rpm")
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/da-${DETECTOR}${_ALGORITHM}-rpm/RPMS/ DESTINATION darpms PATTERN "\\.rpm")
 endmacro()
+
+
+# Prepend prefix to every element in the list. Note: this function modifies the input variable: this
+# does not work for macros in CMake, only for functions. Also note that it does NOT automatically
+# add a / between prefix and list item as it does not assume that we are dealing with directories
+function(prepend_prefix INLIST PREFIX)
+    foreach(_ITEM ${${INLIST}})
+        list(APPEND _OUTLIST ${PREFIX}${_ITEM})
+    endforeach()
+    set(${INLIST} ${_OUTLIST} PARENT_SCOPE)
+endfunction()
+
+
+# This function is a drop-in replacement for the following CMake command:
+#
+#   install(FILES ... DESTINATION ... [OTHER_ARGS])
+#
+# The above command takes every single file and puts it in the destination directory, but relative
+# paths are not taken into consideration, i.e. files a/b/c/file.h and boo.h will be both installed
+# in dest.
+#
+# By replacing install() with install_relative(), boo.h will end in dest, and a/b/c/file.h will end
+# in dest/a/b/c/file.h, i.e. relative paths are taken into account.
+#
+# If an absolute path was specified for an input file, a fatal error will be raised: only relative
+# paths can be specified.
+#
+# Since it is a drop-in command, its syntax is identical to install():
+#
+#   install_relative(FILES ... DESTINATION ... [OTHER_ARGS])
+#
+# where OTHER_ARGS is passed as-is to the underlying install() command
+function(install_relative)
+
+    set(_EXPECT_FILE TRUE)
+    set(_EXPECT_DEST FALSE)
+    set(_EXPECT_REST FALSE)
+
+    foreach(_ARG ${ARGN})
+
+        if(_EXPECT_FILE)
+
+            if(${_ARG} STREQUAL "FILES")
+                set(_EXPECT_FILE FALSE)
+            else()
+                message(FATAL_ERROR "You may only use install_relative() in place of install(FILES ...)")
+            endif()
+
+        elseif(_EXPECT_REST)
+            # Remaining arguments
+            list(APPEND _REST ${_ARG})
+        elseif(_EXPECT_DEST)
+            # Destination prefix
+            set(_DEST ${_ARG})
+            set(_EXPECT_DEST FALSE)
+            set(_EXPECT_REST TRUE)
+        elseif(_ARG STREQUAL "DESTINATION")
+            # From now on, copy the arguments ditto to the install() command
+            set(_EXPECT_DEST TRUE)
+        else()
+            # Append files to install
+            list(APPEND _FILES ${_ARG})
+        endif()
+
+    endforeach()
+
+    # Print out our results (debug)
+    #message(STATUS "[install_relative] FILES: ${_FILES}")
+    #message(STATUS "[install_relative] DEST: ${_DEST}")
+    #message(STATUS "[install_relative] REST: ${_REST}")
+
+    # Prepare a distinct install command for each file, depending on its path
+    foreach(_FILE ${_FILES})
+
+        if(CMAKE_VERSION VERSION_LESS "2.8.12")
+            get_filename_component(_FILEPREFIX ${_FILE} PATH)
+        else()
+            get_filename_component(_FILEPREFIX ${_FILE} DIRECTORY)
+        endif()
+        #message(STATUS "[install_relative] ${_FILE} --> ${_FILEPREFIX}")
+
+        string(SUBSTRING ${_FILE} 0 1 _FILE_FIRST)
+        if(${_FILE_FIRST} STREQUAL "/")
+            # An absolute path was found: not supported, error
+            message(FATAL_ERROR "Absolute paths are not supported by install_relative(): ${_FILE}")
+        endif()
+
+        install(FILES ${_FILE} DESTINATION ${_DEST}/${_FILEPREFIX} ${_REST})
+
+    endforeach()
+
+endfunction()

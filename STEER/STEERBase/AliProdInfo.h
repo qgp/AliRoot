@@ -19,6 +19,9 @@
 
 class AliProdInfo : public TNamed {
 public:
+  enum {kParsedBit=BIT(14)};
+  enum ETagType {kAliroot,kRoot,kOutDir,kPass,kProdType,kProdTag,kPeriod, kNTags};
+
   AliProdInfo();
   AliProdInfo(const TString& name, const TString& title);
   AliProdInfo(TList *userInfo);
@@ -26,6 +29,9 @@ public:
 
   void Init(TList *userInfo);
   void List() const;
+  //
+  const TString& GetTag(ETagType tag) { return fTags[tag]; }
+  //
   TString GetLHCPeriod() const {return fPeriod;}
   TString GetAlirootVersion() const {return fAlirootVersion;}
   Int_t GetAlirootSvnVersion() const {return fAlirootSvnVersion;}
@@ -33,22 +39,32 @@ public:
   Int_t GetRootSvnVersion() const {return fRootSvnVersion;}
   Int_t GetRecoPass() const {return fRecoPass;}
   Bool_t IsMC() const {return fMcFlag;}
-
+  //
+  Bool_t HasLPMPass() const { return !fTags[kPass].IsNull() && fTags[kPass].IsDigit(); }
+  //
+  Bool_t IsParsed()                 const {return TestBit(kParsedBit);}
+  void   SetParsed(Bool_t v=kTRUE)        {SetBit(kParsedBit);}
+  //
 protected:
   void ParseProdInfo(TNamed *uList);
 
 private:
   AliProdInfo(const AliProdInfo&);
   AliProdInfo &operator=(const AliProdInfo&);
+  //
+  Bool_t  fMcFlag;                // MC data: kTrue ; raw data: kFalse
+  Int_t   fAlirootSvnVersion;     // aliroot svn numbering
+  Int_t   fRootSvnVersion;        // root svn numbering
+  Int_t   fRecoPass;              // Reconstruction pass
+  //
+  TString fTags[kNTags];          // Array with tag values
+  TString fPeriod;                // LHC period
+  TString fProductionTag;         // production tag
+  TString fAlirootVersion;        // aliroot version used producing data
+  TString fRootVersion;           // root version used producing data
 
-  TString fPeriod;            // LHC period
-  TString fAlirootVersion;    // aliroot version used producing data
-  Int_t fAlirootSvnVersion;   // aliroot svn numbering
-  TString fRootVersion;       // root version used producing data
-  Int_t fRootSvnVersion;      // root svn numbering
-  Bool_t fMcFlag;             // MC data: kTrue ; raw data: kFalse
-  Int_t fRecoPass;            // Reconstruction pass
-  ClassDef(AliProdInfo, 1);   // Combined PID using priors
+  //
+  ClassDef(AliProdInfo, 3);     // Combined PID using priors
 };
 
 #endif

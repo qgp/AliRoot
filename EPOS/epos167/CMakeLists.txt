@@ -17,7 +17,8 @@
 set(MODULE EPOS)
 
 # Module include folder
-include_directories(${AliRoot_SOURCE_DIR}/EPOS/epos167
+include_directories(${AliRoot_SOURCE_DIR}/EPOS
+                    ${AliRoot_SOURCE_DIR}/EPOS/epos167
                    )
 
 # Additional include folders in alphabetical order
@@ -102,3 +103,7 @@ install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
 install(FILES ${HDRS} DESTINATION include)
+
+# Install data files
+install(DIRECTORY . DESTINATION EPOS/epos167 FILES_MATCHING PATTERN "*.param")
+install(DIRECTORY . DESTINATION EPOS/epos167 FILES_MATCHING PATTERN "*.ini*")

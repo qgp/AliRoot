@@ -13,7 +13,7 @@
 # * provided "as is" without express or implied warranty.                  *
 # **************************************************************************
 
-# Module
+# SHUTTLE Module
 set(MODULE SHUTTLE)
 
 # Module include folder
@@ -25,8 +25,10 @@ include_directories(${AliRoot_SOURCE_DIR}/STEER/CDB
                    )
 
 # DIM include folder and libraries folder
-include_directories(${DIMDIR}/dim)
-link_directories(${DIMDIR}/${ODIR})
+include_directories(${DIM_INCLUDE_DIR})
+
+# Include ApMon.h needed by ROOT monalisa interface
+include_directories(${ApMon_INCLUDE_DIR})
 
 # Sources in alphabetical order
 set(SRCS
@@ -51,10 +53,8 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS STEERBase CDB Core Eve Gui Hist Minuit2 Minuit Net ProofPlayer RIO Spectrum Thread TMVA)
-if(DIMDIR AND ODIR)
-    set(LIBDEPS ${LIBDEPS} dim)
-endif()
+set(LIBDEPS STEERBase CDB Core Net RIO Thread RLDAP Monalisa)
+set(LIBDEPS ${LIBDEPS} ${DIM_LIBRARIES})
 
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 

@@ -3,13 +3,9 @@
 /* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  * See cxx source for full Copyright notice                               */
 
-/* $Id: AliTPCCalROC.h -1   */
+/// \class AliTPCCalROC
+/// \brief TPC calibration base class for one ROC
 
-//////////////////////////////////////////////////
-//                                              //
-//  TPC calibration base class for one ROC      //
-//                                              //
-//////////////////////////////////////////////////
 #include <TObject.h>
 #include <TMath.h>
 #include <AliTPCROC.h>
@@ -29,6 +25,7 @@ class AliTPCCalROC : public TNamed {
   AliTPCCalROC(const AliTPCCalROC &c);
  AliTPCCalROC &operator = (const AliTPCCalROC & param);
   virtual           ~AliTPCCalROC();  
+  virtual void Print(Option_t* option="") const;
   UInt_t        GetSector() const { return fSector;}
   UInt_t        GetNrows() const               { return fNRows;};
   UInt_t        GetNchannels()       const     { return fNChannels;};
@@ -72,12 +69,16 @@ class AliTPCCalROC : public TNamed {
   Double_t GetNeighbourhoodValue(TLinearFitter* fitterQ, Int_t row, Int_t pad, Int_t rRadius, Int_t pRadius, AliTPCCalROC *const ROCoutliers, Bool_t robust, Double_t chi2Threshold, Double_t robustFraction);
   void GetNeighbourhood(TArrayI* &rowArray, TArrayI* &padArray, Int_t row, Int_t pad, Int_t rRadius, Int_t pRadius);
   
-  UInt_t     fSector;          // sector number
-  UInt_t     fNChannels;       // number of channels
-  UInt_t     fNRows;           // number of rows
-  const UInt_t* fkIndexes;      //!indexes
-  Float_t  *fData;            //[fNChannels] Data
+  UInt_t     fSector;          ///< sector number
+  UInt_t     fNChannels;       ///< number of channels
+  UInt_t     fNRows;           ///< number of rows
+  const UInt_t* fkIndexes;      //!<! indexes
+  /// Data
+  Float_t  *fData;            //[fNChannels]
+
+  /// \cond CLASSIMP
   ClassDef(AliTPCCalROC,2)    //  TPC ROC calibration class
+  /// \endcond
 
 };
 

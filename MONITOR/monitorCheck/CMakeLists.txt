@@ -31,13 +31,9 @@ set(SRCS
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 
-if(DIMDIR AND ODIR)
-    link_directories(${DIMDIR}/${ODIR})
-endif()
-
 # Add an executable to the project using the specified source files
 add_executable(${MODULE} ${SRCS})
-target_link_libraries(${MODULE} RAWDatarec Core)
+target_link_libraries(${MODULE} RAWDatarec MathCore Thread Graf3d Graf Hist Gpad EG Geom Matrix Physics Minuit VMC Core)
 
 set(MODULE_COMPILE_FLAGS)
 set(MODULE_LINK_FLAGS)

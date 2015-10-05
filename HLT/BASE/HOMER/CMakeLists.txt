@@ -20,7 +20,7 @@ set(MODULE AliHLTHOMER)
 include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE/HOMER)
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                    )
 
 # Sources in alphabetical order
@@ -31,6 +31,9 @@ set(SRCS
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
+set( HDRS ${HDRS}
+     AliHLTHOMERData.h
+   )
 
 # Generate the dictionary
 # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument

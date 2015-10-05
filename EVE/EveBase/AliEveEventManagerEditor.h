@@ -10,9 +10,13 @@
 #ifndef AliEveEventManagerEditor_H
 #define AliEveEventManagerEditor_H
 
+#include "AliEveEventManager.h"
+
 #include "TGedFrame.h"
 #include "TGComboBox.h"
 #include <TObjString.h>
+#include "TGButton.h"
+#include "TGButtonGroup.h"
 
 class AliEveEventManager;
 class TEveGValuator;
@@ -48,6 +52,9 @@ protected:
    TGTextView          *fEventInfo;     // Text box with event info.
 
 private:
+    TString GetEventInfoHorizontal() const;
+    TString GetEventInfoVertical() const;
+    
    AliEveEventManagerEditor(const AliEveEventManagerEditor&);            // Not implemented
    AliEveEventManagerEditor& operator=(const AliEveEventManagerEditor&); // Not implemented
 
@@ -66,7 +73,7 @@ private:
 class AliEveEventManagerWindow : public TGMainFrame
 {
 public:
-  AliEveEventManagerWindow(AliEveEventManager* mgr);
+    AliEveEventManagerWindow(AliEveEventManager* mgr, bool storageManager=false,AliEveEventManager::EDataSource defaultDataSource = AliEveEventManager::kSourceOffline);
   virtual ~AliEveEventManagerWindow();
 
   void DoFirstEvent();
@@ -74,20 +81,20 @@ public:
   void DoNextEvent();
   void DoLastEvent();
   void DoMarkEvent();
-    void DoRestartReco();
-    void DoRestartManager();
+    void DoScreenshot();
+    void DoSwitchDataSource(AliEveEventManager::EDataSource source);
 
   void DoSetEvent();
 
   void DoRefresh();
   void DoSetAutoLoad();
-  void DoSetLoopMarked();
   void DoSetAutoLoadTime();
   void DoSetTrigSel();
 
-  void Update(int=1);    
+  void Update(int=1);
+  void EventServerChangedState(int state);
   void StorageManagerChangedState(int state);
-
+    
 protected:
   AliEveEventManager   *fM;            // Model object.
     
@@ -97,19 +104,20 @@ protected:
     TGTextButton         *fLastEvent;    // Go to last event
     TGTextButton         *fRefresh;      // Refresh event-file state
     TGTextButton         *fMarkEvent;    // Mark current event
-    TGTextButton         *fRestartReco;    // Restart reconstruction server
-    TGTextButton         *fRestartManager; // Restart storage manager
+    TGTextButton         *fScreenshot;   // Save screenshot to file
+    
+    TGRadioButton *fSwitchToHLT;         // switch data source to HLT
+    TGRadioButton *fSwitchToOnline;      // switch data source to Online
+    TGRadioButton *fSwitchToOffline;     // switch data source to Offline
 
   TGNumberEntry        *fEventId;      // Display/edit current event id
   TGLabel              *fInfoLabel;    // Display last available event id
 
   TGCheckButton        *fAutoLoad;     // Check-box for automatic loading of events
-  TGCheckButton        *fLoopMarked;     // Check-box for automatic loading of events
   TEveGValuator        *fAutoLoadTime; // Time for automatic loading of events
 
   TGComboBox           *fTrigSel;      // Trigger selection combo box
   TGLabel              *fStorageStatus; // Display status of Storage Manager
-  TGLabel              *fEventServerStatus; // Display status of Event Server
 
   TGTextView           *fEventInfo;    // Text box with event info
 
@@ -117,7 +125,7 @@ protected:
 			    Int_t lo=0, Int_t ro=0, Int_t to=0, Int_t bo=0);
   TGLabel* MkLabel(TGCompositeFrame* p, const char* txt, Int_t width,
 		   Int_t lo=0, Int_t ro=0, Int_t to=2, Int_t bo=0);
-
+    
 private:
   AliEveEventManagerWindow(const AliEveEventManagerWindow&);            // Not implemented
   AliEveEventManagerWindow& operator=(const AliEveEventManagerWindow&); // Not implemented

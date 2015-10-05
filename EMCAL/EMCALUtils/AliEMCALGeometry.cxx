@@ -13,95 +13,7 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$*/
-
-//_________________________________________________________________________
-// Geometry class  for EMCAL : singleton 
-// EMCAL consists of layers of scintillator and lead
-// with scintillator fiber arranged as "shish-kebab" skewers 
-// Places the the Barrel Geometry of The EMCAL at Midrapidity
-// between 80 and 180(or 190) degrees of Phi and
-// -0.7 to 0.7 in eta 
-//
-//     EMCAL geometry tree:
-//     EMCAL -> superModule -> module -> tower(cell)
-//     Indexes
-//     absId -> nSupMod     -> nModule -> (nIphi,nIeta)
-//
-//   Name choices: 
-//   EMCAL_PDC06 (geometry used for PDC06 simulations, kept for backward compatibility)
-//      = equivalent to SHISH_77_TRD1_2X2_FINAL_110DEG in old notation
-//   EMCAL_COMPLETE (geometry for expected complete detector)
-//      = equivalent to SHISH_77_TRD1_2X2_FINAL_110DEG scTh=0.176 pbTh=0.144
-//          in old notation
-//   EMCAL_FIRSTYEARV1 - geometry for December 2009 to December 2010 run period; 
-//                fixed bug for positions of modules inside SM
-//                (first module has tilt 0.75 degree);
-//                the sizes updated with last information from production
-//                drawing (end of October 2010). 
-//      
-//   EMCAL_COMPLETEV1: Same fixes as FIRSTYEAR and 10 SM instead of 10 + 2 one_third SM, for 2011 runs
-//
-//   EMCAL_COMPLETE12SMV1: contains 12 SM for runs from year 2012 and on
-//
-//   EMCAL_COMPLETE12SMV1_DCAL: contains 12 SM and 6 DCAL SM
-//   
-//   EMCAL_COMPLETE12SMV1_DCAL_8SM: contains 12 SM and 8 DCAL SM including the DCAL extention (2 SM)
-//
-//   EMCAL_COMPLETE12SMV1_DCAL_DEV: contains 12 SM shifted and 10 DCAL SM 
-//
-//   EMCAL_WSUC (Wayne State test stand)
-//      = no definite equivalent in old notation, was only used by
-//          Aleksei, but kept for testing purposes
-//
-//   etc.
-
-//
-// Usage: 
-//        You can create the AliEMCALGeometry object independently from anything.
-//        You have to use just the correct name of geometry. If name is empty string the
-//        default name of geometry will be used.
-//         
-//  AliEMCALGeometry* g = AliEMCALGeometry::GetInstance(name,title); // first time
-//  ..
-//  g = AliEMCALGeometry::GetInstance();                             // after first time
-//
-//  MC:   If you work with MC data you have to get geometry the next way: 
-//  ==                                      =============================
-//  AliRunLoader    *rl   = AliRunLoader::Instance();
-//  AliEMCALGeometry *geom = dynamic_cast<AliEMCAL*>(rl->GetAliRun()->GetDetector("EMCAL"))->GetGeometry();
-//  TGeoManager::Import("geometry.root");
-//
-//*-- Author: Sahal Yacoob (LBL / UCT)
-//     and  : Yves Schutz (SUBATECH)
-//     and  : Jennifer Klay (LBL)
-//     and  : Alexei Pavlinov (WSU) 
-//
-//  Implementation for analysis usage, before AliEMCALGeometry now (06/2011) merged again
-//  in AliEMCALGeometry
-//                  
-// -- Author: Magali Estienne (magali.estienne@subatech.in2p3.fr)
-//     and  : Adapted for DCAL, M.L. Wang CCNU & Subatech Oct-18-2012
-//
-//
-// Usage: 
-//        You can create the AliEMCALGeometry object independently from anything.
-//        You have to use just the correct name of geometry. If name is empty string the
-//        default name of geometry will be used.
-//         
-//  AliEMCALGeometry* geom = new AliEMCALGeometry("EMCAL_COMPLETE12SMV1","EMCAL");
-//  TGeoManager::Import("geometry.root");
-//
-//  MC:   If you work with MC data you have to get geometry the next way: 
-//  ==                                      =============================
-// !!!!!!!!! This part has to be modified
-//  AliRunLoader    *rl   = AliRunLoader::GetRunLoader();
-//  AliEMCALEMCGeometry *geom = dynamic_cast<AliEMCAL*>(rl->GetAliRun()->GetDetector("EMCAL"))->GetGeometry();
-//  TGeoManager::Import("geometry.root");
-
-
 // --- ROOT system ---
-
 #include <TParticle.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
@@ -123,7 +35,7 @@ ClassImp(AliEMCALGeometry)
 
 // these initialisations are needed for a singleton
 AliEMCALGeometry  *AliEMCALGeometry::fgGeom      = 0;
-const Char_t*      AliEMCALGeometry::fgkDefaultGeometryName = "EMCAL_COMPLETE12SMV1";
+const Char_t*      AliEMCALGeometry::fgkDefaultGeometryName = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
 
 //____________________________________________________________________________
 AliEMCALGeometry::AliEMCALGeometry():
@@ -263,8 +175,11 @@ AliEMCALGeometry::AliEMCALGeometry(const Text_t* name,   const Text_t* title,
     PrintGeometryGeoUtils();
   }
   
+  AliLog::Message(AliLog::kInfo, Form("Name <<%s>>",name),
+                  MODULENAME(), "AliEMCALGeometry", FUNCTIONNAME(), __FILE__, __LINE__);  
+  
   if ((fEMCGeometry->GetGeoName()).Contains("DCAL")) {
-    fTriggerMapping = new AliEMCALTriggerMappingV2(46, this);
+    fTriggerMapping = new AliEMCALTriggerMappingV2(52, this);
     AliLog::Message(AliLog::kInfo, "EMCAL Trigger Mapping Version V2 Enabled",
                     MODULENAME(), "AliEMCALGeometry", FUNCTIONNAME(), __FILE__, __LINE__);
 
@@ -318,34 +233,132 @@ AliEMCALGeometry *  AliEMCALGeometry::GetInstance()
   return rv; 
 }
 
+//
+/// \return the pointer of the unique instance
+///
 //______________________________________________________________________
 AliEMCALGeometry* AliEMCALGeometry::GetInstance(const Text_t* name,   const Text_t* title,
                                                 const Text_t* mcname, const Text_t* mctitle )
 {
-  // Returns the pointer of the unique instance
-    
   AliEMCALGeometry * rv = 0; 
-  if ( fgGeom == 0 ) {
-    if ( strcmp(name,"") == 0 ) { // get default geometry
-      fgGeom = new AliEMCALGeometry(fgkDefaultGeometryName, title,mcname,mctitle);
-    } else {
+  
+  if ( fgGeom == 0 ) 
+  {
+    if ( strcmp(name,"") == 0 ) 
+    { // get default geometry
+      fgGeom = new AliEMCALGeometry(fgkDefaultGeometryName, title, mcname, mctitle);
+    } 
+    else 
+    {
       fgGeom = new AliEMCALGeometry(name, title,mcname,mctitle);
     }  // end if strcmp(name,"")
-    if ( AliEMCALEMCGeometry::fgInit ) rv = (AliEMCALGeometry * ) fgGeom;
-    else {
+    
+    if ( AliEMCALEMCGeometry::fgInit ) 
+    {
+      rv = (AliEMCALGeometry * ) fgGeom;
+    }
+    else 
+    {
       rv = 0; 
       delete fgGeom; 
       fgGeom = 0; 
     } // end if fgInit
-  }else{
-    if ( strcmp(fgGeom->GetName(), name) != 0) {
-      printf("\ncurrent geometry is %s : ", fgGeom->GetName());
-      printf(" you cannot call %s ",name);  
-    }else{
-      rv = (AliEMCALGeometry *) fgGeom; 
+  }
+  else
+  {
+    if ( strcmp(fgGeom->GetName(), name) != 0)
+    {
+      printf("\n current geometry is %s : ", fgGeom->GetName());
+      printf(" you should not call %s \n",name);
     } // end 
+    
+    rv = (AliEMCALGeometry *) fgGeom; 
   }  // end if fgGeom
+  
   return rv; 
+}
+
+///
+/// Instanciate geometry depending on the run number
+///
+/// \return the pointer of the unique instance
+///
+//___________________________________________________________________________
+AliEMCALGeometry* AliEMCALGeometry::GetInstanceFromRunNumber(Int_t runNumber,       TString geoName,
+                                                             const Text_t* mcname,  const Text_t* mctitle )
+{
+  //printf("AliEMCALGeometry::GetInstanceFromRunNumber() - run %d, geoName <<%s>> \n",runNumber,geoName.Data());
+  
+  if      ( runNumber >= 104064 && runNumber < 140000  ) 
+  {
+    // 2009-2010 runs
+    // First year geometry, 4 SM.
+    
+    if(!geoName.Contains("FIRSTYEARV1") && geoName!="")
+    { 
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+      printf("\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year\n");
+    }
+    else 
+    {
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>\n");
+    }
+    
+    return AliEMCALGeometry::GetInstance("EMCAL_FIRSTYEARV1","EMCAL",mcname,mctitle) ;
+  }
+  else if ( runNumber >= 140000 && runNumber <= 170593 )
+  {
+    // Almost complete EMCAL geometry, 10 SM. Year 2011 configuration
+    
+    if(!geoName.Contains("COMPLETEV1") && geoName!="")
+    {
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+      printf("\t In use <<EMCAL_COMPLETEV1>>, check run number and year\n");
+    }
+    else 
+    {
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>\n");
+    }
+    
+    return AliEMCALGeometry::GetInstance("EMCAL_COMPLETEV1","EMCAL",mcname,mctitle) ;
+  }
+  else if ( runNumber >  176000 && runNumber <= 197692 )
+  {
+    // Complete EMCAL geometry, 12 SM. Year 2012 and on
+    // The last 2 SM were not active, anyway they were there.
+    
+    if(!geoName.Contains("COMPLETE12SMV1") && geoName!="")
+    {
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+      printf("\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year\n");
+    }
+    else 
+    {
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETE12SMV1>>\n");
+    }
+    
+    return AliEMCALGeometry::GetInstance("EMCAL_COMPLETE12SMV1","EMCAL",mcname,mctitle) ;
+  }
+  else // Run 2
+  {
+    // EMCAL + DCAL geometry, 20 SM. Year 2015 and on
+    
+    if(!geoName.Contains("DCAL_8SM") && geoName!="")
+    {
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+      printf("\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year\n");
+    }
+    else 
+    {
+      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>\n");
+    }
+
+    return AliEMCALGeometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM","EMCAL",mcname,mctitle) ;
+  }  
 }
 
 //________________________________________________________________________________________________
@@ -572,6 +585,59 @@ Bool_t AliEMCALGeometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi,
   return kFALSE;
 }
 
+///
+/// Online mapping and numbering is the same for EMCal and DCal SMs but:
+///  - DCal odd SM (13,15,17) has online cols: 16-47; offline cols 0-31.
+///  - Even DCal SMs have the same numbering online and offline 0-31.
+///  - DCal 1/3 SM (18,19), online rows 16-23; offline rows 0-7
+///
+/// Here shift the online cols or rows depending on the
+/// super-module number to match the offline mapping.
+///
+/// \param sm: super module number of the channel/cell
+/// \param iphi: row/phi cell index, modified for DCal
+/// \param ieta: column/eta index, modified for DCal
+///
+//________________________________________________________________________________________________
+void AliEMCALGeometry::ShiftOnlineToOfflineCellIndexes(Int_t sm, Int_t & iphi, Int_t & ieta) const 
+{
+  if ( sm == 13 || sm == 15 || sm == 17 )
+  {
+    // DCal odd SMs
+    ieta -= 16; // Same cabling mapping as for EMCal, not considered offline.
+  }
+  else if ( sm == 18 || sm == 19 )
+  {
+    // DCal 1/3 SMs
+    iphi -= 16; // Needed due to cabling mistake.
+  }
+}
+
+///
+/// Here shift the DCal online cols or rows depending on the
+/// super-module number to match the online mapping. 
+///
+/// Reverse procedure to the one in the method above
+/// ShiftOnlineToOfflineCellIndexes().
+///
+/// \param sm: super module number of the channel/cell
+/// \param iphi: row/phi cell index, modified for DCal
+/// \param ieta: column/eta index, modified for DCal
+///
+//________________________________________________________________________________________________
+void AliEMCALGeometry::ShiftOfflineToOnlineCellIndexes(Int_t sm, Int_t & iphi, Int_t & ieta) const 
+{
+  if ( sm == 13 || sm == 15 || sm == 17 )
+  {
+    // DCal odd SMs
+    ieta += 16; // Same cabling mapping as for EMCal, not considered offline.
+  }
+  else if ( sm == 18 || sm == 19 )
+  {
+    // DCal 1/3 SMs
+    iphi += 16; // Needed due to cabling mistake.
+  }
+}
 
 //________________________________________________________________________________________________
 Bool_t AliEMCALGeometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi, Int_t &absId) const
@@ -1206,31 +1272,27 @@ Int_t AliEMCALGeometry::IsInEMCALOrDCAL(Double_t x, Double_t y, Double_t z) cons
   } 
 }
 
+///
+/// Provides shift-rotation matrix for EMCAL from externally set matrix or 
+/// from TGeoManager
+/// \return alignment matrix for a super module number
+/// \param smod: super module number
+///
 //____________________________________________________________________________
 const TGeoHMatrix * AliEMCALGeometry::GetMatrixForSuperModule(Int_t smod) const 
-{
-  //Provides shift-rotation matrix for EMCAL
-	
+{	
   if(smod < 0 || smod > fEMCGeometry->GetNumberOfSuperModules()) 
     AliFatal(Form("Wrong supermodule index -> %d",smod));
 		
-  //If GeoManager exists, take matrixes from it
-	
-  //
-  //    if(fKey110DEG && ind>=10) {
-  //    }
-  //
-  //    if(!gGeoManager->cd(volpath.Data()))
-  //      AliFatal(Form("AliEMCALGeometry::GeoManager cannot find path %s!",volpath.Data()));
-  //
-  //    TGeoHMatrix* m = gGeoManager->GetCurrentMatrix();
-  
-  //Use matrices set externally
-  if(!gGeoManager || (gGeoManager && fUseExternalMatrices)){
-    if(fkSModuleMatrix[smod]){
+  // Use matrices set externally
+  if(!gGeoManager || (gGeoManager && fUseExternalMatrices))
+  {
+    if(fkSModuleMatrix[smod])
+    {
       return fkSModuleMatrix[smod] ;
     }
-    else{
+    else
+    {
       AliInfo("Stop:");
       printf("\t Can not find EMCAL misalignment matrixes\n") ;
       printf("\t Either import TGeoManager from geometry.root or \n");
@@ -1240,37 +1302,57 @@ const TGeoHMatrix * AliEMCALGeometry::GetMatrixForSuperModule(Int_t smod) const
     }  
   }//external matrices
   
-  if(gGeoManager){
-    const Int_t buffersize = 255;
-    char path[buffersize] ;
-    TString SMName;
-    Int_t tmpType = -1;
-    Int_t SMOrder = 0;
-//Get the order for SM
-    for( Int_t i = 0; i < smod+1; i++){
-      if(GetSMType(i) == tmpType) {
-        SMOrder++;
-      } else {
-        tmpType = GetSMType(i);
-        SMOrder = 1;
-      }
-    } 
-
-    if(GetSMType(smod) == kEMCAL_Standard )      SMName = "SMOD";
-    else if(GetSMType(smod) == kEMCAL_Half )     SMName = "SM10";
-    else if(GetSMType(smod) == kEMCAL_3rd )      SMName = "SM3rd";
-    else if( GetSMType(smod) == kDCAL_Standard ) SMName = "DCSM";
-    else if( GetSMType(smod) == kDCAL_Ext )      SMName = "DCEXT";
-    else AliError("Unkown SM Type!!");
-    snprintf(path,buffersize,"/ALIC_1/XEN1_1/%s_%d", SMName.Data(), SMOrder) ;
-
-    if (!gGeoManager->cd(path)){
-      AliFatal(Form("Geo manager can not find path %s!\n",path));
-    }
-    return gGeoManager->GetCurrentMatrix();
-  }
+  // If gGeoManager exists, take matrix from it
+  if(gGeoManager) return GetMatrixForSuperModuleFromGeoManager(smod);
+  
   return 0 ;
 }
+
+///
+/// Provides shift-rotation matrix for EMCAL from the TGeoManager.
+/// \return alignment matrix for a super module number
+/// \param smod: super module number
+///
+//____________________________________________________________________________
+const TGeoHMatrix * AliEMCALGeometry::GetMatrixForSuperModuleFromGeoManager(Int_t smod) const 
+{  
+  const Int_t buffersize = 255;
+  char  path[buffersize] ;
+  Int_t tmpType = -1;
+  Int_t smOrder = 0;
+  
+  //Get the order for SM
+  for( Int_t i = 0; i < smod+1; i++)
+  {
+    if(GetSMType(i) == tmpType) 
+    {
+      smOrder++;
+    } 
+    else 
+    {
+      tmpType = GetSMType(i);
+      smOrder = 1;
+    }
+  } 
+  
+  Int_t   smType = GetSMType(smod);
+  TString smName = "";
+  
+  if      ( smType == kEMCAL_Standard ) smName = "SMOD";
+  else if ( smType == kEMCAL_Half )     smName = "SM10";
+  else if ( smType == kEMCAL_3rd )      smName = "SM3rd";
+  else if ( smType == kDCAL_Standard )  smName = "DCSM";
+  else if ( smType == kDCAL_Ext )       smName = "DCEXT";
+  else AliError("Unkown SM Type!!");
+  
+  snprintf(path,buffersize,"/ALIC_1/XEN1_1/%s_%d", smName.Data(), smOrder) ;
+  
+  if (!gGeoManager->cd(path))
+    AliFatal(Form("Geo manager can not find path %s!\n",path));
+  
+  return gGeoManager->GetCurrentMatrix();
+}
+
 
 //__________________________________________________________________________________________________________________
 void AliEMCALGeometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t sm, const Float_t depth,

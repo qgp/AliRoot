@@ -232,12 +232,15 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fWriteESDfriend(kFALSE),
   fFillTriggerESD(kTRUE),
 
+  fSkipIncompleteDAQ(kFALSE),
   fCleanESD(kTRUE),
   fV0DCAmax(3.),
   fV0CsPmin(0.),
   fDmax(50.),
   fZmax(50.),
 
+  fCosmicAlias("kCosmic"),
+  fLaserAlias("kCalibLaser"),
   fRunLocalReconstruction("ALL"),
   fRunTracking("ALL"),
   fFillESD("ALL"),
@@ -278,7 +281,8 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fDiamondProfileSPD(NULL),
   fDiamondProfile(NULL),
   fDiamondProfileTPC(NULL),
-  fListOfCosmicTriggers(NULL),
+  fListOfCosmicTriggers(NULL), //RS for BWD comp.
+  fAlias2Trigger(NULL),
   
   fGRPData(NULL),
 
@@ -369,12 +373,15 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fWriteESDfriend(rec.fWriteESDfriend),
   fFillTriggerESD(rec.fFillTriggerESD),
 
+  fSkipIncompleteDAQ(rec.fSkipIncompleteDAQ),
   fCleanESD(rec.fCleanESD),
   fV0DCAmax(rec.fV0DCAmax),
   fV0CsPmin(rec.fV0CsPmin),
   fDmax(rec.fDmax),
   fZmax(rec.fZmax),
 
+  fCosmicAlias(rec.fCosmicAlias),
+  fLaserAlias(rec.fLaserAlias),
   fRunLocalReconstruction(rec.fRunLocalReconstruction),
   fRunTracking(rec.fRunTracking),
   fFillESD(rec.fFillESD),
@@ -415,7 +422,8 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fDiamondProfileSPD(rec.fDiamondProfileSPD),
   fDiamondProfile(rec.fDiamondProfile),
   fDiamondProfileTPC(rec.fDiamondProfileTPC),
-  fListOfCosmicTriggers(NULL),
+  fListOfCosmicTriggers(NULL), //RS for BWD comp.
+  fAlias2Trigger(NULL),
   
   fGRPData(NULL),
 
@@ -524,11 +532,15 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fWriteESDfriend        = rec.fWriteESDfriend;
   fFillTriggerESD        = rec.fFillTriggerESD;
 
+  fSkipIncompleteDAQ = rec.fSkipIncompleteDAQ;
   fCleanESD  = rec.fCleanESD;
   fV0DCAmax  = rec.fV0DCAmax;
   fV0CsPmin  = rec.fV0CsPmin;
   fDmax      = rec.fDmax;
   fZmax      = rec.fZmax;
+
+  fCosmicAlias                   = rec.fCosmicAlias;
+  fLaserAlias                    = rec.fLaserAlias;
 
   fRunLocalReconstruction        = rec.fRunLocalReconstruction;
   fRunTracking                   = rec.fRunTracking;
@@ -600,6 +612,9 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
 
   delete fListOfCosmicTriggers; fListOfCosmicTriggers = NULL;
   if (rec.fListOfCosmicTriggers) fListOfCosmicTriggers = (THashTable*)((rec.fListOfCosmicTriggers)->Clone());
+  //
+  delete fAlias2Trigger; fAlias2Trigger = NULL;
+  if (rec.fAlias2Trigger) fAlias2Trigger = (THashList*)((rec.fAlias2Trigger)->Clone());
 
   delete fGRPData; fGRPData = NULL;
   //  if (rec.fGRPData) fGRPData = (TMap*)((rec.fGRPData)->Clone());
@@ -670,6 +685,10 @@ AliReconstruction::~AliReconstruction()
   if (fListOfCosmicTriggers) {
     fListOfCosmicTriggers->Delete();
     delete fListOfCosmicTriggers;
+  }
+  if (fAlias2Trigger) {
+    fAlias2Trigger->Delete();
+    delete fAlias2Trigger;
   }
   delete fGRPData;
   delete fRunScalers;
@@ -822,8 +841,9 @@ void AliReconstruction::InitCDB()
 
 //_____________________________________________________________________________
 void AliReconstruction::SetCDBSnapshotMode(const char* snapshotFileName) {
+    if (!AliCDBManager::Instance()->SetSnapshotMode(snapshotFileName))
+      AliFatal("Setting CDB snapshot mode failed.");
     fCDBSnapshotMode = kTRUE;
-    AliCDBManager::Instance()->SetSnapshotMode(snapshotFileName);
 }
 
 //_____________________________________________________________________________
@@ -941,7 +961,6 @@ Bool_t AliReconstruction::SetRunNumberFromData()
   fSetRunNumberFromDataCalled = kTRUE;
   
   AliCDBManager* man = AliCDBManager::Instance();
- 
   if(fRawReader) {
     if(fRawReader->NextEvent()) {
       if(man->GetRun() > 0) {
@@ -1319,16 +1338,6 @@ Bool_t AliReconstruction::InitGRP() {
      AliError("No TPC diamond profile found in OCDB!");
   }
 
-  entry = AliCDBManager::Instance()->Get("GRP/Calib/CosmicTriggers");
-  if (entry) {
-    fListOfCosmicTriggers = dynamic_cast<THashTable*>(entry->GetObject());
-    entry->SetOwner(0);
-  }
-
-  if (!fListOfCosmicTriggers) {
-    AliWarning("Can not get list of cosmic triggers from OCDB! Cosmic event specie will be effectively disabled!");
-  }
-
   return kTRUE;
 } 
 
@@ -1358,6 +1367,17 @@ Bool_t AliReconstruction::LoadCDB()
   // information in ESD
   AliCDBManager::Instance()->GetAll("TRIGGER/*/*");
   AliCDBManager::Instance()->GetAll("HLT/*/*");
+
+  AliCDBEntry* entry = AliCDBManager::Instance()->Get("GRP/Calib/CosmicTriggers");
+  if (entry) {
+    fListOfCosmicTriggers = dynamic_cast<THashTable*>(entry->GetObject());
+    entry->SetOwner(0);
+  }
+  //
+  if (!fListOfCosmicTriggers) {
+    AliWarning("Can not get list of cosmic triggers from OCDB! Cosmic event specie will rely on aliases if defined");
+  }
+
 
   return kTRUE;
 }
@@ -1477,6 +1497,7 @@ Bool_t AliReconstruction::Run(const char* input)
 
   TChain *chain = NULL;
   if (fRawReader && (chain = fRawReader->GetChain())) {
+    ProcessTriggerAliases();
     Long64_t nEntries = (fLastEvent < 0) ? (TChain::kBigNumber) : (fLastEvent - fFirstEvent + 1);
     // Proof mode
     if (gProof) {
@@ -1590,7 +1611,7 @@ void AliReconstruction::InitRun(const char* input)
   // Set CDB lock: from now on it is forbidden to reset the run number
   // or the default storage or to activate any further storage!
   SetCDBLock();
-  
+  //
 }
 
 //_____________________________________________________________________________
@@ -1744,7 +1765,6 @@ void AliReconstruction::SlaveBegin(TTree*)
   // vertexer, trackers, recontructors
   // In proof mode it is executed on the slave
   AliCodeTimerAuto("",0);
-
   TProofOutputFile *outProofFile = NULL;
   if (fInput) {
     if (AliDebugLevel() > 0) fInput->Print();
@@ -1946,6 +1966,9 @@ void AliReconstruction::SlaveBegin(TTree*)
     // Connect ESD tree with the input container
     fAnalysis->GetCommonInputContainer()->SetData(ftree);
   }  
+  //
+  ProcessTriggerAliases();
+  //
   return;
 }
 
@@ -1960,7 +1983,7 @@ Bool_t AliReconstruction::Process(Long64_t entry)
   AliRawVEvent *event = NULL;
   currTree->SetBranchAddress("rawevent",&event);
   currTree->GetEntry(entry);
-  fRawReader = new AliRawReaderRoot(event);
+  fRawReader = new AliRawReaderRoot(event,entry);
   // check if process has enough resources 
   if (!HasEnoughResources(entry)) return kFALSE;
   fStatus = ProcessEvent(fRunLoader->GetNumberOfEvents());
@@ -1968,6 +1991,8 @@ Bool_t AliReconstruction::Process(Long64_t entry)
   fRawReader = NULL;
   delete event;
 
+  if (!fStatus) Abort("ProcessEvent",TSelector::kAbortFile);  
+  CleanProcessedEvent();
   return fStatus;
 }
 
@@ -2031,9 +2056,9 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     oldCPU=procInfo.fCpuUser+procInfo.fCpuSys;
   }
   AliInfo(Form("================================= Processing event %d of type %-10s ==================================", iEvent,fRecoParam.PrintEventSpecie()));
+  fEventInfo.Print();
 
   AliSysInfo::AddStamp(Form("StartReco_%d",iEvent), 0,0,iEvent);
-
   // Set the reco-params
   {
     TString detStr = fLoadCDB;
@@ -2069,14 +2094,18 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     AliSysInfo::AddStamp(Form("RawQA_%d",iEvent), 0,0,iEvent);
   }
 
-    // fill Event header information from the RawEventHeader
-    if (fRawReader){FillRawEventHeaderESD(fesd);}
-    if (fRawReader){FillRawEventHeaderESD(fhltesd);}
     if (fRawReader){
       // Store DAQ detector pattern and attributes
       fesd->SetDAQDetectorPattern(fRawReader->GetDetectorPattern()[0]);
       fesd->SetDAQAttributes(fRawReader->GetAttributes()[2]);
+      if (fesd->IsIncompleteDAQ() && fSkipIncompleteDAQ) {
+	AliInfo("Abandoning incomplete event reconstruction");
+	return kTRUE;
+      }
     }
+    // fill Event header information from the RawEventHeader
+    if (fRawReader){FillRawEventHeaderESD(fesd);}
+    if (fRawReader){FillRawEventHeaderESD(fhltesd);}
 
     fesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
     fhltesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
@@ -2541,7 +2570,7 @@ void AliReconstruction::CleanProcessedEvent()
  
     AliInfo("======================= End Event ===================");
     
-    fEventInfo.Reset();
+
     for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
       if (fReconstructor[iDet]) {
 	fReconstructor[iDet]->SetRecoParam(NULL);
@@ -2612,7 +2641,7 @@ void AliReconstruction::SlaveTerminate()
 
    // Add the AliRoot version that created this file
    TString sVersion("aliroot ");
-   sVersion += ALIROOT_BRANCH;
+   sVersion += ALIROOT_VERSION;
    sVersion += ":";
    sVersion += ALIROOT_REVISION;
    sVersion += "; root ";
@@ -3769,6 +3798,7 @@ void AliReconstruction::WriteAlignmentData(AliESDEvent* esd)
       if (nsp) {
 	AliTrackPointArray *sp = new AliTrackPointArray(nsp);
 	track->SetTrackPointArray(sp);
+	sp->SetBit(AliTrackPointArray::kTOFBugFixed);
 	Int_t isptrack = 0;
 	for (Int_t iDet = 5; iDet >= 0; iDet--) {
 	  AliTracker *tracker = fTracker[iDet];
@@ -4134,8 +4164,9 @@ Bool_t AliReconstruction::GetEventInfo()
   // Fill the event info object
   // ...
   AliCodeTimerAuto("",0)
-
+  
   AliCentralTrigger *aCTP = NULL;
+  fEventInfo.Reset();
   if (fRawReader) {
     fEventInfo.SetEventType(fRawReader->GetType());
 
@@ -4166,7 +4197,6 @@ Bool_t AliReconstruction::GetEventInfo()
   }
   else {
     fEventInfo.SetEventType(AliRawEventHeaderBase::kPhysicsEvent);
-
     if (fRunLoader && (!fRunLoader->LoadTrigger())) {
       aCTP = fRunLoader->GetTrigger();
       fEventInfo.SetTriggerMask(aCTP->GetClassMask());
@@ -4191,33 +4221,6 @@ Bool_t AliReconstruction::GetEventInfo()
     if (fRawReader) delete aCTP;
     return kFALSE;
   }
-
-  // Load trigger aliases and declare the trigger classes included in aliases
-  //PH Why do we do it in each event and not only once in the beginning of the chunk??
-  //PH Temporary fix for #99725: AliReconstruction::GetEventInfo bug
-  fDeclTriggerClasses.Clear();
-  AliCDBEntry * entry = AliCDBManager::Instance()->Get("GRP/CTP/Aliases");
-  if (entry) {
-    THashList * lst = dynamic_cast<THashList*>(entry->GetObject());
-    if (lst) {
-      lst->Sort(kSortDescending); // to avoid problems with substrungs
-      if (fRawReader) fRawReader->LoadTriggerAlias(lst);
-      // Now declare all the triggers present in the aliases
-      TIter iter(lst);
-      TNamed *nmd = 0;
-      while((nmd = dynamic_cast<TNamed*>(iter.Next()))){
-	fDeclTriggerClasses += " ";
-	fDeclTriggerClasses += nmd->GetName();
-      }
-    }
-    else {
-      AliError("Cannot cast the object with trigger aliases to THashList!");
-    }
-  }
-  else {
-    AliError("No OCDB ebtry for the trigger aliases!");
-  }
-  // Load trigger classes for this run
   UChar_t clustmask = 0;
   TString trclasses;
   ULong64_t trmask = fEventInfo.GetTriggerMask();
@@ -4226,40 +4229,19 @@ Bool_t AliReconstruction::GetEventInfo()
   Int_t nclasses = classesArray.GetEntriesFast();
   for( Int_t iclass=0; iclass < nclasses; iclass++ ) {
     AliTriggerClass* trclass = (AliTriggerClass*)classesArray.At(iclass);
-    if (trclass && trclass->GetMask()>0) {
-      Int_t trindex = TMath::Nint(TMath::Log2(trclass->GetMask()));
-      if (fesd) fesd->SetTriggerClass(trclass->GetName(),trindex);
-      if (fRawReader) fRawReader->LoadTriggerClass(trclass->GetName(),trindex);
-      if (trmask & (1ull << trindex)) {
-	trclasses += " ";
-	trclasses += trclass->GetName();
-	trclasses += " ";
-	clustmask |= trclass->GetCluster()->GetClusterMask();
-      }
-    }
-    if (trclass && trclass->GetMaskNext50()>0) {
-      Int_t trindex = TMath::Nint(TMath::Log2(trclass->GetMaskNext50()))+50;
-      if (fesd) fesd->SetTriggerClass(trclass->GetName(),trindex);
-      if (fRawReader) fRawReader->LoadTriggerClass(trclass->GetName(),trindex);
-      if (trmaskNext50 & (1ull << (trindex-50))) {
-	trclasses += " ";
-	trclasses += trclass->GetName();
-	trclasses += " ";
-	clustmask |= trclass->GetCluster()->GetClusterMask();
-      }
-    }
+    Int_t trindex = trclass->GetIndex()-1;
+    if (fesd) fesd->SetTriggerClass(trclass->GetName(),trindex);
+    Bool_t match = trindex<50 ? (trmask & (1ull << trindex)) : (trmaskNext50 & (1ull << (trindex-50)));
+    if (!match) continue;
+    trclasses += " ";
+    trclasses += trclass->GetName();
+    trclasses += " ";
+    clustmask |= trclass->GetCluster()->GetClusterMask();
+    if (TriggerMatches2Alias(trclass->GetName(),fCosmicAlias)) fEventInfo.SetCosmicTrigger(kTRUE);
+    else if (TriggerMatches2Alias(trclass->GetName(),fLaserAlias))  fEventInfo.SetCalibLaserTrigger(kTRUE);
+    else fEventInfo.SetBeamTrigger(kTRUE);
   }
   fEventInfo.SetTriggerClasses(trclasses);
-  // Now put the declared trigger classes (not present in the run)
-  // to 0/false in the event selection
-  if (!fDeclTriggerClasses.IsNull()) {
-    TObjArray *tokens = fDeclTriggerClasses.Tokenize(" ");
-    Int_t ntokens = tokens->GetEntriesFast();
-    for (Int_t itoken = 0; itoken < ntokens; ++itoken) {
-      if (fRawReader) fRawReader->LoadTriggerClass((((TObjString*)tokens->At(itoken))->String()).Data(),-1);
-    }
-    delete tokens;
-  }
 
   // Write names of active trigger inputs in ESD Header
   const TObjArray& inputsArray = config->GetInputs(); 
@@ -4295,6 +4277,8 @@ Bool_t AliReconstruction::GetEventInfo()
 
   // We have to fill also the HLT decision here!!
   // ...
+  // check if event has cosmic or laser alias
+  
 
   return kTRUE;
 }
@@ -4816,5 +4800,121 @@ void AliReconstruction::RectifyCDBurl(TString& url)
     if (space) url = url.Strip(TString::kTrailing,' ');
   }
   //url.ToLower();
+  //
+}
+
+//_________________________________________________________
+void AliReconstruction::ProcessTriggerAliases()
+{
+  // load trigger aliases, attach them to the reader
+  //
+  fDeclTriggerClasses.Clear();
+  AliCentralTrigger *aCTP = NULL;
+  if (fRawReader) {
+    aCTP = new AliCentralTrigger();
+    TString configstr("");
+    if (!aCTP->LoadConfiguration(configstr)) { // Load CTP config from OCDB
+      AliError("No trigger configuration found in OCDB! The trigger configuration information will not be used!");
+      delete aCTP;
+      return;
+    }
+  }
+  else if (fRunLoader && (!fRunLoader->LoadTrigger())) {
+    aCTP = fRunLoader->GetTrigger();
+  }
+  else {
+    if (fStopOnMissingTriggerFile) AliFatal("No trigger can be loaded! Stopping reconstruction!");
+    AliWarning("No trigger can be loaded! The trigger information will not be used!");
+    return;
+  }
+  //  
+  AliTriggerConfiguration *config = aCTP->GetConfiguration();
+  if (!config) {
+    AliError("No trigger configuration has been found! The trigger configuration information will not be used!");
+    if (fRawReader) delete aCTP;
+    return;
+  }
+  //
+  // here we have list of active triggers
+  const TObjArray& classesArray = config->GetClasses();
+  Int_t nclasses = classesArray.GetEntriesFast();
+  // 
+  fAlias2Trigger = new THashList();
+  //
+  AliCDBEntry * entry = AliCDBManager::Instance()->Get("GRP/CTP/Aliases");
+  if (entry) {
+    THashList * lst = dynamic_cast<THashList*>(entry->GetObject());
+    if (lst) {
+      lst->Sort(kSortDescending); // to avoid problems with substrungs
+      if (fRawReader) fRawReader->LoadTriggerAlias(lst);
+      // Now declare all the triggers present in the aliases
+      TIter iter(lst);
+      TNamed *nmd = 0;
+      while((nmd = dynamic_cast<TNamed*>(iter.Next()))) { // account aliases of this trigger >>
+	fDeclTriggerClasses += " ";
+	fDeclTriggerClasses += nmd->GetName();
+	//
+	if (!classesArray.FindObject(nmd->GetName())) continue;
+	TString aliasList(nmd->GetTitle());
+	TObjArray* arrAliases = aliasList.Tokenize(',');
+	Int_t nAliases = arrAliases->GetEntries();
+	// Loop on aliases for the current trigger
+	for(Int_t i=0; i<nAliases; i++){
+	  TObjString *alias = (TObjString*) arrAliases->At(i);
+	  // Find the current alias in the hash list. If it is not there, add TNamed entry
+	  TNamed * inlist = (TNamed*)fAlias2Trigger->FindObject((alias->GetString()).Data());
+	  if (!inlist) {
+	    inlist = new TNamed((alias->GetString()).Data(),Form(" %s ",nmd->GetName()));
+	    fAlias2Trigger->Add(inlist);
+	  }
+	  else {
+	    TString tt(inlist->GetTitle());
+	    tt += "||";
+	    tt += Form(" %s ",nmd->GetName());
+	    inlist->SetTitle(tt.Data());
+	  }
+	}
+	delete arrAliases;
+      }  // account aliases of this trigger <<
+    }
+    else AliError("Cannot cast the object with trigger aliases to THashList!");
+  }
+  else AliError("No OCDB ebtry for the trigger aliases!");
+  //
+  AliInfo("Aliases defined:");
+  fAlias2Trigger->Print();
+  //
+  if (fRawReader) {
+    // active classes mentioned in the alias will be converted to their masks
+    for( Int_t iclass=0; iclass < nclasses; iclass++ ) {
+      AliTriggerClass* trclass = (AliTriggerClass*)classesArray.At(iclass);
+      if (!trclass) continue;
+      int trindex = trclass->GetIndex()-1;
+      fRawReader->LoadTriggerClass(trclass->GetName(),trindex);      
+    }
+    //
+    // nullify all remaining triggers mentioned in the alias
+    if (!fDeclTriggerClasses.IsNull()) {
+      TObjArray *tokens = fDeclTriggerClasses.Tokenize(" ");
+      Int_t ntokens = tokens->GetEntriesFast();
+      for (Int_t itoken = 0; itoken < ntokens; ++itoken) {
+	fRawReader->LoadTriggerClass((((TObjString*)tokens->At(itoken))->String()).Data(),-1);
+      }
+      delete tokens;
+    }
+  }
+  //
+}
+
+//___________________________________________________
+Bool_t AliReconstruction::TriggerMatches2Alias(const char* trigName, const char* alias)
+{
+  // check if trigger matches to alias
+  TString trName = trigName;
+  if (!fAlias2Trigger) return kFALSE;
+  TNamed* al = (TNamed*)fAlias2Trigger->FindObject(alias);
+  if (!al) return kFALSE;
+  TString altrig = al->GetTitle();
+  return altrig.Contains(Form(" %s ",trigName));
   //
 }

@@ -20,7 +20,7 @@ set(MODULE AliHLTTrigger)
 include_directories(${AliRoot_SOURCE_DIR}/HLT/trigger)
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSISalice
                     ${AliRoot_SOURCE_DIR}/HLT/BASE
                     ${AliRoot_SOURCE_DIR}/HLT/BASE/util
@@ -76,17 +76,19 @@ set(SRCS
     AliHLTTriggerPhosMip.cxx
     AliHLTTriggerTrdClusterMultiplicity.cxx
     AliHLTUpcTriggerComponent.cxx
+    AliHLTTriggerCTPRE.cxx
    )
 
-if(FASTJET_FOUND)
-    include_directories(SYSTEM ${FASTJET_INCLUDE_DIR})
-    link_directories(${FASTJET_LIBS_DIR})
-    add_definitions(${FASTJET_DEFINITIONS})
-
-    set(SRC ${SRCS}
-        AliHLTTriggerFastJet.h
-       )
-endif()
+# TO DO : Check if this is really needed
+#if(FASTJET_FOUND)
+#    include_directories(SYSTEM ${FASTJET_INCLUDE_DIR})
+#    link_directories(${FASTJET_LIBS_DIR})
+#    add_definitions(${FASTJET_DEFINITIONS})
+#
+#    set(SRCS ${SRCS}
+#        AliHLTTriggerFastJet.cxx
+#       )
+#endif()
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
@@ -99,9 +101,14 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 # Generate the ROOT map
 # Dependecies
 set(LIBDEPS STEERBase STEER ESD CDB AOD RAWDatabase RAWDatarec ANALYSISalice HLTbase AliHLTUtil AliHLTITS AliHLTMUON AliHLTTRD TRDbase TRDrec TPCcalib MUONraw GenVector Gpad Graf Smatrix)
-if(FASTJET_FOUND)
-    set(LIBDEPS ${LIBDEPS} ${FASTJET_LIBS})
-endif(FASTJET_FOUND)
+
+# !! TO FIX !!
+# Temporary removing the linking to fastjet libraries as it adds system libraries to the rootmaps
+# Rootmaps should contain only libraries that can be found in the LD_LIBRARY_PATH
+#if(FASTJET_FOUND)
+#    set(LIBDEPS ${LIBDEPS} ${FASTJET_LIBS})
+#endif(FASTJET_FOUND)
+
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # Add a library to the project using the specified source files

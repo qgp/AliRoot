@@ -5,7 +5,6 @@
  * See cxx source for full Copyright notice                               *
  * Primary Author: Mikolaj Krzewicki, mkrzewic@cern.ch
  */
-#include "Rtypes.h"
 class AliTPCseed;
 
 class AliVTPCseed {
@@ -13,6 +12,7 @@ class AliVTPCseed {
   AliVTPCseed() {}
   virtual ~AliVTPCseed() {}
   virtual void CopyToTPCseed( AliTPCseed &) const = 0;
+  virtual void SetFromTPCseed( const AliTPCseed*) = 0;
 };
 
 #endif

@@ -27,14 +27,16 @@ public:
   void    WriteBunchNumbers();  
 
   void    WriteChannel(Int_t channel, Short_t *adc, Bool_t integrator);
-  void    WriteBeamFlags();
+  void    WriteBeamFlags(Bool_t *bbFlag, Bool_t *bgFlag);
   
   void    WriteMBInfo();
   void    WriteMBFlags();
     
   void    WriteBeamScalers();
 
-  void    WriteTiming(Float_t time, Float_t width);
+  void    WriteTiming(Short_t time, Short_t width);
+  
+  void	  WriteEmptyCIU();
 
 private:
   AliADBuffer(const AliADBuffer &source); // copy constructor

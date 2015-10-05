@@ -30,6 +30,7 @@
 #include "AliHLTCDHWrapper.h"
 #include <limits>
 #include <sstream>
+#include <RVersion.h>
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTCTPData)
@@ -169,7 +170,7 @@ int AliHLTCTPData::InitCTPTriggerClasses(const char* ctpString)
   // see header file for function documentation
   if (!ctpString) return -EINVAL;
 
-  HLTImportant("Parameter: %s", ctpString);
+  HLTDebug("Parameter: %s", ctpString);
 
   fMask=0;
   fClassIds.Delete();
@@ -258,7 +259,7 @@ bool AliHLTCTPData::EvaluateCTPTriggerClass(const char* expression, const AliHLT
     AliHLTEventTriggerData* evtData=reinterpret_cast<AliHLTEventTriggerData*>(trigData.fData);
     HLTWarning("invalid trigger mask %s, unknown CTP trigger, initialized %s", 
 	       TriggerMaskToString(triggerMask).c_str(), TriggerMaskToString(fMask).c_str() );
-    for (int i=0; i<gkAliHLTCommonHeaderCount; i++) HLTWarning("\t CDH[%d]=0x%lx", i, evtData->fCommonHeader[i]);
+    for (int i=0; i<evtData->fCommonHeaderWordCnt; i++) HLTWarning("\t CDH[%d]=0x%lx", i, evtData->fCommonHeader[i]);
     return false;
   }
 
@@ -299,7 +300,11 @@ bool AliHLTCTPData::EvaluateCTPTriggerClass(const char* expression, AliHLTTrigge
   }
 
   TFormula form("trigger expression", condition);
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6,3,0)
+  if (form.IsValid()!=0) {
+#else
   if (form.Compile()!=0) {
+#endif
     HLTError("invalid expression %s", expression);
     return false;
   }
@@ -379,7 +384,7 @@ int AliHLTCTPData::Increment(AliHLTComponentTriggerData& trigData)
     AliHLTEventTriggerData* evtData=reinterpret_cast<AliHLTEventTriggerData*>(trigData.fData);
     HLTWarning("invalid trigger mask %s, unknown CTP trigger, initialized %s", 
 	       TriggerMaskToString(triggerMask).c_str(), TriggerMaskToString(fMask).c_str());
-    for (int i=0; i<gkAliHLTCommonHeaderCount; i++) 
+    for (int i=0; i<evtData->fCommonHeaderWordCnt; i++) 
       HLTWarning("\t CDH[%d]=0x%lx", i, evtData->fCommonHeader[i]);
   }
   Increment(triggerMask);
@@ -451,7 +456,7 @@ AliHLTReadoutList AliHLTCTPData::ReadoutList(const AliHLTComponentTriggerData& t
     AliHLTEventTriggerData* evtData=reinterpret_cast<AliHLTEventTriggerData*>(trigData.fData);
     HLTWarning("invalid trigger mask %s, unknown CTP trigger, initialized %s",
                TriggerMaskToString(triggerMask).c_str(), TriggerMaskToString(fMask).c_str());
-    for (int i=0; i<gkAliHLTCommonHeaderCount; i++)
+    for (int i=0; i<evtData->fCommonHeaderWordCnt; i++)
       HLTWarning("\t CDH[%d]=0x%lx", i, evtData->fCommonHeader[i]);
   }
 

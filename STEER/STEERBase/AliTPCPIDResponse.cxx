@@ -96,7 +96,7 @@ AliTPCPIDResponse::AliTPCPIDResponse():
                                   0., 0.2);
   fCorrFuncMultiplicityTanTheta = new TF1("fCorrFuncMultiplicityTanTheta", "[0] * (x - [2]) + [1] * (x * x - [2] * [2])", -1.5, 1.5);
   fCorrFuncSigmaMultiplicity = new TF1("fCorrFuncSigmaMultiplicity",
-                                       "TMath::Max(0, [0] + [1]*TMath::Min(x, [3]) + [2] * TMath::Power(TMath::Min(x, [3]), 2))", 0., 0.2);
+                                       "TMath::Max(0.0, [0] + [1]*TMath::Min(x, [3]) + [2] * TMath::Power(TMath::Min(x, [3]), 2))", 0., 0.2);
 
   
   ResetMultiplicityCorrectionFunctions();
@@ -544,8 +544,8 @@ Double_t AliTPCPIDResponse::GetExpectedSigma(const AliVTrack* track,
   // for the specified particle type 
   //
   
-  if (!responseFunction)
-    return 999;
+  //if (!responseFunction)
+    //return 999;
     
   //TODO Check whether it makes sense to set correctMultiplicity to kTRUE while correctEta might be kFALSE
   
@@ -1575,7 +1575,7 @@ Bool_t   AliTPCPIDResponse::RegisterSpline(const char * name, Int_t index){
   //
   // register spline to be used for drawing comparisons
   // 
-  TFile * fTPCBB = TFile::Open("$ALICE_ROOT/OADB/COMMON/PID/data/TPCPIDResponse.root");
+  TFile * fTPCBB = TFile::Open("$ALICE_PHYSICS/OADB/COMMON/PID/data/TPCPIDResponse.root");
   TObjArray  *arrayTPCPID= (TObjArray*)  fTPCBB->Get("TPCPIDResponse");
   if (fSplineArray.GetEntriesFast()<index) fSplineArray.Expand(index*2);
   TSpline3 *spline=0;

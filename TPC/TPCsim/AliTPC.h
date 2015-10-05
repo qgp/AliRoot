@@ -85,7 +85,7 @@ public:
    void SetDigitsSwitch(Int_t sw){fDigitsSwitch = sw;}
    void SetDefSwitch(Int_t def){fDefaults = def;}
    Float_t GetNoise();  //get Current noise  
-   void    GenerNoise(Int_t tablasize);  // make noise table
+  void    GenerNoise(Int_t tablasize, Bool_t normType=kFALSE);  // make noise table
    Bool_t  IsSectorActive(Int_t sec) const;    // check if the sector is active
    void    SetActiveSectors(Int_t * sectors, Int_t n);  //set active sectors
    Int_t GetHitType() const {return fHitType;}
@@ -140,7 +140,7 @@ protected:
   TTreeSRedirector *fDebugStreamer;     //!debug streamer
   Int_t fLHCclockPhaseSw; //! lhc clock phase switch
   Int_t fIsGEM;        // flag isGEM readout
-  ClassDef(AliTPC,14)  // Time Projection Chamber class
+  ClassDef(AliTPC,15)  // Time Projection Chamber class
 };
 
 

@@ -37,6 +37,7 @@
 #include "AliAODVZERO.h"
 #include "AliAODHMPIDrings.h"
 #include "AliAODZDC.h"
+#include "AliAODAD.h"
 #include "AliAODTrdTrack.h"
 
 class TTree;
@@ -66,6 +67,7 @@ class AliAODEvent : public AliVEvent {
 		       kAODTZERO,
 		       kAODVZERO,
 		       kAODZDC,
+		       kAODAD,
 		       kTOFHeader,                       
 		       kAODTrdTracks,
 		       kAODListN
@@ -102,6 +104,11 @@ class AliAODEvent : public AliVEvent {
     }
 
   virtual  Bool_t InitMagneticField() const {return fHeader ? fHeader->InitMagneticField() : kFALSE;}
+
+  void   SetDAQAttributes(UInt_t attributes) {fDAQAttributes = attributes;}
+  UInt_t GetDAQAttributes() const {return fDAQAttributes;}
+  Bool_t IsIncompleteDAQ();
+
 
   // setters and getters for header information
   void     SetRunNumber(Int_t n) {if (fHeader) fHeader->SetRunNumber(n);}
@@ -321,6 +328,9 @@ class AliAODEvent : public AliVEvent {
 
   //ZDC
   AliAODZDC   *GetZDCData() const { return fAODZDC; }
+  
+  //AD
+  AliAODAD   *GetADData() const { return fAODAD; }
 
   virtual AliVEvent::EDataLayoutType GetDataLayoutType() const;
 
@@ -328,6 +338,7 @@ class AliAODEvent : public AliVEvent {
 
   TList   *fAODObjects; //  list of AODObjects
   TFolder *fAODFolder;  //  folder structure of branches
+  UInt_t   fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
   Bool_t   fConnected;  //! flag if leaves are alreday connected 
   Bool_t   fTracksConnected;      //! flag if tracks have already pointer to event set
   // standard content
@@ -350,6 +361,7 @@ class AliAODEvent : public AliVEvent {
   AliAODTZERO     *fAODTZERO;     //! TZERO AOD
   AliAODVZERO     *fAODVZERO;     //! VZERO AOD
   AliAODZDC       *fAODZDC;       //! ZDC AOD
+  AliAODAD        *fAODAD;        //! AD AOD
   AliTOFHeader    *fTOFHeader;  //! event times (and sigmas) as estimated by TOF
 			     //  combinatorial algorithm.
                              //  It contains also TOF time resolution
@@ -358,7 +370,7 @@ class AliAODEvent : public AliVEvent {
   
   static const char* fAODListName[kAODListN]; //!
 
-  ClassDef(AliAODEvent,91);
+  ClassDef(AliAODEvent,93);
 };
 
 #endif

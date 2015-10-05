@@ -31,6 +31,7 @@
 #include <TList.h>
 #include <TObjString.h>
 #include <TSystem.h>
+#include <TClonesArray.h>
 
 /// \class AliMUONTriggerSubprocessor
 ///
@@ -53,7 +54,13 @@ AliMUONTriggerSubprocessor::AliMUONTriggerSubprocessor(AliMUONPreprocessor* mast
 fRegionalConfig(0x0),
 fLocalMasks(0x0),
 fGlobalConfig(0x0),
-fLUT(0x0)
+fLUT(0x0),
+fTrigScalers(0x0),
+fRegionalConfigToOCDB(kFALSE),
+fLocalMasksToOCDB(kFALSE),
+fGlobalConfigToOCDB(kFALSE),
+fLUTToOCDB(kFALSE),
+fTrigScalersToOCDB(kFALSE)
 {
   /// default ctor
 }
@@ -66,6 +73,7 @@ AliMUONTriggerSubprocessor::~AliMUONTriggerSubprocessor()
   delete fLocalMasks;
   delete fGlobalConfig;
   delete fLUT;
+  delete [] fTrigScalers;
 }
 
 //_____________________________________________________________________________
@@ -125,11 +133,12 @@ AliMUONTriggerSubprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
   Bool_t globalFile(kFALSE);
   Bool_t localFile(kFALSE);
   Bool_t lutFile(kFALSE);
+  Bool_t trigScalFile(kFALSE);
   
   WhichFilesToRead(GetFileName("EXPORTED").Data(),
-                   globalFile,regionalFile,localFile,lutFile);
+                   globalFile,regionalFile,localFile,lutFile,trigScalFile);
   
-  if ((globalFile+regionalFile+localFile+lutFile) == 0) {
+  if ((globalFile+regionalFile+localFile+lutFile+trigScalFile) == 0) {
     Master()->Log("No file(s) to be processed for this run. Exiting.");
     return kTRUE;
   }
@@ -138,6 +147,7 @@ AliMUONTriggerSubprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
   delete fLocalMasks; fLocalMasks = 0x0;
   delete fGlobalConfig; fGlobalConfig = 0x0;
   delete fLUT; fLUT = 0x0;
+  delete fTrigScalers; fTrigScalers = 0x0;
   
   Master()->Log(Form("Reading trigger masks for Run %d startTime %u endTime %u",
                      run,startTime,endTime));
@@ -146,7 +156,8 @@ AliMUONTriggerSubprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
     TestFile("REGIONAL",regionalFile) + 
     TestFile("LOCAL",localFile) + 
     TestFile("GLOBAL",globalFile) +
-    TestFile("LUT",lutFile);
+    TestFile("LUT",lutFile) +
+    TestFile("TRIGSCAL",trigScalFile);
 
   if ( check ) 
   {
@@ -195,7 +206,20 @@ AliMUONTriggerSubprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
       fLUT = 0x0;
     }
   }
+
+  if ( trigScalFile ) {
+    fTrigScalers = new TClonesArray("AliMUONTriggerScalers",10);
+    ok = tio.ReadTrigScalers(GetFileName("TRIGSCAL").Data(),*fTrigScalers);
+    if (!ok)
+    {
+      Master()->Log("ERROR : ReadTrigScalers failed");
+      delete fTrigScalers;
+      fTrigScalers = 0x0;
+    }
+  }
+
   return kTRUE;
+
 }
 
 //_____________________________________________________________________________
@@ -221,38 +245,45 @@ AliMUONTriggerSubprocessor::Process(TMap* /*dcsAliasMap*/)
 	metaData.SetResponsible("MUON TRG");
 	metaData.SetComment("Computed by AliMUONTriggerSubprocessor $Id$");
   
-  Bool_t validToInfinity = kTRUE;
+  Bool_t validToInfinity = kFALSE;
 
-	Bool_t result1(kTRUE);
+  Bool_t result1(kTRUE);
   Bool_t result2(kTRUE);
   Bool_t result3(kTRUE);
   Bool_t result4(kTRUE);
-  
-  if ( fGlobalConfig ) 
+  Bool_t result5(kTRUE);  
+
+  if ( fGlobalConfig && fGlobalConfigToOCDB ) 
   {
     result1 = Master()->Store("Calib", "GlobalTriggerCrateConfig", fGlobalConfig, 
                               &metaData, 0, validToInfinity);
   }
   
-  if ( fRegionalConfig && fRegionalConfig->GetNofTriggerCrates() > 0 )
+  if ( fRegionalConfig && fRegionalConfig->GetNofTriggerCrates() > 0 && fRegionalConfigToOCDB )
   {
     result2 = Master()->Store("Calib", "RegionalTriggerConfig", fRegionalConfig, 
                               &metaData, 0, validToInfinity);
   }
   
-  if ( fLocalMasks && fLocalMasks->GetSize() > 0 ) 
+  if ( fLocalMasks && fLocalMasks->GetSize() > 0 && fLocalMasksToOCDB ) 
   {
     result3 = Master()->Store("Calib", "LocalTriggerBoardMasks", fLocalMasks, 
                               &metaData, 0, validToInfinity);
   }
 
-  if ( fLUT )
+  if ( fLUT && fLUTToOCDB )
   {
     result4 = Master()->Store("Calib", "TriggerLut", fLUT, 
                               &metaData, 0, validToInfinity);
   }
-  
-  return ( result1 != kTRUE || result2 != kTRUE || result3 != kTRUE || result4 != kTRUE ); // return 0 if everything is ok.  
+
+  if ( fTrigScalers && fTrigScalersToOCDB )
+  {
+    result5 = Master()->Store("Calib","TriggerScalers", fTrigScalers,
+			      &metaData, 0, validToInfinity);
+  }
+
+  return ( result1 != kTRUE || result2 != kTRUE || result3 != kTRUE || result4 != kTRUE || result5 != kTRUE); // return 0 if everything is ok.  
 }
 
 //_____________________________________________________________________________
@@ -279,7 +310,8 @@ AliMUONTriggerSubprocessor::WhichFilesToRead(const char* exportedFiles,
                                              Bool_t& globalFile,
                                              Bool_t& regionalFile,
                                              Bool_t& localFile,
-                                             Bool_t& lutFile) const
+                                             Bool_t& lutFile,
+					     Bool_t& trigScalFile)
 {
   /// From the exportedFiles file, determine which other files will need
   /// to be read in
@@ -289,27 +321,88 @@ AliMUONTriggerSubprocessor::WhichFilesToRead(const char* exportedFiles,
   regionalFile = kFALSE;
   localFile = kFALSE;
   lutFile = kFALSE;
+  trigScalFile = kFALSE;
   
   char line[1024];
+  TObjArray *oa;
+  TObjString *os;
   
   while ( in.getline(line,1024,'\n') )
   {
     TString sline(line);
     sline.ToUpper();
     
-    if ( sline.Contains("REGIONAL") ) regionalFile = kTRUE;
-    if ( sline.Contains("LUT") ) lutFile = kTRUE;
-    if ( sline.Contains("LOCAL") && sline.Contains("MASK") ) localFile = kTRUE;
-    if ( sline.Contains("GLOBAL") ) globalFile = kTRUE;
+    if ( sline.Contains("REGIONAL") ) {
+      regionalFile = kTRUE;
+      oa = sline.Tokenize(" ");
+      if (oa->GetLast() >= 1) {
+	// new format, use the integer flag after the file name
+	os = (TObjString*)oa->At(1);
+	fRegionalConfigToOCDB |= (os->GetString()).Atoi();
+      } else {
+	// old format, transfer anyway
+	fRegionalConfigToOCDB |= 1;
+      }
+    }
+    if ( sline.Contains("LUT") ) {
+      lutFile = kTRUE;
+      oa = sline.Tokenize(" ");
+      if (oa->GetLast() >= 1) {
+	// new format, use the integer flag after the file name
+	os = (TObjString*)oa->At(1);
+	fLUTToOCDB |= (os->GetString()).Atoi();
+      } else {
+	// old format, transfer anyway
+	fLUTToOCDB |= 1;
+      }
+    }
+    if ( sline.Contains("LOCAL") && sline.Contains("MASK") ) {
+      localFile = kTRUE;
+      oa = sline.Tokenize(" ");
+      if (oa->GetLast() >= 1) {
+	// new format, use the integer flag after the file name
+	os = (TObjString*)oa->At(1);
+	fLocalMasksToOCDB |= (os->GetString()).Atoi();
+      } else {
+	// old format, transfer anyway
+	fLocalMasksToOCDB |= 1;
+      }
+    }
+    if ( sline.Contains("GLOBAL") ) {
+      globalFile = kTRUE;
+      oa = sline.Tokenize(" ");
+      if (oa->GetLast() >= 1) {
+	// new format, use the integer flag after the file name
+	os = (TObjString*)oa->At(1);
+	fGlobalConfigToOCDB |= (os->GetString()).Atoi();
+      } else {
+	// old format, transfer anyway
+	fGlobalConfigToOCDB |= 1;
+      }
+    }
+    if ( sline.Contains("TRIGSCAL") ) {
+      trigScalFile = kTRUE;
+      oa = sline.Tokenize(" ");
+      if (oa->GetLast() >= 1) {
+	// new format, use the integer flag after the file name
+	os = (TObjString*)oa->At(1);
+	fTrigScalersToOCDB |= (os->GetString()).Atoi();
+      } else {
+	// old format, transfer anyway
+	fTrigScalersToOCDB |= 1;
+      }
+    }
+
   }
     
-  if ( regionalFile || localFile || globalFile || lutFile ) 
+  if ( regionalFile || localFile || globalFile || lutFile || trigScalFile) 
   {
     Master()->Log(Form("Will have to read the following file types:"));
-    if ( globalFile) Master()->Log("GLOBAL");
-    if ( regionalFile ) Master()->Log("REGIONAL");
-    if ( localFile) Master()->Log("LOCAL");
-    if ( lutFile ) Master()->Log("LUT");
+    if ( globalFile) Master()->Log(Form("GLOBAL (%d)",fGlobalConfigToOCDB));
+    if ( regionalFile ) Master()->Log(Form("REGIONAL (%d)",fRegionalConfigToOCDB));
+    if ( localFile) Master()->Log(Form("LOCAL (%d)",fLocalMasksToOCDB));
+    if ( lutFile ) Master()->Log(Form("LUT (%d)",fLUTToOCDB));
+    if ( trigScalFile ) Master()->Log(Form("TRIGSCAL (%d)",fTrigScalersToOCDB));
   }
 }
 

@@ -12,6 +12,9 @@
  * about the suitability of this software for any purpose. It is          *
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
+// 
+// Author: Mikael.Mieskolainen@cern.ch
+
 
 /* $Id:*/
 
@@ -21,6 +24,7 @@
 #include <TClonesArray.h>
 #include "DCommon.h"
 #include "TDime.h"
+#include "AliDimeRndm.h"
 
 #ifndef WIN32
 # define dimeinit dimeinit_
@@ -43,29 +47,39 @@ extern "C" void type_of_call dimegenerate(int& success);
 ClassImp(TDime)
 
 
-TDime::TDime(): 
+TDime::TDime():
     TGenerator("Dime","Dime"),
-  fEfrm(5500.),
-  fProcess("rho       "),
-  fEcut(0),
-  fRmin(-1.8),
-  fRmax(1.8)
+    fEfrm(7000.0),
+    fProcess("pipm      "),
+    fFormf("orexp     "),
+    fFsi("true      "),
+    fEcut(0.0),
+    fRmin(-2.0),
+    fRmax(2.0)
 {
-// Default constructor 
+// Default constructor
+
+// Setup random number generator (if user doesn't set it, doesn't work without)
+AliDimeRndm::SetDimeRandom(new TRandom3(123456789)); // default seed 123456789
 }
 
 //______________________________________________________________________________
 TDime::TDime(Double_t efrm) :
     TGenerator("Dime","Dime"),
     fEfrm(efrm),
-    fProcess("rho      "),
-    fEcut(0.),
-    fRmin(-1.8),
-    fRmax(1.8)
+    fProcess("pipm      "),
+    fFormf("orexp     "),
+    fFsi("true      "),
+    fEcut(0.0),
+    fRmin(-2.0),
+    fRmax(2.0)
 {
-// TDime constructor: 
+// TDime constructor:
 // Note that there may be only one functional TDime object
 // at a time, so it's not use to create more than one instance of it.
+
+// Setup random number generator (if user doesn't set it, doesn't work without)
+AliDimeRndm::SetDimeRandom(new TRandom3(123456789)); // default seed 123456789
 }
 
 //______________________________________________________________________________
@@ -74,36 +88,68 @@ TDime::~TDime()
 // Destructor
 }
 
-  void  TDime::Initialize()
-{
-    VARS.rts = fEfrm;  
-    CUTS.rmax = fRmax; 
+void TDime::Initialize() {
+
+    VARS.rts = fEfrm;
+    CUTS.rmax = fRmax;
     CUTS.rmin = fRmin;
     CUTS.ecut = fEcut;
-    Int_t len = 10;
-    //    strncpy(FLAGS.pflag,     "rho       ", len);
+    Int_t len = 10; // char array length in DIME
+
+    // Resize, in a case of user not padding the string with spaces
+    fProcess.Resize(len);
+    fFormf.Resize(len);
+    fFsi.Resize(len);
+
+    if (  fProcess.CompareTo("pipm      ") != 0 && 
+          fProcess.CompareTo("pi0       ") != 0 &&
+          fProcess.CompareTo("kpkm      ") != 0 &&
+          fProcess.CompareTo("ks        ") != 0 &&
+          fProcess.CompareTo("rho       ") != 0) {
+
+      printf("TDime::Initialize() : Unknown process flag: %s \n", fProcess.Data());
+      return;
+    }
+    if (  fFormf.CompareTo("orexp     ") != 0 && 
+          fFormf.CompareTo("exp       ") != 0 &&
+          fFormf.CompareTo("power     ") != 0) {
+
+      printf("TDime::Initialize() : Unknown form factor: %s\n", fFormf.Data());
+      return;
+    }
+    if (  fFsi.CompareTo("true      ") != 0 && 
+          fFsi.CompareTo("false     ") != 0) {
+
+      printf("TDime::Initialize() : Fsi flag invalid: %s (\"true\" or \"false\") \n", fFsi.Data());
+      return;
+    }
+
+    // Now copy those to FORTRAN
     strncpy(FLAGS.pflag,     fProcess.Data(), len);
-    strncpy(FLAGS.fsi,       "true      ", len);
-    strncpy(FLAGS.ppbar,     "false     ", len);
-    strncpy(FLAGS.cuts,      "true      ", len);
-    strncpy(FLAGS.unw,       "true      ", len);
-    strncpy(FF.formf,        "orexp     ", len);
+    strncpy(FLAGS.fsi,       fFsi.Data(),     len); // #len chars
+    strncpy(FLAGS.ppbar,     "false     ",    len); // #len chars
+    strncpy(FLAGS.cuts,      "true      ",    len); // #len chars
+    strncpy(FLAGS.unw,       "true      ",    len); // <- Always true!
+    strncpy(FF.formf,        fFormf.Data(),   len);
     VARS.iin = 1;
     dimeinit();
+
+    return;
 }
 
-void  TDime::GenerateEvent()
+void TDime::GenerateEvent()
 {
   Int_t ok = 0;
   while(!ok)
     dimegenerate(ok);
    //for (Int_t i = 0; i < HEPEUP.NUP; i++) {
-   //printf("%5d %5d %5d %5d %5d %13.3f %13.3f\n", i, 
+   //printf("%5d %5d %5d %5d %5d %13.3f %13.3f\n", i,
    //	 HEPEUP.IDUP[i], HEPEUP.ISTUP[i], HEPEUP.MOTHUP[i][0],
    //	 HEPEUP.ICOLUP[i][0], HEPEUP.PUP[i][2], HEPEUP.VTIMUP[i]);
    //}
 
 }
+
 
 TObjArray* TDime::ImportParticles(Option_t *option)
 {
@@ -121,42 +167,44 @@ TObjArray* TDime::ImportParticles(Option_t *option)
     fParticles->Clear();
     Int_t nump = 0;
 
+    const Int_t F2C = -1; // Fortran array to C offset (indexing)
+
     Int_t numpart = HEPEUP.NUP;
-    printf("\n TDime: DIME stack contains %d particles.", numpart);
+    printf("\n TDime:: Full DIME stack contains %d particles \n", numpart);
 
     if (!strcmp(option,"") || !strcmp(option,"Final")) {
 	for (Int_t i = 0; i < numpart; i++) {
-	  
-	    if (HEPEUP.ISTUP[i] == 1) {
+
+	    if (HEPEUP.ISTUP[i] == 1) { // is final
 //
 //  Use the common block values for the TParticle constructor
 //
-		nump++;
 		TParticle* p = new TParticle(
-					     HEPEUP.IDUP[i], HEPEUP.MOTHUP[i][0], HEPEUP.MOTHUP[i][1] ,
-		    -1, -1, -1,
+					     HEPEUP.IDUP[i], HEPEUP.ISTUP[i], HEPEUP.MOTHUP[i][0] + F2C, HEPEUP.MOTHUP[i][1] + F2C,
+		    -1, -1,
 		    HEPEUP.PUP[i][0], HEPEUP.PUP[i][1], HEPEUP.PUP[i][2], HEPEUP.PUP[i][3] ,
-		    0., 0., 0., 0.0);
+		    0.0, 0.0, 0.0, 0.0);
 		fParticles->Add(p);
+		++nump;
 	    }
 	}
     }
     else if (!strcmp(option,"All")) {
-	nump = numpart; 
+	nump = numpart;
 	for (Int_t i = 0; i < numpart; i++) {
            Int_t iParent = HEPEUP.MOTHUP[i][0]-1;
 	    if (iParent >= 0) {
-                TParticle *mother = (TParticle*) (fParticles->UncheckedAt(iParent));	   
+                TParticle *mother = (TParticle*) (fParticles->UncheckedAt(iParent));
 		mother->SetLastDaughter(i);
 		if (mother->GetFirstDaughter()==-1)
 		    mother->SetFirstDaughter(i);
 	    }
-	    
+
 	    TParticle* p = new TParticle(
-					 HEPEUP.IDUP[i], HEPEUP.MOTHUP[i][0]-1, HEPEUP.MOTHUP[i][1]-1 ,
-		    -1, -1, -1,
+					 HEPEUP.IDUP[i], HEPEUP.ISTUP[i], HEPEUP.MOTHUP[i][0] + F2C, HEPEUP.MOTHUP[i][1] + F2C,
+		    -1, -1,
 		    HEPEUP.PUP[i][0], HEPEUP.PUP[i][1], HEPEUP.PUP[i][2], HEPEUP.PUP[i][3] ,
-		    0., 0., 0., 0.);
+		    0.0, 0.0, 0.0, 0.0);
 	    fParticles->Add(p);
 	}
     }
@@ -181,46 +229,46 @@ Int_t TDime::ImportParticles(TClonesArray *particles, Option_t *option)
   particlesR.Clear();
   Int_t nump = 0;
 
+  const Int_t F2C = -1; // Fortran array to C offset (indexing)
+
   Int_t numpart = HEPEUP.NUP;
-  printf("\n TDime: DIME stack contains %d particles.", numpart);
- 
+  printf("\n TDime:: Full DIME stack contains %d particles\n", numpart);
+
   if (!strcmp(option,"") || !strcmp(option,"Final")) {
       for (Int_t i = 0; i < numpart; i++) {
-	if (HEPEUP.ISTUP[i] == 1) {
+	if (HEPEUP.ISTUP[i] == 1) { // is final
 //
 //  Use the common block values for the TParticle constructor
 //
-	    nump++;
-	    new(particlesR[i]) 
+	    new(particlesR[i]) // [i], This means there are empty/null elements in TClonesArray for non-final states
 	      TParticle(
-			HEPEUP.IDUP[i], HEPEUP.MOTHUP[i][0], HEPEUP.MOTHUP[i][1] ,
-			-1, -1, -1,
+			HEPEUP.IDUP[i], HEPEUP.ISTUP[i], HEPEUP.MOTHUP[i][0] + F2C, HEPEUP.MOTHUP[i][1] + F2C,
+			-1, -1,
 			HEPEUP.PUP[i][0], HEPEUP.PUP[i][1], HEPEUP.PUP[i][2], HEPEUP.PUP[i][3] ,
-			0., 0., 0., 0.0);
+			0.0, 0.0, 0.0, 0.0);
+    	    ++nump;
 	  }
       }
   }
   else if (!strcmp(option,"All")) {
-      nump = numpart; 
+      nump = numpart;
       for (Int_t i = 0; i < numpart; i++) {
 
 	Int_t iParent = HEPEUP.MOTHUP[i][0]-1;
-	
+
 	if (iParent >= 0) {
-	  TParticle *mother = (TParticle*) (particlesR.UncheckedAt(iParent));	   
+	  TParticle *mother = (TParticle*) (particlesR.UncheckedAt(iParent));
 	  mother->SetLastDaughter(i);
 	  if (mother->GetFirstDaughter()==-1)
 	    mother->SetFirstDaughter(i);
 	}
 
 	  new(particlesR[i]) TParticle(
-				       HEPEUP.IDUP[i], HEPEUP.MOTHUP[i][0], HEPEUP.MOTHUP[i][1] ,
-				       -1, -1, -1,
+				       HEPEUP.IDUP[i], HEPEUP.ISTUP[i], HEPEUP.MOTHUP[i][0] + F2C, HEPEUP.MOTHUP[i][1] + F2C,
+				       -1, -1,
 				       HEPEUP.PUP[i][0], HEPEUP.PUP[i][1], HEPEUP.PUP[i][2], HEPEUP.PUP[i][3] ,
-				       0., 0., 0., 0.0
-				       );
+				       0.0, 0.0, 0.0, 0.0);
       }
   }
   return nump;
 }
-

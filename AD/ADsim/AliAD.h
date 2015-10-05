@@ -13,6 +13,8 @@
 #include "AliADDigitizer.h"
 #include "AliADTrigger.h"
 
+class AliADCalibData;
+
   
 class AliAD : public AliDetector {
  
@@ -30,19 +32,21 @@ public:
   AliDigitizer*  CreateDigitizer(AliDigitizationInput* digInput) const;
   virtual AliTriggerDetector* CreateTriggerDetector() const { return new AliADTrigger();}
   
-  virtual    void   Hits2Digits();
-  virtual    void   Hits2SDigits();
-  virtual    void     Digits2Raw();
+  virtual    void       Hits2Digits();
+  virtual    void       Hits2SDigits();
+  virtual    void       Digits2Raw();
   virtual    Bool_t     Raw2SDigits(AliRawReader*);
   virtual    void 	SetADATwoInstalled(Bool_t b){fSetADATwoInstalled = b;} // ecv
   virtual    void  	SetADCTwoInstalled(Bool_t b){fSetADCTwoInstalled = b;} // ecv
   virtual    Bool_t 	GetADATwoInstalled() const {return fSetADATwoInstalled;}  // ecv
   virtual    Bool_t 	GetADCTwoInstalled() const {return fSetADCTwoInstalled;}  // ecv
+  void                  GetCalibData();
 
 
 private:
                        AliAD(const AliAD&); 
-                       AliAD& operator = (const AliAD&); 
+                       AliAD& operator = (const AliAD&);
+  AliADCalibData *fCalibData;      //! Pointer to the calibration object 
   Bool_t	fSetADATwoInstalled; 
   Bool_t	fSetADCTwoInstalled; 
 

@@ -30,6 +30,7 @@
 #include <AliEveApplication.h>
 #include <AliEveMainWindow.h>
 
+#include "AliEveInit.h"
 
 #include <iostream>
 using namespace std;
@@ -65,6 +66,24 @@ int main(int argc, char **argv)
 
     gROOT->SetMacroPath(macPath);
 
+    bool storageManager=false;
+    const char* cdbPath="local:///local/cdb";
+    bool classesMode=false;
+    AliEveEventManager::EDataSource dataSource=AliEveEventManager::kSourceOffline;
+    
+    for (int i=0; i<argc; i++)
+    {
+        if(strcmp(argv[i],"online")==0){    dataSource = AliEveEventManager::kSourceOnline;classesMode=true; }
+        if(strcmp(argv[i],"hlt")==0){       dataSource = AliEveEventManager::kSourceHLT;classesMode=true; }
+        if(strcmp(argv[i],"local") ==0){    cdbPath = "local:///local/cdb";classesMode=true; }
+        if(strcmp(argv[i],"mc")==0){        cdbPath = "mcideal://"; }
+        if(strcmp(argv[i],"raw")==0){       cdbPath = "raw://";}
+        if(strcmp(argv[i],"mcfull")==0){    cdbPath = "mcfull://"; }
+        if(strcmp(argv[i],"mcresidual")==0){cdbPath = "mcresidual://"; }
+
+        if(strcmp(argv[i],"sm")==0){storageManager=true;}
+    }
+    
     // make sure logger is instantiated
     AliLog::GetRootLogger();
     TRint *app = new TRint("App", &argc, argv);
@@ -76,13 +95,17 @@ int main(int argc, char **argv)
     gEve->RegisterGeometryAlias("Default", Form("%s/alice-data/default_geo.root", evedir.Data()));
 
     try {
-        AliEveConfigManager::InitializeMaster();
+        AliEveConfigManager::InitializeMaster(storageManager);
     }
     catch (TEveException exc) {
         cout<<"\n\nException while initializing config manager"<<endl;
         AliErrorGeneral("alieve_main",exc.Data());
     }
 
+    if(classesMode){
+        AliEveInit *init = new AliEveInit(".",dataSource);
+    }
+    
     app->Connect("TEveBrowser", "CloseWindow()", "TRint", app, "Terminate()");
     app->Run(kTRUE);
 

@@ -112,6 +112,7 @@ AliZDCRawStream::AliZDCRawStream(AliRawReader* rawReader) :
   fIsZDCTDCHeader(kFALSE),
   fIsZDCTDCdatum(kFALSE),
   fZDCTDCdatum(0),
+  fZDCTDCsignal(-1),
   fIsADDTDCHeader(kFALSE),
   fIsADDTDCdatum(kFALSE),
   fADDTDCdatum(0)
@@ -212,6 +213,7 @@ AliZDCRawStream::AliZDCRawStream(const AliZDCRawStream& stream) :
   fIsZDCTDCHeader(stream.fIsZDCTDCHeader),
   fIsZDCTDCdatum(stream.fIsZDCTDCdatum),
   fZDCTDCdatum(stream.fZDCTDCdatum),
+  fZDCTDCsignal(stream.fZDCTDCsignal),
   fIsADDTDCHeader(stream.fIsADDTDCHeader),
   fIsADDTDCdatum(stream.fIsADDTDCdatum),
   fADDTDCdatum(stream.fADDTDCdatum)
@@ -250,7 +252,7 @@ void AliZDCRawStream::ReadChMap()
 {
   // Reading channel map
   const int kNch = 48;
-  AliDebug(2,"\t Reading ZDC ADC mapping from OCDB\n");
+  AliDebug(2,"\t Reading ZDC ADC+TDC mapping from OCDB\n");
   AliZDCChMap * chMap = GetChMap();
   //chMap->Print("");
   if(chMap){
@@ -261,9 +263,14 @@ void AliZDCRawStream::ReadChMap()
       fMapADC[i][3] = chMap->GetDetector(i);
       fMapADC[i][4] = chMap->GetSector(i);
     }
+    for(int i=0; i<32; i++){
+      fTDCMap[i][0] = kZDCTDCGeo;
+      fTDCMap[i][1] = chMap->GetTDCChannel(i);
+      fTDCMap[i][2] = chMap->GetTDCSignalCode(i);
+    }
     fIsMapRead = kTRUE;
   }
-  else printf("  AliZDCRawStream::ReadChMap -> No valid object fr mapping loaded!!!\n\n");
+  else printf("  AliZDCRawStream::ReadChMap -> No valid object for mapping loaded from OCDB!!!\n\n");
 }
 
 //_____________________________________________________________________________
@@ -283,7 +290,7 @@ void AliZDCRawStream::ReadCDHHeader()
   UChar_t message = header ? header->GetAttributes() : headerV3->GetAttributes();
     //printf("\t AliZDCRawStream::ReadCDHHeader -> Attributes %x\n",message);
     
-    if((message & 0xf0) == 0x0){ // PHYSICS RUN
+    /*if((message & 0xf0) == 0x0){ // PHYSICS RUN
        //printf("\t PHYSICS RUN raw data found\n");
     }
     else if((message & 0xf0) == 0x10){ // COSMIC RUN
@@ -306,7 +313,7 @@ void AliZDCRawStream::ReadCDHHeader()
     }
     else if((message & 0xf0) == 0x70){ // CALIBRATION_EMD
        //printf("\t CALIBRATION_EMD RUN raw data found\n");
-    }
+    }*/
     // *** Checking the bit indicating the used readout card
     // (the payload is different in the 2 cases!)
     if((message & 0x08) == 0){  // ** DARC card

@@ -523,6 +523,7 @@ void AliITSVertexer3D::FindVertex3DIterativeMM(){
       }
       //	  cout<<endl;
       delete []labels;
+
       fVertArray[kk]=AliVertexerTracks::TrackletVertexFinder(tclo,size);
       delete [] tclo;
       //	  fVertArray[kk].PrintStatus();
@@ -994,6 +995,7 @@ Int_t  AliITSVertexer3D::Prepare3DVertex(Int_t optCuts){
   if(fLines.GetEntriesFast()>1){
     retcode=0;
     //  find a first candidate for the primary vertex
+
     fVert3D=AliVertexerTracks::TrackletVertexFinder(&fLines,0); 
     // make a further selection on tracklets based on this first candidate
     fVert3D.GetXYZ(peak);
@@ -1115,9 +1117,10 @@ Int_t  AliITSVertexer3D::Prepare3DVertexPbPb(){
   
   AliDebug(1,Form("Number of tracklets (after 3rd compression) %d",fLines.GetEntriesFast()));
 
-  fVert3D=AliVertexerTracks::TrackletVertexFinder(&fLines,0); 
-  fVert3D.GetXYZ(f3DPeak);
-  
+  if(fLines.GetEntriesFast()>1){
+    fVert3D=AliVertexerTracks::TrackletVertexFinder(&fLines,0); 
+    fVert3D.GetXYZ(f3DPeak);
+  }
   return 0;  
 }
 
@@ -1259,7 +1262,7 @@ void AliITSVertexer3D::FindOther3DVertices(TTree *itsClusterTree){
       nolines-=nr;
       if(nolines>=2){
 	Int_t rc=Prepare3DVertex(2);
-	if(rc==0){ 
+	if(rc==0 && fLines.GetEntriesFast()>0){ 
 	  fVert3D=AliVertexerTracks::TrackletVertexFinder(&fLines,0);
 	  if(fVert3D.GetNContributors()>=fMinTrackletsForPilup){
 	    fIsPileup=kTRUE;

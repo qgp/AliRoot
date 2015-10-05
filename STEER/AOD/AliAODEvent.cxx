@@ -32,6 +32,7 @@
 #include "AliAODTrack.h"
 #include "AliAODDimuon.h"
 #include "AliAODTrdTrack.h"
+#include "event.h"
 
 ClassImp(AliAODEvent)
 
@@ -55,6 +56,7 @@ ClassImp(AliAODEvent)
 						      "AliAODTZERO",
 						      "AliAODVZERO",
 						      "AliAODZDC",
+						      "AliAODAD",
 						      "AliTOFHeader",
 						      "trdTracks"
 			      						      
@@ -85,6 +87,7 @@ AliAODEvent::AliAODEvent() :
   fAODTZERO(0),
   fAODVZERO(0),
   fAODZDC(0),
+  fAODAD(0),
   fTOFHeader(0),
   fTrdTracks(0)
 {
@@ -119,6 +122,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   fAODTZERO(new AliAODTZERO(*aod.fAODTZERO)),
   fAODVZERO(new AliAODVZERO(*aod.fAODVZERO)),
   fAODZDC(new AliAODZDC(*aod.fAODZDC)),
+  fAODAD(new AliAODAD(*aod.fAODAD)),
   fTOFHeader(new AliTOFHeader(*aod.fTOFHeader)),
   fTrdTracks(new TClonesArray(*aod.fTrdTracks))
 {
@@ -143,6 +147,7 @@ AliAODEvent::AliAODEvent(const AliAODEvent& aod):
   AddObject(fAODTZERO);
   AddObject(fAODVZERO);
   AddObject(fAODZDC);
+  AddObject(fAODAD);
   AddObject(fTOFHeader);
   AddObject(fTrdTracks);
   fConnected = aod.fConnected;
@@ -328,6 +333,7 @@ void AliAODEvent::CreateStdContent()
   AddObject(new AliAODTZERO());
   AddObject(new AliAODVZERO());
   AddObject(new AliAODZDC());
+  AddObject(new AliAODAD());
   AddObject(new AliTOFHeader());
   AddObject(new TClonesArray("AliAODTrdTrack", 0));
   // set names
@@ -420,6 +426,7 @@ void AliAODEvent::GetStdContent()
   fAODTZERO      = (AliAODTZERO*)fAODObjects->FindObject("AliAODTZERO");
   fAODVZERO      = (AliAODVZERO*)fAODObjects->FindObject("AliAODVZERO");
   fAODZDC        = (AliAODZDC*)fAODObjects->FindObject("AliAODZDC");
+  fAODAD         = (AliAODAD*)fAODObjects->FindObject("AliAODAD");
   fTOFHeader     = (AliTOFHeader*)fAODObjects->FindObject("AliTOFHeader");
   fTrdTracks     = (TClonesArray*)fAODObjects->FindObject("trdTracks");
 }
@@ -636,14 +643,15 @@ Int_t AliAODEvent::GetMuonTracks(TRefArray *muonTracks) const
 Int_t AliAODEvent::GetNumberOfMuonTracks() const
 {
   // get number of muon tracks
+  int ntr = GetNumberOfTracks();
+  if (!ntr) return 0;
   Int_t nMuonTracks=0;
-   
   if(!dynamic_cast<AliAODTrack*>(GetTrack(0))) {
     AliError("Not a standard AOD");
     return 0;
   }
 
-  for (Int_t iTrack = 0; iTrack < GetNumberOfTracks(); iTrack++) {
+  for (Int_t iTrack=ntr; iTrack--;) {
     if (((AliAODTrack*)GetTrack(iTrack))->IsMuonTrack()) {
        nMuonTracks++;
     }
@@ -676,12 +684,14 @@ Int_t AliAODEvent::GetMuonGlobalTracks(TRefArray *muonGlobalTracks) const       
 Int_t AliAODEvent::GetNumberOfMuonGlobalTracks() const                                    // AU
 {
   // get number of muon global tracks
+  int ntr = GetNumberOfTracks();
+  if (!ntr) return 0;
   Int_t nMuonGlobalTracks=0;
   if(!dynamic_cast<AliAODTrack*>(GetTrack(0))) {
     AliError("Not a standard AOD");
     return 0;
   }
-  for (Int_t iTrack = 0; iTrack < GetNumberOfTracks(); iTrack++) {
+  for (Int_t iTrack=ntr; iTrack--;) {
     if (((AliAODTrack*)GetTrack(iTrack))->IsMuonGlobalTrack()) {
        nMuonGlobalTracks++;
     }
@@ -1099,6 +1109,15 @@ void AliAODEvent::ConnectTracks() {
   TIter next(fTracks);
   while ((track=(AliAODTrack*)next())) track->SetAODEvent(this);
   fTracksConnected = kTRUE;
+}
+
+//______________________________________________________________________________
+Bool_t AliAODEvent::IsIncompleteDAQ() 
+{
+  // check if DAQ has set the incomplete event attributes
+  return (fDAQAttributes&ATTR_2_B(ATTR_INCOMPLETE_EVENT))!=0 
+    ||   (fDAQAttributes&ATTR_2_B(ATTR_FLUSHED_EVENT))!=0;
+    
 }
 
 AliVEvent::EDataLayoutType AliAODEvent::GetDataLayoutType() const {return AliVEvent::kAOD;}

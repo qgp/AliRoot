@@ -35,7 +35,7 @@ public:
     kTRDreconstructionTasks = 3
   };
   enum ETRDflags {
-    kDriftGas
+     kDriftGas
     ,kVertexConstraint
     ,kTailCancelation
     ,kImproveTracklet
@@ -56,8 +56,8 @@ public:
   Double_t GetChi2Z() const                 { return fkChi2Z;    }
   Double_t GetChi2YSlope() const            { return fkChi2YSlope; }
   Double_t GetChi2ZSlope() const            { return fkChi2ZSlope; }
-	Double_t GetChi2Cut() const              { return fChi2Cut; }
-	Double_t GetChi2YCut() const              { return fkChi2YCut; }
+  Double_t GetChi2Cut() const               { return fChi2Cut; }
+  Double_t GetChi2YCut() const              { return fkChi2YCut; }
   Double_t GetPhiSlope() const              { return fkPhiSlope;   }
   Float_t  GetNClusters() const;
   Double_t GetNMeanClusters() const         { return fkNMeanClusters; }
@@ -80,23 +80,28 @@ public:
   void GetSysCovMatrix(Double_t *sys) const;  
   void GetTCParams(Double_t *par) const;
   Int_t GetStreamLevel(ETRDReconstructionTask task) const;
-  const TString *GetRawStreamVersion() const{ return &fRawStreamVersion; };
-  Double_t GetMinMaxCutSigma() const        { return fMinMaxCutSigma;     };
-  Double_t GetMinLeftRightCutSigma() const  { return fMinLeftRightCutSigma;  };
-  Double_t GetClusMaxThresh() const         { return fClusMaxThresh;   };
-  Double_t GetClusSigThresh() const         { return fClusSigThresh;   };
-  Int_t    GetTCnexp() const                { return fTCnexp;          };
-  Int_t    GetNumberOfPresamples()  const   { return fNumberOfPresamples;}
-  Int_t    GetNumberOfPostsamples() const   { return fNumberOfPostsamples;}
-  Int_t    GetNumberOfSeedConfigs() const   { return fNumberOfConfigs;}
-  Int_t    GetRecEveryNTB() const           { return fRecEveryNTB; }
+  const TString *GetRawStreamVersion() const{ return &fRawStreamVersion;    };
+  Double_t GetMinMaxCutSigma() const        { return fMinMaxCutSigma;       };
+  Double_t GetMinLeftRightCutSigma() const  { return fMinLeftRightCutSigma; };
+  Double_t GetClusMaxThresh() const         { return fClusMaxThresh;        };
+  Double_t GetClusSigThresh() const         { return fClusSigThresh;        };
+  Int_t    GetTCnexp() const                { return fTCnexp;               };
+  Int_t    GetNumberOfPresamples()  const   { return fNumberOfPresamples;   };
+  Int_t    GetNumberOfPostsamples() const   { return fNumberOfPostsamples;  };
+  Int_t    GetNumberOfSeedConfigs() const   { return fNumberOfConfigs;      };
+  Int_t    GetRecEveryNTB() const           { return fRecEveryNTB;          };
+  Double_t GetClusterQmin() const           { return fClusterQmin;          };
+
   // Tracklet parameters
   Double_t GetCorrDZDXbiasRC(Bool_t dzdx) const { return fdzdxCorrRCbias[dzdx];}
   Double_t GetCorrDZDX(Bool_t rc) const     { return fdzdxCorrFactor[rc];}
   Double_t GetCorrDZDXxcross() const        { return fdzdxXcrossFactor;}
   void     GetYcorrTailCancel(Int_t it, Double_t par[3]) const;
   Double_t GetS2Ycorr(Bool_t rc, Bool_t chg) const     { return fS2Ycorr[2*rc+chg];}
-
+  //
+  Double_t  GetZCorrCoefNRC()         const {return fZCorrCoefNRC;} // z = Zcenter + fZCorrCoefNRC*tgl (RS temp fix)
+  Double_t  SetZCorrCoefNRC(double v=0)     {return fZCorrCoefNRC=v;} 
+  //
   Bool_t   IsArgon() const                  { return TESTBIT(fFlags, kDriftGas); }
   Bool_t   IsCheckTimeConsistency() const   { return kCheckTimeConsistency;}
   Bool_t   IsOverPtThreshold(Double_t pt) const {return Bool_t(pt>fkPtThreshold);}
@@ -124,7 +129,7 @@ public:
   void     SetLUT(Bool_t b=kTRUE)                             {if(b) SETBIT(fFlags, kLUT); else CLRBIT(fFlags, kLUT);}
   void     SetGAUS(Bool_t b=kTRUE)                            {if(b) SETBIT(fFlags, kGAUS); else CLRBIT(fFlags, kGAUS);}
   void     SetPIDNeuralNetwork(Bool_t b=kTRUE)                {if(b) SETBIT(fFlags, kSteerPID); else CLRBIT(fFlags, kSteerPID);}
-  void  SetPIDmethod(AliTRDPIDResponse::ETRDPIDMethod method);
+  void     SetPIDmethod(AliTRDPIDResponse::ETRDPIDMethod method);
   void     SetPIDLQslices(Int_t s);
   void     SetTailCancelation(Bool_t b=kTRUE)                 {if(b) SETBIT(fFlags, kTailCancelation); else CLRBIT(fFlags, kTailCancelation);}
   void     SetXenon(Bool_t b = kTRUE)                         {if(b) CLRBIT(fFlags, kDriftGas); else SETBIT(fFlags, kDriftGas);}
@@ -136,8 +141,8 @@ public:
   void     SetChi2Z(Double_t chi2)                            {fkChi2Z = chi2;}
   void     SetChi2YSlope(Double_t chi2YSlope)                 {fkChi2YSlope = chi2YSlope;}
   void     SetChi2ZSlope(Double_t chi2ZSlope)                 {fkChi2ZSlope = chi2ZSlope;}
-	void	   SetChi2Cut(Double_t chi2Cut)                      {fChi2Cut = chi2Cut; }
-	void	   SetChi2YCut(Double_t chi2Cut)                      {fkChi2YCut = chi2Cut; }
+  void	   SetChi2Cut(Double_t chi2Cut)                       {fChi2Cut = chi2Cut; }
+  void	   SetChi2YCut(Double_t chi2Cut)                      {fkChi2YCut = chi2Cut; }
   void     SetPhiSlope(Double_t phiSlope)                     {fkPhiSlope = phiSlope;}
   void     SetNMeanClusters(Double_t meanNclusters)           {fkNMeanClusters = meanNclusters;}
   void     SetNSigmaClusters(Double_t sigmaNclusters)         {fkNSigmaClusters = sigmaNclusters;} 
@@ -157,6 +162,7 @@ public:
   void     SetNumberOfPresamples(Int_t n)                     { fNumberOfPresamples = n;}
   void     SetNumberOfPostsamples(Int_t n)                    { fNumberOfPostsamples = n;}
   void     SetRecEveryTwoTB()                                 { fRecEveryNTB = 2; fkNMeanClusters = 10; }
+  void     SetClusterQmin(Double_t min)                       { fClusterQmin = min; };
 
 private:
   // Physics reference values for TRD
@@ -206,6 +212,8 @@ private:
   Double_t  fdzdxXcrossFactor;       // bias in dzdx of estimated xcross [RC]
   Double_t  fYcorrTailCancel[4][3];  // y correction due to wrong tail cancellation. [0] bz<0 && !RC, [1] bz>0 && !RC, [2] bz<0 && RC [3] bz>0 && RC
   Double_t  fS2Ycorr[4];             // inflation factor of error parameterization in r-phi due to wrong estimation of residuals.
+  //
+  Double_t  fZCorrCoefNRC;           // correction for most probable Z value of NRC tracklets: z = Zcenter + fZCorrCoefNRC*tgl (RS temp fix)
   
   // Clusterization parameter
   Double_t  fMinMaxCutSigma;         // Threshold sigma noise pad middle
@@ -215,12 +223,13 @@ private:
   Int_t     fTCnexp;                 // Number of exponentials, digital filter
   Double_t  fTCParams[8];            // Tail Cancellation parameters for drift gases 
   Int_t     fRecEveryNTB;            // Reconstruct each nth timebin
+  Double_t  fClusterQmin;            // Threshold for the total cluster charge to be written to recPoints file
 
   // ADC parameter
   Int_t     fNumberOfPresamples;     // number of presamples 
   Int_t     fNumberOfPostsamples;     // number of postsamples 
 
-  ClassDef(AliTRDrecoParam, 13)       // Reconstruction parameters for TRD detector
+  ClassDef(AliTRDrecoParam, 15)       // Reconstruction parameters for TRD detector
 
 };
 

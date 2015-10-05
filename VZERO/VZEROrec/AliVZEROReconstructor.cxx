@@ -430,6 +430,8 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
 	}
 	fESDVZEROfriend->SetTime(pmNumber,digit->Time());
 	fESDVZEROfriend->SetWidth(pmNumber,digit->Width());
+	fESDVZEROfriend->SetBBFlag(pmNumber,AliVZEROdigit::kNClocks/2,aBBflag[pmNumber]);
+	fESDVZEROfriend->SetBGFlag(pmNumber,AliVZEROdigit::kNClocks/2,aBGflag[pmNumber]);
 
     } // end of loop over digits
   } // end of loop over events in digits tree
@@ -569,7 +571,7 @@ Float_t AliVZEROReconstructor::CorrectLeadingTime(Int_t i, Float_t time, Float_t
   if (adc < 1e-6) return time;
 
   // Slewing correction
-  Float_t thr = fCalibData->GetCalibDiscriThr(i,kTRUE);
+  Float_t thr = fCalibData->GetCalibDiscriThr(i,kTRUE,AliCDBManager::Instance()->GetRun());
   time -= fTimeSlewing->Eval(adc/thr);
 
   return time;

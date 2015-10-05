@@ -11,6 +11,7 @@
 #pragma link C++ enum   AliLog::EType_t;
  
 #pragma link C++ class AliVParticle+;
+#pragma link C++ class AliVTPCseed+;
 #pragma link C++ class AliVTrack+;
 #pragma link C++ class AliVCluster+;
 #pragma link C++ class AliVCaloCells+;
@@ -24,7 +25,9 @@
 #pragma link C++ class AliVEventPool+;
 #pragma link C++ class AliVCuts+;
 #pragma link C++ class AliVVZERO+;
+#pragma link C++ class AliVVZEROfriend+;
 #pragma link C++ class AliVZDC+;
+#pragma link C++ class AliVAD+;
 #pragma link C++ class AliCentrality+;
 #pragma link C++ class AliEventplane+;
 

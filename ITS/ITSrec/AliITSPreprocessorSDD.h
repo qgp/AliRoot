@@ -40,7 +40,8 @@ class AliITSPreprocessorSDD : public AliPreprocessor {
   virtual UInt_t Process(TMap* dcsAliasMap);
   UInt_t ProcessPulser(AliITSDDLModuleMapSDD* ddlmap);
   UInt_t ProcessInjector(AliITSDDLModuleMapSDD* ddlmap);
-  Bool_t ProcessDCSDataPoints(TMap* dcsAliasMap);
+  Bool_t ProcessDCS() { return kFALSE; } 
+
   Double_t* RescaleDriftSpeedModule(const TList* theList, Int_t iBadMod, Int_t iBadSide, const AliITSDriftSpeedSDD* refSpeed) const;
 
   static const TString fgkNameHistoPedestals; //name of ped. histo

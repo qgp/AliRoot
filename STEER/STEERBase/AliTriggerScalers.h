@@ -18,6 +18,8 @@
 //    L1CA       L1 triggers after all vetos 
 //    L2CB       L2 triggers before any vetos 
 //    L2CA       L2 triggers after all vetos 
+//    LMCB       LM triggers before any vetos 
+//    LMCA       LM triggers after all vetos 
 //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -27,12 +29,16 @@ public:
                          AliTriggerScalers();
                          AliTriggerScalers(
                               UChar_t    classIndex, 
-                               UInt_t    LOCB,        
-                               UInt_t    LOCA,        
-                               UInt_t    L1CB,        
-                               UInt_t    L1CA,        
-                               UInt_t    L2CB,        
-                               UInt_t    L2CA       
+                               UInt_t    LOCB, UInt_t    LOCA,        
+                               UInt_t    L1CB, UInt_t    L1CA,        
+                               UInt_t    L2CB, UInt_t    L2CA       
+                         );   
+                         AliTriggerScalers(
+                              UChar_t    classIndex, 
+                               UInt_t    LOCB, UInt_t    LOCA,        
+                               UInt_t    L1CB, UInt_t    L1CA,        
+                               UInt_t    L2CB, UInt_t    L2CA,        
+                               UInt_t    LMCB, UInt_t    LMCA       
                          );   
               virtual   ~AliTriggerScalers() {}
               
@@ -45,7 +51,10 @@ public:
                UInt_t    GetL1CA() const { return fL1CA; }
                UInt_t    GetL2CB() const { return fL2CB; }
                UInt_t    GetL2CA() const { return fL2CA; }
+               UInt_t    GetLMCB() const { return fLMCB; }
+               UInt_t    GetLMCA() const { return fLMCA; }
 	         void    GetAllScalers(UInt_t *scalers) const;
+	         void    GetAllScalersM012(UInt_t *scalers) const;
               UChar_t    GetClassIndex() const { return fClassIndex; }
 private: 
    
@@ -56,12 +65,14 @@ private:
                UInt_t    fL1CA;            //  L1 triggers after all vetos   (32 bits)
                UInt_t    fL2CB;            //  L2 triggers before any vetos  (32 bits)
                UInt_t    fL2CA;            //  L2 triggers after all vetos   (32 bits)
+               UInt_t    fLMCB;            //  LM triggers before any vetos  (32 bits)
+               UInt_t    fLMCA;            //  LM triggers after all vetos   (32 bits)
 
 
                          AliTriggerScalers( const AliTriggerScalers &run );
     AliTriggerScalers&   operator=(const AliTriggerScalers& clus);
 
-   ClassDef( AliTriggerScalers, 1 )  // Define a Run Trigger Scalers (Scalers)
+   ClassDef( AliTriggerScalers, 2 )  // Define a Run Trigger Scalers (Scalers)
 };
 
 #endif

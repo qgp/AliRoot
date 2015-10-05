@@ -2,10 +2,11 @@
 #define AliStorageAdministratorPanelListEvents_H
 
 #include "AliStorageTypes.h"
-#include "AliStorageEventManager.h"
+#include "AliZMQManager.h"
 
 #include <TGLabel.h>
 #include <TGNumberEntry.h>
+#include <TGComboBox.h>
 #include <TGDoubleSlider.h>
 #include <TGSlider.h>
 #include <TGListBox.h>
@@ -24,8 +25,7 @@ private:
 	virtual ~AliStorageAdministratorPanelListEvents();
 	
 	static AliStorageAdministratorPanelListEvents *fInstance;
-	
-    
+    void TriggerClassesFromCDB();
     
 	//gui components and methods
 	TGLabel *fStatusLabel;
@@ -41,10 +41,13 @@ private:
 	TGCheckButton *fTemporaryCheckbox;
 	TGCheckButton *fPermanentCheckbox;
 	
-	TGTextButton *fCloseButton;
+	//	TGTextButton *fCloseButton;
 	TGTextButton *fGetListButton;
 	TGTextButton *fMarkButton;
 	TGTextButton *fLoadButton;
+    TGTextButton *fUpdateTriggersButton;
+    
+    TGComboBox *fTriggerBox;
 
 	TGListBox *fListBox;
 	
@@ -55,15 +58,18 @@ private:
 	void onLoadButton();
 
 	std::vector<serverListStruct> fEventsListVector;
-
+    std::vector<TString> fTriggerClasses;
+    
 	virtual Bool_t ProcessMessage(Long_t msg, Long_t parm1, Long_t);
 	void CloseWindow();
 
 	storageSockets fServerSocket;
-	AliStorageEventManager *fEventManager;
+	AliZMQManager *fEventManager;
     
 	AliESDEvent *fCurrentEvent;
 	
+    bool fOnlineMode;
+    
 	AliStorageAdministratorPanelListEvents(const AliStorageAdministratorPanelListEvents&);
 	AliStorageAdministratorPanelListEvents& operator=(const AliStorageAdministratorPanelListEvents&);
 	

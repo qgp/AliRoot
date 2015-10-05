@@ -15,9 +15,10 @@
 
 
 ///////////////////////////////////////////////////////////////////////////
-// Class TStatToolkit
-// 
-// Subset of  matheamtical functions  not included in the TMath
+/// \file TStatToolkit.cxx
+/// \class TStatToolkit
+/// \brief Summary of statistics functions
+/// Subset of  matheamtical functions  not included in the TMath
 //
 //
 /////////////////////////////////////////////////////////////////////////
@@ -26,6 +27,7 @@
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TH3.h"
+#include "THnBase.h"
 #include "TF1.h"
 #include "TTree.h"
 #include "TChain.h"
@@ -45,6 +47,7 @@
 #include "TRandom.h"
 #include "TStopwatch.h"
 #include "TTreeStream.h"
+#include "AliSysInfo.h"
 
 #include "TStatToolkit.h"
 
@@ -67,7 +70,7 @@ TStatToolkit::~TStatToolkit()
 {
   //
   // Destructor
-  //
+  // 
 }
 
 
@@ -909,7 +912,8 @@ TGraphErrors * TStatToolkit::MakeStat1D(TH2 * his, Int_t deltaBin, Double_t frac
 	if (returnType==3) {stat= vecLTM[2];	 err =projection->GetRMSError();}
     }
     if (returnType==4|| returnType==5){
-      projection->Fit(&f1,"QN","QN", vecLTM[7], vecLTM[8]);
+      f1.SetParameters(vecLTM[0], vecLTM[1], vecLTM[2]+0.05);
+      projection->Fit(&f1,"QN","QN", vecLTM[7]-vecLTM[2], vecLTM[8]+vecLTM[2]);
       if (returnType==4) {
 	stat= f1.GetParameter(1);
 	err=f1.GetParError(1);
@@ -1416,12 +1420,12 @@ TGraphErrors * TStatToolkit::MakeGraphErrors(TTree * tree, const char * expr, co
   const Int_t entries =  tree->Draw(expr,cut,"goff");
   if (entries<=0) {
     TStatToolkit t;
-    t.Error("TStatToolkit::MakeGraphError",Form("Empty or Not valid expression (%s) or cut *%s)", expr,cut));
+    t.Error("TStatToolkit::MakeGraphError","Empty or Not valid expression (%s) or cut *%s)", expr,cut);
     return 0;
   }
   if (  tree->GetV2()==0){
     TStatToolkit t;
-    t.Error("TStatToolkit::MakeGraphError",Form("Not valid expression (%s) ", expr));
+    t.Error("TStatToolkit::MakeGraphError","Not valid expression (%s) ", expr);
     return 0;
   }
   TGraphErrors * graph=0;
@@ -1458,7 +1462,7 @@ TGraph * TStatToolkit::MakeGraphSparse(TTree * tree, const char * expr, const ch
   const Int_t entries = tree->Draw(expr,cut,"goff");
   if (entries<=0) {
     TStatToolkit t;
-    t.Error("TStatToolkit::MakeGraphSparse",Form("Empty or Not valid expression (%s) or cut (%s)", expr, cut));
+    t.Error("TStatToolkit::MakeGraphSparse","Empty or Not valid expression (%s) or cut (%s)", expr, cut);
     return 0;
   }
   //  TGraph * graph = (TGraph*)gPad->GetPrimitive("Graph"); // 2D
@@ -1736,7 +1740,8 @@ TMultiGraph*  TStatToolkit::MakeStatusMultGr(TTree * tree, const char * expr, co
   const Int_t ngr = oaAlias->GetEntriesFast();
   for (Int_t i=0; i<ngr; i++){
     snprintf(query,200, "%f*(%s-0.5):%s", 1.+igr, oaAlias->At(i)->GetName(), var_x);
-    multGr->Add( (TGraphErrors*) TStatToolkit::MakeGraphSparse(tree,query,cut,marArr[i],colArr[i],sizeArr[i],shiftArr[i]) );
+    TGraphErrors * gr = (TGraphErrors*) TStatToolkit::MakeGraphSparse(tree,query,cut,marArr[i],colArr[i],sizeArr[i],shiftArr[i]);
+    if (gr) multGr->Add(gr);
   }
   //
   multGr->SetName(varname);
@@ -2129,9 +2134,301 @@ void TStatToolkit::CheckTreeAliases(TTree * tree, Int_t ncheck){
     if (!object) continue;
     Int_t ndraw=tree->Draw(aliases->At(i)->GetName(),"1","goff",nCheck);
     if (ndraw==0){
-      ::Error("Alias:\tProblem",aliases->At(i)->GetName());
+      ::Error("Alias:\tProblem","%s",aliases->At(i)->GetName());
     }else{
-      ::Info("Alias:\tOK",aliases->At(i)->GetName());
+      ::Info("Alias:\tOK","%s",aliases->At(i)->GetName());
     }
   }
 }
+
+
+
+
+Double_t TStatToolkit::GetDefaultStat(TTree * tree, const char * var, const char * selection, TStatType statType){
+  //
+  //
+  //
+  Int_t entries = tree->Draw(var,selection,"goff");
+  if (entries==0) return 0;
+  switch(statType){    
+  case kEntries:    
+    return entries;
+  case kSum:    
+    return entries*TMath::Mean(entries, tree->GetV1());
+  case kMean:    
+    return TMath::Mean(entries, tree->GetV1());
+  case kRMS:     
+    return TMath::RMS(entries, tree->GetV1());
+  case kMedian:  
+    return TMath::Median(entries, tree->GetV1());    
+  }
+  return 0;
+}
+
+//_____________________________________________________________________________
+void TStatToolkit::CombineArray(TTree *tree, TVectorD &values)
+{
+  /// Collect all variables from the last draw in one array.
+  ///
+  /// It is assumed that the Draw function of the TTree was called before
+  /// if e.g. Draw("v1:v2:v3") had been called, then values will contain
+  /// the concatenated array of the values from v1,v2 and v3.
+  /// E.g. if the v1[0..n], v2[0..n], v3[0..n] then
+  /// values[0..3n] = [v1, v2, v3]
+  /// \param[in]  tree   input tree
+  /// \param[out] values array in which to summarise all 'drawn' values
+  const Int_t numberOfDimensions = tree->GetPlayer()->GetDimension();
+  if (numberOfDimensions==1) {
+    values.Use(tree->GetSelectedRows(), tree->GetVal(0));
+    return;
+  }
+
+  const Int_t numberOfSelectedRows = tree->GetSelectedRows();
+  values.ResizeTo(numberOfDimensions * numberOfSelectedRows);
+
+  Int_t nfill=0;
+  for (Int_t idim=0; idim<numberOfDimensions; ++idim) {
+    const Double_t *arr = tree->GetVal(idim);
+    if (!arr) continue;
+
+    for (Int_t ival=0; ival<numberOfSelectedRows; ++ival) {
+      values.GetMatrixArray()[nfill++] = arr[ival];
+    }
+  }
+
+}
+
+//_____________________________________________________________________________
+Double_t TStatToolkit::GetDistance(const TVectorD &values, const ENormType normType,
+                                   const Bool_t normaliseToEntries/*=kFALSE*/, const Double_t pvalue/*=1*/)
+{
+  /// Calculate the distance of the elements in values using a certain norm
+  /// \param[in] values             array with input values
+  /// \param[in] normType           normalisation to use
+  /// \param[in] normaliseToEntries divide the norm by the number of eleements ('average norm')
+  /// \param[in] pvalue             the p value for the p-type norm, ignored for all other norms
+  /// \return                       calculated distance
+
+  Double_t norm=0.;
+
+  switch (normType) {
+    case kL1:
+      norm=values.Norm1();
+      break;
+    case kL2:
+      norm=TMath::Sqrt(values.Norm2Sqr());
+      break;
+    case kLp:
+    {
+      if (pvalue<1.) {
+        ::Error("TStatToolkit::GetDistance","Lp norm: p-value=%5.3g not valid. Only p-value>=1 is allowed", pvalue);
+        break;
+      }
+      Double_t sum=0.;
+      for (Int_t ival=0; ival<values.GetNrows(); ++ival) {
+        sum+=TMath::Power(TMath::Abs(values.GetMatrixArray()[ival]), pvalue);
+      }
+      norm=TMath::Power(sum, 1./pvalue);
+    }
+    break;
+    case kMax:
+      norm=values.NormInf();
+      break;
+    case kHamming:
+    {
+      Double_t sum=0.;
+      for (Int_t ival=0; ival<values.GetNrows(); ++ival) {
+        if (TMath::Abs(values.GetMatrixArray()[ival])>1e-30) ++sum;
+      }
+      norm=sum;
+    }
+    break;
+  }
+  if (normaliseToEntries && values.GetNrows()>0) {
+    norm/=values.GetNrows();
+  }
+  return norm;
+}
+
+//_____________________________________________________________________________
+Double_t TStatToolkit::GetDistance(const Int_t size, const Double_t *values, const ENormType normType,
+                                   const Bool_t normaliseToEntries/*=kFALSE*/, const Double_t pvalue/*=1*/)
+{
+  /// Calculate the distance of the elements in values using a certain norm
+  /// \sa GetDistance()
+  TVectorD vecvalues;
+  vecvalues.Use(size, values);
+  return GetDistance(vecvalues, normType, normaliseToEntries, pvalue);
+}
+
+//_____________________________________________________________________________
+Double_t TStatToolkit::GetDistance(TTree * tree, const char* var, const char * selection,
+                                   const ENormType normType, const Bool_t normaliseToEntries/*=kFALSE*/, const Double_t pvalue/*=1*/)
+{
+  /// Calculate the distance of the values selecte in tree->Draw(var, selection)
+  ///
+  /// If var contains more than one variable (separated by ':' as usual) the arrays
+  /// are concatenated:<BR>
+  /// E.g. if var="v1:v2:v3", then the norm of the
+  /// the concatenated array of the values from v1,v2 and v3 will be calculated:<BR>
+  /// This means if the internal tree arrays for each variable are v1[0..n], v2[0..n], v3[0..n] then
+  /// the norm of vx[0..3n] = [v1, v2, v3] is calculated.
+  /// \param[in] tree               input tree
+  /// \param[in] var                variable expression for the tree->Draw()
+  /// \param[in] selection          selection for the tree->Draw()
+  /// \param[in] normType           norm to use for calculating the point distances
+  /// \param[in] normaliseToEntries divide the norm by the number of eleements ('average norm')
+  /// \param[in] pvalue             p-value for the p-norm (ignored for other norm types
+  /// \return                       calculated distnace
+  Int_t entries = tree->Draw(var,selection,"goff");
+  if (entries==0) return 0.;
+
+  TVectorD values;
+  CombineArray(tree, values);
+  return GetDistance(values, normType, normaliseToEntries, pvalue);
+}
+
+
+
+void TStatToolkit::MakeDistortionMap(Int_t iter, THnBase * histo, TTreeSRedirector *pcstream, TMatrixD &projectionInfo,Int_t verbose){
+  //
+  // Recursive function to calculate Distortion maps from the residual histograms
+  // Input:
+  //   iter     - ndim..0
+  //   histo    - THn histogram
+  //   pcstream -
+  //   projectionInfo  - TMatrix speicifiing distortion map cration setup
+  //     user specify columns:
+  //       0.) sequence of dimensions 
+  //       1.) grouping in dimensions (how many bins will be groupd in specific dimension - 0 means onl specified bin 1, curren +-1 bin ...)
+  //       2.) step in dimension ( in case >1 some n(projectionInfo(<dim>,2) bins will be not exported
+  //     internally used collumns (needed to pass current bin index and bin center to the recursive function) 
+  //       3.) current bin value  
+  //       4.) current bin center
+  //
+  //  Output:
+  //   pcstream - file with output distortion tree
+  //    1.) distortion characteristic: mean, rms, gaussian fit parameters, meang, rmsG chi2 ... at speciefied bin 
+  //    2.) specidfied bins (tree branches) are defined by the name of the histogram axis in input histograms
+  //  
+  //    
+  //   Example projection info
+  /*
+    TFile *f  = TFile::Open("/hera/alice/hellbaer/alice-tpc-notes/SpaceChargeDistortion/data/ATO-108/fullMerge/SCcalibMergeLHC12d.root");
+    THnF* histof= (THnF*) f->Get("deltaY_ClTPC_ITSTOF");
+    histof->SetName("deltaRPhiTPCTISTOF");
+    histof->GetAxis(4)->SetName("qpt");
+    TH1::SetDirectory(0);
+    TTreeSRedirector * pcstream = new TTreeSRedirector("distortion.root","recreate");
+    TMatrixD projectionInfo(5,5);
+    projectionInfo(0,0)=0;  projectionInfo(0,1)=0;  projectionInfo(0,2)=0;
+    projectionInfo(1,0)=4;  projectionInfo(1,1)=0;  projectionInfo(1,2)=1; 
+    projectionInfo(2,0)=3;  projectionInfo(2,1)=3;  projectionInfo(2,2)=2;
+    projectionInfo(3,0)=2;  projectionInfo(3,1)=0;  projectionInfo(3,2)=5;
+    projectionInfo(4,0)=1;  projectionInfo(4,1)=5;  projectionInfo(4,2)=20;
+    MakeDistortionMap(4, histof, pcstream, projectionInfo); 
+    delete pcstream;
+  */
+  //
+  static TF1 fgaus("fgaus","gaus",-10,10);
+  
+  Int_t ndim=histo->GetNdimensions();
+  Int_t axis[ndim];
+  Double_t meanVector[ndim];
+  Int_t binVector[ndim];
+  Double_t centerVector[ndim];
+  for (Int_t idim=0; idim<ndim; idim++) axis[idim]=idim;
+  //
+  if (iter==0){
+    char tname[100];
+    char aname[100];
+    char bname[100];
+    char cname[100];
+    
+    snprintf(tname, 100, "%sDist",histo->GetName());
+    //
+    //
+    // 1.) Calculate  properties   - mean, rms, gaus fit, chi2, entries
+    // 2.) Dump properties to tree 1D properties  - plus dimension descriptor f
+    Int_t axis1D[1]={0};
+    Int_t dimProject   = TMath::Nint(projectionInfo(iter,0));
+    axis1D[0]=dimProject;
+    TH1 *his1DFull = histo->Projection(dimProject);
+    Double_t mean= his1DFull->GetMean();
+    Double_t rms= his1DFull->GetRMS();
+    Int_t entries=  his1DFull->GetEntries();
+    TString hname="his_";
+    for (Int_t idim=0; idim<ndim; idim++) {hname+="_"; hname+=TMath::Nint(projectionInfo(idim,3));}
+    Double_t meanG=0, rmsG=0, chi2G=0;
+    if (entries>100){
+      fgaus.SetParameters(entries,mean,rms);
+      his1DFull->Fit(&fgaus,"qnr","qnr");
+      meanG = fgaus.GetParameter(1);
+      rmsG = fgaus.GetParameter(2);
+      chi2G = fgaus.GetChisquare()/fgaus.GetNumberFreeParameters();
+    }
+    his1DFull->Write(hname.Data());
+    delete his1DFull;
+    (*pcstream)<<tname<<
+    "entries="<<entries<< // number of entries
+    "mean="<<mean<<       // mean value of the last dimension
+    "rms="<<rms<<         // rms value of the last dimension
+    "meanG="<<meanG<<     // mean of the gaus fit
+    "rmsG="<<rmsG<<       // rms of the gaus fit
+    "chi2G="<<chi2G;      // chi2 of the gaus fit
+    
+    for (Int_t idim=0; idim<ndim; idim++){
+      axis1D[0]=idim;
+      TH1 *his1DAxis = histo->Projection(idim);
+      meanVector[idim] = his1DAxis->GetMean();
+      snprintf(aname, 100, "%sMean=",histo->GetAxis(idim)->GetName());
+      (*pcstream)<<tname<<
+      aname<<meanVector[idim];      // current bin means
+      delete his1DAxis;
+    }
+    for (Int_t iIter=0; iIter<ndim; iIter++){
+      Int_t idim = TMath::Nint(projectionInfo(iIter,0));
+      binVector[idim] = TMath::Nint(projectionInfo(iIter,3));
+      centerVector[idim] = projectionInfo(iIter,4);
+      snprintf(bname, 100, "%sBin=",histo->GetAxis(idim)->GetName());
+      snprintf(cname, 100, "%sCenter=",histo->GetAxis(idim)->GetName());
+      (*pcstream)<<tname<<
+      bname<<binVector[idim]<<      // current bin values
+      cname<<centerVector[idim];    // current bin centers
+    }
+    (*pcstream)<<tname<<"\n";
+  }else{
+    // loop over the diminsion of interest
+    //      project selecting bin+-deltabin histoProj
+    //      MakeDistortionMap(histoProj ...) 
+    //
+    Int_t dimProject   = TMath::Nint(projectionInfo(iter,0));
+    Int_t groupProject =  TMath::Nint(projectionInfo(iter,1));
+    Int_t stepProject =  TMath::Nint(projectionInfo(iter,2));
+    if (stepProject<1) stepProject=1;
+    Int_t nbins = histo->GetAxis(dimProject)->GetNbins();
+    
+    for (Int_t ibin=1; ibin<=nbins; ibin+=stepProject){
+      if (iter>1 && verbose){
+        for (Int_t idim=0; idim<ndim; idim++){
+          printf("\t%d(%d,%d)",TMath::Nint(projectionInfo(idim,3)),TMath::Nint(projectionInfo(idim,0)),TMath::Nint(projectionInfo(idim,1) ));
+        }
+        printf("\n");	    
+        AliSysInfo::AddStamp("xxx",iter, dimProject);
+      }
+      Int_t bin0=TMath::Max(ibin-groupProject,1);
+      Int_t bin1=TMath::Min(ibin+groupProject,nbins);
+      histo->GetAxis(dimProject)->SetRange(bin0,bin1);
+      projectionInfo(iter,3)=ibin;
+      projectionInfo(iter,4)=histo->GetAxis(dimProject)->GetBinCenter(ibin);
+      //
+      Int_t iterProject=iter-1;
+      if (iterProject<0){
+        printf("Errror\n");
+      }
+      MakeDistortionMap(iterProject, histo, pcstream, projectionInfo);
+    }
+  }
+  //
+}
+

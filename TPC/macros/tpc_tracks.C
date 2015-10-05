@@ -1,3 +1,5 @@
+/// \file tpc_tracks.C
+
 
 class TEveProjectionManager;
 class TEveGeoShape;
@@ -9,9 +11,8 @@ TEveGeoShape * geom = 0;
 
 void tpc_tracks(const char *input=0)
 {
-  //
-  //
-  //
+  ///
+
   if (input){
     TString ipath(input);
     if (ipath.Contains(".zip")){
@@ -87,7 +88,7 @@ void on_new_event()
 
   TEveElement* top = gEve->GetCurrentEvent();
   proj->DestroyElements();
-  //AliESDEvent* esd = AliEveEventManager::AssertESD();
+  //AliESDEvent* esd = AliEveEventManager::GetMaster()->AssertESD();
 
   // geom
   proj->ImportElements(geom);

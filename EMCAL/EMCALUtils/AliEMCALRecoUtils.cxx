@@ -313,6 +313,12 @@ Bool_t AliEMCALRecoUtils::AcceptCalibrateCell(Int_t absID, Int_t bc,
   
   AliEMCALGeometry* geom = AliEMCALGeometry::GetInstance();
   
+  if(!geom)
+  {
+    AliError("No instance of the geometry is available");
+    return kFALSE;
+  }
+
   if (absID < 0 || absID >= 24*48*geom->GetNumberOfSuperModules()) 
     return kFALSE;
   
@@ -452,6 +458,12 @@ Float_t AliEMCALRecoUtils::GetECross(Int_t absID, Double_t tcell,
   
   AliEMCALGeometry * geom = AliEMCALGeometry::GetInstance();
   
+  if(!geom)
+  {
+    AliError("No instance of the geometry is available");
+    return -1;
+  }
+
   Int_t imod = -1, iphi =-1, ieta=-1,iTower = -1, iIphi = -1, iIeta = -1; 
   geom->GetCellIndex(absID,imod,iTower,iIphi,iIeta); 
   geom->GetCellPhiEtaIndexInSModule(imod,iTower,iIphi, iIeta,iphi,ieta);  
@@ -461,8 +473,8 @@ Float_t AliEMCALRecoUtils::GetECross(Int_t absID, Double_t tcell,
   Int_t absID1 = -1;
   Int_t absID2 = -1;
   
-  if ( iphi < AliEMCALGeoParams::fgkEMCALRows-1) absID1 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi+1, ieta);
-  if ( iphi > 0 )                                absID2 = geom-> GetAbsCellIdFromCellIndexes(imod, iphi-1, ieta);
+  if ( iphi < AliEMCALGeoParams::fgkEMCALRows-1) absID1 = geom->GetAbsCellIdFromCellIndexes(imod, iphi+1, ieta);
+  if ( iphi > 0 )                                absID2 = geom->GetAbsCellIdFromCellIndexes(imod, iphi-1, ieta);
   
   // In case of cell in eta = 0 border, depending on SM shift the cross cell index
   
@@ -543,6 +555,13 @@ Bool_t AliEMCALRecoUtils::IsExoticCluster(const AliVCluster *cluster,
   
   // Get highest energy tower
   AliEMCALGeometry* geom = AliEMCALGeometry::GetInstance();
+  
+  if(!geom)
+  {
+    AliError("No instance of the geometry is available");
+    return kFALSE;
+  }
+
   Int_t iSupMod = -1, absId = -1, ieta = -1, iphi = -1;
   Bool_t shared = kFALSE;
   GetMaxEnergyCell(geom, cells, cluster, absId, iSupMod, ieta, iphi, shared);
@@ -577,17 +596,23 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
 {
   // Correct cluster energy from non linearity functions
   
-  if (!cluster) {
+  if (!cluster) 
+  {
     AliInfo("Cluster pointer null!");
     return 0;
   }
   
   Float_t energy = cluster->E();
-
-  if (energy < 0.05) {
-    // Clusters with less than 50 MeV or negative are not possible
-    AliInfo(Form("Too Low Cluster energy!, E = %f < 0.05 GeV",energy));
+  if (energy < 0.100) 
+  {
+    // Clusters with less than 100 MeV or negative are not possible
+    AliInfo(Form("Too low cluster energy!, E = %f < 0.100 GeV",energy));
     return 0;
+  }
+  else if(energy > 300.)
+  {
+    AliInfo(Form("Too high cluster energy!, E = %f GeV, do not apply non linearity",energy));
+    return energy;
   }
   
   switch (fNonLinearityFunction) 
@@ -766,7 +791,7 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
       break;
       
   }
-
+  
   return energy;
 }
 
@@ -1107,12 +1132,12 @@ void AliEMCALRecoUtils::InitEMCALRecalibrationFactors()
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
   
-  fEMCALRecalibrationFactors = new TObjArray(12);
-  for (int i = 0; i < 12; i++) 
+  fEMCALRecalibrationFactors = new TObjArray(22);
+  for (int i = 0; i < 22; i++) 
     fEMCALRecalibrationFactors->Add(new TH2F(Form("EMCALRecalFactors_SM%d",i),
                                              Form("EMCALRecalFactors_SM%d",i),  48, 0, 48, 24, 0, 24));
   //Init the histograms with 1
-  for (Int_t sm = 0; sm < 12; sm++) 
+  for (Int_t sm = 0; sm < 22; sm++) 
   {
     for (Int_t i = 0; i < 48; i++) 
     {
@@ -1143,11 +1168,11 @@ void AliEMCALRecoUtils::InitEMCALTimeRecalibrationFactors()
   for (int i = 0; i < 4; i++) 
     fEMCALTimeRecalibrationFactors->Add(new TH1F(Form("hAllTimeAvBC%d",i),
                                                  Form("hAllTimeAvBC%d",i),  
-                                                 48*24*12,0.,48*24*12)          );
+                                                 48*24*22,0.,48*24*22)          );
   //Init the histograms with 1
   for (Int_t bc = 0; bc < 4; bc++) 
   {
-    for (Int_t i = 0; i < 48*24*12; i++) 
+    for (Int_t i = 0; i < 48*24*22; i++) 
       SetEMCALChannelTimeRecalibrationFactor(bc,i,0.);
   }
   
@@ -1167,9 +1192,9 @@ void AliEMCALRecoUtils::InitEMCALBadChannelStatusMap()
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
   
-  fEMCALBadChannelMap = new TObjArray(12);
+  fEMCALBadChannelMap = new TObjArray(22);
   //TH2F * hTemp = new  TH2I("EMCALBadChannelMap","EMCAL SuperModule bad channel map", 48, 0, 48, 24, 0, 24);
-  for (int i = 0; i < 12; i++) 
+  for (int i = 0; i < 22; i++) 
   {
     fEMCALBadChannelMap->Add(new TH2I(Form("EMCALBadChannelMap_Mod%d",i),Form("EMCALBadChannelMap_Mod%d",i), 48, 0, 48, 24, 0, 24));
   }
@@ -1315,7 +1340,8 @@ void AliEMCALRecoUtils::RecalculateClusterPosition(const AliEMCALGeometry *geom,
 {
   //For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
   
-  if (!clu) {
+  if (!clu)
+  {
     AliInfo("Cluster pointer null!");
     return;
   }
@@ -1325,14 +1351,15 @@ void AliEMCALRecoUtils::RecalculateClusterPosition(const AliEMCALGeometry *geom,
   else    AliDebug(2,"Algorithm to recalculate position not selected, do nothing.");
 }  
 
+///
+/// For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
+/// The algorithm is a copy of what is done in AliEMCALRecPoint.
+///
 //_____________________________________________________________________________________________
 void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCALGeometry *geom, 
                                                                   AliVCaloCells* cells, 
                                                                   AliVCluster* clu)
-{
-  // For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
-  // The algorithm is a copy of what is done in AliEMCALRecPoint
-  
+{  
   Double_t eCell       = 0.;
   Float_t  fraction    = 1.;
   Float_t  recalFactor = 1.;
@@ -1341,7 +1368,7 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCAL
   Int_t    iTower  = -1, iIphi  = -1, iIeta  = -1;
   Int_t    iSupModMax = -1, iSM=-1, iphi   = -1, ieta   = -1;
   Float_t  weight = 0.,  totalWeight=0.;
-  Float_t  newPos[3] = {0,0,0};
+  Float_t  newPos[3] = {-1.,-1.,-1.};
   Double_t pLocal[3], pGlobal[3];
   Bool_t shared = kFALSE;
 
@@ -1359,7 +1386,8 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCAL
     fraction  = clu->GetCellAmplitudeFraction(iDig);
     if (fraction < 1e-4) fraction = 1.; // in case unfolding is off
     
-    if (!fCellsRecalibrated) {
+    if (!fCellsRecalibrated) 
+    {
       geom->GetCellIndex(absId,iSM,iTower,iIphi,iIeta); 
       geom->GetCellPhiEtaIndexInSModule(iSM,iTower,iIphi, iIeta,iphi,ieta);      
       if (IsRecalibrationOn()) {
@@ -1405,13 +1433,15 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCAL
   clu->SetPosition(newPos);
 }  
 
+///
+/// For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
+/// The algorithm works with the tower indeces, averages the indeces and from them it calculates the global position.
+///
 //____________________________________________________________________________________________
 void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerIndex(const AliEMCALGeometry *geom, 
                                                                  AliVCaloCells* cells, 
                                                                  AliVCluster* clu)
 {
-  // For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
-  // The algorithm works with the tower indeces, averages the indeces and from them it calculates the global position
   
   Double_t eCell       = 1.;
   Float_t  fraction    = 1.;
@@ -1467,7 +1497,7 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerIndex(const AliEMCALG
     //printf("Max cell? cell %d, amplitude org %f, fraction %f, recalibration %f, amplitude new %f \n",cellAbsId, cells->GetCellAmplitude(cellAbsId), fraction, recalFactor, eCell) ;
   }// cell loop
     
-  Float_t xyzNew[]={0.,0.,0.};
+  Float_t xyzNew[]={-1.,-1.,-1.};
   if (areInSameSM == kTRUE) {
     //printf("In Same SM\n");
     weightedCol = weightedCol/totalWeight;
@@ -1831,8 +1861,8 @@ void AliEMCALRecoUtils::FindMatches(AliVEvent *event,
     for (Int_t icl=0; icl<event->GetNumberOfCaloClusters(); icl++) 
     {
       AliVCluster *cluster = (AliVCluster*) event->GetCaloCluster(icl);
-      if (geom && !IsGoodCluster(cluster,geom,(AliVCaloCells*)event->GetEMCALCells())) 
-	continue;
+      if (!IsGoodCluster(cluster,geom,(AliVCaloCells*)event->GetEMCALCells())) 
+        continue;
       clusterArray->AddAt(cluster,icl);
     }
   }
@@ -1852,8 +1882,16 @@ void AliEMCALRecoUtils::FindMatches(AliVEvent *event,
       if (!esdTrack) continue;
       if (!IsAccepted(esdTrack)) continue;
       if (esdTrack->Pt()<fCutMinTrackPt) continue;
-      Double_t phi = esdTrack->Phi()*TMath::RadToDeg();
-      if (TMath::Abs(esdTrack->Eta())>0.9 || phi <= 10 || phi >= 250 ) continue;
+
+      if ( TMath::Abs(esdTrack->Eta()) > 0.9 ) continue;
+      
+      // Save some time and memory in case of no DCal present
+      if( geom->GetNumberOfSuperModules() < 13 ) // Run1 10 (12, 2 not active but present)
+      {
+        Double_t phi = esdTrack->Phi()*TMath::RadToDeg();
+        if ( phi <= 10 || phi >= 250 ) continue;
+      }
+
       if (!fITSTrackSA)
 	trackParam =  const_cast<AliExternalTrackParam*>(esdTrack->GetInnerParam());  // if TPC Available
       else
@@ -1880,9 +1918,15 @@ void AliEMCALRecoUtils::FindMatches(AliVEvent *event,
       
       if (aodTrack->Pt()<fCutMinTrackPt) continue;
 
-      Double_t phi = aodTrack->Phi()*TMath::RadToDeg();
-      if (TMath::Abs(aodTrack->Eta())>0.9 || phi <= 10 || phi >= 250 ) 
-	continue;
+      if ( TMath::Abs(aodTrack->Eta()) > 0.9 ) continue;
+      
+      // Save some time and memory in case of no DCal present
+      if( geom->GetNumberOfSuperModules() < 13 ) // Run1 10 (12, 2 not active but present)
+      {
+        Double_t phi = aodTrack->Phi()*TMath::RadToDeg();
+        if ( phi <= 10 || phi >= 250 ) continue;
+      }
+      
       Double_t pos[3],mom[3];
       aodTrack->GetXYZ(pos);
       aodTrack->GetPxPyPz(mom);
@@ -1912,12 +1956,20 @@ void AliEMCALRecoUtils::FindMatches(AliVEvent *event,
       continue;
     }
 
-    if (TMath::Abs(eta)>0.75 || (phi) < 70*TMath::DegToRad() || (phi) > 190*TMath::DegToRad()) {
-      if (aodevent && trackParam) delete trackParam;
-      if (fITSTrackSA && trackParam) delete trackParam;
+    if ( TMath::Abs(eta) > 0.75 ) 
+    {
+      if ( trackParam && (aodevent || fITSTrackSA) )   delete trackParam;
       continue;
     }
-
+    
+    // Save some time and memory in case of no DCal present
+    if ( geom->GetNumberOfSuperModules() < 13 &&  // Run1 10 (12, 2 not active but present)
+        ( phi < 70*TMath::DegToRad() || phi > 190*TMath::DegToRad())) 
+    {
+      if ( trackParam && (aodevent || fITSTrackSA) )   delete trackParam;
+      continue;
+    }
+    
     //Find matched clusters
     Int_t index = -1;
     Float_t dEta = -999, dPhi = -999;
@@ -1961,8 +2013,16 @@ Int_t AliEMCALRecoUtils::FindMatchedClusterInEvent(const AliESDtrack *track,
   // This function returns the index of matched cluster to input track
   // Returns -1 if no match is found
   Int_t index = -1;
-  Double_t phiV = track->Phi()*TMath::RadToDeg();
-  if (TMath::Abs(track->Eta())>0.9 || phiV <= 10 || phiV >= 250 ) return index;
+  
+  if ( TMath::Abs(track->Eta()) > 0.9 ) return index;
+  
+  // Save some time and memory in case of no DCal present
+  if( geom->GetNumberOfSuperModules() < 13 ) // Run1 10 (12, 2 not active but present)
+  {
+    Double_t phiV = track->Phi()*TMath::RadToDeg();
+    if ( phiV <= 10 || phiV >= 250 ) return index;
+  }
+  
   AliExternalTrackParam *trackParam = 0;
   if (!fITSTrackSA)
     trackParam = const_cast<AliExternalTrackParam*>(track->GetInnerParam());  // If TPC
@@ -1977,17 +2037,27 @@ Int_t AliEMCALRecoUtils::FindMatchedClusterInEvent(const AliESDtrack *track,
     if (fITSTrackSA) delete trackParam;
     return index;
   }
-  if (TMath::Abs(eta)>0.75 || (phi) < 70*TMath::DegToRad() || (phi) > 190*TMath::DegToRad()) {
+    
+  if ( TMath::Abs(eta) > 0.75 ) 
+  {
     if (fITSTrackSA) delete trackParam;
     return index;
   }
   
+  // Save some time and memory in case of no DCal present
+  if ( geom->GetNumberOfSuperModules() < 13 &&  // Run1 10 (12, 2 not active but present)
+      ( phi < 70*TMath::DegToRad() || phi > 190*TMath::DegToRad())) 
+  {
+    if (fITSTrackSA) delete trackParam;
+    return index;    
+  }
+
   TObjArray *clusterArr = new TObjArray(event->GetNumberOfCaloClusters());
 
   for (Int_t icl=0; icl<event->GetNumberOfCaloClusters(); icl++)
   {
     AliVCluster *cluster = (AliVCluster*) event->GetCaloCluster(icl);
-    if (geom && !IsGoodCluster(cluster,geom,(AliVCaloCells*)event->GetEMCALCells())) continue;
+    if (!IsGoodCluster(cluster,geom,(AliVCaloCells*)event->GetEMCALCells())) continue;
     clusterArr->AddAt(cluster,icl);
   }
 
@@ -2064,12 +2134,22 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToEMCalSurface(AliVTrack *track,
 
   track->SetTrackPhiEtaPtOnEMCal(-999, -999, -999);
 
-  if (track->Pt()<minpt)
+  if ( track->Pt() < minpt )
     return kFALSE;
 
-  Double_t phi = track->Phi()*TMath::RadToDeg();
-  if (TMath::Abs(track->Eta())>0.9 || phi <= 10 || phi >= 250) 
-    return kFALSE;
+  if ( TMath::Abs(track->Eta()) > 0.9 ) return kFALSE;
+  
+  // Save some time and memory in case of no DCal present
+  AliEMCALGeometry* geom = AliEMCALGeometry::GetInstance();
+  
+  Int_t       nSupMod = AliEMCALGeoParams::fgkEMCALModules;
+  if ( geom ) nSupMod = geom->GetNumberOfSuperModules();
+  
+  if ( nSupMod < 13 ) // Run1 10 (12, 2 not active but present)
+  {
+    Double_t phi = track->Phi()*TMath::RadToDeg();
+    if ( phi <= 10 || phi >= 250 ) return kFALSE;
+  }
 
   AliESDtrack *esdt = dynamic_cast<AliESDtrack*>(track);
   AliAODTrack *aodt = 0;
@@ -2121,43 +2201,63 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToEMCalSurface(AliVTrack *track,
 					      etaout, 
 					      phiout,
 					      ptout);
+  
   delete trackParam;
-  if (!ret)
-    return kFALSE;
-  if (TMath::Abs(etaout)>0.75 || (phiout<70*TMath::DegToRad()) || (phiout>190*TMath::DegToRad()))
-    return kFALSE;
+  
+  if (!ret) return kFALSE;
+  
+  if ( TMath::Abs(etaout) > 0.75 ) return kFALSE;
+  
+  // Save some time and memory in case of no DCal present
+  if ( nSupMod < 13 ) // Run1 10 (12, 2 not active but present)
+  {
+    if ( (phiout < 70*TMath::DegToRad()) || (phiout > 190*TMath::DegToRad()) )  return kFALSE;
+  }
+
   track->SetTrackPhiEtaPtOnEMCal(phiout, etaout, ptout);
+  
   return kTRUE;
 }
 
 
 //------------------------------------------------------------------------------------
+///
+/// Extrapolate track to EMCAL surface
+///
 Bool_t AliEMCALRecoUtils::ExtrapolateTrackToEMCalSurface(AliExternalTrackParam *trkParam, 
                                                          Double_t emcalR,
                                                          Double_t mass, 
                                                          Double_t step, 
                                                          Float_t &eta, 
                                                          Float_t &phi,
-							 Float_t &pt)
+                                                         Float_t &pt)
 {
-  //Extrapolate track to EMCAL surface
-  
   eta = -999, phi = -999, pt = -999;
+ 
   if (!trkParam) return kFALSE;
+  
   if (!AliTrackerBase::PropagateTrackToBxByBz(trkParam, emcalR, mass, step, kTRUE, 0.8, -1)) return kFALSE;
+  
   Double_t trkPos[3] = {0.,0.,0.};
+  
   if (!trkParam->GetXYZ(trkPos)) return kFALSE;
+  
   TVector3 trkPosVec(trkPos[0],trkPos[1],trkPos[2]);
+  
   eta = trkPosVec.Eta();
   phi = trkPosVec.Phi();
-  pt = trkParam->Pt();
-  if (phi<0)
-    phi += 2*TMath::Pi();
+  pt  = trkParam->Pt();
+  
+  if ( phi < 0 )
+    phi += TMath::TwoPi();
 
   return kTRUE;
 }
 
 //-----------------------------------------------------------------------------------
+///
+/// Return the residual by extrapolating a track param to a global position
+///
 Bool_t AliEMCALRecoUtils::ExtrapolateTrackToPosition(AliExternalTrackParam *trkParam, 
                                                      const Float_t *clsPos, 
                                                      Double_t mass, 
@@ -2165,23 +2265,34 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToPosition(AliExternalTrackParam *trkP
                                                      Float_t &tmpEta, 
                                                      Float_t &tmpPhi)
 {
-  //
-  //Return the residual by extrapolating a track param to a global position
-  //
   tmpEta = -999;
   tmpPhi = -999;
+  
   if (!trkParam) return kFALSE;
+  
   Double_t trkPos[3] = {0.,0.,0.};
   TVector3 vec(clsPos[0],clsPos[1],clsPos[2]);
-  Double_t alpha =  ((int)(vec.Phi()*TMath::RadToDeg()/20)+0.5)*20*TMath::DegToRad();
-  vec.RotateZ(-alpha); //Rotate the cluster to the local extrapolation coordinate system
-  if (!AliTrackerBase::PropagateTrackToBxByBz(trkParam, vec.X(), mass, step,kTRUE, 0.8, -1)) return kFALSE;
-  if (!trkParam->GetXYZ(trkPos)) return kFALSE; //Get the extrapolated global position
+  
+  Float_t phi = vec.Phi();
+  
+  if ( phi < 0 )
+    phi += TMath::TwoPi();
+  
+  // Rotate the cluster to the local extrapolation coordinate system
+  Double_t alpha = ((int)(phi*TMath::RadToDeg()/20)+0.5)*20*TMath::DegToRad();
+  
+  vec.RotateZ(-alpha); 
+  
+  if (!AliTrackerBase::PropagateTrackToBxByBz(trkParam, vec.X(), mass, step,kTRUE, 0.8, -1)) 
+    return kFALSE;
+  
+  if (!trkParam->GetXYZ(trkPos)) 
+    return kFALSE; // Get the extrapolated global position
 
   TVector3 clsPosVec(clsPos[0],clsPos[1],clsPos[2]);
   TVector3 trkPosVec(trkPos[0],trkPos[1],trkPos[2]);
 
-  // track cluster matching
+  // Track cluster matching
   tmpPhi = clsPosVec.DeltaPhi(trkPosVec);    // tmpPhi is between -pi and pi
   tmpEta = clsPosVec.Eta()-trkPosVec.Eta();
 
@@ -2189,6 +2300,9 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToPosition(AliExternalTrackParam *trkP
 }
 
 //----------------------------------------------------------------------------------
+///
+/// Return the residual by extrapolating a track param to a cluster
+///
 Bool_t AliEMCALRecoUtils::ExtrapolateTrackToCluster(AliExternalTrackParam *trkParam, 
                                                     const AliVCluster *cluster, 
                                                     Double_t mass, 
@@ -2196,11 +2310,9 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToCluster(AliExternalTrackParam *trkPa
                                                     Float_t &tmpEta, 
                                                     Float_t &tmpPhi)
 {
-  //
-  //Return the residual by extrapolating a track param to a cluster
-  //
   tmpEta = -999;
   tmpPhi = -999;
+  
   if (!cluster || !trkParam) 
     return kFALSE;
 

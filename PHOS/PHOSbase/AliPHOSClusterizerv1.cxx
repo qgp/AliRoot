@@ -192,7 +192,7 @@ ClassImp(AliPHOSClusterizerv1)
 //____________________________________________________________________________
 AliPHOSClusterizerv1::AliPHOSClusterizerv1() :
   AliPHOSClusterizer(),
-  fDefaultInit(0),            fEmcCrystals(0),          fToUnfold(0),
+  fDefaultInit(0),            fEmcCrystals(0),          fToUnfold(0),  fToUnfoldCPV(0),
   fWrite(0),                  
   fNumberOfEmcClusters(0),    fNumberOfCpvClusters(0),
   fEmcClusteringThreshold(0), fCpvClusteringThreshold(0), 
@@ -213,7 +213,7 @@ AliPHOSClusterizerv1::AliPHOSClusterizerv1() :
 //____________________________________________________________________________
 AliPHOSClusterizerv1::AliPHOSClusterizerv1(AliPHOSGeometry *geom) :
   AliPHOSClusterizer(geom),
-  fDefaultInit(0),            fEmcCrystals(0),          fToUnfold(0),
+  fDefaultInit(0),            fEmcCrystals(0),          fToUnfold(0),  fToUnfoldCPV(0),
   fWrite(0),                
   fNumberOfEmcClusters(0),    fNumberOfCpvClusters(0),
   fEmcClusteringThreshold(0), fCpvClusteringThreshold(0), 
@@ -262,8 +262,7 @@ void AliPHOSClusterizerv1::Digits2Clusters(Option_t *option)
     fCPVRecPoints->Print();
   }
 
-  if(fToUnfold)             
-    MakeUnfolding();
+  MakeUnfolding();
 
   WriteRecPoints();
 
@@ -419,6 +418,7 @@ void AliPHOSClusterizerv1::InitParameters()
   fEcoreRadius             = recoParam->GetEMCEcoreRadius();
   
   fToUnfold                = recoParam->EMCToUnfold() ;
+  fToUnfoldCPV             = recoParam->CPVToUnfold() ;
     
   fWrite                   = kTRUE ;
 }
@@ -547,8 +547,16 @@ void AliPHOSClusterizerv1::WriteRecPoints()
   SetDistancesToBadChannels();
 
   //Now the same for CPV
+  Float_t cpvMinE= AliPHOSReconstructor::GetRecoParam()->GetCPVMinE(); //Minimal digit energy
   for(index = 0; index < fCPVRecPoints->GetEntries(); index++){
     AliPHOSCpvRecPoint * rp = static_cast<AliPHOSCpvRecPoint *>( fCPVRecPoints->At(index) );
+    rp->Purify(cpvMinE,fDigitsArr) ;
+    if(rp->GetMultiplicity()==0){
+      fCPVRecPoints->RemoveAt(index) ;
+      delete rp ;
+      continue;
+    } 
+    
     rp->EvalAll(fDigitsArr) ;
     rp->EvalAll(fW0CPV,fakeVtx,fDigitsArr) ;
     rp->EvalLocal2TrackingCSTransform();
@@ -676,8 +684,7 @@ void AliPHOSClusterizerv1::MakeUnfolding()
   // Unfolds clusters using the shape of an ElectroMagnetic shower
   // Performs unfolding of all EMC/CPV clusters
 
-  // Unfold first EMC clusters 
-  if(fNumberOfEmcClusters > 0){
+  if(fToUnfold && (fNumberOfEmcClusters > 0)){ // Unfold first EMC clusters 
 
     Int_t nModulesToUnfold = fGeom->GetNModules() ; 
 
@@ -715,7 +722,7 @@ void AliPHOSClusterizerv1::MakeUnfolding()
 
 
   // Unfold now CPV clusters
-  if(fNumberOfCpvClusters > 0){
+  if(fToUnfoldCPV && (fNumberOfCpvClusters > 0)){
     
     Int_t nModulesToUnfold = fGeom->GetNModules() ;
 
@@ -734,8 +741,9 @@ void AliPHOSClusterizerv1::MakeUnfolding()
       AliPHOSDigit ** maxAt = new AliPHOSDigit*[nMultipl] ;
       Float_t * maxAtEnergy = new Float_t[nMultipl] ;
       Int_t nMax = emcRecPoint->GetNumberOfLocalMax(maxAt, maxAtEnergy,fCpvLocMaxCut,fDigitsArr) ;
-      
-      if( nMax > 1 ) {     // if cluster is very flat (no pronounced maximum) then nMax = 0       
+
+      //Number of points to fit should be larger than number of parameters
+      if( nMax > 1 && emcRecPoint->GetMultiplicity()>3*nMax ) {  // if cluster is very flat (no pronounced maximum) then nMax = 0       
         UnfoldCluster(emcRecPoint, nMax, maxAt, maxAtEnergy) ;
         fCPVRecPoints->Remove(emcRecPoint); 
         fCPVRecPoints->Compress() ;
@@ -862,11 +870,13 @@ void  AliPHOSClusterizerv1::UnfoldCluster(AliPHOSEmcRecPoint * iniEmc,
       digit = static_cast<AliPHOSDigit*>( fDigitsArr->At( emcDigits[iDigit] ) ) ; 
       fGeom->AbsToRelNumbering(digit->GetId(), relid) ;
       fGeom->RelPosInModule(relid, xDigit, zDigit) ;
+      if(efit[iDigit]>0){
 //      ratio = epar * ShowerShape(xDigit - xpar,zDigit - zpar,vIncid) / efit[iDigit] ; 
-      ratio = epar * ShowerShape(xDigit - xpar,zDigit - zpar) / efit[iDigit] ; 
-      eDigit = emcEnergies[iDigit] * ratio ;
-      emcRP->AddDigit( *digit, eDigit,CalibrateT(digit->GetTime(),digit->GetId(),digit->IsLG()) ) ;
-    }        
+        ratio = epar * ShowerShape(xDigit - xpar,zDigit - zpar) / efit[iDigit] ; 
+        eDigit = emcEnergies[iDigit] * ratio ;
+        emcRP->AddDigit( *digit, eDigit,CalibrateT(digit->GetTime(),digit->GetId(),digit->IsLG()) ) ;
+      }
+    } 
   }
  
   delete[] fitparameters ; 
@@ -1089,23 +1099,27 @@ void AliPHOSClusterizerv1::SetDistancesToBadChannels()
   TVector3 gposBadChannel; // global position of bad crystal
   TVector3 dR;
 
-  Float_t dist,minDist;
+  Float_t dist=0.,minDist=0.;
   Int_t relid[4]={0,0,0,0} ;
   TVector3 lpos ;
   for(Int_t iRP=0; iRP<fEMCRecPoints->GetEntries(); iRP++){
     rp = (AliPHOSEmcRecPoint*)fEMCRecPoints->At(iRP);
     //evaluate distance to border
     relid[0]=rp->GetPHOSMod() ;
-    relid[2]=1 ;
-    relid[3]=1 ;
-    Float_t xcorner,zcorner;
-    fGeom->RelPosInModule(relid,xcorner,zcorner) ; //coordinate of the corner cell
+    Float_t xcorner=0,zcorner=0.;
+    Float_t xmin,xmax,zmin,zmax ;
+    fGeom->GetCrystalsEdges(rp->GetPHOSMod(),xmin, zmin, xmax, zmax) ;
     rp->GetLocalPosition(lpos) ;
-    minDist = 2.2+TMath::Min(-xcorner-TMath::Abs(lpos.X()),-zcorner-TMath::Abs(lpos.Z())); //2.2 - crystal size
+    Float_t minDistX = 2.2+TMath::Min(lpos.X()-xmin,xmax-lpos.X()); //2.2 - crystal size
+    Float_t minDistZ = 2.2+TMath::Min(lpos.Z()-zmin,zmax-lpos.Z()); //2.2 - crystal size
+    minDist=TMath::Min(minDistX,minDistZ) ;
+    Int_t ixmin=32+Int_t(xmin/2.2) ;
     for(Int_t iBad=0; iBad<fgCalibData->GetNumOfEmcBadChannels(); iBad++) {
       fGeom->AbsToRelNumbering(badIds[iBad],relid)  ;
       if(relid[0]!=rp->GetPHOSMod()) //We can not evaluate global position directly since 
         continue ;                   //bad channels can be in the module which does not exist in simulations.
+      if(relid[2]<=ixmin) //non-existing part of mod 4
+	continue ;
       rp->GetGlobalPosition(gposRecPoint,gmat);
       fGeom->RelPosInAlice(badIds[iBad],gposBadChannel);
       AliDebug(2,Form("BC position:[%.3f,%.3f,%.3f], RP position:[%.3f,%.3f,%.3f]. E=%.3f\n",

@@ -47,7 +47,8 @@ AliGenCocktail::AliGenCocktail()
      fEntries(0),
      flnk1(0),
      flnk2(0), 
-     fHeader(0)
+     fHeader(0),
+     fSeed(0)
 {
 // Constructor
     fName = "Cocktail";
@@ -121,6 +122,7 @@ AddGenerator(AliGenerator *Generator, const char* Name, Float_t RateExp, TFormul
     // Loop over generators and initialize
     while((entry = (AliGenCocktailEntry*)next())) {
 	if (fStack)  entry->Generator()->SetStack(fStack);
+	entry->Generator()->SetSeed(fSeed);
 	entry->Generator()->Init();
     }  
 

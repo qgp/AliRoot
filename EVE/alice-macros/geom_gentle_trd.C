@@ -24,7 +24,7 @@ TEveGeoShape* geom_gentle_trd()
   gEve->AddGlobalElement(gsre);
   f.Close();
 
-  const Int_t smInstalled[]={0, 1, 2, 3, 6, 7, 8, 9, 10, 11, 15, 16, 17};
+  const Int_t smInstalled[]={0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
   const Int_t nInstalled = static_cast<Int_t>(sizeof(smInstalled)/sizeof(Int_t));
   Int_t sm = 0;
   // Fix visibility, color and transparency
@@ -43,7 +43,7 @@ TEveGeoShape* geom_gentle_trd()
           break; 
         }
       }
-      lvl2->SetMainColor(3);
+      lvl2->SetMainColor(kGray);
       lvl2->SetMainTransparency(80);
 
       ++sm;

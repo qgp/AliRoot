@@ -89,7 +89,7 @@ AliRawDB::AliRawDB(AliRawEventV2 *event,
 		   AliESDEvent *esd, 
 		   Int_t compress,
                    const char* fileName,
-		   Int_t basketsize) :
+		   Int_t basketsize, Long64_t autoflush) :
   fRawDB(NULL),
   fTree(NULL),
   fEvent(event),
@@ -97,6 +97,7 @@ AliRawDB::AliRawDB(AliRawEventV2 *event,
   fESD(esd),
   fCompress(compress),
   fBasketSize(basketsize),
+  fAutoFlush(autoflush),
   fMaxSize(-1),
   fFS1(""),
   fFS2(""),
@@ -308,7 +309,8 @@ void AliRawDB::MakeTree()
 
    fTree = new TTree("RAW", Form("ALICE raw-data tree (%s)", GetAliRootTag()));
    fTree->SetAutoSave(21000000000LL);  // autosave when 21 Gbyte written
-
+   fTree->SetAutoFlush(fAutoFlush);
+  
    fTree->BranchRef();
 
    Int_t split   = 99;
@@ -335,6 +337,7 @@ void AliRawDB::MakeTree()
    if (fESD) {
      fESDTree = new TTree("esdTree", Form("ALICE HLT ESD tree (%s)", GetAliRootTag()));
      fESDTree->SetAutoSave(21000000000LL);  // autosave when 21 Gbyte written
+     fESDTree->SetAutoFlush(fAutoFlush);
      split   = 0;
      fESDTree->Branch("ESD", "AliESDEvent", &fESD, fBasketSize, split);
    }

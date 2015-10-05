@@ -175,17 +175,17 @@ void AliZDCQADataMakerRec::InitRaws()
   Add2RawsList(hRawSumQZPC, 12, expert, !image);
   Add2RawsList(hRawSumQZPA, 13, expert, !image);
   
-  TH1F * hRawTDCZNC = new TH1F("hRawTDCZNC", "TDC ZNC;TDC [ns]",160, -320., -260.);
+  TH1F * hRawTDCZNC = new TH1F("hRawTDCZNC", "TDC ZNC;TDC [ns]",160, -360., -320.);
   Add2RawsList(hRawTDCZNC, 14, expert, !image);
-  TH1F * hRawTDCZPC = new TH1F("hRawTDCZPC", "TDC ZPC;TDC [ns]",160, -340., -280.);
+  TH1F * hRawTDCZPC = new TH1F("hRawTDCZPC", "TDC ZPC;TDC [ns]",160, -360., -320.);
   Add2RawsList(hRawTDCZPC, 15, expert, !image);
-  TH1F * hRawTDCZNA = new TH1F("hRawTDCZNA", "TDC ZNA;TDC [ns]",160, -340., -280.);
+  TH1F * hRawTDCZNA = new TH1F("hRawTDCZNA", "TDC ZNA;TDC [ns]",160, -360., -320.);
   Add2RawsList(hRawTDCZNA, 16, expert, !image);
-  TH1F * hRawTDCZPA = new TH1F("hRawTDCZPA", "TDC ZPA;TDC [ns]",160, -340., -280.);
+  TH1F * hRawTDCZPA = new TH1F("hRawTDCZPA", "TDC ZPA;TDC [ns]",160, -360., -320.);
   Add2RawsList(hRawTDCZPA, 17, expert, !image);
-  TH1F * hRawTDCZEM1 = new TH1F("hRawTDCZEM1", "TDC ZEM1;TDC [ns]",160, -320., -280.);
+  TH1F * hRawTDCZEM1 = new TH1F("hRawTDCZEM1", "TDC ZEM1;TDC [ns]",160, -330., -290.);
   Add2RawsList(hRawTDCZEM1, 18, expert, !image);
-  TH1F * hRawTDCZEM2 = new TH1F("hRawTDCZEM2", "TDC ZEM2;TDC [ns]",160, -320., -280.);
+  TH1F * hRawTDCZEM2 = new TH1F("hRawTDCZEM2", "TDC ZEM2;TDC [ns]",160, -330., -290.);
   Add2RawsList(hRawTDCZEM2, 19, expert, !image);
   
   TProfile * hRawADCProfs = new TProfile("hRawADCProfs", "ADC profiles;ADC id;Mean ADC values",22,-0.5,21.5,10.,1210.,"");
@@ -200,7 +200,7 @@ void AliZDCQADataMakerRec::InitRaws()
 //  hRawTDCs->SetMaximum(-300); hRawTDCs->SetMinimum(-340);
   Add2RawsList(hRawTDCs, 23, !expert, image);
   
-  TH2F *hTimeZDC = new TH2F("hTimeZDC", "ZDC timing;(ZNC-ZNA) (ns);(ZNC+ZNA) (ns)", 120,-30.,30.,120,-100.,-40.);
+  TH2F *hTimeZDC = new TH2F("hTimeZDC", "ZDC timing;(ZNC-ZNA) (ns);(ZNC+ZNA) (ns)", 240,-60.,60.,200,-200.,-100.);
   Add2RawsList(hTimeZDC, 24, !expert, image);
   
   TH2F *hZNCrawCentr  = new TH2F("hZNCrawCentr", "ZNC centroid;X (cm);Y(cm)", 100,-3.5,3.5,100,-3.5,3.5);
@@ -605,63 +605,63 @@ void AliZDCQADataMakerRec::MakeRaws(AliRawReader *rawReader)
       } //IsADCDataWord && signal ADCs
       else if(stream.IsZDCTDCDatum()){
          Float_t tdcValue = 0.025*stream.GetZDCTDCDatum();
-	 if(stream.GetChannel()==1 && tdcValue!=0.){
+	 if(stream.GetChannel()==8 && tdcValue!=0.){
 	    zncTDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==3 && tdcValue!=0.){
+	 else if(stream.GetChannel()==9 && tdcValue!=0.){
 	    zpcTDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==5 && tdcValue!=0.){
+	 else if(stream.GetChannel()==10 && tdcValue!=0.){
 	    znaTDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==7 && tdcValue!=0.){
+	 else if(stream.GetChannel()==11 && tdcValue!=0.){
 	    zpaTDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==8 && tdcValue!=0.){
+	 else if(stream.GetChannel()==22 && tdcValue!=0.){
 	    zem1TDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==9 && tdcValue!=0.){
+	 else if(stream.GetChannel()==23 && tdcValue!=0.){
 	    zem2TDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==10 && tdcValue!=0.){
+	 else if(stream.GetChannel()==16 && tdcValue!=0.){
 	    zncSumTDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==12 && tdcValue!=0.){
+	 else if(stream.GetChannel()==18 && tdcValue!=0.){
 	    znaSumTDC = tdcValue;
 	 }
-	 else if(stream.GetChannel()==14 && tdcValue!=0.) tdcGate = tdcValue;
-	 else if(stream.GetChannel()==15 && tdcValue!=0.) l0 = tdcValue;
+	 else if(stream.GetChannel()==20 && tdcValue!=0.) tdcGate = tdcValue;
+	 else if(stream.GetChannel()==21 && tdcValue!=0.) l0 = tdcValue;
 	 
-	 if(stream.GetChannel()==16 && tdcGate!=0. && l0!=0.){
+	 if(stream.GetChannel()>23 && tdcGate!=0. && l0!=0.){
 	      if(zncTDC!=0.){
 	        Float_t znc = zncTDC-tdcGate;
 	        FillRawsData(14,znc);
-		if(znc>-340. && znc<-290.) FillRawsData(21,1, znc);
+		if(znc>-360. && znc<-320.) FillRawsData(21,1, znc);
 	      }
 	      if(zpcTDC!=0.){
 	        Float_t zpc = zpcTDC-tdcGate;
 	        FillRawsData(15,zpc);
-	        if(zpc>-340. && zpc<-290.) FillRawsData(21,2, zpc);
+	        if(zpc>-360. && zpc<-320.) FillRawsData(21,2, zpc);
 	      }
 	      if(znaTDC!=0.){
 	        Float_t zna = znaTDC-tdcGate;
 	        FillRawsData(16,zna);
-	        if(zna>-340. && zna<-290.) FillRawsData(21,3, zna);
+	        if(zna>-360. && zna<-320.) FillRawsData(21,3, zna);
 	      }
 	      if(zpaTDC!=0.){
 	        Float_t zpa = zpaTDC-tdcGate;
 	        FillRawsData(17,zpa);
-	        if(zpa>-340. && zpa<-290.) FillRawsData(21,4, zpa);
+	        if(zpa>-360. && zpa<-320.) FillRawsData(21,4, zpa);
 	      }
 	      if(zem1TDC!=0.){
 	        Float_t zem1 = zem1TDC-tdcGate;
 	        FillRawsData(18,zem1);
-		if(zem1>-340. && zem1<-290.) FillRawsData(21,5, zem1);
+		if(zem1>-330. && zem1<-290.) FillRawsData(21,5, zem1);
 	      }
 	      if(zem2TDC!=0.){
 	        Float_t zem2 = zem2TDC-tdcGate;
 	        FillRawsData(19,zem2);
-	        if(zem2TDC>-340. && zem2<-290.) FillRawsData(21,6, zem2);
+	        if(zem2TDC>-330. && zem2<-290.) FillRawsData(21,6, zem2);
               }
 	      if(znaSumTDC!=0. && zncSumTDC!=0.){
 	         Float_t tdcC = zncSumTDC-l0;
@@ -843,7 +843,7 @@ void AliZDCQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 	TH1F* h18 =  dynamic_cast<TH1F*> (GetRawsData(18, itc));
 	TH1F* h19 =  dynamic_cast<TH1F*> (GetRawsData(19, itc));
 	TProfile* h20 = dynamic_cast<TProfile*> (GetRawsData(20, itc));
-	//TProfile* h21 =  dynamic_cast<TProfile*> (GetRawsData(21, itc));
+	TProfile* h21 = dynamic_cast<TProfile*> (GetRawsData(21, itc));
 	TH1F* h22 =  dynamic_cast<TH1F*> (GetRawsData(22, itc));
 	TH1F* h23 =  dynamic_cast<TH1F*> (GetRawsData(23, itc));
 	TH2F* h24 =  dynamic_cast<TH2F*> (GetRawsData(24, itc));
@@ -861,7 +861,8 @@ void AliZDCQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 	      h22->SetBinContent(ibin, h20->GetBinContent(ibin)); 
 	      h22->SetBinError(ibin, h20->GetBinError(ibin));
 	    }
-	    h22->SetLineColor(kBlue+1); h22->SetLineWidth(2);
+	    h22->SetLineColor(kBlue+3); 
+	    h22->SetLineWidth(2);
 	  }
 	  else printf("Warning: Raw ADC QA histo not found \n\n");
 	}
@@ -872,7 +873,7 @@ void AliZDCQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 	}
 	else{
 	  /*for(Int_t ibin=1; ibin<=h21->GetNbinsX(); ibin++){
-	    printf("  bin %d  TDC %f\n",ibin,  h21->GetBinContent(ibin));
+	    //printf("  bin %d  TDC %f\n",ibin,  h21->GetBinContent(ibin));
 	    h23->SetBinContent(ibin, h21->GetBinContent(ibin)); 
 	    h23->SetBinError(ibin, h21->GetBinError(ibin));
 	  }*/
@@ -890,7 +891,7 @@ void AliZDCQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 	    h23->SetBinContent(6, h19->GetMean());
 	    h23->SetBinError(6, h19->GetRMS());
 	    //
-	    h23->SetLineColor(kAzure+6); 
+	    h23->SetLineColor(kAzure+8); 
 	    h23->SetLineWidth(2);
 	  }
 	  else printf(" Warning: Raw TDC QA histo not found\n\n");
@@ -901,15 +902,15 @@ void AliZDCQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArr
 			 AliRecoParam::GetEventSpecieName(specie), AliQADataMaker::GetTrigClassName(itc)));
 	}
 	else{
-	 h25->SetMarkerColor(kPink-2); 
-	 h26->SetMarkerColor(kAzure-2);
+	 //h25->SetMarkerColor(kPink-2); 
+	 //h26->SetMarkerColor(kAzure-2);
 	}
 	if(!h24) {
 	 AliWarning("AliZDCQADataMakerRec -> RAW debunching histo not found!"); 
 	 AliWarning(Form("for specie %s and trigger class %s",
 			 AliRecoParam::GetEventSpecieName(specie), AliQADataMaker::GetTrigClassName(itc)));
 	}
-	else h24->SetMarkerColor(kAzure);
+	//else h24->SetMarkerColor(kAzure);
       }
     } // loop over t
   } //  loop over species

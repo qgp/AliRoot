@@ -22,7 +22,7 @@ include_directories(${AliRoot_SOURCE_DIR}/${MODULE}
                    )
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/EVGEN
                     ${AliRoot_SOURCE_DIR}/STEER/STEER
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
@@ -85,6 +85,7 @@ endif(${CMAKE_SYSTEM} MATCHES Darwin)
 install(TARGETS ${MODULE}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib)
-install(FILES ${HDRS} DESTINATION include)
+install_relative(FILES ${HDRS} DESTINATION include)
+install_relative(FILES UHKM/particles.data DESTINATION TUHKMgen)
 
 message(STATUS "${MODULE} enabled")

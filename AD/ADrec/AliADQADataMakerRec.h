@@ -22,18 +22,45 @@ class TObjArray;
 class AliCDBManager;
 class AliCDBStorage;
 class AliADCalibData;
+class AliADRecoParam;
+class AliADQAParam;
 
 class AliADQADataMakerRec: public AliQADataMakerRec {
 
 public:
   // Histograms for Raw data control
-  enum HRawType_t {kPedestalInt0,kPedestalInt1,
-  		   kChargeEoI,kChargeEoIInt0,kChargeEoIInt1,
-		   kWidth,kHPTDCTime,kWidthBB,kWidthBG,kHPTDCTimeBB,kHPTDCTimeBG,
-		   kChargeVsClockInt0,kChargeVsClockInt1,kBBFlagVsClock,kBGFlagVsClock,kBBFlagsPerChannel,kBGFlagsPerChannel,
-		   kMultiADA,kMultiADC,kChargeADA,kChargeADC,kChargeAD, 
-		   kADATime,kADCTime,kDiffTime,kTimeADAADC,
-		   kNCoincADA,kNCoincADC,kPairDiffTime,kPairDiffCharge};
+  enum HRawType_t {
+  		   kChargeADA,kChargeADC,kChargeEoI,kChargeEoIBB,kChargeEoIBG,
+		   kHPTDCTime,kHPTDCTimeBB,kHPTDCTimeBG,kWidth,
+		   kHPTDCTimeRebin,kHPTDCTimeRebinBB,kHPTDCTimeRebinBG,
+		   kBBFlagVsClock,kBGFlagVsClock,kBBFlagsPerChannel,kBGFlagsPerChannel,
+		   kChargeVsClockInt0,kChargeVsClockInt1,kMaxChargeClock,
+		   kNBBCoincADA,kNBBCoincADC,kNBGCoincADA,kNBGCoincADC,
+		   kPedestalDiffInt0,kPedestalDiffInt1,
+		   kChargeEoIInt0,kChargeEoIInt1,kChargeSaturation,
+		   kNBBCoincCorr,kNBGCoincCorr,
+		   kTriggers,kDecisions,
+		   kMeanTimeADA,kMeanTimeADC,kMeanTimeDiff,kMeanTimeCorr,kMeanTimeSumDiff,
+		   kPedestalInt0,kPedestalInt1,
+		   kNEventsBBFlag,kNEventsBGFlag,
+		   kFlagNoTime,kTimeNoFlag,
+		   kWidthBB,kWidthBG,
+		   kTimeSlewingOff,kTimeSlewingOn,kWidthSlewing,
+		   kMultiADA,kMultiADC,kChargeAD, 
+		   
+		   kPairTimeDiffMean,kPairTimeDiffRMS,
+		   kNChargeCorrADA,
+		   kNChargeCorrADC = kNChargeCorrADA + 28,
+		   kNTimeCorrADA = kNChargeCorrADC + 28,
+		   kNTimeCorrADC = kNTimeCorrADA + 28,
+		   kNTimeDiffADA = kNTimeCorrADC + 28,
+		   kNTimeDiffADC = kNTimeDiffADA + 28};
+		   
+		   
+  enum HESDType_t {kCellMultiADA,kCellMultiADC,
+		   kBBFlag,kBGFlag,kChargeChannel,kTimeChannel,
+		   kESDADATime,kESDADCTime,kESDDiffTime,kESDADATimeVsCharge,kESDADCTimeVsCharge,
+		   kESDADAPairTimeSumDiff,kESDADCPairTimeSumDiff};
 	
 public:
   AliADQADataMakerRec() ;            // constructor
@@ -41,10 +68,13 @@ public:
   AliADQADataMakerRec& operator = (const AliADQADataMakerRec& qadm) ;
   virtual ~AliADQADataMakerRec() {;} // destructor
   AliADCalibData *GetCalibData() const;
+  AliADQAParam *GetQAParam() const;
   virtual void   InitRaws() ; 
   
 protected: 
   AliADCalibData *fCalibData;        //! calibration data
+  AliADRecoParam *fRecoParam;
+  AliADQAParam *fQAParam;
    
 private:
   virtual void   EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArray ** list) ;
@@ -59,14 +89,14 @@ private:
   
   Int_t   fEven[16];                  // even charge integrators
   Int_t   fOdd[16];                   // odd charge intergators
-  Float_t fADCmean[32];              // mean adc per integrator
+  Float_t fADCmean[32];               // mean adc per integrator
   size_t fTrendingUpdateTime;         // trending histos update time
   UInt_t fCycleStartTime;             // timestamp of QA start-of-cycle
   UInt_t fCycleStopTime;              // timestamp of QA end-of-cycle
-  Float_t            fTimeOffset[16]; //! HPTDC time offsets channel by channel
-  TF1*               fTimeSlewing;    //! Function for time slewing correction
+  Float_t fADADist;     	      // Z position of ADA
+  Float_t fADCDist;     	      // Z position of ADC
 
-  ClassDef(AliADQADataMakerRec,4)  // description 
+  ClassDef(AliADQADataMakerRec,3)  // description 
 
 };
 

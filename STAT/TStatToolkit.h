@@ -6,7 +6,10 @@
 //
 // some utilities which do net exist in the standard ROOT
 //
- 
+/// \file TStatToolkit.h
+/// \class TStatToolkit
+/// \brief Summary of statistics functions
+
 #include "TObject.h"
 #include "TVectorD.h"
 #include "TMatrixD.h"
@@ -27,11 +30,13 @@ class TGraphErrors;
 class TObjString;
 class TCut;
 class TTreeSRedirector;
-
+class THnBase;
 
 class TStatToolkit : public TObject
 {
  public:
+  enum TStatType {kEntries, kSum, kMean, kRMS, kMedian, kLTM, kLTMRMS}; 
+  enum ENormType {kL1, kL2, kLp, kMax, kHamming, kNNormType };   // http://en.wikipedia.org/w/index.php?title=Norm_(mathematics)&oldid=655824636
   TStatToolkit();
   virtual ~TStatToolkit();
   //
@@ -85,6 +90,21 @@ class TStatToolkit : public TObject
   static TTree*  WriteStatusToTree(TObject* oStatusGr);
   static TMultiGraph*  MakeStatusLines(TTree * tree, const char * expr, const char * cut, const char * alias);
   static void  MakeSummaryTree(TTree* treeIn, TTreeSRedirector *pcstream, TObjString& sumID, TCut &selection);
+  static Double_t GetDefaultStat(TTree * tree, const char * var, const char * selection, TStatType statType);
+  //
+  //
+  static void MakeDistortionMap(Int_t iter, THnBase * histo, TTreeSRedirector *pcstream, TMatrixD &projectionInfo, Int_t verbose=kFALSE);
+
+  //
+  // norm (distance) functions
+  //
+  static void     CombineArray(TTree *tree, TVectorD &values);
+  static Double_t GetDistance(const TVectorD &values, const ENormType normType,
+                              const Bool_t normaliseToEntries=kFALSE, const Double_t pvalue=1.);
+  static Double_t GetDistance(const Int_t size, const Double_t *values, const ENormType normType,
+                              const Bool_t normaliseToEntries=kFALSE, const Double_t pvalue=1.);
+  static Double_t GetDistance(TTree * tree, const char * var, const char * selection,
+                              const ENormType normType, const Bool_t normaliseToEntries=kFALSE, const Double_t pvalue=1.);
   //
   // TTree function for robust draw
   //

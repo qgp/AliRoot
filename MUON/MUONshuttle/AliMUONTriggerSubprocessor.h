@@ -22,6 +22,7 @@ class AliMUONGlobalCrateConfig;
 class AliMUONVCalibParam;
 class AliMUONVStore;
 class TString;
+class TClonesArray;
 
 class AliMUONTriggerSubprocessor : public AliMUONVSubprocessor
 {
@@ -47,15 +48,22 @@ private:
                         Bool_t& globalFile,
                         Bool_t& regionalFile,
                         Bool_t& localFile,
-                        Bool_t& lutFile) const;
+                        Bool_t& lutFile,
+			Bool_t& trigScalFile);
   
 private:
-  AliMUONRegionalTriggerConfig* fRegionalConfig; //!< regional config
-  AliMUONVStore* fLocalMasks; //!< local masks
-  AliMUONGlobalCrateConfig*     fGlobalConfig;   //!< global config
-  AliMUONTriggerLut* fLUT; //!< look-up table(s)
+  AliMUONRegionalTriggerConfig* fRegionalConfig; //!<! regional config
+  AliMUONVStore* fLocalMasks; //!<! local masks
+  AliMUONGlobalCrateConfig*     fGlobalConfig;   //!<! global config
+  AliMUONTriggerLut* fLUT; //!<! look-up table(s)
+  TClonesArray* fTrigScalers; //!<! trigger scalers
+  Bool_t fRegionalConfigToOCDB; //!<! to store in the OCDB
+  Bool_t fLocalMasksToOCDB; //!<! to store in the OCDB
+  Bool_t fGlobalConfigToOCDB; //!<! to store in the OCDB
+  Bool_t fLUTToOCDB; //!<! to store in the OCDB
+  Bool_t fTrigScalersToOCDB; //!<! to store in the OCDB
   
-  ClassDef(AliMUONTriggerSubprocessor,2) // A shuttle preprocessor for MUON TRK masks
+  ClassDef(AliMUONTriggerSubprocessor,4) // A shuttle preprocessor for MUON TRK masks
 };
 
 #endif

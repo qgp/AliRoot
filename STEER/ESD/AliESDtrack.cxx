@@ -234,6 +234,7 @@ AliESDtrack::AliESDtrack() :
   fHMPIDchi2(0),
   fGlobalChi2(0),
   fITSsignal(0),
+  fITSsignalTuned(0),
   fTPCsignal(0),
   fTPCsignalTuned(0),
   fTPCsignalS(0),
@@ -353,6 +354,7 @@ AliESDtrack::AliESDtrack(const AliESDtrack& track):
   fHMPIDchi2(track.fHMPIDchi2),
   fGlobalChi2(track.fGlobalChi2),
   fITSsignal(track.fITSsignal),
+  fITSsignalTuned(track.fITSsignalTuned),
   fTPCsignal(track.fTPCsignal),
   fTPCsignalTuned(track.fTPCsignalTuned),
   fTPCsignalS(track.fTPCsignalS),
@@ -530,6 +532,7 @@ AliESDtrack::AliESDtrack(const AliVTrack *track) :
   fHMPIDchi2(0),
   fGlobalChi2(0),
   fITSsignal(0),
+  fITSsignalTuned(0),
   fTPCsignal(0),
   fTPCsignalTuned(0),
   fTPCsignalS(0),
@@ -639,6 +642,7 @@ AliESDtrack::AliESDtrack(const AliVTrack *track) :
   //
   // PID info
   fITSsignal = track->GetITSsignal();
+  fITSsignalTuned = track->GetITSsignalTunedOnData();
   double itsdEdx[4];
   track->GetITSdEdxSamples(itsdEdx);
   SetITSdEdxSamples(itsdEdx);
@@ -727,6 +731,7 @@ AliESDtrack::AliESDtrack(TParticle * part) :
   fHMPIDchi2(0),
   fGlobalChi2(0),
   fITSsignal(0),
+  fITSsignalTuned(0),
   fTPCsignal(0),
   fTPCsignalTuned(0),
   fTPCsignalS(0),
@@ -1079,6 +1084,7 @@ AliESDtrack &AliESDtrack::operator=(const AliESDtrack &source)
   fGlobalChi2 = source.fGlobalChi2;      
 
   fITSsignal  = source.fITSsignal;     
+  fITSsignalTuned = source.fITSsignalTuned;
   for (Int_t i=0;i<4;i++) {fITSdEdxSamples[i]=source.fITSdEdxSamples[i];}
   fTPCsignal  = source.fTPCsignal;     
   fTPCsignalTuned  = source.fTPCsignalTuned;
@@ -1318,6 +1324,7 @@ void AliESDtrack::MakeMiniESDtrack(){
   fITSClusterMap=0;
   fITSSharedMap=0;
   fITSsignal = 0;     
+  fITSsignalTuned = 0;
   for (Int_t i=0;i<4;i++) fITSdEdxSamples[i] = 0.;
   if (fITSr) for (Int_t i=0;i<AliPID::kSPECIES;i++) fITSr[i]=0; 
   fITSLabel = 0;       
@@ -1446,10 +1453,20 @@ Int_t AliESDtrack::GetPID(Bool_t tpcOnly) const
 Int_t AliESDtrack::GetTOFBunchCrossing(Double_t b, Bool_t pidTPConly) const 
 {
   // Returns the number of bunch crossings after trigger (assuming 25ns spacing)
-  const double kSpacing = 25e3; // min interbanch spacing
-  const double kShift = 0;
-  Int_t bcid = kTOFBCNA; // defualt one
-  if (!IsOn(kTOFout)/* || !IsOn(kESDpid)*/) return bcid; // no info
+  const double kSpacing = 25; // min interbanch spacing in ns
+  if (!IsOn(kTOFout)) return kTOFBCNA;
+  double tdif = GetTOFExpTDiff(b,pidTPConly);
+  return TMath::Nint(tdif/kSpacing);
+  //
+}
+
+//_______________________________________________________________________
+Double_t AliESDtrack::GetTOFExpTDiff(Double_t b, Bool_t pidTPConly) const 
+{
+  // Returns the time difference in ns between TOF signal and expected time
+  const double kps2ns = 1e-3; // we need ns
+  const double kNoInfo = kTOFBCNA*25; // no info
+ if (!IsOn(kTOFout)) return kNoInfo; // no info
   //
   double tdif = GetTOFsignal();
   if (IsOn(kTIME)) { // integrated time info is there
@@ -1463,15 +1480,14 @@ Int_t AliESDtrack::GetTOFBunchCrossing(Double_t b, Bool_t pidTPConly) const
     const double kRTOF = 385.;
     const double kCSpeed = 3.e-2; // cm/ps
     double p = GetP();
-    if (p<0.01) return bcid;
+    if (p<0.01) return kNoInfo;
     double m = GetMass(pidTPConly);
     double curv = GetC(b);
     double path = TMath::Abs(curv)>kAlmost0 ? // account for curvature
       2./curv*TMath::ASin(kRTOF*curv/2.)*TMath::Sqrt(1.+GetTgl()*GetTgl()) : kRTOF;
     tdif -= path/kCSpeed*TMath::Sqrt(1.+m*m/(p*p));
   }
-  bcid = TMath::Nint((tdif - kShift)/kSpacing);
-  return bcid;
+  return tdif*kps2ns;
 }
 
 //______________________________________________________________________________
@@ -1887,8 +1903,11 @@ void AliESDtrack::GetIntegratedTimes(Double_t *times, Int_t nspec) const
   if(fTrackTime)
     for (int i=nspec; i--;) times[i]=fTrackTime[i];
   else
-    for (int i=AliPID::kSPECIESC; i--;) times[i]=0.0;
-  //
+// The line below is wrong since it does not honor the nspec value
+// The "times" array may have only AliPID::kSPECIES size, as called by:
+// AliESDpidCuts::AcceptTrack()
+//    for (int i=AliPID::kSPECIESC; i--;) times[i]=0.0;
+    for (int i=nspec; i--;) times[i]=0.0;
 }
 //_______________________________________________________________________
 Double_t AliESDtrack::GetIntegratedLength() const{
@@ -2469,6 +2488,219 @@ void AliESDtrack::GetESDpid(Double_t *p) const {
   // Gets probability of each particle type for the ESD track
   for (Int_t i=0; i<AliPID::kSPECIES; i++) p[i] = fR ? fR[i]:0;
 }
+
+//_______________________________________________________________________
+Bool_t AliESDtrack::RelateToVVertexTPC(const AliVVertex *vtx, 
+Double_t b, Double_t maxd, AliExternalTrackParam *cParam) {
+  //
+  // Try to relate the TPC-only track parameters to the vertex "vtx", 
+  // if the (rough) transverse impact parameter is not bigger then "maxd". 
+  //            Magnetic field is "b" (kG).
+  //
+  // a) The TPC-only paramters are extapolated to the DCA to the vertex.
+  // b) The impact parameters and their covariance matrix are calculated.
+  // c) An attempt to constrain the TPC-only params to the vertex is done.
+  //    The constrained params are returned via "cParam".
+  //
+  // In the case of success, the returned value is kTRUE
+  // otherwise, it's kFALSE)
+  // 
+
+  if (!fTPCInner) return kFALSE;
+  if (!vtx) return kFALSE;
+
+  Double_t dz[2],cov[3];
+  if (!fTPCInner->PropagateToDCA(vtx, b, maxd, dz, cov)) return kFALSE;
+
+  fdTPC = dz[0];
+  fzTPC = dz[1];  
+  fCddTPC = cov[0];
+  fCdzTPC = cov[1];
+  fCzzTPC = cov[2];
+  
+  Double_t covar[6]; vtx->GetCovarianceMatrix(covar);
+  Double_t p[2]={GetParameter()[0]-dz[0],GetParameter()[1]-dz[1]};
+  Double_t c[3]={covar[2],0.,covar[5]};
+
+  Double_t chi2=GetPredictedChi2(p,c);
+  if (chi2>kVeryBig) return kFALSE;
+
+  fCchi2TPC=chi2;
+
+  if (!cParam) return kTRUE;
+
+  *cParam = *fTPCInner;
+  if (!cParam->Update(p,c)) return kFALSE;
+
+  return kTRUE;
+}
+
+//_______________________________________________________________________
+Bool_t AliESDtrack::RelateToVVertexTPCBxByBz(const AliVVertex *vtx, 
+Double_t b[3], Double_t maxd, AliExternalTrackParam *cParam) {
+  //
+  // Try to relate the TPC-only track parameters to the vertex "vtx", 
+  // if the (rough) transverse impact parameter is not bigger then "maxd". 
+  //
+  // All three components of the magnetic field ,"b[3]" (kG), 
+  // are taken into account.
+  //
+  // a) The TPC-only paramters are extapolated to the DCA to the vertex.
+  // b) The impact parameters and their covariance matrix are calculated.
+  // c) An attempt to constrain the TPC-only params to the vertex is done.
+  //    The constrained params are returned via "cParam".
+  //
+  // In the case of success, the returned value is kTRUE
+  // otherwise, it's kFALSE)
+  // 
+
+  if (!fTPCInner) return kFALSE;
+  if (!vtx) return kFALSE;
+
+  Double_t dz[2],cov[3];
+  if (!fTPCInner->PropagateToDCABxByBz(vtx, b, maxd, dz, cov)) return kFALSE;
+
+  fdTPC = dz[0];
+  fzTPC = dz[1];  
+  fCddTPC = cov[0];
+  fCdzTPC = cov[1];
+  fCzzTPC = cov[2];
+  
+  Double_t covar[6]; vtx->GetCovarianceMatrix(covar);
+  Double_t p[2]={GetParameter()[0]-dz[0],GetParameter()[1]-dz[1]};
+  Double_t c[3]={covar[2],0.,covar[5]};
+
+  Double_t chi2=GetPredictedChi2(p,c);
+  if (chi2>kVeryBig) return kFALSE;
+
+  fCchi2TPC=chi2;
+
+  if (!cParam) return kTRUE;
+
+  *cParam = *fTPCInner;
+  if (!cParam->Update(p,c)) return kFALSE;
+
+  return kTRUE;
+}
+
+//_______________________________________________________________________
+Bool_t AliESDtrack::RelateToVVertex(const AliVVertex *vtx, 
+Double_t b, Double_t maxd, AliExternalTrackParam *cParam) {
+  //
+  // Try to relate this track to the vertex "vtx", 
+  // if the (rough) transverse impact parameter is not bigger then "maxd". 
+  //            Magnetic field is "b" (kG).
+  //
+  // a) The track gets extapolated to the DCA to the vertex.
+  // b) The impact parameters and their covariance matrix are calculated.
+  // c) An attempt to constrain this track to the vertex is done.
+  //    The constrained params are returned via "cParam".
+  //
+  // In the case of success, the returned value is kTRUE
+  // (otherwise, it's kFALSE)
+  //  
+
+  if (!vtx) return kFALSE;
+
+  Double_t dz[2],cov[3];
+  if (!PropagateToDCA(vtx, b, maxd, dz, cov)) return kFALSE;
+
+  fD = dz[0];
+  fZ = dz[1];  
+  fCdd = cov[0];
+  fCdz = cov[1];
+  fCzz = cov[2];
+  
+  Double_t covar[6]; vtx->GetCovarianceMatrix(covar);
+  Double_t p[2]={GetParameter()[0]-dz[0],GetParameter()[1]-dz[1]};
+  Double_t c[3]={covar[2],0.,covar[5]};
+
+  Double_t chi2=GetPredictedChi2(p,c);
+  if (chi2>kVeryBig) return kFALSE;
+
+  fCchi2=chi2;
+
+
+  //--- Could now these lines be removed ? ---
+  delete fCp;
+  fCp=new AliExternalTrackParam(*this);  
+
+  if (!fCp->Update(p,c)) {delete fCp; fCp=0; return kFALSE;}
+  //----------------------------------------
+
+  // fVertexID = vtx->GetID(); //No GetID() in AliVVertex
+
+  if (!cParam) return kTRUE;
+
+  *cParam = *this;
+  if (!cParam->Update(p,c)) return kFALSE; 
+
+  return kTRUE;
+}
+
+//_______________________________________________________________________
+Bool_t AliESDtrack::RelateToVVertexBxByBz(const AliVVertex *vtx, 
+Double_t b[3], Double_t maxd, AliExternalTrackParam *cParam) {
+  //
+  // Try to relate this track to the vertex "vtx", 
+  // if the (rough) transverse impact parameter is not bigger then "maxd". 
+  //            Magnetic field is "b" (kG).
+  //
+  // a) The track gets extapolated to the DCA to the vertex.
+  // b) The impact parameters and their covariance matrix are calculated.
+  // c) An attempt to constrain this track to the vertex is done.
+  //    The constrained params are returned via "cParam".
+  //
+  // In the case of success, the returned value is kTRUE
+  // (otherwise, it's kFALSE)
+  //  
+
+  if (!vtx) return kFALSE;
+
+  Double_t dz[2],cov[3];
+  if (!PropagateToDCABxByBz(vtx, b, maxd, dz, cov)) return kFALSE;
+
+  fD = dz[0];
+  fZ = dz[1];  
+  fCdd = cov[0];
+  fCdz = cov[1];
+  fCzz = cov[2];
+  
+  Double_t covar[6]; vtx->GetCovarianceMatrix(covar);
+  Double_t p[2]={GetParameter()[0]-dz[0],GetParameter()[1]-dz[1]};
+  Double_t c[3]={covar[2],0.,covar[5]};
+
+  Double_t chi2=GetPredictedChi2(p,c);
+  if (chi2>kVeryBig) return kFALSE;
+
+  fCchi2=chi2;
+
+
+  //--- Could now these lines be removed ? ---
+  delete fCp;
+  fCp=new AliExternalTrackParam(*this);  
+
+  if (!fCp->Update(p,c)) {delete fCp; fCp=0; return kFALSE;}
+  //----------------------------------------
+
+  // fVertexID = vtx->GetID(); // No GetID in AliVVertex
+
+  if (!cParam) return kTRUE;
+
+  *cParam = *this;
+  if (!cParam->Update(p,c)) return kFALSE; 
+
+  return kTRUE;
+}
+
+
+
+
+
+
+
+
+
 
 //_______________________________________________________________________
 Bool_t AliESDtrack::RelateToVertexTPC(const AliESDVertex *vtx, 
@@ -3442,7 +3674,7 @@ void AliESDtrack::SortTOFcluster(){
 
 //____________________________________________
 const AliTOFHeader* AliESDtrack::GetTOFHeader() const {
-  return fESDEvent->GetTOFHeader();
+  return fESDEvent ? fESDEvent->GetTOFHeader() : 0x0;
 }
 
 //___________________________________________
@@ -3516,4 +3748,30 @@ Double_t AliESDtrack::GetdEdxInfoTRD(Int_t method, Double_t p0, Double_t p1, Dou
     return meanTime;
   }
   return 0;
+}
+
+void AliESDtrack::SetImpactParameters( const Float_t p[2], const Float_t cov[3], const Float_t chi2, const AliExternalTrackParam *cParam)
+{
+  // set impact parameters
+  
+  fD = p[0];
+  fZ = p[1];  
+  fCdd = cov[0];
+  fCdz = cov[1];
+  fCzz = cov[2];
+  fCchi2=chi2;
+  delete fCp;
+  if( cParam ) fCp=new AliExternalTrackParam(*cParam);  
+}
+
+void AliESDtrack::SetImpactParametersTPC( const Float_t p[2], const Float_t cov[3], const Float_t chi2 )
+{
+  // set impact parameters TPC
+  
+  fdTPC = p[0];
+  fzTPC = p[1];  
+  fCddTPC = cov[0];
+  fCdzTPC = cov[1];
+  fCzzTPC = cov[2];
+  fCchi2TPC = chi2;
 }

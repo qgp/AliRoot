@@ -150,7 +150,7 @@ Bool_t AliTriggerConfiguration::AddInput( AliTriggerInput* input )
     return kTRUE;
   }
   else {
-    AliError("CTP can handle up to 60 inputs ! Impossible to add the required input !");
+    AliError("CTP can handle up to 64 inputs ! Impossible to add the required input !");
     return kFALSE;
   }
 }
@@ -575,14 +575,23 @@ Bool_t AliTriggerConfiguration::ProcessConfigurationLine(const char* line, Int_t
        break;
      case 2:
        // Read interaction
-       if (ntokens != 2) {
+       {
+        TString inter;
+        if (ntokens < 2) {
 	 AliError(Form("Invalid trigger interaction syntax (%s)!",strLine.Data()));
 	 delete tokens;
 	 return kFALSE;
+        } else if (ntokens == 2) {
+         inter=((TObjString*)tokens->At(1))->String();
+        } else {
+	 AliWarning(Form("Trigger interaction syntax (%s)!",strLine.Data()));
+	 for(Int_t i=1;i<ntokens;i++){
+	    inter=inter+((TObjString*)tokens->At(i))->String();
+	 }
+        }
+        AddInteraction(((TObjString*)tokens->At(0))->String(),inter);
+        break;
        }
-       AddInteraction(((TObjString*)tokens->At(0))->String(),
-			   ((TObjString*)tokens->At(1))->String());
-       break;
      case 3:
        // Read logical functions and descriptors
        if (ntokens < 2) {
@@ -644,7 +653,7 @@ Bool_t AliTriggerConfiguration::ProcessConfigurationLine(const char* line, Int_t
 	   pfp = new AliTriggerPFProtection(((TObjString*)tokens->At(0))->String());
 	 }
 	 else {
-           if (ntokens == 10){ 
+           if ((ntokens == 10) && (fVersion<=7)){ 
 	    pfp = new AliTriggerPFProtection(((TObjString*)tokens->At(0))->String(),
 					    ((TObjString*)tokens->At(1))->String(),
 					    ((TObjString*)tokens->At(2))->String(),
@@ -655,7 +664,7 @@ Bool_t AliTriggerConfiguration::ProcessConfigurationLine(const char* line, Int_t
 	    pfp->SetNb2(((TObjString*)tokens->At(7))->String().Atoi());
 	    pfp->SetTa(((TObjString*)tokens->At(8))->String().Atoi());
 	    pfp->SetTb(((TObjString*)tokens->At(9))->String().Atoi());
-	  }else if(ntokens == 13){
+	  }else if((ntokens == 13) && (fVersion<=7)){
 	    UInt_t pfdef[12];
 	    for(Int_t i=0;i<12;i++){
 	       TString ss(((TObjString*)tokens->At(i+1))->String());
@@ -675,6 +684,19 @@ Bool_t AliTriggerConfiguration::ProcessConfigurationLine(const char* line, Int_t
 	       pfdef[i]=num;
 	    }   
 	    pfp = new AliTriggerPFProtection(((TObjString*)tokens->At(0))->String(),pfdef);
+	  }else if((ntokens==9) && (fVersion>7)){
+	    // new LML0 PF
+	    pfp = new AliTriggerPFProtection(
+	    ((TObjString*)tokens->At(0))->String(),
+	    ((TObjString*)tokens->At(1))->String(),
+	    ((TObjString*)tokens->At(2))->String(),
+	    ((TObjString*)tokens->At(3))->String().Atoi(),
+	    ((TObjString*)tokens->At(4))->String().Atoi(),
+	    ((TObjString*)tokens->At(5))->String().Atoi(),
+	    ((TObjString*)tokens->At(6))->String().Atoi(),
+	    ((TObjString*)tokens->At(7))->String().Atoi(),
+	    ((TObjString*)tokens->At(8))->String().Atoi()
+            );
 	  }else{
   	     AliError(Form("Invalid trigger pfs syntax (%s)!",strLine.Data()));
 	     //return kFALSE;
@@ -900,8 +922,7 @@ Int_t AliTriggerConfiguration::GetClassIndexFromName(const char* className) cons
    for (Int_t i=0;i<nclasses;i++) {
        AliTriggerClass* trgclass = (AliTriggerClass*)fClasses.At(i);
        if (TString(trgclass->GetName()).CompareTo(className) == 0) { 
-          ULong64_t classmask = (ULong64_t)trgclass->GetMask();
-          return TMath::Nint(TMath::Log2(classmask))+1;
+          return trgclass->GetIndex();
        }
    }
    return -1;
@@ -912,8 +933,7 @@ const char* AliTriggerConfiguration::GetClassNameFromIndex(Int_t classIndex) con
    Int_t nclasses = (Int_t)fClasses.GetEntriesFast();
    for (Int_t i=0;i<nclasses;i++) {
        AliTriggerClass* trgclass = (AliTriggerClass*)fClasses.At(i);
-       ULong64_t classmask = (ULong64_t)trgclass->GetMask();
-       if (TMath::Nint(TMath::Log2(classmask))+1 == classIndex) return trgclass->GetName();
+       if (trgclass->GetIndex() == classIndex) return trgclass->GetName();
    }
    return 0;
 }
@@ -923,8 +943,7 @@ AliTriggerClass* AliTriggerConfiguration::GetTriggerClass(Int_t classIndex) cons
    Int_t nclasses = (Int_t)fClasses.GetEntriesFast();
    for (Int_t i=0;i<nclasses;i++) {
        AliTriggerClass* trgclass = (AliTriggerClass*)fClasses.At(i);
-       ULong64_t classmask = (ULong64_t)trgclass->GetMask();
-       if (TMath::Nint(TMath::Log2(classmask))+1 == classIndex) return trgclass;
+       if ( trgclass->GetIndex() == classIndex) return trgclass;
    }
    return 0;
 }

@@ -15,6 +15,7 @@
 
 #include "AliDigitizer.h"
 #include "AliADConst.h"
+#include "TSpline.h"
 
 class TClonesArray;
 class TF1;
@@ -23,6 +24,7 @@ class AliCDBManager;
 class AliCDBStorage;
 class AliADCalibData;
 class AliAD;
+class TSpline3;
 
 class AliADDigitizer: public AliDigitizer {
 
@@ -46,20 +48,23 @@ public:
    void WriteSDigits(AliLoader *loader);
    void ReadSDigits();
 
-   void AddDigit(Int_t pmnumber, Float_t time, Float_t width, Bool_t integrator, Short_t *chargeADC, Int_t *labels);
+   void AddDigit(Int_t pmnumber, Float_t time, Float_t width, Bool_t integrator, Short_t *chargeADC, Bool_t bbFlag, Bool_t bgFlag, Int_t *labels);
    void AddSDigit(Int_t pmnumber, Int_t nbins, Float_t *charges, Int_t *labels);
    TClonesArray* DigitsArray(); 
    TClonesArray* SDigitsArray(); 
    void ResetDigits();
 						
    AliADCalibData *GetCalibData() const;
+   void GetTimeSlewingSplines();
+   void ExtrapolateSplines();
+   Float_t UnCorrectLeadingTime(Int_t i, Float_t time, Float_t adc) const;
 
-   TF1*   GetSignalShape() const { return fSignalShape; }
-   TF1*   GetPMResponse() const { return fPMResponse; }
-   TF1*   GetSinglePhESpectrum() const { return fSinglePhESpectrum; }
-   double SignalShape(double *x, double *par);
-   double PMResponse(double *x, double *par);
-   double SinglePhESpectrum(double *x, double *par);
+   TF1*   GetChargeSignalShape() const { return fChargeSignalShape; }
+   TF1*   GetTimeSignalShape() const { return fTimeSignalShape; }
+   
+   double ChargeSignalShape(double *x, double *par);
+   double TimeSignalShape(double *x, double *par);
+   double ThresholdShape(double *x, double *par);
 
  protected:
  
@@ -74,13 +79,20 @@ public:
    Int_t    fNdigits;                //! Number of digits
    TClonesArray *fDigits;            //! List of digits
    
-   TF1*     fSignalShape;            // function which describes the PMT signal shape
-   TF1*     fPMResponse;             // function which describes the PM time response
-   TF1*     fSinglePhESpectrum;      // function which describes the single ph.e. PM response
+   TF1*     fChargeSignalShape;            // function which describes the charge signal shape
+   Float_t  fCssTau[16];
+   Float_t  fCssSigma[16];
+   Float_t  fCssOffset[16];
+   
+   TF1*     fTimeSignalShape;             // function which describes the time response
+   
+   TF1*     fThresholdShape;		  // function which describes theshold shape
 
-   Float_t  fAdc[16][kNClocks];      //! Container for ADC samples
+   Float_t  fAdc[16][kADNClocks];      //! Container for ADC samples
    Float_t  fLeadingTime[16];        //! Leading time container
    Float_t  fTimeWidth[16];          //! Time width container
+   Bool_t   fBBFlag[16];	     //! Container for BB flags
+   Bool_t   fBGFlag[16];	     //! Container for BG flags
    Float_t  fAdcPedestal[16][2];     //! Pedestals, one per integrator
    Float_t  fAdcSigma[16][2];        //! Sigma of pedestals
    Float_t  fPmGain[16];             //! PMT gains
@@ -89,6 +101,8 @@ public:
    Float_t  fBinSize[16];            //! Bin size in fTime container
    Float_t  fHptdcOffset[16];        //! HPTDC time offsets channel by channel
    Float_t  fClockOffset[16];        //! Clock offsets channel by channel
+   TSpline3 *fTimeSlewingSpline[16]; //! Time slewing splines
+   TF1      *fTimeSlewingExtpol[16]; //! Extrapolation to low charges
 
    Float_t *fTime[16];               //! Main container used in digitization
    Int_t    fLabels[16][3];          //! Container for MC labels
@@ -96,7 +110,7 @@ public:
 
    DigiTask_t fTask;                 //! The task (to be) executed by the digitizer
    AliAD  *fAD;                //! Pointer to AliDetector object
-   ClassDef(AliADDigitizer,1)     // digitizer for AD
+   ClassDef(AliADDigitizer,3)     // digitizer for AD
 
 };
 

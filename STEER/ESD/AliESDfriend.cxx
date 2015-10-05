@@ -23,12 +23,14 @@
 #include "AliESDfriend.h"
 #include "AliESDVZEROfriend.h"
 #include "AliESDTZEROfriend.h"
+#include "AliESDADfriend.h"
 
 ClassImp(AliESDfriend)
 
 AliESDfriend::AliESDfriend(): AliVfriendEvent(), fTracks("AliESDfriendTrack",1),
   fESDVZEROfriend(NULL),
   fESDTZEROfriend(NULL),
+  fESDADfriend(NULL),
   fNclustersTPC(),
   fNclustersTPCused()
 {
@@ -47,6 +49,7 @@ AliESDfriend::AliESDfriend(const AliESDfriend &f) :
   fTracks(f.fTracks),
   fESDVZEROfriend(f.fESDVZEROfriend ? new AliESDVZEROfriend(*f.fESDVZEROfriend) : NULL),
   fESDTZEROfriend(f.fESDTZEROfriend ? new AliESDTZEROfriend(*f.fESDTZEROfriend) : NULL),
+  fESDADfriend(f.fESDADfriend ? new AliESDADfriend(*f.fESDADfriend) : NULL),
   fNclustersTPC(),
   fNclustersTPCused()
 {
@@ -64,13 +67,28 @@ AliESDfriend& AliESDfriend::operator=(const AliESDfriend& esd)
     // Assignment operator
     if(&esd == this) return *this;
     TObject::operator=(esd);
+    // Clean up the old TClonesArray
+    fTracks.Delete();
+    // Assign the new one
     fTracks = esd.fTracks;
 
-    delete fESDVZEROfriend;
-    fESDVZEROfriend = new AliESDVZEROfriend(*esd.fESDVZEROfriend);
+    if(fESDVZEROfriend)
+      delete fESDVZEROfriend;
+    fESDVZEROfriend=0;
+    if(esd.fESDVZEROfriend)
+      fESDVZEROfriend = new AliESDVZEROfriend(*esd.fESDVZEROfriend);
+    
+    if(fESDTZEROfriend)
+      delete fESDTZEROfriend;
+    fESDTZEROfriend=0;
+    if(esd.fESDTZEROfriend)
+      fESDTZEROfriend = new AliESDTZEROfriend(*esd.fESDTZEROfriend);
 
-    delete fESDTZEROfriend;
-    fESDTZEROfriend = new AliESDTZEROfriend(*esd.fESDTZEROfriend);
+    if(fESDADfriend)
+      delete fESDADfriend;
+    fESDADfriend=0;
+    if(esd.fESDADfriend)
+      fESDADfriend = new AliESDADfriend(*esd.fESDADfriend);
  
     memcpy(fNclustersTPC,esd.fNclustersTPC,sizeof(fNclustersTPC));
     memcpy(fNclustersTPCused,esd.fNclustersTPCused,sizeof(fNclustersTPCused));
@@ -86,8 +104,15 @@ AliESDfriend::~AliESDfriend() {
   // Destructor
   //
   fTracks.Delete();
-  delete fESDVZEROfriend;
-  delete fESDTZEROfriend;
+  if(fESDVZEROfriend)
+    delete fESDVZEROfriend;
+  fESDVZEROfriend=0;
+  if(fESDTZEROfriend)
+    delete fESDTZEROfriend;
+  fESDTZEROfriend=0;
+  if(fESDADfriend)
+    delete fESDADfriend;
+  fESDADfriend=0;
 }
 
 
@@ -104,10 +129,11 @@ void AliESDfriend::Reset()
   }
   delete fESDVZEROfriend; fESDVZEROfriend=0;
   delete fESDTZEROfriend; fESDTZEROfriend=0;
+  delete fESDADfriend; fESDADfriend=0;
 }  
 
 
-void AliESDfriend::SetVZEROfriend(AliESDVZEROfriend * obj)
+void AliESDfriend::SetVZEROfriend(const AliESDVZEROfriend * obj)
 {
   //
   // Set the VZERO friend data object
@@ -122,4 +148,12 @@ void AliESDfriend::SetTZEROfriend(AliESDTZEROfriend * obj)
   // (complete raw data)
   if (!fESDTZEROfriend) fESDTZEROfriend = new AliESDTZEROfriend();
   if (obj) *fESDTZEROfriend = *obj;
+}
+void AliESDfriend::SetADfriend(AliESDADfriend * obj)
+{
+  //
+  // Set the AD friend data object
+  // (complete raw data)
+  if (!fESDADfriend) fESDADfriend = new AliESDADfriend();
+  if (obj) *fESDADfriend = *obj;
 }

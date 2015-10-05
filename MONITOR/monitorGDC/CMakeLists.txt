@@ -20,7 +20,8 @@ include_directories(${AliRoot_SOURCE_DIR}/MONITOR/${MODULE}
                    )
 
 # Additional include folders in alphabetical order
-include_directories(${AliRoot_SOURCE_DIR}
+include_directories(${ROOT_INCLUDE_DIR}
+                              ${AliRoot_SOURCE_DIR}
                    )
 
 if(DATE_FOUND)
@@ -39,10 +40,6 @@ set(SRCS
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
-
-if(DIMDIR AND ODIR)
-    link_directories(${DIMDIR}/${ODIR})
-endif()
 
 # Add an executable to the project using the specified source files
 add_executable(${MODULE} ${SRCS})

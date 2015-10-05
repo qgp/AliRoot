@@ -18,6 +18,7 @@
 
 #include "AliDCSValue.h"
 #include "AliLog.h"
+#include "AliADConst.h"
 
 #include <TGraph.h>
 #include <TAxis.h>
@@ -125,7 +126,7 @@ Bool_t AliADDataDCS::ProcessData(TMap& aliasMap){
 
     aliasArr = (TObjArray*) aliasMap.GetValue(fAliasNames[iAlias].Data());
     if(!aliasArr){
-      AliError(Form("Alias %s not found!", fAliasNames[iAlias].Data()));
+      AliError(Form("Missing data points for alias %s!", fAliasNames[iAlias].Data()));
       success = kFALSE;
       continue;
     }
@@ -133,7 +134,7 @@ Bool_t AliADDataDCS::ProcessData(TMap& aliasMap){
     //Introduce(iAlias, aliasArr);
     
     if(aliasArr->GetEntries()<2){
-      AliWarning(Form("Alias %s has just %d entries!",
+      AliWarning(Form("Alias %s has just %d data points!",
 		    fAliasNames[iAlias].Data(),aliasArr->GetEntries()));
     }
     
@@ -150,26 +151,24 @@ Bool_t AliADDataDCS::ProcessData(TMap& aliasMap){
 
     	while((aValue = (AliDCSValue*) iterarray.Next())) {
 			UInt_t currentTime = aValue->GetTimeStamp();
-			//if(currentTime>fCtpEndTime) break; //What is this for?
+			if(currentTime>fCtpEndTime) break;
 
    			values[iValue] = aValue->GetFloat();
    			times[iValue] = (Double_t) (currentTime);
 			
 			if(iValue>0) {
 				if(values[iValue-1]>0.) variation = TMath::Abs(values[iValue]-values[iValue-1])/values[iValue-1];
-				if(variation > 0.01) fDeadChannel[GetOfflineChannel(iAlias)] = kTRUE;
+				if(variation > 0.05) fDeadChannel[iAlias] = kTRUE;
 			}
 			fHv[iAlias]->Fill(values[iValue]);
-			printf("%s : %s : %f Dead=%d\n",fAliasNames[iAlias].Data(),TTimeStamp(currentTime).AsString(),values[iValue],fDeadChannel[GetOfflineChannel(iAlias)]);
    			iValue++;
     	}      
     	CreateGraph(iAlias, aliasArr->GetEntries(), times, values); // fill graphs 
 
   	// calculate mean and rms of the first two histos
-	// and convert index to aliroot channel
-	Int_t iChannel     = GetOfflineChannel(iAlias);	
-	fMeanHV[iChannel]  = fHv[iAlias]->GetMean();
-	fWidthHV[iChannel] = fHv[iAlias]->GetRMS();
+	Int_t iChannel	   = iAlias;	
+	fMeanHV[iAlias]  = fHv[iAlias]->GetMean();
+	fWidthHV[iAlias] = fHv[iAlias]->GetRMS();
 
     	delete[] values;
     	delete[] times;	
@@ -294,8 +293,6 @@ void AliADDataDCS::CreateGraph(int i, int dim, const Double_t *x, const Double_t
 
    gr->GetXaxis()->SetTimeDisplay(1);
    gr->SetTitle(fAliasNames[i].Data());
-
-   AliInfo(Form("Array entries: %d",fGraphs.GetEntriesFast()));
 
 }
 

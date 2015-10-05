@@ -20,8 +20,9 @@ set(MODULE ANALYSISalice)
 include_directories(${AliRoot_SOURCE_DIR}/ANALYSIS/${MODULE})
 
 # Additional include directories
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSIS
+                    ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSISaliceBase
                     ${AliRoot_SOURCE_DIR}/STEER/AOD
                     ${AliRoot_SOURCE_DIR}/STEER/ESD
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
@@ -53,9 +54,7 @@ set(SRCS
     AliHEPDataParser.cxx
     AliKineTrackCuts.cxx
     AliMultiEventInputHandler.cxx
-    AliMultiInputEventHandler.cxx
     AliPIDResponseInputHandler.cxx
-    AliPPVsMultUtils.cxx
     AliTagAnalysis.cxx
     AliUnfolding.cxx
     AliVZEROEPSelectionTask.cxx
@@ -69,17 +68,8 @@ if(ROOT_HASXML)
          AliTagAnalysis.cxx
          AliXMLCollection.cxx
        )
-
-    # If ROOT was build with no AliEn support we disable the AliROOT AliEn support
-    if(ROOT_HASALIEN)
-        set(SRCS ${SRCS} 
-            AliAnalysisAlien.cxx
-        )
-    else()
-        message(STATUS "${MODULE} - ROOT was build with no alien support. Disabling AliROOT AliEn support")
-    endif()
 else()
-    message(STATUS "${MODULE} - ROOT was build with no xml support. Disabling XML collection and AliEn support")
+    message(STATUS "${MODULE} - ROOT was built with no XML support. Disabling XML collection and AliEn support")
 endif()
 
 # Headers from sources
@@ -92,8 +82,11 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS ANALYSIS AOD ESD STEERBase Core EG Gpad Gui Hist MathCore Matrix Net Physics RIO TreePlayer Tree XMLIO)
+set(LIBDEPS ANALYSIS ANALYSISaliceBase AOD ESD STEERBase Core EG Gpad Gui Hist MathCore Matrix Net Physics RIO TreePlayer Tree XMLIO)
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
+
+# Generate a PARfile target for this library
+add_target_parfile(${MODULE} "${SRCS}" "${HDRS}" "${MODULE}LinkDef.h" "${LIBDEPS}")
 
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)

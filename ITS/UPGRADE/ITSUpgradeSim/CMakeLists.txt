@@ -20,7 +20,7 @@ set(MODULE ITSUpgradeSim)
 include_directories(${AliRoot_SOURCE_DIR}/ITS/UPGRADE/${MODULE})
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/ITS/ITSbase
                     ${AliRoot_SOURCE_DIR}/ITS/ITSsim
                     ${AliRoot_SOURCE_DIR}/ITS/UPGRADE/ITSUpgradeBase
@@ -47,6 +47,8 @@ set(SRCS
     AliITSUv0Layer.cxx
     AliITSUv1.cxx
     AliITSUv1Layer.cxx
+    AliITSUv2.cxx
+    AliITSUv2Layer.cxx
    )
 
 # Headers from sources

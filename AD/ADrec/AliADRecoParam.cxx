@@ -24,9 +24,9 @@ AliADRecoParam::AliADRecoParam() : AliDetectorRecoParam(),
   fNSigmaPed(2.0),
   fStartClock(8),
   fEndClock(12),
-  fNPreClocks(2),
-  fNPostClocks(1),
-  fAdcThresHold(0.0),
+  fNPreClocks(1),
+  fNPostClocks(2),
+  fAdcThresHold(1.0),
   fTimeWindowBBALow(-9.5),
   fTimeWindowBBAUp(22.5),
   fTimeWindowBGALow(-2.5),
@@ -35,7 +35,8 @@ AliADRecoParam::AliADRecoParam() : AliDetectorRecoParam(),
   fTimeWindowBBCUp(22.5),
   fTimeWindowBGCLow(-2.5),
   fTimeWindowBGCUp(2.5),
-  fMaxResid(4.)  	
+  fMaxResid(5.0),
+  fResidRise(0.02)		
 
 {
   //

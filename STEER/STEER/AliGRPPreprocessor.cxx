@@ -86,7 +86,7 @@ const Double_t kFitFraction = -1.;                 // Fraction of DCS sensor fit
   const Int_t AliGRPPreprocessor::fgknDCSDPHallProbes = 40;   // number of dcs dps
   const Int_t AliGRPPreprocessor::fgknLHCDP = 9;   // number of dcs dps from LHC data
   const Int_t AliGRPPreprocessor::fgkDCSDPHallTopShift = 4;   // shift from the top to get tp the Hall Probes names in the list of DCS DPs
-  const Int_t AliGRPPreprocessor::fgkDCSDPNonWorking = 5; // number of non working DCS DPs
+  const Int_t AliGRPPreprocessor::fgkDCSDPNonWorking = 2; // number of non working DCS DPs
   const char* AliGRPPreprocessor::fgkDCSDataPoints[AliGRPPreprocessor::fgknDCSDP] = {
                    "L3Polarity",
                    "DipolePolarity",
@@ -337,6 +337,8 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 	// DAQ FXS         //
 	//=================//
 
+        // Let's skip the raw data tags
+        /*
 	Log("*************** Processing DAQ FXS");
 
 	UInt_t iDaqFxs = ProcessDaqFxs();
@@ -346,6 +348,7 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 		Log(Form("DAQ FXS, could not store run raw tag file!!!"));
 		error |= 2;
 	}
+        */
 	
 	//=================//
 	// DCS FXS         //
@@ -375,21 +378,27 @@ UInt_t AliGRPPreprocessor::Process(TMap* valueMap)
 
 	Log(Form("Starting DCS Query at %d and finishing at %d",GetStartTimeDCSQuery(),GetEndTimeDCSQuery()));
 	Int_t entries = ProcessDcsDPs( valueMap, grpobj );
-	Log(Form("entries found = %d (should be %d)",entries, fgknDCSDP-fgkDCSDPNonWorking));
+	//Log(Form("entries found = %d (should be %d)",entries, fgknDCSDP-fgkDCSDPNonWorking));
+	Log(Form("entries found = %d (should be %d)",entries, fgknDCSDP-fgknDCSDPHallProbes)); // Hall Probes DPs not used
 	if (fdaqStartEndTimeOk){
-		if( entries < fgknDCSDP - fgkDCSDPNonWorking ) { // L3_BSF4_H3, L3_BSF17_H1, L3_BSF17_H2, L3_BSF17_H3, L3_BSF17_Temperature are not working yet...  
-			Log(Form("Possible problem with the DCS data points!!! Only %d/%d entries found - Please read further for more details",entries,fgknDCSDP-fgkDCSDPNonWorking));
+	  //if( entries < fgknDCSDP - fgkDCSDPNonWorking ) { // L3_BSF4_H3, L3_BSF17_H1, L3_BSF17_H2, L3_BSF17_H3, L3_BSF17_Temperature are not working yet...  
+		if( entries < fgknDCSDP - fgknDCSDPHallProbes ) { // Hall Probes not considered
+		  //Log(Form("Possible problem with the DCS data points!!! Only %d/%d entries found - Please read further for more details",entries,fgknDCSDP-fgkDCSDPNonWorking));
+			Log(Form("Possible problem with the DCS data points!!! Only %d/%d entries found - Please read further for more details",entries,fgknDCSDP-fgknDCSDPHallProbes));
 			Log(Form("The DPs giving problems were:"));
 			for (Int_t iDP = 0; iDP < fgknDCSDP; iDP++){
 				TObjString *dpString = (TObjString*)ffailedDPs->At(iDP);
 				if (dpString){
 					TString name = dpString->String();
-					if (name != "L3_BSF4_H3" && name != "L3_BSF17_H1" && name != "L3_BSF17_H2" && name != "L3_BSF17_H3" && name != "L3_BSF17_Temperature" ){
+					if (iDP >= fgkDCSDPHallTopShift && iDP < fgkDCSDPHallTopShift+fgknDCSDPHallProbes) continue; // skipping Hall Probes, since they are not processed anymore
+					/* //now we skip the Hall Probes completely, so this is useless
+					   if (name != "L3_BSF4_H3" && name != "L3_BSF17_H1" && name != "L3_BSF17_H2" && name != "L3_BSF17_H3" && name != "L3_BSF17_Temperature" ){
 						Log(Form("******** %s ******** not present, but foreseen --> causing an ERROR",name.Data()));
 					}
 					else {
 						Log(Form(" %s is not present, but was not generating any error since it is not ready in DCS - check the other DPs in this list!",name.Data()));
 					}
+					*/
 				}
 			}
 			error |= 8;
@@ -797,7 +806,9 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 
 		// BeamMode
 		Log("*************BeamMode (LHCState) ");
-		TObjArray* beamModeArray = lhcReader.ReadSingleLHCDP(fileName.Data(),fgkLHCDataPoints[2]);
+		Bool_t forceStableBeam = (Bool_t)(((TString)GetRunParameter("forceLHCReco")).Atoi());
+		AliInfoF("Query forceLHCReco logbook flag: %s",forceStableBeam ? "ON":"OFF");
+		TObjArray* beamModeArray = lhcReader.ReadSingleLHCDP(fileName.Data(),fgkLHCDataPoints[2]);		
 		Int_t nBeamMode = -1;
 		if (beamModeArray){	
 			nBeamMode = beamModeArray->GetEntries();	
@@ -825,8 +836,16 @@ UInt_t AliGRPPreprocessor::ProcessLHCData(AliGRPObject *grpobj)
 				else {
 					AliDCSArray* beamMode = (AliDCSArray*)beamModeArray->At(indexBeamMode);
 					TObjString* beamModeString = beamMode->GetStringArray(0);
-					AliInfo(Form("LHC State (corresponding to BeamMode) = %s (set at %f)",(beamModeString->String()).Data(),beamMode->GetTimeStamp()));
-					grpobj->SetLHCState(beamModeString->String());
+					TString lhcStateS = beamModeString->String();					
+					AliInfo(Form("LHC State (corresponding to BeamMode) = %s (set at %f)",lhcStateS.Data(),beamMode->GetTimeStamp()));
+					if (forceStableBeam) {
+					  TPRegexp reStable("^STABLE[_ ]BEAMS$");
+					  if (lhcStateS.Index(reStable)) {
+					    AliInfoF("Overriding LHC beam state from \"%s\" to \"%s\"",lhcStateS.Data(),"STABLE BEAMS");
+					    lhcStateS = "STABLE BEAMS";
+					  }
+					}
+					grpobj->SetLHCState(lhcStateS);
 					if (indexBeamMode < nBeamMode-1){
 						AliDCSArray* beamMode1 = (AliDCSArray*)beamModeArray->At(indexBeamMode+1);
 						if (beamMode1){
@@ -1879,7 +1898,7 @@ Int_t AliGRPPreprocessor::ProcessDcsDPs(TMap* valueMap, AliGRPObject* grpObj)
 	nL3Entries = ProcessL3DPs(valueMap, grpObj);
 	nDipoleEntries = ProcessDipoleDPs(valueMap, grpObj);
 	nEnvEntries = ProcessEnvDPs(valueMap, grpObj);
-	nHallProbesEntries = ProcessHPDPs(valueMap, grpObj);
+	//nHallProbesEntries = ProcessHPDPs(valueMap, grpObj);
 	grpObj->SetPolarityConventionLHC();  // after the dipole cables swap we comply with LHC convention
 	Log(Form("L3Entries = %d, nDipoleEntries =%d, nEnvEntries = %d, nHallProbesEntries = %d", nL3Entries, nDipoleEntries, nEnvEntries, nHallProbesEntries));
 	entries = nL3Entries + nDipoleEntries + nEnvEntries + nHallProbesEntries;
@@ -2590,21 +2609,26 @@ Char_t AliGRPPreprocessor::ProcessBool(const TObjArray* array, Bool_t &change)
 	Bool_t aDCSBool = kTRUE;
 
 	AliDCSValue *v = 0x0;
+	Int_t usefulCounts = 0;
 
 	for(Int_t iCount = 0; iCount < array->GetEntries(); iCount++) {
 		v = (AliDCSValue *)array->At(iCount);
 		if (((Int_t)(v->GetTimeStamp()) < (Int_t)GetStartTimeDCSQuery()) || ((Int_t)(v->GetTimeStamp()) > (Int_t)GetEndTimeDCSQuery())) {
-			AliError(Form("DCS values for the parameter outside the queried interval"));
+		        AliError(Form("DCS values for the parameter outside the queried interval, timestamp = %d (startTime = %d, endTime = %d)", (Int_t)(v->GetTimeStamp()), (Int_t)GetStartTimeDCSQuery(), (Int_t)GetEndTimeDCSQuery()));
 			continue;
 		}
-		if (iCount > 0) {
+		usefulCounts++;
+		if (usefulCounts == 1) {
+                        aDCSBool = v->GetBool();  // initializing to first useful value
+		}		
+		else if (usefulCounts > 1) {
 			if (aDCSBool != v->GetBool()) {
 				AliError(Form("DCS values for the parameter changed from %d to %d within the queried interval", (UInt_t)aDCSBool, (UInt_t)v->GetBool()));
 				change = kTRUE;
+				aDCSBool = v->GetBool(); // always keeping last value
 			}
 		}
-		aDCSBool = v->GetBool(); // always keeping last value
-		AliDebug(2,Form("Bool = %d",(Int_t)aDCSBool));
+		AliDebug(2,Form("Bool = %d, timeStamp = %d",(Int_t)aDCSBool, (Int_t)(v->GetTimeStamp())));
 	}
 	
 	Char_t caDCSBool = (Char_t) aDCSBool;

@@ -24,27 +24,18 @@
 /// This macro runs the test preprocessor for MUON.
 /// It uses AliTestShuttle to simulate a full Shuttle process
 ///
-/// You must load relevant libraries (besides normal MUON ones -which is done
-/// easily by executing root from the $ALICE_ROOT/MUON directory to use
-/// the rootlogon.C there) before compiling this macro :
-/// <pre>
-/// gSystem->Load("$ALICE_ROOT/SHUTTLE/TestShuttle/libTestShuttle");
-/// gSystem->Load("libMUONshuttle");
-/// </pre>
-/// Last line above assume you have $ALICE_ROOT/MUON/lib/tgt_[arch] (where
-/// libMUONshuttle is located) in your LD_LIBRARY_PATH
-///
-/// Having $ALICE_ROOT/SHUTTLE/TestShuttle directory in your LD_LIBRARY_PATH
-/// (or DYLD_LIBRARY_PATH on Mac OS X) won't hurt either...
-///
-/// You must also make a link of some OCDB entries to have the mapping loaded 
+/// You must make a link of some OCDB entries to have the mapping loaded
 /// correctly :
 ///
 /// <pre>
 /// cd $ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB
-/// mkdir -p MUON/Calib
-/// cd MUON/Calib
-/// ln -si $ALICE_ROOT/OCDB/MUON/Calib/MappingData .
+/// mkdir -p MUON/Calib/MappingData
+/// cd MUON/Calib/MappingData/
+/// ln -si $ALICE_ROOT/OCDB/MUON/Calib/MappingData/* .
+/// cd $ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB
+/// mkdir -p MUON/Calib/Config
+/// cd MUON/Calib/Config
+/// ln -si $ALICE_ROOT/OCDB/MUON/Calib/Config/* .
 /// </pre>
 ///
 /// and Align/Baseline if you'd like to test GMS subprocessor :
@@ -57,7 +48,7 @@
 /// </pre>
 ///
 /// The input data has to be created first by other processes (or is created
-/// here by CreateDCSAliasMap() for tracker HV).
+/// here by CreateDCSAliasMap() for tracker and trigger HV).
 ///
 /// To play with it, you'll have to set/modify several lines, to
 /// - a) select input files, using shuttle->AddInputFile()
@@ -72,6 +63,11 @@
 ///    LDC1.config
 ///    LDC2.config
 ///    LDC3.config
+/// CONFIGPAR/
+///    LDC0.config
+///    LDC1.config
+///    LDC2.config
+///    LDC3.config
 /// GAINS/
 ///    LDC0.gain
 ///    LDC1.gain
@@ -81,6 +77,8 @@
 ///    GMS.root
 /// OCCUPANCY/
 ///    mch.occupancy
+/// BPEVO/
+///    mchbpevo.root
 /// PEDESTALS/
 ///    LDC0.ped
 ///    LDC1.ped
@@ -100,6 +98,11 @@
 ///    MtgLocalMask-1.dat
 ///    MtgRegionalCrate-1.dat
 /// </pre>
+///
+///
+/// An example set of input files can be found at https://cernbox.cern.ch/public.php?service=files&t=c9363b0a1f92daf4963dd4f8b2a8f72a
+///
+/// (just get the zip file and unpack it into a directory that will be sourceDirectory)
 ///
 /// IMPORTANT:
 /// The trigger files have to be present in order for the algorithm to work correctly.
@@ -149,7 +152,7 @@
 //______________________________________________________________________________
 void TestMUONPreprocessor(Int_t runNumber=80, 
                           const char* runType="CALIBRATION",
-                          const char* sourceDirectory="/afs/cern.ch/user/l/laphecet/public")
+                          const char* sourceDirectory="$HOME/Downloads/muontestshuttle")
 {
   // runType can be :
   //
@@ -161,8 +164,6 @@ void TestMUONPreprocessor(Int_t runNumber=80,
   // create AliTestShuttle instance
   // The parameters are run, startTime, endTime
   
-  gSystem->Load("libTestShuttle");
-
   AliTestShuttle* shuttle = new AliTestShuttle(runNumber, 0, 1);
   
   const char* inputCDB = "local://$ALICE_ROOT/SHUTTLE/TestShuttle/TestCDB";
@@ -173,7 +174,7 @@ void TestMUONPreprocessor(Int_t runNumber=80,
   TString rt(runType);
   rt.ToUpper();
   
-  if ( rt.Contains("PHYSICS") )
+  if ( rt.Contains("PHYSICS") || rt.Contains("CALIBRATION") )
   {
     // Create DCS aliases
     TMap* dcsAliasMap = CreateDCSAliasMap(inputCDB, runNumber);
@@ -206,11 +207,24 @@ void TestMUONPreprocessor(Int_t runNumber=80,
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","PEDESTALS","LDC3",Form("%s/PEDESTALS/LDC3.ped",sourceDirectory));
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","PEDESTALS","LDC4",Form("%s/PEDESTALS/LDC4.ped",sourceDirectory));
 
-  shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC0",Form("%s/CONFIG/LDC0.conf",sourceDirectory));
-  shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC1",Form("%s/CONFIG/LDC1.conf",sourceDirectory));
-  shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC2",Form("%s/CONFIG/LDC2.conf",sourceDirectory));
-  shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC3",Form("%s/CONFIG/LDC3.conf",sourceDirectory));
-  shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC4",Form("%s/CONFIG/LDC4.conf",sourceDirectory));
+  if ( rt.Contains("PHYSICS") )
+  {
+    // simulate a change of configuration during the run
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC0",Form("%s/CONFIGPAR/LDC0.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC1",Form("%s/CONFIGPAR/LDC1.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC2",Form("%s/CONFIGPAR/LDC2.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC3",Form("%s/CONFIGPAR/LDC3.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC4",Form("%s/CONFIGPAR/LDC4.conf",sourceDirectory));
+  }
+  else
+  {
+    // configuration as done by the pedestal run
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC0",Form("%s/CONFIG/LDC0.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC1",Form("%s/CONFIG/LDC1.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC2",Form("%s/CONFIG/LDC2.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC3",Form("%s/CONFIG/LDC3.conf",sourceDirectory));
+    shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","CONFIG","LDC4",Form("%s/CONFIG/LDC4.conf",sourceDirectory));
+  }
   
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","GAINS","LDC0",Form("%s/GAINS/LDC0.gain",sourceDirectory));
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","GAINS","LDC1",Form("%s/GAINS/LDC1.gain",sourceDirectory));
@@ -218,6 +232,8 @@ void TestMUONPreprocessor(Int_t runNumber=80,
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","GAINS","LDC3",Form("%s/GAINS/LDC3.gain",sourceDirectory));
 
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","OCCUPANCY","MON",Form("%s/OCCUPANCY/mch.occupancy",sourceDirectory));
+
+  shuttle->AddInputFile(AliTestShuttle::kDAQ,"MCH","BPEVO","MON",Form("%s/BPEVO/mchbpevo.root",sourceDirectory));
 
   // and GMS file
   shuttle->AddInputFile(AliTestShuttle::kDCS,"MCH","GMS","GMS",Form("%s/GMS/GMS.root",sourceDirectory));
@@ -228,6 +244,7 @@ void TestMUONPreprocessor(Int_t runNumber=80,
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MTR","GLOBAL","LDC0",Form("%s/TRIGGER/MtgGlobalCrate-1.dat",sourceDirectory));
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MTR","LUT","LDC0",Form("%s/TRIGGER/MtgLocalLut-1.dat",sourceDirectory));
   shuttle->AddInputFile(AliTestShuttle::kDAQ,"MTR","EXPORTED","LDC0",Form("%s/TRIGGER/ExportedFiles.dat",sourceDirectory));
+  shuttle->AddInputFile(AliTestShuttle::kDAQ,"MTR","TRIGSCAL","LDC0",Form("%s/TRIGGER/MtgTrigScalers.dat",sourceDirectory));
 
   // The shuttle can read run parameters stored in the DAQ run logbook.
   // To test it, we must provide the run parameters manually. They will be retrieved in the preprocessor

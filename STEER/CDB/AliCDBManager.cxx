@@ -308,6 +308,7 @@ AliCDBManager::AliCDBManager():
   fActiveStorages(),
   fSpecificStorages(),
   fEntryCache(),
+  fPromptEntryCache(),
   fIds(0),
   fStorageMap(0),
   fShortLived(0),
@@ -317,6 +318,7 @@ AliCDBManager::AliCDBManager():
   fRefParam(0),
   fRun(-1),
   fCache(kTRUE),
+  fPromptCache(kFALSE),
   fLock(kFALSE),
   fSnapshotMode(kFALSE),
   fSnapshotFile(0),
@@ -334,6 +336,7 @@ AliCDBManager::AliCDBManager():
   fSpecificStorages.SetOwner(1);
   fEntryCache.SetName("CDBEntryCache");
   fEntryCache.SetOwnerKeyValue(kTRUE,kTRUE);
+  fPromptEntryCache.SetOwnerKeyValue(kTRUE,kTRUE);
 
   fStorageMap = new TMap();
   fStorageMap->SetOwner(1);
@@ -345,6 +348,7 @@ AliCDBManager::AliCDBManager():
 AliCDBManager::~AliCDBManager() {
 // destructor
   ClearCache();
+  ClearPromptCache();
   DestroyActiveStorages();
   fFactories.Delete();
   fDrainStorage = 0x0;
@@ -1026,6 +1030,14 @@ AliCDBEntry* AliCDBManager::Get(const AliCDBId& queryId, Bool_t forceCaching) {
 
   AliCDBEntry *entry=0;
 
+  //first of all, look in the prompt cache, for online overrides
+  if(fPromptCache && queryId.GetFirstRun() == fRun)
+    entry = (AliCDBEntry*) fPromptEntryCache.GetValue(queryId.GetPath());
+  if(entry) {
+    AliDebug(2, Form("Object %s retrieved from PROMPT cache !!",queryId.GetPath().Data()));
+    return entry;
+  }
+
   // first look into map of cached objects
   if(fCache && queryId.GetFirstRun() == fRun)
     entry = (AliCDBEntry*) fEntryCache.GetValue(queryId.GetPath());
@@ -1339,7 +1351,7 @@ TList* AliCDBManager::GetAll(const AliCDBId& query) {
   if(fLock && query.GetFirstRun() != fRun)
     AliFatal("Lock is ON: cannot use different run number than the internal one!");
 
-  AliCDBParam *aPar=SelectSpecificStorage(query.GetPath());
+  AliCDBParam *aPar = SelectSpecificStorage(query.GetPath());
 
   AliCDBStorage *aStorage;
   if(aPar) {
@@ -1370,11 +1382,23 @@ TList* AliCDBManager::GetAll(const AliCDBId& query) {
       AliCDBStorage *chkStorage = GetStorage(chkPar);
       AliDebug(2, Form("Found specific storage! %s", chkPar->GetURI().Data()));
 
-      AliCDBEntry *newEntry=0;
       chkId.SetRunRange(query.GetFirstRun(), query.GetLastRun());
-      chkId.SetVersion(query.GetVersion());
-      chkId.SetSubVersion(query.GetSubVersion());
+      UInt_t uId = chkPar->GetUniqueID();
+      Int_t version = -1, subVersion = -1;
+      version = Int_t(uId&0xffff) - 1;
+      subVersion = Int_t(uId>>16) - 1;
+      if(version!=-1){
+        chkId.SetVersion(version);
+      }else{
+        chkId.SetVersion(query.GetVersion());
+      }
+      if(subVersion!=-1){
+        chkId.SetSubVersion(subVersion);
+      }else{
+        chkId.SetSubVersion(query.GetSubVersion());
+      }
 
+      AliCDBEntry *newEntry=0;
       if(chkStorage) newEntry = chkStorage->Get(chkId);
       if(!newEntry) continue;
 
@@ -1585,6 +1609,17 @@ void AliCDBManager::SetRun(Int_t run) {
   }
   ClearCache();
   QueryCDB();
+}
+
+//_____________________________________________________________________________
+void AliCDBManager::ClearPromptCache(){
+// clear AliCDBEntry prompt cache
+
+  AliDebug(2, Form("PROMPT cache entries to be deleted: %d",fPromptEntryCache.GetEntries()));
+
+  fPromptEntryCache.DeleteAll();
+
+  AliDebug(2, Form("After deleting - PROMPT cache entries: %d",fPromptEntryCache.GetEntries()));
 }
 
 //_____________________________________________________________________________
@@ -1938,3 +1973,25 @@ void AliCDBManager::ExtractBaseFolder(TString& url)
   //url.ToLower();
   //
 }
+
+//_____________________________________________________________________________
+void AliCDBManager::PromptCacheEntry(const char* path, AliCDBEntry* entry)
+{
+  //put (or replace) a CDB entry in the prompt cache, and enable the cache
+  //this is owner of object, so old entry is destroyed
+
+  TPair* pair = static_cast<TPair*>(fEntryCache.FindObject(path));
+  if (pair)
+  {
+    AliDebug(2, Form("Object %s already in cache, replacing!!", path));
+    TObject* key = pair->Key();
+    TObject* value = pair->Value();
+    fEntryCache.Remove(key);
+    delete key;
+    //delete value; //We must not delete this here. Actually, the CDB Manager CANNOT take ownership. If some function has querried that Object, it might still have a pointer to it and we DO NOT know.
+  }
+  AliDebug(2,Form("Caching entry %s", path));
+  fPromptEntryCache.Add(new TObjString(path), entry);
+  SetPromptCacheFlag(kTRUE);
+}
+

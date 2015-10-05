@@ -132,15 +132,20 @@ ClassImp(AliTRDPreprocessorOffline)
   fBeginFitCharge(3.5),
   fT0Shift0(0.124797),
   fT0Shift1(0.267451),
+  fMaxValueT0(5.),
   fPHQon(kTRUE),
   fDebugPHQon(kFALSE)
 {
   //
   // default constructor
   //
-
+  
+  memset(fNotCalib, 0, sizeof(Int_t) * 18);
+  memset(fNotGood, 0, sizeof(Int_t) * 18);
   memset(fBadCalib, 0, sizeof(Int_t) * 18);
   memset(fNoData, 0, sizeof(Int_t) * 18);
+  memset(fNoDataA, 0, sizeof(Int_t) * 18);
+  memset(fNoDataB, 0, sizeof(Int_t) * 18);
 }
 //_________________________________________________________________________________________________________________
 AliTRDPreprocessorOffline::~AliTRDPreprocessorOffline() {
@@ -712,9 +717,10 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeGain(){
     Double_t gainoverallnotnormalized =  calibra->AnalyseCHAllTogether(fCH2d);
     if(fCalDetGainUsed && (gainoverallnotnormalized > 0.0)) {
       AliTRDCalDet *calDetGain = new AliTRDCalDet(*fCalDetGainUsed);
-      Double_t oldmean = fCalDetGainUsed->CalcMean(kFALSE);
-      //printf("oldmean %f\n",oldmean);
-      if(oldmean > 0.0)  {
+      Int_t ndetu = 0;
+      Double_t oldmean = fCalDetGainUsed->CalcMean(kFALSE,ndetu);
+      //printf("oldmean %f and ndetu %f\n",oldmean,ndetu);
+      if((oldmean > 0.0) && (ndetu>0))  {
       	Double_t scalefactor = calibra->GetScaleFactorGain();
 	//printf("Correction factor %f\n",gainoverallnotnormalized*scalefactor);
 	calDetGain->Multiply(gainoverallnotnormalized*scalefactor/oldmean);
@@ -750,6 +756,7 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeVdriftT0(){
   AliTRDCalibraFit *calibra = AliTRDCalibraFit::Instance();
   calibra->SetT0Shift0(fT0Shift0);
   calibra->SetT0Shift1(fT0Shift1);
+  calibra->SetMaxValueT0(fMaxValueT0);
   calibra->SetMinEntries(fMinStatsVdriftT0PH); // If there is less than 1000 entries in the histo: no fit
   calibra->AnalysePH(fPH2d); 
   //calibra->SetDebugLevel(2);
@@ -870,10 +877,15 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeVdriftLinearFit(){
     if(fCalDetVdriftUsed && (vdriftoverall > 0.0) && (exboverall < 70.0)) {
       AliTRDCalDet *calDetVdrift = new AliTRDCalDet(*fCalDetVdriftUsed);
       AliTRDCalDet *calDetLorentz = new AliTRDCalDet(*fCalDetExBUsed);
-      Double_t oldmeanvdrift = fCalDetVdriftUsed->CalcMean(kFALSE);
-      Double_t oldmeanexb = fCalDetExBUsed->CalcMean(kFALSE);
-      //printf("oldmean %f\n",oldmean);
-      if((oldmeanvdrift > 0.0) && (oldmeanexb < 70.0))  {
+      Int_t ndetuv = 0;
+      Int_t ndetue = 0;
+      Double_t oldmeanvdrift = fCalDetVdriftUsed->CalcMean(kFALSE,ndetuv);
+      Double_t oldmeanexb = fCalDetExBUsed->CalcMean(kFALSE,ndetue);
+      Double_t oldmeanexbk = fCalDetExBUsed->GetMean();
+      //printf("oldmeanvdrift %f and ndetuv %d\n",oldmeanvdrift,ndetuv);
+      //printf("oldmeanexb %f and ndetue %d\n",oldmeanexb,ndetue);
+      if(((oldmeanvdrift > 0.0) && (oldmeanexb < 70.0) && (ndetuv > 0) && (ndetue>0)) ||
+	 ((oldmeanvdrift > 0.0) && (TMath::Abs(oldmeanexbk) < 0.0001) && (ndetuv > 0) && (ndetue==0)))  {
 	//printf("Correction factor %f\n",vdriftoverall);
 	calDetVdrift->Multiply(vdriftoverall/oldmeanvdrift);
 	if(TMath::Abs(oldmeanexb) > 0.0001) calDetLorentz->Multiply(exboverall/oldmeanexb);
@@ -1092,6 +1104,14 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
     Double_t entries = projch->GetEntries();
     //printf("Number of entries %f for det %d\n",entries,idet);
 
+    TVectorD error(3);
+    Bool_t heree    = fAliTRDCalibraVdriftLinearFit->GetError(idet,&error);
+    Double_t entriesvd = 0.;
+    if(heree) {
+      entriesvd = error[2];
+    }
+    //printf("Number of entries for detector %d for gain %f and for vd %f\n",idet,entries,entriesvd);
+    
     // sm number
     Int_t smnumber = (Int_t) idet/30;
 
@@ -1104,7 +1124,7 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
     // exb
     Double_t exb = calDetExB->GetValue(idet);
 
-
+    
     if( (entries<50 && !calChamberStatus->IsNoData(idet))  ||
         TMath::Abs(gainmean-gain) > (fRMSBadCalibratedGain*gainrms)          ||
         TMath::Abs(vdriftmean-vdrift) > (fRMSBadCalibratedVdrift*vdriftrms)    ||
@@ -1121,6 +1141,8 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
 
     if(TMath::Abs(gainmeanSM[smnumber]-gain) < 0.000001  ||
        TMath::Abs(vdriftmeanSM[smnumber]-vdrift) < 0.000001 ||
+       entries < fMinStatsGain                              ||
+       entriesvd < fMinStatsVdriftLinear                    ||
        TMath::Abs(exbmeanSM[smnumber]-exb) < 0.000001) {
       
       //printf(" chamber det %03d notcalibrated sm %d \n",idet,smnumber);
@@ -1140,16 +1162,29 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
   for(Int_t sm=0; sm < 18; sm++) {
     Int_t smnodata   = 0;
     Int_t smbadcalib = 0;
+    Int_t smnodataA   = 0;
+    Int_t smnodataB   = 0;
+    Int_t smnotgood   = 0;
+    Int_t smnotcalib  = 0;
     for(Int_t det = 0; det < 30; det++){
       Int_t detector = sm*30+det;
       if(calChamberStatus->IsNoData(detector)) smnodata++;
       else {
 	if(calChamberStatus->IsBadCalibrated(detector)) smbadcalib++;
       }
+
+      if(calChamberStatus->IsNoDataSideA(detector)) smnodataA++;
+      if(calChamberStatus->IsNoDataSideB(detector)) smnodataB++;
+      if(calChamberStatus->IsNotCalibrated(detector)) smnotcalib++;
+      if(!calChamberStatus->IsGood(detector)) smnotgood++;
     }
+    fNotGood[sm]  = smnotgood;
+    fNotCalib[sm]  = smnotcalib;
+    fNoDataA[sm]  = smnodataA;
+    fNoDataB[sm]  = smnodataA;
     fNoData[sm]  = smnodata;
     fBadCalib[sm]= smbadcalib;
-    //printf("No Data %d, bad calibrated %d for %d\n",fNoData[sm],fBadCalib[sm],sm);
+    //printf("No Data %d, No Data A %d, No Data B %d, bad calibrated %d, not calibrated %d and not good %d for %d\n",fNoData[sm],fNoDataA[sm],fNoDataB[sm],fBadCalib[sm],fNotCalib[sm],fNotGood[sm],sm);
   }
 
   // delete
@@ -1277,6 +1312,8 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
    // Update OCDB entry
    //
 
+   Bool_t status = kTRUE;
+
    AliCDBMetaData *metaData= new AliCDBMetaData();
    metaData->SetObjectClassName("AliTRDCalDet");
    metaData->SetResponsible("Raphaelle Bailhache");
@@ -1285,8 +1322,8 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
 
    AliCDBId id1("TRD/Calib/ChamberGainFactor", startRunNumber, endRunNumber);
    AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(kGain);
-   if(calDet) storage->Put(calDet, id1, metaData);
-
+   if(calDet) status = storage->Put(calDet, id1, metaData);
+   if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
 
  }
  //___________________________________________________________________________________________________________________
@@ -1294,6 +1331,8 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
    //
    // Update OCDB entry
    //
+
+   Bool_t status = kTRUE;
 
    Int_t detExB = kLorentzLinear;
    if(!fMethodSecond) return;
@@ -1308,7 +1347,8 @@ Bool_t AliTRDPreprocessorOffline::AnalyzeChamberStatus()
 
    AliCDBId id1("TRD/Calib/ChamberExB", startRunNumber, endRunNumber);
    AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(detExB);
-   if(calDet) storage->Put(calDet, id1, metaData);
+   if(calDet) status = storage->Put(calDet, id1, metaData);
+   if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
    //if(!calDet) printf("No caldet\n");
 
  }
@@ -1317,6 +1357,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
   //
   // Update OCDB entry
   //
+
+  Bool_t status = kTRUE;
 
   Int_t detExB = kExbAlt;
   if(!fMethodSecond) return;
@@ -1331,7 +1373,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
   AliCDBId id1("TRD/Calib/ChamberExBAlt", startRunNumber, endRunNumber);
   AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(detExB);
-  if(calDet) storage->Put(calDet, id1, metaData);
+  if(calDet) status = storage->Put(calDet, id1, metaData);
+  if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
   //if(!calDet) printf("No caldet\n");
 
 }
@@ -1340,6 +1383,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
    //
    // Update OCDB entry
    //
+
+   Bool_t status = kTRUE;
 
    Int_t detVdrift = kVdriftPHDet;
 
@@ -1353,7 +1398,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
    AliCDBId id1("TRD/Calib/ChamberVdrift", startRunNumber, endRunNumber);
    AliTRDCalDet *calDet = (AliTRDCalDet *) fCalibObjects->At(detVdrift);
-   if(calDet) storage->Put(calDet, id1, metaData);
+   if(calDet) status = storage->Put(calDet, id1, metaData);
+   if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
 
    //
 
@@ -1367,7 +1413,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
      AliCDBId id1Pad("TRD/Calib/LocalVdrift", startRunNumber, endRunNumber);
      AliTRDCalPad *calPad = (AliTRDCalPad *) fCalibObjects->At(kVdriftPHPad);
-     if(calPad) storage->Put(calPad, id1Pad, metaDataPad);
+     if(calPad) status = storage->Put(calPad, id1Pad, metaDataPad);
+     if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
 
    }
 
@@ -1377,6 +1424,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
    //
    // Update OCDB entry
    //
+
+   Bool_t status = kTRUE;
 
    AliCDBMetaData *metaData= new AliCDBMetaData();
    metaData->SetObjectClassName("AliTRDCalDet");
@@ -1398,8 +1447,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
    AliCDBId id1Pad("TRD/Calib/LocalT0", startRunNumber, endRunNumber);
    AliTRDCalPad *calPad = (AliTRDCalPad *) fCalibObjects->At(kT0PHPad);
-   if(calPad) storage->Put(calPad, id1Pad, metaDataPad);
-
+   if(calPad) status = storage->Put(calPad, id1Pad, metaDataPad);
+   if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
 
 
  }
@@ -1408,6 +1457,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
    //
    // Update OCDB entry
    //
+
+   Bool_t status = kTRUE;
 
    AliCDBMetaData *metaData= new AliCDBMetaData();
    metaData->SetObjectClassName("AliTRDCalPad");
@@ -1418,7 +1469,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBExBAlt(Int_t startRunNumber, Int_t end
 
    AliCDBId id1("TRD/Calib/PRFWidth", startRunNumber, endRunNumber);
    AliTRDCalPad *calPad = (AliTRDCalPad *) fCalibObjects->At(kPRF);
-   if(calPad) storage->Put(calPad, id1, metaData);
+   if(calPad) status = storage->Put(calPad, id1, metaData);
+   if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
 
 
  }
@@ -1428,6 +1480,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
   //
   // Update OCDB entry
   //
+  Bool_t status = kTRUE;
+  
   AliCDBMetaData *metaData= new AliCDBMetaData();
   metaData->SetObjectClassName("TObjArray");
   metaData->SetResponsible("Raphaelle Bailhache and Xianguo Lu");
@@ -1438,7 +1492,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
   TObjArray *cobj = (TObjArray *) fCalibObjects->At(kPHQ);
   if(cobj){
     //cobj->Print();
-    storage->Put(cobj, id1, metaData);
+     status = storage->Put(cobj, id1, metaData);
+    if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
   }
 }
 
@@ -1448,6 +1503,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
    // Update OCDB entry
    //
 
+   Bool_t status = kTRUE;
+
    AliCDBMetaData *metaData= new AliCDBMetaData();
    metaData->SetObjectClassName("AliTRDCalChamberStatus");
    metaData->SetResponsible("Raphaelle Bailhache and Julian Book");
@@ -1456,7 +1513,8 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
 
    AliCDBId id1("TRD/Calib/ChamberStatus", startRunNumber, endRunNumber);
    AliTRDCalChamberStatus *calChamberStatus = (AliTRDCalChamberStatus *) fCalibObjects->At(kChamberStatus);
-   if(calChamberStatus) storage->Put(calChamberStatus, id1, metaData);
+   if(calChamberStatus) status = storage->Put(calChamberStatus, id1, metaData);
+   if (status==kFALSE) fStatusPos = fStatusPos | kCalibFailedExport;
 
 
  }
@@ -1555,7 +1613,7 @@ void AliTRDPreprocessorOffline::UpdateOCDBPHQ(Int_t startRunNumber, Int_t endRun
      Double_t rmsdet = calDet->GetRMSRobust();
      Double_t meanpad = calPad->GetMean();
      //Double_t rmspad = calPad->GetRMS();
-     printf("T0::meandet %f, rmsdet %f,meanpad %f\n",meandet,rmsdet,meanpad);
+     //printf("T0::meandet %f, rmsdet %f,meanpad %f\n",meandet,rmsdet,meanpad);
      if((meandet >   fMinTimeOffsetValidate) && (meandet < 5.0) && (rmsdet < 4.0) && (meanpad < 5.0) && (meanpad > -0.5)) return kTRUE;
      else {
        fStatusPos = fStatusPos | kTimeOffsetErrorRange;
@@ -1592,21 +1650,40 @@ Bool_t AliTRDPreprocessorOffline::ValidateChamberStatus(){
   AliTRDCalChamberStatus *calChamberStatus = (AliTRDCalChamberStatus *) fCalibObjects->At(kChamberStatus);
   if(calChamberStatus) {
 
-    Int_t detectornodata   = 0;
-    Int_t detectorbadcalib = 0;
+    Int_t detectornodataA    = 0;
+    Int_t detectornodataB    = 0;
+    Int_t detectornodata     = 0;
+    Int_t detectorbadcalib   = 0;
+    Int_t detectornotgood    = 0;
+    Int_t detectornotcalib   = 0;
     
     for(Int_t sm=0; sm < 18; sm++) {
       //printf("%d chambers w/o data in sm %d\n",fNoData[sm],sm);
       //printf("%d bad calibrated chambers in sm %d\n",fBadCalib[sm],sm);
       if(fNoData[sm] != 30) detectornodata += fNoData[sm];
+      if(fNoDataA[sm] != 30) detectornodataA += fNoDataA[sm];
+      if(fNoDataB[sm] != 30) detectornodataB += fNoDataB[sm];
+      if(fNotCalib[sm] != 30) detectornotcalib += fNotCalib[sm];
+      if(fNotGood[sm] != 30) detectornotgood += fNotGood[sm];
       detectorbadcalib+=fBadCalib[sm];
     }
     //printf("Number of chambers w/o data %d\n",detectornodata);
+    //printf("Number of chambers w/o data A %d\n",detectornodataA);
+    //printf("Number of chambers w/o data B %d\n",detectornodataB);
     //printf("Number of chambers bad calibrated %d\n",detectorbadcalib);
+    //printf("Number of chambers not good %d\n",detectornotgood);
+    //printf("Number of chambers not calibrated %d\n",detectornotcalib);
 
     if((detectornodata > fNoDataValidate) ||
+       (detectornodataA > fNoDataValidate) ||
+       (detectornodataB > fNoDataValidate) ||
        (detectorbadcalib > fBadCalibValidate)){
       fStatusPos = fStatusPos | kChamberStatusErrorRange;
+      return kFALSE;
+    }
+    if((detectornotcalib > fNoDataValidate) ||
+       (detectornotgood > fNoDataValidate)){
+      fStatusNeg = fStatusNeg | kChamberStatusTooFewGood;
       return kFALSE;
     }
     return kTRUE;
@@ -1742,6 +1819,7 @@ void AliTRDPreprocessorOffline::PrintStatus() const
   AliInfo(Form("IsVdriftErrorRange? %d",(Int_t)IsVdriftErrorRange()));
   AliInfo(Form("IsTimeOffsetErrorRange? %d",(Int_t)IsTimeOffsetErrorRange()));
   AliInfo(Form("IsChamberStatusErrorRange? %d",(Int_t)IsChamberStatusErrorRange()));
+  AliInfo(Form("IsCalibFailedExport? %d",(Int_t)IsCalibFailedExport()));
 
  
   AliInfo(Form("The info status is %d",fStatusNeg));
@@ -1750,9 +1828,10 @@ void AliTRDPreprocessorOffline::PrintStatus() const
   AliInfo(Form("IsGainNotEnoughStatsNotFill? %d",(Int_t)IsGainNotEnoughStatsNotFill()));
   AliInfo(Form("IsVdriftNotEnoughStatsNotFill? %d",(Int_t)IsVdriftNotEnoughStatsNotFill()));
   AliInfo(Form("IsTimeOffsetNotEnoughStatsNotFill? %d",(Int_t)IsTimeOffsetNotEnoughStatsNotFill()));
-
   AliInfo(Form("IsExBErrorRange? %d",(Int_t)IsExBErrorRange()));
   AliInfo(Form("IsExBErrorOld? %d",(Int_t)IsExBErrorOld()));
+  AliInfo(Form("IsChamberStatusTooFewGood? %d",(Int_t)IsChamberStatusTooFewGood()));
+ 
   
 }
 //___________________________________________________________________________________

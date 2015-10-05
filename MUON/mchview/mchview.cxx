@@ -81,11 +81,30 @@ int main(int argc, char** argv)
   Bool_t ASCIImapping(kFALSE);
   TString defaultOCDB("raw://");
   
-  if (!gGrid)
+  {
+    Long_t id, size, flags, modtime;
+    TDatime now;
+
+    TString testPath;
+    
+    testPath.Form("/cvmfs/alice-ocdb.cern.ch/calibration/data/%d/OCDB",now.GetYear());
+    
+    if ( !gSystem->GetPathInfo(testPath.Data(),&id,&size,&flags,&modtime) )
+    
+    {
+      if ( flags & 0x1 )
+      {
+        defaultOCDB = "local://";
+        defaultOCDB += testPath;
+      }
+    }
+  }
+  
+  if (!gGrid && !defaultOCDB.Contains("/cvmfs/") )
   {
     TGrid::Connect("alien://");
   }
-  
+
   for ( Int_t i = 0; i <= args.GetLast(); ++i )
   {
     TString a(static_cast<TObjString*>(args.At(i))->String());

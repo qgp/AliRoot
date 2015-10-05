@@ -69,6 +69,16 @@ AliDCSSensor::AliDCSSensor(const AliDCSSensor& source) :
    if (source.fFit) fFit = (AliSplineFit*)source.fFit->Clone();
 }
 
+AliDCSSensor::~AliDCSSensor(){
+  //
+  // Destructor
+  //
+  if(fGraph)
+    delete fGraph;
+  fGraph=0;
+
+}
+
 AliDCSSensor& AliDCSSensor::operator=(const AliDCSSensor& source){
 //
 // assignment operator
@@ -107,8 +117,9 @@ void AliDCSSensor::Draw(Option_t* option) {
   }
   canvas->cd();
   TGraph * graph = MakeGraph(100);  // memory leak - we can not modify the content - const method
-  graph->Draw(option);              // 
-  //
+  if (graph){
+    graph->Draw(option);              // 
+  }
 }
 
 

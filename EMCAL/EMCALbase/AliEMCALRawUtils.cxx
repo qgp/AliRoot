@@ -14,21 +14,6 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
-
-
-//_________________________________________________________________________
-//  Utility Class for handling Raw data
-//  Does all transitions from Digits to Raw and vice versa, 
-//  for simu and reconstruction
-//
-//  Note: the current version is still simplified. Only 
-//    one raw signal per digit is generated; either high-gain or low-gain
-//    Need to add concurrent high and low-gain info in the future
-//    No pedestal is added to the raw signal.
-//*-- Author: Marco van Leeuwen (LBL)
-//*-- Major refactoring by Per Thomas Hille
-
 //#include "AliCDBManager.h"
 #include "AliEMCALRawUtils.h"
 #include "AliRun.h"
@@ -58,9 +43,15 @@ using namespace CALO;
 using namespace EMCAL;
 
 using std::vector;
-ClassImp(AliEMCALRawUtils)
 
+/// \cond CLASSIMP
+ClassImp(AliEMCALRawUtils) ;
+/// \endcond
 
+///
+/// Constructor. Set up fitting algorightm, geometry
+/// and default parameter values.
+///
 AliEMCALRawUtils::AliEMCALRawUtils( Algo::fitAlgorithm fitAlgo) : fNoiseThreshold(3),
 								  fNPedSamples(4), 
 								  fGeom(0), 
@@ -73,8 +64,6 @@ AliEMCALRawUtils::AliEMCALRawUtils( Algo::fitAlgorithm fitAlgo) : fNoiseThreshol
 								  fRawAnalyzer(0),
 								  fTriggerRawDigitMaker(0x0)
 {
-  // ctor; set up fit algo etc
-  
   SetFittingAlgorithm(fitAlgo);
   
   const TObjArray* maps = AliEMCALRecParam::GetMappings();
@@ -110,75 +99,110 @@ AliEMCALRawUtils::AliEMCALRawUtils( Algo::fitAlgorithm fitAlgo) : fNoiseThreshol
   fTriggerRawDigitMaker = new AliEMCALTriggerRawDigitMaker();
 }
 
-
+///
+/// Destructor.
+///
 AliEMCALRawUtils::~AliEMCALRawUtils()
 {
-  //dtor
   delete fRawAnalyzer;
   delete fTriggerRawDigitMaker;
 }
 
-
+///
+/// Convert digits of the current event to raw data.
+///
 void AliEMCALRawUtils::Digits2Raw()
 {
-  // convert digits of the current event to raw data
   AliRunLoader *rl = AliRunLoader::Instance();
+    
   AliEMCALLoader *loader = dynamic_cast<AliEMCALLoader*>(rl->GetDetectorLoader("EMCAL"));
   loader->LoadDigits("EMCAL");
   loader->GetEvent();
+    
   TClonesArray* digits = loader->Digits() ;
   
-  if (!digits) {
-    Warning("Digits2Raw", "no digits found !");
+  if (!digits)
+  {
+    AliWarning("No digits found !");
     return;
   }
   
-  static const Int_t nDDL = 20*2; // 20 SM for EMCal + DCal hardcoded for now. Buffers allocated dynamically, when needed, so just need an upper limit here  
+  static const Int_t nDDL = 20*2; // 20 SM for EMCal + DCal hardcoded for now. Buffers allocated dynamically, when needed, so just need an upper limit here
+    
   AliAltroBuffer* buffers[nDDL];
   for (Int_t i=0; i < nDDL; i++)
     buffers[i] = 0;
   
-  TArrayI adcValuesLow( TIMEBINS );
+  TArrayI adcValuesLow ( TIMEBINS );
   TArrayI adcValuesHigh( TIMEBINS );
   
-  // loop over digits (assume ordered digits)
-  for (Int_t iDigit = 0; iDigit < digits->GetEntries(); iDigit++) {
+  // Loop over digits (assume ordered digits)
+  for (Int_t iDigit = 0; iDigit < digits->GetEntries(); iDigit++)
+  {
     AliEMCALDigit* digit = dynamic_cast<AliEMCALDigit *>(digits->At(iDigit)) ;
-    if(!digit) {
+      
+    if(!digit)
+    {
       AliFatal("NULL Digit");
-    } else {
-      if (digit->GetAmplitude() <  AliEMCALRawResponse::GetRawFormatThreshold() ) {
+    }
+    else
+    {
+      if (digit->GetAmplitude() <  AliEMCALRawResponse::GetRawFormatThreshold() )
+      {
         continue;
       }
-      //get cell indices
-      Int_t nSM = 0;
-      Int_t nIphi = 0;
-      Int_t nIeta = 0;
-      Int_t iphi = 0;
-      Int_t ieta = 0;
+        
+      // Get cell indices
+      Int_t nSM     = 0;
+      Int_t nIphi   = 0;
+      Int_t nIeta   = 0;
+      Int_t iphi    = 0;
+      Int_t ieta    = 0;
       Int_t nModule = 0;
+        
       fGeom->GetCellIndex(digit->GetId(), nSM, nModule, nIphi, nIeta);
       fGeom->GetCellPhiEtaIndexInSModule(nSM, nModule, nIphi, nIeta,iphi, ieta) ;
     
-      //Check which is the RCU, 0 or 1, of the cell.
+      //----------------------------------------------------------------------
+      //
+      // Online mapping and numbering is the same for EMCal and DCal SMs but:
+      //  - DCal odd SM (13,15,17) has online cols: 16-47; offline cols 0-31.
+      //  - Even DCal SMs have the same numbering online and offline 0-31.
+      //  - DCal 1/3 SM (18,19), online rows 16-23; offline rows 0-7
+      //
+      // In the next lines shift the online cols or rows depending on the
+      // SM to match the offline mapping.
+      // Apply the shifts (inverse to those in Raw2Digits):
+        
+      fGeom->ShiftOfflineToOnlineCellIndexes(nSM, iphi, ieta);
+      
+      //
+      //----------------------------------------------------------------------
+
+      // Check which is the RCU, 0 or 1, of the cell.
+      // *** RCU corresponds to DDL in a SuperModule ***
       Int_t iRCU = -111;
-      if (0<=iphi&&iphi<8) iRCU=0; // first cable row
-      else if (8<=iphi&&iphi<16 && 0<=ieta&&ieta<24) iRCU=0; // first half; 
-      else if(8<=iphi&&iphi<16 && 24<=ieta&&ieta<48) iRCU=1; // second half; 
-      //second cable row
-      else if(16<=iphi&&iphi<24) iRCU=1; // third cable row
+      if      (  0<=iphi&&iphi< 8 )                      iRCU=0; // first cable row
+      else if (  8<=iphi&&iphi<16 &&  0<=ieta&&ieta<24 ) iRCU=0; // first half;
+      else if (  8<=iphi&&iphi<16 && 24<=ieta&&ieta<48 ) iRCU=1; // second half;
+      else if ( 16<=iphi&&iphi<24 )                      iRCU=1; // third cable row
       
       if (nSM%2==1) iRCU = 1 - iRCU; // swap for odd=C side, to allow us to cable both sides the same
       
       if (iRCU<0) 
-        Fatal("Digits2Raw()","Non-existent RCU number: %d", iRCU);
+        Fatal("Digits2Raw()","Non-existent RCU/DDL number: %d", iRCU);
     
-      //Which DDL?
+      // Which DDL?
       Int_t iDDL = NRCUSPERMODULE*nSM + iRCU;
-      if (iDDL < 0 || iDDL >= nDDL){
+        
+      if (iDDL < 0 || iDDL >= nDDL)
+      {
         Fatal("Digits2Raw()","Non-existent DDL board number: %d", iDDL);
-      } else {
-        if (buffers[iDDL] == 0) {      
+      }
+      else
+      {
+        if (buffers[iDDL] == 0)
+        {
           // open new file and write dummy header
           TString fileName = AliDAQ::DdlFileName("EMCAL",iDDL);
           //Select mapping file RCU0A, RCU0C, RCU1A, RCU1C
@@ -192,29 +216,34 @@ void AliEMCALRawUtils::Digits2Raw()
         }
         
         // out of time range signal (?)
-        if (digit->GetTimeR() >  TIMEBINMAX  ) {
+        if (digit->GetTimeR() >  TIMEBINMAX  )
+        {
           AliInfo("Signal is out of time range.\n");
           buffers[iDDL]->FillBuffer((Int_t)digit->GetAmplitude());
           buffers[iDDL]->FillBuffer( TIMEBINS );  // time bin
           buffers[iDDL]->FillBuffer(3);          // bunch length      
           buffers[iDDL]->WriteTrailer(3, ieta, iphi, nSM);  // trailer
           // calculate the time response function
-        } else {
+        }
+        else
+        {
           Bool_t lowgain = AliEMCALRawResponse::RawSampledResponse(digit->GetTimeR(), digit->GetAmplitude(),
                                                                    adcValuesHigh.GetArray(), adcValuesLow.GetArray()) ; 
       
           if (lowgain) 
-            buffers[iDDL]->WriteChannel(ieta, iphi, 0, TIMEBINS, adcValuesLow.GetArray(),  AliEMCALRawResponse::GetRawFormatThreshold()  );
+            buffers[iDDL]->WriteChannel(ieta, iphi, 0, TIMEBINS, adcValuesLow .GetArray(), AliEMCALRawResponse::GetRawFormatThreshold() );
           else 
-            buffers[iDDL]->WriteChannel(ieta,iphi, 1, TIMEBINS, adcValuesHigh.GetArray(),  AliEMCALRawResponse::GetRawFormatThreshold()  );
+            buffers[iDDL]->WriteChannel(ieta, iphi, 1, TIMEBINS, adcValuesHigh.GetArray(), AliEMCALRawResponse::GetRawFormatThreshold() );
         }
       }// iDDL under the limits
-    }//digit exists
-  }//Digit loop
+    }// Digit exists
+  }// Digit loop
   
-  // write headers and close files
-  for (Int_t i=0; i < nDDL; i++) {
-    if (buffers[i]) {
+  // Write headers and close files
+  for (Int_t i=0; i < nDDL; i++)
+  {
+    if (buffers[i])
+    {
       buffers[i]->Flush();
       buffers[i]->WriteDataHeader(kFALSE, kFALSE);
       delete buffers[i];
@@ -224,74 +253,99 @@ void AliEMCALRawUtils::Digits2Raw()
   loader->UnloadDigits();
 }
 
-
-
-void AliEMCALRawUtils::AddDigit(TClonesArray *digitsArr, Int_t id, Int_t lowGain, Float_t amp, Float_t time, Float_t chi2, Int_t ndf) 
+///
+/// Create the digit from raw fit  and add it to the list of digits
+///
+void AliEMCALRawUtils::AddDigit(TClonesArray *digitsArr, Int_t id, Int_t lowGain,
+                                Float_t amp, Float_t time, Float_t chi2, Int_t ndf)
 {
-  // comment
   AliEMCALDigit *digit = 0, *tmpdigit = 0;
   TIter nextdigit(digitsArr);
  
   while (digit == 0 && (tmpdigit = (AliEMCALDigit*) nextdigit())) 
-    {
-      if (tmpdigit->GetId() == id) digit = tmpdigit;
-    }
-  
-  if (!digit) { // no digit existed for this tower; create one
+  {
+    if (tmpdigit->GetId() == id) digit = tmpdigit;
+  }
+
+  // No digit existed for this tower; create one.
+  if (!digit)
+  {
     Int_t type = AliEMCALDigit::kHG; // use enum in AliEMCALDigit
+      
     if (lowGain) 
-      { 
-	amp *= HGLGFACTOR;
-	type = AliEMCALDigit::kLGnoHG;
-      } 
+    {
+	  amp *= HGLGFACTOR;
+	  type = AliEMCALDigit::kLGnoHG;
+    }
     
     Int_t idigit = digitsArr->GetEntries();
-    new((*digitsArr)[idigit]) AliEMCALDigit( -1, -1, id, amp, time, type, idigit, chi2, ndf); 
+      
+    new((*digitsArr)[idigit]) AliEMCALDigit( -1, -1, id, amp, time, type, idigit, chi2, ndf);
+      
     AliDebug(2,Form("Add digit Id %d for the first time, type %d", id, type));
-  }//digit added first time
+  }// digit added first time.
+    
+  // A digit already exists, check range
+  // (use high gain if signal < cut value, otherwise low gain)
   else 
-    { // a digit already exists, check range 
-		// (use high gain if signal < cut value, otherwise low gain)
-      if (lowGain) 
-	{ // new digit is low gain
+  {
+    if (lowGain)
+	{
+      // New digit is low gain
 	  if (digit->GetAmplitude() >  OVERFLOWCUT ) 
-	    {  // use if previously stored (HG) digit is out of range
-	      digit->SetAmplitude( HGLGFACTOR * amp);
-	      digit->SetTime(time);
-	      digit->SetType(AliEMCALDigit::kLG);
-	      AliDebug(2,Form("Add LG digit ID %d for the second time, type %d", digit->GetId(), digit->GetType()));
-	    }
-	}//new low gain digit
-      else { // new digit is high gain 
-	
-	if (amp <  OVERFLOWCUT  ) 
-	  { // new digit is high gain; use if not out of range
-	    digit->SetAmplitude(amp);
-	    digit->SetTime(time);
-	    digit->SetType(AliEMCALDigit::kHG);
-	    AliDebug(2,Form("Add HG digit ID %d for the second time, type %d", digit->GetId(), digit->GetType()));
-	  }
-	else 
-	  { // HG out of range, just change flag value to show that HG did exist
+      {
+        // Use if previously stored (HG) digit is out of range
+        digit->SetAmplitude( HGLGFACTOR * amp);
+        digit->SetTime(time);
+        digit->SetType(AliEMCALDigit::kLG);
+          
+        AliDebug(2,Form("Add LG digit ID %d for the second time, type %d", digit->GetId(), digit->GetType()));
+      }
+	} // New low gain digit
+    else
+    {
+      // New digit is high gain
+	  if (amp <  OVERFLOWCUT  )
+      {
+        // New digit is high gain; use if not out of range
+        digit->SetAmplitude(amp);
+        digit->SetTime(time);
+        digit->SetType(AliEMCALDigit::kHG);
+        
+        AliDebug(2,Form("Add HG digit ID %d for the second time, type %d", digit->GetId(), digit->GetType()));
+      }
+      else
+      {
+        // HG out of range, just change flag value to show that HG did exist
 	    digit->SetType(AliEMCALDigit::kLG);
+          
 	    AliDebug(2,Form("Change LG digit to HG, ID %d, type %d", digit->GetId(), digit->GetType()));
-	  }
-      }//new high gain digit
-    }//digit existed replace it
+      }
+    } // New high gain digit
+  }// Digit existed replace it
 }
 
-
-void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, const AliCaloCalibPedestal* pedbadmap, TClonesArray *digitsTRG, AliEMCALTriggerData* trgData)
+///
+/// Conversion of raw data to digits.
+///
+void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, const AliCaloCalibPedestal* pedbadmap,
+                                  TClonesArray *digitsTRG, AliEMCALTriggerData* trgData)
 {
-  //conversion of raw data to digits
-  if ( digitsArr) digitsArr->Clear("C"); 
-  if (!digitsArr) { Error("Raw2Digits", "no digits found !");return;}
-  if (!reader) {Error("Raw2Digits", "no raw reader found !");return;}
+  if ( digitsArr) digitsArr->Clear("C");
+    
+  if (!digitsArr) { Error("Raw2Digits", "no digits found !")    ; return ; }
+    
+  if (!reader)    { Error("Raw2Digits", "no raw reader found !"); return ; }
+    
   AliEMCALTriggerSTURawStream inSTU(reader);
-  AliCaloRawStreamV3 in(reader,"EMCAL",fMapping);	
-  reader->Select("EMCAL",0,39); // 39 = AliEMCALGeoParams::fgkLastAltroDDL
+    
+  AliCaloRawStreamV3 in(reader,"EMCAL",fMapping);
+    
+  reader->Select("EMCAL",0,AliDAQ::GetFirstSTUDDL()-1);
+    
   fTriggerRawDigitMaker->Reset();	
   fTriggerRawDigitMaker->SetIO(reader, in, inSTU, digitsTRG, trgData);
+    
   fRawAnalyzer->SetIsZeroSuppressed(true); // TMP - should use stream->IsZeroSuppressed(), or altro cfg registers later
     
   Int_t lowGain  = 0;
@@ -303,82 +357,131 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, 
   //AliCDBManager* man = AliCDBManager::Instance();
   //Int_t runNumber = man->GetRun();
 	
- Int_t runNumber = reader->GetRunNumber();
+  Int_t runNumber = reader->GetRunNumber();
 
   if ((runNumber >130850 ) && (bcMod4==0 || bcMod4==1)) 
     bcTimePhaseCorr = -1e-7; // subtract 100 ns for certain BC values
 
   while (in.NextDDL()) 
+  {
+    while (in.NextChannel())
     {
-      while (in.NextChannel()) 
-	{
-    	  caloFlag = in.GetCaloFlag();
-	  if (caloFlag > 2) continue; // Work with ALTRO and FALTRO 
-    	  if(caloFlag < 2 && fRemoveBadChannels && pedbadmap->IsBadChannel(in.GetModule(),in.GetColumn(),in.GetRow()))
-	    {
-	      continue;
-	    }  
-      	  vector<AliCaloBunchInfo> bunchlist; 
-	  while (in.NextBunch()) 
-	    {
-	      bunchlist.push_back( AliCaloBunchInfo(in.GetStartTimeBin(), in.GetBunchLength(), in.GetSignals() ) );
-	    } 
-	  if (bunchlist.size() == 0) continue;
-      	  if ( caloFlag < 2 )
-	    { // ALTRO
-	      Int_t id = fGeom->GetAbsCellIdFromCellIndexes(in.GetModule(), in.GetRow(), in.GetColumn()) ;
-	      lowGain  = in.IsLowGain();
-	      fRawAnalyzer->SetL1Phase( in.GetL1Phase() );
-	      AliCaloFitResults res =  fRawAnalyzer->Evaluate( bunchlist, in.GetAltroCFG1(), in.GetAltroCFG2());  
-	      if(res.GetAmp() >= fNoiseThreshold )
-		{
-		  AddDigit(digitsArr, id, lowGain, res.GetAmp(),  res.GetTime()+bcTimePhaseCorr, res.GetChi2(),  res.GetNdf() ); 
-		}
-	    }//ALTRO
-	  else if(fUseFALTRO)
-	    {// Fake ALTRO
-	      fTriggerRawDigitMaker->Add( bunchlist );
-	    }//Fake ALTRO
-	} // end while over channel   
-    } //end while over DDL's, of input stream 
-  fTriggerRawDigitMaker->PostProcess();	
+      caloFlag = in.GetCaloFlag();
+    
+      if ( caloFlag > 2 ) continue; // Work with ALTRO and FALTRO
+    
+      
+      Int_t sm     = in.GetModule() ;
+      Int_t row    = in.GetRow   () ;
+      Int_t column = in.GetColumn() ;
+      
+      //----------------------------------------------------------------------
+      //
+      // Online mapping and numbering is the same for EMCal and DCal SMs but:
+      //  - DCal odd SM (13,15,17) has online cols: 16-47; offline cols 0-31.
+      //  - Even DCal SMs have the same numbering online and offline 0-31.
+      //  - DCal 1/3 SM (18,19), online rows 16-23; offline rows 0-7
+      //
+      // In the next lines shift the online cols or rows depending on the
+      // SM to match the offline mapping.
+      //
+                
+      fGeom->ShiftOnlineToOfflineCellIndexes(sm, row, column);
+      
+      //
+      //---------------------------------------------------------------------
+        
+      if ( caloFlag < 2 && fRemoveBadChannels && pedbadmap->IsBadChannel(sm, column, row) )
+      {
+        continue;
+      }
+    
+      vector<AliCaloBunchInfo> bunchlist;
+	
+      while (in.NextBunch())
+      {
+        bunchlist.push_back( AliCaloBunchInfo(in.GetStartTimeBin(), in.GetBunchLength(), in.GetSignals() ) );
+      }
+	  
+      if (bunchlist.size() == 0) continue;
+        
+      if ( caloFlag < 2 )
+      {
+        // ALTRO
+          
+        Int_t id = fGeom->GetAbsCellIdFromCellIndexes(sm, row, column) ;
+                
+        lowGain  = in.IsLowGain();
+                
+        fRawAnalyzer->SetL1Phase( in.GetL1Phase() );
+                
+        AliCaloFitResults res =  fRawAnalyzer->Evaluate( bunchlist, in.GetAltroCFG1(), in.GetAltroCFG2());
+                
+        if(res.GetAmp() >= fNoiseThreshold )
+        {
+          AddDigit(digitsArr, id, lowGain, res.GetAmp(),  res.GetTime()+bcTimePhaseCorr, res.GetChi2(),  res.GetNdf() );
+        }
+      }// ALTRO
+      else if ( fUseFALTRO )
+      {// Fake ALTRO
+        fTriggerRawDigitMaker->Add( bunchlist );
+      }// Fake ALTRO
+    } // End while over channel
+  } // End while over DDL's, of input stream
+    
+  fTriggerRawDigitMaker->PostProcess();
+    
   TrimDigits(digitsArr);
 }
 
-
-void AliEMCALRawUtils::TrimDigits(TClonesArray *digitsArr) 
-{ // rm entries with LGnoHG (unphysical), out of time window, and too bad chi2
+///
+/// Remove entries with LGnoHG (unphysical), out of time window, and too bad chi2.
+///
+void AliEMCALRawUtils::TrimDigits(TClonesArray *digitsArr)
+{
   AliEMCALDigit *digit = 0;
+  
   Int_t n = 0;
   Int_t nDigits = digitsArr->GetEntriesFast();
+  
   TIter nextdigit(digitsArr);
-  while ((digit = (AliEMCALDigit*) nextdigit())) {
-    if (digit->GetType() == AliEMCALDigit::kLGnoHG) {
+    
+  while ((digit = (AliEMCALDigit*) nextdigit()))
+  {
+    if (digit->GetType() == AliEMCALDigit::kLGnoHG)
+    {
       AliDebug(1,Form("Remove digit with id %d, LGnoHG",digit->GetId()));
       digitsArr->Remove(digit);
     }
-    else if(fTimeMin > digit->GetTime() || fTimeMax < digit->GetTime()) {
+    else if(fTimeMin > digit->GetTime() || fTimeMax < digit->GetTime())
+    {
       digitsArr->Remove(digit);
       AliDebug(1,Form("Remove digit with id %d, Bad Time %e",digit->GetId(), digit->GetTime()));
     }
-    else if (0 > digit->GetChi2()) {
+    else if (0 > digit->GetChi2())
+    {
       digitsArr->Remove(digit);
       AliDebug(1,Form("Remove digit with id %d, Bad Chi2 %e",digit->GetId(), digit->GetChi2()));
     }
-    else {
+    else
+    {
       digit->SetIndexInList(n);	
       n++;
     }    
   }//while
   
   digitsArr->Compress();
+    
   AliDebug(1,Form("N Digits before trimming : %d; after array compression %d",nDigits,digitsArr->GetEntriesFast()));
 }
 
-
+///
+/// Select which fitting algo should be used.
+///
 void AliEMCALRawUtils::SetFittingAlgorithm(Int_t fitAlgo)              
-{ // select which fitting algo should be used
+{
   delete fRawAnalyzer; // delete doesn't do anything if the pointer is 0x0
+    
   fRawAnalyzer = AliCaloRawAnalyzerFactory::CreateAnalyzer( fitAlgo );
   fRawAnalyzer->SetNsampleCut(5); // requirement for fits to be done, for the new methods
   fRawAnalyzer->SetOverflowCut ( OVERFLOWCUT );

@@ -100,6 +100,7 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     TGeoVolume* CreateSpaceFrameOuterB(const TGeoManager *mgr=gGeoManager);
     TGeoVolume* CreateSpaceFrameOuterBDummy(const TGeoManager *mgr=gGeoManager) const;
     TGeoVolume* CreateSpaceFrameOuterB1(const TGeoManager *mgr=gGeoManager);
+    void        CreateOBSpaceFrameObjects(const TGeoManager *mgr=gGeoManager);
 
     TGeoXtru* CreateStaveSide(const char *name,
 			       Double_t dz, Double_t alpha, Double_t beta,
@@ -152,13 +153,16 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     static const Double_t fgkIBCoolPipeInnerD;   // IB cooling inner diameter
     static const Double_t fgkIBCoolPipeThick;    // IB cooling pipe thickness
     static const Double_t fgkIBCoolPipeXDist;    // IB cooling pipe separation
-    static const Double_t fgkIBTopVertexWidth;   // IB TopVertex width
+    static const Double_t fgkIBTopVertexWidth1;  // IB TopVertex width
+    static const Double_t fgkIBTopVertexWidth2;  // IB TopVertex width
     static const Double_t fgkIBTopVertexHeight;  // IB TopVertex height
+    static const Double_t fgkIBTopVertexAngle ;  // IB TopVertex aperture angle
     static const Double_t fgkIBSideVertexWidth;  // IB SideVertex width
     static const Double_t fgkIBSideVertexHeight; // IB SideVertex height
     static const Double_t fgkIBTopFilamentLength;// IB TopFilament length
     static const Double_t fgkIBTopFilamentSide;  // IB TopFilament side
     static const Double_t fgkIBTopFilamentAlpha; // IB TopFilament angle
+    static const Double_t fgkIBTopFilamentGamma; // IB TopFilament angle
 
     static const Double_t fgkIBStaveHeight;      // IB Stave Total Y Height
 
@@ -196,7 +200,7 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     static const Int_t    fgkOBSpaceFrameNUnits[2];//OB Number of SF Units
     static const Double_t fgkOBSpaceFrameUnitLen;// OB Space Frame Unit length
     static const Double_t fgkOBSpaceFrameWidth;  // OB Space Frame Width
-    static const Double_t fgkOBSpaceFrameHigh;   // OB Space Frame Height
+    static const Double_t fgkOBSpaceFrameHeight; // OB Space Frame Height
     static const Double_t fgkOBSpaceFrameTopVL;  // Parameters defining...
     static const Double_t fgkOBSpaceFrameTopVH;  // ...the Top V shape
     static const Double_t fgkOBSpaceFrameSideVL; // Parameters defining...
@@ -207,6 +211,12 @@ class AliITSUv1Layer : public AliITSv11Geometry {
     static const Double_t fgkOBSFrameBaseRibPhi; // OB SF base beam angle
     static const Double_t fgkOBSFrameSideRibDiam;// OB SFrame Side Rib Diam
     static const Double_t fgkOBSFrameSideRibPhi; // OB SF side beam angle
+    static const Double_t fgkOBSFrameULegLen;    // OB SF U-Leg length
+    static const Double_t fgkOBSFrameULegWidth;  // OB SF U-Leg width
+    static const Double_t fgkOBSFrameULegHeight1;// OB SF U-Leg height
+    static const Double_t fgkOBSFrameULegHeight2;// OB SF U-Leg height
+    static const Double_t fgkOBSFrameULegThick;  // OB SF U-Leg thickness
+    static const Double_t fgkOBSFrameULegXPos;   // OB SF U-Leg X position
 
 
   ClassDef(AliITSUv1Layer,0) // ITS Upgrade v1 geometry

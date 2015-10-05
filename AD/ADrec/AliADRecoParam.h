@@ -39,6 +39,7 @@ class AliADRecoParam : public AliDetectorRecoParam
   void SetTimeWindowBGCLow(Float_t val) { fTimeWindowBGCLow = val; }
   void SetTimeWindowBGCUp (Float_t val) { fTimeWindowBGCUp  = val; }
   void SetMaxResid (Float_t val) { fMaxResid  = val; }
+  void SetResidRise (Float_t val) { fResidRise  = val; }
 
   Float_t GetNSigmaPed() const { return fNSigmaPed; }
   Int_t  GetStartClock() const { return fStartClock; }
@@ -55,7 +56,8 @@ class AliADRecoParam : public AliDetectorRecoParam
   Float_t  GetTimeWindowBGCLow() const { return fTimeWindowBGCLow; }
   Float_t  GetTimeWindowBGCUp () const { return fTimeWindowBGCUp ; }
   Float_t  GetMaxResid () const { return fMaxResid; }
-
+  Float_t  GetResidRise () const { return fResidRise; } 
+  
  private:
 
   Float_t fNSigmaPed;  // Number of pedestal sigmas for adc cut
@@ -75,8 +77,8 @@ class AliADRecoParam : public AliDetectorRecoParam
   Float_t fTimeWindowBGCLow;  // BGC window (lower cut)
   Float_t fTimeWindowBGCUp;   // BGC window (upper cut)
   Float_t fMaxResid;   	      // Maximum residual of a single channel time
-
-
-  ClassDef(AliADRecoParam, 1)
+  Float_t fResidRise;	      // Rise of the early hit cut
+  
+  ClassDef(AliADRecoParam, 4)
 };
 #endif

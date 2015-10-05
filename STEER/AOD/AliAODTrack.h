@@ -289,6 +289,7 @@ class AliAODTrack : public AliVTrack {
 
   UShort_t GetTPCNclsF() const { return fTPCnclsF;}
   UShort_t GetTPCNCrossedRows()  const { return fTPCNCrossedRows;}
+  Float_t GetTPCCrossedRows() const {return (Float_t) GetTPCNCrossedRows();}
   Float_t  GetTPCFoundFraction() const { return fTPCNCrossedRows>0 ? float(GetTPCNcls())/fTPCNCrossedRows : 0;}
 
   // Calorimeter Cluster
@@ -309,6 +310,8 @@ class AliAODTrack : public AliVTrack {
   //pid signal interface
   Double_t  GetITSsignal()       const { return fDetPid?fDetPid->GetITSsignal():0.;    }
   void      GetITSdEdxSamples(Double_t s[4]) const;
+  Double_t  GetITSsignalTunedOnData() const {return fITSsignalTuned ;}
+  void      SetITSsignalTunedOnData(Double_t signal) {fITSsignalTuned = signal;}
   Double_t  GetTPCsignal()       const { return fDetPid?fDetPid->GetTPCsignal():0.;    }
   Double_t  GetTPCsignalTunedOnData() const { return fTPCsignalTuned;}
   void      SetTPCsignalTunedOnData(Double_t signal) {fTPCsignalTuned = signal;}
@@ -365,6 +368,7 @@ class AliAODTrack : public AliVTrack {
   void SetLabel(Int_t label) { fLabel = label; }
   void SetTOFLabel(const Int_t* p);
   template <typename T> void SetPosition(const T *x, Bool_t isDCA = kFALSE);
+  template <typename T> void SetP(const T *p, const Bool_t cartesian);
   void SetDCA(Double_t d, Double_t z);
   void SetUsedForVtxFit(Bool_t used = kTRUE) { used ? SetBit(kUsedForVtxFit) : ResetBit(kUsedForVtxFit); }
   void SetUsedForPrimVtxFit(Bool_t used = kTRUE) { used ? SetBit(kUsedForPrimVtxFit) : ResetBit(kUsedForPrimVtxFit); }
@@ -383,7 +387,6 @@ class AliAODTrack : public AliVTrack {
   void SetPt(Double_t pt) { fMomentum[0] = pt; };
   void SetPhi(Double_t phi) { fMomentum[1] = phi; }
   void SetTheta(Double_t theta) { fMomentum[2] = theta; }
-  template <typename T> void SetP(const T *p, Bool_t cartesian = kTRUE);
   void SetP() {fMomentum[0]=fMomentum[1]=fMomentum[2]=-999.;}
 
   void SetXYAtDCA(Double_t x, Double_t y) {fPositionAtDCA[0] = x; fPositionAtDCA[1] = y;}
@@ -488,6 +491,7 @@ class AliAODTrack : public AliVTrack {
 
   Bool_t fIsMuonGlobalTrack;        // True if the track is built from the combination of MUON and MFT clusters     // AU
 
+  Double_t      fITSsignalTuned;    //! ITS signal tuned on data when using MC
   Double_t      fTPCsignalTuned;    //! TPC signal tuned on data when using MC
   Double_t      fTOFsignalTuned;    //! TOF signal tuned on data when using MC
 
@@ -507,6 +511,9 @@ class AliAODTrack : public AliVTrack {
   virtual Int_t GetTrackParamOp       ( AliExternalTrackParam &p ) const;
   virtual Int_t GetTrackParamCp       ( AliExternalTrackParam &p ) const;
   virtual Int_t GetTrackParamITSOut   ( AliExternalTrackParam &p ) const;
+  Int_t GetNumberOfITSClusters() const { return GetITSNcls();}
+  Int_t GetNumberOfTPCClusters() const { return GetTPCncls();}  
+  Int_t GetNumberOfTRDClusters() const { return GetTRDncls();}  
 
   ClassDef(AliAODTrack, 24);
 };
@@ -558,6 +565,33 @@ void AliAODTrack::SetPosition(const T *x, const Bool_t dca)
     fPosition[2] = -999.;
   }
 }
+
+
+//______________________________________________________________________________
+template <typename T> void AliAODTrack::SetP(const T *p, const Bool_t cartesian) 
+{
+  // Set the momentum
+
+  if (p) {
+    if (cartesian) {
+      Double_t pt2 = p[0]*p[0] + p[1]*p[1];
+      Double_t pp  = TMath::Sqrt(pt2 + p[2]*p[2]);
+      
+      fMomentum[0] = TMath::Sqrt(pt2); // pt
+      fMomentum[1] = (pt2 != 0.) ? TMath::Pi()+TMath::ATan2(-p[1], -p[0]) : -999; // phi
+      fMomentum[2] = (pp != 0.) ? TMath::ACos(p[2] / pp) : -999.; // theta
+    } else {
+      fMomentum[0] = p[0];  // pt
+      fMomentum[1] = p[1];  // phi
+      fMomentum[2] = p[2];  // theta
+    }
+  } else {
+    fMomentum[0] = -999.;
+    fMomentum[1] = -999.;
+    fMomentum[2] = -999.;
+  }
+}
+
 
 //template<> void AliAODTrack::SetPosition(const double *, Bool_t);
 

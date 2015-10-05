@@ -465,13 +465,14 @@ AliTracker(),
 
   if (AliTPCReconstructor::StreamLevel()>0) {
     fDebugStreamer = new TTreeSRedirector("TPCdebug.root","recreate");
+    AliTPCReconstructor::SetDebugStreamer(fDebugStreamer);
   }
   //
   fSeedsPool = new TClonesArray("AliTPCseed",1000);
 
   // crosstalk array and matrix initialization
   Int_t nROCs   = 72;
-  Int_t nTimeBinsAll  = par->GetMaxTBin();
+  Int_t nTimeBinsAll  = AliTPCcalibDB::Instance()->GetMaxTimeBinAllPads() ;
   Int_t nWireSegments = 11;
   fCrossTalkSignalArray = new TObjArray(nROCs*4);  //  
   fCrossTalkSignalArray->SetOwner(kTRUE);
@@ -736,7 +737,10 @@ Double_t AliTPCtracker::ErrY2(AliTPCseed* seed, const AliTPCclusterMI * cl){
   erry2*=erry2;
   Double_t addErr=0;
   const Double_t *errInner = AliTPCReconstructor::GetRecoParam()->GetSystematicErrorClusterInner();
-  addErr=errInner[0]*TMath::Exp(-TMath::Abs((cl->GetX()-85.)/errInner[1]));
+  const Double_t *errInnerDeep = AliTPCReconstructor::GetRecoParam()->GetSystematicErrorClusterInnerDeepY();
+  double dr = TMath::Abs(cl->GetX()-85.);
+  addErr=errInner[0]*TMath::Exp(-dr/errInner[1]);
+  if (errInnerDeep[0]>0) addErr += errInnerDeep[0]*TMath::Exp(-dr/errInnerDeep[1]);
   erry2+=addErr*addErr;
   const Double_t *errCluster = AliTPCReconstructor::GetRecoParam()->GetSystematicErrorCluster();
   erry2+=errCluster[0]*errCluster[0];
@@ -894,7 +898,10 @@ Double_t AliTPCtracker::ErrZ2(AliTPCseed* seed, const AliTPCclusterMI * cl){
   errz2*=errz2;
   Double_t addErr=0;
   const Double_t *errInner = AliTPCReconstructor::GetRecoParam()->GetSystematicErrorClusterInner();
-  addErr=errInner[0]*TMath::Exp(-TMath::Abs((cl->GetX()-85.)/errInner[1]));
+  const Double_t *errInnerDeepZ = AliTPCReconstructor::GetRecoParam()->GetSystematicErrorClusterInnerDeepZ();
+  double dr = TMath::Abs(cl->GetX()-85.);
+  addErr=errInner[0]*TMath::Exp(-dr/errInner[1]);
+  if (errInnerDeepZ[0]>0) addErr += errInnerDeepZ[0]*TMath::Exp(-dr/errInnerDeepZ[1]);
   errz2+=addErr*addErr;
   const Double_t *errCluster = AliTPCReconstructor::GetRecoParam()->GetSystematicErrorCluster();
   errz2+=errCluster[1]*errCluster[1];

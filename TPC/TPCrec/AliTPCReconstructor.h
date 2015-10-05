@@ -7,12 +7,14 @@
 
 #include "AliReconstructor.h"
 #include "AliTPCRecoParam.h"
+#include <TString.h>
 
 class AliTPCParam;
 class AliTPCclusterer;
 class AliTPCtracker;
 class AliTPCAltroEmulator;
 class TObjArray;
+class TTreeSRedirector;
 
 class AliTPCReconstructor: public AliReconstructor {
 public:
@@ -31,7 +33,9 @@ public:
 
   static const AliTPCRecoParam* GetRecoParam() { return dynamic_cast<const AliTPCRecoParam*>(AliReconstructor::GetRecoParam(1)); }
   virtual void                 GetPidSettings(AliESDpid *esdPID);
-  
+  //
+  static void        SetPIDRespnonsePath(const char* pth) {fgPIDRespnonsePath = pth;}
+  static const char* GetPIDRespnonsePath() {return fgPIDRespnonsePath.Data();}  
   //
   static Double_t GetCtgRange()     { return GetRecoParam()->GetCtgRange();}
   static Double_t GetMaxSnpTracker(){ return GetRecoParam()->GetMaxSnpTracker();}
@@ -41,17 +45,19 @@ public:
   static void  SetStreamLevel(Int_t level) { fgStreamLevel = level;}
   static void  SetAltroEmulator(AliTPCAltroEmulator *altro) { fAltroEmulator=altro;}
   static AliTPCAltroEmulator *  GetAltroEmulator() { return fAltroEmulator;}
-
+  static TTreeSRedirector    *GetDebugStreamer(){return fgDebugStreamer;}
+  static void SetDebugStreamer(TTreeSRedirector    *debugStreamer){fgDebugStreamer=debugStreamer;}
   void ParseOptions(AliTPCtracker* tracker) const;
-
+  
 private:
   AliTPCReconstructor(const AliTPCReconstructor&); //Not implemented
   AliTPCReconstructor& operator=(const AliTPCReconstructor&); //Not implemented
   AliTPCParam*         GetTPCParam() const;
   static Int_t               fgStreamLevel; // flag for streaming      - for TPC reconstruction
+  static TTreeSRedirector    *fgDebugStreamer; // pointer to the streamer
   AliTPCclusterer*           fClusterer;   // TPC clusterer
   static AliTPCAltroEmulator * fAltroEmulator;    // ALTRO emulator
-
+  static TString             fgPIDRespnonsePath;           // path to PIDResponse
   TObjArray *fArrSplines;                  // array of pid splines
 
   void SetSplinesFromOADB(const char* tmplt, AliESDpid *esdPID);

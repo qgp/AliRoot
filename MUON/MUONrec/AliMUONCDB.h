@@ -26,12 +26,15 @@ class AliMUONGlobalCrateConfig;
 class AliMUONRejectList;
 class AliMUONRecoParam;
 class TH1;
+class AliMergeableCollection;
 
 namespace AliMUONCDB
 {
   Bool_t CheckOCDB(Bool_t pathOnly = kFALSE);
   Bool_t CheckMapping(Bool_t segmentationOnly = kFALSE);
   
+  Double_t MeanHVValueForDCSAlias(TMap& hvMap, const char* hvChannel);
+
   void CheckHV(Int_t runNumber, Int_t verbose=0);
 
   Bool_t LoadField();
@@ -39,13 +42,17 @@ namespace AliMUONCDB
   AliMUONRecoParam* LoadRecoParam();
   TClonesArray* LoadAlignmentData();
   
+  void AddDCSValue ( TMap& aliasMap, Int_t imeas, const char* smt, const char* sInOut, Int_t rpc, Float_t value );
+
   Int_t MakeHVStore(TMap& aliasMap, Bool_t defaultValues);
-  Int_t MakeTriggerDCSStore(TMap& aliasMap, Bool_t defaultValues);
+  Int_t MakeTriggerDCSStore(TMap& aliasMap);
   Int_t MakePedestalStore(AliMUONVStore& pedestalStore, Bool_t defaultValues);
   Int_t MakeCapacitanceStore(AliMUONVStore& capaStore, Bool_t defaultValues);
   Int_t MakeCapacitanceStore(AliMUONVStore& capaStore, const char* file);
   Int_t MakeGainStore(AliMUONVStore& gainStore, Bool_t defaultValues);
   Int_t MakeOccupancyMapStore(AliMUONVStore& occupancyMap, Bool_t defaultValues);
+  Int_t MakeBusPatchEvolution(AliMergeableCollection& bpevo, int timeResolution=60);
+
   AliMUONRejectList* MakeRejectListStore(Bool_t defaultValues);
   
   Int_t MakeLocalTriggerMaskStore(AliMUONVStore& ltm);  
@@ -77,10 +84,14 @@ namespace AliMUONCDB
   void WriteToCDB(TObject* object, const char* calibpath, Int_t startRun=0, Int_t endRun=AliCDBRunRange::Infinity(),
                   const char* comment="", const char* responsible="AliMUONCDB tester class");
 
+  void WriteMapping(Int_t startRun=0,Int_t endRun=AliCDBRunRange::Infinity());
+  
   void WriteTrigger(Bool_t defaultValues=kTRUE, Int_t startRun=0,Int_t endRun=AliCDBRunRange::Infinity());
   void WriteTracker(Bool_t defaultValues=kTRUE, Int_t startRun=0,Int_t endRun=AliCDBRunRange::Infinity());
   
   void WriteHV(Bool_t defaultValues, Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
+  void WriteHV(const char* inputFile, Int_t runNumber);
+
   void WritePedestals(Bool_t defaultValues, Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteGains(Bool_t defaultValues, Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteCapacitances(Bool_t defaultValues, Int_t startRun=0, Int_t endRun=AliCDBRunRange::Infinity());
@@ -88,12 +99,13 @@ namespace AliMUONCDB
   void WriteOccupancyMap(Bool_t defaultValues, Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteRejectList(Bool_t defaultValues, Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteConfig(Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
+  void WriteBPEVO(Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
 
   void WriteLocalTriggerMasks(Int_t startRun=0, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteRegionalTriggerConfig(Int_t startRun=0, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteGlobalTriggerConfig(Int_t startRun=0, Int_t endRun=AliCDBRunRange::Infinity());
   
-  void WriteTriggerDCS(Bool_t defaultValues, Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
+  void WriteTriggerDCS(Int_t startRun, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteTriggerLut(Int_t startRun=0, Int_t endRun=AliCDBRunRange::Infinity());
   void WriteTriggerEfficiency(Int_t startRun=0, Int_t endRun=AliCDBRunRange::Infinity());
 }

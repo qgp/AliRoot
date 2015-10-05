@@ -20,7 +20,7 @@ set(MODULE STEER)
 include_directories(${AliRoot_SOURCE_DIR}/STEER/${MODULE})
 
 # Additional include directories - alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSIS
                     ${AliRoot_SOURCE_DIR}/HLT/BASE
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatabase
@@ -74,7 +74,7 @@ set(SRCS
     AliHit.cxx
     AliHitMap.cxx
     AliHLTSimulation.cxx
-    AliHLTTestInputHandler.cxx
+    AliHLTVEventInputHandler.cxx
     AliKink.cxx
     AliLego.cxx
     AliLegoGenerator.cxx
@@ -158,6 +158,7 @@ set(SRCS
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 set(HDRS ${HDRS}
    AliConst.h
+   AliRawDataHeaderSim.h
    )
 
 # Generate the dictionary
@@ -180,7 +181,7 @@ add_definitions("-DLIBHLTSIM_VERSION=${LIBHLTSIM_VERSION}")
 # Otherwise the sources will be compiled twice
 add_library(${MODULE}-object OBJECT ${SRCS} G__${MODULE}.cxx)
 # Add a library to the project using the object
-add_library(${MODULE} SHARED $<TARGET_OBJECTS:STEER-object>)
+add_library(${MODULE} SHARED $<TARGET_OBJECTS:${MODULE}-object>)
 
 target_link_libraries(${MODULE} ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 

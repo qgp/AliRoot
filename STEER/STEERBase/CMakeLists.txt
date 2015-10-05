@@ -20,7 +20,7 @@ set (MODULE STEERBase)
 include_directories(${AliRoot_SOURCE_DIR}/STEER/${MODULE})
 
 # Additional includes - alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_BINARY_DIR}/version
                    )
 
@@ -104,6 +104,7 @@ set(SRCS
     AliTRDTKDInterpolator.cxx
     AliTriggerScalers.cxx
     AliTriggerScalersRecord.cxx
+    AliVAD.cxx
     AliVAODHeader.cxx
     AliVCaloCells.cxx
     AliVCaloTrigger.cxx
@@ -129,6 +130,7 @@ set(SRCS
     AliVTrdTracklet.cxx
     AliVVertex.cxx
     AliVVZERO.cxx
+    AliVVZEROfriend.cxx
     AliVZDC.cxx
     TTreeStream.cxx
    )
@@ -151,6 +153,9 @@ add_library(STEERBase SHARED $<TARGET_OBJECTS:STEERBase-object>)
 # Dependecies
 set(LIBDEPS Core EG Geom Gpad Graf3d Graf Hist MathCore Matrix Minuit Net Physics RIO Tree VMC)
 generate_rootmap("STEERBase" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
+
+# Generate a PARfile target for this library
+add_target_parfile(${MODULE} "${SRCS}" "${HDRS}" "${MODULE}LinkDef.h" "${LIBDEPS}")
 
 # Additional compilation flags for the object
 set_target_properties(${MODULE}-object PROPERTIES COMPILE_FLAGS "")

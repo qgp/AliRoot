@@ -70,6 +70,9 @@
 int
 main(int argc, char **argv)
 {
+  
+  printf("in main\n"); // remove me
+  fflush(stdout); // remove me
     
     /* magic line from Rene */
     gROOT->GetPluginManager()->AddHandler("TVirtualStreamerInfo",
@@ -81,6 +84,7 @@ main(int argc, char **argv)
     
     /* log start of process */
     printf("TOF DA started\n");
+  fflush(stdout); // remove me
     
     /* check that we got some arguments = list of files */
     if (argc!=2) {
@@ -92,12 +96,20 @@ main(int argc, char **argv)
      * CONFIG
      */
     
+    printf("retrieve config file\n"); // remove me
+  fflush(stdout); // remove me
+
+
     /* retrieve config file */
     int getConfigFile = daqDA_DB_getFile("TOFPhysicsConfig.xml","TOFPhysicsConfig.xml");
     if (getConfigFile != 0){
         printf("Failed to retrieve config file from DB! returning...\n");
         return -1;
     }
+
+    printf("parse config file\n"); // remove me
+  fflush(stdout); // remove me
+
     /* parse config file */
     AliTOFDaConfigHandler* tofHandler = new AliTOFDaConfigHandler();
     TSAXParser *parser = new TSAXParser();
@@ -112,6 +124,7 @@ main(int argc, char **argv)
     printf("current settings:\n");
     printf(" - meanMultiplicity = %d\n", meanMultiplicity);
     printf(" - maxHits          = %d\n", maxHits);
+  fflush(stdout); // remove me
     /* constants */
     const Int_t nChannels = 157248;
     Int_t noiseCheckTrigger = 10; /* first noise check after 10 events */
@@ -131,6 +144,9 @@ main(int argc, char **argv)
      * INIT
      */
     
+    printf("init\n"); // remove me
+  fflush(stdout); // remove me
+
     /* init counters and flags */
     nPhysicsEvents = 0;
     nCollectedPhysicsEvents = 0;
@@ -168,6 +184,9 @@ main(int argc, char **argv)
     Int_t trmIndex, chainIndex, tdcIndex;
     Double_t chainEff;
     
+    printf("open files and create histos\n"); // remove me
+  fflush(stdout); // remove me
+
     /* open HITS output file */
     TFile *fileOutHits = new TFile(FILE_HITS, "RECREATE");
     /* create hit field data structure */
@@ -212,6 +231,9 @@ main(int argc, char **argv)
      * ONLINE MONITOR
      */
     
+    printf("monitor declare table\n"); // remove me
+  fflush(stdout); // remove me
+
     AliLog::SetGlobalLogLevel(AliLog::kFatal);
     struct eventHeaderStruct *event;
     int ret;
@@ -226,26 +248,46 @@ main(int argc, char **argv)
         printf("monitorDeclareTable() failed: %s\n", monitorDecodeError(ret));
         return -1;
     }
+
+    printf("monitor set data source\n"); // remove me 
+  fflush(stdout); // remove me
+
     /* define data source : this is argument 1 */
     ret = monitorSetDataSource(argv[1]);
     if (ret != 0) {
         printf("monitorSetDataSource() failed : %s\n",monitorDecodeError(ret));
         return -1;
     }
+
+    printf("monitor declare mp\n"); // remove me
+  fflush(stdout); // remove me
+
     /* declare monitoring program */
     ret = monitorDeclareMp("TOFdaPhysics");
     if (ret != 0) {
         printf("monitorDeclareMp() failed : %s\n",monitorDecodeError(ret));
         return -1;
     }
+
+    printf("monitor set no wait\n"); // remove me
+  fflush(stdout); // remove me
+
     /* define wait event timeout - 1s max */
     monitorSetNowait();
+
+    printf("monitor set no wait network timeout\n"); // remove me
+  fflush(stdout); // remove me
+
     monitorSetNoWaitNetworkTimeout(1000);
     
     /* variables */
-    
+
+    printf("endless loop\n"); // remove me
+  fflush(stdout); // remove me
+
     /* loop over events */
     while (1) {
+  fflush(stdout); // remove me
         
         /* check shutdown condition */
         if (daqDA_checkShutdown()) break;
@@ -271,6 +313,7 @@ main(int argc, char **argv)
                 /* set new noise check trigger value */
                 noiseCheckTrigger *= 10;
             } /* end of noise check */
+  fflush(stdout); // remove me
             
             /* inhibit hit collection when maximum number of hits exceeded */
             if (totHits >= maxHits) {

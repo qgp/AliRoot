@@ -171,11 +171,10 @@ AliPHOSGeoUtils::~AliPHOSGeoUtils(void)
   }
 
   for(Int_t mod=0; mod<5; mod++){
-    delete fEMCMatrix[mod] ;
-    for(Int_t istrip=0; istrip<224; istrip++)
-      delete fStripMatrix[mod][istrip];
-    delete fCPVMatrix[mod];
-    delete fPHOSMatrix[mod];
+     if(fPHOSMatrix[mod]){
+      delete fPHOSMatrix[mod];
+      fPHOSMatrix[mod]=0x0 ;
+    }
   }
 }
 //____________________________________________________________________________
@@ -256,15 +255,28 @@ void AliPHOSGeoUtils::RelPosInModule(const Int_t * relid, Float_t & x, Float_t &
 
     Int_t mod = relid[0] ;
     const TGeoHMatrix * m2 = GetMatrixForStrip(mod, strip) ;
-    m2->LocalToMaster(pos,posC);
-
+    if(m2)
+      m2->LocalToMaster(pos,posC);
+    else{ //shold not happen!
+      AliError(Form("Can not find matrix for mod=%d, strip=%d",mod, strip)) ;
+      //posC contains fixed valued to identify problem in analysis
+    }  
     //Return to PHOS local system  
     Double_t posL2[3]={posC[0],posC[1],posC[2]};
     const TGeoHMatrix *mPHOS2 = GetMatrixForModule(mod) ;
-    mPHOS2->MasterToLocal(posC,posL2);
-    x=posL2[0] ;
-    z=-posL2[2];
-    return ;
+    if(mPHOS2){
+      mPHOS2->MasterToLocal(posC,posL2);
+      x=posL2[0] ;
+      z=-posL2[2];
+      return ;
+    }
+    else{
+      AliError(Form("Can not find matrix for mod=%d",mod)) ;
+      //Return wrong fixed value to notice in analysis 
+      x=0. ;
+      z=0.;
+      return ;
+    }
   }
   else{//CPV
     //first calculate position with respect to CPV plain 
@@ -277,17 +289,53 @@ void AliPHOSGeoUtils::RelPosInModule(const Int_t * relid, Float_t & x, Float_t &
 
     //now apply possible shifts and rotations
     const TGeoHMatrix *m = GetMatrixForCPV(relid[0]) ;
-    m->LocalToMaster(pos,posC);
+    if(m)
+      m->LocalToMaster(pos,posC);
+    else{
+      AliError(Form("Can not find CPV matrix for mod=%d",relid[0])) ;
+      //posC contains fixed valued to identify problem in analysis
+    }  
     //Return to PHOS local system
     Double_t posL[3]={0.,0.,0.,} ;
     const TGeoHMatrix *mPHOS = GetMatrixForPHOS(relid[0]) ;
-    mPHOS->MasterToLocal(posC,posL);
-    x=posL[0] ;
-    z=posL[1];
-    return ;
- 
+    if(mPHOS){
+      mPHOS->MasterToLocal(posC,posL);
+      x=posL[0] ;
+      z=posL[1];
+      return ;
+    }
+    else{
+      AliError(Form("Can not find (CPV) matrix for mod=%d",relid[0])) ;
+      //Return wrong fixed value to notice in analysis 
+      x=0. ;
+      z=0.;
+      return ;
+    }
   }
   
+}
+//____________________________________________________________________________
+void AliPHOSGeoUtils::GetCrystalsEdges(Int_t mod, Float_t & xmin, Float_t &zmin, Float_t &xmax, Float_t &zmax){
+  //return coordinated of crystal matrix edges in local frame
+  Int_t relid[4]={mod,0,1,1} ;
+  relid[0]=mod ;
+  //check if this is 1/2 of the module 
+  Bool_t halfMod=kFALSE ;
+  if(gGeoManager){
+    if (gGeoManager->CheckPath(Form("/ALIC_1/PHOH_%d",mod))){  
+      halfMod=kTRUE ;
+    }
+  }
+  else{ //hardcoded!
+     halfMod=(mod==4) ;
+  }
+  if(halfMod)
+    relid[2]=33 ;
+  RelPosInModule(relid,xmin,zmin) ; //coordinate of the corner cell
+  relid[2]=64 ;
+  relid[3]=56 ;
+  RelPosInModule(relid,xmax,zmax) ; //coordinate of the corner cell
+ 
 }
 //____________________________________________________________________________
 void AliPHOSGeoUtils::RelPosToAbsId(Int_t module, Double_t x, Double_t z, Int_t & absId) const
@@ -404,12 +452,18 @@ void AliPHOSGeoUtils::RelPosInAlice(Int_t id, TVector3 & pos ) const
  
     Int_t mod = relid[0] ;
     const TGeoHMatrix * m2 = GetMatrixForStrip(mod, strip) ;
-    m2->LocalToMaster(ps,psC);
-    pos.SetXYZ(psC[0],psC[1],psC[2]) ; 
- 
+    if(m2){
+      m2->LocalToMaster(ps,psC);
+      pos.SetXYZ(psC[0],psC[1],psC[2]) ; 
+    }
+    else{
+      AliError(Form("Can not find matrix for mod=%d, strip=%d",mod,strip)) ;
+      //Return wrong fixed value to notice in analysis 
+      pos.SetXYZ(0.,0.,0.) ;
+    }
   }
   else{
-    //first calculate position with respect to CPV plain
+    //first calculate position with respect to CPV plane
     Int_t row        = relid[2] ; //offset along x axis
     Int_t column     = relid[3] ; //offset along z axis
     Double_t ps[3]= {0.0,fCPVBoxSizeY/2.,0.}; //Position on top of CPV
@@ -419,8 +473,16 @@ void AliPHOSGeoUtils::RelPosInAlice(Int_t id, TVector3 & pos ) const
  
     //now apply possible shifts and rotations
     const TGeoHMatrix *m = GetMatrixForCPV(relid[0]) ;
-    m->LocalToMaster(ps,psC);
-    pos.SetXYZ(psC[0],psC[1],-psC[2]) ; 
+    if(m){
+      m->LocalToMaster(ps,psC);
+      pos.SetXYZ(psC[0],psC[1],-psC[2]) ; 
+    }
+    else{
+      AliError(Form("Can not find (CPV) matrix for mod=%d",relid[0])) ;
+      //Return wrong fixed value to notice in analysis 
+      pos.SetXYZ(0.,0.,0.) ;
+      
+    }
   }
 } 
 
@@ -547,10 +609,18 @@ const TGeoHMatrix * AliPHOSGeoUtils::GetMatrixForModule(Int_t mod)const {
     char path[255] ;
     snprintf(path,255,"/ALIC_1/PHOS_%d/PEMC_1/PCOL_1/PTIO_1/PCOR_1/PAGA_1/PTII_1",mod) ;
     //    sprintf(path,"/ALIC_1/PHOS_%d",relid[0]) ;
-    if (!gGeoManager->cd(path)){
-      AliWarning(Form("Geo manager can not find path %s \n",path));
-      return 0;
+    if (!gGeoManager->CheckPath(path)){ //Module with CPV
+      snprintf(path,255,"/ALIC_1/PHOC_%d/PEMC_1/PCOL_1/PTIO_1/PCOR_1/PAGA_1/PTII_1",mod) ;
+      if (!gGeoManager->CheckPath(path)){
+        //Try half-mod name      
+        snprintf(path,255,"/ALIC_1/PHOH_%d/PEMH_1/PCLH_1/PIOH_1/PCOH_1/PAGH_1/PTIH_1",mod) ;
+        if (!gGeoManager->CheckPath(path)){
+//          AliWarning(Form("Geo manager can not find path %s \n",path));
+          return 0;
+	}
+      }
     }
+    gGeoManager->cd(path) ;
     return gGeoManager->GetCurrentMatrix();
   }
   if(fEMCMatrix[mod-1]){
@@ -573,10 +643,18 @@ const TGeoHMatrix * AliPHOSGeoUtils::GetMatrixForStrip(Int_t mod, Int_t strip)co
   if(gGeoManager){
     char path[255] ;
     snprintf(path,255,"/ALIC_1/PHOS_%d/PEMC_1/PCOL_1/PTIO_1/PCOR_1/PAGA_1/PTII_1/PSTR_%d",mod,strip) ;
-    if (!gGeoManager->cd(path)){
-      AliWarning(Form("Geo manager can not find path %s \n",path));
-      return 0 ;
+    if (!gGeoManager->CheckPath(path)){ //Test module with CPV
+      snprintf(path,255,"/ALIC_1/PHOC_%d/PEMC_1/PCOL_1/PTIO_1/PCOR_1/PAGA_1/PTII_1/PSTR_%d",mod,strip) ;
+      if (!gGeoManager->CheckPath(path)){
+        //Look for half-module path
+        snprintf(path,255,"/ALIC_1/PHOH_%d/PEMH_1/PCLH_1/PIOH_1/PCOH_1/PAGH_1/PTIH_1/PSTR_%d",mod,strip) ;
+        if (!gGeoManager->CheckPath(path)){    
+//          AliWarning(Form("Geo manager can not find path %s \n",path));
+          return 0 ;
+	}
+      }
     }
+    gGeoManager->cd(path) ;
     return gGeoManager->GetCurrentMatrix();
   } 
   if(fStripMatrix[mod-1][strip-1]){
@@ -599,11 +677,15 @@ const TGeoHMatrix * AliPHOSGeoUtils::GetMatrixForCPV(Int_t mod)const {
   if(gGeoManager){ 
     char path[255] ;
     //now apply possible shifts and rotations
-    snprintf(path,255,"/ALIC_1/PHOS_%d/PCPV_1",mod) ;
-    if (!gGeoManager->cd(path)){
-      AliWarning(Form("Geo manager can not find path %s \n",path));
-      return 0 ;
+    snprintf(path,255,"/ALIC_1/PHOC_%d/PCPV_1",mod) ;
+    if (!gGeoManager->CheckPath(path)){
+      snprintf(path,255,"/ALIC_1/PHOH_%d/PCPV_1",mod) ;
+      if (!gGeoManager->CheckPath(path)){
+//        AliWarning(Form("Geo manager can not find path %s \n",path));
+        return 0 ;
+      }
     }
+    gGeoManager->cd(path) ;
     return gGeoManager->GetCurrentMatrix();
   }
   if(fCPVMatrix[mod-1]){
@@ -627,11 +709,17 @@ const TGeoHMatrix * AliPHOSGeoUtils::GetMatrixForPHOS(Int_t mod)const {
 
     char path[255] ;
     snprintf(path,255,"/ALIC_1/PHOS_%d",mod) ;
-    
-    if (!gGeoManager->cd(path)){
-      AliWarning(Form("Geo manager can not find path %s \n",path));
-      return 0 ;
+    if (!gGeoManager->CheckPath(path)){ //Module with CPV
+      snprintf(path,255,"/ALIC_1/PHOC_%d",mod) ;
+      if (!gGeoManager->CheckPath(path)){ //1/2 module
+        snprintf(path,255,"/ALIC_1/PHOH_%d",mod) ;
+        if (!gGeoManager->CheckPath(path)){
+//          AliWarning(Form("Geo manager can not find path %s \n",path));
+          return 0 ;
+	}
+      }
     }
+    gGeoManager->cd(path) ;
     return gGeoManager->GetCurrentMatrix();
   }
   if(fPHOSMatrix[mod-1]){
@@ -714,4 +802,24 @@ void AliPHOSGeoUtils::SetMisalMatrix(const TGeoHMatrix * m, Int_t mod){
   fCPVMatrix[mod]->SetTranslation(globCPV) ;
 
 }
- 
+//____________________________________________________________________________ 
+void AliPHOSGeoUtils::TestSurvey(Int_t module, const Float_t *point, TVector3 &globaPos) const { 
+  //method used in PHOS alignment check
+  //Input is module number and point is Photogrammetry reference point wrt top right crystal
+  //output- point coordinates in ALICE global system
+  
+  Double_t x0=31.5*fCellStep;      //Number of crystals 
+  Double_t z0=26.5*fCellStep;  //from module center
+  Double_t posL[3]={-x0+point[0],-fCrystalShift-point[1],z0-point[2]} ; 
+  Double_t posG[3] ;
+  const TGeoHMatrix *mPHOS = GetMatrixForModule(module) ;
+  if(mPHOS){
+    mPHOS->LocalToMaster(posL,posG);
+    globaPos.SetXYZ(posG[0],posG[1],posG[2]) ;
+  }
+  else{
+     AliError(Form("Can not find matrix for mod=%d",module)) ;
+      //Return wrong fixed value to notice in analysis 
+      globaPos.SetXYZ(0.,0.,0.) ;
+  }
+}

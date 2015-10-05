@@ -1012,7 +1012,7 @@ Bool_t AliShuttle::WriteShuttleStatus(AliShuttleStatus* status)
 }
 
 //______________________________________________________________________________________________
-void AliShuttle::UpdateShuttleStatus(AliShuttleStatus::Status newStatus, Bool_t increaseCount)
+void AliShuttle::UpdateShuttleStatus(AliShuttleStatus::Status newStatus, Bool_t increaseCount, UInt_t errorCode)
 {
 	//
 	// changes the AliShuttleStatus for the given detector and run to the given status
@@ -1037,6 +1037,9 @@ void AliShuttle::UpdateShuttleStatus(AliShuttleStatus::Status newStatus, Bool_t 
 	Log("SHUTTLE", actionStr);
 	SetLastAction(actionStr);
 
+        if (errorCode!=0) {
+          status->SetUniqueID(errorCode);
+        }
 	status->SetStatus(newStatus);
 	if (increaseCount) status->IncreaseCount();
 
@@ -1171,6 +1174,7 @@ Bool_t AliShuttle::ContinueProcessing()
 
 	// abort conditions
 	if (status->GetCount() >= fConfig->GetMaxRetries()) {
+                UInt_t errorCode = status->GetUniqueID();
 		Log("SHUTTLE", Form("ContinueProcessing - %s failed %d times in status %s - "
 				"Updating Shuttle Logbook", fCurrentDetector.Data(),
 				status->GetCount(), status->GetStatusName()));
@@ -1186,32 +1190,9 @@ Bool_t AliShuttle::ContinueProcessing()
 		// UpdateTableFailCase();
 		
 		// Send mail to detector expert!
-		Log("SHUTTLE", Form("ContinueProcessing - Sending mail to %s expert...", 
+		Log("SHUTTLE", Form("ContinueProcessing - Sending mail to %s experts ...", 
 				    fCurrentDetector.Data()));
-		// det experts in to
-		TString to="";
-		TIter *iterExperts = 0;
-		iterExperts = new TIter(fConfig->GetResponsibles(fCurrentDetector));
-		TObjString *anExpert=0;
-		while ((anExpert = (TObjString*) iterExperts->Next()))
-			{
-				to += Form("%s, \n", anExpert->GetName());
-			}
-		delete iterExperts;
-		
-		if (to.Length() > 0)
-			to.Remove(to.Length()-3);
-		AliDebug(2, Form("to: %s",to.Data()));
-
-		if (to.IsNull()) {
-			Log("SHUTTLE", Form("List of %s responsibles not set!", fCurrentDetector.Data()));
-			return kFALSE;
-		}
-
-		Log(fCurrentDetector.Data(), Form("ContinueProcessing - Sending mail to %s expert(s):", 
-				    fCurrentDetector.Data()));
-		Log(fCurrentDetector.Data(), Form("\n%s", to.Data()));
-		if (!SendMail(kPPEMail))
+		if (!SendMail(kPPEMail, -1, errorCode))
 			Log("SHUTTLE", Form("ContinueProcessing - Could not send mail to %s expert",
 					    fCurrentDetector.Data()));
 
@@ -1264,11 +1245,11 @@ void AliShuttle::SendMLRunInfo(const char* status)
 //______________________________________________________________________________________________
 Int_t AliShuttle::GetMem(Int_t pid)
 {
-	// invokes ps to get the memory consumption of the process <pid>
+	// invokes ps to get the resident memory consumption of the process <pid>
 	// returns -1 in case of error
 	
 	TString checkStr;
-	checkStr.Form("ps -o vsize --pid %d | tail -n 1", pid);
+	checkStr.Form("ps -o rss --pid %d | tail -n 1", pid);
 	FILE* pipe = gSystem->OpenPipe(checkStr, "r");
 	if (!pipe)
 	{
@@ -1630,8 +1611,8 @@ Bool_t AliShuttle::Process(AliShuttleLogbookEntry* entry)
 				if (fFXSCalled[iSys]) fFXSlist[iSys].Clear();
 			}
 
-			Log("SHUTTLE", Form("Process - Client process of %d - %s is exiting now with %d.",
-							GetCurrentRun(), aDetector->GetName(), success));
+			Log("SHUTTLE", Form("Process - Client process of %d - %s is exiting now with %d (%s).",
+							GetCurrentRun(), aDetector->GetName(), success, success==kFALSE ? "failure" : "success"));
 
 			// the client exits here
 			gSystem->Exit(success);
@@ -1851,7 +1832,7 @@ Int_t AliShuttle::ProcessCurrentDetector()
 	// DCS Archive DB processing successful. Call Preprocessor!
 	UpdateShuttleStatus(AliShuttleStatus::kPPStarted);
 
-	fFXSError = -1; // this variable is kTRUE after ::Process if an FXS error occured
+	fFXSError = -1; // this variable is >=0 after ::Process if an FXS error occured (= system with problematic FXS)
 	
 	UInt_t returnValue = aPreprocessor->Process(dcsMap);
 	
@@ -1867,7 +1848,7 @@ Int_t AliShuttle::ProcessCurrentDetector()
 	{
 		Log(fCurrentDetector, Form("ProcessCurrentDetector - "
 				"Preprocessor failed. Process returned %d.", returnValue));
-		UpdateShuttleStatus(AliShuttleStatus::kPPError);
+		UpdateShuttleStatus(AliShuttleStatus::kPPError, kFALSE, returnValue);
 		dcsMap->DeleteAll();
 		delete dcsMap;
 		return 0;
@@ -2056,9 +2037,11 @@ AliShuttleLogbookEntry* AliShuttle::QueryRunParameters(Int_t run)
 	Bool_t ecsSuccess = entry->GetECSSuccess();
 	TString runType = entry->GetRunType();
 	TString tmpdaqstartTime = entry->GetRunParameter("DAQ_time_start");
+	TString tmpdaqendTime   = entry->GetRunParameter("DAQ_time_end");
 	TString recordingFlagString = entry->GetRunParameter("GDCmStreamRecording");
 	UInt_t recordingFlag = recordingFlagString.Atoi();
 	UInt_t daqstartTime = tmpdaqstartTime.Atoi();
+	UInt_t daqendTime = tmpdaqendTime.Atoi();
 	
 	UInt_t now = time(0);
 	Int_t dcsDelay = fConfig->GetDCSDelay()+fConfig->GetDCSQueryOffset();
@@ -2066,7 +2049,7 @@ AliShuttleLogbookEntry* AliShuttle::QueryRunParameters(Int_t run)
 	Bool_t skip = kFALSE;
 				
 	// runs are processed if
-	//   a) runType is PHYSICS and ecsSuccess is set
+	//   a) runType is PHYSICS and ecsSuccess is set and duration is longer than 5 minutes
 	//   b) runType is not PHYSICS and (ecsSuccess is set or DAQ_time_start is non-0)
 	// effectively this means that all runs are processed that started properly (ecsSucess behaviour is different for PHYSICS and non-PHYSICS runs (check with ECS!)
 	if (startTime != 0 && endTime != 0) {
@@ -2081,7 +2064,12 @@ AliShuttleLogbookEntry* AliShuttle::QueryRunParameters(Int_t run)
 				else {
 					if (runType == "PHYSICS") {
 						if (ecsSuccess) {
+						    if(daqendTime - daqstartTime >= 300) {
 							return entry;
+						    } else { // don't process runs shorter than 5 minutes, they could not be calibrated anyway
+							Log("SHUTTLE", Form("QueryRunParameters - Run type for run %d is PHYSICS but it lasts less than 5 minutes - Skipping!", run));
+							skip = kTRUE;
+						    }
 						} else {
 							Log("SHUTTLE", Form("QueryRunParameters - Run type for run %d is PHYSICS but ECS success flag not set (Reason = %s) - Skipping!", run, entry->GetRunParameter("eor_reason")));
 							skip = kTRUE;
@@ -3256,11 +3244,11 @@ AliCDBEntry* AliShuttle::GetFromOCDB(const char* detector, const AliCDBPath& pat
 }
 
 //______________________________________________________________________________________________
-Bool_t AliShuttle::SendMail(EMailTarget target, Int_t system)
+Bool_t AliShuttle::SendMail(EMailTarget target, Int_t system, UInt_t errorCode)
 {
 	//
 	// sends a mail to the subdetector expert in case of preprocessor error
-	//
+	// errorCode is used to differentiate recipients in case of GRP failures
 	
 	if (fTestMode != kNone)
 		return kTRUE;
@@ -3308,15 +3296,32 @@ Bool_t AliShuttle::SendMail(EMailTarget target, Int_t system)
 		delete iterExperts;
 	}
 
-	// add subdetector experts	
-	iterExperts = new TIter(fConfig->GetResponsibles(fCurrentDetector));
-	TObjString *anExpert=0;
-	while ((anExpert = (TObjString*) iterExperts->Next()))
-	{
-		to += Form("%s,", anExpert->GetName());
-	}
-	delete iterExperts;
-	
+        // add subdetector experts	
+        iterExperts = new TIter(fConfig->GetResponsibles(fCurrentDetector));
+        TObjString *anExpert=0;
+        while ((anExpert = (TObjString*) iterExperts->Next()))
+        {
+          if (fCurrentDetector != TString("GRP") ) {
+            to += Form("%s,", anExpert->GetName());
+          } else {
+            TString mailAndErrs = anExpert->String();
+            TString errors = mailAndErrs(mailAndErrs.First(' ')+1, mailAndErrs.Length()); //comma separated list of errors for given responsible
+            TIter *iterErrors = new TIter(errors.Tokenize(','));
+            TObjString *errorCode_os;
+            while ((errorCode_os = (TObjString*) iterErrors->Next()))
+            {
+              if (errorCode_os->String().Atoi() & UInt_t(errorCode) )
+              {
+                to += mailAndErrs(0, mailAndErrs.First(' '));
+                to += ',';
+                break;
+              }
+            }
+            delete iterErrors;
+          }
+        }
+        delete iterExperts;
+
 	if (to.Length() > 0)
 	  to.Remove(to.Length()-1);
 	AliDebug(2, Form("to: %s",to.Data()));
@@ -3325,6 +3330,9 @@ Bool_t AliShuttle::SendMail(EMailTarget target, Int_t system)
 		Log("SHUTTLE", Form("List of %d responsibles not set!", (Int_t) target));
 		return kFALSE;
 	}
+        Log(fCurrentDetector.Data(), Form("SendMail - Sending mail to %s expert(s):", 
+              fCurrentDetector.Data()));
+        Log(fCurrentDetector.Data(), Form("\n%s", to.Data()));
 
 	// SHUTTLE responsibles in cc
 	TString cc="";

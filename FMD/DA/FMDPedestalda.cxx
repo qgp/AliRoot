@@ -12,8 +12,11 @@
 */
 #include <AliFMDPedestalDA.h>
 #include <AliFMDParameters.h>
+#include <TROOT.h>
+#include <TApplication.h>
 #include "FMDUtilda.h"
 #include <iostream>
+#include <unistd.h>
 
 int main(int argc, char **argv) 
 {
@@ -27,20 +30,38 @@ int main(int argc, char **argv)
 #ifdef ALI_AMORE
   pedDA.SetMakeSummaries(kTRUE);
 #endif
-  r.Exec(pedDA);
-
-  const char* files[] = { "conditions.csv", 
-			  "peds.csv", 
-			  0 };
-  const char* ids[] = { AliFMDParameters::Instance()->GetConditionsShuttleID(),
-			AliFMDParameters::Instance()->GetPedestalShuttleID(), 
-			0 };
-  ret = UploadFiles(files, ids);
-
-  if(ret > 0) std::cerr << "Pedestal DA failed" << std::endl;
-
-  PostSummaries(pedDA, "ped", r.RunNumber());
+  std::cout << "Executing pedestal DA" << std::endl;
+  Bool_t success = r.Exec(pedDA);
+  if (!success) {
+    std::cout << "Failed to execute Pedestal DA" 
+	      << std::endl;
+    ret = 1;
+  }
   
+  if (success && r.fUpload) {
+    const char* files[] = { "conditions.csv", 
+			    "peds.csv", 
+			    0 };
+    const char* ids[] = { AliFMDParameters::Instance()->GetConditionsShuttleID(),
+			  AliFMDParameters::Instance()->GetPedestalShuttleID(), 
+			  0 };
+    ret = UploadFiles(files, ids, r.fOwnUpload);
+    if (ret > 0) std::cerr << "Upload of pedestals failed" << std::endl;
+  }
+
+  if (success) 
+    PostSummaries(pedDA, "ped", r.RunNumber());
+
+  gROOT->SetMustClean(false);
+
+  if (r.fFast) {
+    std::cout << "Sleep 1 second before getting out" << std::endl;
+    gSystem->Sleep(1000);
+    std::cout << "Now calling _exit(" << ret << ") to finish NOW!" << std::endl;
+    _exit(ret);
+  }
+
+  std::cout << "End of FMD-Pedestal, return " << ret << std::endl;
   return ret;
 }
 //

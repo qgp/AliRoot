@@ -71,7 +71,7 @@ AliTRDcalibDB* AliTRDcalibDB::Instance()
   // Singleton implementation
   // Returns an instance of this class, it is created if neccessary
   //
-  
+
   if (fgTerminated != kFALSE) {
     return 0;
   }
@@ -294,6 +294,10 @@ const TObject *AliTRDcalibDB::GetCachedCDBObject(Int_t id)
         case 9:
 	  // Online gain table ID 9
           return CacheCDBEntry(kIDOnlineGainFactor  ,"TRD/Calib/Krypton_2015-01"); 
+          break;
+        case 10:
+	  // Online gain table ID 10
+          return CacheCDBEntry(kIDOnlineGainFactor  ,"TRD/Calib/Krypton_2015-02"); 
           break;
       default:
 	AliError(Form("unknown gaintable requested with ID"));
@@ -924,7 +928,7 @@ Int_t AliTRDcalibDB::ExtractTimeBinsFromString(TString tbstr)
 {
   // Check if there is any content in the string first
   if (tbstr.Length() == 0) {
-    AliError("Parameter for number of timebins is empty!");
+    AliErrorClass("Parameter for number of timebins is empty!");
     return -1;
   }
 
@@ -932,14 +936,14 @@ Int_t AliTRDcalibDB::ExtractTimeBinsFromString(TString tbstr)
   TString tbident  = "tb";
   TString tbsubstr = tbstr(0,2);
   if (!tbsubstr.EqualTo(tbident)) {
-    AliError(Form("Parameter for number of timebins is corrupted (%s)!", tbstr.Data()));
+    AliErrorClass(Form("Parameter for number of timebins is corrupted (%s)!", tbstr.Data()));
     return -1;
   }
 
   tbstr.Remove(0,2);
   // check if there is more than a number
   if (!tbstr.IsDigit()) {
-    AliError(Form("Parameter for number of timebins is corrupted (%s)!", tbstr.Data()));
+    AliErrorClass(Form("Parameter for number of timebins is corrupted (%s)!", tbstr.Data()));
     return -1;
   }
 
@@ -1100,12 +1104,22 @@ Int_t AliTRDcalibDB::GetOnlineGainTableID()
 
     TString tableName = "";
     for (Int_t i = 0; i < 540; i++) {
-      const AliTRDCalDCSFEEv2 *calDCSFEEv2 = calDCSv2->GetCalDCSFEEObj(0);
-      tableName = calDCSFEEv2->GetGainTableName();
-      if (tableName.Length() > 0) {
-        break;
+      const AliTRDCalDCSFEEv2 *calDCSFEEv2 = calDCSv2->GetCalDCSFEEObj(i);
+      if (!calDCSFEEv2) {
+        continue;
+      }
+      const TString tableNameTmp = calDCSFEEv2->GetGainTableName();
+      if (tableNameTmp.Length() > 0) {
+        if ((tableName.Length() > 0) &&
+            (tableName != tableNameTmp)) {
+          AliFatal(Form("Inconsistent gain table names! %s - %s"
+                       ,tableName.Data(),tableNameTmp.Data()));
+          continue; // maybe return -1;
+        }
+        tableName = tableNameTmp; // this contains the first entry found
       }
     }
+
     if      (tableName.CompareTo("Krypton_2011-01")               == 0)
       fOnlineGainTableID = 1;
     else if (tableName.CompareTo("Gaintbl_Uniform_FGAN0_2011-01") == 0)
@@ -1124,6 +1138,8 @@ Int_t AliTRDcalibDB::GetOnlineGainTableID()
       fOnlineGainTableID = 8;
     else if (tableName.CompareTo("Krypton_2015-01")               == 0)
       fOnlineGainTableID = 9;
+    else if (tableName.CompareTo("Krypton_2015-02")               == 0)
+      fOnlineGainTableID = 10;
     else
       AliFatal(Form("unknown gaintable <%s> requested", tableName.Data()));
 
@@ -1490,7 +1506,7 @@ Int_t AliTRDcalibDB::GetNumberOfOptsDCS(TString cname, Int_t cfgType)
 
   // protect
   if ((nconfig == -1) || (nconfig < cfgType)) {
-    AliError("Not enough parameters in DCS configuration name!");
+    AliErrorClass("Not enough parameters in DCS configuration name!");
     return 0;
   }
 
@@ -1515,11 +1531,11 @@ void AliTRDcalibDB::GetDCSConfigParOption(TString cname, Int_t cfgType, Int_t op
   Int_t nconfig = GetNumberOfParsDCS(cname, cdelim);
   // protect
   if (nconfig == -1) {
-    AliError("DCS configuration name empty!");
+    AliErrorClass("DCS configuration name empty!");
     cfgo = "";
     return;
   } else if (nconfig < cfgType) {
-    AliError(Form("Not enough parameters in DCS configuration name!"
+    AliErrorClass(Form("Not enough parameters in DCS configuration name!"
 		  " Name %s",cname.Data()));
     cfgo = "";
     return;
@@ -1530,7 +1546,7 @@ void AliTRDcalibDB::GetDCSConfigParOption(TString cname, Int_t cfgType, Int_t op
   Int_t noptions = GetNumberOfParsDCS(cfgString, odelim);
   // protect
   if (noptions < option) {
-    AliError(Form("Not enough options in DCS configuration name!"
+    AliErrorClass(Form("Not enough options in DCS configuration name!"
 		  " Name %s",cname.Data()));
     cfgo = "";
     carr->Delete(); delete carr;

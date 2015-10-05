@@ -20,7 +20,7 @@ set (MODULE Tauola)
 include_directories(${AliRoot_SOURCE_DIR}/TEvtGen/${MODULE})
 
 # Additional includes - alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/TEvtGen
 )
 
@@ -74,7 +74,12 @@ add_library(${MODULE} SHARED ${SRCS} ${FSRCS})
 set(LIBDEPS HepMC )
 
 # Additional compilation flags
-set( CMAKE_Fortran_FLAGS "-O2  -fno-automatic -fno-backslash -ffixed-line-length-132")
+if(${CMAKE_Fortran_COMPILER} MATCHES gfortran)
+set( CMAKE_Fortran_FLAGS "-fno-automatic -fno-backslash -ffixed-line-length-132")
+endif(${CMAKE_Fortran_COMPILER} MATCHES gfortran)
+if(${CMAKE_Fortran_COMPILER} MATCHES ifort)
+set ( CMAKE_Fortran_FLAGS "-extend-source")
+endif(${CMAKE_Fortran_COMPILER} MATCHES ifort)
 set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
 
 # Linking the library

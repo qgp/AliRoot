@@ -48,6 +48,7 @@
 
 //The include file
 #include "AliCaloCalibSignal.h"
+#include "AliDAQ.h"
 
 ClassImp(AliCaloCalibSignal)
 
@@ -107,7 +108,7 @@ AliCaloCalibSignal::AliCaloCalibSignal(kDetType detectorType) :
     fColumns = AliEMCALGeoParams::fgkEMCALCols;
     fRows = AliEMCALGeoParams::fgkEMCALRows;
     fLEDRefs = AliEMCALGeoParams::fgkEMCALLEDRefs;
-    fModules = AliEMCALGeoParams::fgkEMCALModules;
+    fModules = 20; // AliEMCALGeoParams::fgkEMCALModules is set to a higher number due to simulation constraints...
     fCaloString = "EMCAL";
   }
 
@@ -527,7 +528,7 @@ Bool_t AliCaloCalibSignal::ProcessEvent(AliRawReader *rawReader)
   // if fMapping is NULL the rawstream will crate its own mapping
   AliCaloRawStreamV3 rawStream(rawReader, fCaloString, (AliAltroMapping**)fMapping);  
   if (fDetType == kEmCal) {
-    rawReader->Select("EMCAL", 0, AliEMCALGeoParams::fgkLastAltroDDL) ; //select EMCAL DDL range 
+    rawReader->Select("EMCAL",0,AliDAQ::GetFirstSTUDDL()-1) ; //select EMCAL DDL range 
   }
 
   return ProcessEvent( &rawStream, rawReader->GetTimestamp() );

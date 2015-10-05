@@ -51,7 +51,8 @@ const TString kPulserRunType = "PULSER";     // pulser run identifier
 const TString kPhysicsRunType = "PHYSICS";   // physics run identifier
 const TString kCosmicRunType = "COSMIC";     // cosmic run identifier
 const TString kLaserRunType = "LASER";       // laser run identifier
-const TString kDaqRunType = "DAQ"; // DAQ run identifier
+const TString kDaqRunType = "DAQ"; 	     // DAQ run identifier
+const TString kStandaloneRunType = "STANDALONE";  // STANDALONE run identifier
 const TString kAmandaTemp = "TPC_PT_%d_TEMPERATURE"; // Amanda string for temperature entries
 const TString kAmandaDDL = "DDL%d";   // Amanda string for list of active DDLs
 const Int_t  kNumDDL = 216;           // number of TPC DDLs
@@ -77,7 +78,8 @@ ClassImp(AliTPCPreprocessor)
 AliTPCPreprocessor::AliTPCPreprocessor(AliShuttleInterface* shuttle) :
   AliPreprocessor("TPC",shuttle),
   fConfEnv(0), fTemp(0), fHighVoltage(0), fHighVoltageStat(0), fGoofie(0),
-  fPressure(0), fGasComposition(0), fConfigOK(kTRUE), fROC(0)
+  fPressure(0), fGasComposition(0), fConfigOK(kTRUE), fROC(0),
+  fForceSingleRun(kFALSE)
 {
   // constructor
   fROC = AliTPCROC::Instance();
@@ -90,13 +92,15 @@ AliTPCPreprocessor::AliTPCPreprocessor(AliShuttleInterface* shuttle) :
   AddRunType(kCosmicRunType);
   AddRunType(kLaserRunType);
   AddRunType(kDaqRunType);
+  AddRunType(kStandaloneRunType);
   
 }
 //______________________________________________________________________________________________
  AliTPCPreprocessor::AliTPCPreprocessor(const AliTPCPreprocessor&  ) :
    AliPreprocessor("TPC",0),
    fConfEnv(0), fTemp(0), fHighVoltage(0), fHighVoltageStat(0), fGoofie(0),
-   fPressure(0), fGasComposition(0), fConfigOK(kTRUE), fROC(0)
+   fPressure(0), fGasComposition(0), fConfigOK(kTRUE), fROC(0),
+   fForceSingleRun(kFALSE)
  {
 
    Fatal("AliTPCPreprocessor", "copy constructor not implemented");
@@ -243,7 +247,7 @@ void AliTPCPreprocessor::Initialize(Int_t run, UInt_t startTime,
        TString runType = GetRunType();
 
        if( runType == kPhysicsRunType || 
-        runType == kLaserRunType ) {    
+        runType == kLaserRunType || runType == kStandaloneRunType ) {    
        TString pressureConf = fConfEnv->GetValue("Pressure","ON");
        pressureConf.ToUpper();
        if (pressureConf != "OFF" ) { 
@@ -337,7 +341,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
     // Pressure values
 
     if( runType == kPhysicsRunType || 
-      runType == kLaserRunType ) {    
+      runType == kLaserRunType || runType == kStandaloneRunType ) {    
 
       TString pressureConf = fConfEnv->GetValue("Pressure","ON");
       pressureConf.ToUpper();
@@ -451,7 +455,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
    if (altroConf != "TRY" ) result+=altroResult;
    status = new TParameter<int>("altroResult",altroResult);
    resultArray->Add(status);
- }
+  }
 
 
   // Central Electrode processing
@@ -518,7 +522,7 @@ UInt_t AliTPCPreprocessor::Process(TMap* dcsAliasMap)
   AliCDBMetaData metaData;
   metaData.SetBeamPeriod(0);
   metaData.SetResponsible("Haavard Helstrup");
-  metaData.SetAliRootVersion(ALIROOT_BRANCH);
+  metaData.SetAliRootVersion(ALIROOT_VERSION);
   metaData.SetComment("Preprocessor AliTPC status.");
   Bool_t storeOK = Store("Calib", "PreprocStatus", resultArray, &metaData, 0,  kFALSE);
   if (!storeOK) Log ("Unable to store preprocessor status entry");
@@ -558,7 +562,7 @@ UInt_t AliTPCPreprocessor::MapTemperature(TMap* dcsAliasMap)
         AliCDBMetaData metaData;
 	metaData.SetBeamPeriod(0);
 	metaData.SetResponsible("Haavard Helstrup");
-	metaData.SetAliRootVersion(ALIROOT_BRANCH);
+	metaData.SetAliRootVersion(ALIROOT_VERSION);
 	metaData.SetComment("Preprocessor AliTPC data base entries.");
 
 	Bool_t storeOK = Store("Calib", "Temperature", fTemp, &metaData, 0, kFALSE);
@@ -636,7 +640,7 @@ UInt_t AliTPCPreprocessor::MapHighVoltage(TMap* dcsAliasMap)
         AliCDBMetaData metaData;
 	metaData.SetBeamPeriod(0);
 	metaData.SetResponsible("Haavard Helstrup");
-	metaData.SetAliRootVersion(ALIROOT_BRANCH);
+	metaData.SetAliRootVersion(ALIROOT_VERSION);
 	metaData.SetComment("Preprocessor AliTPC data base entries.");
 
 	Bool_t storeOK = Store("Calib", "HighVoltage", fHighVoltage, &metaData, 0, kFALSE);
@@ -672,7 +676,7 @@ UInt_t AliTPCPreprocessor::MapGoofie(TMap* dcsAliasMap)
         AliCDBMetaData metaData;
 	metaData.SetBeamPeriod(0);
 	metaData.SetResponsible("Haavard Helstrup");
-        metaData.SetAliRootVersion(ALIROOT_BRANCH);
+        metaData.SetAliRootVersion(ALIROOT_VERSION);
 	metaData.SetComment("Preprocessor AliTPC data base entries.");
 
 	Bool_t storeOK = Store("Calib", "Goofie", fGoofie, &metaData, 0, kFALSE);
@@ -709,7 +713,7 @@ UInt_t AliTPCPreprocessor::MapGasComposition(TMap* dcsAliasMap)
         AliCDBMetaData metaData;
 	metaData.SetBeamPeriod(0);
 	metaData.SetResponsible("Haavard Helstrup");
-	metaData.SetAliRootVersion(ALIROOT_BRANCH);
+	metaData.SetAliRootVersion(ALIROOT_VERSION);
 	metaData.SetComment("Preprocessor AliTPC data base entries.");
 
 	Bool_t storeOK = Store("Calib", "GasComposition", fGasComposition, &metaData, 0, kFALSE);
@@ -880,12 +884,12 @@ UInt_t AliTPCPreprocessor::ExtractPedestals(Int_t sourceFXS)
      AliCDBMetaData metaData;
      metaData.SetBeamPeriod(0);
      metaData.SetResponsible("Haavard Helstrup");
-     metaData.SetAliRootVersion(ALIROOT_BRANCH);
+     metaData.SetAliRootVersion(ALIROOT_VERSION);
      metaData.SetComment("Preprocessor AliTPC data base entries."); 
  
-     Bool_t storeOK = Store("Calib", "Pedestals", calPadPed, &metaData, 0, kTRUE);
+     Bool_t storeOK = Store("Calib", "Pedestals", calPadPed, &metaData, 0, kTRUE ^ fForceSingleRun);
      if ( !storeOK ) ++result;
-     storeOK = Store("Calib", "PadNoise", calPadRMS, &metaData, 0, kTRUE);
+     storeOK = Store("Calib", "PadNoise", calPadRMS, &metaData, 0, kTRUE ^ fForceSingleRun);
      if ( !storeOK ) ++result;
     }
   } else {
@@ -1063,10 +1067,10 @@ if (pulserObjectsOCDB) {
      AliCDBMetaData metaData;
      metaData.SetBeamPeriod(0);
      metaData.SetResponsible("Haavard Helstrup");
-     metaData.SetAliRootVersion(ALIROOT_BRANCH);
+     metaData.SetAliRootVersion(ALIROOT_VERSION);
      metaData.SetComment("Preprocessor AliTPC data base entries.");
 
-     Bool_t storeOK = Store("Calib", "Pulser", pulserObjects, &metaData, 0, kTRUE);
+     Bool_t storeOK = Store("Calib", "Pulser", pulserObjects, &metaData, 0, kTRUE ^ fForceSingleRun);
      if ( !storeOK ) ++result;
     }  
   } else {
@@ -1129,10 +1133,10 @@ UInt_t AliTPCPreprocessor::ExtractRaw(Int_t sourceFXS)
      AliCDBMetaData metaData;
      metaData.SetBeamPeriod(0);
      metaData.SetResponsible("Haavard Helstrup");
-     metaData.SetAliRootVersion(ALIROOT_BRANCH);
+     metaData.SetAliRootVersion(ALIROOT_VERSION);
      metaData.SetComment("Preprocessor AliTPC data base entries.");
 
-     Bool_t storeOK = Store("Calib", "Raw", rawArray, &metaData, 0, kTRUE);
+     Bool_t storeOK = Store("Calib", "Raw", rawArray, &metaData, 0, kTRUE ^ fForceSingleRun);
      if ( !storeOK ) ++result;
   } else {
     Log ("Error: no entries in raw file list!");
@@ -1322,11 +1326,11 @@ UInt_t AliTPCPreprocessor::ExtractCE(Int_t sourceFXS)
     AliCDBMetaData metaData;
     metaData.SetBeamPeriod(0);
     metaData.SetResponsible("Haavard Helstrup");
-    metaData.SetAliRootVersion(ALIROOT_BRANCH);
+    metaData.SetAliRootVersion(ALIROOT_VERSION);
     metaData.SetComment("Preprocessor AliTPC data base entries.");
     
     if ( result == 0 ) {
-      Bool_t storeOK = Store("Calib", "CE", ceObjects, &metaData, 0, kTRUE);
+      Bool_t storeOK = Store("Calib", "CE", ceObjects, &metaData, 0, kTRUE ^ fForceSingleRun);
       if ( !storeOK ) ++result;
     } else {
       Log ("Warning: Average time graphs not available - no OCDB entry written");
@@ -1379,7 +1383,7 @@ UInt_t AliTPCPreprocessor::ExtractQA(Int_t sourceFXS)
            AliCDBMetaData metaData;
            metaData.SetBeamPeriod(0);
            metaData.SetResponsible("Haavard Helstrup");
-	   metaData.SetAliRootVersion(ALIROOT_BRANCH);
+	   metaData.SetAliRootVersion(ALIROOT_VERSION);
            metaData.SetComment("Preprocessor AliTPC data base entries.");
 
            Bool_t storeOK = Store("Calib", "QA", calQA, &metaData, 0, kFALSE);
@@ -1672,7 +1676,7 @@ UInt_t AliTPCPreprocessor::ExtractAltro(Int_t sourceFXS, TMap* dcsMap)
      AliCDBMetaData metaData;
      metaData.SetBeamPeriod(0);
      metaData.SetResponsible("Haavard Helstrup");
-     metaData.SetAliRootVersion(ALIROOT_BRANCH);
+     metaData.SetAliRootVersion(ALIROOT_VERSION);
      metaData.SetComment("Preprocessor AliTPC data base entries.");
 
      Bool_t storeOK = Store("Calib", "AltroConfig", altroObjects, &metaData, 0, kFALSE);

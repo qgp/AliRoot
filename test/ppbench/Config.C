@@ -350,7 +350,7 @@ void Config()
 
     if (iPHOS)
     {
-        AliPHOS *PHOS = new AliPHOSv1("PHOS", "IHEP");
+        AliPHOS *PHOS = new AliPHOSv1("PHOS", "Run1");
     }
 
 
@@ -388,8 +388,6 @@ void Config()
     {
         //=================== AD parameters ============================
         AliAD *AD = new AliADv1("AD", "normal AD test");
-	AD->SetADAToInstalled(kTRUE);
-	AD->SetADCToInstalled(kTRUE);
     }
  
         

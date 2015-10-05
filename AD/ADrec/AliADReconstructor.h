@@ -13,10 +13,17 @@
 #include "AliReconstructor.h"
 #include "AliLog.h"
 #include "AliADConst.h"
+#include "AliCDBManager.h"
+#include "AliCDBStorage.h"
+#include "AliCDBEntry.h"
+#include "AliADRecoParam.h"
+#include "TSpline.h"
 
 class AliESDAD;
+class AliESDADfriend;
 class AliESDEvent;
 class AliADCalibData;
+class TSpline3;
 
 class AliADReconstructor: public AliReconstructor {
 public:
@@ -39,11 +46,26 @@ public:
   virtual Bool_t HasDigitConversion() const { return kTRUE; }
   virtual void ConvertDigits(AliRawReader* rawReader, TTree* digitsTree) const;
 
+  static const AliADRecoParam* GetRecoParam() { return dynamic_cast<const AliADRecoParam*>(AliReconstructor::GetRecoParam(14)); }
+
+  AliCDBStorage     *SetStorage(const char* uri);
+  void GetCollisionMode();
+  Double_t GetZPosition(const char* symname);
+
   AliADCalibData *GetCalibData() const; 
+  void GetTimeSlewingSplines();
+  Float_t CorrectLeadingTime(Int_t i, Float_t time, Float_t adc) const;
+
+  enum {kInvalidADC   =  -1024,
+        kInvalidTime  =  -1024};
+
+  AliESDAD*    GetESDAD() { return fESDAD; }
 
 protected:
 
-  AliESDAD*        fESDAD;      // AD ESD object  
+  AliESDAD*        fESDAD;       // AD ESD object 
+  AliESDEvent*     fESD;         // ESD object
+  AliESDADfriend*  fESDADfriend; // AD ESDfriend object  
 
 private:
   AliADReconstructor(const AliADReconstructor &reconstructor); //Not implemented
@@ -51,8 +73,14 @@ private:
   
   AliADCalibData* fCalibData;      //! calibration data
   mutable TClonesArray *fDigitsArray;  // clones-array for ConvertDigits() and FillESD()
+  
+  Int_t              fCollisionMode;  // =0->p-p, =1->A-A
+  Float_t            fBeamEnergy;     // beam energy
+  Float_t            fHptdcOffset[16];  //! HPTDC time offsets channel by channel
+  TSpline3	     *fTimeSlewingSpline[16]; //Time slewing splines
+  Float_t	     fLayerDist[4];    //Z position of layers
 
-  ClassDef(AliADReconstructor, 1)  // class for the AD reconstruction
+  ClassDef(AliADReconstructor, 4)  // class for the AD reconstruction
 };
 
 #endif

@@ -20,7 +20,7 @@ set(MODULE MUONmapping)
 include_directories(${AliRoot_SOURCE_DIR}/MUON/${MODULE})
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/MUON/MUONcore
                     ${AliRoot_SOURCE_DIR}/STEER/CDB
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
@@ -151,7 +151,7 @@ install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
 
-install(FILES ${HDRS} DESTINATION include)
+install(DIRECTORY . DESTINATION include FILES_MATCHING PATTERN "*.h")
 
 # Static version if DA enabled
 if(ALIROOT_STATIC)

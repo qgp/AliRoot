@@ -12,6 +12,8 @@
 #pragma link C++ class  AliADCalibData+;
 #pragma link C++ class  AliADPreprocessor+;
 #pragma link C++ class  AliADDataDCS+;
+#pragma link C++ class  AliADRawStream+;
+#pragma link C++ class  AliADLogicalSignal+;
 //#pragma link C++ class  AliADMisAligner+;
 
 #endif

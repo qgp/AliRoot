@@ -21,7 +21,7 @@ include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE/util
                    )
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSISalice
                     ${AliRoot_SOURCE_DIR}/HLT/BASE
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatabase
@@ -47,6 +47,7 @@ set(SRCS
     AliHLTESDTrackCuts.cxx
     AliHLTFilePublisher.cxx
     AliHLTFileWriter.cxx
+    AliHLTFXSFileWriter.cxx
     AliHLTGlobalBarrelTrack.cxx
     AliHLTJets.cxx
     AliHLTLoaderPublisherComponent.cxx
@@ -107,7 +108,7 @@ set(SRCS
    )
 
 add_executable(hltdimserver ${SRCS})
-target_link_libraries(hltdimserver HLTbase AliHLTHOMER STEERBase XMLParser Graf3d RIO Hist Core)
+target_link_libraries(hltdimserver HLTbase AliHLTHOMER RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
 
 # Installation of hltdimserver
 install(TARGETS hltdimserver RUNTIME DESTINATION bin)

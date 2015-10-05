@@ -3,6 +3,7 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
+#pragma link C++ class AliHLTAsyncProcessor;
 #pragma link C++ class AliHLTComponent+;
 #pragma link C++ class AliHLTComponentHandler+;
 #pragma link C++ class AliHLTSystem+;
@@ -34,6 +35,7 @@
 #pragma link C++ class AliHLTDimServer+;
 #pragma link C++ class AliHLTHOMERLibManager+;
 #pragma link C++ class AliHLTHOMERManager+;
+#pragma link C++ class AliHLTDirectHOMERManager+;
 #pragma link C++ class AliHLTHOMERProxyHandler+;
 #pragma link C++ class AliHLTHOMERBlockDesc+;
 #pragma link C++ class AliHLTHOMERSourceDesc+;
@@ -83,16 +85,26 @@
 #pragma link C++ class AliHLTReadoutList+;
 
 // Do nothing special with schema evolution for new versions of the readout list.
-#pragma read sourceClass="AliHLTReadoutList" version="[3-]" targetClass="AliHLTReadoutList"
+#pragma read sourceClass="AliHLTReadoutList" version="[4-]" targetClass="AliHLTReadoutList"
 
 // For old versions we need to convert the format of the readout list into the new one.
+#pragma read sourceClass="AliHLTReadoutList" version="[3]" targetClass="AliHLTReadoutList"\
+                            source="AliHLTEventDDL fReadoutList" target="fReadoutList"\
+  code="{\
+          fReadoutList.fCount = gkAliHLTDDLListSize;\
+          for (int i = 0; i<30; ++i) fReadoutList.fList[i] = onfile.fReadoutList.fList[i];\
+          fReadoutList.fList[30] = 0x0;\
+          fReadoutList.fList[31] = onfile.fReadoutList.fList[30];\
+  }"
 #pragma read sourceClass="AliHLTReadoutList" version="[1-2]" targetClass="AliHLTReadoutList"\
   source="AliHLTEventDDL fReadoutList" target="fReadoutList"\
   code="{\
-    fReadoutList.fCount = gkAliHLTDDLListSize;\
-    for (int i = 0; i < 28; ++i) fReadoutList.fList[i] = onfile.fReadoutList.fList[i];\
-    fReadoutList.fList[28] = 0x0;\
-    for (int i = 29; i < gkAliHLTDDLListSize; ++i) fReadoutList.fList[i] = onfile.fReadoutList.fList[i-1];\
+          fReadoutList.fCount = gkAliHLTDDLListSize;\
+          for (int i = 0; i < 28; ++i) fReadoutList.fList[i] = onfile.fReadoutList.fList[i];\
+          fReadoutList.fList[28] = 0x0;\
+          fReadoutList.fList[29] = onfile.fReadoutList.fList[28];\
+          fReadoutList.fList[30] = 0x0;\
+          fReadoutList.fList[31] = onfile.fReadoutList.fList[29];\
   }"
 
 #endif // ROOT version check
@@ -108,6 +120,12 @@
   code="{\
     newObj->DefaultResult(true);\
     newObj->ScaleDown(1);\
+  }"
+
+#pragma read sourceClass="AliHLTHuffmanNode" version="[1-]" targetClass="AliHLTHuffmanNode"\
+  source="float fWeight" target="fWeightDouble"\
+  code="{\
+    fWeightDouble = onfile.fWeight;\
   }"
 
 #pragma link C++ class AliHLTTriggerMenuSymbol+;
@@ -133,10 +151,13 @@
 #pragma link C++ struct AliHLTComponentEventData+;
 #pragma link C++ struct AliHLTComponentBlockData+;
 #pragma link C++ struct AliHLTComponentDataType+;
+#pragma link C++ struct AliHLTEventDDLV0+; // Only added to have proper dictionary generation and ROOT I/O for AliHLTReadoutList class.
 #pragma link C++ struct AliHLTEventDDLV1+; // Only added to have proper dictionary generation and ROOT I/O for AliHLTReadoutList class.
+#pragma link C++ struct AliHLTEventDDLV2+; // Only added to have proper dictionary generation and ROOT I/O for AliHLTReadoutList class.
 #pragma link C++ struct AliHLTRunDesc+;
 #pragma link C++ struct AliHLTComponentStatistics+;
 #pragma link C++ struct AliHLTComponentTableEntry;
+#pragma link C++ struct AliHLTDataTopic+;
 
 #pragma link C++ function operator==( const AliHLTComponentDataType&, const AliHLTComponentDataType&);
 #pragma link C++ function operator!=( const AliHLTComponentDataType&, const AliHLTComponentDataType&);

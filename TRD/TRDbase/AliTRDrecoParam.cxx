@@ -65,11 +65,15 @@ AliTRDrecoParam::AliTRDrecoParam()
   ,fRawStreamVersion("DEFAULT")
   ,fdzdxXcrossFactor(0.)
   ,fMinMaxCutSigma(4.)
+//
+  ,fZCorrCoefNRC(1.619974) // RS temporary
+//
   ,fMinLeftRightCutSigma(8.)
   ,fClusMaxThresh(4.5)
   ,fClusSigThresh(3.5)
   ,fTCnexp(1)
   ,fRecEveryNTB(1)
+  ,fClusterQmin(0)
   ,fNumberOfPresamples(0)
   ,fNumberOfPostsamples(0)
 {
@@ -137,11 +141,15 @@ AliTRDrecoParam::AliTRDrecoParam(const AliTRDrecoParam &ref)
   ,fRawStreamVersion(ref.fRawStreamVersion)
   ,fdzdxXcrossFactor(ref.fdzdxXcrossFactor)
   ,fMinMaxCutSigma(ref.fMinMaxCutSigma)
+
+  ,fZCorrCoefNRC(ref.fZCorrCoefNRC)
+
   ,fMinLeftRightCutSigma(ref.fMinLeftRightCutSigma)
   ,fClusMaxThresh(ref.fClusMaxThresh)
   ,fClusSigThresh(ref.fClusSigThresh)
   ,fTCnexp(ref.fTCnexp)
   ,fRecEveryNTB(ref.fRecEveryNTB)
+  ,fClusterQmin(ref.fClusterQmin)
   ,fNumberOfPresamples(ref.fNumberOfPresamples)
   ,fNumberOfPostsamples(ref.fNumberOfPostsamples)
 {
@@ -156,7 +164,7 @@ AliTRDrecoParam::AliTRDrecoParam(const AliTRDrecoParam &ref)
   // tracklet params
   memcpy(fdzdxCorrFactor, ref.fdzdxCorrFactor, 2*sizeof(Double_t));
   memcpy(fdzdxCorrRCbias, ref.fdzdxCorrRCbias, 2*sizeof(Double_t));
-  memcpy(fYcorrTailCancel, ref.fdzdxCorrRCbias, 12*sizeof(Double_t));
+  memcpy(fYcorrTailCancel, ref.fYcorrTailCancel, 12*sizeof(Double_t));
   memcpy(fS2Ycorr, ref.fS2Ycorr, 4*sizeof(Double_t));
 }
 
@@ -199,11 +207,15 @@ AliTRDrecoParam& AliTRDrecoParam::operator=(const AliTRDrecoParam &ref)
   fRawStreamVersion     = ref.fRawStreamVersion;
   fdzdxXcrossFactor     = ref.fdzdxXcrossFactor;
   fMinMaxCutSigma       = ref.fMinMaxCutSigma;
+
+  fZCorrCoefNRC         = ref.fZCorrCoefNRC;
+
   fMinLeftRightCutSigma = ref.fMinLeftRightCutSigma;
   fClusMaxThresh        = ref.fClusMaxThresh;
   fClusSigThresh        = ref.fClusSigThresh;
   fTCnexp               = ref.fTCnexp;
   fRecEveryNTB          = ref.fRecEveryNTB;
+  fClusterQmin          = ref.fClusterQmin;
   fNumberOfPresamples   = ref.fNumberOfPresamples;
   fNumberOfPostsamples  = ref.fNumberOfPostsamples;
 

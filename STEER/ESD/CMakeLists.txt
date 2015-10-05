@@ -20,14 +20,16 @@ set(MODULE ESD)
 include_directories(${AliRoot_SOURCE_DIR}/STEER/${MODULE})
 
 # Additional include directories - alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
-                    ${AliRoot_SOURCE_DIR}/STEER/STEERBase)
+include_directories(${ROOT_INCLUDE_DIR}
+                    ${AliRoot_SOURCE_DIR}/STEER/STEERBase
+		    ${AliRoot_SOURCE_DIR}/RAW/dateStream)
 
 # Sources - alphabetical order
 set(SRCS
     AliCascadeVertexer.cxx
     AliESDACORDE.cxx
     AliESDAD.cxx
+    AliESDADfriend.cxx
     AliESDCaloCells.cxx
     AliESDCaloCluster.cxx
     AliESDCaloTrigger.cxx
@@ -115,6 +117,9 @@ set(ALIROOT_DEPENDENCIES STEERBase)
 # Dependecies
 set(LIBDEPS ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 generate_rootmap("ESD" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
+
+# Generate a PARfile target for this library
+add_target_parfile(${MODULE} "${SRCS}" "${HDRS}" "${MODULE}LinkDef.h" "${LIBDEPS}")
 
 # Create an object to be reused in case of static libraries 
 # Otherwise the sources will be compiled twice

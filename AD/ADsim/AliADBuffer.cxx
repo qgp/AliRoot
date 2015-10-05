@@ -111,7 +111,7 @@ void AliADBuffer::WriteChannel(Int_t channel, Short_t *adc, Bool_t integrator){
   // Being called by Digits2Raw
   
   UInt_t data = 0;
-  for(Int_t i = 0; i < kNClocks; ++i) {
+  for(Int_t i = 0; i < kADNClocks; ++i) {
     if (adc[i] > 1023) {
       AliWarning(Form("ADC (channel=%d) saturated: %d. Truncating to 1023",channel,adc[i]));
       adc[i] = 1023;
@@ -119,7 +119,7 @@ void AliADBuffer::WriteChannel(Int_t channel, Short_t *adc, Bool_t integrator){
   }
   
   if(channel%2 == 0) {
-    for(Int_t i = 0; i < (kNClocks/2); ++i) {
+    for(Int_t i = 0; i < (kADNClocks/2); ++i) {
       data =   (adc[2*i] & 0x3ff);
       data |= ((integrator & 0x1) << 10);
 
@@ -128,7 +128,7 @@ void AliADBuffer::WriteChannel(Int_t channel, Short_t *adc, Bool_t integrator){
 
       f->WriteBuffer((char*)&data,sizeof(data));
     }
-    fRemainingWord = (adc[kNClocks-1] & 0x3ff);
+    fRemainingWord = (adc[kADNClocks-1] & 0x3ff);
     fRemainingWord |= ((integrator & 0x1) << 10);
   }
   else {
@@ -137,7 +137,7 @@ void AliADBuffer::WriteChannel(Int_t channel, Short_t *adc, Bool_t integrator){
     data |= ((integrator & 0x1) << 26);
     f->WriteBuffer((char*)&data,sizeof(data));
 
-    for(Int_t i = 1; i <= (kNClocks/2); ++i) {
+    for(Int_t i = 1; i <= (kADNClocks/2); ++i) {
       data =   (adc[2*i-1] & 0x3ff);
       data |= ((!integrator & 0x1) << 10);
 
@@ -151,12 +151,10 @@ void AliADBuffer::WriteChannel(Int_t channel, Short_t *adc, Bool_t integrator){
 }
 
 //_____________________________________________________________________________
-void AliADBuffer::WriteBeamFlags() {
-
-//void AliADBuffer::WriteBeamFlags(Bool_t *bbFlag, Bool_t *bgFlag) {
+void AliADBuffer::WriteBeamFlags(Bool_t *bbFlag, Bool_t *bgFlag) {
   // The method writes information about
   // the Beam-Beam and Beam-Gas flags i.e. 
-  // 10  shorts for the 4 channels 
+  // 6  words for the 4 channels 
   // of half a CIU card
 
   // Beam-beam and beam-gas flags are available
@@ -165,29 +163,23 @@ void AliADBuffer::WriteBeamFlags() {
   // and would allow to simulate neighbouring samples, this code
   // should be extended in order to fill all (or fraction) of the
   // flags
-  /*/
-  UShort_t data = 0;
-  
-  for(Int_t iEvOfInt = 0; iEvOfInt < kNClocks; iEvOfInt=iEvOfInt+2) {
-        for(Int_t iChannel = 0; iChannel < 4; iChannel++) {
-	  data = 0;
-	  if (bbFlag[iChannel]) data |= ((bbFlag[iChannel] & 0x1) << 2*iChannel);
-	  if (bgFlag[iChannel]) data |= ((bgFlag[iChannel] & 0x1) << 2*iChannel+1);
-	  
-	  if(iEvOfInt < (kNClocks - 1)) {      
-	     if (bbFlag[iChannel]) data |= ((bbFlag[iChannel] & 0x1) << 8 + 2*iChannel);
-	     if (bgFlag[iChannel]) data |= ((bgFlag[iChannel] & 0x1) << 8 + 2*iChannel+1);
-	  }
-	  f->WriteBuffer((char*)&data,sizeof(data));
-        }
-      }
-   data = 0;
-   f->WriteBuffer((char*)&data,sizeof(data));//Empty short in the end
-   /*/
-  for(Int_t i = 0; i < 6; i++) {
-  	UInt_t data = 0;
-  	f->WriteBuffer((char*)&data,sizeof(data));
-	}
+  for(Int_t i = 0; i < 2; i++) {
+    UInt_t data = 0;
+    f->WriteBuffer((char*)&data,sizeof(data));
+  }
+  {
+    UInt_t data = 0;
+    for(Int_t iChannel = 0; iChannel < 4; ++iChannel) {
+      if (bbFlag[iChannel]) data |= (1 << (2*iChannel + 16));
+      if (bgFlag[iChannel]) data |= (1 << (2*iChannel + 17));
+    }
+    f->WriteBuffer((char*)&data,sizeof(data));
+  }  
+  for(Int_t i = 0; i < 3; i++) {
+    UInt_t data = 0;
+    f->WriteBuffer((char*)&data,sizeof(data));
+  }
+
 }
 
 //_____________________________________________________________________________
@@ -235,15 +227,23 @@ void AliADBuffer::WriteBeamScalers() {
   }
 }
 
-
-
 //_____________________________________________________________________________
-void AliADBuffer::WriteTiming(Float_t time, Float_t width) {
+void AliADBuffer::WriteTiming(Short_t time, Short_t width) {
   // It writes the timing information into a raw data file. 
   // Being called by Digits2Raw
 
   // Writes the timing information
-  UInt_t data = TMath::Nint(time) & 0xfff;
-  data |= (TMath::Nint(width) & 0x7f) << 12;
+  UInt_t data = time & 0xfff;
+  data |= (width & 0x7f) << 12;
   f->WriteBuffer((char*)&data,sizeof(data));
+}
+
+//_____________________________________________________________________________
+void AliADBuffer::WriteEmptyCIU() {
+  // The method writes holes in stream due to missing CIUs Ad has 2 vrt. to 8 VZERO 
+  // There are 182 words per CIU
+  for(Int_t i = 0; i < 182; i++) {
+      UInt_t data = 0;
+      f->WriteBuffer((char*)&data,sizeof(data));
+  }
 }

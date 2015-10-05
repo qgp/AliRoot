@@ -1,7 +1,7 @@
 #ifndef AliStorageAdministratorPanel_H
 #define AliStorageAdministratorPanel_H
 
-#include "AliStorageEventManager.h"
+#include "AliZMQManager.h"
 
 #include <TGFrame.h>
 #include <TGLabel.h>
@@ -63,12 +63,12 @@ private:
 	//socket connection
 	TThread *fCommunicationThread;
 	storageSockets fCommunicationSocket;
-    static void* Dispatch(void *arg){static_cast<AliStorageAdministratorPanel*>(arg)->CheckStateHandle();}
+	static void Dispatch(void *arg){static_cast<AliStorageAdministratorPanel*>(arg)->CheckStateHandle();}
 	void CheckStateHandle();
 	void CheckClientState(int option);
 	
 	storageSockets fServerSocket;//socket for two-way communication with AliStorageServerThread
-	AliStorageEventManager *fEventManager;
+	AliZMQManager *fEventManager;
 
 	AliStorageAdministratorPanel(const AliStorageAdministratorPanel&);
 	AliStorageAdministratorPanel& operator=(const AliStorageAdministratorPanel&);

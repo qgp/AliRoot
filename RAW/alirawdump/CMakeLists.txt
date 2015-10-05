@@ -20,7 +20,7 @@ set(MODULE alirawdump)
 include_directories(${AliRoot_SOURCE_DIR}/RAW/${MODULE})
 
 # Module aditional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatabase
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatarec
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
@@ -34,7 +34,7 @@ set(ROOTEXTRALIBS Geom VMC Minuit)
 # Add an executable to the project using the specified source files
 add_executable(${MODULE} alirawdump_main.cxx)
 
-target_link_libraries(${MODULE} STEERBase RAWDatabase ${ROOTEXTRALIBS} ${ROOT_LIBRARIES})
+target_link_libraries(${MODULE} STEERBase RAWDatabase EG ESD ${ROOTEXTRALIBS} ${ROOT_LIBRARIES})
 
 # Installation
 install(TARGETS ${MODULE} RUNTIME DESTINATION bin)

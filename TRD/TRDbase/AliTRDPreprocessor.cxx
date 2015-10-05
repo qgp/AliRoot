@@ -30,6 +30,10 @@
 //   J. Book (jbook@ikf.uni-frankfurt.de)                                 //
 //   W. Monange   (w.monange@gsi.de)                                      //
 //   F. Kramer    (kramer@ikf.uni-frankfurt.de)                           //
+// Maintainers:                                                           //
+//   Hans.Beck@cern.ch                                                    //
+//   R. Bailhache (R.Bailhache@gsi.de)                                    //
+//                                                                        //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
@@ -127,42 +131,62 @@ UInt_t AliTRDPreprocessor::Process(TMap* dcsAliasMap)
   // Process DCS and calibration part for HLT
   //
 
-  TString runType = GetRunType();
+  const TString runType = GetRunType();
   Log(Form("runtype %s\n",runType.Data()));
+
+  // We initialize the return values of all 
+  // subfunctions to zero, ie 'good'
+  Int_t DCSConfigReturn = 0;
+  Int_t pedastalReturn  = 0;
+  Int_t DCSReturn       = 0;
+  Int_t HLTReturn       = 0;
+  Int_t DAQReturn       = 0;
   
-  // always process the configuration data
-  Int_t dCSConfigReturn = ProcessDCSConfigData();
-  if(dCSConfigReturn) return dCSConfigReturn; 
+  // Always process the configuration data
+  DCSConfigReturn = ProcessDCSConfigData();
 
+  // Extract pedastals in pedastal runs
   if (runType=="PEDESTAL"){
-    if(ExtractPedestals()) return 1;
-    return 0;
-  } 
+    pedastalReturn = ExtractPedestals();
+  }
 
+  // Process the DCS sensors
   if ((runType=="PHYSICS") || (runType=="STANDALONE") || (runType=="DAQ")){
     // DCS
-    if(ProcessDCS(dcsAliasMap)) return 1;
+    DCSReturn = ProcessDCS(dcsAliasMap);
+
     /*
     if(runType=="PHYSICS"){
       // HLT if On
       //TString runPar = GetRunParameter("HLTStatus");
       //if(runPar=="1") {
       if(GetHLTStatus()) {
-	//if(ExtractHLT()) return 1; // for testing!
-	ExtractHLT();
+        HLTReturn = ExtractHLT();
       } 
       // DAQ if HLT failed
       if(!fVdriftHLT) {
-	//if(ExtractDriftVelocityDAQ()) return 1; 
-	ExtractDriftVelocityDAQ(); // for testing!
+        DAQReturn = ExtractDriftVelocityDAQ();
       }
     }
     */
    
   }
-  
-  return 0;  
-  
+
+  // Check for any errors
+  if(DCSConfigReturn || pedastalReturn || DCSReturn
+     || HLTReturn || DAQReturn){
+    // Error
+    Log(Form("ERROR - Listing return values for subfunctions (0=good)"));
+    Log(Form("DCSConfig %d, pedastal %d, DCS %d, HLT %d, DAQ %d"
+	     ,DCSConfigReturn,pedastalReturn,DCSReturn
+	     ,HLTReturn,DAQReturn));
+    return 1;
+  }
+  else{
+    // Good
+    Log(Form("SUCCESS All subfuntions returned without error"));
+    return 0;
+  }
 }
 //______________________________________________________________________________
 Bool_t AliTRDPreprocessor::ProcessDCS()
@@ -203,11 +227,11 @@ Bool_t AliTRDPreprocessor::ProcessDCS(TMap *dcsAliasMap)
     return kTRUE;
   }
 
-  Int_t nEntries = list->GetEntries ();
+  const Int_t nEntries = list->GetEntries ();
   Log (Form ("%d alias loaded", nEntries));
 		
-  Bool_t * results=new Bool_t [nEntries];
-  Int_t  * nGraph=new Int_t [nEntries];
+  Bool_t results[nEntries];
+  Int_t  nGraph[nEntries];
 		
   for (Int_t iAlias = 0; iAlias < nEntries; iAlias++) {
 			
@@ -218,9 +242,7 @@ Bool_t AliTRDPreprocessor::ProcessDCS(TMap *dcsAliasMap)
 			
     Log(Form("Processing DCS : \"%s\"", oneTRDDCS->GetStoreName ().Data ()));
 			
-    TMap * map;
-
-    map=oneTRDDCS->ExtractDCS (dcsAliasMap);
+    TMap *map=oneTRDDCS->ExtractDCS (dcsAliasMap);
 		
     nGraph [iAlias] = map->GetEntries ();
 		
@@ -228,13 +250,37 @@ Bool_t AliTRDPreprocessor::ProcessDCS(TMap *dcsAliasMap)
       Log("No TGraph for this dcsDatapointAlias : not stored");
       results [iAlias] = kFALSE;
       //error  = kTRUE;
+      delete map;
+      map=0;
       continue;
     }
 		
     oneTRDDCS->SetGraph(map);
-    results[iAlias]=Store("Calib", oneTRDDCS->GetStoreName().Data(), oneTRDDCS, &metaData, 0, kFALSE); 
-    delete map;		
 
+    // Remove duplicate entries where the value did not change
+    // more than a relative precision. We take a std precision 
+    // of 1e-4 and apply a higher precision for special cases
+    Double_t precision=1e-4;
+    // precision 1e-5 for HV
+    if( oneTRDDCS->GetStoreName().Contains("trd_hvAnodeUmon") ||
+	oneTRDDCS->GetStoreName().Contains("trd_hvDriftUmon") ){
+      precision=1e-5;
+    }
+    oneTRDDCS->RemoveGraphDuplicates(precision);
+    // Remove HV anode current points below a threshold (in uA)
+    // when both neighbors are also below threshold
+    if(oneTRDDCS->GetStoreName().Contains("trd_hvAnodeImon")){
+      oneTRDDCS->RemoveAbsBelowThreshold(0.010);
+    }
+    if(oneTRDDCS->GetStoreName().Contains("trd_hvDriftImon")){
+      oneTRDDCS->RemoveAbsBelowThreshold(0.10);
+    }
+
+    // Store the data point
+    results[iAlias]=Store("Calib", oneTRDDCS->GetStoreName().Data(), oneTRDDCS, &metaData, 0, kFALSE); 
+    delete map;
+    map=0;
+    oneTRDDCS->ClearGraph();
     //results [iAlias] = StoreReferenceData("Calib", oneTRDDCS->GetStoreName ().Data (), oneTRDDCS, &metaData); 
 
     if (!results[iAlias]) {
@@ -297,9 +343,10 @@ Bool_t AliTRDPreprocessor::ProcessDCS(TMap *dcsAliasMap)
   }
   Log ("*********** End of DCS **********");
   
-  delete [] results;
-  delete [] nGraph;
-
+  // Clean up
+  delete list;
+  list=0;
+  
   return error;
 
 }
@@ -1033,15 +1080,14 @@ UInt_t AliTRDPreprocessor::ProcessDCSConfigData()
 
   Log("Processing the DCS config summary files.");
 
-  if(fCalDCSObjSOR) delete fCalDCSObjSOR;
-  if(fCalDCSObjEOR) delete fCalDCSObjEOR;
+  if(fCalDCSObjSOR) delete fCalDCSObjSOR; fCalDCSObjSOR=0;
+  if(fCalDCSObjEOR) delete fCalDCSObjEOR; fCalDCSObjEOR=0;
 
   TString xmlFile[2];
   TString esor[2] = {"SOR", "EOR"};
   // get the XML files
   xmlFile[0] = GetFile(kDCS,"CONFIGSUMMARYSOR","");
   xmlFile[1] = GetFile(kDCS,"CONFIGSUMMARYEOR","");
-
 
   // check both files
   for (Int_t iFile=0; iFile<2; iFile++) {
@@ -1067,7 +1113,9 @@ UInt_t AliTRDPreprocessor::ProcessDCSConfigData()
       continue;
     }
     Log(Form("%s file is valid.", esor[iFile].Data()));
-
+    // Close the file descriptor
+    fileTest.close();
+    
     // make a robust XML validation
     TSAXParser testParser;
     if (testParser.ParseFile(xmlFile[iFile].Data()) < 0 ) {
@@ -1106,18 +1154,22 @@ UInt_t AliTRDPreprocessor::ProcessDCSConfigData()
     if (iFile == 1) fCalDCSObjEOR = calDCSObj;
   }
 
-  if (!fCalDCSObjSOR && !fCalDCSObjEOR) { Log("ERROR: Failed reading both files!"); return 1; }
+  // If none of the two objects exists we don't even store a CDB entry
+  if (!fCalDCSObjSOR && !fCalDCSObjEOR) {
+    Log("ERROR: Failed reading both files!");
+    return 1;
+  }
 
   // put both objects in one TObjArray to store them
-  TObjArray* calObjArray = new TObjArray(2);
-  calObjArray->SetOwner();
+  TObjArray calObjArray(2);
+  calObjArray.SetOwner();
 
   if (fCalDCSObjSOR) {
-    calObjArray->AddAt(fCalDCSObjSOR,0);
+    calObjArray.AddAt(fCalDCSObjSOR,0);
     Log("TRDCalDCS object for SOR created.");
   }
   if (fCalDCSObjEOR) {
-    calObjArray->AddAt(fCalDCSObjEOR,1);
+    calObjArray.AddAt(fCalDCSObjEOR,1);
     Log("TRDCalDCS object for EOR created.");
   }
 
@@ -1126,10 +1178,14 @@ UInt_t AliTRDPreprocessor::ProcessDCSConfigData()
   metaData1.SetBeamPeriod(0);
   metaData1.SetResponsible("Frederick Kramer");
   metaData1.SetComment("DCS configuration data in two AliTRDCalDCSv2 objects in one TObjArray (0:SOR, 1:EOR).");
-  if (!Store("Calib", "DCS", calObjArray, &metaData1, 0, kTRUE)) { Log("ERROR: Storing DCS config data object failed!"); return 1; }
+  if (!Store("Calib", "DCS", &calObjArray, &metaData1, 0, kTRUE)) { Log("ERROR: Storing DCS config data object failed!"); return 1; }
 
-  delete calObjArray;
-
+  // ALICE policy is to always have an SOR object
+  if(!fCalDCSObjSOR){
+    Log("ERROR: Could not build an SOR object.");  
+    return 1;
+  }
+  
   Log("SUCCESS: Processing of the DCS config summary file DONE.");  
   return 0;
 }

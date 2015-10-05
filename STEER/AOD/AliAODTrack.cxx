@@ -67,6 +67,7 @@ AliAODTrack::AliAODTrack() :
   fTrackEtaOnEMCal(-999),
   fTrackPtOnEMCal(-999),
   fIsMuonGlobalTrack(kFALSE),    // AU
+  fITSsignalTuned(0.),
   fTPCsignalTuned(0),
   fTOFsignalTuned(99999),
   fMFTClusterPattern(0),         // AU
@@ -128,6 +129,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   fTrackEtaOnEMCal(-999),
   fTrackPtOnEMCal(-999),
   fIsMuonGlobalTrack(kFALSE),    // AU
+  fITSsignalTuned(0),
   fTPCsignalTuned(0),
   fTOFsignalTuned(99999),
   fMFTClusterPattern(0),         // AU
@@ -193,6 +195,7 @@ AliAODTrack::AliAODTrack(Short_t id,
   fTrackEtaOnEMCal(-999),
   fTrackPtOnEMCal(-999),
   fIsMuonGlobalTrack(kFALSE),    // AU
+  fITSsignalTuned(0),
   fTPCsignalTuned(0),
   fTOFsignalTuned(99999),
   fMFTClusterPattern(0),         // AU
@@ -255,6 +258,7 @@ AliAODTrack::AliAODTrack(const AliAODTrack& trk) :
   fTrackEtaOnEMCal(trk.fTrackEtaOnEMCal),
   fTrackPtOnEMCal(trk.fTrackPtOnEMCal),
   fIsMuonGlobalTrack(trk.fIsMuonGlobalTrack),    // AU
+  fITSsignalTuned(trk.fITSsignalTuned),
   fTPCsignalTuned(trk.fTPCsignalTuned),
   fTOFsignalTuned(trk.fTOFsignalTuned),
   fMFTClusterPattern(trk.fMFTClusterPattern),    // AU
@@ -312,6 +316,7 @@ AliAODTrack& AliAODTrack::operator=(const AliAODTrack& trk)
     fTrackEtaOnEMCal   = trk.fTrackEtaOnEMCal;
     fTrackPtOnEMCal    = trk.fTrackPtOnEMCal;
     fIsMuonGlobalTrack = trk.fIsMuonGlobalTrack;     // AU
+    fITSsignalTuned    = trk.fITSsignalTuned;
     fTPCsignalTuned    = trk.fTPCsignalTuned;
     fTOFsignalTuned    = trk.fTOFsignalTuned;
     fMFTClusterPattern = trk.fMFTClusterPattern;     // AU
@@ -492,32 +497,6 @@ void AliAODTrack::ConvertAliPIDtoAODPID()
     fPID[kUnknown]  = 0.;
   }
   return;
-}
-
-
-//______________________________________________________________________________
-template <typename T> void AliAODTrack::SetP(const T *p, const Bool_t cartesian) 
-{
-  // Set the momentum
-
-  if (p) {
-    if (cartesian) {
-      Double_t pt2 = p[0]*p[0] + p[1]*p[1];
-      Double_t pp  = TMath::Sqrt(pt2 + p[2]*p[2]);
-      
-      fMomentum[0] = TMath::Sqrt(pt2); // pt
-      fMomentum[1] = (pt2 != 0.) ? TMath::Pi()+TMath::ATan2(-p[1], -p[0]) : -999; // phi
-      fMomentum[2] = (pp != 0.) ? TMath::ACos(p[2] / pp) : -999.; // theta
-    } else {
-      fMomentum[0] = p[0];  // pt
-      fMomentum[1] = p[1];  // phi
-      fMomentum[2] = p[2];  // theta
-    }
-  } else {
-    fMomentum[0] = -999.;
-    fMomentum[1] = -999.;
-    fMomentum[2] = -999.;
-  }
 }
 
 /*

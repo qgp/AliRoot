@@ -65,7 +65,7 @@ typedef enum
    kHwCharmMCATNLO  = -1704,
    kHwBeautyMCATNLO = -1705,
    kHwJetsMCATNLO   = -1396
-} Process_t;
+} HerwigProcess_t;
 
 class TObjArray;
 
@@ -148,7 +148,7 @@ public:
   int         GetNRN      (int i) const;
   void        SetNRN    (int i, int j) const; 
   double      GetEVWGT         () const;
-
+  void      SetNOWEIGHTED(int j) const;
   int         GetIDHW     (int i) const;
 
   int         GetIERROR        () const;

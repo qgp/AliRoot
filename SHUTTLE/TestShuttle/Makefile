@@ -5,9 +5,13 @@ PACKAGE = TestShuttle
 include $(ROOTSYS)/etc/Makefile.arch
 include $(PACKAGE).pkg
 
-ALICEINC      = -I. -I$(ALICE_INSTALL)/include 
+ALICEINC      = -I.
+ifneq ($(ALICE_ROOT),)
+  ALICEINC += -I$(ALICE_ROOT)/include
+endif
 
 CXXFLAGS     += $(ALICEINC) -g
+LDFLAGS      += `root-config --ldflags --libs` -L$(ALICE_ROOT)/lib -lACORDEbase -lADbase -lSTEER -lCDB -lSTEERbase -lESD
 SRCS         += dict.cxx
 OBJS          = $(SRCS:.cxx=.o)
 

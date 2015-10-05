@@ -20,7 +20,7 @@ set(MODULE TPCbase)
 include_directories(${AliRoot_SOURCE_DIR}/TPC/${MODULE})
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS} 
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatabase
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatarec
                     ${AliRoot_SOURCE_DIR}/RAW/dateStream
@@ -99,11 +99,13 @@ set(SRCS
     AliTPCSensorTempArray.cxx
     AliTPCSensorTemp.cxx
     AliTPCSpaceCharge3D.cxx
+    AliTPCSpaceCharge2D2D.cxx
     AliTPCSpaceCharge.cxx
     AliTPCTempMap.cxx
     AliTPCTransform.cxx
     AliTransform.cxx
     AliXRDPROOFtoolkit.cxx
+    AliTPCSAMPAEmulator.cxx
    )
 
 # Headers from sources
@@ -122,7 +124,7 @@ set(ALIROOT_DEPENDENCIES STEERBase STEER CDB ESD RAWDatabase RAWDatarec)
 set(LIBDEPS ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
-# Create an object to be reused in case of static libraries 
+# Create an object to be reused in case of static libraries
 # Otherwise the sources will be compiled twice
 add_library(${MODULE}-object OBJECT ${SRCS} G__${MODULE}.cxx)
 # Follow headers dependencies
@@ -163,10 +165,10 @@ if(ALIROOT_STATIC)
     # list of shared dependencies / the name of the variable containing the list of static ones
     generate_static_dependencies("${ALIROOT_DEPENDENCIES}" "STATIC_ALIROOT_DEPENDENCIES")
     target_link_libraries(${MODULE}-static ${STATIC_ALIROOT_DEPENDENCIES} Root RootExtra)
-    
+
     # Public include folders that will be propagated to the dependecies
     target_include_directories(${MODULE}-static PUBLIC ${incdirs})
-    
+
     set_target_properties(${MODULE}-static PROPERTIES LINK_FLAGS "-Wl,--whole-archive")
 
     # Installation

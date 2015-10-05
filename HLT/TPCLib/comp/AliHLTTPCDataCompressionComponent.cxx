@@ -32,7 +32,7 @@
 #include "AliHLTComponentBenchmark.h"
 #include "AliHLTDataDeflaterSimple.h"
 #include "AliHLTDataDeflaterHuffman.h"
-#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTTPCClusterMCData.h"
 #include "AliHLTTPCClusterTransformation.h"
 #include "AliHLTErrorGuard.h"
@@ -632,7 +632,7 @@ int AliHLTTPCDataCompressionComponent::ProcessRemainingClusters(AliHLTGlobalBarr
   int associatedClusters=0;
   if (!pTracks || nofTracks==0) return 0;
 
-  for (int padrow=0; padrow<AliHLTTPCTransform::GetNRows(partition); padrow++) {
+  for (int padrow=0; padrow<AliHLTTPCGeometry::GetNRows(partition); padrow++) {
     for (AliHLTTrackGeometry::AliHLTTrackGrid::iterator& trackId=pTrackIndex->begin(slice, partition, padrow);
 	 trackId!=pTrackIndex->end(); trackId++) {
       if (trackId.Data()>=trackIndexMap.size()) {
@@ -895,7 +895,12 @@ int AliHLTTPCDataCompressionComponent::DoInit( int argc, const char** argv )
     fHistoTrackClusterRatio=histoTrackClusterRatio.release();
   }
 
-  if (iResult>=0 && (iResult=InitDriftTimeTransformation())<0) return iResult;
+  // only init drift time if actually needed
+  // i.e. when using track model compression
+  // transform init takes ages.....
+  if (fMode==kCompressionModeV1TrackModel || fMode==kCompressionModeV2TrackModel) {
+    if (iResult>=0 && (iResult=InitDriftTimeTransformation())<0) return iResult;
+  }
 
   return iResult;
 }
@@ -1154,7 +1159,7 @@ int AliHLTTPCDataCompressionComponent::CalculateDriftTimeTransformation(AliHLTTP
   const int nofSteps=100;
   vector<float> zvalues;
 
-  int nofTimebins=AliHLTTPCTransform::GetNTimeBins();
+  int nofTimebins=AliHLTTPCGeometry::GetNTimeBins();
   int stepWidth=nofTimebins/nofSteps;
   int time=0;
   int count=0;

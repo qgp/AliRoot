@@ -1,61 +1,4 @@
-// One can use the configuration macro in compiled mode by
-// root [0] gSystem->Load("libgeant321");
-// root [0] gSystem->SetIncludePath("-I$ROOTSYS/include -I$ALICE_ROOT/include\
-//                   -I$ALICE_ROOT -I$ALICE/geant3/TGeant3");
-// root [0] .x grun.C(1,"ConfigPPR.C++")
-
-#if !defined(__CINT__) || defined(__MAKECINT__)
-#include <Riostream.h>
-#include <TRandom.h>
-#include <TSystem.h>
-#include <TVirtualMC.h>
-#include <TGeant3TGeo.h>
-#include <TPDGCode.h>
-#include <TF1.h>
-#include "STEER/AliRunLoader.h"
-#include "STEER/AliRun.h"
-#include "STEER/AliConfig.h"
-#include "STEER/AliGenerator.h"
-#include "STEER/AliLog.h"
-#include "PYTHIA6/AliDecayerPythia.h"
-#include "EVGEN/AliGenHIJINGpara.h"
-#include "THijing/AliGenHijing.h"
-#include "EVGEN/AliGenCocktail.h"
-#include "EVGEN/AliGenSlowNucleons.h"
-#include "EVGEN/AliSlowNucleonModelExp.h"
-#include "EVGEN/AliGenParam.h"
-#include "EVGEN/AliGenMUONlib.h"
-#include "EVGEN/AliGenSTRANGElib.h"
-#include "EVGEN/AliGenMUONCocktail.h"
-#include "EVGEN/AliGenCocktail.h"
-#include "EVGEN/AliGenGeVSim.h"
-#include "EVGEN/AliGeVSimParticle.h"
-#include "PYTHIA6/AliGenPythia.h"
-#include "STEER/AliMagF.h"
-#include "STRUCT/AliBODY.h"
-#include "STRUCT/AliMAG.h"
-#include "STRUCT/AliABSOv3.h"
-#include "STRUCT/AliDIPOv3.h"
-#include "STRUCT/AliHALLv3.h"
-#include "STRUCT/AliFRAMEv2.h"
-#include "STRUCT/AliSHILv3.h"
-#include "STRUCT/AliPIPEv3.h"
-#include "ITS/AliITSv11.h"
-#include "TPC/AliTPCv2.h"
-#include "TOF/AliTOFv6T0.h"
-#include "HMPID/AliHMPIDv3.h"
-#include "ZDC/AliZDCv4.h"
-#include "TRD/AliTRDv1.h"
-#include "FMD/AliFMDv1.h"
-#include "MUON/AliMUONv1.h"
-#include "PHOS/AliPHOSv1.h"
-#include "PMD/AliPMDv1.h"
-#include "T0/AliT0v1.h"
-#include "EMCAL/AliEMCALv2.h"
-#include "ACORDE/AliACORDEv1.h"
-#include "VZERO/AliVZEROv7.h"
-#include "EPOS/AliGenEpos.h"
-#endif
+// Configuration file for EPOS test
 
 enum PprTrigConf_t
 {
@@ -92,17 +35,7 @@ void Config()
     gRandom->SetSeed(sseed);
     cout<<"Seed for random number generation= "<<gRandom->GetSeed()<<endl; 
 
-
-   // libraries required by geant321
-#if defined(__CINT__)
-    gSystem->Load("liblhapdf");
-    gSystem->Load("libEGPythia6");
-    gSystem->Load("libpythia6");
-    gSystem->Load("libAliPythia6");
-    gSystem->Load("libgeant321");
-    gSystem->Load("libEPOS");
-#endif
-
+    // Transport
     new     TGeant3TGeo("C++ Interface to Geant3");
 
   // Output every 100 tracks
@@ -356,7 +289,7 @@ void Config()
 
     if (iPHOS)
     {
-        AliPHOS *PHOS = new AliPHOSv1("PHOS", "IHEP");
+        AliPHOS *PHOS = new AliPHOSv1("PHOS", "Run1");
     }
 
 
@@ -402,16 +335,6 @@ Float_t EtaToTheta(Float_t arg){
 
 void ProcessEnvironmentVars()
 {
-    // Run type
-    if (gSystem->Getenv("CONFIG_RUN_TYPE")) {
-      for (Int_t iRun = 0; iRun < kRunMax; iRun++) {
-	if (strcmp(gSystem->Getenv("CONFIG_RUN_TYPE"), pprRunName[iRun])==0) {
-	  srun = (PprRun_t)iRun;
-	  cout<<"Run type set to "<<pprRunName[iRun]<<endl;
-	}
-      }
-    }
-
     // Random Number seed
     if (gSystem->Getenv("CONFIG_SEED")) {
       sseed = atoi(gSystem->Getenv("CONFIG_SEED"));

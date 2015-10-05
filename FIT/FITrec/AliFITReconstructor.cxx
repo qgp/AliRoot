@@ -49,9 +49,7 @@ AliFITReconstructor:: AliFITReconstructor(): AliReconstructor(),
  
   //constructor
  
-  
-   fESDFIT  = new AliESDFIT();
-
+  printf("@@@ AliFITReconstructor:: AliFITReconstructor()\n");
  
 }
 //_____________________________________________________________________________
@@ -60,6 +58,8 @@ void AliFITReconstructor::Init()
 // initializer
 
   fESDFIT  = new AliESDFIT;
+   printf("@@@ AliFITReconstructor:: Init\n");
+
  }
 
 //______________________________________________________________________
@@ -72,21 +72,21 @@ void AliFITReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digitsTr
     return;
   }
 
-  fDigits = new TClonesArray ("AliFITDigit", 100);
+  if (!fDigits)  fDigits = new TClonesArray ("AliFITDigit", 100);
   digitsTree->Branch("FIT", &fDigits);
 
   AliFITRawReader myrawreader(rawReader);
   if (myrawreader.Next()) 
     {
-      Int_t allData[720];
-      for (Int_t i=0; i<720; i++)  allData[i]=0;
-      for (Int_t i=0; i<720; i++) 
+      Int_t allData[1000];
+      for (Int_t i=0; i<1000; i++)  allData[i]=0;
+      for (Int_t i=0; i<1000; i++) 
 	if(myrawreader.GetData(i)>0)  { 
 	  allData[i]=myrawreader.GetData(i);
 	}
    
       Int_t timeCFD, timeLED, timeQT1, timeQT0;
-      for (Int_t ipmt=0; ipmt<2400; ipmt++) {
+      for (Int_t ipmt=0; ipmt<240; ipmt++) {
 	if(allData[ipmt]>0) {
 	  timeCFD = allData[ipmt];
 	  timeLED = allData[ipmt];
@@ -113,18 +113,16 @@ void AliFITReconstructor::FillESD(TTree *digitsTree, TTree * /*clustersTree*/, A
   /***************************************************
   Resonstruct digits to vertex position
   ****************************************************/
-  
   AliDebug(1,Form("Start FillESD FIT"));
   if(!pESD) {
     AliError("No ESD Event");
     return;
   }
-  
   Float_t channelWidth = 24.4;  
   Float_t c = 0.0299792458; // cm/ps
   Float_t currentVertex, shift=0;
   Int_t ncont=-1;
-   const AliESDVertex* vertex = pESD->GetPrimaryVertex();
+  const AliESDVertex* vertex = pESD->GetPrimaryVertex();
   if (!vertex)        vertex = pESD->GetPrimaryVertexSPD();
   if (!vertex)        vertex = pESD->GetPrimaryVertexTPC();
   if (!vertex)        vertex = pESD->GetVertex();
@@ -139,8 +137,8 @@ void AliFITReconstructor::FillESD(TTree *digitsTree, TTree * /*clustersTree*/, A
       shift = currentVertex/c;
     }
   } //vertex
-
- 
+  
+  
   // FIT digits reconstruction
   
   if (!digitsTree) {
@@ -175,39 +173,30 @@ void AliFITReconstructor::FillESD(TTree *digitsTree, TTree * /*clustersTree*/, A
     } 
     fESDFIT->SetFITtime(time);         // best TOF on each PMT 
     fESDFIT->SetFITamplitude(amp);     // number of particles(MIPs) on each 
-    
-    Float_t firsttime[3] = {max_time,max_time,max_time};
+     Float_t firsttime[3] = {max_time,max_time,max_time};
     
     Float_t vertexFIT = 9999999;
-    for (Int_t ipmt=0; ipmt<100; ipmt++)//timeC
- 	  if(time[ipmt]<firsttime[2]) firsttime[2]=time[ipmt]; 
+    for (Int_t ipmt=0; ipmt<96; ipmt++)//timeC
+      if(time[ipmt]<firsttime[2]) firsttime[2]=time[ipmt]; 
     
-    for ( Int_t ipmt=100; ipmt<240; ipmt++) 
-	  if(time[ipmt]<firsttime[1]) firsttime[1]=time[ipmt]; 
-    
-    
-    AliDebug(5,Form("1stimeA %f , 1sttimeC %f  ",
-		    firsttime[1],
-		    firsttime[2] ) );
+    for ( Int_t ipmt=96; ipmt<240; ipmt++) 
+      if(time[ipmt]<firsttime[1]) firsttime[1]=time[ipmt]; 
     if (firsttime[1]<max_time && firsttime[2]<max_time)  {
-	firsttime[0] =  channelWidth *(firsttime[1] + firsttime[2])/2;
-	vertexFIT =  c*channelWidth*(firsttime[1] - firsttime[2])/2;
+      firsttime[0] =  channelWidth *(firsttime[1] + firsttime[2])/2;
+      vertexFIT =  c*channelWidth*(firsttime[1] - firsttime[2])/2;
     }
-      if (firsttime[1]<max_time) 
-	firsttime[1] = firsttime[1] * channelWidth + shift; 
-      
-      if (firsttime[2]<max_time) 
-	firsttime[2] = firsttime[2] * channelWidth - shift; 
-      
-      
-      
-      for(Int_t i=0; i<3; i++) {
-	fESDFIT->SetFITT0(i,firsttime[i]);   // interaction time (ns) 
+    if (firsttime[1]<max_time) 
+      firsttime[1] = firsttime[1] * channelWidth + shift; 
+    
+    if (firsttime[2]<max_time) 
+      firsttime[2] = firsttime[2] * channelWidth - shift; 
+             
+    for(Int_t i=0; i<3; i++) {
+      fESDFIT->SetFITT0(i,firsttime[i]);   // interaction time (ns) 
       }
-      fESDFIT->SetFITzVertex(vertexFIT); //vertex Z position 
-      
-      
-      AliDebug(1,Form("FIT: SPDshift %f Vertex %f  FITsignal %f ps FITA %f ps FITC %f ps \n",shift, vertexFIT, firsttime[0], firsttime[1],firsttime[2]));
+    fESDFIT->SetFITzVertex(vertexFIT); //vertex Z position 
+        
+    AliDebug(1,Form("FIT: SPDshift %f Vertex %f  FITsignal %f ps FITA %f ps FITC %f ps \n",shift, vertexFIT, firsttime[0], firsttime[1],firsttime[2]));
   }
-  
-   }
+     if (pESD)    pESD->SetFITData(fESDFIT); 
+}

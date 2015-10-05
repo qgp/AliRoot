@@ -58,6 +58,10 @@
 #include "TTreeStream.h"
 #include "AliTPCReconstructor.h"
 #include <TGraphErrors.h>
+#include "AliTPCSAMPAEmulator.h"
+
+
+AliTPCSAMPAEmulator *  AliTPCDigitizer::fgSAMPAEmulator=0;
 
 using std::cout;
 using std::cerr;
@@ -162,7 +166,7 @@ void AliTPCDigitizer::DigitizeFast(Option_t* option)
    }
   }
   
-  pTPC->GenerNoise(500000); //create table with noise
+  pTPC->GenerNoise(500000, kFALSE); //create table with noise
   //
   Int_t nInputs = fDigInput->GetNinputs();
   Int_t * masks = new Int_t[nInputs];
@@ -244,7 +248,6 @@ void AliTPCDigitizer::DigitizeFast(Option_t* option)
 
   //
 
-  param->SetZeroSup(2);
 
   Int_t zerosup = param->GetZeroSup(); 
   AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()->GetDedxGainFactor(); 
@@ -464,7 +467,6 @@ void AliTPCDigitizer::DigitizeSave(Option_t* option)
   TTree * tree  = ogime->TreeD();
 
   tree->Branch("Segment","AliSimDigits",&digrow);
-  param->SetZeroSup(2);
 
   Int_t zerosup = param->GetZeroSup();
   //Loop over segments of the TPC
@@ -623,7 +625,7 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
   // Ion tail simulation:
   //    1.) Needs signal from pad+-1, taking signal from history
   // merge input tree's with summable digits
-  // output stored in TreeTPCD
+  // output stored in TreeTPCD 
   //  
   AliTPCcalibDB* const calib=AliTPCcalibDB::Instance();
   AliTPCRecoParam *recoParam = calib->GetRecoParam(0); 
@@ -758,7 +760,6 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
 
   //
   // zero supp, take gain and noise map of TPC from OCDB 
-  param->SetZeroSup(2);
   Int_t zerosup = param->GetZeroSup(); 
   AliTPCCalPad * gainTPC = AliTPCcalibDB::Instance()->GetDedxGainFactor(); 
   AliTPCCalPad * noiseTPC = AliTPCcalibDB::Instance()->GetPadNoise(); 
@@ -799,9 +800,11 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
   //
   
   TObjArray   crossTalkSignalArray(nROCs);  // for 36 sectors 
-  TVectorD  * qTotSectorOld  = new TVectorD(nROCs);
+  TVectorD  * qTotSector  = new TVectorD(nROCs);
+  TVectorD  * nTotSector  = new TVectorD(nROCs);
   Float_t qTotTPC = 0.;
   Float_t qTotPerSector = 0.;
+  Float_t nTotPerSector = 0.;
   Int_t nTimeBinsAll = 1100;
   Int_t nWireSegments=11;
   // 1.a) crorstalk matrix initialization
@@ -872,7 +875,8 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
       Float_t gain = gainROC->GetValue(padRow,padNumber);  // get gain for given - pad-row pad
       q*= gain;
       crossTalkSignal[wireSegmentID][timeBin]+= q/nPadsPerSegment;        // Qtot per segment for a given timebin
-      qTotSectorOld -> GetMatrixArray()[sector] += q;                      // Qtot for each sector
+      qTotSector -> GetMatrixArray()[sector] += q;                      // Qtot for each sector
+      nTotSector -> GetMatrixArray()[sector] += 1;                      // Ntot digit counter for each sector
       qTotTPC += q;                                                        // Qtot for whole TPC       
     } // end of q loop
   } // end of global row loop
@@ -881,7 +885,7 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
   // 1.b) Dump the content of the crossTalk signal to the debug stremer - to be corealted later with the same crosstalk correction
   //      assumed during reconstruction 
   //
-  if (AliTPCReconstructor::StreamLevel()==1) {
+  if ((AliTPCReconstructor::StreamLevel()&kStreamCrosstalk)>0) {
     //
     // dump the crosstalk matrices to tree for further investigation
     //     a.) to estimate fluctuation of pedestal in indiviula wire segments
@@ -914,6 +918,8 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
   //
   // 2.) Loop over segments (padrows) of the TPC 
   //  
+  // 
+  TTree * treeStreamer=0;
   for (Int_t globalRowID=0; globalRowID<param->GetNRowsTotal(); globalRowID++) {
     Int_t sector, padRow;
     if (!param->AdjustSectorRow(globalRowID,sector,padRow)) {
@@ -995,10 +1001,11 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
       qOrig = q;
       Float_t noisePad = noiseROC->GetValue(padRow,padNumber);
       Float_t noise  = pTPC->GetNoise()*noisePad;
-      if ( (q/16.+noise)> zerosup){
+      if ( (q/16.+noise)> zerosup  || ((AliTPCReconstructor::StreamLevel()&kStreamSignalAll)>0)){
 	// Crosstalk correction 
 	qXtalk = (*(TMatrixD*)crossTalkSignalArray.At(sector))[wireSegmentID][timeBin];
-	qTotPerSector = qTotSectorOld -> GetMatrixArray()[sector];    
+	qTotPerSector = qTotSector -> GetMatrixArray()[sector];    
+	nTotPerSector = nTotSector -> GetMatrixArray()[sector];    
 	
 	// Ion tail correction: being elem=padNumber*nTimeBins+timeBin;
 	Int_t lowerElem=elem-nIonTailBins;    
@@ -1042,51 +1049,83 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
       
       
       // fill info for degugging
-      if (AliTPCReconstructor::StreamLevel()==1 && qOrig > zerosup ) {
-        TTreeSRedirector &cstream = *fDebugStreamer;
+      if ( ((AliTPCReconstructor::StreamLevel()&kStreamSignal)>0) && ((qOrig > zerosup)||((AliTPCReconstructor::StreamLevel()&kStreamSignalAll)>0) )) {
+	TTreeSRedirector &cstream = *fDebugStreamer;
 	UInt_t uid = AliTPCROC::GetTPCUniqueID(sector, padRow, padNumber);
-        cstream <<"ionTailXtalk"<<
-	  "uid="<<uid<<                        // globla unique identifier
-	  "sector="<< sector<<   
-	  "globalRowID="<<globalRowID<<
-	  "padRow="<< padRow<<                 //pad row
-	  "wireSegmentID="<< wireSegmentID<<   //wire segment 0-11, 0-3 in IROC 4-10 in OROC 
-	  "localPad="<<localPad<<              // pad number -npads/2 .. npads/2
-	  "padNumber="<<padNumber<<            // pad number 0..npads 
-	  "timeBin="<< timeBin<<               // time bin 
-	  "nPadsPerSegment="<<nPadsPerSegment<<// number of pads per wire segment	  
-	  "qTotPerSector="<<qTotPerSector<<    // total charge in sector 
-	  //
-	  "qTotTPC="<<qTotTPC<<                // acumulated charge without crosstalk and ion tail in full TPC
-	  "qOrig="<< qOrig<<                   // charge in given pad-row,pad,time-bin
-	  "q="<<q<<                            // q=qOrig-qXtalk-qIonTail - to check sign of the effects
-	  "qXtalk="<<qXtalk<<                  // crosstal contribtion at given position
-	  "qIonTail="<<qIonTail<<              // ion tail cotribution from past signal
-	  "\n";
-      }// dump the results to the debug streamer if in debug mode
-      
-      if (q > zerosup){ 
+	qXtalk = (*(TMatrixD*)crossTalkSignalArray.At(sector))[wireSegmentID][timeBin];
+	//
+	if (treeStreamer==0){
+	  cstream <<"ionTailXtalk"<<
+	    "uid="<<uid<<                        // globla unique identifier
+	    "sector="<< sector<<   
+	    "globalRowID="<<globalRowID<<
+	    "padRow="<< padRow<<                 //pad row
+	    "wireSegmentID="<< wireSegmentID<<   //wire segment 0-11, 0-3 in IROC 4-10 in OROC 
+	    "localPad="<<localPad<<              // pad number -npads/2 .. npads/2
+	    "padNumber="<<padNumber<<            // pad number 0..npads 
+	    "timeBin="<< timeBin<<               // time bin 
+	    "nPadsPerSegment="<<nPadsPerSegment<<// number of pads per wire segment	  
+	    "qTotPerSector="<<qTotPerSector<<    // total charge in sector 
+	    "nTotPerSector="<<nTotPerSector<<    // total number of digit (above threshold) in sector 
+	    //
+	    "noise="<<noise<<                    // electornic noise contribution
+	    "qTotTPC="<<qTotTPC<<                // acumulated charge without crosstalk and ion tail in full TPC
+	    "qOrig="<< qOrig<<                   // charge in given pad-row,pad,time-bin
+	    "q="<<q<<                            // q=qOrig-qXtalk-qIonTail - to check sign of the effects
+	    "qXtalk="<<qXtalk<<                  // crosstal contribtion at given position
+	    "qIonTail="<<qIonTail<<              // ion tail cotribution from past signal
+	    "\n";
+	  treeStreamer=(cstream <<"ionTailXtalk").GetTree();
+	}else{
+	  treeStreamer->Fill();
+	} // dump the results to the debug streamer if in debug mode
+      }
+      if (q > zerosup || fgSAMPAEmulator!=NULL){ 
         if(q >= param->GetADCSat()) q = (Short_t)(param->GetADCSat() - 1);
         //digrow->SetDigitFast((Short_t)q,rows,col);  
         *pdig1 =Short_t(q);
         for (Int_t tr=0;tr<3;tr++)
 	  {
-          if (tr<labptr) 
-            ptr1[tr*nElems] = label[tr];
-        }
+	    if (tr<labptr) 
+	      ptr1[tr*nElems] = label[tr];
+	  }
+      }
+      if (fgSAMPAEmulator && (timeBin==nTimeBins-1)) {  // pocess Emulator for given pad
+	//
+	TVectorD vecSAMPAIn(nTimeBins); // allocate workin array for SAMPA emulator processing (if set)
+	TVectorD vecSAMPAOut(nTimeBins); // allocate workin array for SAMPA emulator processing (if set)
+	Double_t baseline=0;
+        for (Int_t itime=0; itime<nTimeBins;itime++) vecSAMPAIn[itime]=pdig1[1+itime-nTimeBins];  // set workin array for SAMPA emulator 
+        for (Int_t itime=0; itime<nTimeBins;itime++) vecSAMPAOut[itime]=pdig1[1+itime-nTimeBins];  // set workin array for SAMPA emulator 
+	fgSAMPAEmulator->DigitalFilterFloat(nTimeBins, vecSAMPAOut.GetMatrixArray(), baseline);
+	//
+	if ( ((AliTPCReconstructor::StreamLevel()&kStreamSignal)>0)){	  
+	  (*fDebugStreamer)<<"sampaEmulator"<<
+	    "sector="<< sector<<   
+	    "globalRowID="<<globalRowID<<
+	    "padRow="<< padRow<<                 //pad row
+	    "wireSegmentID="<< wireSegmentID<<   //wire segment 0-11, 0-3 in IROC 4-10 in OROC 
+	    "localPad="<<localPad<<              // pad number -npads/2 .. npads/2
+	    "padNumber="<<padNumber<<            // pad number 0..npads 
+	    "timeBin="<< timeBin<<               // time bin 
+	    "nPadsPerSegment="<<nPadsPerSegment<<// number of pads per wire segment	  
+	    "qTotPerSector="<<qTotPerSector<<    // total charge in sector 
+	    "nTotPerSector="<<nTotPerSector<<    // total number of digit (above threshold) in sector 
+	    "vSAMPAin.="<<&vecSAMPAIn<<          // input  data
+	    "vSAMPAout.="<<&vecSAMPAOut<<        // ouptut data
+	    "\n";
+	}
+	for (Int_t itime=0; itime<nTimeBins;itime++) {
+	  if ( TMath::Nint(vecSAMPAOut[itime]) <  zerosup) pdig1[1+itime-nTimeBins]=0;
+	  else{
+	    pdig1[1+itime-nTimeBins]=TMath::Nint(vecSAMPAOut[itime]);
+	  }
+	}
       }
       pdig1++;
       ptr1++;
     }
-     
-   if (AliTPCReconstructor::StreamLevel()==1 && qOrig > zerosup ) { 
-      cout << " sector = " << sector  << " row = " << padRow << " localPad = " << localPad << " SegmentID = " << wireSegmentID << " nPadsPerSegment = " <<  nPadsPerSegment << endl;
-      cout << " qXtalk =   " <<  qXtalk ;
-      cout << " qOrig = " <<  qOrig ;
-      cout << " q = "    <<  q ;
-      cout << " qsec = " <<  qTotPerSector ;
-      cout << " qTotTPC "<<  qTotTPC << endl;
-   }
+    
     //
     //  glitch filter
     //
@@ -1095,7 +1134,12 @@ void AliTPCDigitizer::DigitizeWithTailAndCrossTalk(Option_t* option)
     digrow->CompresBuffer(1,zerosup);
     digrow->CompresTrackBuffer(1);
     tree->Fill();
-    if (fDebug>0) cerr<<sector<<"\t"<<padRow<<"\n";  
+    if (fDebug>0) cerr<<sector<<"\t"<<padRow<<"\n"; 
+    if (padRow==0 && fDebugStreamer) {
+      ((*fDebugStreamer)<<"ionTailXtalk").GetTree()->FlushBaskets();
+      ((*fDebugStreamer)<<"ionTailXtalk").GetTree()->Write();
+      (fDebugStreamer->GetFile())->Flush();
+    }
   } //for (Int_t n=0; n<param->GetNRowsTotal(); n++) 
 
 

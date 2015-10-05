@@ -20,14 +20,15 @@ set(MODULE EVGEN)
 include_directories(${AliRoot_SOURCE_DIR}/${MODULE})
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/FASTSIM
-                    ${AliRoot_SOURCE_DIR}/LHAPDF
+                    ${AliRoot_SOURCE_DIR}/LHAPDF/base
                     ${AliRoot_SOURCE_DIR}/STEER/ESD
                     ${AliRoot_SOURCE_DIR}/STEER/STEER
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
                     ${AliRoot_SOURCE_DIR}/TEvtGen
                     ${AliRoot_SOURCE_DIR}/TEvtGen/THepMCParser
+                    ${AliRoot_SOURCE_DIR}/PYTHIA6/AliPythia6
                    )
 
 # Sources
@@ -48,6 +49,7 @@ set(SRCS
     AliGenEMCocktail.cxx
     AliGenEMlib.cxx
     AliGenExtFile.cxx
+    AliGenExtExec.cxx
     AliGenFixed.cxx
     AliGenFunction.cxx
     AliGenGeVSim.cxx
@@ -93,6 +95,7 @@ set(SRCS
     AliOmegaDalitz.cxx
     AliSlowNucleonModel.cxx
     AliSlowNucleonModelExp.cxx
+    AliGenPerformance.cxx
 )
 
 # Headers from sources
@@ -108,7 +111,7 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS STEERBase STEER ESD lhapdf TEvtGen FASTSIM THepMCParser)
+set(LIBDEPS STEERBase STEER ESD TEvtGen FASTSIM THepMCParser)
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # Add a library to the project using the specified source files
@@ -130,5 +133,6 @@ install(TARGETS ${MODULE}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib)
 install(FILES ${HDRS} DESTINATION include)
+install(DIRECTORY dataCorrHF DESTINATION EVGEN)
 
 message(STATUS "${MODULE} enabled")

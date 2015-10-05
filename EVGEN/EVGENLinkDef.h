@@ -26,6 +26,7 @@
 #pragma link C++ class  AliGenCocktailAfterBurner+;
 #pragma link C++ class  AliGenCocktailEntry+;
 #pragma link C++ class  AliGenExtFile+;
+#pragma link C++ class  AliGenExtExec+;
 #pragma link C++ class  AliGenScan+;
 #pragma link C++ class  AliGenDoubleScan+;
 #pragma link C++ class  AliGenLib+;
@@ -72,6 +73,7 @@
 #pragma link C++ class  AliGenLcLib+;
 #pragma link C++ class  AliGenITSULib;
 #pragma link C++ class  AliGenTunedOnPbPb;
-#pragma link C++ class  AliGenReaderHepMC++;
+#pragma link C++ class  AliGenReaderHepMC+;
+#pragma link C++ class  AliGenPerformance+;
 
 #endif

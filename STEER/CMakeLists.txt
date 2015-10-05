@@ -13,12 +13,25 @@
 # * provided "as is" without express or implied warranty.                  *
 # **************************************************************************
 
+# Treat warnings as errors
+# with Clang
+if(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif(${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
+# with gcc
+if(CMAKE_COMPILER_IS_GNUCXX)
+  if (NOT ${CMAKE_SYSTEM_VERSION} MATCHES el5)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+  endif (NOT ${CMAKE_SYSTEM_VERSION} MATCHES el5)
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
 # Include the libraries
 add_subdirectory (STEERBase)
 add_subdirectory (ESD)
 add_subdirectory (AOD)
 add_subdirectory (CDB)
 add_subdirectory (STEER)
+add_subdirectory (Utilities)
 
 # Macros
 install(DIRECTORY macros DESTINATION STEER)

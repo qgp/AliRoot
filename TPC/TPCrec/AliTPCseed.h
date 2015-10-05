@@ -158,6 +158,7 @@ class AliTPCseed : public AliTPCtrack, public AliVTPCseed {
   // AliVVTPCseed interface
 
   void CopyToTPCseed( AliTPCseed &s) const { s = *this; }
+  void SetFromTPCseed( const AliTPCseed* seed ) { *this=*seed; }
 
  private:
      //     AliTPCseed & operator = (const AliTPCseed &)
@@ -200,7 +201,7 @@ class AliTPCseed : public AliTPCtrack, public AliVTPCseed {
      Char_t   fCircular;           // indicates curlin track
      AliTPCTrackerPoint  fTrackPoints[160];  //track points - array track points
      Int_t   fPoolID;              //! id in the pool
-     ClassDef(AliTPCseed,7)  
+     ClassDef(AliTPCseed,8)  
 };
 
 

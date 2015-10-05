@@ -4,7 +4,8 @@
 #include "AliPreprocessor.h"
 
 
-// test preprocessor that writes data to AliTestDataDCS
+/// \class AliTPCPreprocessor
+/// \brief test preprocessor that writes data to AliTestDataDCS
 
 class AliTestDataDCS;
 class AliTPCSensorTempArray;
@@ -19,6 +20,9 @@ class AliTPCPreprocessor : public AliPreprocessor
     AliTPCPreprocessor(AliShuttleInterface* shuttle);
     AliTPCPreprocessor(const AliTPCPreprocessor &org);
     virtual ~AliTPCPreprocessor();
+
+    void   SetForceSingleRunValidity(Bool_t force=kTRUE) { fForceSingleRun = force; }
+    Bool_t GetForceSingleRunValidity() const { return fForceSingleRun; }
 
   protected:
     virtual void Initialize(Int_t run, UInt_t startTime, UInt_t endTime);
@@ -37,17 +41,20 @@ class AliTPCPreprocessor : public AliPreprocessor
     AliTPCPreprocessor& operator = (const AliTPCPreprocessor& rhs);
 
   private:
-    TEnv                   *fConfEnv;  // Preprocessor configuration map
-    AliTPCSensorTempArray  *fTemp;     // CDB class for temperature sensors
-    AliDCSSensorArray      *fHighVoltage; // DCS high voltage measurements
-    AliDCSSensorArray      *fHighVoltageStat; // DCS high voltage status
-    AliDCSSensorArray      *fGoofie;   // Goofie values from DCS
-    AliDCSSensorArray      *fPressure;   // Pressure values from DCS
-    AliDCSSensorArray      *fGasComposition;   // Gas composition values from DCS
-    Bool_t                 fConfigOK;  // Identify succesful reading of OCDB Config
-    AliTPCROC              *fROC;      // TPC Read-Out configuration
+    TEnv                   *fConfEnv;  ///< Preprocessor configuration map
+    AliTPCSensorTempArray  *fTemp;     ///< CDB class for temperature sensors
+    AliDCSSensorArray      *fHighVoltage; ///< DCS high voltage measurements
+    AliDCSSensorArray      *fHighVoltageStat; ///< DCS high voltage status
+    AliDCSSensorArray      *fGoofie;   ///< Goofie values from DCS
+    AliDCSSensorArray      *fPressure;   ///< Pressure values from DCS
+    AliDCSSensorArray      *fGasComposition;   ///< Gas composition values from DCS
+    Bool_t                 fConfigOK;  ///< Identify succesful reading of OCDB Config
+    AliTPCROC              *fROC;      ///< TPC Read-Out configuration
+    Bool_t                 fForceSingleRun; ///< Force single run validity for all object, required for manual reprocessing
 
+    /// \cond CLASSIMP
     ClassDef(AliTPCPreprocessor, 4)
+    /// \endcond
 };
 
 #endif

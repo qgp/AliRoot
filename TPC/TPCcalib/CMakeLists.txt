@@ -20,7 +20,7 @@ set(MODULE TPCcalib)
 include_directories(${AliRoot_SOURCE_DIR}/TPC/${MODULE})
 
 # Additional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS}
+include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSIS
                     ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSISalice
                     ${AliRoot_SOURCE_DIR}/RAW/dateStream
@@ -59,6 +59,7 @@ set(SRCS
     AliTPCFitPad.cxx
     AliTPCkalmanAlign.cxx
     AliTPCMisAligner.cxx
+    AliTPCcalibAlignInterpolation.cxx
     AliTPCPreprocessorOffline.cxx
    )
 
@@ -91,5 +92,8 @@ endif(${CMAKE_SYSTEM} MATCHES Darwin)
 install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
+
+# Calib maps
+install(DIRECTORY maps DESTINATION TPC/${MODULE})
 
 install(FILES ${HDRS} DESTINATION include)

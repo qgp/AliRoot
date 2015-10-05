@@ -832,11 +832,20 @@ AliMixture(40,gname3.Data(),amat1,zmat1,density,cnt,wmat1); //sensitive Kr
   AliMedium(26,"Alumina1",36,0, iSXFLD, sXMGMX, 10., 999., .1, .001, .001);
 }
 
-void AliTPC::GenerNoise(Int_t tablesize)
+void AliTPC::GenerNoise(Int_t tablesize, Bool_t normType)
 {
   //
-  //Generate table with noise
-  //
+  //  Generate random table with noise
+  //  This table is used in digitization after renormalization to the pad noise (in ADC TPC/Calib/PadNoise entry)   
+  //   in case norm==kFALSE use normalization to 1
+  //  MI - 01.08.2015 - related to ATO-123, ATO-129
+  //  !!!! IN all old simulation the default normalization factor was ~1 
+  //  !!!! In the RUN3 simulation Chip normalization increased by factor of 1.8 (12->20)          
+  //  !!!!    in OLD logic this lead to the overestimation of the noise by factor 1.8
+  //       As the calibration entry for the noise is and will be expressed in ADC units
+  //       we will keep the default normalization of the table 1 
+  //       Assuming we will keep TPC OCDB entry  for the noise in the ADC Units
+  //  THIS IS TEMPORARY DECISSION, which has to be confirmed by TPC offline group and properly documented   
   if (fTPCParam==0) {
     // error message
     fNoiseDepth=0;
@@ -848,7 +857,11 @@ void AliTPC::GenerNoise(Int_t tablesize)
   fCurrentNoise =0; //!index of the noise in  the noise table 
   
   Float_t norm = fTPCParam->GetNoise()*fTPCParam->GetNoiseNormFac();
-  for (Int_t i=0;i<tablesize;i++) fNoiseTable[i]= gRandom->Gaus(0,norm);      
+  if (normType==kTRUE){
+    for (Int_t i=0;i<tablesize;i++) fNoiseTable[i]= gRandom->Gaus(0,norm);      
+  }else{
+    for (Int_t i=0;i<tablesize;i++) fNoiseTable[i]= gRandom->Gaus(0,1);      
+  }
 }
 
 Float_t AliTPC::GetNoise()
@@ -1808,6 +1821,11 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
       if(fDigitsSwitch == 0){	
 	Float_t gain = gainROC->GetValue(irow,ip);  // get gain for given - pad-row pad	
 	Float_t noisePad = noiseROC->GetValue(irow,ip);	
+        //protection for nan
+        if ( TMath::IsNaN(noisePad) ){
+          noisePad=0.;
+        }
+
 	//
 	q*=gain;
 	q+=GetNoise()*noisePad;
@@ -2115,6 +2133,13 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
   Double_t correctionHVandPT = calib->GetGainCorrectionHVandPT(timeStamp, calib->GetRun(), isec, 5 ,tpcrecoparam->GetGainCorrectionHVandPTMode());
   gasgain*=correctionHVandPT;
 
+  // get gain in pad regions
+  Float_t gasGainRegions[3]={0.,0.,0.};
+
+  for (UInt_t iregion=0; iregion<3; ++iregion) {
+    gasGainRegions[iregion] = fTPCParam->GetRegionGainAbsolute(iregion);
+  }
+
   Int_t i;
   Float_t xyz[5]={0,0,0,0,0};
 
@@ -2267,15 +2292,28 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 	//
 	//
 	// protection for the nonphysical avalanche size (10**6 maximum)
-	//  
+	//
 	Double_t rn=TMath::Max(gRandom->Rndm(0),1.93e-22);
-	xyz[3]= (Float_t) (-gasgain*TMath::Log(rn)); 
-	index[0]=1;
-	  
+
+        index[0]=1;
 	TransportElectron(xyz,index);    
 	Int_t rowNumber;
 	Int_t padrow = fTPCParam->GetPadRow(xyz,index); 
-	//
+
+        // get pad region
+        UInt_t padRegion=0;
+        if (tpcHit->fSector >= fTPCParam->GetNInnerSector()) {
+          padRegion=1;
+          if (padrow >= fTPCParam->GetNRowUp1()) {
+            padRegion=2;
+          }
+        }
+
+        //         xyz[3]= (Float_t) (-gasgain*TMath::Log(rn));
+        // JW: take into account different gain in the pad regions
+        xyz[3]= (Float_t) (-gasGainRegions[padRegion]*TMath::Log(rn));
+
+        //
 	// Add Time0 correction due unisochronity
 	// xyz[0] - pad row coordinate 
 	// xyz[1] - pad coordinate

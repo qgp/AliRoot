@@ -20,6 +20,7 @@ class TH1S;
 class AliFMDGainDA: public AliFMDBaseDA 
 {
 public:
+  typedef AliFMDBaseDA::Array Array;
   /** 
    * Constructor 
    * 
@@ -42,6 +43,27 @@ public:
    * 
    */
   virtual ~AliFMDGainDA();
+  /**
+   * Open our output files 
+   *
+   * The output files are named 
+   *
+   *   gains.csv
+   *   conditions.csv 
+   *
+   * or 
+   * 
+   *   gains_XXXXXXXXX.csv 
+   *   conditions_XXXXXXXXX.csv 
+   *
+   * in case the run number is to be appended
+   * 
+   * @param appendRun if true, append run number (9 digits, zero
+   * padded) to the output file name(s).
+   *
+   * @return true on success 
+   */
+  Bool_t OpenFiles(Bool_t appendRun=false);
   /** 
    * Initialize 
    * 
@@ -70,7 +92,7 @@ protected:
    * @param sec         Sector number
    * @param strip       Strip number
    */ 
-  void AddChannelContainer(TObjArray* sectorArray, 
+  void AddChannelContainer(Array* sectorArray, 
 			   UShort_t det, Char_t ring, 
 			   UShort_t sec, UShort_t strip);
   /** 
@@ -82,7 +104,7 @@ protected:
    * @param sector 
    * @param nStrip 
    */
-  virtual void AddSectorSummary(TObjArray* secArray, UShort_t det, 
+  virtual void AddSectorSummary(Array* secArray, UShort_t det, 
 				Char_t ring, UShort_t sector, 
 				UShort_t nStrip);
   /** 

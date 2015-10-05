@@ -27,6 +27,8 @@
 //    L1CA       L1 triggers after all vetos 
 //    L2CB       L2 triggers before any vetos 
 //    L2CA       L2 triggers after all vetos 
+//    LMCB       LM triggers before any vetos 
+//    LMCA       LM triggers after all vetos 
 //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -48,7 +50,9 @@ AliTriggerScalers::AliTriggerScalers():
   fL1CB(0),     
   fL1CA(0),     
   fL2CB(0),     
-  fL2CA(0)      
+  fL2CA(0),      
+  fLMCB(0),     
+  fLMCA(0)      
 {
   // Default constructor
 }
@@ -63,9 +67,27 @@ AliTriggerScalers::AliTriggerScalers( UChar_t classIndex, UInt_t LOCB, UInt_t LO
   fL1CB(L1CB),     
   fL1CA(L1CA),     
   fL2CB(L2CB),     
-  fL2CA(L2CA)      
+  fL2CA(L2CA),      
+  fLMCB(0),     
+  fLMCA(0)      
 {
-  // Default constructor
+  // Default constructor for L0,L1,L2 levels 
+}
+//_____________________________________________________________________________
+AliTriggerScalers::AliTriggerScalers( UChar_t classIndex, UInt_t LOCB, UInt_t LOCA,        
+                                      UInt_t L1CB, UInt_t L1CA, UInt_t L2CB, UInt_t L2CA, UInt_t LMCB,UInt_t LMCA ):   
+  TObject(),
+  fClassIndex( classIndex ),
+  fLOCB(LOCB),     
+  fLOCA(LOCA),     
+  fL1CB(L1CB),     
+  fL1CA(L1CA),     
+  fL2CB(L2CB),     
+  fL2CA(L2CA),      
+  fLMCB(LMCB),     
+  fLMCA(LMCA)      
+{
+  // Constructor for L0,L1,L2,LM levels 
 }
 
 //_____________________________________________________________________________
@@ -86,6 +108,18 @@ void AliTriggerScalers::GetAllScalers(UInt_t *scalers) const
  scalers[4]=fL2CB;
  scalers[5]=fL2CA;
 }
+//____________________________________________________________________________
+void AliTriggerScalers::GetAllScalersM012(UInt_t *scalers) const
+{
+ scalers[2]=fLOCB;
+ scalers[3]=fLOCA;
+ scalers[4]=fL1CB;
+ scalers[5]=fL1CA;
+ scalers[6]=fL2CB;
+ scalers[7]=fL2CA;
+ scalers[0]=fLMCB;
+ scalers[1]=fLMCA;
+}
 //_____________________________________________________________________________
 void AliTriggerScalers::Print( const Option_t* ) const
 {
@@ -94,4 +128,5 @@ void AliTriggerScalers::Print( const Option_t* ) const
   cout << "  LOCB: " << fLOCB << " LOCA: " << fLOCA; //<< endl;
   cout << "  L1CB: " << fL1CB << " L1CA: " << fL1CA; //<< endl;
   cout << "  L2CB: " << fL2CB << " L2CA: " << fL2CA << endl;
+  cout << "  LMCB: " << fLMCB << " LMCA: " << fLMCA << endl;
 }

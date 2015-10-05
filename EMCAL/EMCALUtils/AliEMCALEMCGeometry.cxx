@@ -13,59 +13,6 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id: AliEMCALEMCGeometry.cxx 29514 2008-10-26 10:24:38Z hristov $*/
-
-//_________________________________________________________________________
-// Geometry class  for EMCAL : singleton  
-// EMCAL consists of layers of scintillator and lead
-// with scintillator fiber arranged as "shish-kebab" skewers 
-// Places the the Barrel Geometry of The EMCAL at Midrapidity
-// between 80 and 180(or 190) degrees of Phi and
-// -0.7 to 0.7 in eta 
-//
-//     EMCAL geometry tree:
-//     EMCAL -> superModule -> module -> tower(cell)
-//     Indexes
-//     absId -> nSupMod     -> nModule -> (nIphi,nIeta)
-//
-//   Name choices: 
-//   EMCAL_PDC06 (geometry used for PDC06 simulations, kept for backward compatibility)
-//      = equivalent to SHISH_77_TRD1_2X2_FINAL_110DEG in old notation
-//   EMCAL_COMPLETE (geometry for expected complete detector)
-//      = equivalent to SHISH_77_TRD1_2X2_FINAL_110DEG scTh=0.176 pbTh=0.144
-//          in old notation
-//
-//   EMCAL_FIRSTYEAR - geometry for December 2009 to December 2010 run period
-//                     with four Super Modules
-//  
-//   Adding V1 (EMCAL_FIRSTYEARV1, EMCAL_COMPLETEV1) - geometry from December 2009 ; 
-//                1. Fixed bug for positions of modules inside SM
-//                   (first module has tilt 0.75 degree);
-//                2. Added Al front plate (width 1 cm) and 2 paper sheets per sampling
-//                   layer (additional 0.2 mm) 
-//                   The sizes have updated with last information from production
-//                   drawing (end of October 2010). 
-//                3. COMPLETEV1 contains now only 10 SM for runs for year 2011
-//                4. COMPLETE12SMV1 contains 12 SM for runs from year 2012 and on
-//                5. COMPLETE12SMV1_DCAL contains 12 SM and 6 DCal SM
-//                6. COMPLETE12SMV1_DCAL_DEV contains 12 SM and 10 DCal SM
-//		  7. COMPLETE12SMV1_DCAL_8SM contains 12 SM and 6 DCal SM and 2 extentions
-//
-//   EMCAL_WSUC (Wayne State test stand)
-//      = no definite equivalent in old notation, was only used by
-//          Aleksei, but kept for testing purposes
-//
-//   etc.
-//
-//
-//
-//*-- Author: Sahal Yacoob (LBL / UCT)
-//     and  : Yves Schutz (SUBATECH)
-//     and  : Jennifer Klay (LBL)
-//     and  : Aleksei Pavlinov (WSU) 
-//     and  : Magali Estienne (SUBATECH)
-//     and  : Adapted for DCAL by M.L. Wang CCNU Wuhan & Subatech Oct-23-2009
-
 // --- Root header files ---
 #include <TObjArray.h>
 #include <TObjString.h>
@@ -82,16 +29,16 @@ ClassImp(AliEMCALEMCGeometry)
 
 // these initialisations are needed for a singleton
 Bool_t    AliEMCALEMCGeometry::fgInit      = kFALSE;
-const Char_t*   AliEMCALEMCGeometry::fgkDefaultGeometryName = "EMCAL_COMPLETE12SMV1";
+const Char_t*   AliEMCALEMCGeometry::fgkDefaultGeometryName = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
 
 
 AliEMCALEMCGeometry::AliEMCALEMCGeometry() 
   : TNamed(),
-    fGeoName(0),fEMCSMSystem(0x0),fArrayOpts(0),fNAdditionalOpts(0),fECPbRadThickness(0.),fECScintThick(0.),
+    fGeoName(0),fArrayOpts(0),fNAdditionalOpts(0),fECPbRadThickness(0.),fECScintThick(0.),
     fNECLayers(0),fArm1PhiMin(0.),fArm1PhiMax(0.),fArm1EtaMin(0.),fArm1EtaMax(0.),fIPDistance(0.),
     fShellThickness(0.),fZLength(0.),fDCALInnerEdge(0.),fDCALPhiMin(0),fDCALPhiMax(0),fEMCALPhiMax(0),
     fDCALStandardPhiMax(0),fDCALInnerExtandedEta(0),fNZ(0),fNPhi(0),fSampling(0.),fNumberOfSuperModules(0),
-    fFrontSteelStrip(0.),fLateralSteelStrip(0.),fPassiveScintThick(0.),fPhiModuleSize(0.),
+    fEMCSMSystem(0x0),fFrontSteelStrip(0.),fLateralSteelStrip(0.),fPassiveScintThick(0.),fPhiModuleSize(0.),
     fEtaModuleSize(0.),fPhiTileSize(0.),fEtaTileSize(0.),fLongModuleSize(0.),fPhiSuperModule(0),fNPhiSuperModule(0),
     fNPHIdiv(0),fNETAdiv(0), fNCells(0),fNCellsInSupMod(0),fNCellsInModule(0),
     fTrd1Angle(0.),f2Trd1Dx2(0.),fPhiGapForSM(0.),fKey110DEG(0),fnSupModInDCAL(0),fPhiBoundariesOfSM(0),
@@ -116,11 +63,11 @@ AliEMCALEMCGeometry::AliEMCALEMCGeometry()
 AliEMCALEMCGeometry::AliEMCALEMCGeometry(const Text_t* name, const Text_t* title,
                                          const Text_t* mcname, const Text_t* mctitle ) :
   TNamed(name,title),
-    fGeoName(0),fEMCSMSystem(0x0),fArrayOpts(0),fNAdditionalOpts(0),fECPbRadThickness(0.),fECScintThick(0.),
+    fGeoName(0),fArrayOpts(0),fNAdditionalOpts(0),fECPbRadThickness(0.),fECScintThick(0.),
     fNECLayers(0),fArm1PhiMin(0.),fArm1PhiMax(0.),fArm1EtaMin(0.),fArm1EtaMax(0.),fIPDistance(0.),
     fShellThickness(0.),fZLength(0.),fDCALInnerEdge(0.),fDCALPhiMin(0),fDCALPhiMax(0),fEMCALPhiMax(0),
     fDCALStandardPhiMax(0),fDCALInnerExtandedEta(0),fNZ(0),fNPhi(0),fSampling(0.),fNumberOfSuperModules(0),
-    fFrontSteelStrip(0.),fLateralSteelStrip(0.),fPassiveScintThick(0.),fPhiModuleSize(0.),
+    fEMCSMSystem(0x0),fFrontSteelStrip(0.),fLateralSteelStrip(0.),fPassiveScintThick(0.),fPhiModuleSize(0.),
     fEtaModuleSize(0.),fPhiTileSize(0.),fEtaTileSize(0.),fLongModuleSize(0.),fPhiSuperModule(0),fNPhiSuperModule(0),
     fNPHIdiv(0),fNETAdiv(0), fNCells(0),fNCellsInSupMod(0),fNCellsInModule(0),
     fTrd1Angle(0.),f2Trd1Dx2(0.),fPhiGapForSM(0.),fKey110DEG(0),fnSupModInDCAL(0),fPhiBoundariesOfSM(0),
@@ -148,7 +95,6 @@ AliEMCALEMCGeometry::AliEMCALEMCGeometry(const Text_t* name, const Text_t* title
 AliEMCALEMCGeometry::AliEMCALEMCGeometry(const AliEMCALEMCGeometry& geom)
   : TNamed(geom),
     fGeoName(geom.fGeoName),
-    fEMCSMSystem(geom.fEMCSMSystem),
     fArrayOpts(geom.fArrayOpts),
     fNAdditionalOpts(geom.fNAdditionalOpts),
     fECPbRadThickness(geom.fECPbRadThickness),
@@ -171,6 +117,7 @@ AliEMCALEMCGeometry::AliEMCALEMCGeometry(const AliEMCALEMCGeometry& geom)
     fNPhi(geom.fNPhi),
     fSampling(geom.fSampling),
     fNumberOfSuperModules(geom.fNumberOfSuperModules),
+    fEMCSMSystem(new Int_t[fNumberOfSuperModules]),
     fFrontSteelStrip(geom.fFrontSteelStrip),
     fLateralSteelStrip(geom.fLateralSteelStrip),
     fPassiveScintThick(geom.fPassiveScintThick),
@@ -214,6 +161,8 @@ AliEMCALEMCGeometry::AliEMCALEMCGeometry(const AliEMCALEMCGeometry& geom)
     fTubsTurnAngle(geom.fTubsTurnAngle)
 {
   //copy ctor
+  for(Int_t i=0;i<fNumberOfSuperModules;i++)
+    fEMCSMSystem[i] = geom.fEMCSMSystem[i];
   fParSM[0]=geom.fParSM[0]; 
   fParSM[1]=geom.fParSM[1]; 
   fParSM[2]=geom.fParSM[2];
@@ -227,7 +176,11 @@ AliEMCALEMCGeometry::AliEMCALEMCGeometry(const AliEMCALEMCGeometry& geom)
 //______________________________________________________________________
 AliEMCALEMCGeometry::~AliEMCALEMCGeometry(void){
     // dtor
- delete fEMCSMSystem;
+  delete[] fEMCSMSystem; // was created with new[], note the brackets
+  // TODO, FIXME Hans, Aug 2015: Shouldn't one add
+  // if(fArrayOpts){fArrayOpts->Delete();delete fArrayOpts;}
+  // End Hans, Aug 2015
+
 }
 
 //______________________________________________________________________
@@ -391,56 +344,69 @@ void AliEMCALEMCGeometry::Init(const Text_t* mcname, const Text_t* mctitle){
     }
     CheckAdditionalOptions();	
   }
-
-   fEMCSMSystem = new Int_t[fNumberOfSuperModules];
-   Int_t iSM = 0;
-
- // BASIC EMCAL SM
-   if(fGeoName.Contains("WSUC") ){
-     for(int i = 0; i<2; i++){
-       fEMCSMSystem[iSM] = kEMCAL_Standard;
-       iSM++;
-     }
-   } else if(fGeoName.Contains("FIRSTYEAR") ){
-     for(int i = 0; i<4; i++){
-       fEMCSMSystem[iSM] = kEMCAL_Standard;
-       iSM++;
-     }
-   } else if( fGeoName.Contains("PDC06")
-           || fGeoName.Contains("COMPLETE") ){
-     for(int i = 0; i<10; i++){
-       fEMCSMSystem[iSM] = kEMCAL_Standard;
-       iSM++;
-     }
-   }
- // EMCAL 110SM
-   if(fKey110DEG && fGeoName.Contains("12SM") ){
-     for(int i = 0; i<2; i++){
-       fEMCSMSystem[iSM] = kEMCAL_Half;
-       if(fGeoName.Contains("12SMV1") ){
-         fEMCSMSystem[iSM] = kEMCAL_3rd;
-       }
-       iSM++;
-     }
-   }
- // DCAL SM
-   if(fnSupModInDCAL && fGeoName.Contains("DCAL")){
-     if(fGeoName.Contains("8SM")) {
-       for(int i = 0; i<fnSupModInDCAL-2; i++){
-         fEMCSMSystem[iSM] = kDCAL_Standard;
-         iSM++;
-       }
-       for(int i = 0; i<2; i++){
-         fEMCSMSystem[iSM] = kDCAL_Ext;
-         iSM++;
-       }
-     } else {
-       for(int i = 0; i<fnSupModInDCAL; i++){
-         fEMCSMSystem[iSM] = kDCAL_Standard;
-         iSM++;
-       }
-     }
-   }
+  
+  //
+  // Init EMCal/DCal SMs type array
+  if(fEMCSMSystem) delete[] fEMCSMSystem;
+  
+  fEMCSMSystem = new Int_t[fNumberOfSuperModules];
+  
+  for(Int_t i=0;i<fNumberOfSuperModules;i++)
+    fEMCSMSystem[i]=kNotExistent;
+  
+  Int_t iSM = 0;
+  
+  //
+  // BASIC EMCAL SM
+  if(fGeoName.Contains("WSUC") ){
+    for(int i = 0; i<2; i++){
+      fEMCSMSystem[iSM] = kEMCAL_Standard;
+      iSM++;
+    }
+  } else if(fGeoName.Contains("FIRSTYEAR") ){
+    for(int i = 0; i<4; i++){
+      fEMCSMSystem[iSM] = kEMCAL_Standard;
+      iSM++;
+    }
+  } else if( fGeoName.Contains("PDC06")
+            || fGeoName.Contains("COMPLETE") ){
+    for(int i = 0; i<10; i++){
+      fEMCSMSystem[iSM] = kEMCAL_Standard;
+      iSM++;
+    }
+  }
+  
+  //
+  // EMCAL 110SM
+  if(fKey110DEG && fGeoName.Contains("12SM") ){
+    for(int i = 0; i<2; i++){
+      fEMCSMSystem[iSM] = kEMCAL_Half;
+      if(fGeoName.Contains("12SMV1") ){
+        fEMCSMSystem[iSM] = kEMCAL_3rd;
+      }
+      iSM++;
+    }
+  }
+  
+  //
+  // DCAL SM
+  if(fnSupModInDCAL && fGeoName.Contains("DCAL")){
+    if(fGeoName.Contains("8SM")) {
+      for(int i = 0; i<fnSupModInDCAL-2; i++){
+        fEMCSMSystem[iSM] = kDCAL_Standard;
+        iSM++;
+      }
+      for(int i = 0; i<2; i++){
+        fEMCSMSystem[iSM] = kDCAL_Ext;
+        iSM++;
+      }
+    } else {
+      for(int i = 0; i<fnSupModInDCAL; i++){
+        fEMCSMSystem[iSM] = kDCAL_Standard;
+        iSM++;
+      }
+    }
+  }
 
   // constant for transition absid <--> indexes
   fNCellsInModule = fNPHIdiv*fNETAdiv;
@@ -605,6 +571,10 @@ void AliEMCALEMCGeometry::CheckAdditionalOptions()
   // EMCAL to run
   // Dec 27,2006
   // adeed allILOSS= and allIHADR= for MIP investigation
+  // TODO, FIXME Hans, Aug 2015: Shouldn't one add
+  // if(fArrayOpts){fArrayOpts->Delete();delete fArrayOpts;}
+  // This function is called twice in the Init()
+  // End Hans, Aug 2015
   fArrayOpts = new TObjArray;
   Int_t nopt = ParseString(fGeoName, *fArrayOpts);
   if(nopt==1) { // no aditional option(s)

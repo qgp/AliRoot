@@ -13,11 +13,9 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+/// \class AliTPCCalibPedestal
 
-/* $Id$ */
-
-
-//Root includes
+// Root includes
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TString.h>
@@ -196,7 +194,9 @@
 //
 
 
+/// \cond CLASSIMP
 ClassImp(AliTPCCalibPedestal)
+/// \endcond
 
 AliTPCCalibPedestal::AliTPCCalibPedestal() : 
   AliTPCCalibRawBase(),
@@ -236,9 +236,8 @@ AliTPCCalibPedestal::AliTPCCalibPedestal(const AliTPCCalibPedestal &ped) :
   fCalRocArrayMean(72),
   fCalRocArrayRMS(72)
 {
-  //
-  // copy constructor
-  //
+  /// copy constructor
+
   for (Int_t iSec = 0; iSec < 72; ++iSec){
     const AliTPCCalROC *calPed = (AliTPCCalROC*)ped.fCalRocArrayPedestal.UncheckedAt(iSec);
     const AliTPCCalROC *calRMS = (AliTPCCalROC*)ped.fCalRocArrayRMS.UncheckedAt(iSec);
@@ -268,9 +267,8 @@ AliTPCCalibPedestal::AliTPCCalibPedestal(const TMap *config):
   fCalRocArrayMean(72),
   fCalRocArrayRMS(72)  
 {
- //
- // This constructor uses a TMap for setting some parametes
- //
+ /// This constructor uses a TMap for setting some parametes
+
   SetNameTitle("AliTPCCalibPedestal","AliTPCCalibPedestal");
   fFirstTimeBin=60;
   fLastTimeBin=1000;
@@ -285,9 +283,8 @@ AliTPCCalibPedestal::AliTPCCalibPedestal(const TMap *config):
 //_____________________________________________________________________
 AliTPCCalibPedestal& AliTPCCalibPedestal::operator = (const  AliTPCCalibPedestal &source)
 {
-  //
-  // assignment operator
-  //
+  /// assignment operator
+
   if (&source == this) return *this;
   new (this) AliTPCCalibPedestal(source);
 
@@ -298,9 +295,7 @@ AliTPCCalibPedestal& AliTPCCalibPedestal::operator = (const  AliTPCCalibPedestal
 //_____________________________________________________________________
 AliTPCCalibPedestal::~AliTPCCalibPedestal() 
 {
-  //
-  // destructor
-  //
+  /// destructor
 
   fCalRocArrayPedestal.Delete();
   fCalRocArrayRMS.Delete();
@@ -324,16 +319,14 @@ AliTPCCalibPedestal::~AliTPCCalibPedestal()
 //_____________________________________________________________________
 void AliTPCCalibPedestal::SetTimeAnalysis(Bool_t time)
 {
-  //
-  // Use time dependent analysis: Pedestals are analysed as a function
-  // of the drift time. There is one mean value generated for each time
-  // bin and each channel. It can be used as reference data and for
-  // configuration of the ALTRO pattern memory for baseline subtraction.
-  //
-  // ATTENTION: Use only on LDC in TPCPEDESTALda! On a LDC we get data
-  // only from one sector. For the full TPC we would need a lot of
-  // memory (36*159*140*1024*4bytes = 3.3GB)!
-  //
+  /// Use time dependent analysis: Pedestals are analysed as a function
+  /// of the drift time. There is one mean value generated for each time
+  /// bin and each channel. It can be used as reference data and for
+  /// configuration of the ALTRO pattern memory for baseline subtraction.
+  ///
+  /// ATTENTION: Use only on LDC in TPCPEDESTALda! On a LDC we get data
+  /// only from one sector. For the full TPC we would need a lot of
+  /// memory (36*159*140*1024*4bytes = 3.3GB)!
 
   fTimeAnalysis = time;
 
@@ -360,9 +353,8 @@ Int_t AliTPCCalibPedestal::Update(const Int_t icsector,
 				  const Int_t icTimeBin,
 				  const Float_t csignal)
 {
-  //
-  // Signal filling method
-  //
+  /// Signal filling method
+
   if (icRow<0) return 0;
   if (icPad<0) return 0;
   if (icTimeBin<0) return 0;
@@ -384,9 +376,7 @@ Int_t AliTPCCalibPedestal::Update(const Int_t icsector,
   // Attention: the entry counter of the histogram is not increased
   //            this means that e.g. the colz draw option gives an empty plot
   Int_t bin = (iChannel+1)*(fAdcMax-fAdcMin+2)+((Int_t)csignal-fAdcMin+1);
-
   GetHistoPedestal(icsector,kTRUE)->GetArray()[bin]++;
-
   return 0;
 }
 
@@ -394,10 +384,8 @@ Int_t AliTPCCalibPedestal::Update(const Int_t icsector,
 //_____________________________________________________________________
 Bool_t AliTPCCalibPedestal::TestEvent() 
 {
-  //
-  //  Test event loop
-  // fill one oroc and one iroc with random gaus
-  //
+  ///  Test event loop
+  /// fill one oroc and one iroc with random gaus
 
   gRandom->SetSeed(0);
 
@@ -421,10 +409,9 @@ TH2F* AliTPCCalibPedestal::GetHisto(Int_t sector, TObjArray *arr,
 				    Int_t nbinsY, Float_t ymin, Float_t ymax,
 				    const Char_t *type, Bool_t force)
 {
-    //
-    // return pointer to Q histogram
-    // if force is true create a new histogram if it doesn't exist allready
-    //
+    /// return pointer to Q histogram
+    /// if force is true create a new histogram if it doesn't exist allready
+
     if ( !force || arr->UncheckedAt(sector) )
       return (TH2F*)arr->UncheckedAt(sector);
 
@@ -444,10 +431,9 @@ TH2F* AliTPCCalibPedestal::GetHisto(Int_t sector, TObjArray *arr,
 //_____________________________________________________________________
 TH2F* AliTPCCalibPedestal::GetHistoPedestal(Int_t sector, Bool_t force) 
 {
-    //
-    // return pointer to T0 histogram
-    // if force is true create a new histogram if it doesn't exist allready
-    //
+    /// return pointer to T0 histogram
+    /// if force is true create a new histogram if it doesn't exist allready
+
     TObjArray *arr = &fHistoPedestalArray;
     return GetHisto(sector, arr, fAdcMax-fAdcMin, fAdcMin, fAdcMax, "Pedestal", force);
 }
@@ -456,10 +442,9 @@ TH2F* AliTPCCalibPedestal::GetHistoPedestal(Int_t sector, Bool_t force)
 //_____________________________________________________________________
 AliTPCCalROC* AliTPCCalibPedestal::GetCalRoc(Int_t sector, TObjArray* arr, Bool_t force) 
 {
-    //
-    // return pointer to ROC Calibration
-    // if force is true create a new histogram if it doesn't exist allready
-    //
+    /// return pointer to ROC Calibration
+    /// if force is true create a new histogram if it doesn't exist allready
+
     if ( !force || arr->UncheckedAt(sector) )
 	return (AliTPCCalROC*)arr->UncheckedAt(sector);
 
@@ -475,10 +460,9 @@ AliTPCCalROC* AliTPCCalibPedestal::GetCalRoc(Int_t sector, TObjArray* arr, Bool_
 //_____________________________________________________________________
 AliTPCCalROC* AliTPCCalibPedestal::GetCalRocPedestal(Int_t sector, Bool_t force) 
 {
-    //
-    // return pointer to ROC with Pedestal data
-    // if force is true create a new histogram if it doesn't exist allready
-    //
+    /// return pointer to ROC with Pedestal data
+    /// if force is true create a new histogram if it doesn't exist allready
+
     TObjArray *arr = &fCalRocArrayPedestal;
     return GetCalRoc(sector, arr, force);
 }
@@ -487,20 +471,18 @@ AliTPCCalROC* AliTPCCalibPedestal::GetCalRocPedestal(Int_t sector, Bool_t force)
 //_____________________________________________________________________
 AliTPCCalROC* AliTPCCalibPedestal::GetCalRocSigma(Int_t sector, Bool_t force) 
 {
-    //
-    // return pointer to  ROC with signal witdth in sigma
-    // if force is true create a new histogram if it doesn't exist allready
-    //
+    /// return pointer to  ROC with signal witdth in sigma
+    /// if force is true create a new histogram if it doesn't exist allready
+
     TObjArray *arr = &fCalRocArraySigma;
     return GetCalRoc(sector, arr, force);
 }
 //_____________________________________________________________________
 AliTPCCalROC* AliTPCCalibPedestal::GetCalRocMean(Int_t sector, Bool_t force)
 {
-  //
-    // return pointer to ROC with signal mean information
-    // if force is true create a new histogram if it doesn't exist allready
-  //
+  /// return pointer to ROC with signal mean information
+  /// if force is true create a new histogram if it doesn't exist allready
+
   TObjArray *arr = &fCalRocArrayMean;
   return GetCalRoc(sector, arr, force);
 }
@@ -508,10 +490,9 @@ AliTPCCalROC* AliTPCCalibPedestal::GetCalRocMean(Int_t sector, Bool_t force)
 //_____________________________________________________________________
 AliTPCCalROC* AliTPCCalibPedestal::GetCalRocRMS(Int_t sector, Bool_t force) 
 {
-  //
-    // return pointer to signal width ROC Calibration
-    // if force is true create a new histogram if it doesn't exist allready
-  //
+  /// return pointer to signal width ROC Calibration
+  /// if force is true create a new histogram if it doesn't exist allready
+
   TObjArray *arr = &fCalRocArrayRMS;
   return GetCalRoc(sector, arr, force);
 }
@@ -520,12 +501,15 @@ AliTPCCalROC* AliTPCCalibPedestal::GetCalRocRMS(Int_t sector, Bool_t force)
 //_____________________________________________________________________
 void AliTPCCalibPedestal::Merge(AliTPCCalibPedestal * const ped)
 {
-  //
-  //  Merge reference histograms of sig to the current AliTPCCalibPedestal
-  //
+  ///  Merge reference histograms of sig to the current AliTPCCalibPedestal
+
   MergeBase(ped);
   // merge histograms
   for (Int_t iSec=0; iSec<72; ++iSec){
+    // update entry counter. This is needed due to the fast filling approach
+    if (GetHistoPedestal(iSec)) GetHistoPedestal(iSec)->SetEntries(GetHistoPedestal(iSec)->Integral());
+    if (ped->GetHistoPedestal(iSec)) ped->GetHistoPedestal(iSec)->SetEntries(ped->GetHistoPedestal(iSec)->Integral());
+
     TH2F *hRefPedMerge   = ped->GetHistoPedestal(iSec);
     
     if ( hRefPedMerge ){
@@ -549,10 +533,8 @@ void AliTPCCalibPedestal::Merge(AliTPCCalibPedestal * const ped)
 //_____________________________________________________________________
 Long64_t AliTPCCalibPedestal::Merge(TCollection * const list)
 {
-  //
-  // Merge all objects of this type in list
-  //
-  
+  /// Merge all objects of this type in list
+
   Long64_t nmerged=1;
   
   TIter next(list);
@@ -573,9 +555,7 @@ Long64_t AliTPCCalibPedestal::Merge(TCollection * const list)
 //_____________________________________________________________________
 void AliTPCCalibPedestal::Analyse() 
 {
-  //
-  //  Calculate calibration constants
-  //
+  ///  Calculate calibration constants
 
   Int_t nbinsAdc = fAdcMax-fAdcMin;
 
@@ -589,6 +569,7 @@ void AliTPCCalibPedestal::Analyse()
   for (Int_t iSec=0; iSec<72; ++iSec){
     TH2F *hP = GetHistoPedestal(iSec);
     if ( !hP ) continue;
+    hP->SetEntries(hP->Integral());
 
     AliTPCCalROC *rocPedestal = GetCalRocPedestal(iSec,kTRUE);
     AliTPCCalROC *rocSigma    = GetCalRocSigma(iSec,kTRUE);
@@ -632,11 +613,9 @@ void AliTPCCalibPedestal::Analyse()
 //_____________________________________________________________________
 void AliTPCCalibPedestal::AnalyseTime(Int_t nevents)
 {
-  //
-  // Calculate for each channel and time bin the mean pedestal. This
-  // is used on LDC by TPCPEDESTALda to generate data used for configuration
-  // of the pattern memory for baseline subtraction in the ALTROs.
-  //
+  /// Calculate for each channel and time bin the mean pedestal. This
+  /// is used on LDC by TPCPEDESTALda to generate data used for configuration
+  /// of the pattern memory for baseline subtraction in the ALTROs.
 
   if ( nevents <= 0 ) return;
   if ( fTimeAnalysis ) {

@@ -66,10 +66,12 @@ ClassImp(AliT0Reconstructor)
 					     fTimeSigmaShift(0x0),
                                              fESDTZEROfriend(NULL),
                                              fESDTZERO(NULL),
-					     fIsCDFfromGRP(kFALSE)
-
+  fIsCDFfromGRP(kFALSE), 
+  fMeanOrA(0),
+  fMeanOrC(0),
+  fMeanTVDC(0)
 {
-  for (Int_t i=0; i<24; i++)  fTime0vertex[i] =0;
+  for (Int_t i=0; i<24; i++)  { fTime0vertex[i] =0; fQT1mean[i]=0;}
 
   //constructor
   AliCDBEntry *entry = AliCDBManager::Instance()->Get("GRP/CTP/CTPtiming");
@@ -96,19 +98,25 @@ ClassImp(AliT0Reconstructor)
   }
   else
     AliWarning("Time Adjust is not found in OCDB !");
- 
+  
   fParam = AliT0Parameters::Instance();
   fParam->Init();
- 
+  
   for (Int_t i=0; i<24; i++){
-        TGraph* gr = fParam ->GetAmpLEDRec(i);
-	if (gr) fAmpLEDrec.AddAtAndExpand(gr,i) ; 
-	  TGraph* gr1 = fParam ->GetAmpLED(i);
-	  if (gr1) fAmpLED.AddAtAndExpand(gr1,i) ; 
-	  TGraph* gr2 = fParam ->GetQTC(i);
-	  if (gr2) fQTC.AddAtAndExpand(gr2,i) ; 	
-	  fTime0vertex[i] = fParam->GetCFD(i);
- }
+    TGraph* gr = fParam ->GetAmpLEDRec(i);
+    if (gr) fAmpLEDrec.AddAtAndExpand(gr,i) ; 
+    TGraph* gr1 = fParam ->GetAmpLED(i);
+    if (gr1) fAmpLED.AddAtAndExpand(gr1,i) ; 
+    TGraph* gr2 = fParam ->GetQTC(i);
+    if (gr2) fQTC.AddAtAndExpand(gr2,i) ; 	
+    fTime0vertex[i] = fParam->GetCFD(i);
+    fQT1mean[i] = fParam->GetQT1(i);
+  }
+  fMeanOrA = fParam->GetMeanOrA();
+  fMeanOrC = fParam->GetMeanOrC();
+  fMeanTVDC = fParam->GetMeanVertex();
+
+
   fLatencyL1 = fParam->GetLatencyL1();
   fLatencyL1A = fParam->GetLatencyL1A(); 
   fLatencyL1C = fParam->GetLatencyL1C();
@@ -312,13 +320,21 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 {
   // T0 raw ->
   //
-  
-  Float_t meanOrA = fTime0vertex[0] + 587;
-  Float_t meanOrC = fTime0vertex[0] + 678;
-  Float_t meanTVDC = fTime0vertex[0] + 2564;
-  Float_t meanQT1 = fTime0vertex[0] + 2564;
-  Float_t meanQT0 = fTime0vertex[0] + 3564;
-  
+  Float_t meanOrA, meanOrC, meanTVDC, meanQT1[24];
+  if (fMeanOrA==0)  meanOrA = fTime0vertex[0] + 587;
+  else 
+    meanOrA=fMeanOrA;
+  if (fMeanOrC==0) meanOrC = fTime0vertex[0] + 678;
+  else 
+    meanOrC=fMeanOrC;
+  if(  fMeanTVDC==0)  meanTVDC = fTime0vertex[0] + 2564;
+  else 
+    meanTVDC=fMeanTVDC;
+  for (int i=0; i<24; i++) {
+    if (fQT1mean[i]==0)  meanQT1[i]= fTime0vertex[0] + 2564;
+    else 
+      meanQT1[i]=fQT1mean[i];
+  } 
   Int_t timeDelayCFD[24]; 
   Int_t corridor = GetRecoParam() -> GetCorridor();  
   if(fIsCDFfromGRP) corridor *=5;
@@ -337,7 +353,7 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
   Float_t timefull=-99999;;
   Float_t tvdc  = -99999; Float_t ora = -99999; Float_t orc = -99999;
   
-  Int_t allData[110][5];
+  Int_t allData[220][5];
   
   Int_t timeCFD[24], timeLED[24], chargeQT0[24], chargeQT1[24];
   Float_t time2zero[24]; 
@@ -347,15 +363,17 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
   Double32_t vertex = 9999999;
   Int_t onlineMean=0;
   Float_t meanVertex = 0;
-  Int_t pedestal[24];
+  Int_t pedestal[24], qtccut10[24];
   for (Int_t i0=0; i0<24; i0++) {
     low[i0] = Int_t(fTime0vertex[i0]) - corridor;
     high[i0] = Int_t(fTime0vertex[i0]) + corridor;
     time2zero[i0] = 99999;
-    pedestal[i0]=Int_t (GetRecoParam()->GetLow(100+i0) );
+    qtccut10[i0]=Int_t (GetRecoParam()->GetLow(100+i0) );
+    pedestal[i0]=Int_t (GetRecoParam()->GetLow(124+i0) );
+    //   printf(" pedestal %i \n",pedestal[i0]);
   }
   
-  for (Int_t i0=0; i0<110; i0++)
+  for (Int_t i0=0; i0<220; i0++)
     for (Int_t j0=0; j0<5; j0++)  allData[i0][j0]=0; 
   
   Float_t lowAmpThreshold =  GetRecoParam()->GetAmpLowThreshold();  
@@ -422,9 +440,9 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	      }
 	    timeLED[in+12] = allData[in+68+1][0] ;
 	    timeLED[in] = allData[in+12+1][0] ;
-	    AliDebug(50, Form(" readed i %i cfdC %i cfdA %i ledC %i ledA%i ",
-			      in, timeCFD[in],timeCFD[in+12],timeLED[in], 
-			     timeLED[in+12]));   
+	    //	    printf(" readed i %i cfdC %i cfdA %i ledC %i ledA%i \n",
+	    //		      in, timeCFD[in],timeCFD[in+12],timeLED[in], 
+	    //		      timeLED[in+12]);   
 	    
 	  }
 	
@@ -432,8 +450,8 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	  {
 	    for (Int_t iHit=0; iHit<5; iHit++) 
 	      {
-                if (allData[2*in+26][iHit] > fTime0vertex[0]+2000 &&  
-		    allData[2*in+26][iHit] <fTime0vertex[0]+3000 ) {
+                if (allData[2*in+26][iHit] > meanQT1[in]-500 &&  
+		    allData[2*in+26][iHit] < meanQT1[in]+500 ) {
 		    chargeQT1[in]=allData[2*in+26][0];
 		    break;
 		}
@@ -441,22 +459,22 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 
 	    for (Int_t iHit=0; iHit<5; iHit++) 
 	      {
-		if( (allData[2*in+25][iHit] -  chargeQT1[in])>800 
-		    &&  chargeQT1[in]>0)		
+		if( (allData[2*in+25][iHit] - chargeQT1[in])>qtccut10[in] &&
+		    chargeQT1[in]>0)		
 		  {
 		    chargeQT0[in]=allData[2*in+25][0];
 		    AliDebug(25, Form(" readed Raw %i %i %i",
-				      in, chargeQT0[in],chargeQT1[in]));
+		    		      in, chargeQT0[in],chargeQT1[in]));
 		    break;
 		  }
-		}
+	      }
 	  }	
 	for (Int_t in=12; in<24;  in++)
 	  {
      	    for (Int_t iHit=0; iHit<5; iHit++) 
 	      {
-		if (allData[2*in+58][iHit] > fTime0vertex[0]+2000 &&  
-		    allData[2*in+58][iHit] <fTime0vertex[0]+3000 )
+		if (allData[2*in+58][iHit] > meanQT1[in]-500 &&  
+		    allData[2*in+58][iHit] < meanQT1[in]+500 )
 		  {
 		    chargeQT1[in]=allData[2*in+58][0];
 		    break;
@@ -464,14 +482,14 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	      }
     	    for (Int_t iHit=0; iHit<5; iHit++) 
 	      {
-		if( (allData[2*in+57][iHit] -  chargeQT1[in])>800 && 
-		    chargeQT1[in]>0 )
+		if( (allData[2*in+57][iHit] - chargeQT1[in])>qtccut10[in]  &&
+		    chargeQT1[in]>0) 
 		  {
 		    chargeQT0[in]=allData[2*in+57][0];
 		    AliDebug(25, Form(" readed Raw %i %i %i",
 				      in, chargeQT0[in],chargeQT1[in]));
 		    break;
-		  }
+	  }
 	      }
 	  }
 	
@@ -479,8 +497,9 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	
 	Double32_t time[24], adc[24], adcmip[24], noncalibtime[24];
 	for (Int_t ipmt=0; ipmt<24; ipmt++) {
-	  if(timeCFD[ipmt] >  0 && (chargeQT0[ipmt] - chargeQT1[ipmt])> 0 &&
-	  (timeLED[ipmt]-timeCFD[ipmt])<badLEDminCFD){
+	  if(timeCFD[ipmt] >  0 && 
+	     (chargeQT0[ipmt] - chargeQT1[ipmt])>qtccut10[ipmt]+5 &&
+	     (timeLED[ipmt]-timeCFD[ipmt])<badLEDminCFD){
 	   //for simulated data
 	     //for physics  data
 	   adc[ipmt] = chargeQT0[ipmt] - chargeQT1[ipmt];
@@ -488,15 +507,16 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	   time[ipmt] = fCalib-> WalkCorrection( refAmp, ipmt, Int_t(adc[ipmt]), timeCFD[ipmt] ) ;
       	   Double_t sl = timeLED[ipmt] - timeCFD[ipmt];
 	   // time[ipmt] = fCalib-> WalkCorrection( refAmp,ipmt, Int_t(sl), timeCFD[ipmt] ) ;
-	   AliDebug(5,Form(" ipmt %i QTC %i , time in chann %i (led-cfd) %i ",
-			    ipmt, Int_t(adc[ipmt]) ,Int_t(time[ipmt]),Int_t( sl)));
+	   printf(" ipmt %i QTC %i , time in chann %i (led-cfd) %i \n",
+			    ipmt, Int_t(adc[ipmt]) ,Int_t(time[ipmt]),Int_t( sl));
 	   Double_t ampMip = 0;
 	   TGraph * ampGraph =  (TGraph*)fAmpLED.At(ipmt);
 	   if (ampGraph) ampMip = ampGraph->Eval(sl);
 	   Double_t qtMip = 0;
 	   TGraph * qtGraph = (TGraph*)fQTC.At(ipmt);
-	   if (qtGraph) qtMip = qtGraph->Eval(adc[ipmt]);
+	   if (qtGraph) qtMip = qtGraph->Eval(adc[ipmt]) - pedestal[ipmt];
 	   AliDebug(10,Form("  Amlitude in MIPS LED %f ; QTC %f;  in channels %f\n ",ampMip,qtMip, adc[ipmt]));
+	   //printf("  Amlitude in MIPS LED %f ; QTC %f;  in channels %f\n ",ampMip,qtMip, adc[ipmt]);
 	   if( equalize  ==0 ) 
 	     frecpoints.SetTime(ipmt, Float_t(time[ipmt]) );
 	   else 
@@ -586,17 +606,20 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
       // Set triggers
       Bool_t tr[5];
       Int_t trchan[5] = {50,51,52,55,56};
-      Float_t lowtr[5] = {meanTVDC-700, meanOrA-700, meanOrC-700, meanOrC-1000, meanOrC-1000 };
-      Float_t hightr[5] = {meanTVDC+700, meanOrA+700, meanOrC+700, meanOrC+1000, meanOrC+1000};
-      
       for (Int_t i=0; i<5; i++) tr[i] = false; 
+      Int_t triggername[3] = {(Int_t)meanTVDC, (Int_t)meanOrA, (Int_t)meanOrC}; //20ns around 0
       for (Int_t itr=0; itr<5; itr++) {
- 	for (Int_t iHit=0; iHit<1; iHit++) 
+ 	for (Int_t iHit=0; iHit<5; iHit++) 
 	  {
 	    Int_t trr=trchan[itr];
-	    if( allData[trr][iHit] > lowtr[itr] && allData[trr][iHit] < hightr[itr])  tr[itr]=true;
-	    
-	    AliDebug(15,Form("Reconstruct :::  T0 triggers iHit %i tvdc %d orA %d orC %d centr %d semicentral %d",iHit, tr[0],tr[1],tr[2],tr[3],tr[4]));
+	    if(itr<3 ) { 
+	      if( (allData[trr][iHit] - triggername[itr]) > -800 &&
+		  (allData[trr][iHit] - triggername[itr]) < 800)  tr[itr]=true;
+	      break;
+	    }
+	    else 
+	    if( allData[trr][iHit] > 0)  tr[itr]=true;
+	    AliDebug(5,Form("Reconstruct :::  T0 triggers iHit %i tvdc %d orA %d orC %d centr %d semicentral %d",iHit, tr[0],tr[1],tr[2],tr[3],tr[4]));
 	  }	  
       }
       frecpoints.SetT0Trig(tr);
@@ -611,7 +634,6 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	    tvdc = (Float_t(allData[50][iHit]) - meanTVDC) * channelWidth* 0.001; 
 	  if(allData[51][iHit]>0)
 	    ora = (Float_t(allData[51][iHit]) - meanOrA) * channelWidth* 0.001;
-	  
 	  if(allData[52][iHit]>0) 
 	    orc = (Float_t(allData[52][iHit]) - meanOrC) * channelWidth* 0.001;
 	  
@@ -669,8 +691,8 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	}
       for (Int_t iHit=0; iHit<5; iHit++) 
 	{
-	  if (allData[106][iHit] > fTime0vertex[0]+2000 &&  
-	      allData[106][iHit] <fTime0vertex[0]+3000 ) {
+	  if (allData[106][iHit] > meanQT1[0]-500 &&  
+	      allData[106][iHit] < meanQT1[0]+3000 ) {
 	    mpdc_start=allData[54][iHit];
 	    AliDebug(15,Form("Reconstruct :::  T0 MPD iHit %i MPDC start %f ",iHit, mpdc_start));
 	    break;
@@ -678,7 +700,7 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	}
       for (Int_t iHit=0; iHit<5; iHit++) 
 	{
-	  if(allData[105][iHit] > fTime0vertex[0]+3000 && 
+	  if(allData[105][iHit] > meanQT1[0]-500  && 
 	     (allData[105][iHit]-mpdc_start)>800 && mpdc_start>0 && tr[2]) {
 	    frecpoints.SetMultC(Float_t(allData[105][iHit] - mpdc_start) );
 	    AliDebug(15,Form("Reconstruct :::  T0 MPD iHit %i MPDC stop %i MPD %f",iHit, allData[105][iHit],Float_t(allData[105][iHit] - mpdc_start) ));
@@ -700,6 +722,12 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
   ****************************************************/
   
   AliDebug(1,Form("Start FillESD T0"));
+
+  if (!clustersTree) {
+    AliDebug(1,Form("No clusters"));
+    return;
+  }
+
   if(!pESD) {
     AliError("No ESD Event");
     return;

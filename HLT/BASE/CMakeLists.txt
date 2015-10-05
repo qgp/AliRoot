@@ -24,7 +24,8 @@ add_subdirectory(util)
 set(MODULE HLTbase)
 
 # Module include folder
-include_directories(${AliRoot_SOURCE_DIR}/HLT/BASE
+include_directories(${ROOT_INCLUDE_DIR}
+                              ${AliRoot_SOURCE_DIR}/HLT/BASE
                    )
 
 # Additional include folders in alphabetical order except ROOT
@@ -41,8 +42,16 @@ if(USE_DLOPEN)
   message(STATUS "Using dlopen() for HLT component libs.")
 endif(USE_DLOPEN)
 
+option(HLT_COMPONENT_STATISTICS "Build HLT component statistics" OFF)
+
+if(HLT_COMPONENT_STATISTICS)
+  add_definitions(-DHLT_COMPONENT_STATISTICS)
+  message(STATUS "HLT component statistics enabled.")
+endif(HLT_COMPONENT_STATISTICS)
+
 # Sources in alphabetical order
 set(SRCS
+    AliHLTAsyncProcessor.cxx
     AliHLTBlockDataCollection.cxx
     AliHLTCalibrationProcessor.cxx
     AliHLT_C_Component_WrapperInterface.cxx
@@ -78,6 +87,7 @@ set(SRCS
     AliHLTHOMERBlockDesc.cxx
     AliHLTHOMERLibManager.cxx
     AliHLTHOMERManager.cxx
+    AliHLTDirectHOMERManager.cxx
     AliHLTHOMERProxyHandler.cxx
     AliHLTHOMERSourceDesc.cxx
     AliHLTHuffman.cxx
@@ -163,6 +173,12 @@ install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
 
+# Add header files to include directory here, so that they are not processed by CINT, because CINT cannot process these
+set(HDRS ${HDRS}
+    AliHLTAsyncMemberProcessor.h
+    AliHLTAsyncProcessorBackend.h
+    AliHLTIndexGrid.h
+)
 install(FILES ${HDRS} DESTINATION include)
 
 # Static version if DA enabled

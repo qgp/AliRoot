@@ -406,6 +406,54 @@ void AliITSPIDResponse::GetITSProbabilities(Float_t mom, Double_t qclu[4], Doubl
 }
 
 //_________________________________________________________________________
+void AliITSPIDResponse::GetITSProbabilities(Float_t mom, Double_t qclu[4], Double_t condprobfun[AliPID::kSPECIES], AliITSPidParams *pars) const
+{
+  //
+  // Method to calculate PID probabilities for a single track
+  // using the likelihood method
+  //
+  const Int_t nLay = 4;
+  const Int_t nPart= 4;
+  
+  Double_t itsProb[nPart] = {1,1,1,1}; // e, p, K, pi
+  
+  for (Int_t iLay = 0; iLay < nLay; iLay++) {
+    if (qclu[iLay] <= 50.)
+      continue;
+    
+    Float_t dedx = qclu[iLay];
+    Float_t layProb = pars->GetLandauGausNorm(dedx,AliPID::kProton,mom,iLay+3);
+    itsProb[0] *= layProb;
+    
+    layProb = pars->GetLandauGausNorm(dedx,AliPID::kKaon,mom,iLay+3);
+    itsProb[1] *= layProb;
+    
+    layProb = pars->GetLandauGausNorm(dedx,AliPID::kPion,mom,iLay+3);
+    itsProb[2] *= layProb;
+    
+    layProb = pars->GetLandauGausNorm(dedx,AliPID::kElectron,mom,iLay+3);
+    itsProb[3] *= layProb;
+  }
+  
+  // Normalise probabilities
+  Double_t sumProb = 0;
+  for (Int_t iPart = 0; iPart < nPart; iPart++) {
+    sumProb += itsProb[iPart];
+  }
+  sumProb += itsProb[2]; // muon cannot be distinguished from pions
+  
+  for (Int_t iPart = 0; iPart < nPart; iPart++) {
+    itsProb[iPart]/=sumProb;
+  }
+  condprobfun[AliPID::kElectron] = itsProb[3];
+  condprobfun[AliPID::kMuon] = itsProb[2];
+  condprobfun[AliPID::kPion] = itsProb[2];
+  condprobfun[AliPID::kKaon] = itsProb[1];
+  condprobfun[AliPID::kProton] = itsProb[0];
+  return;
+}
+
+//_________________________________________________________________________
 Double_t AliITSPIDResponse::GetNumberOfSigmas( const AliVTrack* track, AliPID::EParticleType type) const
 {
   //
@@ -422,7 +470,8 @@ Double_t AliITSPIDResponse::GetNumberOfSigmas( const AliVTrack* track, AliPID::E
   Bool_t isSA=kTRUE;
   if( track->GetStatus() & AliVTrack::kTPCin ) isSA=kFALSE;
 
-  const Float_t dEdx=track->GetITSsignal();
+  Float_t dEdx=track->GetITSsignal();
+  if (track->GetITSsignalTunedOnData()>0) dEdx = track->GetITSsignalTunedOnData();
 
   //TODO: in case of the electron, use the SA parametrisation,
   //      this needs to be changed if ITS provides a parametrisation
@@ -441,7 +490,9 @@ Double_t AliITSPIDResponse::GetSignalDelta( const AliVTrack* track, AliPID::EPar
   Bool_t isSA=kTRUE;
   if( track->GetStatus() & AliVTrack::kTPCin ) isSA=kFALSE;
 
-  const Float_t dEdx=track->GetITSsignal();
+  Float_t dEdx=track->GetITSsignal();
+  if (track->GetITSsignalTunedOnData()>0) dEdx = track->GetITSsignalTunedOnData();
+
 
   //TODO: in case of the electron, use the SA parametrisation,
   //      this needs to be changed if ITS provides a parametrisation

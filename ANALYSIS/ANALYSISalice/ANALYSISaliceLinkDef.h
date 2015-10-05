@@ -26,7 +26,6 @@
 
 #pragma link C++ class AliVZEROEPSelectionTask+;
 #pragma link C++ class AliAnalysisTaskStat+;
-#pragma link C++ class AliMultiInputEventHandler+;
 #pragma link C++ class AliAnalysisTaskPIDResponse+;
 #pragma link C++ class AliPIDResponseInputHandler+;
 #pragma link C++ class AliHEPDataParser+;
@@ -39,16 +38,11 @@
 #pragma link C++ class AliUnfolding+;
 
 #pragma link C++ class AliAnalysisTaskBadChunkID+;
-#pragma link C++ class AliPPVsMultUtils+;
 
-// If Root was build with XML support
+// If ROOT was built with XML support
 #ifdef WITHXML
 #pragma link C++ class AliTagAnalysis+;
 #pragma link C++ class AliXMLCollection+;
-// If Root was build with AliEn support
-#ifdef WITHALIEN
-#pragma link C++ class AliAnalysisAlien+;
-#endif
 #endif
 
 #endif

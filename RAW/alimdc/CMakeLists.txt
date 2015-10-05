@@ -18,7 +18,7 @@ set (MODULE alimdc)
 include_directories(${AliRoot_SOURCE_DIR}/${MODULE})
 
 # Aditional include folders in alphabetical order except ROOT
-include_directories(${ROOT_INCLUDE_DIRS} 
+include_directories(${ROOT_INCLUDE_DIR} 
                     ${AliRoot_SOURCE_DIR}/RAW/MDC
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatabase
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatarec
@@ -31,8 +31,8 @@ include_directories(${ROOT_INCLUDE_DIRS}
 add_library(${MODULE}-object OBJECT alimdc_main.cxx)
 # Add a library to the project using the object
 add_executable(${MODULE} $<TARGET_OBJECTS:${MODULE}-object>)
-target_link_libraries(${MODULE} STEERBase ESD MDC RAWDatabase RAWDatarec)
-
+target_link_libraries(${MODULE} STEERBase EG Geom Gpad Graf3d Graf Hist MathCore Matrix Minuit Physics VMC Thread ESD MDC RAWDatabase RAWDatarec)
+ 
 # Compile and link flags
 set(MODULE_COMPILE_FLAGS)
 set(MODULE_LINK_FLAGS)
@@ -51,13 +51,13 @@ install(TARGETS ${MODULE} RUNTIME DESTINATION bin)
 
 # Creating the AliMDC static library and the rpm
 if(MDCRPM)
-    add_library(AliMDC STATIC $<TARGET_OBJECTS:${MODULE}-object>)
+    add_library(AliMDC STATIC $<TARGET_OBJECTS:${MODULE}-object> $<TARGET_OBJECTS:MDC-object> $<TARGET_OBJECTS:RAWDatarec-object> $<TARGET_OBJECTS:RAWDatabase-object> $<TARGET_OBJECTS:ESD-object> $<TARGET_OBJECTS:STEERBase-object>)
 
     # list of shared dependencies / the name of the variable containing the list of static ones
     generate_static_dependencies("${ALIROOT_DEPENDENCIES}" "STATIC_ALIROOT_DEPENDENCIES")
     target_link_libraries(AliMDC ${STATIC_ALIROOT_DEPENDENCIES} Root RootExtra)
 
-    set_target_properties(AliMDC PROPERTIES LINK_FLAGS "-Wl,--whole-archive")
+    set_target_properties(AliMDC PROPERTIES LINK_FLAGS "-Wl,--whole-archive -Wl,--no-as-needed")
 
     # Installation
     install(TARGETS AliMDC

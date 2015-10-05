@@ -48,7 +48,7 @@ AliPIDCombined::AliPIDCombined():
 	TNamed("CombinedPID","CombinedPID"),
 	fDetectorMask(0),
 	fRejectMismatchMask(0x7F),
-	fEnablePriors(kTRUE),
+	fEnablePriors(kFALSE),
 	fSelectedSpecies(AliPID::kSPECIES),
 	fUseDefaultTPCPriors(kFALSE)
 {	
@@ -64,7 +64,7 @@ AliPIDCombined::AliPIDCombined(const TString& name,const TString& title):
 	TNamed(name,title),
 	fDetectorMask(0),
 	fRejectMismatchMask(0x7F),
-	fEnablePriors(kTRUE),
+	fEnablePriors(kFALSE),
 	fSelectedSpecies(AliPID::kSPECIES),
 	fUseDefaultTPCPriors(kFALSE)
 {
@@ -448,10 +448,12 @@ void AliPIDCombined::SetDefaultTPCPriors(){
   fEnablePriors=kTRUE;
   fUseDefaultTPCPriors = kTRUE;
 
-  //check if priors are already initialized
+  //Check if priors are already initialized
   if (fDefaultPriorsTPC[0]) return;
   
-  TString oadbfilename("$ALICE_ROOT/OADB/COMMON/PID/data/");
+  TString oadbfilename("$ALICE_PHYSICS/OADB/COMMON/PID/data/");
+  //  TString oadbfilename("$ALICE_ROOT/OADB/COMMON/PID/data/");
+  //  TString oadbfilename(Form("%s/COMMON/PID/data/",AliAnalysisManager::GetOADBPath()));
   oadbfilename += "/PIDdefaultPriors.root";
   TFile * foadb = TFile::Open(oadbfilename.Data());
   if(!foadb || !foadb->IsOpen()) {

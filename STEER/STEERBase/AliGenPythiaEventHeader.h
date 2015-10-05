@@ -17,6 +17,7 @@ class AliGenPythiaEventHeader : public AliGenEventHeader
     virtual ~AliGenPythiaEventHeader() {}
     // Getters
     Int_t    ProcessType() const {return fProcessType;}
+    void     SetNMPI(Int_t mpi) {fNMPI = mpi;}
     // Setters
     void     SetProcessType(Int_t type)  {fProcessType = type;}
     Int_t    Trials() const {return fTrials;}
@@ -25,8 +26,8 @@ class AliGenPythiaEventHeader : public AliGenEventHeader
     void     AddUQJet(Float_t px, Float_t py, Float_t pz, Float_t e);
     Int_t    NTriggerJets() const {return fNJets;}
     Int_t    NUQTriggerJets() const {return fNUQJets;}
-    void     TriggerJet(Int_t i, Float_t p[4]);
-    void     UQJet(Int_t i, Float_t p[4]);
+    void     TriggerJet(Int_t i, Float_t p[4]) const;
+    void     UQJet(Int_t i, Float_t p[4]) const;
     Double_t GetXJet() const {return fXJet;}
     Double_t GetYJet() const {return fYJet;}
     Double_t GetInMediumLength() const  {return fInMediumLength;}
@@ -40,12 +41,14 @@ class AliGenPythiaEventHeader : public AliGenEventHeader
     Float_t  GetPtHard() const {return fPtHard;}    
     void     SetXsection(Float_t xsec) {fXsection = xsec;}
     Float_t  GetXsection() const {return fXsection;}
+    Int_t    GetNMPI() const {return fNMPI;}
 	    
 protected:
     Int_t    fProcessType;               // PYTHIA process id for this event 
     Int_t    fTrials;                    // Number of trials to fulfill trigger condition
     Int_t    fNJets;                     // Number of triggered jets
-    Int_t    fNUQJets;                   // Number of unquenched
+    Int_t    fNUQJets;                   // Number of unquenched jets
+    Int_t    fNMPI;                      // numbers of MPI
     Double_t fXJet;                      // Jet production point (x)
     Double_t fYJet;                      // Jet production point (y)
     Double_t fInMediumLength;            // In medium length
@@ -56,7 +59,7 @@ protected:
     Float_t  fPtHard;                    // pT hard
     Float_t  fXsection;                  // Cross-section
 
-    ClassDef(AliGenPythiaEventHeader,7)  // Event header for Pythia event
+    ClassDef(AliGenPythiaEventHeader,8)  // Event header for Pythia event
 };
 	
 	
