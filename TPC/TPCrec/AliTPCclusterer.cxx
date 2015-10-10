@@ -610,7 +610,10 @@ void AliTPCclusterer::AddCluster(AliTPCclusterMI &c, Float_t * /*matrix*/, Int_t
     AliFatal("Tranformations not in calibDB");    
     return;
   }
-  transform->SetCurrentRecoParam((AliTPCRecoParam*)fRecoParam);
+  if (!transform->GetCurrentRecoParam()) { 
+    transform->SetCurrentRecoParam((AliTPCRecoParam*)fRecoParam);
+    transform->SetCurrentTimeStamp(fTimeStamp);
+  }
   Double_t x[3]={static_cast<Double_t>(c.GetRow()),static_cast<Double_t>(c.GetPad()),static_cast<Double_t>(c.GetTimeBin())};
   Int_t i[1]={fSector};
   transform->Transform(x,i,0,1);
@@ -959,6 +962,7 @@ void AliTPCclusterer::Digits2Clusters(AliRawReader* rawReader)
     fTimeStamp = fEventHeader->Get("Timestamp");
     fEventType = fEventHeader->Get("Type");
     AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+    if (!transform->GetCurrentRecoParam()) transform->SetCurrentRecoParam((AliTPCRecoParam*)fRecoParam);
     transform->SetCurrentTimeStamp(fTimeStamp);
     transform->SetCurrentRun(rawReader->GetRunNumber());
   }
