@@ -234,6 +234,7 @@ class AliExternalTrackParam: public AliVTrack {
 
   Bool_t GetYAt(Double_t x,  Double_t b,  Double_t &y) const;
   Bool_t GetZAt(Double_t x,  Double_t b,  Double_t &z) const;
+  Bool_t GetYZAt(Double_t x, Double_t b, Double_t *yz) const;
   void Print(Option_t* option = "") const;
   Double_t GetSnpAt(Double_t x,Double_t b) const;
   Bool_t GetXatLabR(Double_t r,Double_t &x, Double_t bz, Int_t dir=0) const;
