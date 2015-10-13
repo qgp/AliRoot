@@ -684,7 +684,7 @@ Float_t AliTOFtrackerMI::GetLinearDistances(AliTOFtrack * track, AliTOFcluster *
   // use linear aproximation
   //
   //const Float_t kRaddeg = 180/3.14159265358979312;
-  const Float_t kRaddeg = TMath::RadToDeg();
+  // const Float_t kRaddeg = TMath::RadToDeg();
   //
   //  Float_t tiltangle  = fGeom->GetAngles(cluster->fdetIndex[1],cluster->fdetIndex[2])/kRaddeg;  //tiltangle  
   Int_t cind[5];

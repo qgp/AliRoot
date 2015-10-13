@@ -230,6 +230,7 @@ delete stream;
 #include "AliRawReader.h"
 #include "AliTPCCalROC.h"
 #include "AliRawEventHeaderBase.h"
+#include "AliLog.h"
 
 using std::cerr;
 using std::cout;

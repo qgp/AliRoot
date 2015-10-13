@@ -53,6 +53,7 @@ class THashList;
 #include "AliQAv1.h"
 #include "AliEventInfo.h"
 #include "AliRecoParam.h"
+#include "AliConst.h"
 
 using std::ofstream;
 
@@ -183,11 +184,6 @@ public:
   // Plane Efficiency Evaluation
   void    SetRunPlaneEff(Bool_t flag=kFALSE)  {fRunPlaneEff = flag;}
 
-  enum {
-    kNDetectors = 18   // number of detectors    + AD +FIT //alla
-  };
-  static Int_t   GetDetIndex(const char * detector);
-  static const char** GetDetectorNames() { return fgkDetectorName; }
 
   // Upgrade
  void SetUpgradeModule(const char* detectors)  {fUpgradeModule = detectors; MatchUpgradeDetector() ; }
@@ -342,7 +338,6 @@ private:
   AliRawReader*  fRawReader;          //! current raw data reader
   AliRawReader*  fParentRawReader;    //! parent raw data reader in case of AliRawReaderHLT
 
-  static const char* fgkDetectorName[kNDetectors]; //! names of detectors
   AliReconstructor*  fReconstructor[kNDetectors];  //! array of reconstructor objects
   AliRecoParam   fRecoParam;                      // container for the reco-param objects for detectors
   AliLoader*     fLoader[kNDetectors];   //! detector loaders

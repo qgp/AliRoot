@@ -27,6 +27,7 @@ include_directories(${AliRoot_SOURCE_DIR}/MONITOR/MONITOR
                     ${AliRoot_SOURCE_DIR}/STEER/CDB
                     ${AliRoot_SOURCE_DIR}/STEER/ESD
                     ${AliRoot_SOURCE_DIR}/STEER/STEER
+                    ${AliRoot_SOURCE_DIR}/STEER/STEERRec
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
                     ${ZEROMQ_INCLUDE_DIR}
                    )

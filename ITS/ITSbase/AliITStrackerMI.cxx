@@ -59,6 +59,7 @@
 #include "AliITStrackerMI.h"
 #include "AliMathBase.h"
 #include "AliPID.h"
+#include "AliEventInfo.h"
 
 
 ClassImp(AliITStrackerMI)

@@ -25,7 +25,7 @@ class AliRunInfo;
 class AliEventInfo;
 class AliESDpid;
 
-#include "AliReconstruction.h"
+#include "AliConst.h"
 
 class AliReconstructor: public TObject {
 public:
@@ -81,7 +81,7 @@ private:
   AliReconstructor& operator=(const AliReconstructor &); // Not implemented
   
   TString                            fOption;                                       //! option for reconstruction
-  static const AliDetectorRecoParam* fgRecoParam[AliReconstruction::kNDetectors]; //! event reconstruction parameters for all detectors
+  static const AliDetectorRecoParam* fgRecoParam[kNDetectors]; //! event reconstruction parameters for all detectors
   AliRunInfo*                        fRunInfo;                                    //! pointer to the run info object
   AliEventInfo*                      fEventInfo;                                  //! pointer to the event info object
   AliESDEvent*                       fhltesd;                                     //! pointer to HLT ESD

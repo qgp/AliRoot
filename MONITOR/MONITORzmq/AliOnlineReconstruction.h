@@ -9,12 +9,12 @@
 #ifndef AliOnlineReconstruction_H
 #define AliOnlineReconstruction_H
 
-#include <AliReconstruction.h>
-#include <AliCDBManager.h>
-#include <AliGRPPreprocessor.h>
 
 #include <TString.h>
 #include <TEnv.h>
+
+class AliReconstruction;
+class AliCDBManager;
 
 class AliOnlineReconstruction
 {

@@ -9,6 +9,9 @@
 #include "AliOnlineReconstruction.h"
 #include "AliOnlineReconstructionUtil.h"
 #include "AliZMQManager.h"
+#include <AliReconstruction.h>
+#include <AliCDBManager.h>
+#include <AliGRPPreprocessor.h>
 
 #include <TSQLServer.h>
 #include <TSQLResult.h>

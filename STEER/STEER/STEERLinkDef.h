@@ -48,7 +48,6 @@
 #pragma link C++ class  AliReconstructor+;
 #pragma link C++ class  AliMC+;
 #pragma link C++ class  AliSimulation+;
-#pragma link C++ class  AliReconstruction+;
 #pragma link C++ class  AliRecoInputHandler+;
 #pragma link C++ class  AliVertexGenFile+;
 #pragma link C++ class  AliVertexer+;

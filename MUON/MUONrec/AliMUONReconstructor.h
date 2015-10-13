@@ -16,7 +16,7 @@
 #  include "AliReconstructor.h"
 #endif
 #ifndef ROOT_TObjArray
-#define "TObjArray.h"
+#include "TObjArray.h"
 #endif
 
 class AliMUONCalibrationData;

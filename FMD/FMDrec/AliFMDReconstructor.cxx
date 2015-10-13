@@ -55,6 +55,7 @@
 #include <TFile.h>
 #include <climits>
 #include "AliFMDESDRevertexer.h"
+#include "AliConst.h"
 
 
 class AliRawReader;
@@ -250,7 +251,7 @@ AliFMDReconstructor::GetIdentifier() const
   // Get the detector identifier. 
   // Note the actual value is cached so that we do not 
   // need to do many expensive string comparisons. 
-  static Int_t idx = AliReconstruction::GetDetIndex(GetDetectorName());
+  static Int_t idx = GetDetIndex(GetDetectorName());
   return idx;
 }
 

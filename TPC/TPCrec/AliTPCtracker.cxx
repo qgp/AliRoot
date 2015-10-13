@@ -8352,7 +8352,6 @@ Int_t  AliTPCtracker::GetRowNumber(Double_t x[3]) const
   Float_t phi = TMath::ATan2(x[1],x[0]);
   if(phi<0) phi=2.*TMath::Pi()+phi;
   //  Get the local angle in the sector philoc
-  const Float_t kRaddeg = 180/3.14159265358979312;
   Float_t phiangle   = (Int_t (phi*kRaddeg/20.) + 0.5)*20./kRaddeg;
   Double_t localx    = x[0]*TMath::Cos(phiangle)-x[1]*TMath::Sin(phiangle);
   return GetRowNumber(localx);

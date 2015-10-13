@@ -120,6 +120,7 @@
 #include <TClonesArray.h>
 #include <TString.h>
 #include <TTree.h>
+#include "AliConst.h"
 
 /// \cond CLASSIMP
 ClassImp(AliMUONReconstructor)
@@ -717,7 +718,7 @@ AliMUONReconstructor::FillTreeR(AliMUONVTriggerStore* triggerStore,
 const AliMUONRecoParam* AliMUONReconstructor::GetRecoParam()
 { 
   /// Get the recoparam from reconstruction
-  return dynamic_cast<const AliMUONRecoParam*>(AliReconstructor::GetRecoParam(AliReconstruction::GetDetIndex("MUON"))); 
+  return dynamic_cast<const AliMUONRecoParam*>(AliReconstructor::GetRecoParam(GetDetIndex("MUON"))); 
 }
 
 

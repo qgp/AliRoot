@@ -14,7 +14,7 @@
 # **************************************************************************
 
 # Module
-set(MODULE STEER)
+set(MODULE STEERRec)
 
 # Module include folders
 include_directories(${AliRoot_SOURCE_DIR}/STEER/${MODULE})
@@ -27,138 +27,18 @@ include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/RAW/RAWDatarec
                     ${AliRoot_SOURCE_DIR}/STEER/CDB
                     ${AliRoot_SOURCE_DIR}/STEER/ESD
+                    ${AliRoot_SOURCE_DIR}/STEER/STEER
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
                     ${CMAKE_BINARY_DIR}/version/
                    )
 
 # Sources - alphabetical order
 set(SRCS
-    AliAlignmentTracks.cxx
-    AliAlignObj.cxx
-    AliAlignObjMatrix.cxx
-    AliAlignObjParams.cxx
-    AliBaseLoader.cxx
-    AliCentralTrigger.cxx
-    AliCluster3D.cxx
-    AliCluster.cxx
-    AliConfig.cxx
-    AliCorrQAChecker.cxx
-    AliCorrQADataMakerRec.cxx
-    AliCTPInputTimeParams.cxx
-    AliCTPRawData.cxx
-    AliCTPRawStream.cxx
-    AliCTPTimeParams.cxx
-    AliDataLoader.cxx
-    AliDCSArray.cxx
-    AliDebugVolume.cxx
-    AliDetector.cxx
-    AliDetectorRecoParam.cxx
-    AliDigit.cxx
-    AliDigitizationInput.cxx
-    AliDigitizer.cxx
-    AliDigitNew.cxx
-    AliESDTagCreator.cxx
-    AliEventInfo.cxx
-    AliFstream.cxx
-    AliGausCorr.cxx
-    AliGenerator.cxx
-    AliGeometry.cxx
-    AliGeomManager.cxx
-    AliGlobalQAChecker.cxx
-    AliGlobalQADataMaker.cxx
-    AliGRPManager.cxx
-    AliGRPObject.cxx
-    AliGRPPreprocessor.cxx
-    AliGRPRecoParam.cxx
-    AliHelix.cxx
-    AliHit.cxx
-    AliHitMap.cxx
-    AliHLTSimulation.cxx
-    AliHLTVEventInputHandler.cxx
-    AliKink.cxx
-    AliLego.cxx
-    AliLegoGenerator.cxx
-    AliLegoGeneratorEta.cxx
-    AliLegoGeneratorEtaR.cxx
-    AliLegoGeneratorPhiZ.cxx
-    AliLegoGeneratorXYZ.cxx
-    AliLHCClockPhase.cxx
-    AliLHCData.cxx
-    AliLHCDipValT.cxx
-    AliLHCReader.cxx
-    AliLoader.cxx
-    AliLTUConfig.cxx
-    AliMatrixSparse.cxx
-    AliMatrixSq.cxx
-    AliMC.cxx
-    AliMCGenHandler.cxx
-    AliMergeCombi.cxx
-    AliMillePede2.cxx
-    AliMillepede.cxx
-    AliMillePedeRecord.cxx
-    AliMinResSolve.cxx
-    AliMisAligner.cxx
-    AliModule.cxx
-    AliObjectLoader.cxx
-    AliParamList.cxx
-    AliParamSolver.cxx
-    AliPlaneEff.cxx
-    AliQACheckerBase.cxx
-    AliQAChecker.cxx
-    AliQADataMaker.cxx
-    AliQADataMakerRec.cxx
-    AliQADataMakerSim.cxx
-    AliQAManager.cxx
-    AliQAThresholds.cxx
-    AliQAv1.cxx
-    AliRecoInputHandler.cxx
-    AliReconstructor.cxx
-    AliRecoParam.cxx
-    AliRecPoint.cxx
-    AliRectMatrix.cxx
-    AliRelAlignerKalman.cxx
-    AliRieman.cxx
-    AliRndm.cxx
-    AliRun.cxx
-    AliRunInfo.cxx
-    AliRunLoader.cxx
-    AliSelectorRL.cxx
-    AliSignalProcesor.cxx
-    AliSimulation.cxx
-    AliStream.cxx
-    AliSurveyObj.cxx
-    AliSurveyPoint.cxx
-    AliSurveyToAlignObjs.cxx
-    AliSymBDMatrix.cxx
-    AliSymMatrix.cxx
-    AliTracker.cxx
-    AliTrackFitter.cxx
-    AliTrackFitterKalman.cxx
-    AliTrackFitterRieman.cxx
-    AliTrackFitterStraight.cxx
-    AliTrackleter.cxx
-    AliTrackResidualsChi2.cxx
-    AliTrackResiduals.cxx
-    AliTrackResidualsFast.cxx
-    AliTrackResidualsLinear.cxx
-    AliTransportMonitor.cxx
-    AliTreeLoader.cxx
-    AliTriggerDetector.cxx
-    AliTriggerRunScalers.cxx
-    AliTriggerUtils.cxx
-    AliV0.cxx
-    AliVectorSparse.cxx
-    AliVertexer.cxx
-    AliVertexGenerator.cxx
-    AliVertexGenFile.cxx
+    AliReconstruction.cxx
    )
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
-set(HDRS ${HDRS}
-   AliConst.h
-   AliRawDataHeaderSim.h
-   )
 
 # Generate the dictionary
 # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
@@ -166,7 +46,7 @@ get_directory_property(incdirs INCLUDE_DIRECTORIES)
 generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 set(ROOT_DEPENDENCIES Core EG GenVector GeomPainter Geom Gpad Graf Hist MathCore Matrix Minuit Net Physics Proof RIO Tree VMC)
-set(ALIROOT_DEPENDENCIES STEERBase RAWDatabase RAWDatarec CDB ESD ANALYSIS HLTbase)
+set(ALIROOT_DEPENDENCIES STEER STEERBase RAWDatabase RAWDatarec CDB ESD ANALYSIS HLTbase)
 
 # Generate the ROOT map
 # Dependecies

@@ -31,6 +31,7 @@ add_subdirectory (ESD)
 add_subdirectory (AOD)
 add_subdirectory (CDB)
 add_subdirectory (STEER)
+add_subdirectory (STEERRec)
 add_subdirectory (Utilities)
 
 # Macros

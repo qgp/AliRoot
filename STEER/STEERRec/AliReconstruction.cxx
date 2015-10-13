@@ -212,9 +212,6 @@ using std::endl;
 
 //_____________________________________________________________________________
 const char* AliReconstruction::fgkStopEvFName = "_stopEvent_";
-const char* AliReconstruction::fgkDetectorName[AliReconstruction::kNDetectors] = {"ITS", "TPC", "TRD",
-"TOF", "PHOS", 
-"HMPID", "EMCAL", "MUON", "FMD", "ZDC", "PMD", "T0", "VZERO", "ACORDE","AD","FIT","MFT", "HLT"};
 
 //_____________________________________________________________________________
 AliReconstruction::AliReconstruction(const char* gAliceFilename) :
@@ -3898,17 +3895,6 @@ void AliReconstruction::FillRawDataErrorLog(Int_t iEvent, AliESDEvent* esd)
 //	fFillESD                = newFillESD ; 
 // }
 
-//_____________________________________________________________________________
-Int_t AliReconstruction::GetDetIndex(const char* detector)
-{
-  // return the detector index corresponding to detector
-  Int_t index = -1 ; 
-  for (index = 0; index < kNDetectors ; index++) {
-    if ( strcmp(detector, fgkDetectorName[index]) == 0 )
-	break ; 
-  }	
-  return index ; 
-}
 //_____________________________________________________________________________
 Bool_t AliReconstruction::FinishPlaneEff() {
  //
