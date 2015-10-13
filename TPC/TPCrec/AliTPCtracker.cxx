@@ -201,7 +201,8 @@ AliTPCtracker::AliTPCtracker()
 		 fSeedsPool(0),
 		 fFreeSeedsID(500),
 		 fNFreeSeeds(0),
-		 fLastSeedID(-1)
+		 fLastSeedID(-1),
+		 fAccountDistortions(0)
 {
   //
   // default constructor
@@ -310,8 +311,10 @@ Int_t AliTPCtracker::AcceptCluster(AliTPCseed * seed, AliTPCclusterMI * cluster)
   //
   // decide according desired precision to accept given 
   // cluster for tracking
-  Double_t  yt=0,zt=0;
-  seed->GetProlongation(cluster->GetX(),yt,zt);
+  Double_t  yt = seed->GetY(),zt = seed->GetZ();
+  // RS: use propagation only if the seed in far from the cluster
+  const double kTolerance = 10e-4; // assume track is at cluster X if X-distance below this
+  if (TMath::Abs(seed->GetX()-cluster->GetX())>kTolerance) seed->GetProlongation(cluster->GetX(),yt,zt); 
   Double_t sy2=ErrY2(seed,cluster);
   Double_t sz2=ErrZ2(seed,cluster);
   
@@ -433,7 +436,8 @@ AliTracker(),
          fSeedsPool(0),
 		 fFreeSeedsID(500),
 		 fNFreeSeeds(0),
-		 fLastSeedID(-1)
+                 fLastSeedID(-1),
+		 fAccountDistortions(0)
 {
   //---------------------------------------------------------------------
   // The main TPC tracker constructor
@@ -513,7 +517,8 @@ AliTPCtracker::AliTPCtracker(const AliTPCtracker &t):
          fSeedsPool(0),
 		 fFreeSeedsID(500),
 		 fNFreeSeeds(0),
-		 fLastSeedID(-1)
+                 fLastSeedID(-1),
+		 fAccountDistortions(0)
 {
   //------------------------------------
   // dummy copy constructor
@@ -2259,8 +2264,7 @@ Int_t AliTPCtracker::LoadOuterSectors() {
       //
       // write indexes for fast acces
       //
-      for (Int_t i=0;i<510;i++)
-	tpcrow->SetFastCluster(i,-1);
+      for (Int_t i=510;i--;) tpcrow->SetFastCluster(i,-1);
       for (Int_t i=0;i<tpcrow->GetN();i++){
         Int_t zi = Int_t((*tpcrow)[i]->GetZ()+255.);
 	tpcrow->SetFastCluster(zi,i);  // write index
@@ -2425,7 +2429,8 @@ Int_t AliTPCtracker::FollowToNext(AliTPCseed& t, Int_t nr) {
           return 0;
         }	
       }
-      if (!t.PropagateTo(x)) {
+      double xToGo = fAccountDistortions ? cl->GetX() : x; // RS: go directly to cluster X in case of distortions
+      if (!t.PropagateTo(xToGo)) {
         t.SetClusterIndex(nr, t.GetClusterIndex(nr) | 0x8000);
         return 0;
       }
@@ -2465,8 +2470,14 @@ Int_t AliTPCtracker::FollowToNext(AliTPCseed& t, Int_t nr) {
     if (fIteration==0) t.SetRemoval(10);
     return 0;
   }
+  //
+  if (fAccountDistortions) {
+    double xDist = GetDistortionX(&t, nr);
+    x += xDist;
+  }
+
   Double_t y = t.GetY(); 
-  if (TMath::Abs(y)>ymax){
+  if (TMath::Abs(y)>ymax){ //RS:? before changing sector check if there are shifted clusters?
     if (y > ymax) {
       t.SetRelativeSector((t.GetRelativeSector()+1) % fN);
       if (!t.Rotate(fSectors->GetAlpha())) 
@@ -2493,7 +2504,9 @@ Int_t AliTPCtracker::FollowToNext(AliTPCseed& t, Int_t nr) {
   }
   //AliInfo(Form("A - Sector%d phi %f - alpha %f", t.fRelativeSector,y/x, t.GetAlpha()));
   Bool_t isActive  = IsActive(t.GetRelativeSector(),nr);
-  Bool_t isActive2 = (nr>=fInnerSec->GetNRows()) ? fOuterSec[t.GetRelativeSector()][nr-fInnerSec->GetNRows()].GetN()>0:fInnerSec[t.GetRelativeSector()][nr].GetN()>0;
+  Bool_t isActive2 = (nr>=fInnerSec->GetNRows()) ? 
+    fOuterSec[t.GetRelativeSector()][nr-fInnerSec->GetNRows()].GetN()>0 : 
+    fInnerSec[t.GetRelativeSector()][nr].GetN()>0;
   
   if (!isActive || !isActive2) return 0;
 
@@ -2507,14 +2520,13 @@ Int_t AliTPCtracker::FollowToNext(AliTPCseed& t, Int_t nr) {
     t.SetClusterIndex2(nr,-1); 
     return 0;
   } 
-  else
-    {
-      if (IsFindable(t))
-	  //      if (TMath::Abs(z)<(AliTPCReconstructor::GetCtgRange()*x+10) && TMath::Abs(z)<fkParam->GetZLength(0) && (TMath::Abs(t.GetSnp())<AliTPCReconstructor::GetMaxSnpTracker())) 
-	t.SetNFoundable(t.GetNFoundable()+1);
-      else
-	return 0;
-    }   
+  else {
+    if (IsFindable(t))
+      //      if (TMath::Abs(z)<(AliTPCReconstructor::GetCtgRange()*x+10) && TMath::Abs(z)<fkParam->GetZLength(0) && (TMath::Abs(t.GetSnp())<AliTPCReconstructor::GetMaxSnpTracker())) 
+      t.SetNFoundable(t.GetNFoundable()+1);
+    else
+      return 0;
+  }   
   //calculate 
   if (krow) {
     //    cl = krow.FindNearest2(y+10.,z,roady,roadz,index);    
@@ -9021,4 +9033,23 @@ void AliTPCtracker::FillClusterOccupancyInfo()
     esdFriend->SetNclustersTPCused(isector+36, oroc.GetNClUsedInSector(0));
     esdFriend->SetNclustersTPCused(isector+54, oroc.GetNClUsedInSector(1));
   }
+}
+
+Double_t AliTPCtracker::GetDistortionX(const AliTPCseed* seed, int row)
+{
+  // get distorion at track location on given row
+  //
+  //RS:? think to unset fAccountDistortions if no maps are used
+  if (!AliTPCReconstructor::GetRecoParam()->GetUseCorrectionMap()) return 0; 
+  int roc = seed->GetRelativeSector();
+  if (seed->GetZ()<0) roc += 18;
+  if (row>63) {
+    roc += 36;
+    row -= 63;
+  }
+  AliTPCcalibDB * calibDB = AliTPCcalibDB::Instance();
+  AliTPCTransform *transform = calibDB->GetTransform() ;
+  if (!transform) AliFatal("Tranformations not in calibDB");
+  double xyz[3]={seed->GetX(),seed->GetY(),seed->GetZ()};
+  return transform->EvalCorrectionMap(roc,row,xyz,0);
 }
