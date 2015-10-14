@@ -82,7 +82,7 @@ public:
   Int_t LoadInnerSectors();
   Int_t LoadOuterSectors();
   virtual void FillClusterArray(TObjArray* array) const;
-  void   Transform(AliTPCclusterMI * cluster);
+  Int_t Transform(AliTPCclusterMI * cluster);
   void ApplyTailCancellation();
   void ApplyXtalkCorrection();
   void CalculateXtalkCorrection();
