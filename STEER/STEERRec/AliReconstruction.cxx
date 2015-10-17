@@ -121,7 +121,6 @@
 #include <TObjArray.h>
 #include <TPRegexp.h>
 #include <TParameter.h>
-#include <TPluginManager.h>
 #include <TProof.h>
 #include <TProofOutputFile.h>
 #include <TROOT.h>
@@ -206,6 +205,38 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/resource.h>
+
+// For the creation of the reconstructors
+#include "AliITSReconstructor.h"
+#include "AliITSUpgradeReconstructor.h"
+#include "AliTPCReconstructor.h"
+#include "AliTRDReconstructor.h"
+#include "AliTOFReconstructor.h"
+#include "AliPHOSReconstructor.h"
+#include "AliHMPIDReconstructor.h"
+#include "AliEMCALReconstructor.h"
+#include "AliMUONReconstructor.h"
+#include "AliFMDReconstructor.h"
+#include "AliZDCReconstructor.h"
+#include "AliPMDReconstructor.h"
+#include "AliT0Reconstructor.h"
+#include "AliVZEROReconstructor.h"
+#include "AliACORDEReconstructor.h"
+#include "AliADReconstructor.h"
+#include "AliFITReconstructor.h"
+#include "AliMFTReconstructor.h"
+#include "AliHLTReconstructor.h"
+
+#include "AliITSLoader.h"
+#include "AliTPCLoader.h"
+#include "AliPHOSLoader.h"
+#include "AliEMCALLoader.h"
+#include "AliPMDLoader.h"
+#include "AliVZEROLoader.h"
+#include "AliACORDELoader.h"
+#include "AliADLoader.h"
+#include "AliEMCALGeoParams.h"
+
 ClassImp(AliReconstruction)
 
 using std::endl;
@@ -3559,40 +3590,83 @@ AliReconstructor* AliReconstruction::GetReconstructor(Int_t iDet)
     return fReconstructor[iDet];
   }
 
-  // load the reconstructor object
-  TPluginManager* pluginManager = gROOT->GetPluginManager();
   TString detName = fgkDetectorName[iDet];
-  TString recName = "Ali" + detName + "Reconstructor";
-
   if (!fIsNewRunLoader && !fRunLoader->GetLoader(detName+"Loader") && (detName != "HLT")) return NULL;
 
   AliReconstructor* reconstructor = NULL;
-  // first check if a plugin is defined for the reconstructor
-  TPluginHandler* pluginHandler = 
-    pluginManager->FindHandler("AliReconstructor", detName);
-  // if not, add a plugin for it
-  if (!pluginHandler) {
-    AliDebug(1, Form("defining plugin for %s", recName.Data()));
-    TString libs = gSystem->GetLibraries();
-    if (libs.Contains("lib" + detName + "base.so") ||
-	(gSystem->Load("lib" + detName + "base") >= 0)) {
-      pluginManager->AddHandler("AliReconstructor", detName, 
-				recName, detName + "rec", recName + "()");
-    } else {
-      pluginManager->AddHandler("AliReconstructor", detName, 
-				recName, detName, recName + "()");
-    }
-    pluginHandler = pluginManager->FindHandler("AliReconstructor", detName);
-  }
-  if (pluginHandler && (pluginHandler->LoadPlugin() == 0)) {
-    reconstructor = (AliReconstructor*) pluginHandler->ExecPlugin(0);
+
+  // Reconstructor fabric
+  switch (iDet) {
+  case 0: //ITS
+    reconstructor = new AliITSReconstructor();
+    break;
+  case 1: //TPC
+    reconstructor = new AliTPCReconstructor();
+    break;
+  case 2: //TRD
+    reconstructor = new AliTRDReconstructor();
+    break;
+  case 3: //TOF
+    reconstructor = new AliTOFReconstructor();
+    break;
+  case 4: //PHOS
+    reconstructor = new AliPHOSReconstructor();
+    break;
+  case 5: //HMPID
+    reconstructor = new AliHMPIDReconstructor();
+    break;
+  case 6: //EMCAL
+    reconstructor = new AliEMCALReconstructor();
+    break;
+  case 7: //MUON
+    reconstructor = new AliMUONReconstructor();
+    break;
+  case 8: //FMD
+    reconstructor = new AliFMDReconstructor();
+    break;
+  case 9: //ZDC
+    reconstructor = new AliZDCReconstructor();
+    break;
+  case 10://PMD
+    reconstructor = new AliPMDReconstructor();
+    break;
+  case 11://T0
+    reconstructor = new AliT0Reconstructor();
+    break;
+  case 12://VZERO
+    reconstructor = new AliVZEROReconstructor();
+    break;
+  case 13://ACORDE
+    reconstructor = new AliACORDEReconstructor();
+    break;
+  case 14://AD
+    reconstructor = new AliADReconstructor();
+    break;
+  case 15://FIT
+    reconstructor = new AliFITReconstructor();
+    break;
+  case 16://MFT
+    reconstructor = new AliMFTReconstructor();
+    break;
+  case 17://HLT
+    reconstructor = new AliHLTReconstructor();
+    break;
+  default:
+    AliError(Form("could not create reconstructor for detector ID=%d", iDet));
+    reconstructor = 0x0;
   }
 
    // check if the upgrade reconstructor should be used instead of the standard one
   if(fUpgradeMask[iDet]) {
     if(reconstructor) delete reconstructor;
-    TClass *cl = new TClass(Form("Ali%sUpgradeReconstructor",fgkDetectorName[iDet]));
-    reconstructor = (AliReconstructor*)(cl->New());
+    switch (iDet) {
+    case 0:
+      reconstructor = new AliITSUpgradeReconstructor();
+      break;
+    default:
+      AliError(Form("could not create reconstructor for detector ID=%d", iDet));
+      reconstructor = 0x0;
+    }
    }
 
   if (reconstructor) {
@@ -3611,26 +3685,64 @@ AliReconstructor* AliReconstruction::GetReconstructor(Int_t iDet)
       AliConfig::Instance()
 	->CreateDetectorFolders(fRunLoader->GetEventFolder(), 
 				detName, detName);
-      // first check if a plugin is defined for the loader
-      pluginHandler = 
-	pluginManager->FindHandler("AliLoader", detName);
-      // if not, add a plugin for it
-      if (!pluginHandler) {
-	TString loaderName = "Ali" + detName + "Loader";
-	AliDebug(1, Form("defining plugin for %s", loaderName.Data()));
-	pluginManager->AddHandler("AliLoader", detName, 
-				  loaderName, detName + "base", 
-				  loaderName + "(const char*, TFolder*)");
-	pluginHandler = pluginManager->FindHandler("AliLoader", detName);
+      // Loader fabric
+      switch (iDet) {
+      case 0: //ITS
+	fLoader[iDet] = new AliITSLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 1: //TPC
+	fLoader[iDet] = new AliTPCLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 2: //TRD uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 3: //TOF uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 4: //PHOS
+	fLoader[iDet] = new AliPHOSLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 5: //HMPID uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 6: //EMCAL
+	fLoader[iDet] = new AliEMCALLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 7: //MUON uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 8: //FMD uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 9: //ZDC uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 10://PMD
+	fLoader[iDet] = new AliPMDLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 11://T0 uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 12://VZERO
+	fLoader[iDet] = new AliVZEROLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 13://ACORDE
+	fLoader[iDet] = new AliACORDELoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 14://AD
+	fLoader[iDet] = new AliADLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 15://FIT uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      case 16://MFT uses default loader
+	fLoader[iDet] = new AliLoader(detName.Data(),fRunLoader->GetEventFolder());
+	break;
+      default:
+	AliError(Form("could not create loader for detector ID=%d", iDet));
+	fLoader[iDet] = 0x0;
       }
-      if (pluginHandler && (pluginHandler->LoadPlugin() == 0)) {
-	fLoader[iDet] = 
-	  (AliLoader*) pluginHandler->ExecPlugin(2, detName.Data(), 
-						 fRunLoader->GetEventFolder());
-      }
-      if (!fLoader[iDet]) {   // use default loader
-	fLoader[iDet] = new AliLoader(detName, fRunLoader->GetEventFolder());
-      }
+      
       if (!fLoader[iDet]) {
 	AliWarning(Form("couldn't get loader for %s", detName.Data()));
 	if (fStopOnError) return NULL;

@@ -29,6 +29,42 @@ include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/STEER/ESD
                     ${AliRoot_SOURCE_DIR}/STEER/STEER
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
+                    ${AliRoot_SOURCE_DIR}/ITS/ITSbase
+                    ${AliRoot_SOURCE_DIR}/ITS/UPGRADE/ITSUpgradeBase
+                    ${AliRoot_SOURCE_DIR}/ITS/UPGRADE/v0
+                    ${AliRoot_SOURCE_DIR}/TPC/TPCrec
+                    ${AliRoot_SOURCE_DIR}/TPC/TPCbase
+                    ${AliRoot_SOURCE_DIR}/TRD/TRDbase
+                    ${AliRoot_SOURCE_DIR}/TOF/TOFrec
+                    ${AliRoot_SOURCE_DIR}/TOF/TOFbase
+                    ${AliRoot_SOURCE_DIR}/PHOS/PHOSbase
+                    ${AliRoot_SOURCE_DIR}/HMPID/HMPIDrec
+                    ${AliRoot_SOURCE_DIR}/HMPID/HMPIDbase
+                    ${AliRoot_SOURCE_DIR}/RAW/RAWDatasim
+                    ${AliRoot_SOURCE_DIR}/EMCAL/EMCALrec
+                    ${AliRoot_SOURCE_DIR}/EMCAL/EMCALbase
+                    ${AliRoot_SOURCE_DIR}/EMCAL/EMCALUtils
+                    ${AliRoot_SOURCE_DIR}/MUON/MUONrec
+                    ${AliRoot_SOURCE_DIR}/MUON/MUONbase
+                    ${AliRoot_SOURCE_DIR}/MUON/MUONcore
+                    ${AliRoot_SOURCE_DIR}/FMD/FMDrec
+                    ${AliRoot_SOURCE_DIR}/FMD/FMDbase
+                    ${AliRoot_SOURCE_DIR}/ZDC/ZDCrec
+                    ${AliRoot_SOURCE_DIR}/PMD/PMDrec
+                    ${AliRoot_SOURCE_DIR}/PMD/PMDbase
+                    ${AliRoot_SOURCE_DIR}/T0/T0rec
+                    ${AliRoot_SOURCE_DIR}/T0/T0base
+                    ${AliRoot_SOURCE_DIR}/VZERO/VZEROrec
+                    ${AliRoot_SOURCE_DIR}/VZERO/VZERObase
+                    ${AliRoot_SOURCE_DIR}/ACORDE/ACORDErec
+                    ${AliRoot_SOURCE_DIR}/ACORDE/ACORDEbase
+                    ${AliRoot_SOURCE_DIR}/AD/ADrec
+                    ${AliRoot_SOURCE_DIR}/AD/ADbase
+                    ${AliRoot_SOURCE_DIR}/FIT/FITrec
+                    ${AliRoot_SOURCE_DIR}/MFT/MFTrec
+                    ${AliRoot_SOURCE_DIR}/MFT/MFTbase
+                    ${AliRoot_SOURCE_DIR}/MFT/MFTsim
+                    ${AliRoot_SOURCE_DIR}/HLT/rec
                     ${CMAKE_BINARY_DIR}/version/
                    )
 
@@ -46,7 +82,7 @@ get_directory_property(incdirs INCLUDE_DIRECTORIES)
 generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 set(ROOT_DEPENDENCIES Core EG GenVector GeomPainter Geom Gpad Graf Hist MathCore Matrix Minuit Net Physics Proof RIO Tree VMC)
-set(ALIROOT_DEPENDENCIES STEER STEERBase RAWDatabase RAWDatarec CDB ESD ANALYSIS HLTbase)
+set(ALIROOT_DEPENDENCIES STEER STEERBase RAWDatabase RAWDatarec CDB ESD ANALYSIS HLTbase HLTrec)
 
 # Generate the ROOT map
 # Dependecies
