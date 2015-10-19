@@ -71,7 +71,7 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}" "${M
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS STEERBase STEER ESD CDB MONITOR ${ZEROMQ_LIBRARIES})
+set(LIBDEPS STEERBase STEER STEERRec ESD CDB MONITOR ${ZEROMQ_LIBRARIES})
 if(DIM_FOUND)
     set(LIBDEPS ${LIBDEPS} ${DIM_LIBRARIES})
 endif()

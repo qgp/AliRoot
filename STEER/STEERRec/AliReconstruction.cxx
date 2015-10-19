@@ -208,7 +208,7 @@
 
 // For the creation of the reconstructors
 #include "AliITSReconstructor.h"
-#include "AliITSUpgradeReconstructor.h"
+#include "AliITSUReconstructor.h"
 #include "AliTPCReconstructor.h"
 #include "AliTRDReconstructor.h"
 #include "AliTOFReconstructor.h"
@@ -3661,7 +3661,7 @@ AliReconstructor* AliReconstruction::GetReconstructor(Int_t iDet)
     if(reconstructor) delete reconstructor;
     switch (iDet) {
     case 0:
-      reconstructor = new AliITSUpgradeReconstructor();
+      reconstructor = new AliITSUReconstructor();
       break;
     default:
       AliError(Form("could not create reconstructor for detector ID=%d", iDet));

@@ -31,7 +31,7 @@ include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
                     ${AliRoot_SOURCE_DIR}/ITS/ITSbase
                     ${AliRoot_SOURCE_DIR}/ITS/UPGRADE/ITSUpgradeBase
-                    ${AliRoot_SOURCE_DIR}/ITS/UPGRADE/v0
+                    ${AliRoot_SOURCE_DIR}/ITS/UPGRADE/ITSUpgradeRec
                     ${AliRoot_SOURCE_DIR}/TPC/TPCrec
                     ${AliRoot_SOURCE_DIR}/TPC/TPCbase
                     ${AliRoot_SOURCE_DIR}/TRD/TRDbase
@@ -82,7 +82,7 @@ get_directory_property(incdirs INCLUDE_DIRECTORIES)
 generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 set(ROOT_DEPENDENCIES Core EG GenVector GeomPainter Geom Gpad Graf Hist MathCore Matrix Minuit Net Physics Proof RIO Tree VMC)
-set(ALIROOT_DEPENDENCIES STEER STEERBase RAWDatabase RAWDatarec CDB ESD ANALYSIS HLTbase HLTrec)
+set(ALIROOT_DEPENDENCIES STEER STEERBase RAWDatabase RAWDatarec CDB ESD ANALYSIS HLTbase ITSbase TPCrec TPCbase TRDbase TOFrec TOFbase PHOSbase HMPIDrec HMPIDbase RAWDatasim EMCALrec EMCALbase EMCALUtils MUONrec MUONbase MUONcore FMDrec FMDbase ZDCrec PMDrec PMDbase T0rec T0base VZEROrec VZERObase ACORDErec ACORDEbase ADrec ADsim ADbase FITrec MFTrec MFTbase MFTsim HLTrec ITSUpgradeRec)
 
 # Generate the ROOT map
 # Dependecies
