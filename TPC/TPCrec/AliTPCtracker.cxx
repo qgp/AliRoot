@@ -10043,7 +10043,8 @@ Double_t AliTPCtracker::GetYSectEdgeDist(int sec, int row, double y, double z)
   // get the signed  shift for maxY of the sector/row accounting for distortion
   // Slow way, to speed up
   if (!AliTPCReconstructor::GetRecoParam()->GetUseCorrectionMap()) return 0;
-  double ymax = y>0 ? GetMaxY(row):-GetMaxY(row);
+  double ymax = 0.9*GetMaxY(row); // evaluate distortions at 5% of pad lenght from the edge
+  if (y<0) ymax = -ymax;
   double xyz[3] = {GetXrow(row),ymax,z}; 
   if (z<0) sec += 18;
   if (row>62) {
