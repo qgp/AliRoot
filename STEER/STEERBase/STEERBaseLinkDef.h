@@ -151,6 +151,7 @@
 #pragma link C++ class AliGenHepMCEventHeader+;
 #pragma link C++ class AliMergeableCollection+;
 #pragma link C++ class AliMergeableCollectionIterator+;
+#pragma link C++ class AliMergeableCollectionProxy+;
 
 #pragma link C++ class AliVersion+;
 
