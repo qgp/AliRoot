@@ -52,7 +52,9 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS STEERBase STEER ESD ITSbase)
+set(ROOT_DEPENDENCIES )
+set(ALIROOT_DEPENDENCIES STEERBase STEER ESD ITSbase)
+set(LIBDEPS ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # Create an object to be reused in case of static libraries 

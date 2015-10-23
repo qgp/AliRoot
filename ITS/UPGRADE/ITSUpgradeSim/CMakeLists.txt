@@ -60,8 +60,10 @@ get_directory_property(incdirs INCLUDE_DIRECTORIES)
 generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Generate the ROOT map
-# Dependecies
-set(LIBDEPS STEERBase STEER CDB ESD RAWDatabase RAWDatarec ITSbase ITSsim ITSUpgradeBase)
+# Dependencies
+set(ROOT_DEPENDENCIES )
+set(ALIROOT_DEPENDENCIES STEERBase STEER CDB ESD RAWDatabase RAWDatarec ITSbase ITSsim ITSUpgradeBase)
+set(LIBDEPS ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # Create an object to be reused in case of static libraries 

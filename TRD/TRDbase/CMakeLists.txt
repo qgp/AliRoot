@@ -154,7 +154,7 @@ get_directory_property(incdirs INCLUDE_DIRECTORIES)
 generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}" "${MODULE_COMPILE_FLAGS}")
 
 set(ROOT_DEPENDENCIES Core GenVector Geom Gpad Graf Gui Hist MathCore Matrix Minuit Net RIO Tree VMC XMLParser)
-set(ALIROOT_DEPENDENCIES STEERBase STEER ESD CDB RAWDatabase RAWDatarec)
+set(ALIROOT_DEPENDENCIES STEERBase STEER ESD CDB CDBGui RAWDatabase RAWDatarec)
 
 # Generate the ROOT map
 # Dependecies
