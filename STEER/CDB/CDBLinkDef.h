@@ -40,9 +40,6 @@
 #pragma link C++ class AliGRPDCS+;
 #pragma link C++ class AliCDBHandler+;
 
-#pragma link C++ class  AliBaseCalibViewer+;
-#pragma link C++ class  AliBaseCalibViewerGUI+;
-#pragma link C++ class  AliCalibViewerGUItime+;
 #pragma link C++ class  AliOCDBtoolkit+;
 
 

@@ -14,7 +14,7 @@
 # **************************************************************************
 
 # Module
-set(MODULE CDB)
+set(MODULE CDBGui)
 
 # Module include folders
 include_directories(${AliRoot_SOURCE_DIR}/STEER/${MODULE})
@@ -28,26 +28,9 @@ include_directories(${ROOT_INCLUDE_DIR}
 
 # Sources - alphabetical order
 set(SRCS
-    AliCDBDump.cxx
-    AliCDBEntry.cxx
-    AliCDBGrid.cxx
-    AliCDBHandler.cxx
-    AliCDBId.cxx
-    AliCDBLocal.cxx
-    AliCDBManager.cxx
-    AliCDBMetaData.cxx
-    AliCDBPath.cxx
-    AliCDBRunRange.cxx
-    AliCDBStorage.cxx
-    AliDCSGenDB.cxx
-    AliDCSSensorArray.cxx
-    AliDCSSensor.cxx
-    AliDCSValue.cxx
-    AliGRPDCS.cxx
-    AliOCDBtoolkit.cxx
-    AliPreprocessor.cxx
-    AliShuttleInterface.cxx
-    AliSplineFit.cxx
+    AliBaseCalibViewer.cxx
+    AliBaseCalibViewerGUI.cxx
+    AliCalibViewerGUItime.cxx
    )
 
 # Headers from sources
@@ -58,7 +41,7 @@ string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 get_directory_property(incdirs INCLUDE_DIRECTORIES)
 generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
-set(ROOT_DEPENDENCIES Core GenVector Gpad Graf Hist MathCore Matrix Minuit Net RIO Tree XMLParser)
+set(ROOT_DEPENDENCIES Core GenVector Gpad Graf Gui Hist MathCore Matrix Minuit Net RIO Tree XMLParser)
 set(ALIROOT_DEPENDENCIES STEERBase)
 
 # Generate the ROOT map
@@ -75,7 +58,7 @@ add_library(${MODULE}-object OBJECT ${SRCS} G__${MODULE}.cxx)
 # Follow headers dependencies
 add_dependencies(${MODULE}-object ${ALIROOT_DEPENDENCIES})
 # Add a library to the project using the object
-add_library(${MODULE} SHARED $<TARGET_OBJECTS:CDB-object>)
+add_library(${MODULE} SHARED $<TARGET_OBJECTS:${MODULE}-object>)
 
 # Linking library
 target_link_libraries(${MODULE} ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
@@ -103,7 +86,7 @@ install(FILES ${HDRS} DESTINATION include)
 
 # Static version if DA enabled
 if(ALIROOT_STATIC)
-    add_library(${MODULE}-static STATIC $<TARGET_OBJECTS:CDB-object>)
+    add_library(${MODULE}-static STATIC $<TARGET_OBJECTS:${MODULE}-object>)
     set_target_properties(${MODULE}-static PROPERTIES OUTPUT_NAME ${MODULE})
     
     # list of shared dependencies / the name of the variable containing the list of static ones

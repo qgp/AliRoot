@@ -33,6 +33,7 @@ add_subdirectory (CDB)
 add_subdirectory (STEER)
 add_subdirectory (STEERRec)
 add_subdirectory (Utilities)
+add_subdirectory (CDBGui)
 
 # Macros
 install(DIRECTORY macros DESTINATION STEER)
