@@ -1969,7 +1969,7 @@ void AliReconstruction::SlaveBegin(TTree*)
     return;
   }
 
-  if (strcmp(gProgName,"alieve") == 0)
+  if (gProgName && (strcmp(gProgName,"alieve") == 0))
     fRunAliEVE = InitAliEVE();
   // If we have an analysis manager, connect the AliRecoInputHandler here  
   if (fAnalysis) {
