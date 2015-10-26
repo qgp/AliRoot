@@ -75,7 +75,7 @@ add_library(${MODULE}-object OBJECT ${SRCS} G__${MODULE}.cxx)
 # Follow headers dependencies
 add_dependencies(${MODULE}-object ${ALIROOT_DEPENDENCIES})
 # Add a library to the project using the object
-add_library(${MODULE} SHARED $<TARGET_OBJECTS:CDB-object>)
+add_library(${MODULE} SHARED $<TARGET_OBJECTS:${MODULE}-object>)
 
 # Linking library
 target_link_libraries(${MODULE} ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
@@ -103,7 +103,7 @@ install(FILES ${HDRS} DESTINATION include)
 
 # Static version if DA enabled
 if(ALIROOT_STATIC)
-    add_library(${MODULE}-static STATIC $<TARGET_OBJECTS:CDB-object>)
+    add_library(${MODULE}-static STATIC $<TARGET_OBJECTS:${MODULE}-object>)
     set_target_properties(${MODULE}-static PROPERTIES OUTPUT_NAME ${MODULE})
     
     # list of shared dependencies / the name of the variable containing the list of static ones
