@@ -14,6 +14,7 @@
 #pragma link C++ class  AliADTrending+;
 #pragma link C++ class  AliADQAChecker+;
 #pragma link C++ class  AliADDecision+;
+#pragma link C++ class  AliADTriggerSimulator+;
 
 
 #endif

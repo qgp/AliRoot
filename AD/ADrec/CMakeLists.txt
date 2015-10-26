@@ -38,6 +38,7 @@ set(SRCS
     AliADRecoParam.cxx
     AliADTrending.cxx
     AliADTrigger.cxx    
+    AliADTriggerSimulator.cxx
    )
 
 # Headers from sources

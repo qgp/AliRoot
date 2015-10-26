@@ -38,7 +38,6 @@ set(SRCS
     AliADDigitizer.cxx
     AliADBuffer.cxx
     AliADQADataMakerSim.cxx
-    AliADTriggerSimulator.cxx
    )
 
 # Headers from sources
