@@ -157,11 +157,20 @@ add_library(${MODULE}-object OBJECT ${SRCS} G__${MODULE}.cxx)
 # Follow headers dependencies
 add_dependencies(${MODULE}-object ${ALIROOT_DEPENDENCIES})
 # Add a library to the project using the object
-add_library(${MODULE} SHARED $<TARGET_OBJECTS:HLTbase-object>)
+add_library(${MODULE} SHARED $<TARGET_OBJECTS:${MODULE}-object>)
+
+# Linking library
 target_link_libraries(${MODULE} ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 
+# Setting the correct headers for the object as gathered from the dependencies
+target_include_directories(${MODULE}-object PUBLIC $<TARGET_PROPERTY:${MODULE},INCLUDE_DIRECTORIES>)
+set_target_properties(${MODULE}-object PROPERTIES COMPILE_DEFINITIONS $<TARGET_PROPERTY:${MODULE},COMPILE_DEFINITIONS>)
+
+# Public include folders that will be propagated to the dependecies
+target_include_directories(${MODULE} PUBLIC ${incdirs})
+
 # Additional compilation flags
-set_target_properties(${MODULE}-object PROPERTIES COMPILE_FLAGS " ")
+set_target_properties(${MODULE}-object PROPERTIES COMPILE_FLAGS "")
 
 # System dependent: Modify the way the library is build
 if(${CMAKE_SYSTEM} MATCHES Darwin)
@@ -169,25 +178,25 @@ if(${CMAKE_SYSTEM} MATCHES Darwin)
 endif(${CMAKE_SYSTEM} MATCHES Darwin)
 
 # Installation
-install(TARGETS ${MODULE}
-        ARCHIVE DESTINATION lib
-        LIBRARY DESTINATION lib)
-
-# Add header files to include directory here, so that they are not processed by CINT, because CINT cannot process these
-set(HDRS ${HDRS}
-    AliHLTAsyncMemberProcessor.h
-    AliHLTAsyncProcessorBackend.h
-    AliHLTIndexGrid.h
-)
+install(TARGETS ${MODULE} 
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib)
 install(FILES ${HDRS} DESTINATION include)
 
 # Static version if DA enabled
 if(ALIROOT_STATIC)
-    add_library(${MODULE}-static STATIC $<TARGET_OBJECTS:HLTbase-object>)
+    add_library(${MODULE}-static STATIC $<TARGET_OBJECTS:${MODULE}-object>)
     set_target_properties(${MODULE}-static PROPERTIES OUTPUT_NAME ${MODULE})
-    target_link_libraries(${MODULE}-static STEERBase-static RAWDatabase-static AliHLTHOMER-static Root RootExtra)
-    set_target_properties(${MODULE}-static PROPERTIES LINK_FLAGS "-Wl,--whole-archive")
     
+    # list of shared dependencies / the name of the variable containing the list of static ones
+    generate_static_dependencies("${ALIROOT_DEPENDENCIES}" "STATIC_ALIROOT_DEPENDENCIES")
+    target_link_libraries(${MODULE}-static ${STATIC_ALIROOT_DEPENDENCIES} Root RootExtra)
+    
+    # Public include folders that will be propagated to the dependecies
+    target_include_directories(${MODULE}-static PUBLIC ${incdirs})
+    
+    set_target_properties(${MODULE}-static PROPERTIES LINK_FLAGS "-Wl,--whole-archive")
+
     # Installation
     install(TARGETS ${MODULE}-static
             ARCHIVE DESTINATION lib
