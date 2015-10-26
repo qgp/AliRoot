@@ -2568,8 +2568,12 @@ Int_t AliTPCtracker::FollowToNext(AliTPCseed& t, Int_t nr) {
 
   const AliTPCtrackerRow &krow=GetRow(t.GetRelativeSector(),nr);
   if ( (t.GetSigmaY2()<0) || t.GetSigmaZ2()<0) return 0;
-  Double_t  roady  =1.;
-  Double_t  roadz = 1.;
+  Double_t  roady  =2.; 
+  Double_t  roadz = 2.;
+  if (AliTPCReconstructor::GetExtendedRoads()){
+    roady+=AliTPCReconstructor::GetExtendedRoads()[0];
+    roadz+=AliTPCReconstructor::GetExtendedRoads()[1];
+  }
   //
   // RS: account for eventual modifications in dead zone definition due to distortions
   double margin = (y>0 ? ymax-yEdgeDist : ymax + yEdgeDist);
