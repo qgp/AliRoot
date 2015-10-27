@@ -53,7 +53,6 @@ public:
   static  const Double_t * GetSystematicErrorCluster() { return (fSystematicErrorClusters) ? fSystematicErrorClusters->GetMatrixArray():0;}
   static  const Double_t * GetExtendedRoads()  { return (fExtendedRoads)? fExtendedRoads->GetMatrixArray():0; }
   static  const Double_t * GetPrimaryDCACut()  { return (fPrimaryDCACut)? fPrimaryDCACut->GetMatrixArray():0; }
-
   static  void SetSystematicError( TVectorD *vec)  { fSystematicErrors=vec;}
   static  void SetSystematicErrorCluster( TVectorD *vec ) { fSystematicErrorClusters=vec;}
   static  void SetExtendedRoads( TVectorD *extendedRoads ) { fExtendedRoads=extendedRoads;}
