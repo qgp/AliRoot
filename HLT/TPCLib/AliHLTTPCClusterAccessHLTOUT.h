@@ -13,13 +13,16 @@
 ///
 
 #include "TObject.h"
-#include "AliHLTDataTypes.h"
-#include "AliHLTTPCClusterMCData.h"
+#include "AliHLTTPCClusterMCData.h"  // for AliHLTTPCClusterMCLabel
 #include "AliHLTTPCRawCluster.h"
+#include "AliHLTDataTypes.h"         // for AliHLTUInt32_t
+#include "Rtypes.h"                  // for Option_t, etc
+#include <string.h>                  // for NULL, memcpy
 #include <vector>
 
 class AliTPCParam;
 class TClonesArray;
+class TObjArray;
 class AliHLTTPCDataCompressionDecoder;
 
 /**

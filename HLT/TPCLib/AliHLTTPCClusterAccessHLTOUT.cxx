@@ -25,26 +25,25 @@
 #include "AliHLTTPCClusterAccessHLTOUT.h"
 #include "AliHLTTPCDataCompressionDecoder.h"
 #include "AliHLTTPCDefinitions.h"
-#include "AliHLTTPCClusterDataFormat.h"
 #include "AliHLTTPCRawCluster.h"
 #include "AliHLTTPCGeometry.h"
 #include "AliHLTOUT.h"
-#include "AliHLTComponent.h"
-#include "AliHLTErrorGuard.h"
-#include "AliHLTDataInflater.h"
 #include "AliLog.h"
 #include "AliHLTSystem.h"
 #include "AliHLTPluginBase.h"
 #include "AliTPCclusterMI.h"
 #include "AliTPCClustersRow.h"
 #include "AliTPCParam.h"
+#include "TObjArray.h"
 #include "TClonesArray.h"
 #include "TString.h"
+#include "Riosfwd.h"                          // for ostream
 #include <cstdlib>
-#include <string>
 #include <memory>
 #include <iostream>
 #include <iomanip>
+#include <errno.h>                            // for EINVAL, ENODEV, ENOMEM, etc
+#include <math.h>                             // for round
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCClusterAccessHLTOUT)
