@@ -169,6 +169,9 @@ AliTPCtracker::AliTPCtracker()
   fExtraClErrYZ2(0),
   fExtraClErrY2(0),
   fExtraClErrZ2(0),
+  fPrimaryDCAZCut(-1),
+  fPrimaryDCAYCut(-1),
+  fDisableSecondaries(kFALSE),
          fCrossTalkSignalArray(0),
 		 fSeedsPool(0),
 		 fFreeSeedsID(500),
@@ -317,7 +320,7 @@ Int_t AliTPCtracker::AcceptCluster(AliTPCseed * seed, AliTPCclusterMI * cluster)
     cluster->GetGlobalXYZ(gclf);
     gcl[0]=gclf[0];    gcl[1]=gclf[1];    gcl[2]=gclf[2];
     Int_t nclSeed=seed->GetNumberOfClusters();
-    
+    int seedType = seed->GetSeedType();
     if (AliTPCReconstructor::StreamLevel()&kStreamErrParam) { // flag:stream in debug mode cluster and track extrapolation at given row together with error nad shape estimate
       Int_t eventNr = fEvent->GetEventNumberInFile();
 	
@@ -326,6 +329,7 @@ Int_t AliTPCtracker::AcceptCluster(AliTPCseed * seed, AliTPCclusterMI * cluster)
       "eventNr="<<eventNr<<
       "Cl.="<<cluster<<
       "nclSeed="<<nclSeed<<
+      "seedType="<<seedType<<
       "T.="<<&param<<
       "dy="<<dy<<
       "dz="<<dz<<
@@ -409,6 +413,9 @@ AliTracker(),
   fExtraClErrYZ2(0),
   fExtraClErrY2(0),
   fExtraClErrZ2(0),
+  fPrimaryDCAZCut(-1),
+  fPrimaryDCAYCut(-1),
+  fDisableSecondaries(kFALSE),
          fCrossTalkSignalArray(0),
          fSeedsPool(0),
 		 fFreeSeedsID(500),
@@ -496,6 +503,9 @@ AliTPCtracker::AliTPCtracker(const AliTPCtracker &t):
   fExtraClErrYZ2(0),
   fExtraClErrY2(0),
   fExtraClErrZ2(0),
+  fPrimaryDCAZCut(-1),
+  fPrimaryDCAYCut(-1),
+  fDisableSecondaries(kFALSE),
          fCrossTalkSignalArray(0),
          fSeedsPool(0),
 		 fFreeSeedsID(500),
@@ -4150,9 +4160,18 @@ void AliTPCtracker::MakeSeeds3(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2,  
 	  continue;
 	}
 	nout1++;
-        // Z VERTEX CONDITION
 	Double_t zv, bz=GetBz();
-        if ( !track->GetZAt(0.,bz,zv) ) continue;
+        if ( !track->GetZAt(0.,bz,zv) )       { MarkSeedFree( seed ); seed = 0; continue; }
+	//
+	if (fDisableSecondaries) {
+	  if (TMath::Abs(zv)>fPrimaryDCAZCut) { MarkSeedFree( seed ); seed = 0; continue; }
+	  double yv; 
+	  if ( !track->GetZAt(0.,bz,yv) )     { MarkSeedFree( seed ); seed = 0; continue; }
+	  if (TMath::Abs(zv)>fPrimaryDCAZCut) { MarkSeedFree( seed ); seed = 0; continue; }
+	}
+	
+	//
+        // Z VERTEX CONDITION
 	if (TMath::Abs(zv-z3)>cuts[2]) {
 	  FollowProlongation(*track, TMath::Max(i2-20,0));
           if ( !track->GetZAt(0.,bz,zv) ) continue;
@@ -8416,6 +8435,13 @@ Int_t AliTPCtracker::Clusters2TracksHLT (AliESDEvent *const esd, const AliESDEve
   fExtraClErrYZ2 = fExtraClErrY2 + fExtraClErrZ2;
   AliInfoF("Additional errors for clusters: Y:%f Z:%f",errCluster[0],errCluster[1]);
   //
+  if (AliTPCReconstructor::GetPrimaryDCACut()) {
+    fPrimaryDCAYCut = AliTPCReconstructor::GetPrimaryDCACut()[0];
+    fPrimaryDCAZCut = AliTPCReconstructor::GetPrimaryDCACut()[1];
+    fDisableSecondaries = kTRUE;
+    AliInfoF("Only primaries will be tracked with DCAY=%f and DCAZ=%f cuts",fPrimaryDCAYCut,fPrimaryDCAZCut);
+  }
+  //
   Clusters2Tracks();
   fEventHLT = 0;
   if (!fSeeds) return 1;
@@ -8741,6 +8767,8 @@ TObjArray * AliTPCtracker::Tracking()
   //UnsignClusters();
   //SignClusters(seeds,fnumber,fdensity);
   
+  if (fDisableSecondaries) return seeds;
+
   // find secondaries
 
   cuts[0] = 0.3;
