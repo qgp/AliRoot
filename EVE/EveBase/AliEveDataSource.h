@@ -75,8 +75,6 @@ public:
     
     void StorageManagerOk();     // *SIGNAL*
     void StorageManagerDown();   // *SIGNAL*
-    void EventServerOk();        // *SIGNAL*
-    void EventServerDown();      // *SIGNAL*
     
 protected:
     AliEveData fCurrentData;

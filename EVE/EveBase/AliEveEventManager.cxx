@@ -108,9 +108,9 @@ AliEveEventManager* AliEveEventManager::GetMaster()
 AliEveEventManager::~AliEveEventManager()
 {
     // Destructor.
-    fAutoLoadTimer->Stop();
-    fAutoLoadTimer->Disconnect("Timeout");
-    fAutoLoadTimer->Disconnect("AutoLoadNextEvent");
+//    fAutoLoadTimer->Stop();
+//    fAutoLoadTimer->Disconnect("Timeout");
+//    fAutoLoadTimer->Disconnect("AutoLoadNextEvent");
 }
 
 void AliEveEventManager::InitInternals()
@@ -322,7 +322,7 @@ AliMagF* AliEveEventManager::AssertMagField()
     // Make sure AliMagF is initialized and returns it.
     // Throws exception in case magnetic field is not available.
     // Static utility for macros.
-    
+
     static const TEveException kEH("AliEveEventManager::AssertMagField ");
     
     //if we already have a field we're done
@@ -539,8 +539,10 @@ void AliEveEventManager::AfterNewEventLoaded()
         TTimeStamp ts(esd->GetTimeStamp());
         TString win_title("Eve Main Window -- Timestamp: ");
         win_title += ts.AsString("s");
-        win_title += "; Event # in ESD file: ";
+        win_title += "; Event: ";
         win_title += esd->GetEventNumberInFile();
+        win_title += "; Run: ";
+        win_title += esd->GetRunNumber();
         gEve->GetBrowser()->SetWindowName(win_title);
         
         TEveElement* top = gEve->GetCurrentEvent();
@@ -685,60 +687,69 @@ TEveElement* AliEveEventManager::FindGlobal(const TString& tag)
 
 Bool_t AliEveEventManager::InitOCDB(int runNo)
 {
-  //first check/set the default OCDB
-  AliCDBManager* cdb = AliCDBManager::Instance();
-  if (!cdb->IsDefaultStorageSet())
-  {
-      TEnv settings;
-      AliEveInit::GetConfig(&settings);
-      
-    TString ocdbStorage = settings.GetValue("OCDB.default.path",Form("local://%s/../src/OCDB",gSystem->Getenv("ALICE_ROOT")));
-    if (gSystem->Getenv("ocdbStorage"))
-    {
-      ocdbStorage = gSystem->Getenv("ocdbStorage");
-    }
-
-    // Handle some special cases for MC (should be in OCDBManager).
-    if (ocdbStorage.BeginsWith("mcideal://"))
-      cdb->SetDefaultStorage("MC", "Ideal");
-    else if (ocdbStorage.BeginsWith("mcresidual://"))
-      cdb->SetDefaultStorage("MC", "Residual");
-    else if (ocdbStorage.BeginsWith("mcfull://"))
-      cdb->SetDefaultStorage("MC", "Full");
-    else
-    {
-      cdb->SetDefaultStorage(ocdbStorage);
-    }
-
-    //if still not OK - crap out.
+    //first check/set the default OCDB
+    AliCDBManager* cdb = AliCDBManager::Instance();
     if (!cdb->IsDefaultStorageSet())
     {
-      AliFatal("could not set the default OCDB!");
+        TEnv settings;
+        AliEveInit::GetConfig(&settings);
+        
+        TString ocdbStorage = settings.GetValue("OCDB.default.path",Form("local://%s/../src/OCDB",gSystem->Getenv("ALICE_ROOT")));
+        if (gSystem->Getenv("ocdbStorage"))
+        {
+            ocdbStorage = gSystem->Getenv("ocdbStorage");
+        }
+        
+        // Handle some special cases for MC (should be in OCDBManager).
+        if (ocdbStorage.BeginsWith("mcideal://")){
+            cout<<"\n\nSetting OCDB to MC Ideal\n\n"<<endl;
+            cdb->SetDefaultStorage("MC", "Ideal");
+        }
+        else if (ocdbStorage.BeginsWith("mcresidual://")){
+            cout<<"\n\nSetting OCDB to MC Residual\n\n"<<endl;
+            cdb->SetDefaultStorage("MC", "Residual");
+        }
+        else if (ocdbStorage.BeginsWith("mcfull://")){
+            cout<<"\n\nSetting OCDB to MC Full\n\n"<<endl;
+            cdb->SetDefaultStorage("MC", "Full");
+        }
+        else
+        {
+            cout<<"\n\nSetting OCDB to "<<ocdbStorage<<"\n\n"<<endl;
+            cdb->SetDefaultStorage(ocdbStorage);
+        }
+        
+        //if still not OK - crap out.
+        if (!cdb->IsDefaultStorageSet())
+        {
+            AliFatal("could not set the default OCDB!");
+        }
     }
-  }
-
-  //check is there is a GRP object for this run
-  AliCDBStorage* defaultStorage = cdb->GetDefaultStorage();
-  if (!defaultStorage) AliFatal("At this point we really should have the default storage set!");
-  if (defaultStorage->GetId("GRP/GRP/Data", runNo))
-  {
-    cdb->SetRun(runNo);
-  }
-  else
-  {
-    //now if we don't have a GRP we need to get one from somewhere
-    ReceivePromptRecoParameters(runNo);
-  }
-  
-  //on run change destroy the mag field, it will be reinitialized via AssertMagField/InitGRP
-  if (runNo != cdb->GetRun())
-  {
-    delete TGeoGlobalMagField::Instance();
-    new TGeoGlobalMagField();
-    fgMaster->fgMagField=NULL;
-  }
-
-  return kTRUE;
+    cdb->SetSpecificStorage("EMCAL/Align/Data","local:///Users/Jerus/custom_emcal_align");
+    cdb->Print();
+    
+    //check is there is a GRP object for this run
+    AliCDBStorage* defaultStorage = cdb->GetDefaultStorage();
+    if (!defaultStorage) AliFatal("At this point we really should have the default storage set!");
+    if (defaultStorage->GetId("GRP/GRP/Data", runNo))
+    {
+        cdb->SetRun(runNo);
+    }
+    else
+    {
+        //now if we don't have a GRP we need to get one from somewhere
+        ReceivePromptRecoParameters(runNo);
+    }
+    
+    //on run change destroy the mag field, it will be reinitialized via AssertMagField/InitGRP
+    if (runNo != cdb->GetRun())
+    {
+        delete TGeoGlobalMagField::Instance();
+        new TGeoGlobalMagField();
+        fgMaster->fgMagField=NULL;
+    }
+    
+    return kTRUE;
 }
 
 Bool_t AliEveEventManager::ReceivePromptRecoParameters(Int_t runNo)

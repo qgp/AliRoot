@@ -39,7 +39,6 @@ AliEveDataSourceOnline::AliEveDataSourceOnline(bool storageManager) :
     fEventManager = AliEveEventManager::GetMaster();
     
     StorageManagerDown(); // turn SM off by default
-    EventServerDown();    // assume that there are no events comming from online reco
     
     // start threads:
     fEventListenerThread = new TThread("fEventListenerThread",DispatchEventListener,(void*)this);
@@ -316,7 +315,6 @@ void AliEveDataSourceOnline::NextEvent()
             if(fCurrentEvent[fEventInUse]->GetRunNumber() >= 0)
             {
                 fFailCounter=0;
-                EventServerOk();
                 cout<<"================ setting event to "<<fCurrentEvent[fEventInUse]->GetEventNumberInFile()<<"================"<<endl;
                 
                 StorageManagerDown(); // block SM while event is being loaded
@@ -346,7 +344,6 @@ void AliEveDataSourceOnline::NextEvent()
     }
     if(fFailCounter==5)
     {
-        EventServerDown();
         fFailCounter=0;
     }
 #if ROOT_VERSION_CODE < ROOT_VERSION(5,99,0)
@@ -391,15 +388,6 @@ void AliEveDataSourceOnline::StorageManagerOk()
 void AliEveDataSourceOnline::StorageManagerDown()
 {
 //    Emit("StorageManagerDown()");
-}
-
-void AliEveDataSourceOnline::EventServerOk()
-{
-//    Emit("EventServerOk()");
-}
-void AliEveDataSourceOnline::EventServerDown()
-{
-//    Emit("EventServerDown()");
 }
 
 
