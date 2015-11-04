@@ -32,19 +32,24 @@ private:
     void SetUpPHOSGeometry();
     double GetPhi(double phi);
 
+    void AddEMCALClustersToEvent(AliMinimalisticEvent &event, Int_t id, Float_t amp, Float_t phi, Float_t eta);
+    void AddPHOSCalClusterToEvent(AliMinimalisticEvent &event, Int_t &id, Float_t &amp);
+
     AliESDEvent *fESDEvent;
-    
+
     TLorentzVector fClusterMomentum;  /// Current cluster kinematics in TLorentzVector
     AliESDCaloCluster *fCaloCluster; /// Pointer with current cluster info
-    
+
     AliEMCALGeometry *fGeomEM; /// EMCal geometry
     AliPHOSGeometry  *fGeomPH; /// PHOS geometry
-    
+
     AliESDCaloCells  *fCellsEM; /// List with EMCAL cells
     AliESDCaloCells  *fCellsPH; /// List with PHOS cells
-    
+
     AliConverterCalorimetersEngine(const AliConverterCalorimetersEngine&) {};
     AliConverterCalorimetersEngine& operator=(const AliConverterCalorimetersEngine&) {};
+
+
 };
 
 #endif
