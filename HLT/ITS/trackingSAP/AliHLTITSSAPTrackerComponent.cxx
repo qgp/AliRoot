@@ -484,7 +484,17 @@ int AliHLTITSSAPTrackerComponent::DoEvent
       }
     }
     else {
-      HLTWarning("No SPD vertex, skip ITS standalone reconstruction");
+      static int warningsent = 0;
+      
+      if (warningsent == 0)
+      {
+        HLTWarning("No SPD vertex, skip ITS standalone reconstruction, suppressing future warnings...");
+        warningsent = 1;
+      }
+      else
+      {
+        HLTInfo("No SPD vertex, skip ITS standalone reconstruction");
+      }
       return 0;
     }
   }  
