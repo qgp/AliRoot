@@ -30,5 +30,6 @@
 #pragma link C++ class AliHLTEMCALRawAnalyzerComponentTRU+;
 #pragma link C++ class AliHLTEMCALRawAnalyzerComponentSTU+;
 #pragma link C++ class AliHLTEMCALTriggerDataMakerComponent+;
+#pragma link C++ class AliHLTEMCALTriggerQAComponent+;
 
 #endif // __CINT__
