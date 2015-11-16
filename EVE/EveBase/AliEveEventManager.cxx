@@ -725,8 +725,8 @@ Bool_t AliEveEventManager::InitOCDB(int runNo)
             AliFatal("could not set the default OCDB!");
         }
     }
-    cdb->SetSpecificStorage("EMCAL/Align/Data","local:///Users/Jerus/custom_emcal_align");
-    cdb->Print();
+//    cdb->SetSpecificStorage("EMCAL/Align/Data","local:///Users/Jerus/custom_emcal_align");
+//    cdb->Print();
     
     //check is there is a GRP object for this run
     AliCDBStorage* defaultStorage = cdb->GetDefaultStorage();
