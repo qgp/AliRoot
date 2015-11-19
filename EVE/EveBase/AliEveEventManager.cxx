@@ -86,13 +86,13 @@ fEventId(-1),fEventInfo(),fHasEvent(kFALSE),fCurrentRun(-1),
 fCurrentData(&fEmptyData),fCurrentDataSource(NULL),fDataSourceOnline(NULL),fDataSourceOffline(NULL),fDataSourceHLTZMQ(NULL),
 fAutoLoad(kFALSE), fAutoLoadTime(5),fAutoLoadTimer(0),fAutoLoadTimerRunning(kFALSE),
 fGlobal(0),fGlobalReplace(kTRUE),fGlobalUpdate(kTRUE),fTransients(0),fTransientLists(0),
-fExecutor(0),fViewsSaver(0),fESDdrawer(0),fPEventSelector(0),
+fExecutor(0),fViewsSaver(0),fESDdrawer(0),fAODdrawer(0),fPEventSelector(0),
 fgGRPLoaded(false),
 fgMagField(0),
 fSaveViews(false),
 fDrawESDtracksByCategory(false),
 fDrawESDtracksByType(false),
-fFirstEvent(true)
+fDrawAODtracksByPID(false)
 {
     InitInternals();
     ChangeDataSource(defaultDataSource);
@@ -137,6 +137,7 @@ void AliEveEventManager::InitInternals()
     
     fViewsSaver = new AliEveSaveViews();
     fESDdrawer = new AliEveESDTracks();
+    fAODdrawer = new AliEveAODTracks();
     
 #ifdef ZMQ
     fDataSourceOnline = new AliEveDataSourceOnline();
@@ -262,12 +263,15 @@ AliESDEvent* AliEveEventManager::AssertESD()
     // Throws exception in case ESD is not available.
     // Static utility for macros.
     
-    static const TEveException kEH("AliEveEventManager::AssertESD ");
-    
-    if (fgMaster == 0 || fgMaster->fHasEvent == kFALSE)
-        throw (kEH + "ALICE event not ready.");
+    if (fgMaster == 0 || fgMaster->fHasEvent == kFALSE){
+        cout<<"AliEveEventManager::AssertESD() - ALICE event not ready."<<endl;
+        return 0;
+    }
     if (fgMaster->fCurrentData->fESD == 0)
-        throw (kEH + "AliESD not initialised.");
+    {
+        cout<<"AliEveEventManager::AssertESD() - AliESD not initialised."<<endl;
+        return 0;
+    }
     return fgMaster->fCurrentData->fESD;
 }
 
@@ -512,15 +516,26 @@ void AliEveEventManager::AfterNewEventLoaded()
     //
     // Virtual from TEveEventManager.
   
-    if (fCurrentData->fESD)
-      InitOCDB(fCurrentData->fESD->GetRunNumber());
+    if (fCurrentData->fESD){
+        InitOCDB(fCurrentData->fESD->GetRunNumber());
+    }
+    else if(fCurrentData->fAOD){
+        InitOCDB(fCurrentData->fAOD->GetRunNumber());
+    }
 
-    cout<<"AliEveEventManager::AfterNewEventLoaded ------------------!!!------------"<<endl;
+    cout<<"\n\n--------- AliEveEventManager::AfterNewEventLoaded ---------\n\n"<<endl;
     
     ElementChanged();
-    
     NewEventDataLoaded();
-    if (fExecutor) fExecutor->ExecMacros();
+    
+//    cout<<"\n\n-------- Executing registered macros ---------\n\n"<<endl;
+    if (fExecutor){
+        fExecutor->ExecMacros();
+    }
+    else{
+        cout<<"no macro executor..."<<endl;
+    }
+//    cout<<"\n\n-------- Macros have been executed ---------\n\n"<<endl;
     
     TEveEventManager::AfterNewEventLoaded();
     NewEventLoaded();
@@ -557,12 +572,6 @@ void AliEveEventManager::AfterNewEventLoaded()
         gEve->FullRedraw3D();
         gSystem->ProcessEvents();
         
-//        if(fFirstEvent)
-//        {
-//            gROOT->ProcessLine(".x geom_emcal.C");
-//            fFirstEvent=false;
-//        }
-        
         double zMax=50.;
         double xMax=40.;
         double yMax=40.;
@@ -594,6 +603,37 @@ void AliEveEventManager::AfterNewEventLoaded()
             fViewsSaver->SaveForAmore();
             fViewsSaver->SendToAmore();
         }
+    }
+    if(HasAOD())
+    {
+        if(fDrawAODtracksByPID)fAODdrawer->ByPID();
+        
+        Double_t x[3] = { 0, 0, 0 };
+        
+        AliAODEvent *aod = fCurrentData->fAOD;
+        
+        aod->GetPrimaryVertex()->GetXYZ(x);
+        
+        TTimeStamp ts(aod->GetTimeStamp());
+        TString win_title("Eve Main Window -- Timestamp: ");
+        win_title += ts.AsString("s");
+        win_title += "; Event: ";
+        win_title += aod->GetEventNumberInFile();
+        win_title += "; Run: ";
+        win_title += aod->GetRunNumber();
+        gEve->GetBrowser()->SetWindowName(win_title);
+        
+        TEveElement* top = gEve->GetCurrentEvent();
+        
+        AliEveMultiView *mv = AliEveMultiView::Instance();
+        
+        mv->ImportEventRPhi(top);
+        mv->ImportEventRhoZ(top);
+        mv->ImportEventMuon(top);
+        
+        gEve->GetBrowser()->RaiseWindow();
+        gEve->FullRedraw3D();
+        gSystem->ProcessEvents();
     }
 }
 
@@ -689,6 +729,7 @@ Bool_t AliEveEventManager::InitOCDB(int runNo)
 {
     //first check/set the default OCDB
     AliCDBManager* cdb = AliCDBManager::Instance();
+
     if (!cdb->IsDefaultStorageSet())
     {
         TEnv settings;
@@ -725,8 +766,6 @@ Bool_t AliEveEventManager::InitOCDB(int runNo)
             AliFatal("could not set the default OCDB!");
         }
     }
-//    cdb->SetSpecificStorage("EMCAL/Align/Data","local:///Users/Jerus/custom_emcal_align");
-//    cdb->Print();
     
     //check is there is a GRP object for this run
     AliCDBStorage* defaultStorage = cdb->GetDefaultStorage();
@@ -748,7 +787,6 @@ Bool_t AliEveEventManager::InitOCDB(int runNo)
         new TGeoGlobalMagField();
         fgMaster->fgMagField=NULL;
     }
-    
     return kTRUE;
 }
 

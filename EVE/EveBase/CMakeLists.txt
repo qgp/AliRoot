@@ -49,6 +49,7 @@ include_directories(${ROOT_INCLUDE_DIR}
 
 # Sources in alphabetical order
 set(SRCS
+    AliEveAODTracks.cxx
     AliEveApplication.cxx
     AliEveCascade.cxx
     AliEveCascadeEditor.cxx
