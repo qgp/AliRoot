@@ -51,6 +51,7 @@
 #include "AliVZEROdigit.h"
 #include "AliVZERODigitizer.h"
 #include "AliVZEROSDigit.h"
+#include "AliLog.h"
 
 ClassImp(AliVZERODigitizer)
 
@@ -193,7 +194,7 @@ Bool_t AliVZERODigitizer::Init()
 
     Int_t board = AliVZEROCalibData::GetBoardNumber(i);
     fNBins[i] = TMath::Nint(((Float_t)(fCalibData->GetMatchWindow(board)+1)*25.0+
-			     (Float_t)kMaxTDCWidth*fCalibData->GetWidthResolution(board))/
+			     (Float_t)(kMaxTDCWidth+1)*fCalibData->GetWidthResolution(board))/
 			    fCalibData->GetTimeResolution(board));
     fNBinsLT[i] = TMath::Nint(((Float_t)(fCalibData->GetMatchWindow(board)+1)*25.0)/
 			      fCalibData->GetTimeResolution(board));
@@ -210,6 +211,11 @@ Bool_t AliVZERODigitizer::Init()
 		       fCalibData->GetTimeOffset(i)-
 		       l1Delay+
 		       kV0Offset);
+    // Needed for Run2 data simulation
+    if (AliCDBManager::Instance()->GetRun() >= 215011) {
+      fHptdcOffset[i] -= 1.4;
+      fClockOffset[i] += 269.;
+    }
 
     fTime[i] = new Float_t[fNBins[i]];
     memset(fTime[i],0,fNBins[i]*sizeof(Float_t));
@@ -414,7 +420,13 @@ void AliVZERODigitizer::DigitizeHits()
 	       break;
 	     }
 	   }
-	   Float_t dt_scintillator = gRandom->Gaus(0,kIntTimeRes);
+	   Float_t dt_scintillator;
+	   if (AliCDBManager::Instance()->GetRun() < 215011) {
+	     dt_scintillator = gRandom->Gaus(0,kIntTimeRes);
+	   }
+	   else {
+	     dt_scintillator = gRandom->Gaus(0,kIntTimeResRing[pmt/8]);
+	   }
 	   Float_t t = dt_scintillator + 1e9*hit->Tof();
 	   if (pmt < 32) t += kV0CDelayCables;
 	   t += fHptdcOffset[pmt];
@@ -454,7 +466,7 @@ void AliVZERODigitizer::DigitizeSDigits()
   Float_t maximum = 0.9*fSignalShape->GetMaximum(0,200); // Not exact, one needs to do this on the convoluted
   Float_t integral2 = fSignalShape->Integral(0,200); // function. Anyway the effect is small <10% on the 2.5 ADC thr
   for (Int_t ipmt = 0; ipmt < 64; ++ipmt) {
-    Float_t thr = fCalibData->GetCalibDiscriThr(ipmt,kFALSE)*kChargePerADC*maximum*fBinSize[ipmt]/integral2;
+    Float_t thr = fCalibData->GetCalibDiscriThr(ipmt,kFALSE,AliCDBManager::Instance()->GetRun())*kChargePerADC*maximum*fBinSize[ipmt]/integral2;
     Bool_t ltFound = kFALSE, ttFound = kFALSE;
     for (Int_t iBin = 0; iBin < fNBins[ipmt]; ++iBin) {
       Float_t t = fBinSize[ipmt]*Float_t(iBin);

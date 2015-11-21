@@ -430,6 +430,8 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
 	}
 	fESDVZEROfriend->SetTime(pmNumber,digit->Time());
 	fESDVZEROfriend->SetWidth(pmNumber,digit->Width());
+	fESDVZEROfriend->SetBBFlag(pmNumber,AliVZEROdigit::kNClocks/2,aBBflag[pmNumber]);
+	fESDVZEROfriend->SetBGFlag(pmNumber,AliVZEROdigit::kNClocks/2,aBGflag[pmNumber]);
 
     } // end of loop over digits
   } // end of loop over events in digits tree
@@ -450,6 +452,15 @@ void AliVZEROReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,
     triggerMask.SetRecoParam(GetRecoParam());
     triggerMask.FillMasks(fESDVZERO, fCalibData, fTimeSlewing);
   }
+
+  // Fill BB and BG flags for all channel in 21 clocks (called past-future flags)
+  for(Int_t i = 0; i < 64; ++i) {
+    for (Int_t iEv = 0; iEv < AliESDVZEROfriend::kNEvOfInt; iEv++) {
+      fESDVZERO->SetPFBBFlag(i,iEv,fESDVZEROfriend->GetBBFlag(i,iEv));
+      fESDVZERO->SetPFBGFlag(i,iEv,fESDVZEROfriend->GetBGFlag(i,iEv));
+    }
+  }
+  fESDVZERO->SetBit(AliESDVZERO::kPastFutureFlagsFilled,kTRUE);
 
   if (esd) { 
      AliDebug(1, Form("Writing VZERO data to ESD tree"));
@@ -569,7 +580,7 @@ Float_t AliVZEROReconstructor::CorrectLeadingTime(Int_t i, Float_t time, Float_t
   if (adc < 1e-6) return time;
 
   // Slewing correction
-  Float_t thr = fCalibData->GetCalibDiscriThr(i,kTRUE);
+  Float_t thr = fCalibData->GetCalibDiscriThr(i,kTRUE,AliCDBManager::Instance()->GetRun());
   time -= fTimeSlewing->Eval(adc/thr);
 
   return time;

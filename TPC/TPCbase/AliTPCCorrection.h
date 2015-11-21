@@ -26,6 +26,7 @@ class AliESDVertex;
 class AliTPCCorrection : public TNamed {
 public:
   enum CompositionType {kParallel,kQueue};
+  enum IntegrationType {kIntegral, kDifferential};
 
   AliTPCCorrection();
   AliTPCCorrection(const char *name,const char *title);
@@ -70,7 +71,7 @@ public:
   TH2F* CreateHistoDZinZR   (Float_t phi=0.,Int_t nZ=100,Int_t nR=100);
 
 
-  TTree* CreateDistortionTree(Double_t step=5);
+  TTree* CreateDistortionTree(Double_t step=5, Int_t type=0);
   static void  MakeDistortionMap(THnSparse * his0, TTreeSRedirector *pcstream, const char* hname, Int_t run,  Float_t refX, Int_t type, Int_t integ=1);
   static void  MakeDistortionMapCosmic(THnSparse * his0, TTreeSRedirector *pcstream, const char* hname, Int_t run,  Float_t refX, Int_t type);
   static void  MakeDistortionMapSector(THnSparse * his0, TTreeSRedirector *pcstream, const char* hname, Int_t run, Int_t type);
@@ -101,6 +102,10 @@ public:
   static Double_t GetDistXYZDz(Double_t gx, Double_t gy, Double_t gz, Int_t axisType, Int_t corrType=0,Double_t delta=5);
   static Double_t GetDistXYZIntegrateZ(Double_t gx, Double_t gy, Double_t gz, Int_t axisType, Int_t corrType=0, Double_t delta=5);
 
+  //new sector correction functions
+  static Double_t GetCorrectionSector(Double_t sector, Double_t r, Double_t kZ, Int_t axisType, Int_t corrType=0);
+  static Double_t GetDistortionSector(Double_t sector, Double_t r, Double_t kZ, Int_t axisType, Int_t corrType=0);
+
 
 protected:
   TH2F* CreateTH2F(const char *name,const char *title,
@@ -109,7 +114,7 @@ protected:
 		   Int_t nbinsy,Double_t ylow,Double_t yup);
 
   static const Double_t fgkTPCZ0;       ///< nominal gating grid position
-  static const Double_t fgkIFCRadius;   ///< Mean Radius of the Inner Field Cage ( 82.43 min,  83.70 max) (cm)
+  static const Double_t fgkIFCRadius;   ///< Mean Radius of the Inner Field Cage ( 82.43 min,  83.70 max) (cm)/hera/alice/wiechula/calib/guiTrees
   static const Double_t fgkOFCRadius;   ///< Mean Radius of the Outer Field Cage (252.55 min, 256.45 max) (cm)
   static const Double_t fgkZOffSet;     ///< Offset from CE: calculate all distortions closer to CE as if at this point
   static const Double_t fgkCathodeV;    ///< Cathode Voltage (volts)
@@ -173,7 +178,7 @@ protected:
 			    TMatrixD **arrayofEroverEz, TMatrixD **arrayofEPhioverEz, TMatrixD **arrayofEz,
 			    Int_t rows, Int_t columns,  Int_t phislices,
 			    Float_t deltaphi, Int_t iterations, Int_t summetry,
-			    Bool_t rocDisplacement = kTRUE);
+                            Bool_t rocDisplacement = kTRUE, IntegrationType integrationType=kIntegral);
   void   SetIsLocal(Bool_t isLocal){fIsLocal=isLocal;}
   Bool_t IsLocal() const  { return fIsLocal;}
 protected:
@@ -181,6 +186,7 @@ protected:
   Double_t fT2;         ///< tensor term of wt - T2
   Bool_t fIsLocal;      ///< switch to indicate that the distortion is a local vector drphi/dz, dr/dz
   static TObjArray *fgVisualCorrection;  ///< array of orrection for visualization
+  IntegrationType fIntegrationType; ///< Presentation of the underlying corrections, integrated, or differential
 private:
   AliTPCCorrection(const AliTPCCorrection &);               // not implemented
   AliTPCCorrection &operator=(const AliTPCCorrection &);    // not implemented
@@ -188,7 +194,7 @@ private:
   void InitLookUpfulcrums();   // to initialize the grid of the look up table
 
   /// \cond CLASSIMP
-  ClassDef(AliTPCCorrection,5);
+  ClassDef(AliTPCCorrection,6);
   /// \endcond
 };
 

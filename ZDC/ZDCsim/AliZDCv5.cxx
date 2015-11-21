@@ -92,7 +92,8 @@ AliZDCv5::AliZDCv5() :
   fTDIAperturePos(5.5),
   fTDIApertureNeg(5.5),
   fTDIConfiguration(2),
-  fLumiLength(15.)
+  fLumiLength(15.),
+  fSwitchOnTrackRef(kFALSE)
 {
   //
   // Default constructor for Zero Degree Calorimeter
@@ -141,7 +142,8 @@ AliZDCv5::AliZDCv5(const char *name, const char *title) :
   fTDIAperturePos(5.5),
   fTDIApertureNeg(5.5),
   fTDIConfiguration(2),
-  fLumiLength(15.)  
+  fLumiLength(15.),
+  fSwitchOnTrackRef(kFALSE)  
 {
   //
   // Standard constructor for Zero Degree Calorimeter 
@@ -232,7 +234,7 @@ void AliZDCv5::CreateBeamLine()
   //
   // Create the beam line elements
   //
-  if(fOnlyZEM) printf("\n  Only ZEM configuration requested: no side-C beam pipe, no side-A hadronic ZDCs\n\n");
+  //if(fOnlyZEM) printf("\n  Only ZEM configuration requested: no side-C beam pipe, no side-A hadronic ZDCs\n\n");
   
   Double_t zd1=0., zd2=0., zCorrDip=0., zInnTrip=0., zD1=0.;
   Double_t tubpar[3]={0.,0.,0}, boxpar[3]={0.,0.,0};
@@ -259,7 +261,7 @@ void AliZDCv5::CreateBeamLine()
   //								//
   ////////////////////////////////////////////////////////////////
   
-if(!fOnlyZEM){  
+//if(!fOnlyZEM){  
   // -- Mother of the ZDCs (Vacuum PCON)
   zd1 = 1947.2;
   // zd1 = 1921.6;
@@ -384,7 +386,7 @@ if(!fOnlyZEM){
     boxpar[2] = 124.4/2.;
     printf("  AliZDCv5 -> C side injection collimator jaws: apertures +%1.2f/-%1.2f center %1.2f [cm]\n", 
     	fVCollSideCAperture, fVCollSideCApertureNeg,fVCollSideCCentreY);
-    TVirtualMC::GetMC()->Gsvolu("QCVC" , "BOX ", idtmed[15], boxpar, 3); 
+    TVirtualMC::GetMC()->Gsvolu("QCVC" , "BOX ", idtmed[14], boxpar, 3); 
     TVirtualMC::GetMC()->Gspos("QCVC", 1, "QE02", -boxpar[0],  fVCollSideCAperture+fVCollSideCCentreY+boxpar[1], -totLength1/2.+160.8+78.+148./2., 0, "ONLY");  
     TVirtualMC::GetMC()->Gspos("QCVC", 2, "QE02", -boxpar[0], -fVCollSideCApertureNeg+fVCollSideCCentreY-boxpar[1], -totLength1/2.+160.8+78.+148./2., 0, "ONLY");  
   }
@@ -664,8 +666,8 @@ if(!fOnlyZEM){
   pQCLext->AddNode(pQCLint, 1);
     
   zd1 += 90.1;
-  Double_t offset = 0.5;
-  zd1 = zd1+offset;
+  Double_t zoffset = 0.5;
+  zd1 = zd1+zoffset;
   
   //  second section : 2 tubes (ID = 54. OD = 58.)  
   tubpar[0] = 5.4/2.;
@@ -680,7 +682,7 @@ if(!fOnlyZEM){
   zd1 += 2.*tubpar[2];
   
   // transition x2zdc to recombination chamber : skewed cone  
-  conpar[0] = (10.-0.2-offset)/2.;
+  conpar[0] = (10.-0.2-zoffset)/2.;
   conpar[1] = 6.3/2.;
   conpar[2] = 7.0/2.;
   conpar[3] = 5.4/2.;
@@ -714,7 +716,7 @@ if(!fOnlyZEM){
     TVirtualMC::GetMC()->Gspos("QLUC", 1, "ZDCC", 0., 0.,  fPosZNC[2]+66.+boxpar[2], 0, "ONLY");
     printf("	C SIDE LUMINOMETER %1.2f < z < %1.2f\n",  fPosZNC[2]+66., fPosZNC[2]+66.+2*boxpar[2]);
   }
-}  	         
+//}  	         
   // --  END OF BEAM PIPE VOLUME DEFINITION FOR SIDE C (RB26 SIDE) 
   // ----------------------------------------------------------------
 
@@ -1091,10 +1093,10 @@ if(!fOnlyZEM){
   boxpar[0] = 11.0/2.;
   boxpar[1] = 9.0/2.;
   boxpar[2] = 78.0/2.;
-  TVirtualMC::GetMC()->Gsvolu("QTDAL1", "BOX ", idtmed[14], boxpar, 3);
+  TVirtualMC::GetMC()->Gsvolu("QTDAL1", "BOX ", idtmed[13], boxpar, 3);
   TVirtualMC::GetMC()->Gspos("QTDAL1", 1, "Q13TM", -4., boxpar[1]+fTDIAperturePos, zjaw12+boxpar[2], 0, "ONLY");
   //
-  TVirtualMC::GetMC()->Gsvolu("QTDAL2", "BOX ", idtmed[14], boxpar, 3);
+  TVirtualMC::GetMC()->Gsvolu("QTDAL2", "BOX ", idtmed[13], boxpar, 3);
   TVirtualMC::GetMC()->Gspos("QTDAL2", 1, "Q13TM", -4., -boxpar[1]-fTDIApertureNeg, zjaw12+boxpar[2], 0, "ONLY");  
   //Ch. debug
   printf("   TDI 1st TDI jaw/2nd section (Al): %f < z < %f cm\n", zjaw12, zjaw12+2.*boxpar[2]);  
@@ -1104,10 +1106,10 @@ if(!fOnlyZEM){
   boxpar[0] = 11.0/2.;
   boxpar[1] = 9.0/2.;
   boxpar[2] = 170.0/2.;
-  TVirtualMC::GetMC()->Gsvolu("QTDG1", "BOX ", idtmed[15], boxpar, 3);
+  TVirtualMC::GetMC()->Gsvolu("QTDG1", "BOX ", idtmed[14], boxpar, 3);
   TVirtualMC::GetMC()->Gspos("QTDG1", 1, "Q13TM", -3.8, boxpar[1]+fTDIAperturePos,  zjaw2+boxpar[2], 0, "ONLY");
   //
-  TVirtualMC::GetMC()->Gsvolu("QTDG2", "BOX ", idtmed[15], boxpar, 3);
+  TVirtualMC::GetMC()->Gsvolu("QTDG2", "BOX ", idtmed[14], boxpar, 3);
   TVirtualMC::GetMC()->Gspos("QTDG2", 1, "Q13TM", -3.8, -boxpar[1]-fTDIApertureNeg,  zjaw2+boxpar[2], 0, "ONLY");  
   //Ch. debug
   printf("   TDI 2nd jaw (graphite): %f < z < %f\n", zjaw2, zjaw2+2*boxpar[2]);  
@@ -1117,10 +1119,10 @@ if(!fOnlyZEM){
   boxpar[0] = 11.0/2.;
   boxpar[1] = 9.0/2.;
   boxpar[2] = 170.0/2.;
-  TVirtualMC::GetMC()->Gsvolu("QTDG3", "BOX ", idtmed[15], boxpar, 3);
+  TVirtualMC::GetMC()->Gsvolu("QTDG3", "BOX ", idtmed[14], boxpar, 3);
   TVirtualMC::GetMC()->Gspos("QTDG3", 1, "Q13TM", -3.8, boxpar[1]+fTDIAperturePos,  zjaw3+boxpar[2], 0, "ONLY");
   //
-  TVirtualMC::GetMC()->Gsvolu("QTDG4", "BOX ", idtmed[15], boxpar, 3);
+  TVirtualMC::GetMC()->Gsvolu("QTDG4", "BOX ", idtmed[14], boxpar, 3);
   TVirtualMC::GetMC()->Gspos("QTDG4", 1, "Q13TM", -3.8, -boxpar[1]-fTDIApertureNeg, zjaw3+boxpar[2], 0, "ONLY");  
   //Ch. debug
   printf("   TDI 3rd jaw (graphite): %f < z < %f\n", zjaw3, zjaw3+2*boxpar[2]);
@@ -2298,7 +2300,7 @@ void AliZDCv5::CreateMaterials()
   AliMaterial(14, "ALUM", 26.98, 13., 2.7, 8.9, 0., ubuf, 1);
   
   // --- Carbon 
-  AliMaterial(15, "GRAP", 12.011, 6., 2.2, 18.8, 0., ubuf, 1);
+  AliMaterial(15, "GRAPH", 12.011, 6., 2.265, 18.8, 49.9);
     
   // ---------------------------------------------------------  
   Float_t aResGas[3]={1.008,12.0107,15.9994};
@@ -2364,10 +2366,8 @@ void AliZDCv5::CreateMaterials()
   AliMedium(10,"ZVOID",10, isvol, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
   AliMedium(11,"ZVOIM",11, isvol, ifield, fieldm, tmaxfdv, stemax, deemax, epsil, stmin);
   AliMedium(12,"ZAIR", 12, isvolActive, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
-  AliMedium(13,"ZTANT",13, isvolActive, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
-  AliMedium(14,"ZALUM",14, isvol, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
-  AliMedium(15,"ZGRAP",15, isvol, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
-  AliMedium(16,"ZIRONT",7, isvol, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  AliMedium(13,"ZALUM",13, isvol, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
+  AliMedium(14,"ZGRAPH",14, isvolActive, inofld, nofieldm, tmaxfd, stemax, deemax, epsil, stmin);
 
 } 
 
@@ -2379,7 +2379,7 @@ void AliZDCv5::AddAlignableVolumes() const
  // name with the corresponding volume path. Needs to be syncronized with
  // eventual changes in the geometry.
  //
- if(fOnlyZEM) return;
+ //if(fOnlyZEM) return;
  
  TString volpath1 = "ALIC_1/ZDCC_1/ZNEU_1";
  TString volpath2 = "ALIC_1/ZDCC_1/ZPRO_1";
@@ -2421,7 +2421,7 @@ void AliZDCv5::Init()
   fMedSensPI     = idtmed[7];  // Sensitive volume: beam pipes
   fMedSensLumi   = idtmed[9];  // Sensitive volume: luminometer
   fMedSensGR     = idtmed[12]; // Sensitive volume: air into the grooves
-  fMedSensVColl  = idtmed[13]; // Sensitive volume: collimator jaws
+  fMedSensVColl  = idtmed[14]; // Sensitive volume: collimator vertical jaws
 }
 
 //_____________________________________________________________________________
@@ -2696,7 +2696,8 @@ void AliZDCv5::StepManager()
     }
     else if(!strncmp(knamed,"ZE",2)) vol[0]=3; //ZEM
     // February 2015: Adding TrackReference
-    if(TVirtualMC::GetMC()->IsTrackEntering() || TVirtualMC::GetMC()->IsTrackExiting()) {
+    // June 2015: adding a switch for track reference!!!
+    if(fSwitchOnTrackRef==kTRUE && (TVirtualMC::GetMC()->IsTrackEntering() || TVirtualMC::GetMC()->IsTrackExiting())) {
        AliTrackReference* trackRef = AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kZDC);
        if(vol[0]>0){
          trackRef->SetUserId(vol[0]);

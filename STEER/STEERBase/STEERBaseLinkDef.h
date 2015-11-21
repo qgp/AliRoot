@@ -25,6 +25,7 @@
 #pragma link C++ class AliVEventPool+;
 #pragma link C++ class AliVCuts+;
 #pragma link C++ class AliVVZERO+;
+#pragma link C++ class AliVVZEROfriend+;
 #pragma link C++ class AliVZDC+;
 #pragma link C++ class AliVAD+;
 #pragma link C++ class AliCentrality+;
@@ -58,6 +59,7 @@
 #pragma link C++ class AliGenDPMjetEventHeader+;
 #pragma link C++ class AliGenHerwigEventHeader+;
 #pragma link C++ class AliGenGeVSimEventHeader+;
+#pragma link C++ class AliGenEpos3EventHeader+;
 #pragma link C++ class AliGenEposEventHeader+;
 #pragma link C++ class AliStack+;
 #pragma link C++ class AliMCEventHandler+;
@@ -147,6 +149,7 @@
 #pragma link C++ class AliGenHepMCEventHeader+;
 #pragma link C++ class AliMergeableCollection+;
 #pragma link C++ class AliMergeableCollectionIterator+;
+#pragma link C++ class AliMergeableCollectionProxy+;
 
 #pragma link C++ class AliVersion+;
 

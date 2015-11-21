@@ -118,10 +118,15 @@ public:
   virtual ~AliEMCALGeometry(void); 
   AliEMCALGeometry & operator = (const AliEMCALGeometry  & rvalue);
   
-  static AliEMCALGeometry * GetInstance(const Text_t* name,      const Text_t* title="",
-                                        const Text_t* mcname="TGeant3", const Text_t* mctitle="") ; 
   static AliEMCALGeometry * GetInstance();
 
+  static AliEMCALGeometry * GetInstance(const Text_t* name,               const Text_t* title  =  "",
+                                        const Text_t* mcname = "TGeant3", const Text_t* mctitle = "" ) ; 
+  
+  static AliEMCALGeometry * GetInstanceFromRunNumber(Int_t runNumber, 
+                                                     TString geoName = "",
+                                                     const Text_t* mcname  = "TGeant3", 
+                                                     const Text_t* mctitle = ""        ) ;
 
   //////////
   // General
@@ -303,6 +308,9 @@ public:
 					      Int_t &iphim, Int_t &ietam, Int_t &nModule) const;
   Int_t   GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t ieta) const;
 
+  void    ShiftOnlineToOfflineCellIndexes(Int_t sm, Int_t & iphi, Int_t & ieta) const ;
+  void    ShiftOfflineToOnlineCellIndexes(Int_t sm, Int_t & iphi, Int_t & ieta) const ;
+  
   // Methods for AliEMCALRecPoint - Feb 19, 2006
   Bool_t  RelPosCellInSModule(Int_t absId, 
                               Double_t &xr, Double_t &yr, Double_t &zr) const;
@@ -339,7 +347,8 @@ public:
                                 const Float_t misaligTransShifts[15], const Float_t misaligRotShifts[15],Float_t global[3]) const;
   
   //Returns shift-rotational matrixes for different volumes
-  const TGeoHMatrix * GetMatrixForSuperModule(Int_t smod)const ;
+  const TGeoHMatrix * GetMatrixForSuperModule(Int_t smod) const ;
+  const TGeoHMatrix * GetMatrixForSuperModuleFromGeoManager(Int_t smod) const ;
 	
   Bool_t GetAbsFastORIndexFromTRU(const Int_t iTRU, const Int_t iADC, Int_t& id) const { 
     return fTriggerMapping->GetAbsFastORIndexFromTRU(iTRU, iADC, id);
@@ -371,8 +380,8 @@ public:
   Bool_t GetCellIndexFromFastORIndex(const Int_t id, Int_t idx[4]) const { 
     return fTriggerMapping->GetCellIndexFromFastORIndex(id, idx);
   }
-  Bool_t GetTRUIndexFromSTUIndex(const Int_t id, Int_t& idx) const { 
-    return fTriggerMapping->GetTRUIndexFromSTUIndex(id, idx);
+  Bool_t GetTRUIndexFromSTUIndex(const Int_t id, Int_t& idx, Int_t detector) const { 
+    return fTriggerMapping->GetTRUIndexFromSTUIndex(id, idx, detector);
   }
   Bool_t GetTRUIndexFromOnlineIndex(const Int_t id, Int_t& idx) const { 
     return fTriggerMapping->GetTRUIndexFromOnlineIndex(id, idx);
@@ -383,8 +392,8 @@ public:
   Bool_t GetFastORIndexFromL0Index(const Int_t iTRU, const Int_t id, Int_t idx[], const Int_t size) const { 
     return fTriggerMapping->GetFastORIndexFromL0Index(iTRU, id, idx, size);
   }
-  Int_t  GetTRUIndexFromSTUIndex(const Int_t id) const { 
-    return fTriggerMapping->GetTRUIndexFromSTUIndex(id);
+  Int_t  GetTRUIndexFromSTUIndex(const Int_t id, Int_t detector) const { 
+    return fTriggerMapping->GetTRUIndexFromSTUIndex(id, detector);
   }
   Int_t  GetTRUIndexFromOnlineIndex(const Int_t id) const { 
     return fTriggerMapping->GetTRUIndexFromOnlineIndex(id);
@@ -395,7 +404,9 @@ public:
   Int_t  GetNTotalTRU() const { 
     return fTriggerMapping->GetNTRU(); 
   }
-
+  Int_t GetTRUIndexFromOnlineHwAdd(Int_t hwAdd, Int_t ddl, Int_t sm)const{
+    return fTriggerMapping->GetTRUIndexFromOnlineHwAdd(hwAdd, ddl, sm);
+  }
   
 protected:
 

@@ -106,6 +106,10 @@ class AliHLTTPCClusterAccessHLTOUT : public TObject
   /// process the cluster data block of various formats from HLTOUT
   int ProcessClusters(const char* params);
 
+  /// scan parameters
+  /// known: sector=<n> row=<n>
+  int ScanParameters(const char* params);
+
   /// helper struct to store cluster in a map together with MC info
   struct AliRawClusterEntry {
     AliRawClusterEntry() : fCluster(), fMC() {}
@@ -152,8 +156,8 @@ class AliHLTTPCClusterAccessHLTOUT : public TObject
       void SetPadRow(int row)          {if (fEntry ) fEntry->fCluster.SetPadRow(row-fRowOffset);}
       void SetPad(float pad) 	       {if (fEntry ) fEntry->fCluster.SetPad(pad);}
       void SetTime(float time) 	       {if (fEntry ) fEntry->fCluster.SetTime(time);}
-      void SetSigmaY2(float sigmaY2)   {if (fEntry ) fEntry->fCluster.SetSigmaY2(sigmaY2);}
-      void SetSigmaZ2(float sigmaZ2)   {if (fEntry ) fEntry->fCluster.SetSigmaZ2(sigmaZ2);}
+      void SetSigmaY2(float sigmaY2)   {if (fEntry ) fEntry->fCluster.SetSigmaPad2(sigmaY2);}
+      void SetSigmaZ2(float sigmaZ2)   {if (fEntry ) fEntry->fCluster.SetSigmaTime2(sigmaZ2);}
       void SetCharge(unsigned charge)  {if (fEntry ) fEntry->fCluster.SetCharge(charge);}
       void SetQMax(unsigned qmax)      {if (fEntry ) fEntry->fCluster.SetQMax(qmax);}
       iterator& operator=(const AliHLTTPCRawCluster& rawcluster) {if (fEntry ) {
@@ -189,6 +193,10 @@ class AliHLTTPCClusterAccessHLTOUT : public TObject
     /// iterator of track model clusters
     iterator& BeginTrackModelClusterBlock(int count);
 
+    /// check if the container is filled
+    bool HaveData() const {return fHaveData;}
+    /// mark the container valid
+    void MarkValid() {fHaveData=true;}
     /// internal cleanup
     virtual void  Clear(Option_t * option="");
     /// get the cluster array for a sector
@@ -211,6 +219,7 @@ class AliHLTTPCClusterAccessHLTOUT : public TObject
     vector<AliRawClusterEntryVector*> fClusterMaps; //! cluster pointer vectors per sector (offline notation 0-71)
     TClonesArray* fSectorArray; //! current sector array of clusters provided to caller
     iterator fIterator; //!
+    bool fHaveData; //! indivate that the container is filled
   };
 
  private:
@@ -229,6 +238,7 @@ class AliHLTTPCClusterAccessHLTOUT : public TObject
   int fVerbosity; //! verbosity level
   AliRawClusterContainer* fClusters; //! cluster container
   int fCurrentSector; //! current sector
+  int fCurrentRow; //! current row
   AliHLTTPCDataCompressionDecoder* fpDecoder; //! decoder instance
   AliTPCParam* fTPCParam; //! pointer to TPC param
 

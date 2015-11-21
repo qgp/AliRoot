@@ -32,17 +32,19 @@ public:
   enum HRawType_t {
   		   kChargeADA,kChargeADC,kChargeEoI,kChargeEoIBB,kChargeEoIBG,
 		   kHPTDCTime,kHPTDCTimeBB,kHPTDCTimeBG,kWidth,
-		   kChargeVsClockInt0,kChargeVsClockInt1,kBBFlagVsClock,kBGFlagVsClock,
+		   kHPTDCTimeRebin,kHPTDCTimeRebinBB,kHPTDCTimeRebinBG,
+		   kBBFlagVsClock,kBGFlagVsClock,kBBFlagsPerChannel,kBGFlagsPerChannel,
+		   kChargeVsClockInt0,kChargeVsClockInt1,kMaxChargeClock,
 		   kNBBCoincADA,kNBBCoincADC,kNBGCoincADA,kNBGCoincADC,
 		   kPedestalDiffInt0,kPedestalDiffInt1,
-		   kChargeEoIInt0,kChargeEoIInt1,
+		   kChargeEoIInt0,kChargeEoIInt1,kChargeSaturation,
 		   kNBBCoincCorr,kNBGCoincCorr,
-		   kTriggers,
+		   kTriggers,kDecisions,
 		   kMeanTimeADA,kMeanTimeADC,kMeanTimeDiff,kMeanTimeCorr,kMeanTimeSumDiff,
 		   kPedestalInt0,kPedestalInt1,
+		   kNEventsBBFlag,kNEventsBGFlag,
 		   kFlagNoTime,kTimeNoFlag,
 		   kWidthBB,kWidthBG,
-		   kBBFlagsPerChannel,kBGFlagsPerChannel,
 		   kTimeSlewingOff,kTimeSlewingOn,kWidthSlewing,
 		   kMultiADA,kMultiADC,kChargeAD, 
 		   
@@ -57,7 +59,8 @@ public:
 		   
   enum HESDType_t {kCellMultiADA,kCellMultiADC,
 		   kBBFlag,kBGFlag,kChargeChannel,kTimeChannel,
-		   kESDADATime,kESDADCTime,kESDDiffTime};
+		   kESDADATime,kESDADCTime,kESDDiffTime,kESDADATimeVsCharge,kESDADCTimeVsCharge,
+		   kESDADAPairTimeSumDiff,kESDADCPairTimeSumDiff};
 	
 public:
   AliADQADataMakerRec() ;            // constructor
@@ -86,14 +89,14 @@ private:
   
   Int_t   fEven[16];                  // even charge integrators
   Int_t   fOdd[16];                   // odd charge intergators
-  Float_t fADCmean[32];              // mean adc per integrator
+  Float_t fADCmean[32];               // mean adc per integrator
   size_t fTrendingUpdateTime;         // trending histos update time
   UInt_t fCycleStartTime;             // timestamp of QA start-of-cycle
   UInt_t fCycleStopTime;              // timestamp of QA end-of-cycle
-  Float_t            fTimeOffset[16]; //! HPTDC time offsets channel by channel
-  TF1*               fTimeSlewing;    //! Function for time slewing correction
+  Float_t fADADist;     	      // Z position of ADA
+  Float_t fADCDist;     	      // Z position of ADC
 
-  ClassDef(AliADQADataMakerRec,1)  // description 
+  ClassDef(AliADQADataMakerRec,3)  // description 
 
 };
 

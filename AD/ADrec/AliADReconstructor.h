@@ -17,11 +17,13 @@
 #include "AliCDBStorage.h"
 #include "AliCDBEntry.h"
 #include "AliADRecoParam.h"
+#include "TSpline.h"
 
 class AliESDAD;
 class AliESDADfriend;
 class AliESDEvent;
 class AliADCalibData;
+class TSpline3;
 
 class AliADReconstructor: public AliReconstructor {
 public:
@@ -48,8 +50,11 @@ public:
 
   AliCDBStorage     *SetStorage(const char* uri);
   void GetCollisionMode();
+  Double_t GetZPosition(const char* symname);
 
   AliADCalibData *GetCalibData() const; 
+  void GetTimeSlewingSplines();
+  Float_t CorrectLeadingTime(Int_t i, Float_t time, Float_t adc) const;
 
   enum {kInvalidADC   =  -1024,
         kInvalidTime  =  -1024};
@@ -71,8 +76,11 @@ private:
   
   Int_t              fCollisionMode;  // =0->p-p, =1->A-A
   Float_t            fBeamEnergy;     // beam energy
+  Float_t            fHptdcOffset[16];  //! HPTDC time offsets channel by channel
+  TSpline3	     *fTimeSlewingSpline[16]; //Time slewing splines
+  Float_t	     fLayerDist[4];    //Z position of layers
 
-  ClassDef(AliADReconstructor, 1)  // class for the AD reconstruction
+  ClassDef(AliADReconstructor, 4)  // class for the AD reconstruction
 };
 
 #endif

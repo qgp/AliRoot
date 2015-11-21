@@ -61,7 +61,7 @@ void AliTRDCreateLocalGain(Bool_t residual)
 
   
   AliCDBManager *man = AliCDBManager::Instance();
-  gStorLoc = man->GetStorage("local://.");
+  gStorLoc = man->GetStorage("local://$ALICE_ROOT/OCDB");
   if (!gStorLoc)
     return;
 
@@ -72,7 +72,7 @@ void AliTRDCreateLocalGain(Bool_t residual)
   
   metaData = CreateMetaObject("AliTRDCalOnlineGainTable");
   
-  file = TFile::Open("Gaintbl_Uniform_FGAN8_2015-01.root");
+  file = TFile::Open("$ALICE_ROOT/data/Gaintbl_Uniform_FGAN8_2015-01.root");
   AliTRDCalOnlineGainTable *cal = (AliTRDCalOnlineGainTable *) file->Get("AliTRDCalOnlineGainTable");
   StoreObject("TRD/Calib/Gaintbl_Uniform_FGAN8_2015-01", (TObject *)cal, metaData);
 

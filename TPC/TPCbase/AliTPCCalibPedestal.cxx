@@ -376,9 +376,7 @@ Int_t AliTPCCalibPedestal::Update(const Int_t icsector,
   // Attention: the entry counter of the histogram is not increased
   //            this means that e.g. the colz draw option gives an empty plot
   Int_t bin = (iChannel+1)*(fAdcMax-fAdcMin+2)+((Int_t)csignal-fAdcMin+1);
-
   GetHistoPedestal(icsector,kTRUE)->GetArray()[bin]++;
-
   return 0;
 }
 
@@ -508,6 +506,10 @@ void AliTPCCalibPedestal::Merge(AliTPCCalibPedestal * const ped)
   MergeBase(ped);
   // merge histograms
   for (Int_t iSec=0; iSec<72; ++iSec){
+    // update entry counter. This is needed due to the fast filling approach
+    if (GetHistoPedestal(iSec)) GetHistoPedestal(iSec)->SetEntries(GetHistoPedestal(iSec)->Integral());
+    if (ped->GetHistoPedestal(iSec)) ped->GetHistoPedestal(iSec)->SetEntries(ped->GetHistoPedestal(iSec)->Integral());
+
     TH2F *hRefPedMerge   = ped->GetHistoPedestal(iSec);
     
     if ( hRefPedMerge ){
@@ -567,6 +569,7 @@ void AliTPCCalibPedestal::Analyse()
   for (Int_t iSec=0; iSec<72; ++iSec){
     TH2F *hP = GetHistoPedestal(iSec);
     if ( !hP ) continue;
+    hP->SetEntries(hP->Integral());
 
     AliTPCCalROC *rocPedestal = GetCalRocPedestal(iSec,kTRUE);
     AliTPCCalROC *rocSigma    = GetCalRocSigma(iSec,kTRUE);

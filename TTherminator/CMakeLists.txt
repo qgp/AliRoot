@@ -83,7 +83,7 @@ install(TARGETS ${MODULE}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib)
 
-install(FILES ${HDRS} DESTINATION include)
+install(DIRECTORY data DESTINATION TTherminator)
 
 # This custom command installs headers preserving their relative subdirectories
 install_relative(FILES ${HDRS} DESTINATION include)

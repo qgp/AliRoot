@@ -62,7 +62,17 @@ AliADQAChecker::AliADQAChecker() : AliQACheckerBase("AD","AD Quality Assurance D
   fMaxPedDiff(1),
   fMaxPedWidth(1.5),
   fChargeChannelZoomMin(0),
-  fChargeChannelZoomMax(50)
+  fChargeChannelZoomMax(50),
+  fTimeRatioBBZoomMin(170),
+  fTimeRatioBBZoomMax(210),
+  fTimeRatioBGZoomMin(50),
+  fTimeRatioBGZoomMax(90),
+  fMaxNoTimeRate(10e-3),
+  fMaxNoFlagRate(10e-2),
+  fMaxBBVariation(5),
+  fMaxBGVariation(5),
+  fAsynchronBB(0.5),
+  fAsynchronBG(0.5)
 {
   fQAParam = (AliADQAParam*)GetQAParam();
   fSatMed = fQAParam->GetSatMed();
@@ -72,6 +82,16 @@ AliADQAChecker::AliADQAChecker() : AliQACheckerBase("AD","AD Quality Assurance D
   fMaxPedWidth = fQAParam->GetMaxPedWidth();
   fChargeChannelZoomMin = fQAParam->GetChargeChannelZoomMin();
   fChargeChannelZoomMax = fQAParam->GetChargeChannelZoomMax();
+  fTimeRatioBBZoomMin =  fQAParam->GetTdcTimeMinBBFlag();
+  fTimeRatioBBZoomMax =  fQAParam->GetTdcTimeMaxBBFlag();
+  fTimeRatioBGZoomMin =  fQAParam->GetTdcTimeMinBGFlag();
+  fTimeRatioBGZoomMax =  fQAParam->GetTdcTimeMaxBGFlag();
+  fMaxNoTimeRate = fQAParam->GetMaxNoTimeRate();
+  fMaxNoFlagRate = fQAParam->GetMaxNoFlagRate();
+  fMaxBBVariation = fQAParam->GetMaxBBVariation();
+  fMaxBGVariation = fQAParam->GetMaxBGVariation();
+  fAsynchronBB = fQAParam->GetAsynchronBB();
+  fAsynchronBG = fQAParam->GetAsynchronBG();
 }
 
 //____________________________________________________________________________
@@ -82,14 +102,9 @@ AliADQAParam* AliADQAChecker::GetQAParam() const
 
   AliCDBEntry *entry=0;
 
-  entry = man->Get("AD/Calib/QAParam",AliQAChecker::Instance()->GetRunNumber());
-  if(!entry){
-    AliWarning("Load of QA param from default storage failed!");
-    AliWarning("QA parameters will be loaded from local storage ($ALICE_ROOT)");
-	
-    man->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
-    entry = man->Get("AD/Calib/QAParam",AliQAChecker::Instance()->GetRunNumber());
-  }
+  entry = man->Get("AD/Calib/QAParam");
+  if(!entry)AliWarning("Load of QA param from default storage failed!");
+ 
   // Retrieval of data in directory AD/Calib/QA:
 
   AliADQAParam *QAParam = 0;
@@ -233,11 +248,13 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
     AliWarning("There are no histograms to be checked");
   }
   else {
+    Float_t nEvents;
     TH1F *hChargeADA = (TH1F*)list->At(AliADQADataMakerRec::kChargeADA);
     if (!hChargeADA) {
       AliWarning("ChargeADA histogram is not found");
     }
     else {
+    	nEvents = hChargeADA->Integral(-1,-1);
     	if(hChargeADA->GetListOfFunctions()->GetEntries()<1) hChargeADA->GetListOfFunctions()->Add(new TPaveText(0.43,0.70,0.66,0.83,"NDC"));
     	for(Int_t i=0; i<hChargeADA->GetListOfFunctions()->GetEntries(); i++){
      		TString funcName = hChargeADA->GetListOfFunctions()->At(i)->ClassName();
@@ -279,6 +296,195 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
     			}
 		}
     	}
+    TH1F *hTriggers = (TH1F*)list->At(AliADQADataMakerRec::kTriggers);
+    if (!hTriggers) {
+      AliWarning("Triggers histogram is not found");
+    }
+    else {
+    	if(hTriggers->GetListOfFunctions()->GetEntries()<1) hTriggers->GetListOfFunctions()->Add(new TPaveText(0.56,0.73,0.72,0.85,"NDC"));
+    	for(Int_t i=0; i<hTriggers->GetListOfFunctions()->GetEntries(); i++){
+     		TString funcName = hTriggers->GetListOfFunctions()->At(i)->ClassName();
+     		if(funcName.Contains("TPaveText")){
+      			TPaveText *QAbox = (TPaveText*)hTriggers->GetListOfFunctions()->At(i);
+      			
+			TString nEventsText = " Number of events = ";
+			Char_t eventsValue[10];
+			sprintf(eventsValue, "%.0f", nEvents);
+			nEventsText += eventsValue;
+			
+			QAbox->Clear();
+			QAbox->SetFillColor(kWhite);
+        		QAbox->SetTextColor(kAzure-8);
+			QAbox->AddText(nEventsText.Data());				
+    			}
+		}
+    	}
+    TH1F *hFlagNoTime = (TH1F*)list->At(AliADQADataMakerRec::kFlagNoTime);
+    if (!hFlagNoTime) {
+      AliWarning("FlagNoTime histogram is not found");
+    }
+    else {
+    	if(hFlagNoTime->GetListOfFunctions()->GetEntries()<1) hFlagNoTime->GetListOfFunctions()->Add(new TPaveText(0.15,0.67,0.85,0.76,"NDC"));
+    	for(Int_t i=0; i<hFlagNoTime->GetListOfFunctions()->GetEntries(); i++){
+     		TString funcName = hFlagNoTime->GetListOfFunctions()->At(i)->ClassName();
+     		if(funcName.Contains("TPaveText")){
+      			TPaveText *QAbox = (TPaveText*)hFlagNoTime->GetListOfFunctions()->At(i);
+      			
+			TH1F *histoRate = (TH1F*)hFlagNoTime->Clone("histoRate");
+			histoRate->Sumw2();
+			if(nEvents != 0) histoRate->Scale(1/nEvents);
+			Int_t NbadChannels = 0;
+			TString badChannels = "No time rate too high, ch:";
+			
+			for(Int_t i=0; i<16; i++){
+				if(histoRate->GetBinContent(i+1)>fMaxNoTimeRate) {
+					test = 0.3;
+					badChannels += i;
+					badChannels += ", ";
+					NbadChannels++;
+					}
+				}
+			if(NbadChannels != 0){
+				QAbox->Clear();
+				QAbox->SetFillColor(kRed); 
+				QAbox->AddText(badChannels.Data());
+				}
+			else{
+				QAbox->Clear();
+				QAbox->SetFillColor(kGreen);
+				QAbox->AddText("No time rate OK");				
+    				}
+			}
+    		}
+    	}
+    TH1F *hTimeNoFlag = (TH1F*)list->At(AliADQADataMakerRec::kTimeNoFlag);
+    if (!hTimeNoFlag) {
+      AliWarning("TimeNoFlag histogram is not found");
+    }
+    else {
+    	if(hTimeNoFlag->GetListOfFunctions()->GetEntries()<1) hTimeNoFlag->GetListOfFunctions()->Add(new TPaveText(0.15,0.56,0.85,0.65,"NDC"));
+    	for(Int_t i=0; i<hTimeNoFlag->GetListOfFunctions()->GetEntries(); i++){
+     		TString funcName = hTimeNoFlag->GetListOfFunctions()->At(i)->ClassName();
+     		if(funcName.Contains("TPaveText")){
+      			TPaveText *QAbox = (TPaveText*)hTimeNoFlag->GetListOfFunctions()->At(i);
+      			
+			TH1F *histoRate = (TH1F*)hTimeNoFlag->Clone("histoRate");
+			histoRate->Sumw2();
+			if(nEvents != 0) histoRate->Scale(1/nEvents);
+			Int_t NbadChannels = 0;
+			TString badChannels = "No flag rate too high, ch: ";
+			
+			for(Int_t i=0; i<16; i++){
+				if(histoRate->GetBinContent(i+1)>fMaxNoFlagRate) {
+					test = 0.3;
+					badChannels += i;
+					badChannels += ", ";
+					NbadChannels++;
+					}
+				}
+			if(NbadChannels != 0){
+				QAbox->Clear();
+				QAbox->SetFillColor(kRed); 
+				QAbox->AddText(badChannels.Data());
+				}
+			else{
+				QAbox->Clear();
+				QAbox->SetFillColor(kGreen);
+				QAbox->AddText("No flag rate OK");				
+    				}
+			}
+    		}
+    	}
+    TH1F *hNEventsBBFlag = (TH1F*)list->At(AliADQADataMakerRec::kNEventsBBFlag);
+    if (!hNEventsBBFlag) {
+      AliWarning("NEventsBBFlag histogram is not found");
+    }
+    else {
+    	if(hNEventsBBFlag->GetListOfFunctions()->GetEntries()<1) hNEventsBBFlag->GetListOfFunctions()->Add(new TPaveText(0.15,0.67,0.85,0.76,"NDC"));
+    	for(Int_t i=0; i<hNEventsBBFlag->GetListOfFunctions()->GetEntries(); i++){
+     		TString funcName = hNEventsBBFlag->GetListOfFunctions()->At(i)->ClassName();
+     		if(funcName.Contains("TPaveText")){
+      			TPaveText *QAbox = (TPaveText*)hNEventsBBFlag->GetListOfFunctions()->At(i);
+      			
+			TH1F *histoRate = (TH1F*)hNEventsBBFlag->Clone("histoRate");
+			histoRate->Sumw2();
+			if(nEvents != 0) histoRate->Scale(1/nEvents);
+			
+			Float_t meanRateADA  = 0;
+			Float_t meanRateADC  = 0;
+			for(Int_t i=1; i<=8; i++){
+				meanRateADC += histoRate->GetBinContent(i);
+				meanRateADA += histoRate->GetBinContent(i+8);
+				}
+			meanRateADA = meanRateADA/8;
+			meanRateADC = meanRateADC/8;
+			Bool_t highVar = kFALSE;
+			
+			for(Int_t i=1; i<=8; i++){
+				if(((TMath::Abs(histoRate->GetBinContent(i)-meanRateADC))>fMaxBBVariation) || 
+				   ((TMath::Abs(histoRate->GetBinContent(i+8)-meanRateADA))>fMaxBBVariation)){
+					test = 0.7;
+					highVar = kTRUE;
+					}
+				}
+			if(highVar){
+				QAbox->Clear();
+				QAbox->SetFillColor(kYellow); 
+				QAbox->AddText("BB rate variation too high");
+				}
+			else{
+				QAbox->Clear();
+				QAbox->SetFillColor(kGreen);
+				QAbox->AddText("BB rate variation OK");				
+    				}
+			}
+    		}
+    	}                                 
+    TH1F *hNEventsBGFlag = (TH1F*)list->At(AliADQADataMakerRec::kNEventsBGFlag);
+    if (!hNEventsBGFlag) {
+      AliWarning("NEventsBGFlag histogram is not found");
+    }
+    else {
+    	if(hNEventsBGFlag->GetListOfFunctions()->GetEntries()<1) hNEventsBGFlag->GetListOfFunctions()->Add(new TPaveText(0.15,0.56,0.85,0.65,"NDC"));
+    	for(Int_t i=0; i<hNEventsBGFlag->GetListOfFunctions()->GetEntries(); i++){
+     		TString funcName = hNEventsBGFlag->GetListOfFunctions()->At(i)->ClassName();
+     		if(funcName.Contains("TPaveText")){
+      			TPaveText *QAbox = (TPaveText*)hNEventsBGFlag->GetListOfFunctions()->At(i);
+      			
+			TH1F *histoRate = (TH1F*)hNEventsBGFlag->Clone("histoRate");
+			histoRate->Sumw2();
+			if(nEvents != 0) histoRate->Scale(1/nEvents);
+			
+			Float_t meanRateADA  = 0;
+			Float_t meanRateADC  = 0;
+			for(Int_t i=1; i<=8; i++){
+				meanRateADC += histoRate->GetBinContent(i);
+				meanRateADA += histoRate->GetBinContent(i+8);
+				}
+			meanRateADA = meanRateADA/8;
+			meanRateADC = meanRateADC/8;
+			Bool_t highVar = kFALSE;
+			
+			for(Int_t i=1; i<=8; i++){
+				if(((TMath::Abs(histoRate->GetBinContent(i)-meanRateADC))>fMaxBGVariation) || 
+				   ((TMath::Abs(histoRate->GetBinContent(i+8)-meanRateADA))>fMaxBGVariation)){
+					test = 0.7;
+					highVar = kTRUE;
+					}
+				}
+			if(highVar){
+				QAbox->Clear();
+				QAbox->SetFillColor(kYellow); 
+				QAbox->AddText("BG rate variation too high");
+				}
+			else{
+				QAbox->Clear();
+				QAbox->SetFillColor(kGreen);
+				QAbox->AddText("BG rate variation OK");				
+    				}
+			}
+    		}
+    	}                                                      
     TH2F *hChargeEoIInt0 = (TH2F*)list->At(AliADQADataMakerRec::kChargeEoIInt0);
     if (!hChargeEoIInt0) {
       AliWarning("ChargeEoIInt0 histogram is not found");
@@ -303,7 +509,8 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
 			
     			for(Int_t i=0; i<2; i++){
       				hChargeSlice = hChargeEoIInt0->ProjectionY("hChargeSlice",8*i+1,8*i+9);
-				Double_t saturation = hChargeSlice->Integral(1000,1025)/hChargeSlice->Integral();
+				Double_t saturation;
+				if(hChargeSlice->Integral() != 0) saturation = hChargeSlice->Integral(1000,1025)/hChargeSlice->Integral();
 				sprintf(satValue, "%1.3f", saturation);
 				if(i == 0) satTextADC +=satValue; 
 				if(i == 1) satTextADA +=satValue;
@@ -376,7 +583,8 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
 			
     			for(Int_t i=0; i<2; i++){
       				hChargeSlice = hChargeEoIInt1->ProjectionY("hChargeSlice",8*i+1,8*i+9);
-				Double_t saturation = hChargeSlice->Integral(1000,1025)/hChargeSlice->Integral();
+				Double_t saturation;
+				if(hChargeSlice->Integral() != 0) saturation = hChargeSlice->Integral(1000,1025)/hChargeSlice->Integral();
 				sprintf(satValue, "%1.3f", saturation);
 				if(i == 0) satTextADC +=satValue; 
 				if(i == 1) satTextADA +=satValue;
@@ -423,13 +631,86 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
 				}		
     			}
 		}
-    	}  
+    	}
+    TH2F *hChargeSaturation = (TH2F*)list->At(AliADQADataMakerRec::kChargeSaturation);
+    if (!hChargeSaturation) {
+      AliWarning("ChargeSaturation histogram is not found");
+    }
+    else {
+    	if(hChargeSaturation->GetListOfFunctions()->GetEntries()<1) hChargeSaturation->GetListOfFunctions()->Add(new TPaveText(0.4,0.53,0.85,0.85,"NDC"));
+    	for(Int_t i=0; i<hChargeSaturation->GetListOfFunctions()->GetEntries(); i++){
+     		TString funcName = hChargeSaturation->GetListOfFunctions()->At(i)->ClassName();
+     		if(funcName.Contains("TPaveText")){
+      			TPaveText *QAbox = (TPaveText*)hChargeSaturation->GetListOfFunctions()->At(i);
+      			QAbox->Clear();
+
+    			TH1D *hChargeSlice;
+			
+			TString messageText = " "; 
+			TString satTextADA = " A-side = ";
+			TString satTextADC = " C-side = ";
+			Char_t satValue[5];
+			Bool_t	medSat = kFALSE; 
+			Bool_t	highSat = kFALSE;
+			Bool_t	hugeSat = kFALSE;
+			
+    			for(Int_t i=0; i<2; i++){
+      				hChargeSlice = hChargeSaturation->ProjectionY("hChargeSlice",8*i+1,8*i+9);
+				Double_t saturation;
+				if(hChargeSlice->Integral() != 0) saturation = hChargeSlice->Integral(1000,1025)/hChargeSlice->Integral();
+				sprintf(satValue, "%1.3f", saturation);
+				if(i == 0) satTextADC +=satValue; 
+				if(i == 1) satTextADA +=satValue;
+				if(saturation > fSatMed && saturation < fSatHigh){
+					test = 0.7;
+					medSat = kTRUE;
+					}
+				if(saturation > fSatHigh && saturation < fSatHuge){
+					test = 0.3;
+					highSat = kTRUE;
+					}
+				if(saturation > fSatHuge){
+					test = 0.1;
+					hugeSat = kTRUE;
+					}
+				}
+			if(!medSat && !highSat && !hugeSat){
+				QAbox->Clear();
+        			QAbox->SetFillColor(kGreen);
+        			QAbox->AddText("Saturation OK");
+				QAbox->AddText(satTextADA.Data());
+				QAbox->AddText(satTextADC.Data());
+				}
+			if(medSat && !highSat && !hugeSat){
+				QAbox->Clear();
+        			QAbox->SetFillColor(kYellow);
+        			QAbox->AddText("Medium Saturation");
+				QAbox->AddText(satTextADA.Data());
+				QAbox->AddText(satTextADC.Data());
+				}
+			if(highSat && !hugeSat){
+				QAbox->Clear();
+        			QAbox->SetFillColor(kOrange);
+        			QAbox->AddText("High Saturation");
+				QAbox->AddText(satTextADA.Data());
+				QAbox->AddText(satTextADC.Data());
+				}
+			if(hugeSat){
+				QAbox->Clear();
+        			QAbox->SetFillColor(kRed);
+        			QAbox->AddText("Very High Saturation");
+				QAbox->AddText(satTextADA.Data());
+				QAbox->AddText(satTextADC.Data());
+				}		
+    			}
+		}
+    	}    
     TH2F *hBBFlagVsClock = (TH2F*)list->At(AliADQADataMakerRec::kBBFlagVsClock);
     if (!hBBFlagVsClock) {
       AliWarning("BBFlagVsClock histogram is not found");
     }
     else {
-    	if(hBBFlagVsClock->GetListOfFunctions()->GetEntries()<1) hBBFlagVsClock->GetListOfFunctions()->Add(new TPaveText(0.5,0.63,0.85,0.85,"NDC"));
+    	if(hBBFlagVsClock->GetListOfFunctions()->GetEntries()<1) hBBFlagVsClock->GetListOfFunctions()->Add(new TPaveText(0.30,0.15,0.70,0.37,"NDC"));
     	for(Int_t i=0; i<hBBFlagVsClock->GetListOfFunctions()->GetEntries(); i++){
      		TString funcName = hBBFlagVsClock->GetListOfFunctions()->At(i)->ClassName();
      		if(funcName.Contains("TPaveText")){
@@ -440,18 +721,18 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
 			Bool_t notSynchADA = kFALSE;
 			Bool_t notSynchADC = kFALSE;
 
-    			for(Int_t i=0; i<2; i++){
-      				hClockSlice = hBBFlagVsClock->ProjectionY("hClockSlice",8*i+1,8*i+9);
+    			for(Int_t i=0; i<16; i++){
+      				hClockSlice = hBBFlagVsClock->ProjectionY("hClockSlice",i+1,i+1);
 				Double_t center = hClockSlice->GetBinContent(11);
-				Double_t around = hClockSlice->Integral(0,10) + hClockSlice->Integral(12,21);
+				Double_t around = hClockSlice->Integral(5,10) + hClockSlice->Integral(12,17);
 				if(center == 0){
-					if(i==1)notSynchADA = kTRUE;
-					if(i==0)notSynchADC = kTRUE;
+					if(i>7)notSynchADA = kTRUE;
+					if(i<8)notSynchADC = kTRUE;
 					continue;
 					} 
-				if(around/center > 0.5) {
-					if(i==1)notSynchADA = kTRUE;
-					if(i==0)notSynchADC = kTRUE;
+				if(around/center > fAsynchronBB) {
+					if(i>7)notSynchADA = kTRUE;
+					if(i<8)notSynchADC = kTRUE;
 					}
 				}
 			if(notSynchADA || notSynchADC){
@@ -477,7 +758,7 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
       AliWarning("BGFlagVsClock histogram is not found");
     }
     else {
-    	if(hBGFlagVsClock->GetListOfFunctions()->GetEntries()<1) hBGFlagVsClock->GetListOfFunctions()->Add(new TPaveText(0.5,0.63,0.85,0.85,"NDC"));
+    	if(hBGFlagVsClock->GetListOfFunctions()->GetEntries()<1) hBGFlagVsClock->GetListOfFunctions()->Add(new TPaveText(0.30,0.15,0.70,0.37,"NDC"));
     	for(Int_t i=0; i<hBGFlagVsClock->GetListOfFunctions()->GetEntries(); i++){
      		TString funcName = hBGFlagVsClock->GetListOfFunctions()->At(i)->ClassName();
      		if(funcName.Contains("TPaveText")){
@@ -488,18 +769,18 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
 			Bool_t notSynchADA = kFALSE;
 			Bool_t notSynchADC = kFALSE;
 
-    			for(Int_t i=0; i<2; i++){
-      				hClockSlice = hBBFlagVsClock->ProjectionY("hClockSlice",8*i+1,8*i+9);
+    			for(Int_t i=0; i<16; i++){
+      				hClockSlice = hBGFlagVsClock->ProjectionY("hClockSlice",i+1,i+1);
 				Double_t center = hClockSlice->GetBinContent(11);
-				Double_t around = hClockSlice->Integral(0,10) + hClockSlice->Integral(12,21);
+				Double_t around = hClockSlice->Integral(5,10) + hClockSlice->Integral(12,14);
 				if(center == 0){
-					if(i==1)notSynchADA = kTRUE;
-					if(i==0)notSynchADC = kTRUE;
+					if(i>7)notSynchADA = kTRUE;
+					if(i<8)notSynchADC = kTRUE;
 					continue;
 					} 
-				if(around/center > 0.5) {
-					if(i==1)notSynchADA = kTRUE;
-					if(i==0)notSynchADC = kTRUE;
+				if(around/center > fAsynchronBG) {
+					if(i>7)notSynchADA = kTRUE;
+					if(i<8)notSynchADC = kTRUE;
 					}
 				}
 			if(notSynchADA || notSynchADC){
@@ -692,7 +973,7 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
     const Char_t * title = Form("QA_%s_%s_%s", GetName(), AliQAv1::GetTaskName(task).Data(), AliRecoParam::GetEventSpecieName(esIndex)); 
     //
     if ( !fImage[esIndex] ) {
-    	if(AliRecoParam::ConvertIndex(esIndex) != AliRecoParam::kCalib) fImage[esIndex] = new TCanvas(title, title,2500,4000);
+    	if(AliRecoParam::ConvertIndex(esIndex) != AliRecoParam::kCalib) fImage[esIndex] = new TCanvas(title, title,2500,5500);
 	else fImage[esIndex] = new TCanvas(title, title,400,600);
 	}
     //
@@ -733,17 +1014,20 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
 
     	TVirtualPad* pCharge = 0;
     	TVirtualPad* pTime  = 0;
-    	TVirtualPad* pClock  = 0;
+    	TVirtualPad* pClockFg  = 0;
+	TVirtualPad* pClockCh  = 0;
     	TVirtualPad* pCoinc  = 0;
     	TVirtualPad* pPed  = 0;
     	TVirtualPad* pMaxCh  = 0;
 	TVirtualPad* pMeanTime  = 0;
     	TVirtualPad* pTrigger  = 0;
 	TVirtualPad* pChargeZoom = 0;
+	TVirtualPad* pTimeRatio = 0;
+	TVirtualPad* pDecision = 0;
 	
-	const UInt_t nRows = 7;
+	const UInt_t nRows = 10;
 	const UInt_t nLargeRows = 1;
-	Bool_t isLarge[] = {0,1,0,0,0,0,0};
+	Bool_t isLarge[] = {0,0,1,0,0,0,0,0,0,0};
 	const Double_t timesLarger = 1.5;
 	Double_t xRow[nRows];
 	xRow[0] = 0.95;
@@ -755,12 +1039,13 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
 	
 	UInt_t iRow = 0;	
 
-    	TPad* pCh = new TPad("Charge", "Charge Pad", 0, xRow[iRow+1], 0.6, xRow[iRow]);
+    	TPad* pCh = new TPad("Charge", "Charge Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
     	fImage[esIndex]->cd();
     	pCh->Draw();
     	pCharge = pCh;
+	iRow++;
 	
-	TPad* pChZ = new TPad("ChargeZoom", "Charge Zoom Pad", 0.6, xRow[iRow+1], 1.0, xRow[iRow]);
+	TPad* pChZ = new TPad("ChargeZoom", "Charge Zoom Pad", 0.0, xRow[iRow+1], 1.0, xRow[iRow]);
     	fImage[esIndex]->cd();
     	pChZ->Draw();
     	pChargeZoom = pChZ;
@@ -772,25 +1057,25 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
     	pTime = pT;
 	iRow++;
 	
+	TPad* pTR = new TPad("TimeRatio", "Time Ratio Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
+    	fImage[esIndex]->cd();
+    	pTR->Draw();
+    	pTimeRatio = pTR;
+	iRow++;
+	
 	TPad* pMT = new TPad("Mean time", "Mean time Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
     	fImage[esIndex]->cd();
     	pMT->Draw();
     	pMeanTime = pMT;
 	iRow++;
     
-    	TPad* pCl = new TPad("Clock", "Clock Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
+    	TPad* pClFg = new TPad("ClockFg", "ClockFg Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
     	fImage[esIndex]->cd();
-    	pCl->Draw();
-    	pClock = pCl;
+    	pClFg->Draw();
+    	pClockFg = pClFg;
 	iRow++;
-    
-    	TPad* pCo = new TPad("Coincidences", "Coincidences Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
-    	fImage[esIndex]->cd();
-    	pCo->Draw();
-    	pCoinc = pCo;
-	iRow++;
-    
-    	TPad* pP = new TPad("Pedestal", "Pedestal Pad", 0, xRow[iRow+1], 0.5, xRow[iRow]);
+	
+	TPad* pP = new TPad("Pedestal", "Pedestal Pad", 0, xRow[iRow+1], 0.5, xRow[iRow]);
     	fImage[esIndex]->cd();
     	pP->Draw();
     	pPed = pP;
@@ -800,24 +1085,39 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
     	pM->Draw();
     	pMaxCh = pM;
 	iRow++;
+    
+    	TPad* pCo = new TPad("Coincidences", "Coincidences Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
+    	fImage[esIndex]->cd();
+    	pCo->Draw();
+    	pCoinc = pCo;
+	iRow++;
 	
-	TPad* pTr = new TPad("Triggers", "Triggers Pad", 0, 0.0, 1.0, xRow[iRow]);
+        TPad* pTr = new TPad("Triggers", "Triggers Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
     	fImage[esIndex]->cd();
     	pTr->Draw();
     	pTrigger = pTr;
+	iRow++;
+
+	TPad* pD = new TPad("Decisions", "Decisions Pad", 0, xRow[iRow+1], 1.0, xRow[iRow]);
+    	fImage[esIndex]->cd();
+    	pD->Draw();
+    	pDecision = pD;
 
     	pCharge->Divide(2, 1);
-	pChargeZoom->Divide(3, 1);
+	pChargeZoom->Divide(6, 1);
     	pTime->Divide(4, 1);
-    	pClock->Divide(4, 1);
+	pTimeRatio->Divide(4, 1);
+    	pClockFg->Divide(4, 1);
     	pCoinc->Divide(4, 1);
     	pPed->Divide(2, 1);
-    	pMaxCh->Divide(2, 1);
+    	pMaxCh->Divide(3, 1);
 	pMeanTime->Divide(4, 1);
+	pDecision->Divide(3, 1);
 	
+	Float_t nEvents = 0;
     	TH1* histo = 0;
-	TH1* histoADA = 0;
-	TH1* histoADC = 0;
+	TH1* histoBlue = 0;
+	TH1* histoRed = 0;
 	TH1* histoNumerator = 0;
 	TH1* histoDenominator = 0;
 	TH1* histoRatio = 0;
@@ -826,10 +1126,20 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
 	//Charge pad
       	pad = pCharge->cd(1);
 	gPad->SetLogy();
-	histoADA=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeADA);
-	histoADA->DrawCopy();
-	histoADC=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeADC);
-	histoADC->DrawCopy("same");
+	histoBlue=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeADA);
+	nEvents = histoBlue->Integral(-1,-1);
+	histoRed=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeADC);
+	Float_t max[2];
+	max[0] = histoBlue->GetBinContent(histoBlue->GetMaximumBin());
+	max[1] = histoRed->GetBinContent(histoRed->GetMaximumBin());
+	Float_t min[2];
+	min[0] = histoBlue->GetBinContent(histoBlue->GetMinimumBin());
+	min[1] = histoRed->GetBinContent(histoRed->GetMinimumBin());
+	
+	histoBlue->GetYaxis()->SetRangeUser(TMath::MinElement(2,min)+1 ,2*TMath::MaxElement(2,max));
+	histoBlue->DrawCopy();
+	histoRed->DrawCopy("same");
+	
 	TLegend *myLegend1 = new TLegend(0.70,0.67,0.97,0.82);
 	myLegend1->SetTextFont(42);
   	myLegend1->SetBorderSize(0);
@@ -838,49 +1148,131 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
   	myLegend1->SetMargin(0.25);
   	myLegend1->SetTextSize(0.05);
   	myLegend1->SetEntrySeparation(0.5);
-	myLegend1->AddEntry(histoADA,"ADA","l");
-	myLegend1->AddEntry(histoADC,"ADC","l");
+	myLegend1->AddEntry(histoBlue,"ADA","l");
+	myLegend1->AddEntry(histoRed,"ADC","l");
 	myLegend1->Draw();
 	pad = pCharge->cd(2);
 	gPad->SetLogz();
 	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeEoIBB);
 	histo->DrawCopy("COLZ");
 	//Zoommed charge pad
-	pad = pChargeZoom->cd(2);
+	pad = pChargeZoom->cd(5);
 	gPad->SetLogz();
 	histoRatio = (TH1*)histo->Clone("histoRatio");
 	histoRatio->GetYaxis()->SetRangeUser(fChargeChannelZoomMin,fChargeChannelZoomMax);
 	histoRatio->DrawCopy("COLZ");
-	pad = pChargeZoom->cd(1);
+	pad = pChargeZoom->cd(4);
 	gPad->SetLogz();
 	histoDenominator=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeEoI);
 	histoDenominator->GetYaxis()->SetRangeUser(fChargeChannelZoomMin,fChargeChannelZoomMax);
 	histoDenominator->DrawCopy("COLZ");
-	pad = pChargeZoom->cd(3);
+	pad = pChargeZoom->cd(6);
 	gPad->SetLogz();
 	histoRatio->Divide(histoDenominator);
 	histoRatio->SetTitle("Ratio: w_BB_Flag/All");
 	histoRatio->DrawCopy("COLZ");
 	
+	for(Int_t iHist = 0; iHist<3; iHist++){
+		pad = pChargeZoom->cd(iHist+1);
+		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeVsClockInt0+iHist);
+		if(iHist==2)gPad->SetLogz();
+		histo->DrawCopy("COLZ");
+		}
+	
 	//Time pad
 	for(Int_t iHist = 0; iHist<4; iHist++){
 		pad = pTime->cd(iHist+1);
+		if(iHist==3)gPad->SetLogz();
 		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kHPTDCTime+iHist);
 		histo->DrawCopy("COLZ");
 		}
-	//Clock pad
+	//Time ratio pad
+	pad = pTimeRatio->cd(1);
+	//gPad->SetLogy();
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kFlagNoTime);
+	histoBlue = (TH1*)histo->Clone("histoBlue");
+	if(nEvents != 0) histoBlue->Scale(1/nEvents);
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kTimeNoFlag);
+	histoRed = (TH1*)histo->Clone("histoRed");
+	if(nEvents != 0) histoRed->Scale(1/nEvents);
+	max[0] = histoBlue->GetBinContent(histoBlue->GetMaximumBin());
+	max[1] = histoRed->GetBinContent(histoRed->GetMaximumBin());
+	histoBlue->GetYaxis()->SetRangeUser(0,2*TMath::MaxElement(2,max));
+	histoBlue->DrawCopy();
+	histoRed->DrawCopy("same");
+	TLegend *myLegend2 = new TLegend(0.15,0.78,0.85,0.88);
+	myLegend2->SetTextFont(42);
+  	myLegend2->SetBorderSize(0);
+  	myLegend2->SetFillStyle(0);
+  	myLegend2->SetFillColor(0);
+  	myLegend2->SetMargin(0.25);
+  	myLegend2->SetTextSize(0.04);
+  	myLegend2->SetEntrySeparation(0.5);
+	myLegend2->AddEntry(histoBlue,"Events with BB/BG flag but no time","l");
+	myLegend2->AddEntry(histoRed,"Events with time but no BB/BG flag","l");
+	myLegend2->Draw();
+
+	histoDenominator=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kHPTDCTimeRebin);
+		
+	for(Int_t iHist = 1; iHist<3; iHist++){
+		pad = pTimeRatio->cd(1+iHist);
+		gPad->SetLogz();
+		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kHPTDCTimeRebin + iHist);
+		histoRatio = (TH1*)histo->Clone("histoRatio");
+		histoRatio->Divide(histoDenominator);
+		if(iHist == 1)histoRatio->GetYaxis()->SetRangeUser(fTimeRatioBBZoomMin,fTimeRatioBBZoomMax);
+		if(iHist == 2)histoRatio->GetYaxis()->SetRangeUser(fTimeRatioBGZoomMin,fTimeRatioBGZoomMax);
+		histoRatio->DrawCopy("COLZ");
+		}
+	pad = pTimeRatio->cd(4);
+	//gPad->SetLogy();
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kNEventsBBFlag);
+	histoBlue = (TH1*)histo->Clone("histoBlue");
+	histoBlue->Sumw2();
+	if(nEvents != 0) histoBlue->Scale(1/nEvents);
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kNEventsBGFlag);
+	histoRed = (TH1*)histo->Clone("histoRed");
+	histoRed->Sumw2();
+	if(nEvents != 0) histoRed->Scale(1/nEvents);
+	
+	max[0] = histoBlue->GetBinContent(histoBlue->GetMaximumBin());
+	max[1] = histoRed->GetBinContent(histoRed->GetMaximumBin());
+
+	min[0] = histoBlue->GetBinContent(histoBlue->GetMinimumBin());
+	min[1] = histoRed->GetBinContent(histoRed->GetMinimumBin());
+	
+	histoBlue->GetYaxis()->SetRangeUser(0.8*TMath::MinElement(2,min),1.8*TMath::MaxElement(2,max));
+	histoBlue->DrawCopy("e");
+	//histoBlue->DrawCopy("esame");
+	//histoRed->DrawCopy("samehist");
+	histoRed->DrawCopy("esame");
+	TLegend *myLegend3 = new TLegend(0.15,0.78,0.85,0.88);
+	myLegend3->SetTextFont(42);
+  	myLegend3->SetBorderSize(0);
+  	myLegend3->SetFillStyle(0);
+  	myLegend3->SetFillColor(0);
+  	myLegend3->SetMargin(0.25);
+  	myLegend3->SetTextSize(0.04);
+  	myLegend3->SetEntrySeparation(0.5);
+	myLegend3->AddEntry(histoBlue,"Events with BB flag","l");
+	myLegend3->AddEntry(histoRed,"Events with BG flag","l");
+	myLegend3->Draw();
+		
+	//Clock Flags pad
 	for(Int_t iHist = 0; iHist<4; iHist++){
-		pad = pClock->cd(iHist+1);
-		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeVsClockInt0+iHist);
+		pad = pClockFg->cd(iHist+1);
+		if(iHist>1)gPad->SetLogz();
+		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kBBFlagVsClock+iHist);
 		histo->DrawCopy("COLZ");
 		}
+	
 	//Coincidences pad
 	for(Int_t iHist = 0; iHist<2; iHist++){
 		pad = pCoinc->cd(iHist+1);
 		gPad->SetLogy();
-		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kNBBCoincADA+2*iHist);
-		histo->DrawCopy();
 		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kNBBCoincADC+2*iHist);
+		histo->DrawCopy();
+		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kNBBCoincADA+2*iHist);
 		histo->DrawCopy("same");
 		myLegend1->Draw();
 		}
@@ -897,7 +1289,7 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
 		histo->DrawCopy("COLZ");
 		}
 	//Saturation monitoring pad
-	for(Int_t iHist = 0; iHist<2; iHist++){
+	for(Int_t iHist = 0; iHist<3; iHist++){
 		pad = pMaxCh->cd(iHist+1);
 		gPad->SetLogz();
 		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kChargeEoIInt0+iHist);
@@ -912,15 +1304,44 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
 	//Mean time pad
 	pad = pMeanTime->cd(1);
 	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kMeanTimeADA);
-	histo->DrawCopy();
+	histoBlue = (TH1*)histo->Clone("histoBlue");
+	
 	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kMeanTimeADC);
-	histo->DrawCopy("same");
+	histoRed = (TH1*)histo->Clone("histoRed");
+	max[0] = histoBlue->GetBinContent(histoBlue->GetMaximumBin());
+	max[1] = histoRed->GetBinContent(histoRed->GetMaximumBin());
+	histoBlue->GetYaxis()->SetRangeUser(0,1.1*TMath::MaxElement(2,max));
+	histoBlue->DrawCopy();
+	histoRed->DrawCopy("same");
 	myLegend1->Draw();
 	for(Int_t iHist = 0; iHist<3; iHist++){
 		pad = pMeanTime->cd(iHist+2);
+		gPad->SetLogz();
 		histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kMeanTimeDiff+iHist);
 		histo->DrawCopy("COLZ");
-		}	
+		}
+	//Decisions pad	
+	pad = pDecision->cd(1);
+	gPad->SetLogy();
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kMeanTimeADA);
+	histoBlue = (TH1*)histo->Clone("histoBlue");
+	histoBlue->GetXaxis()->SetRangeUser(fTimeRatioBBZoomMin,fTimeRatioBBZoomMax);
+	histoBlue->SetTitle("Mean time ADA");
+	histoBlue->DrawCopy();
+	pad = pDecision->cd(3);
+	gPad->SetLogy();
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kMeanTimeADC);
+	histoRed = (TH1*)histo->Clone("histoRed");
+	histoRed->GetXaxis()->SetRangeUser(fTimeRatioBBZoomMin,fTimeRatioBBZoomMax);
+	histoRed->SetTitle("Mean time ADC");
+	histoRed->DrawCopy();
+	pad = pDecision->cd(2);
+	//histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kTimeSlewingOn);
+	//histo->Draw("COLZ");
+	//pad = pDecision->cd(4);
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kDecisions);
+	histo->Draw("COLZTEXT");
+	
 
     }
     else{
@@ -940,14 +1361,14 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
 	pad = pPed->cd(1);
       	histo->DrawCopy("colz");
 	
-	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kPedestalInt0);
+	histo=(TH1*)list[esIndex]->At(AliADQADataMakerRec::kPedestalInt1);
       	histo->SetStats(kFALSE); 
 	pad = pPed->cd(2);
 	histo->DrawCopy("colz");
     }
     
     fImage[esIndex]->SaveAs(Form("QAsummary_%d_%d.png",AliQAChecker::Instance()->GetRunNumber(),esIndex));
-    fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat()), "ps"); 
+    //fImage[esIndex]->Print(Form("%s%s%d.%s", AliQAv1::GetImageFileName(), AliQAv1::GetModeName(mode), AliQAChecker::Instance()->GetRunNumber(), AliQAv1::GetImageFileFormat()), "ps"); 
   }
 }
  

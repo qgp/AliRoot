@@ -55,7 +55,6 @@
 #include "AliSysInfo.h"
 #include "AliAnalysisStatistics.h"
 #include "AliVEvent.h"
-//#include "AliHLTTestInputHandler.h"
 
 using std::ofstream;
 using std::ios;
@@ -1272,7 +1271,7 @@ void AliAnalysisManager::Terminate()
             for (itask=0; itask<fTopTasks->GetEntriesFast(); itask++) {
                task = (AliAnalysisTask*)fTopTasks->At(itask);
                canvas->cd(ipad++);
-               cut = Form("task==%d && stage==1", itask);
+               cut.Form("task==%d && stage==1", itask);
                tree->Draw("deltaVM:event",cut,"", 1234567890, 0);
                hist = (TH1*)gPad->GetListOfPrimitives()->FindObject("htemp");            
                if (hist) {
@@ -1309,7 +1308,7 @@ void AliAnalysisManager::Terminate()
             canvas->cd(ipad++);
             tree->SetMarkerStyle(kFullCircle);
             tree->SetMarkerColor(kGreen);
-            cut = Form("task==%d && stage==1",fTopTasks->GetEntriesFast()-1);            
+            cut.Form("task==%d && stage==1",fTopTasks->GetEntriesFast()-1);            
             tree->Draw("VM:event",cut,"", 1234567890, 0);
             hist = (TH1*)gPad->GetListOfPrimitives()->FindObject("htemp");
             if (hist) {
@@ -1385,7 +1384,7 @@ void AliAnalysisManager::ProfileTask(const char *name, const char */*option*/) c
    TH1 *hist;
    // VM profile for COO and Terminate methods
    canvas->cd(ipad++);
-   cut = Form("task==%d && (stage==0 || stage==2)",itask);
+   cut.Form("task==%d && (stage==0 || stage==2)",itask);
    tree->Draw("deltaVM:sname",cut,"", 1234567890, 0);
    hist = (TH1*)gPad->GetListOfPrimitives()->FindObject("htemp");
    if (hist) {
@@ -1395,7 +1394,7 @@ void AliAnalysisManager::ProfileTask(const char *name, const char */*option*/) c
    }   
    // CPU profile per event
    canvas->cd(ipad++);
-   cut = Form("task==%d && stage==1",itop);
+   cut.Form("task==%d && stage==1",itop);
    tree->Draw("deltaT:event",cut,"", 1234567890, 0);
    hist = (TH1*)gPad->GetListOfPrimitives()->FindObject("htemp");
    if (hist) {
@@ -1404,7 +1403,7 @@ void AliAnalysisManager::ProfileTask(const char *name, const char */*option*/) c
    }   
    // VM profile for Exec
    canvas->cd(ipad++);
-   cut = Form("task==%d && stage==1",itop);
+   cut.Form("task==%d && stage==1",itop);
    tree->Draw("deltaVM:event",cut,"", 1234567890, 0);
    hist = (TH1*)gPad->GetListOfPrimitives()->FindObject("htemp");
    if (hist) {
@@ -2118,12 +2117,17 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, const char *dataset
    // Initialize locally all tasks
    RunLocalInit();
       
-   line = Form("gProof->AddInput((TObject*)%p);", this);
+   line.Form("gProof->AddInput((TObject*)%p);", this);
    gROOT->ProcessLine(line);
    Long_t retv;
-   line = Form("gProof->Process(\"%s\", \"AliAnalysisSelector\", \"%s\", %lld, %lld);",
-               dataset,proofProcessOpt.Data(), nentries, firstentry);
-   cout << "===== RUNNING PROOF ANALYSIS " << GetName() << " ON DATASET " << dataset << endl;
+   line.Form("gProof->Process((const char *)%p, \"AliAnalysisSelector\", \"%s\", %lld, %lld);",
+             dataset, proofProcessOpt.Data(), nentries, firstentry);
+   char *dispDataset = new char[101];
+   strncpy(dispDataset, dataset, 100);
+   strncpy(&dispDataset[97], "...", 3);
+   dispDataset[100] = '\0';
+   cout << "===== RUNNING PROOF ANALYSIS " << GetName() << " ON DATASET " << dispDataset << endl;
+   delete dispDataset;
    retv = (Long_t)gROOT->ProcessLine(line);
    return retv;
 }   
@@ -2224,7 +2228,7 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
   TObject *pof = fSelector->GetOutputList()->FindObject(filename);
   if (pof) {
     // Get the actual file
-    line = Form("((TProofOutputFile*)%p)->GetFileName();", pof);
+    line.Form("((TProofOutputFile*)%p)->GetFileName();", pof);
     filename = (const char*)gROOT->ProcessLine(line);
     if (fDebug>1) {
       printf("File: %s already booked via TProofOutputFile\n", filename.Data());
@@ -2245,14 +2249,14 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
       dsetName.ReplaceAll(".root", cont->GetTitle());
       dsetName.ReplaceAll(":","_");
       if (fDebug>1) printf("Booking dataset: %s\n", dsetName.Data());
-      line = Form("TProofOutputFile *pf = new TProofOutputFile(\"%s\", \"DROV\", \"%s\");", filename.Data(), dsetName.Data());
+      line.Form("TProofOutputFile *pf = new TProofOutputFile(\"%s\", \"DROV\", \"%s\");", filename.Data(), dsetName.Data());
     } else {
       if (fDebug>1) printf("Booking TProofOutputFile: %s to be merged\n", filename.Data());
-      line = Form("TProofOutputFile *pf = new TProofOutputFile(\"%s\");", filename.Data());
+      line.Form("TProofOutputFile *pf = new TProofOutputFile(\"%s\");", filename.Data());
     }
     if (fDebug > 1) printf("=== %s\n", line.Data());
     gROOT->ProcessLine(line);
-    line = Form("pf->OpenFile(\"%s\");", option);
+    line.Form("pf->OpenFile(\"%s\");", option);
     gROOT->ProcessLine(line);
     f = gFile;
     if (fDebug > 1) {
@@ -2260,7 +2264,7 @@ TFile *AliAnalysisManager::OpenProofFile(AliAnalysisDataContainer *cont, const c
       printf(" == proof file name: %s", f->GetName());
     }   
     // Add to proof output list
-    line = Form("((TList*)%p)->Add(pf);",fSelector->GetOutputList());
+    line.Form("((TList*)%p)->Add(pf);",fSelector->GetOutputList());
     if (fDebug > 1) printf("=== %s\n", line.Data());
     gROOT->ProcessLine(line);
   }
@@ -2512,7 +2516,7 @@ Bool_t AliAnalysisManager::GetFileFromWrapper(const char *filename, const TList 
    else if (clientUrl.Contains("__lite__")) { 
      // Special case for ProofLite environement - get file info and copy. 
      gROOT->ProcessLine(Form("sprintf((char*)%p,\"%%s\",((TProofOutputFile*)%p)->GetDir());", tmp, pof));
-     fullPath_str = Form("%s/%s", tmp, fullPath);
+     fullPath_str.Form("%s/%s", tmp, fullPath);
    }
    if (fDebug > 1) 
      Info("GetFileFromWrapper","Copying file %s from PROOF scratch space to %s", fullPath_str.Data(),filename);
@@ -2638,7 +2642,7 @@ void AliAnalysisManager::ProgressBar(const char *opname, Long64_t current, Long6
       nname = oname;
       if (nchecks <= 0) nchecks = nrefresh+1;
       Int_t pctdone = (Int_t)(100.*nrefresh/nchecks);
-      oname = Form("     == %d%% ==", pctdone);
+      oname.Form("     == %d%% ==", pctdone);
    }         
    Double_t percent = 100.0*ocurrent/osize;
    Int_t nchar = Int_t(percent/10);
@@ -2721,7 +2725,8 @@ void AliAnalysisManager::AddStatisticsTask(UInt_t offlineMask)
      Info("AddStatisticsTask", "Already added");
      return;
   }
-  TString line = Form("AliAnalysisTaskStat::AddToManager(%u);", offlineMask);
+  TString line;
+  line.Form("AliAnalysisTaskStat::AddToManager(%u);", offlineMask);
   gROOT->ProcessLine(line);
 }  
 
@@ -3002,6 +3007,9 @@ void AliAnalysisManager::InitInputData(AliVEvent* esdEvent, AliVfriendEvent* esd
     TString classInputHandler = fInputEventHandler->ClassName();
     if (classInputHandler.Contains("HLT")){
       TObjArray* arrTasks = GetTasks();
+      //connect the friend to the event
+      esdEvent->SetFriendEvent(esdFriend);
+      //let all tasks know about the new event
       fInputEventHandler->InitTaskInputData(esdEvent, esdFriend, arrTasks);
     }
     else {

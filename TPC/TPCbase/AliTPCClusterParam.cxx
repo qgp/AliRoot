@@ -89,7 +89,12 @@
 #include "AliTPCcalibDB.h"
 #include "AliTPCParam.h"
 #include "THnBase.h"
-
+#include <RVersion.h>
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,3,3)
+#include "TFormulaPrimitive.h"
+#else
+#include "v5/TFormulaPrimitive.h"
+#endif
 #include "AliMathBase.h"
 
 /// \cond CLASSIMP
@@ -125,6 +130,21 @@ AliTPCClusterParam* AliTPCClusterParam::fgInstance = 0;
 
 
 
+Double_t AliTPCClusterParamClusterResolutionY(Double_t x, Double_t s0, Double_t s1){
+  //
+  // cluster resoultion
+  Double_t result = AliTPCClusterParam::SGetError0Par(0,s0,x,s1);
+  return result;
+}
+
+Double_t AliTPCClusterParamClusterResolutionZ(Double_t x, Double_t s0, Double_t s1){
+  //
+  // cluster resoultion
+  Double_t result = AliTPCClusterParam::SGetError0Par(1,s0,x,s1);
+  return result;
+}
+
+
 
 //_ singleton implementation __________________________________________________
 AliTPCClusterParam* AliTPCClusterParam::Instance()
@@ -134,6 +154,21 @@ AliTPCClusterParam* AliTPCClusterParam::Instance()
 
   if (fgInstance == 0){
     fgInstance = new AliTPCClusterParam();
+    //
+    ::Info("AliTPCClusterParam::Instance()","registering of the cluster param function primitives");
+    ::Info("AliTPCClusterParam::Instance()","clusterResolutionYAliRoot");
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,3,3)
+    TFormulaPrimitive::AddFormula(new TFormulaPrimitive("clusterResolutionYAliRoot","clusterResolutionYAliRoot",AliTPCClusterParamClusterResolutionY));
+#else
+    ROOT::v5::TFormulaPrimitive::AddFormula(new ROOT::v5::TFormulaPrimitive("clusterResolutionYAliRoot","clusterResolutionYAliRoot",AliTPCClusterParamClusterResolutionY));
+#endif
+    ::Info("AliTPCClusterParam::Instance()","clusterResolutionZAliRoot");
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,3,3)
+    TFormulaPrimitive::AddFormula(new TFormulaPrimitive("clusterResolutionZAliRoot","clusterResolutionZAliRoot",AliTPCClusterParamClusterResolutionZ));
+#else
+    ROOT::v5::TFormulaPrimitive::AddFormula(new ROOT::v5::TFormulaPrimitive("clusterResolutionZAliRoot","clusterResolutionZAliRoot",AliTPCClusterParamClusterResolutionZ));
+#endif
+
   }
   return fgInstance;
 }

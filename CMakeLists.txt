@@ -17,7 +17,17 @@
 # Set Basic CMake Configuration                                            #
 #--------------------------------------------------------------------------#
 
-cmake_minimum_required(VERSION 2.8.11 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+
+# AliRoot will refuse to compile against a wrong ROOT version
+set(ROOT_VERSION_MIN_5 "5.34.30")
+set(ROOT_VERSION_MIN_6 "6.04.00")
+
+# Without EVE, ROOT v5.34.17 is sufficient
+list(FIND EXCLUDE_MODULES "EVE" excleve)
+if (excleve GREATER -1)
+  set(ROOT_VERSION_MIN_5 "5.34.17")
+endif()
 
 ### CMP0025   Compiler id for Apple Clang is now AppleClang.
 ### CMP0042   MACOSX_RPATH is enabled by default.
@@ -38,10 +48,19 @@ message(STATUS "Build folder: ${AliRoot_BINARY_DIR}")
 message(STATUS "Source folder: ${AliRoot_SOURCE_DIR}")
 message(STATUS "Installation folder: ${CMAKE_INSTALL_PREFIX}")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 # CMake supports different build types by default. We want the DEBUG build type
 # to have "-g -O0" flags: by default it only has "-g"
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+# Build type for coverage builds
+set(CMAKE_CXX_FLAGS_COVERAGE "-g -O2 -fprofile-arcs -ftest-coverage")
+set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_COVERAGE}")
+
+MARK_AS_ADVANCED(
+    CMAKE_CXX_FLAGS_COVERAGE
+    CMAKE_C_FLAGS_COVERAGE)
 
 # You can change the build type using
 # cmake -DCMAKE_BUILD_TYPE=DEBUG | RELEASE | RELWITHDEBINFO | MINSIZEREL ...
@@ -199,13 +218,40 @@ else()
   if(ROOTSYS)
     find_package(ROOT REQUIRED)
 
-    # ROOT must be build with XML2 support
+    if(ROOT_VERSION_MAJOR EQUAL 5)
+      set(ROOT_VERSION_MIN "${ROOT_VERSION_MIN_5}")
+    elseif(ROOT_VERSION_MAJOR EQUAL 6)
+      set(ROOT_VERSION_MIN "${ROOT_VERSION_MIN_6}")
+    else()
+      message(FATAL_ERROR "AliRoot works with ROOT 5 or 6 only")
+    endif()
+
+    if(ROOT_VERSION_NORM VERSION_LESS "${ROOT_VERSION_MIN}")
+      message(FATAL_ERROR "AliRoot requires at least ROOT ${ROOT_VERSION_MIN} (you have ${ROOT_VERSION_NORM})")
+    endif()
+
+    # ROOT must be built with XML2 support
     if(NOT ROOT_HASXML)
-      message(FATAL_ERROR "ROOT was not build with xml2 support. Please reinstall or rebuild ROOT with xml2 support")
+      message(FATAL_ERROR "ROOT was not built with xml2 support. Please reinstall or rebuild ROOT with xml2 support")
     endif(NOT ROOT_HASXML)
-  else()
+
+
+  else(ROOTSYS)
     message(FATAL_ERROR "ROOT installation not found!\nPlease point to the ROOT installation using -DROOTSYS=ROOT_INSTALL_DIR")
   endif(ROOTSYS)
+
+  # FTGL: prefer library from ROOT, look for both libFTGL and libftgl
+  unset(LIB_FTGL)
+  if(${ROOT_FEATURES} MATCHES "builtin_ftgl")
+    message(STATUS "Using FTGL from ROOT")
+    find_library(LIB_FTGL NAMES FTGL PATHS "${ROOT_LIBDIR}" NO_DEFAULT_PATH)
+  else()
+    message(STATUS "Using FTGL from the system")
+    find_library(LIB_FTGL NAMES ftgl FTGL)
+  endif()
+  if(NOT LIB_FTGL)
+    message(FATAL_ERROR "Required library FTGL not found. Please install it, or reconfigure ROOT with --enable-builtin-ftgl")
+  endif()
 
   # ROOT dictionaries and maps
   include(CMakeALICE)
@@ -253,70 +299,51 @@ else()
 
   # Include Vc own cmake
   include(Vc/Vc.cmake)
-  if (NOT ROOT_HASVC)
+  if(NOT ROOT_HASVC)
     add_subdirectory(Vc)
-  endif (NOT ROOT_HASVC)
+  endif()
 
   # AliRoot common macros
   add_subdirectory(macros)
 
   # AliRoot modules
-  add_subdirectory(ACORDE)
-  add_subdirectory(AD)
-  add_subdirectory(BCM)
-  add_subdirectory(EMCAL)
-  add_subdirectory(EPOS)
-  add_subdirectory(EVE)
-  add_subdirectory(EVGEN)
-  add_subdirectory(FASTSIM)
-  add_subdirectory(FIT)
-  add_subdirectory(FMD)
-  add_subdirectory(HLT)
-  add_subdirectory(HMPID)
-  add_subdirectory(ITS)
-  add_subdirectory(MFT)
-  add_subdirectory(MONITOR)
-  add_subdirectory(MUON)
-  add_subdirectory(PHOS)
-  add_subdirectory(PMD)
-  add_subdirectory(PYTHIA8)
-  add_subdirectory(STARLIGHT)
-  add_subdirectory(STAT)
-  add_subdirectory(STRUCT)
-  add_subdirectory(T0)
-  add_subdirectory(TDPMjet)
-  add_subdirectory(TEvtGen)
-  add_subdirectory(THerwig)
-  add_subdirectory(TOF)
-  add_subdirectory(TPC)
-  add_subdirectory(TRD)
-  add_subdirectory(TRIGGER)
-  add_subdirectory(TTherminator)
-  add_subdirectory(VZERO)
-  add_subdirectory(ZDC)
+  set(ALIROOT_MODULES
+      ACORDE AD BCM EMCAL EPOS EVE EVGEN FASTSIM FIT FMD HLT HMPID ITS MFT
+      MONITOR MUON PHOS PMD PYTHIA8 STARLIGHT STAT STRUCT T0 TDPMjet TEvtGen
+      THerwig TOF TPC TRD TRIGGER TTherminator VZERO ZDC ALIGN data GRP OCDB
+      QAref)
 
-  # Fortran modules
+  # AliRoot modules requiring OpenGL
+  set(ALIROOT_MODULES_OPENGL
+      EVE)
+  if(ROOT_HASOPENGL)
+    list(APPEND ALIROOT_MODULES "${ALIROOT_MODULES_FORTRAN}")
+  else()
+    string(REPLACE ";" " " ALIROOT_MODULES_OPENGL_FLAT "${ALIROOT_MODULES_OPENGL}")
+    message(WARNING "The following modules will not be built because ROOT has no OpenGL support: ${ALIROOT_MODULES_OPENGL_FLAT}")
+  endif()
+
+  # AliRoot modules requiring Fortran
+  set(ALIROOT_MODULES_FORTRAN
+      DIME DPMJET HERWIG HIJING LHAPDF MICROCERN PYTHIA6 TEPEMGEN THbtp THijing
+      THydjet TPHIC TUHKMgen TAmpt)
   if(CMAKE_Fortran_COMPILER)
-    add_subdirectory(DIME)
-    add_subdirectory(DPMJET)
-    add_subdirectory(HERWIG)
-    add_subdirectory(HIJING)
-    add_subdirectory(LHAPDF)
-    add_subdirectory(MICROCERN)
-    add_subdirectory(PYTHIA6)
-    add_subdirectory(TEPEMGEN)
-    add_subdirectory(THbtp)
-    add_subdirectory(THijing)
-    add_subdirectory(THydjet)
-    add_subdirectory(TPHIC)
-    add_subdirectory(TUHKMgen)
-    add_subdirectory(TAmpt)
-  endif(CMAKE_Fortran_COMPILER)
+    list(APPEND ALIROOT_MODULES "${ALIROOT_MODULES_FORTRAN}")
+  else()
+    string(REPLACE ";" " " ALIROOT_MODULES_FORTRAN_FLAT "${ALIROOT_MODULES_FORTRAN}")
+    message(WARNING "The following modules will not be built because no Fortran compiler was found: ${ALIROOT_MODULES_FORTRAN_FLAT}")
+  endif()
 
-  add_subdirectory(data)
-  add_subdirectory(GRP)
-  add_subdirectory(OCDB)
-  add_subdirectory(QAref)
+  # Selectively exclude modules (with -DEXCLUDE_MODULES="mod1;mod2"...)
+  foreach(mod ${ALIROOT_MODULES})
+    list(FIND EXCLUDE_MODULES "${mod}" excl)
+    if (excl EQUAL -1)
+      add_subdirectory(${mod})
+    else()
+      list(REMOVE_ITEM ALIROOT_MODULES ${mod})
+      message(WARNING "Excluding module ${mod} as per explicit configuration")
+    endif()
+  endforeach()
 
   # Enable SHUTTLE compilation
   # Check if DIMDIR and ODIR are set
@@ -324,21 +351,18 @@ else()
   set(SHUTTLE CACHE STRING "Enable SHUTTLE build : ON")
   if(SHUTTLE)
     if(NOT ROOT_HASMONALISA)
-        message(FATAL_ERROR "ROOT was not build with MonAlisa support")
+      message(FATAL_ERROR "ROOT was not built with MonALISA support")
     endif()
-
     if(NOT ROOT_HASLDAP)
-        message(FATAL_ERROR "ROOT was not build with LDAP support")
+      message(FATAL_ERROR "ROOT was not built with LDAP support")
     endif()
-
     find_package(ApMon)
-
     if(ROOT_HASALIEN STREQUAL "no")
-      message(FATAL_ERROR "Shuttle needs ROOT build with AliEn support. Please build ROOT with AliEn support. Do not forget to set ALIEN to your AliEn installation")
+      message(FATAL_ERROR "Shuttle needs ROOT built with AliEn support. Please built ROOT with AliEn support. Do not forget to point -DALIEN= to your AliEn installation")
     endif()
 
     if(DIM_FOUND AND ALIEN)
-        add_subdirectory(SHUTTLE)
+      add_subdirectory(SHUTTLE)
     else()
       message(FATAL_ERROR "SHUTTLE not enabled! Please specify DIMDIR, ODIR and ALIEN")
     endif()

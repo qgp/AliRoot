@@ -27,11 +27,9 @@ install(FILES
   GlauberMCHistos.root
   PMTGainsdata.txt
   SpectatorSignal.root
-  ZNASignal.root
-  ZNCSignal.root
+  SpectatorsFromData.root
+  fragmSpecDataDriven.root
   ZNsignalntu.root
-  ZPASignal.root
-  ZPCSignal.root
   ZPsignalntu.root
   light22620362207s
   light22620362208s

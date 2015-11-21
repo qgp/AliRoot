@@ -12,11 +12,9 @@
 // on this.
 //
 
-#include <Riostream.h>
 #include <TNamed.h>
 #include <TClonesArray.h>
 
-#include "AliLog.h"
 #include "AliTriggerDetector.h"
 
 class TBrowser;
@@ -52,6 +50,7 @@ public:
   virtual  Int_t         GetIshunt() const {return 0;}
   virtual  void          SetIshunt(Int_t) {}
   virtual  Bool_t        IsActive() const {return fActive;}
+  virtual  void          SetActive(Bool_t v=kTRUE) {fActive = v;}
   virtual  Bool_t        IsFolder() const {return kTRUE;}
   virtual  Int_t&        LoMedium() {return fLoMedium;}
   virtual  Int_t&        HiMedium() {return fHiMedium;}

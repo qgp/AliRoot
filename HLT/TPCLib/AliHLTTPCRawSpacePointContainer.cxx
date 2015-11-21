@@ -26,7 +26,7 @@
 #include "AliHLTTPCDefinitions.h"
 #include "AliHLTTPCSpacePointData.h"
 #include "AliHLTTPCRawCluster.h"
-#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include "AliHLTComponent.h"
 #include "AliHLTTemplates.h"
 #include "AliHLTDataDeflater.h"
@@ -101,7 +101,7 @@ int AliHLTTPCRawSpacePointContainer::AddInputBlock(const AliHLTComponentBlockDat
   if (!pDesc) return -EINVAL;
   int iResult=0;
   int count=0;
-  if (pDesc->fDataType!=AliHLTTPCDefinitions::fgkRawClustersDataType) {
+  if (pDesc->fDataType!=AliHLTTPCDefinitions::fgkRawClustersDataType && pDesc->fDataType!=AliHLTTPCDefinitions::fgkRawClustersDataTypeNotCompressed) {
     HLTWarning("ignoring data block of type %s", AliHLTComponent::DataType2Text(pDesc->fDataType).c_str());
     return 0;
   }
@@ -291,16 +291,16 @@ const vector<AliHLTUInt32_t>* AliHLTTPCRawSpacePointContainer::GetClusterIDs(Ali
   // the mask selects multiple partitions/slices
   std::map<AliHLTUInt32_t, AliHLTTPCRawSpacePointProperties>::const_iterator cl=fClusters.find(mask);
   bool bAll=false;
-  if (slice>=(unsigned)AliHLTTPCTransform::GetNSlice() ||
-      partition>=(unsigned)AliHLTTPCTransform::GetNumberOfPatches()) {
+  if (slice>=(unsigned)AliHLTTPCGeometry::GetNSlice() ||
+      partition>=(unsigned)AliHLTTPCGeometry::GetNumberOfPatches()) {
     cl=fClusters.begin();
     bAll=true;
   }
   for (; cl!=fClusters.end(); cl++) {
     UInt_t s=AliHLTTPCSpacePointData::GetSlice(cl->first);
     UInt_t p=AliHLTTPCSpacePointData::GetPatch(cl->first);
-    if ((slice>=(unsigned)AliHLTTPCTransform::GetNSlice() || s==slice) && 
-	(partition>=(unsigned)AliHLTTPCTransform::GetNumberOfPatches() || p==partition)) {
+    if ((slice>=(unsigned)AliHLTTPCGeometry::GetNSlice() || s==slice) && 
+	(partition>=(unsigned)AliHLTTPCGeometry::GetNumberOfPatches() || p==partition)) {
       selected->push_back(cl->first);
     } else if (!bAll) {
       // no need to continue, we are out of the range
@@ -350,7 +350,7 @@ float AliHLTTPCRawSpacePointContainer::GetYWidth(AliHLTUInt32_t clusterID) const
   std::map<AliHLTUInt32_t, AliHLTTPCRawSpacePointProperties>::const_iterator cl=fClusters.find(clusterID);
   if (cl==fClusters.end() ||
       cl->second.GetCluster()==NULL) return 0.0;  
-  return cl->second.GetCluster()->GetSigmaY2();
+  return cl->second.GetCluster()->GetSigmaPad2();
 }
 
 float AliHLTTPCRawSpacePointContainer::GetZ(AliHLTUInt32_t clusterID) const
@@ -368,7 +368,7 @@ float AliHLTTPCRawSpacePointContainer::GetZWidth(AliHLTUInt32_t clusterID) const
   std::map<AliHLTUInt32_t, AliHLTTPCRawSpacePointProperties>::const_iterator cl=fClusters.find(clusterID);
   if (cl==fClusters.end() ||
       cl->second.GetCluster()==NULL) return 0.0;
-  return cl->second.GetCluster()->GetSigmaZ2();
+  return cl->second.GetCluster()->GetSigmaTime2();
 }
 
 float AliHLTTPCRawSpacePointContainer::GetCharge(AliHLTUInt32_t clusterID) const
@@ -447,8 +447,8 @@ AliHLTSpacePointContainer* AliHLTTPCRawSpacePointContainer::SelectByMask(AliHLTU
        cl!=fClusters.end(); cl++) {
     UInt_t s=AliHLTTPCSpacePointData::GetSlice(cl->first);
     UInt_t p=AliHLTTPCSpacePointData::GetPatch(cl->first);
-    if ((slice>=(unsigned)AliHLTTPCTransform::GetNSlice() || s==slice) && 
-	(partition>=(unsigned)AliHLTTPCTransform::GetNumberOfPatches() || p==partition)) {
+    if ((slice>=(unsigned)AliHLTTPCGeometry::GetNSlice() || s==slice) && 
+	(partition>=(unsigned)AliHLTTPCGeometry::GetNumberOfPatches() || p==partition)) {
       c->fClusters[cl->first]=cl->second;
     }
   }
@@ -614,6 +614,7 @@ int AliHLTTPCRawSpacePointContainer::WriteSorted(AliHLTUInt8_t* outputPtr,
 						  const char* option) const
 {
   /// write blocks to HLT component output
+
   if (!outputPtr || !pDecoder || !pGrid) return -EINVAL;
   if (pDecoder->fCount==0) return 0;
   if (option) {
@@ -624,7 +625,7 @@ int AliHLTTPCRawSpacePointContainer::WriteSorted(AliHLTUInt8_t* outputPtr,
     }
   }
   int iResult=0;
-  AliHLTUInt32_t capacity=size;
+  const AliHLTUInt32_t capacity=size;
   size=0;
 
   int slice=AliHLTTPCSpacePointData::GetSlice(mask);
@@ -632,13 +633,20 @@ int AliHLTTPCRawSpacePointContainer::WriteSorted(AliHLTUInt8_t* outputPtr,
 
   // Note: the offset parameter is only for the block descriptors, output pointer and size
   // consider already the offset
-  AliHLTTPCRawClusterData* blockout=reinterpret_cast<AliHLTTPCRawClusterData*>(outputPtr+size);
+
+  if( fWrittenClusterIds ) fWrittenClusterIds->clear();
+
+  if( capacity < sizeof(AliHLTTPCRawClusterData) ) return -ENOSPC;
+ 
+  AliHLTTPCRawClusterData* blockout=reinterpret_cast<AliHLTTPCRawClusterData*>(outputPtr);
   blockout->fVersion=0;
   blockout->fCount=0;
+ 
+  size = sizeof(AliHLTTPCRawClusterData);
 
   if (pDeflater) {
     pDeflater->Clear();
-    pDeflater->InitBitDataOutput(reinterpret_cast<AliHLTUInt8_t*>(blockout->fClusters), capacity-size-sizeof(AliHLTTPCRawClusterData));
+    pDeflater->InitBitDataOutput(reinterpret_cast<AliHLTUInt8_t*>(blockout->fClusters), capacity-size);
     blockout->fVersion=pDeflater->GetDeflaterVersion();
     if (fMode&kModeDifferentialPadTime) blockout->fVersion+=2;
   }
@@ -647,130 +655,153 @@ int AliHLTTPCRawSpacePointContainer::WriteSorted(AliHLTUInt8_t* outputPtr,
   AliHLTUInt64_t lastPad64=0;
   AliHLTUInt64_t lastTime64=0;
   AliHLTSpacePointPropertyGrid::iterator clusterID=pGrid->begin();
-  if (clusterID!=pGrid->end()) {
-    for (; clusterID!=pGrid->end(); clusterID++) {
-      if (clusterID.Data().fTrackId>-1) {
-	// this is an assigned cluster, skip
-	// TODO: introduce selectors into AliHLTIndexGrid::begin to loop
-	// consistently over entries, e.g. this check has to be done also
-	// in the forwarding of MC labels in
-	// AliHLTTPCDataCompressionComponent::ForwardMCLabels
-	continue;
-      }
-      if ((unsigned)slice!=AliHLTTPCSpacePointData::GetSlice(clusterID.Data().fId) ||
-	  (unsigned)part!=AliHLTTPCSpacePointData::GetPatch(clusterID.Data().fId)) {
-	HLTError("cluster index 0x%08x out of slice %d partition %d", clusterID.Data().fId, slice, part);
-      }
-      int index=AliHLTTPCSpacePointData::GetNumber(clusterID.Data().fId);
 
-      if( index<0 || index>= (int)pDecoder->fCount ) continue;
+  AliHLTUInt32_t filledBytes = 0;
 
-      const AliHLTTPCRawCluster &input = pDecoder->fClusters[index];
+  for (; clusterID!=pGrid->end(); clusterID++) {
+    if (clusterID.Data().fTrackId>-1) {
+      // this is an assigned cluster, skip
+      // TODO: introduce selectors into AliHLTIndexGrid::begin to loop
+      // consistently over entries, e.g. this check has to be done also
+      // in the forwarding of MC labels in
+      // AliHLTTPCDataCompressionComponent::ForwardMCLabels
+      continue;
+    }
+    if ((unsigned)slice!=AliHLTTPCSpacePointData::GetSlice(clusterID.Data().fId) ||
+	(unsigned)part!=AliHLTTPCSpacePointData::GetPatch(clusterID.Data().fId)) {
+      HLTError("cluster id 0x%08x out of slice %d partition %d", clusterID.Data().fId, slice, part);
+      iResult = -EBADMSG;
+      break;
+    }
+    int index=AliHLTTPCSpacePointData::GetNumber(clusterID.Data().fId);
 
-      //const AliHLTTPCRawData::iterator& input=pDecoder->find(index);
-      //if (!(input!=pDecoder->end())) continue;
-      if (fWrittenClusterIds) fWrittenClusterIds->push_back(clusterID.Data().fId);
+    if( index<0 || index>= (int)pDecoder->fCount ){
+      HLTError("cluster index %d id 0x%08x out of range %d", index, clusterID.Data().fId, (int)pDecoder->fCount);
+      iResult = -EBADMSG;
+      break;
+      continue;
+    }
 
-      int padrow=input.GetPadRow();
-      if (padrow<0) {
-	// something wrong here, padrow is stored in the cluster header
-	// word which has bit pattern 0x3 in bits bit 30 and 31 which was
-	// not recognized
-	ALIHLTERRORGUARD(1, "can not read cluster header word");
-	iResult=-EBADF;
+    if( size + sizeof(AliHLTTPCRawCluster) > capacity ){
+      iResult = -ENOSPC;
+      break;
+    }
+
+    const AliHLTTPCRawCluster &input = pDecoder->fClusters[index];
+
+    //const AliHLTTPCRawData::iterator& input=pDecoder->find(index);
+    //if (!(input!=pDecoder->end())) continue;
+    if (fWrittenClusterIds) fWrittenClusterIds->push_back(clusterID.Data().fId);
+
+    int padrow=input.GetPadRow();
+    float pad =input.GetPad();
+    float time =input.GetTime();
+    float sigmaY2=input.GetSigmaPad2();
+    float sigmaZ2=input.GetSigmaTime2();
+
+    if (padrow<0 || pad<0 || time<0 || sigmaY2<0 || sigmaZ2<0 ) {
+      // something wrong here, padrow is stored in the cluster header
+      // word which has bit pattern 0x3 in bits bit 30 and 31 which was
+      // not recognized
+      HLTError("wrong cluster data: padrow %d pad %f time %f sigmaY2 %f sigmaZ2 %f", padrow, pad, time, sigmaY2, sigmaZ2 );
+      iResult = -EBADMSG;
+      break;
+    }
+
+    if (!pDeflater) {
+      AliHLTTPCRawCluster& c=blockout->fClusters[blockout->fCount];
+      padrow+=AliHLTTPCGeometry::GetFirstRow(part);
+      c.SetPadRow(padrow);
+      c.SetCharge(input.GetCharge());
+      c.SetPad(pad);  
+      c.SetTime(time);
+      c.SetSigmaPad2(sigmaY2);
+      c.SetSigmaTime2(sigmaZ2);
+      c.SetQMax(input.GetQMax());
+      size += sizeof(AliHLTTPCRawCluster);
+    } else {
+      AliHLTUInt32_t oldSize = pDeflater->GetBitDataOutputSizeBytes(); 
+      
+      AliHLTUInt64_t padrow64=input.GetPadRow();
+      if (padrow64==lastPadRow) {
+	padrow64-=lastPadRow;
+      } else if (padrow64>lastPadRow) {
+	padrow64-=lastPadRow;
+	lastPadRow+=padrow64;
+      } else {
+	HLTError("padrows are not ordered, skip data");
+	iResult = -EBADMSG;
 	break;
       }
-
-      float pad =input.GetPad();
-      float time =input.GetTime();
-      float sigmaY2=input.GetSigmaY2();
-      float sigmaZ2=input.GetSigmaZ2();
-      if (!pDeflater) {
-	AliHLTTPCRawCluster& c=blockout->fClusters[blockout->fCount];
-	padrow+=AliHLTTPCTransform::GetFirstRow(part);
-	c.SetPadRow(padrow);
-	c.SetCharge(input.GetCharge());
-	c.SetPad(pad);  
-	c.SetTime(time);
-	c.SetSigmaY2(sigmaY2);
-	c.SetSigmaZ2(sigmaZ2);
-	c.SetQMax(input.GetQMax());
+      
+      AliHLTUInt32_t padType=0;
+      AliHLTUInt32_t signdPad=0;
+      AliHLTUInt64_t pad64=0;
+      if ((fMode&kModeDifferentialPadTime)!=0 && sigmaY2<.00001) {
+	// single pad cluster
+	// use twice the pad position to take account for the 0.5 offset
+	// added in the AliHLTTPCRawData decoder in accordance with the
+	// offline definition. Using the factor 2, this offset is not
+	// cut off by rounding
+	pad64=(AliHLTUInt64_t)round(2*pad);
+	padType=1;
       } else {
-	AliHLTUInt64_t padrow64=input.GetPadRow();
-	if (padrow64==lastPadRow) {
-	  padrow64-=lastPadRow;
-	} else if (padrow64>lastPadRow) {
-	  padrow64-=lastPadRow;
-	  lastPadRow+=padrow64;
-	} else {
-	  AliFatal("padrows not ordered");
-	}
-
-	AliHLTUInt32_t padType=0;
-	AliHLTUInt32_t signdPad=0;
-	AliHLTUInt64_t pad64=0;
-	if ((fMode&kModeDifferentialPadTime)!=0 && sigmaY2<.00001) {
-	  // single pad cluster
-	  // use twice the pad position to take account for the 0.5 offset
-	  // added in the AliHLTTPCRawData decoder in accordance with the
-	  // offline definition. Using the factor 2, this offset is not
-	  // cut off by rounding
-	  pad64=(AliHLTUInt64_t)round(2*pad);
-	  padType=1;
-	} else {
 	if (!isnan(pad)) pad64=(AliHLTUInt64_t)round(pad*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kPad].fScale);
-	}
-	if (fMode&kModeDifferentialPadTime && padType==0) {
-	  AliHLTUInt64_t dpad64=0;
-	  if (pad64<lastPad64) {
-	    dpad64=lastPad64-pad64;
-	    signdPad=1;
-	  } else {
-	    dpad64=pad64-lastPad64;
-	    signdPad=0;
-	  }
-	  lastPad64=pad64;
-	  pad64=dpad64;
-	}
-	AliHLTUInt32_t signdTime=0;
-	AliHLTUInt64_t time64=0;
-	if (!isnan(time)) time64=(AliHLTUInt64_t)round(time*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kTime].fScale);
-	if (fMode&kModeDifferentialPadTime) {
-	  AliHLTUInt64_t dtime64=0;
-	  if (time64<lastTime64) {
-	    dtime64=lastTime64-time64;
-	    signdTime=1;
-	  } else {
-	    dtime64=time64-lastTime64;
-	    signdTime=0;
-	  }
-	  lastTime64=time64;
-	  time64=dtime64;
-	}
-	AliHLTUInt64_t sigmaY264=0;
-	if (!isnan(sigmaY2)) sigmaY264=(AliHLTUInt64_t)round(sigmaY2*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaY2].fScale);
-	AliHLTUInt64_t sigmaZ264=0;
-	if (!isnan(sigmaZ2)) sigmaZ264=(AliHLTUInt64_t)round(sigmaZ2*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaZ2].fScale);
-	pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kPadRow , padrow64);
-	pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kPad    , pad64);
-	if (fMode&kModeDifferentialPadTime) pDeflater->OutputBit(padType);
-	if (fMode&kModeDifferentialPadTime && padType==0) pDeflater->OutputBit(signdPad);
-	pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kTime   , time64);
-	if (fMode&kModeDifferentialPadTime) pDeflater->OutputBit(signdTime);
-	if (padType==0) pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kSigmaY2, sigmaY264);
-	pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kSigmaZ2, sigmaZ264);
-	pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kCharge , input.GetCharge());
-	pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kQMax   , input.GetQMax());
       }
-      blockout->fCount++;
+      if (fMode&kModeDifferentialPadTime && padType==0) {
+	AliHLTUInt64_t dpad64=0;
+	if (pad64<lastPad64) {
+	  dpad64=lastPad64-pad64;
+	  signdPad=1;
+	} else {
+	  dpad64=pad64-lastPad64;
+	  signdPad=0;
+	}
+	lastPad64=pad64;
+	pad64=dpad64;
+      }
+      AliHLTUInt32_t signdTime=0;
+      AliHLTUInt64_t time64=0;
+      if (!isnan(time)) time64=(AliHLTUInt64_t)round(time*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kTime].fScale);
+      if (fMode&kModeDifferentialPadTime) {
+	AliHLTUInt64_t dtime64=0;
+	if (time64<lastTime64) {
+	  dtime64=lastTime64-time64;
+	  signdTime=1;
+	} else {
+	  dtime64=time64-lastTime64;
+	  signdTime=0;
+	}
+	lastTime64=time64;
+	time64=dtime64;
+      }
+      AliHLTUInt64_t sigmaY264=0;
+      if (!isnan(sigmaY2)) sigmaY264=(AliHLTUInt64_t)round(sigmaY2*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaY2].fScale);
+      AliHLTUInt64_t sigmaZ264=0;
+      if (!isnan(sigmaZ2)) sigmaZ264=(AliHLTUInt64_t)round(sigmaZ2*AliHLTTPCDefinitions::fgkClusterParameterDefinitions[AliHLTTPCDefinitions::kSigmaZ2].fScale);
+      pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kPadRow , padrow64);
+      pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kPad    , pad64);
+      if (fMode&kModeDifferentialPadTime) pDeflater->OutputBit(padType);
+      if (fMode&kModeDifferentialPadTime && padType==0) pDeflater->OutputBit(signdPad);
+      pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kTime   , time64);
+      if (fMode&kModeDifferentialPadTime) pDeflater->OutputBit(signdTime);
+      if (padType==0) pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kSigmaY2, sigmaY264);
+      pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kSigmaZ2, sigmaZ264);
+      pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kCharge , input.GetCharge());
+      pDeflater->OutputParameterBits(AliHLTTPCDefinitions::kQMax   , input.GetQMax());
+      
+      size += pDeflater->GetBitDataOutputSizeBytes() - oldSize;
     }
+    blockout->fCount++;
   }
+  
+
   AliHLTComponent_BlockData bd;
   AliHLTComponent::FillBlockData(bd);
-  bd.fOffset        = size+offset;
+  bd.fOffset        = offset;
   if (!pDeflater) {
     bd.fSize        = sizeof(AliHLTTPCRawClusterData)+blockout->fCount*sizeof(AliHLTTPCRawCluster);
-    bd.fDataType    = AliHLTTPCDefinitions::fgkRawClustersDataType;
+    bd.fDataType    = AliHLTTPCDefinitions::fgkRawClustersDataTypeNotCompressed;
   } else {
     pDeflater->Pad8Bits();
     bd.fSize        = sizeof(AliHLTTPCRawClusterData)+pDeflater->GetBitDataOutputSizeBytes();
@@ -778,11 +809,15 @@ int AliHLTTPCRawSpacePointContainer::WriteSorted(AliHLTUInt8_t* outputPtr,
     bd.fDataType    = AliHLTTPCDefinitions::RemainingClustersCompressedDataType();
   }
   bd.fSpecification = AliHLTTPCDefinitions::EncodeDataSpecification(slice, slice, part, part);
-  outputBlocks.push_back(bd);
 
-  size += bd.fSize;
+  if (iResult>=0 && bd.fSize+size<=capacity) {
+    outputBlocks.push_back(bd);
+    size = bd.fSize;
+  } else {
+    iResult=-ENOSPC;
+  }
 
-  if (fWrittenClusterIds && fWrittenClusterIds->size()>0) {
+  if ( (iResult>=0) && fWrittenClusterIds && (fWrittenClusterIds->size()>0) ) {
     AliHLTComponent::FillBlockData(bd);
     bd.fOffset        = size+offset;
     bd.fSize        = fWrittenClusterIds->size()*sizeof(vector<AliHLTUInt32_t>::value_type);
@@ -795,9 +830,10 @@ int AliHLTTPCRawSpacePointContainer::WriteSorted(AliHLTUInt8_t* outputPtr,
     } else {
       iResult=-ENOSPC;
     }
-    fWrittenClusterIds->clear();
   }
-
+  
+  if (fWrittenClusterIds ) fWrittenClusterIds->clear();
+ 
   if (iResult<0) return iResult;
   return size;
 }
@@ -854,8 +890,8 @@ void AliHLTTPCRawSpacePointContainer::AliHLTTPCRawSpacePointProperties::Print(os
   str << " " << setfill(' ') << setw(3) << fpCluster->GetPadRow() 
       << " " << setw(8) << setprecision(3) << fpCluster->GetPad()
       << " " << setw(8) << setprecision(3) << fpCluster->GetTime()
-      << " " << setw(8) << setprecision(1) << fpCluster->GetSigmaY2() 
-      << " " << setw(9) << setprecision(1) << fpCluster->GetSigmaZ2()
+      << " " << setw(8) << setprecision(1) << fpCluster->GetSigmaPad2() 
+      << " " << setw(9) << setprecision(1) << fpCluster->GetSigmaTime2()
       << " " << setw(5) << fpCluster->GetCharge() 
       << " " << setw(5) << fpCluster->GetQMax()
       << " " << fTrackId << " " << fMCId << " " << fUsed;

@@ -85,7 +85,8 @@ if(ROOTSYS)
     string(REGEX REPLACE "^([0-9]+)\\.[0-9][0-9]+\\/[0-9][0-9]+.*" "\\1" ROOT_VERSION_MAJOR "${ROOT_VERSION}")
     string(REGEX REPLACE "^[0-9]+\\.([0-9][0-9])+\\/[0-9][0-9]+.*" "\\1" ROOT_VERSION_MINOR "${ROOT_VERSION}")
     string(REGEX REPLACE "^[0-9]+\\.[0-9][0-9]+\\/([0-9][0-9]+).*" "\\1" ROOT_VERSION_PATCH "${ROOT_VERSION}")
-    message(STATUS "Found ROOT version ${ROOT_VERSION_MAJOR}.${ROOT_VERSION_MINOR}.${ROOT_VERSION_PATCH}")
+    string(REGEX REPLACE "/" "." ROOT_VERSION_NORM "${ROOT_VERSION}")
+    message(STATUS "Found ROOT version ${ROOT_VERSION_NORM}")
 
     # Print ROOT features
     execute_process(COMMAND ${ROOT_CONFIG} --features OUTPUT_VARIABLE ROOT_FEATURES ERROR_VARIABLE error OUTPUT_STRIP_TRAILING_WHITESPACE )
@@ -326,6 +327,9 @@ if(ROOTSYS)
                 set_target_properties(RootExtra PROPERTIES COMPILE_FLAGS "${LIBXML2_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR}")
                 set_target_properties(RootExtra PROPERTIES LINKER_LANGUAGE CXX)
                 target_link_libraries(RootExtra ${ROOT_LIBDIR}/libfreetype.a ${ROOT_LIBDIR}/libpcre.a ${ROOT_LIBDIR}/liblzma.a ${LIBXML2_LIBRARIES} ${OPENSSL_LIBRARIES})
+		install(TARGETS RootExtra 
+		  ARCHIVE DESTINATION lib
+		  LIBRARY DESTINATION lib)
             else()
                 message(FATAL_ERROR "OpenSSL not found. Coould not generate the static RootExtra. Please install Openssl")
             endif()

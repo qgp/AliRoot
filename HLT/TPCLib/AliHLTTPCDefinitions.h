@@ -108,7 +108,9 @@ public:
   static const AliHLTComponentDataType& ClustersDataType();
   /** raw cluster data (not transformed) */
   static const AliHLTComponentDataType fgkRawClustersDataType;          // see above
+  static const AliHLTComponentDataType fgkRawClustersDataTypeNotCompressed;          // A copy of the fgkRawClustersDataType, which is used if the DataCompressor failed to compress clusters
   static const AliHLTComponentDataType& RawClustersDataType();
+  static const AliHLTComponentDataType& RawClustersDataTypeNotCompressed();
   /** raw cluster data descriptor*/
   static const AliHLTComponentDataType fgkRawClustersDescriptorDataType;          // see above
   static const AliHLTComponentDataType& RawClustersDescriptorDataType();
@@ -127,6 +129,9 @@ public:
   /** vertex data structure */
   static const AliHLTComponentDataType fgkVertexDataType;               // see above
   static const AliHLTComponentDataType& VertexDataType();
+  
+  //Initialized Fast transform data object
+  static const AliHLTComponentDataType fgkTPCFastTransformDataObjectDataType;	//see above
 
   // Cluster & Tracks model data
   /** data compression descriptor*/

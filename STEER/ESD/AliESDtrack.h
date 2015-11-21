@@ -90,6 +90,9 @@ public:
   Double_t GetIntegratedTimesOld(Int_t i) const {if(fTrackTime) return fTrackTime[i]; else return 0;};
   Int_t    GetPID(Bool_t tpcOnly=kFALSE)  const;
   Int_t    GetTOFBunchCrossing(Double_t b=0, Bool_t pidTPConly=kTRUE) const;
+  Double_t GetTOFExpTDiff(Double_t b=0, Bool_t pidTPConly=kTRUE) const;
+  Double_t GetTOFExpTDiffSpec(AliPID::EParticleType specie=AliPID::kPion,Double_t b=0) const;
+  //
   Double_t GetMass(Bool_t tpcOnly=kFALSE) const {return AliPID::ParticleMass(GetPID(tpcOnly));}
   Double_t GetMassForTracking() const;
   void     SetPIDForTracking(Int_t pid) {fPIDForTracking = pid;}
@@ -434,6 +437,21 @@ public:
   void GetImpactParameters(Float_t p[2], Float_t cov[3]) const {
     p[0]=fD; p[1]=fZ; cov[0]=fCdd; cov[1]=fCdz; cov[2]=fCzz;
   }
+
+  Bool_t RelateToVVertexTPC(const AliVVertex *vtx, Double_t b, Double_t maxd,
+                           AliExternalTrackParam *cParam=0);
+  Bool_t 
+  RelateToVVertexTPCBxByBz(const AliVVertex *vtx, Double_t b[3],Double_t maxd,
+                           AliExternalTrackParam *cParam=0);
+  Bool_t RelateToVVertex(const AliVVertex *vtx, Double_t b, Double_t maxd,
+                        AliExternalTrackParam *cParam=0);
+  Bool_t 
+  RelateToVVertexBxByBz(const AliVVertex *vtx, Double_t b[3], Double_t maxd,
+                        AliExternalTrackParam *cParam=0);
+
+  void SetImpactParameters( const Float_t p[2], const Float_t cov[3], const Float_t chi2, const AliExternalTrackParam *cParam );
+  void SetImpactParametersTPC( const Float_t p[2], const Float_t cov[3], const Float_t chi2);
+
   virtual void Print(Option_t * opt) const ;
   const AliESDEvent* GetESDEvent() const {return fESDEvent;}
   const AliTOFHeader* GetTOFHeader() const;
@@ -465,7 +483,10 @@ public:
   //--to be used in online calibration/QA
   //--should also be implemented in ESD so it works offline as well
   //-----------
-  virtual Int_t GetTrackParam         ( AliExternalTrackParam &p ) const {p=*this; return 0;}
+  virtual Int_t GetTrackParam         ( AliExternalTrackParam &p ) const {
+      p=*(AliExternalTrackParam*)this;
+      return 0;}
+
   virtual Int_t GetTrackParamRefitted ( AliExternalTrackParam & ) const {return 0;}
   virtual Int_t GetTrackParamITSOut   ( AliExternalTrackParam & ) const {return 0;}
 
@@ -489,6 +510,23 @@ public:
       p=*GetConstrainedParam();
       return 0;}
 
+  void ResetTrackParamIp ( const AliExternalTrackParam *p ) {
+      if (fIp) delete fIp;
+      fIp=new AliExternalTrackParam(*p);
+      }
+
+  void ResetTrackParamOp ( const AliExternalTrackParam *p ) {
+      if (fOp) delete fOp;
+      fOp=new AliExternalTrackParam(*p);
+      }
+
+  void ResetTrackParamTPCInner ( const AliExternalTrackParam *p ) {
+      if (fTPCInner) delete fTPCInner;
+      fTPCInner=new AliExternalTrackParam(*p);
+      }
+  Int_t GetNumberOfITSClusters() const { return fITSncls;}
+  Int_t GetNumberOfTPCClusters() const { return fTPCncls;}
+  Int_t GetNumberOfTRDClusters() const { return fTRDncls;}
 
 protected:
   

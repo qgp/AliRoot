@@ -39,15 +39,15 @@ public:
 	 else printf("\n\n AliZDCv5: WARNING! TCDD pos. aperture set to max. value: 2.0 cm\n\n");}
   virtual void SetTCDDApertureNeg(Float_t aperture) 
     	{if(aperture<=2.4) fTCDDApertureNeg = aperture;
-	 else printf("\n\n AliZDCv5: WARNING! TCDD neg. aperture set to max. value: -2.2 cm\n\n");}
+	 else printf("\n\n AliZDCv5: WARNING! TCDD neg. aperture set to max. value: -2.0 cm\n\n");}
 
   
   virtual void SetTDIAperturePos(Float_t aperture) 
   	{if(aperture<=6.) fTDIAperturePos = aperture;
-	 else printf("\n\n AliZDCv5: WARNING! TDI pos. aperture set to max. value: 6.0 cm\n\n");}
+	 else printf("\n\n AliZDCv5: WARNING! TDI pos. aperture set to max. value: 5.5 cm\n\n");}
   virtual void SetTDIApertureNeg(Float_t aperture) 
   	{if(aperture<=6.) fTDIApertureNeg = aperture;
-	 else printf("\n\n AliZDCv5: WARNING! TDI neg. aperture set to max. value: -6.0 cm\n\n");}
+	 else printf("\n\n AliZDCv5: WARNING! TDI neg. aperture set to max. value: -5.5 cm\n\n");}
   virtual void SetTDIConfiguration(Int_t configuration) 
   	{if(fTDIConfiguration>=0 && fTDIConfiguration<=2) fTDIConfiguration=configuration;
 	 else printf("\n\n AliZDCv5: WARNING! TDI invalid configuration -> setting to 2\n\n");}
@@ -60,6 +60,7 @@ public:
   void SetYZPC(Float_t yZPC) {fPosZPC[1] = yZPC;}
   void SetYZPA(Float_t yZPA) {fPosZPA[1] = yZPA;}
   
+  void SetSwitchOnTrackreferences() {fSwitchOnTrackRef = kTRUE;}
  
 protected:
 
@@ -123,8 +124,9 @@ protected:
   Int_t fTDIConfiguration;	  // choose TDI design
   
   Float_t fLumiLength;  	  // Luminometer length
+  Bool_t  fSwitchOnTrackRef;      // to switch on/off storing of track references
   
-  ClassDef(AliZDCv5, 1)  // Zero Degree Calorimeter version 1
+  ClassDef(AliZDCv5, 2)  // Zero Degree Calorimeter version 1
 }; 
  
 #endif

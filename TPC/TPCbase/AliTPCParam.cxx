@@ -154,6 +154,7 @@ AliTPCParam::AliTPCParam()
   SetTitle("75x40_100x60_150x60");
   SetDefault();
   if (!fBBParam) fBBParam= new TObjArray(1000);
+  fRegionGain[0]=fRegionGain[1]=fRegionGain[2]=0.;
 }
 
 AliTPCParam::~AliTPCParam()
@@ -1038,7 +1039,7 @@ TVectorD * AliTPCParam::GetBetheBlochParamAliceMC(){
 Double_t  AliTPCParam::BetheBlochAleph(Double_t bg, Int_t type){
   /// GetBetheBloch retur values for the parametrs regieter at poition type
   /// Used for visualization and comparison purposes
-
+  if (bg<=0) return 0;
   TVectorD * paramBB =0;
   if (type==0) {
     AliTPCParam* param = AliTPCcalibDB::Instance()->GetParameters();

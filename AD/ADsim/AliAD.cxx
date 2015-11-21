@@ -62,6 +62,7 @@
 #include "AliCDBEntry.h"
 #include "AliADReconstructor.h"
 #include "AliADCalibData.h"
+#include "AliADConst.h"
 
 ClassImp(AliAD)
  //__________________________________________________________________
@@ -455,7 +456,7 @@ void AliAD::Digits2Raw()
    // Now retrieve the channel information: charge smaples + time and 
    // dump it into ADC and Time arrays
    Int_t nEntries = Int_t(digits->GetEntries());
-   Short_t aADC[16][kNClocks];
+   Short_t aADC[16][kADNClocks];
    Short_t aTime[16];
    Short_t aWidth[16];
    Bool_t  aIntegrator[16];
@@ -471,9 +472,9 @@ void AliAD::Digits2Raw()
      for(Int_t k=0; k<ndig; k++){
          AliADdigit* fADDigit = (AliADdigit*) ADdigits->At(k);
 
-	 Int_t iChannel       = fADDigit->PMNumber();
+	 Int_t iChannel       = kOnlineChannel[fADDigit->PMNumber()];
 	 
-	 for(Int_t iClock = 0; iClock < kNClocks; ++iClock) aADC[iChannel][iClock] = fADDigit->ChargeADC(iClock);
+	 for(Int_t iClock = 0; iClock < kADNClocks; ++iClock) aADC[iChannel][iClock] = fADDigit->ChargeADC(20-iClock);
 	 Int_t board = AliADCalibData::GetBoardNumber(iChannel);
 	 aTime[iChannel]      = TMath::Nint(fADDigit->Time() / fCalibData->GetTimeResolution(board));
 	 aWidth[iChannel]     = TMath::Nint(fADDigit->Width() / fCalibData->GetWidthResolution(board));
@@ -482,7 +483,7 @@ void AliAD::Digits2Raw()
 	 aBGflag[iChannel]    = fADDigit->GetBGflag();
 	 
          //AliDebug(1,Form("DDL: %s\tdigit number: %d\tPM number: %d\tADC: %d\tTime: %f",
-			 //fileName,k,fADDigit->PMNumber(),aADC[iChannel][AliADdigit::kNClocks/2],aTime[iChannel])); 
+			 //fileName,k,fADDigit->PMNumber(),aADC[iChannel][AliADdigit::kADNClocks/2],aTime[iChannel])); 
      }        
    }
 

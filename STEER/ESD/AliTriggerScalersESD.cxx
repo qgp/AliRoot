@@ -25,6 +25,8 @@
 //    L1CA       L1 triggers after all vetos 
 //    L2CB       L2 triggers before any vetos 
 //    L2CA       L2 triggers after all vetos 
+//    LMCB       LM triggers before any vetos 
+//    LMCA       LM triggers after all vetos 
 //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -46,7 +48,9 @@ AliTriggerScalersESD::AliTriggerScalersESD():
   fL1CB(0),     
   fL1CA(0),     
   fL2CB(0),     
-  fL2CA(0)      
+  fL2CA(0),      
+  fLMCB(0),     
+  fLMCA(0)      
 {
   // Default constructor
 }
@@ -61,9 +65,27 @@ AliTriggerScalersESD::AliTriggerScalersESD( UChar_t classIndex, ULong64_t LOCB, 
   fL1CB(L1CB),     
   fL1CA(L1CA),     
   fL2CB(L2CB),     
-  fL2CA(L2CA)      
+  fL2CA(L2CA),      
+  fLMCB(0), 
+  fLMCA(0)      
 {
-  // Default constructor
+  // Default constructor for L0,L1,L2 levels
+}
+//_____________________________________________________________________________
+AliTriggerScalersESD::AliTriggerScalersESD( UChar_t classIndex, ULong64_t LOCB, ULong64_t LOCA,        
+                                      ULong64_t L1CB, ULong64_t L1CA, ULong64_t L2CB, ULong64_t L2CA, ULong64_t LMCB, ULong64_t LMCA ):   
+  TObject(),
+  fClassIndex( classIndex ),
+  fLOCB(LOCB),     
+  fLOCA(LOCA),     
+  fL1CB(L1CB),     
+  fL1CA(L1CA),     
+  fL2CB(L2CB),     
+  fL2CA(L2CA),      
+  fLMCB(LMCB),     
+  fLMCA(LMCA)      
+{
+  // Constructor for LM,L0,L1,L2 levels
 }
 //_____________________________________________________________________________
 AliTriggerScalersESD::AliTriggerScalersESD(UChar_t classIndex,ULong64_t* s64):
@@ -74,7 +96,9 @@ fLOCA(s64[1]),
 fL1CB(s64[2]),     
 fL1CA(s64[3]),     
 fL2CB(s64[4]),     
-fL2CA(s64[5])      
+fL2CA(s64[5]),
+fLMCB(0),
+fLMCA(0)
 {
  // Construct from array
 }
@@ -87,7 +111,9 @@ AliTriggerScalersESD::AliTriggerScalersESD(const AliTriggerScalersESD& scal ):
   fL1CB(scal.fL1CB),     
   fL1CA(scal.fL1CA),     
   fL2CB(scal.fL2CB),     
-  fL2CA(scal.fL2CA)      
+  fL2CA(scal.fL2CA),      
+  fLMCB(scal.fLMCB),     
+  fLMCA(scal.fLMCA)      
 {
   // Copy constructor
 }
@@ -104,6 +130,8 @@ if(&scal == this) return *this;
   fL1CA = scal.fL1CA;     
   fL2CB = scal.fL2CB;     
   fL2CA = scal.fL2CA;
+  fLMCB = scal.fLMCB;     
+  fLMCA = scal.fLMCA;
 
 return *this;
 }
@@ -117,6 +145,17 @@ void AliTriggerScalersESD::GetAllScalers(ULong64_t *scalers) const
  scalers[4]=fL2CB;
  scalers[5]=fL2CA;
 }
+void AliTriggerScalersESD::GetAllScalersM012(ULong64_t *scalers) const
+{
+ scalers[2]=fLOCB;
+ scalers[3]=fLOCA;
+ scalers[4]=fL1CB;
+ scalers[5]=fL1CA;
+ scalers[6]=fL2CB;
+ scalers[7]=fL2CA;
+ scalers[0]=fLMCB;
+ scalers[1]=fLMCA;
+}
 //_____________________________________________________________________________
 void AliTriggerScalersESD::Print( const Option_t* ) const
 {
@@ -125,4 +164,5 @@ void AliTriggerScalersESD::Print( const Option_t* ) const
   cout << "  LOCB: " << fLOCB << " LOCA: " << fLOCA; //<< endl;
   cout << "  L1CB: " << fL1CB << " L1CA: " << fL1CA; //<< endl;
   cout << "  L2CB: " << fL2CB << " L2CA: " << fL2CA << endl;
+  cout << "  LMCB: " << fLMCB << " LMCA: " << fLMCA << endl;
 }

@@ -21,7 +21,7 @@ AliGenerator* CreatePythia8Gen(Float_t e_cms, Bool_t kCR, Int_t kF,Int_t kProces
    gSystem->Load("libAliPythia6");
    gSystem->Load("libpythia8");
    gSystem->Load("libAliPythia8");
-   gSystem->Setenv("PYTHIA8DATA", gSystem->ExpandPathName("$ALICE_ROOT/PYTHIA8/pythia8175/xmldoc"));
+   gSystem->Setenv("PYTHIA8DATA", gSystem->ExpandPathName("$ALICE_ROOT/PYTHIA8/pythia8/xmldoc"));
    gSystem->Setenv("LHAPDF",      gSystem->ExpandPathName("$ALICE_ROOT/LHAPDF"));
    gSystem->Setenv("LHAPATH",     gSystem->ExpandPathName("$ALICE_ROOT/LHAPDF/PDFsets"));
 
@@ -34,7 +34,7 @@ AliGenerator* CreatePythia8Gen(Float_t e_cms, Bool_t kCR, Int_t kF,Int_t kProces
  
   if(kProcess==1) {gener->SetProcess(kPyJets);
    if(ptHardMin>0.)
-   AliPythia8::Instance()->SetPtHardRange(ptHardMin,ptHardMax);
+    gener->SetPtHard(ptHardMin,ptHardMax);
   } 
 
   //Centre of mass energy 
@@ -51,9 +51,9 @@ AliGenerator* CreatePythia8Gen(Float_t e_cms, Bool_t kCR, Int_t kF,Int_t kProces
   AliPythia8::Instance()->ReadString("Random:seed = 0");
 
   if(kCR)             
-    (AliPythia8::Instance())->ReadString("BeamRemnants:reconnectColours = on");
+    (AliPythia8::Instance())->ReadString("ColourReconnection:reconnect = on");
   else
-    (AliPythia8::Instance())->ReadString("BeamRemnants:reconnectColours = off");
+    (AliPythia8::Instance())->ReadString("ColourReconnection:reconnect = off");
   
  
   AliPythia8::Instance()->ReadString(Form("MultipartonInteractions:kFactor = %i", kF));

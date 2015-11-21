@@ -22,6 +22,14 @@ AliADQAParam::AliADQAParam():
   fNTdcTimeBins(3062),
   fTdcTimeMin(0.976562),
   fTdcTimeMax(300.0),
+  fNTdcTimeBinsFlag(410),
+  fTdcTimeMinBGFlag(50.0),
+  fTdcTimeMaxBGFlag(90.039062),
+  fTdcTimeMinBBFlag(170.0),
+  fTdcTimeMaxBBFlag(210.039062),
+  fNTdcTimeRatioBins(300),
+  fTdcTimeRatioMin(1),
+  fTdcTimeRatioMax(301),
   fNTdcWidthBins(153),
   fTdcWidthMin(2.343750),
   fTdcWidthMax(121.875000),
@@ -43,13 +51,21 @@ AliADQAParam::AliADQAParam():
   fPairTimeDiffMin(-15.039062),
   fPairTimeDiffMax(15.039062),
   fNMeanTimeCorrBins(306), 
-  fMeanTimeCorrMin(0.976562),
-  fMeanTimeCorrMax(299.804688),
+  fMeanTimeCorrMin(50.976562),
+  fMeanTimeCorrMax(349.804688),
   fSatMed(0.1),
   fSatHigh(0.3),
   fSatHuge(0.5),
   fMaxPedDiff(1),
-  fMaxPedWidth(1.5) 	
+  fMaxPedWidth(1.5),
+  fMaxNoTimeRate(10e-4),
+  fMaxNoFlagRate(10e-3),
+  fMaxBBVariation(0.1),
+  fMaxBGVariation(0.1),
+  fAsynchronBB(0.5),
+  fAsynchronBG(0.5)
+  
+   	
 
 {
   //

@@ -56,12 +56,14 @@ AliAODHeader::AliAODHeader() :
   fNDimuons(0),
   fNGlobalMuons(0),               // AU
   fNGlobalDimuons(0),             // AU
+  fDAQAttributes(0),
   fEventType(0),
   fOrbitNumber(0),
   fPeriodNumber(0),
   fBunchCrossNumber(0),
   fRefMultComb05(-999),
   fRefMultComb08(-999),
+  fRefMultComb10(-999),
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
@@ -122,12 +124,14 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fNDimuons(0),
   fNGlobalMuons(0),               // AU
   fNGlobalDimuons(0),             // AU
+  fDAQAttributes(0),
   fEventType(0),
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
   fBunchCrossNumber(nBunchX),
   fRefMultComb05(-999),
   fRefMultComb08(-999),
+  fRefMultComb10(-999),
   fTriggerCluster(0), 
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
@@ -168,6 +172,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   Int_t refMultNeg,
 			   Int_t refMultComb05,
 			   Int_t refMultComb08,
+			   Int_t refMultComb10,
 			   Double_t magField,
 			   Double_t muonMagFieldScale,
 			   Double_t cent,
@@ -185,7 +190,8 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   Int_t nMuons,
 			   Int_t nDimuons,
 			   Int_t nGlobalMuons,                 // AU
-			   Int_t nGlobalDimuons) :             // AU
+			   Int_t nGlobalDimuons,
+			   UInt_t daqAttrib) :             // AU
   AliVAODHeader(),
   fMagneticField(magField),
   fMuonMagFieldScale(muonMagFieldScale),
@@ -210,12 +216,14 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fNDimuons(nDimuons),
   fNGlobalMuons(nGlobalMuons),               // AU
   fNGlobalDimuons(nGlobalDimuons),           // AU
+  fDAQAttributes(daqAttrib),
   fEventType(evttype),
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
   fBunchCrossNumber(nBunchX),
   fRefMultComb05(refMultComb05),
   fRefMultComb08(refMultComb08),
+  fRefMultComb10(refMultComb10),
   fTriggerCluster(trigClus),
   fDiamondZ(0.), 
   fDiamondSig2Z(0.),
@@ -288,6 +296,7 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fBunchCrossNumber(hdr.fBunchCrossNumber),
   fRefMultComb05(hdr.fRefMultComb05), 
   fRefMultComb08(hdr.fRefMultComb08), 
+  fRefMultComb10(hdr.fRefMultComb10), 
   fTriggerCluster(hdr.fTriggerCluster), 
   fDiamondZ(hdr.fDiamondZ), 
   fDiamondSig2Z(hdr.fDiamondSig2Z),
@@ -364,12 +373,14 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fBunchCrossNumber = hdr.fBunchCrossNumber;
     fRefMultComb05    = hdr.fRefMultComb05;
     fRefMultComb08    = hdr.fRefMultComb08;
+    fRefMultComb10    = hdr.fRefMultComb10;
 
     fTriggerCluster   = hdr.fTriggerCluster;
     fNMuons           = hdr.fNMuons;
     fNDimuons         = hdr.fNDimuons;
     fNGlobalMuons     = hdr.fNGlobalMuons;           // AU
     fNGlobalDimuons   = hdr.fNGlobalDimuons;         // AU
+    fDAQAttributes    = hdr.fDAQAttributes;
     fDiamondZ         = hdr.fDiamondZ;
     fDiamondSig2Z     = hdr.fDiamondSig2Z;
     fOfflineTrigger   = hdr.fOfflineTrigger;
@@ -519,6 +530,7 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("ref. Multiplicity (neg) : %d\n", fRefMultNeg);
   printf("ref. Mult.Comb |eta|<.5 : %d\n", fRefMultComb05);
   printf("ref. Mult.Comb |eta|<.8 : %d\n", fRefMultComb08);
+  printf("ref. Mult.Comb |eta|<1. : %d\n", fRefMultComb10);
   printf("number of muons         : %d\n", fNMuons);
   printf("number of dimuons       : %d\n", fNDimuons);
   printf("offline trigger         : %u\n", fOfflineTrigger);

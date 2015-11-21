@@ -84,7 +84,7 @@ void TPCMonitor()
   TString fglobalmap=Form("%s/TPC/mapping/MappingGlobal.txt", aliceroot.Data());
   TString frowmap=Form("%s/TPC/mapping/MappingRow.txt",    aliceroot.Data());
   TString ffecmap=Form("%s/TPC/mapping/MappingCards.txt",  aliceroot.Data());
-  TString fnameconf=Form("%s/TPC/Monitor/AliTPCMonitorConfig.txt",   aliceroot.Data());
+  TString fnameconf=Form("%s/TPC/TPCmon/AliTPCMonitorConfig.txt",   aliceroot.Data());
   fMapHand = new AliTPCMonitorMappingHandler("maphand","maphand");
   fMapHand->ReadMapping(fglobalmap.Data());
   fMapHand->ReadRowMappingGlob(frowmap.Data());
@@ -385,7 +385,7 @@ void OpenDir()
   string   firsts   = fname.substr(ffirst,1);
   Int_t    firstsl  = strcmp(firsts.data(),":");
   Int_t    firstcol = strcmp(firsts.data(),"@");
-  if ( (fname.find("mem:")!=string::npos) || (fname.find("rfio")!=string::npos) || (fname.find("http")!=string::npos)
+  if ( (fname.find("mem:")!=string::npos) || (fname.find("rfio")!=string::npos) || (fname.find("http")!=string::npos) || (fname.find("alien:")!=string::npos)
        || !firstsl || !firstcol  )  fstart= ffirst  ;
   else                              fstart= ffirst-1; 
   

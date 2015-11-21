@@ -19,6 +19,10 @@
 //  Class for AD reconstruction                                         //
 //////////////////////////////////////////////////////////////////////////////
 #include <TParameter.h>
+#include <TGeoManager.h>
+#include <TGeoMatrix.h>
+#include <TGeoPhysicalNode.h>
+#include <AliGeomManager.h>
 
 #include "AliRawReader.h"
 #include "AliGRPObject.h"
@@ -29,6 +33,7 @@
 #include "AliRunInfo.h"
 #include "AliCTPTimeParams.h"
 #include "AliLHCClockPhase.h"
+#include "TSpline.h"
 
 #include "AliADReconstructor.h"
 #include "AliADdigit.h"
@@ -52,11 +57,82 @@ AliADReconstructor:: AliADReconstructor():
   fBeamEnergy(0.)
 
 {
-  fCalibData = GetCalibData();
+  
   // Default constructor  
   // Get calibration data
+  fCalibData = GetCalibData();
+  //Get time slewing
+  GetTimeSlewingSplines();
+  
+  // Now get the CTP L0->L1 delay
+  AliCDBEntry *entry = AliCDBManager::Instance()->Get("GRP/CTP/CTPtiming");
+  if (!entry) AliFatal("CTP timing parameters are not found in OCDB !");
+  AliCTPTimeParams *ctpParams = (AliCTPTimeParams*)entry->GetObject();
+  Float_t l1Delay = (Float_t)ctpParams->GetDelayL1L0()*25.0;
+
+  AliCDBEntry *entry1 = AliCDBManager::Instance()->Get("GRP/CTP/TimeAlign");
+  if (!entry1) AliFatal("CTP time-alignment is not found in OCDB !");
+  AliCTPTimeParams *ctpTimeAlign = (AliCTPTimeParams*)entry1->GetObject();
+  l1Delay += ((Float_t)ctpTimeAlign->GetDelayL1L0()*25.0);
+
+  AliCDBEntry *entry2 = AliCDBManager::Instance()->Get("AD/Calib/TimeDelays");
+  if (!entry2) AliFatal("AD time delays are not found in OCDB !");
+  TH1F *TimeDelays = (TH1F*)entry2->GetObject();
+
+  AliCDBEntry *entry3 = AliCDBManager::Instance()->Get("GRP/Calib/LHCClockPhase");
+  if (!entry3) AliFatal("LHC clock-phase shift is not found in OCDB !");
+  AliLHCClockPhase *phase = (AliLHCClockPhase*)entry3->GetObject();
+
+  for(Int_t i = 0 ; i < 16; ++i) {
+    Int_t board = AliADCalibData::GetBoardNumber(i); 
+    fHptdcOffset[i] = (((Float_t)fCalibData->GetRollOver(board)-
+			(Float_t)fCalibData->GetTriggerCountOffset(board))*25.0
+		       +fCalibData->GetTimeOffset(i)
+		       -l1Delay
+		       -phase->GetMeanPhase()
+		       -TimeDelays->GetBinContent(i+1)
+		       -kADOffset);
+   }
+   
+  Float_t zADC1 = TMath::Abs(GetZPosition("AD/ADC1"));//outer 
+  Float_t zADC2 = TMath::Abs(GetZPosition("AD/ADC2"));//inner
+  Float_t zADA1 = TMath::Abs(GetZPosition("AD/ADA1"));//inner
+  Float_t zADA2 = TMath::Abs(GetZPosition("AD/ADA2"));//outer
+  // distance in time units from nominal vertex to AD
+  fLayerDist[0] = zADC1/TMath::Ccgs()*1e9;
+  fLayerDist[1] = zADC2/TMath::Ccgs()*1e9;
+  fLayerDist[2] = zADA1/TMath::Ccgs()*1e9;
+  fLayerDist[3] = zADA2/TMath::Ccgs()*1e9; 
 
 }
+//________________________________________________________________________________
+Double_t AliADReconstructor::GetZPosition(const char* symname)
+{
+// Get the global z coordinate of the given AD alignable volume
+//
+  Double_t *tr;
+  TGeoPNEntry *pne = gGeoManager->GetAlignableEntry(symname);
+  if (!pne) {
+    AliFatalClass(Form("TGeoPNEntry with symbolic name %s does not exist!",symname));
+    return 0;
+  }
+
+  TGeoPhysicalNode *pnode = pne->GetPhysicalNode();
+  if(pnode){
+          TGeoHMatrix* hm = pnode->GetMatrix();
+           tr = hm->GetTranslation();
+  }else{
+          const char* path = pne->GetTitle();
+          if(!gGeoManager->cd(path)){
+                  AliFatalClass(Form("Volume path %s not valid!",path));
+                  return 0;
+          }
+         tr = gGeoManager->GetCurrentMatrix()->GetTranslation();
+  }
+  return tr[2];
+
+}
+
 
 //_____________________________________________________________________________
 AliADReconstructor& AliADReconstructor::operator = 
@@ -100,39 +176,83 @@ void AliADReconstructor::ConvertDigits(AliRawReader* rawReader, TTree* digitsTre
 
   rawReader->Reset();
   AliADRawStream rawStream(rawReader);
-  if (rawStream.Next()) { 
-
+  if (rawStream.Next()) {
+   
+    Bool_t aBBflag[16];
+    Bool_t aBGflag[16];
+    
     for(Int_t iChannel=0; iChannel < 16; ++iChannel) {
       Int_t offlineCh = kOfflineChannel[iChannel];
       // ADC charge samples
-      Short_t chargeADC[kNClocks];
-      for(Int_t iClock=0; iClock < kNClocks; ++iClock) {
+      Short_t chargeADC[kADNClocks];
+      aBBflag[offlineCh] = kFALSE;
+      aBGflag[offlineCh] = kFALSE;
+      for(Int_t iClock=0; iClock < kADNClocks; ++iClock) {
 	chargeADC[iClock] = rawStream.GetPedestal(iChannel,iClock);
+	if(rawStream.GetBBFlag(iChannel,iClock)) aBBflag[offlineCh]=kTRUE;
+	if(rawStream.GetBGFlag(iChannel,iClock)) aBGflag[offlineCh]=kTRUE;
       }
       // Integrator flag
-      Bool_t integrator = rawStream.GetIntegratorFlag(iChannel,kNClocks/2);
-      Bool_t BBflag = rawStream.GetBBFlag(iChannel,kNClocks/2); 
-      Bool_t BGflag = rawStream.GetBGFlag(iChannel,kNClocks/2);
+      Bool_t integrator = rawStream.GetIntegratorFlag(iChannel,kADNClocks/2);
+      Bool_t BBflag = rawStream.GetBBFlag(iChannel,kADNClocks/2); 
+      Bool_t BGflag = rawStream.GetBGFlag(iChannel,kADNClocks/2);
    
       // HPTDC data (leading time and width)
       Int_t board = AliADCalibData::GetBoardNumber(offlineCh);
       Float_t time = rawStream.GetTime(iChannel)*fCalibData->GetTimeResolution(board);
       Float_t width = rawStream.GetWidth(iChannel)*fCalibData->GetWidthResolution(board);
       // Add a digit
-      if(!fCalibData->IsChannelDead(iChannel)){
+      //if(!fCalibData->IsChannelDead(offlineCh)){ Off for the moment
 	  new ((*fDigitsArray)[fDigitsArray->GetEntriesFast()]) AliADdigit(offlineCh, time, width,integrator, chargeADC, BBflag, BGflag);
-      }
+      //}
       
-      fESDADfriend->SetTriggerInputs(rawStream.GetTriggerInputs());
-      fESDADfriend->SetTriggerInputsMask(rawStream.GetTriggerInputsMask());
-    
       fESDADfriend->SetBBScalers(offlineCh,rawStream.GetBBScalers(iChannel));
       fESDADfriend->SetBGScalers(offlineCh,rawStream.GetBGScalers(iChannel));
-      for (Int_t iEv = 0; iEv < kNClocks; iEv++) {
+      for (Int_t iEv = 0; iEv < kADNClocks; iEv++) {
 	  fESDADfriend->SetBBFlag(offlineCh,iEv,rawStream.GetBBFlag(iChannel,iEv));
 	  fESDADfriend->SetBGFlag(offlineCh,iEv,rawStream.GetBGFlag(iChannel,iEv));
       }
     }
+    //BC Unmasked triggers
+    Int_t pBBmulADA = 0;
+    Int_t pBBmulADC = 0;
+    Int_t pBGmulADA = 0;
+    Int_t pBGmulADC = 0;
+  
+    for(Int_t iChannel=0; iChannel<4; iChannel++) {//Loop over pairs of pads
+    //Enable time is used to turn off the coincidence 
+      if((!fCalibData->GetEnableTiming(iChannel) || aBBflag[iChannel]) && (!fCalibData->GetEnableTiming(iChannel+4) || aBBflag[iChannel+4])) pBBmulADC++;
+      if((!fCalibData->GetEnableTiming(iChannel) || aBGflag[iChannel]) && (!fCalibData->GetEnableTiming(iChannel+4) || aBGflag[iChannel+4])) pBGmulADC++;
+
+      if((!fCalibData->GetEnableTiming(iChannel+8) || aBBflag[iChannel+8]) && (!fCalibData->GetEnableTiming(iChannel+12) || aBBflag[iChannel+12])) pBBmulADA++;
+      if((!fCalibData->GetEnableTiming(iChannel+8) || aBGflag[iChannel+8]) && (!fCalibData->GetEnableTiming(iChannel+12) || aBGflag[iChannel+12])) pBGmulADA++;
+	}
+	
+    Bool_t UBA = kFALSE;
+    Bool_t UBC = kFALSE;
+    Bool_t UGA = kFALSE;
+    Bool_t UGC = kFALSE;
+
+    if(pBBmulADA>=fCalibData->GetBBAThreshold()) UBA = kTRUE;
+    if(pBBmulADC>=fCalibData->GetBBCThreshold()) UBC = kTRUE;
+    if(pBGmulADA>=fCalibData->GetBGAThreshold()) UGA = kTRUE;
+    if(pBGmulADC>=fCalibData->GetBGCThreshold()) UGC = kTRUE;
+  
+    UShort_t fTrigger = 0;
+    if(UBA && UBC) fTrigger |= 1;
+    if(UBA || UBC) fTrigger |= (1<<1);
+    if(UGA && UBC) fTrigger |= (1<<2);
+    if(UGA) fTrigger |= (1<<3);
+    if(UGC && UBA) fTrigger |= (1<<4);
+    if(UGC) fTrigger |= (1<<5);
+    if(UBA) fTrigger |= (1<<12);
+    if(UBC) fTrigger |= (1<<13); 
+    if(UGA || UGC) fTrigger |= (1<<14);
+    if((UGA && UBC) || (UGC && UBA)) fTrigger |= (1<<15);
+   
+    fESDADfriend->SetTriggerInputs(fTrigger);
+    fESDADfriend->SetTriggerInputsMask(rawStream.GetTriggerInputsMask());
+  
     for(Int_t iScaler = 0; iScaler < AliESDADfriend::kNScalers; iScaler++)
       fESDADfriend->SetTriggerScalers(iScaler,rawStream.GetTriggerScalers(iScaler));
 
@@ -187,8 +307,8 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
 	Bool_t integrator = digit->Integrator();
         Float_t maxadc = 0;
         Int_t imax = -1;
-        Float_t adcPedSub[kNClocks];
-        for(Int_t iClock=0; iClock < kNClocks; ++iClock) {
+        Float_t adcPedSub[kADNClocks];
+        for(Int_t iClock=0; iClock < kADNClocks; ++iClock) {
 	  Short_t charge = digit->ChargeADC(iClock);
 	  Bool_t iIntegrator = (iClock%2 == 0) ? integrator : !integrator;
 	  Int_t k = pmNumber + 16*iIntegrator;
@@ -217,11 +337,13 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
 
 	// HPTDC leading time and width
 	// Correction for slewing and various time delays
-        //time[pmNumber]  =  CorrectLeadingTime(pmNumber,digit->Time(),adc[pmNumber]);
-	time[pmNumber]  =  digit->Time();
+        time[pmNumber]  =  CorrectLeadingTime(pmNumber,digit->Time(),adc[pmNumber]);
 	width[pmNumber] =  digit->Width();
 	aBBflag[pmNumber] = digit->GetBBflag();
 	aBGflag[pmNumber] = digit->GetBGflag();
+	
+	//MIP multiplicity
+	if(fCalibData->GetADCperMIP(pmNumber) != 0) mult[pmNumber] = adc[pmNumber]/fCalibData->GetADCperMIP(pmNumber);
 
 	if (adc[pmNumber] > 0) {
 	  AliDebug(1,Form("PM = %d ADC = %.2f (%.2f) TDC %.2f (%.2f)   Int %d (%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d)    %.2f %.2f   %.2f %.2f    %d %d",pmNumber, adc[pmNumber],
@@ -240,7 +362,7 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
 	    };
 
 	// Fill ESD friend object
-	for (Int_t iEv = 0; iEv < kNClocks; iEv++) {
+	for (Int_t iEv = 0; iEv < kADNClocks; iEv++) {
 	  fESDADfriend->SetPedestal(pmNumber,iEv,(Float_t)digit->ChargeADC(iEv));
 	  fESDADfriend->SetIntegratorFlag(pmNumber,iEv,(iEv%2 == 0) ? integrator : !integrator);
 	}
@@ -250,23 +372,76 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
     } // end of loop over digits
   } // end of loop over events in digits tree
          
-  //fESDAD->SetBit(AliESDAD::kCorrectedLeadingTime,kTRUE);
-  //fESDAD->SetMultiplicity(mult);
+  fESDAD->SetBit(AliESDAD::kCorrectedLeadingTime,kTRUE);
+  fESDAD->SetBit(AliESDAD::kCorrectedForSaturation,kFALSE);
+  fESDAD->SetMultiplicity(mult);
   fESDAD->SetADC(adc);
   fESDAD->SetTime(time);
   fESDAD->SetWidth(width);
-  fESDAD->SetBit(AliESDAD::kOnlineBitsFilled,kTRUE);
   fESDAD->SetBBFlag(aBBflag);
   fESDAD->SetBGFlag(aBGflag);
-  //fESDAD->SetBit(AliESDAD::kCorrectedForSaturation,kTRUE);
-
-  // now fill the AD decision (only average times for the moment)
-  {
-    AliADDecision offlineDecision;
-    offlineDecision.SetRecoParam(GetRecoParam());
-    offlineDecision.FillDecisions(fESDAD);
+  
+  // Fill BB and BG flags for all channel in 21 clocks (called past-future flags)
+  for(Int_t i = 0; i < 16; ++i) {
+    for (Int_t iClock=0; iClock < kADNClocks; ++iClock) {
+      fESDAD->SetPFBBFlag(i,iClock,fESDADfriend->GetBBFlag(i,iClock));
+      fESDAD->SetPFBGFlag(i,iClock,fESDADfriend->GetBGFlag(i,iClock));
+    }
   }
+  fESDAD->SetBit(AliESDAD::kPastFutureFlagsFilled,kTRUE);
+   
+  Int_t	pBBmulADA = 0;
+  Int_t	pBBmulADC = 0;
+  Int_t	pBGmulADA = 0;
+  Int_t	pBGmulADC = 0;
+  
+  for(Int_t iChannel=0; iChannel<4; iChannel++) {//Loop over pairs of pads
+    //Enable time is used to turn off the coincidence 
+    if((!fCalibData->GetEnableTiming(iChannel) || aBBflag[iChannel]) && (!fCalibData->GetEnableTiming(iChannel+4) || aBBflag[iChannel+4])) pBBmulADC++;
+    if((!fCalibData->GetEnableTiming(iChannel) || aBGflag[iChannel]) && (!fCalibData->GetEnableTiming(iChannel+4) || aBGflag[iChannel+4])) pBGmulADC++;
 
+    if((!fCalibData->GetEnableTiming(iChannel+8) || aBBflag[iChannel+8]) && (!fCalibData->GetEnableTiming(iChannel+12) || aBBflag[iChannel+12])) pBBmulADA++;
+    if((!fCalibData->GetEnableTiming(iChannel+8) || aBGflag[iChannel+8]) && (!fCalibData->GetEnableTiming(iChannel+12) || aBGflag[iChannel+12])) pBGmulADA++;
+	}
+	
+  Bool_t UBA = kFALSE;
+  Bool_t UBC = kFALSE;
+  Bool_t UGA = kFALSE;
+  Bool_t UGC = kFALSE;
+
+  if(pBBmulADA>=fCalibData->GetBBAThreshold()) UBA = kTRUE;
+  if(pBBmulADC>=fCalibData->GetBBCThreshold()) UBC = kTRUE;
+  if(pBGmulADA>=fCalibData->GetBGAThreshold()) UGA = kTRUE;
+  if(pBGmulADC>=fCalibData->GetBGCThreshold()) UGC = kTRUE;
+  
+  UShort_t fTrigger = 0;
+  if(UBA && UBC) fTrigger |= 1;
+  if(UBA || UBC) fTrigger |= (1<<1);
+  if(UGA && UBC) fTrigger |= (1<<2);
+  if(UGA) fTrigger |= (1<<3);
+  if(UGC && UBA) fTrigger |= (1<<4);
+  if(UGC) fTrigger |= (1<<5);
+  
+  //CTA1 and CTC1
+  //CTA1 or CTC1
+  //CTA2 and CTC2
+  //CTA2 or CTC2 
+  //MTA and MTC
+  //MTA or MTC
+  
+  if(UBA) fTrigger |= (1<<12);
+  if(UBC) fTrigger |= (1<<13); 
+  if(UGA || UGC) fTrigger |= (1<<14);
+  if((UGA && UBC) || (UGC && UBA)) fTrigger |= (1<<15);
+
+  fESDAD->SetTriggerBits(fTrigger);
+  fESDAD->SetBit(AliESDAD::kOnlineBitsFilled,kTRUE);
+
+  // now fill the AD decision
+  AliADDecision offlineDecision;
+  offlineDecision.SetRecoParam(GetRecoParam());
+  offlineDecision.FillDecisions(fESDAD);
+  
   if (esd) { 
      AliDebug(1, Form("Writing AD data to ESD tree"));
      esd->SetADData(fESDAD);
@@ -290,15 +465,6 @@ AliADCalibData* AliADReconstructor::GetCalibData() const
   AliCDBEntry *entry=0;
 
   entry = man->Get("AD/Calib/Data");
-  if(!entry){
-    AliWarning("Load of calibration data from default storage failed!");
-    AliWarning("Calibration data will be loaded from local storage ($ALICE_ROOT)");
-	
-    man->SetDefaultStorage("local://$ALICE_ROOT/OCDB");
-    man->SetRun(1);
-    entry = man->Get("AD/Calib/Data");
-  }
-  // Retrieval of data in directory AD/Calib/Data:
 
   AliADCalibData *calibdata = 0;
 
@@ -306,6 +472,26 @@ AliADCalibData* AliADReconstructor::GetCalibData() const
   if (!calibdata)  AliFatal("No calibration data from calibration database !");
 
   return calibdata;
+}
+
+//_____________________________________________________________________________
+void AliADReconstructor::GetTimeSlewingSplines()
+{
+
+  AliCDBManager *man = AliCDBManager::Instance();
+
+  AliCDBEntry *entry=0;
+
+  entry = man->Get("AD/Calib/TimeSlewing");
+  
+  TList *fListSplines = 0;
+
+  if (entry) fListSplines = (TList*) entry->GetObject();
+  if (!fListSplines)  AliFatal("No time slewing correction from calibration database !");
+  
+  for(Int_t i=0; i<16; i++) fTimeSlewingSpline[i] = (TSpline3*)(fListSplines->At(i));
+  
+
 }
 
 //_____________________________________________________________________________
@@ -360,4 +546,25 @@ void AliADReconstructor::GetCollisionMode()
   
   AliDebug(1,Form("\n ++++++ Beam type and collision mode retrieved as %s %d @ %1.3f GeV ++++++\n\n",beamType.Data(), fCollisionMode, fBeamEnergy));
 
+}
+//____________________________________________________________________________
+Float_t AliADReconstructor::CorrectLeadingTime(Int_t i, Float_t time, Float_t adc) const
+{
+  // Correct the leading time
+  // for slewing effect and
+  // misalignment of the channels
+  if (time < 1e-6) return kInvalidTime;
+
+  // In case of pathological signals
+  if (adc < 1) return time;
+
+  // Slewing and offset correction
+  Int_t board = AliADCalibData::GetBoardNumber(i);
+  time -= fTimeSlewingSpline[i]->Eval(TMath::Log10(1/adc))*fCalibData->GetTimeResolution(board);
+  time += fLayerDist[i/4];
+  
+  // Channel alignment and general offset subtraction
+  //time -= fHptdcOffset[i];
+
+  return time;
 }

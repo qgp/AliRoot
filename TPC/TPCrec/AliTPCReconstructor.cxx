@@ -64,8 +64,15 @@ ClassImp(AliTPCReconstructor)
 Int_t    AliTPCReconstructor::fgStreamLevel     = 0;             // stream (debug) level
 AliTPCAltroEmulator *  AliTPCReconstructor::fAltroEmulator=0;    // ALTRO emulator
 TTreeSRedirector    *  AliTPCReconstructor::fgDebugStreamer=0;                          // NOTE -  AliTPCReconstructor is not an owner of the streamer
-
+TString                AliTPCReconstructor::fgPIDRespnonsePath="$ALICE_PHYSICS/OADB/COMMON/PID/data/TPCPIDResponse.root";
  
+TVectorD *  AliTPCReconstructor::fSystematicErrors=0;
+TVectorD *  AliTPCReconstructor::fSystematicErrorClusters=0;
+TVectorD *  AliTPCReconstructor::fgExtendedRoads=0;
+TVectorD *  AliTPCReconstructor::fgPrimaryDCACut=0;
+Double_t    AliTPCReconstructor::fgPrimaryZ2XCut = 0;
+Double_t    AliTPCReconstructor::fgZOutSectorCut = 0;
+
 AliTPCReconstructor::AliTPCReconstructor():
 AliReconstructor(),
 fClusterer(NULL),
@@ -185,8 +192,7 @@ void AliTPCReconstructor::SetSplinesFromOADB(const char* tmplt, AliESDpid *esdPI
     fArrSplines->SetOwner();
     TString stemplate(tmplt);
 
-    TString fileNamePIDresponse("$ALICE_ROOT/OADB/COMMON/PID/data/TPCPIDResponse.root");
-    TFile f(fileNamePIDresponse.Data());
+    TFile f(GetPIDRespnonsePath());
 
     TObjArray *arrPidResponseMaster=0x0;
 

@@ -25,6 +25,7 @@ include_directories(${AliRoot_SOURCE_DIR}/MONITOR/MONITOR
                    )
 
 add_definitions(-DZMQ)
+include_directories(${ZEROMQ_INCLUDE_DIR})
 
 # alistorage executable
 add_executable(alistorage alistorage.cxx)
@@ -58,6 +59,7 @@ install(TARGETS alistorageadmin RUNTIME DESTINATION bin)
 # alifakedisplay executable
 add_executable(alifakedisplay alifakedisplay.cxx)
 target_link_libraries(alifakedisplay MONITOR MONITORzmq)
+#target_link_libraries(alifakedisplay -lzmq)
 if(PYTHIA6)
     target_link_libraries(alifakedisplay EVGEN HepMC HepMCParser)
 endif(PYTHIA6)

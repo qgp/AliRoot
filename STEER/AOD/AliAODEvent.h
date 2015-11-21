@@ -37,6 +37,7 @@
 #include "AliAODVZERO.h"
 #include "AliAODHMPIDrings.h"
 #include "AliAODZDC.h"
+#include "AliAODAD.h"
 #include "AliAODTrdTrack.h"
 
 class TTree;
@@ -66,6 +67,7 @@ class AliAODEvent : public AliVEvent {
 		       kAODTZERO,
 		       kAODVZERO,
 		       kAODZDC,
+		       kAODAD,
 		       kTOFHeader,                       
 		       kAODTrdTracks,
 		       kAODListN
@@ -102,6 +104,11 @@ class AliAODEvent : public AliVEvent {
     }
 
   virtual  Bool_t InitMagneticField() const {return fHeader ? fHeader->InitMagneticField() : kFALSE;}
+
+  void   SetDAQAttributes(UInt_t attributes) {if (fHeader) fHeader->SetDAQAttributes(attributes);}
+  UInt_t GetDAQAttributes() const            {return fHeader ? fHeader->GetDAQAttributes() : 0;}
+  Bool_t IsIncompleteDAQ();
+
 
   // setters and getters for header information
   void     SetRunNumber(Int_t n) {if (fHeader) fHeader->SetRunNumber(n);}
@@ -321,6 +328,9 @@ class AliAODEvent : public AliVEvent {
 
   //ZDC
   AliAODZDC   *GetZDCData() const { return fAODZDC; }
+  
+  //AD
+  AliAODAD   *GetADData() const { return fAODAD; }
 
   virtual AliVEvent::EDataLayoutType GetDataLayoutType() const;
 
@@ -350,6 +360,7 @@ class AliAODEvent : public AliVEvent {
   AliAODTZERO     *fAODTZERO;     //! TZERO AOD
   AliAODVZERO     *fAODVZERO;     //! VZERO AOD
   AliAODZDC       *fAODZDC;       //! ZDC AOD
+  AliAODAD        *fAODAD;        //! AD AOD
   AliTOFHeader    *fTOFHeader;  //! event times (and sigmas) as estimated by TOF
 			     //  combinatorial algorithm.
                              //  It contains also TOF time resolution
@@ -358,7 +369,7 @@ class AliAODEvent : public AliVEvent {
   
   static const char* fAODListName[kAODListN]; //!
 
-  ClassDef(AliAODEvent,91);
+  ClassDef(AliAODEvent,94);
 };
 
 #endif

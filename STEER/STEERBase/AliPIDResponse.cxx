@@ -751,7 +751,6 @@ void AliPIDResponse::SetRecoInfo()
 //   if (fRun >= 188167 && fRun <= 188355 ) { fLHCperiod="LHC12G"; fBeamType="PP"; fBeamTypeNum=kPP;/*fMCperiodTPC="";*/ }
 //   if (fRun >= 188356 && fRun <= 188503 ) { fLHCperiod="LHC12G"; fBeamType="PPB"; fBeamTypeNum=kPPB;/*fMCperiodTPC="";*/ }
 // for the moment use 12g parametrisation for all full gain runs (LHC12e+)
-  if (fRun >= 186346 && fRun < 188719) { fLHCperiod="LHC12G"; fBeamType="PPB";fBeamTypeNum=kPPB; fMCperiodTPC="LHC12G"; }
 
   // Dedicated splines for periods 12g and 12i(j) (and use more appropriate MC)
   if (fRun >= 188720 && fRun <= 192738) {
@@ -771,6 +770,30 @@ void AliPIDResponse::SetRecoInfo()
       fMCperiodTPC="LHC13B2_FIXn1";
   }
 
+  // Use for pp and pPb 12E-G pass 1 the PPB runs
+  if (fRecoPass==1 && fRun >= 186346 && fRun < 188719) { fLHCperiod="LHC12G"; fBeamType="PPB";fBeamTypeNum=kPPB; fMCperiodTPC="LHC12G"; }
+
+  // settings for pass2 of 2012 data
+  if (fRecoPass>=2 && fRun>=170719 && fRun<=194479) {
+    fBeamType    = "PP";
+    fBeamTypeNum = kPP;
+    fMCperiodTPC = "";
+    if (fRun >= 170719 && fRun <= 177311) { fLHCperiod="LHC12A"; }
+    if (fRun >= 177312 && fRun <= 179356) { fLHCperiod="LHC12B"; }
+    if (fRun >= 179357 && fRun <= 183173) { fLHCperiod="LHC12C"; }
+    if (fRun >= 183174 && fRun <= 186345) { fLHCperiod="LHC12D"; }
+    if (fRun >= 186346 && fRun <= 186635) { fLHCperiod="LHC12E"; }
+    if (fRun >= 186636 && fRun <= 188166) { fLHCperiod="LHC12F"; }
+    if (fRun >= 188167 && fRun <= 188719) { fLHCperiod="LHC12G"; }
+    if (fRun >= 188720 && fRun <= 192738) { fLHCperiod="LHC12H"; }
+    if (fRun >= 192739 && fRun <= 193766) { fLHCperiod="LHC12I"; }
+    // no special parametrisations for 12J, use 12I instead
+    if (fRun >= 193767 && fRun <= 194479) { /*fLHCperiod="LHC12J";*/ fLHCperiod="LHC12I"; }
+
+    // overwriting for the PPB period
+    if (fRun >= 188167 && fRun <= 188418) { fLHCperiod="LHC12G"; fBeamType="PPB";fBeamTypeNum=kPPB; fMCperiodTPC="LHC12G"; }
+  }
+
   // New parametrisation for 2013 pPb runs
   if (fRun >= 194480) {
     fLHCperiod="LHC13B";
@@ -787,6 +810,14 @@ void AliPIDResponse::SetRecoInfo()
     if (fRun >= 195875 && fRun <= 197411) {
       fLHCperiod="LHC13F";
     }
+  }
+
+  // New parametrisation for the first 2015 pp runs
+  if (fRun >= 208505) { // <<< This is the first run in 15a
+    fLHCperiod="LHC15F";
+    fBeamType="PP";
+    fBeamTypeNum=kPP;
+    fMCperiodTPC="LHC15G3";
   }
 
   //exception new pp MC productions from 2011 (11a periods have 10f6a splines!)

@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright(c) 2009-2014, ALICE Experiment at CERN, All rights reserved. *
+ * Copyright(c) 2009-2015, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
  * Author: The ALICE Off-line Project.                                    *
  * Contributors are mentioned in the code where appropriate.              *
@@ -19,12 +19,7 @@
 // such as PYTHIA and PHOJET
 //
 // Light nuclei are generated whenever a cluster of nucleons is found
-// within a sphere of radius p0 (coalescence momentum), i.e. have the
-// same momentum.
-//
-// By default it starts with He4 nuclei which are the most stable,
-// then He3 nuclei, tritons and finally deuterons. It can also generate
-// a single nucleus species by disabling the others.
+// whose momenta in their CM frame is less than p0 (coalescence momentum).
 //
 // Sample code for PYTHIA:
 //
@@ -36,7 +31,9 @@
 //
 //    gener->UsePerEventRates();
 //    gener->AddGenerator(pythia, "PYTHIA", 1);
+//    gener->SetNucleusPdgCode(AliGenLightNuclei::kDeuteron); // default
 //    gener->SetCoalescenceMomentum(0.100); // default (GeV/c)
+//    gener->SetSpinProbability(0.75); // default: 1
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -54,17 +51,17 @@
 #include "AliRun.h"
 #include "AliLog.h"
 #include "AliMC.h"
+#include "TMath.h"
+#include "TLorentzVector.h"
 #include "AliGenLightNuclei.h"
 
 ClassImp(AliGenLightNuclei)
 
 AliGenLightNuclei::AliGenLightNuclei()
 :AliGenCocktail()
+,fPdg(kDeuteron)
 ,fP0(0.100)
-,fGenDeuterons(kTRUE)
-,fGenTritons(kTRUE)
-,fGenHe3Nuclei(kTRUE)
-,fGenHe4Nuclei(kTRUE)
+,fSpinProb(1)
 {
 //
 // default constructor
@@ -87,11 +84,12 @@ void AliGenLightNuclei::Generate()
 	AliGenCocktail::Generate();
 	
 	// find the nucleons and anti-nucleons
-	
 	TList* protons      = new TList();
 	TList* neutrons     = new TList();
+	TList* lambdas      = new TList();
 	TList* antiprotons  = new TList();
 	TList* antineutrons = new TList();
+	TList* antilambdas  = new TList();
 	
 	for (Int_t i=0; i < fStack->GetNprimary(); ++i)
 	{
@@ -107,11 +105,17 @@ void AliGenLightNuclei::Generate()
 			case kNeutron:
 				neutrons->Add(iParticle);
 				break;
+			case kLambda0:
+				lambdas->Add(iParticle);
+				break;
 			case kProtonBar:
 				antiprotons->Add(iParticle);
 				break;
 			case kNeutronBar:
 				antineutrons->Add(iParticle);
+				break;
+			case kLambda0Bar:
+				antilambdas->Add(iParticle);
 				break;
 			default:
 				break;
@@ -121,251 +125,280 @@ void AliGenLightNuclei::Generate()
 	// do not delete content
 	protons->SetOwner(kFALSE);
 	neutrons->SetOwner(kFALSE);
+	lambdas->SetOwner(kFALSE);
 	antiprotons->SetOwner(kFALSE);
 	antineutrons->SetOwner(kFALSE);
+	antilambdas->SetOwner(kFALSE);
 	
-	// first try with He4 nuclei which are the most stable
-	
-	if(fGenHe4Nuclei)
+	if(TMath::Abs(fPdg) == kDeuteron)
 	{
-		this->GenerateHe4Nuclei(protons, neutrons);
-		this->GenerateHe4Nuclei(antiprotons, antineutrons);
+		this->GenerateNuclei(kDeuteron, 1.87561282, protons, neutrons);
+		this->GenerateNuclei(-kDeuteron, 1.87561282, antiprotons, antineutrons);
 	}
-	
-	// then He3 nuclei
-	
-	if(fGenHe3Nuclei)
+	else if(TMath::Abs(fPdg) == kTriton)
 	{
-		this->GenerateHe3Nuclei(protons, neutrons);
-		this->GenerateHe3Nuclei(antiprotons, antineutrons);
+		this->GenerateNuclei(kTriton, 2.80925, protons, neutrons, neutrons);
+		this->GenerateNuclei(-kTriton, 2.80925, antiprotons, antineutrons, antineutrons);
 	}
-	
-	// then tritons
-	
-	if(fGenTritons)
+	else if(TMath::Abs(fPdg) == kHyperTriton )
 	{
-		this->GenerateTritons(protons, neutrons);
-		this->GenerateTritons(antiprotons, antineutrons);
+		this->GenerateNuclei(kHyperTriton, 2.99131, protons, neutrons, lambdas);
+		this->GenerateNuclei(-kHyperTriton, 2.99131, antiprotons, antineutrons, antilambdas);
 	}
-	
-	// and finally deuterons
-	
-	if(fGenDeuterons)
+	else if(TMath::Abs(fPdg) == kHe3Nucleus)
 	{
-		this->GenerateDeuterons(protons, neutrons);
-		this->GenerateDeuterons(antiprotons, antineutrons);
+		this->GenerateNuclei(kHe3Nucleus, 2.80923, protons, neutrons, protons);
+		this->GenerateNuclei(-kHe3Nucleus, 2.80923, antiprotons, antineutrons, antiprotons);
+	}
+	else if(TMath::Abs(fPdg) == kAlpha )
+	{
+		this->GenerateNuclei(kAlpha, 3.727417, protons, neutrons, protons, neutrons);
+		this->GenerateNuclei(-kAlpha, 3.727417, antiprotons, antineutrons, antiprotons, antineutrons);
+	}
+	else
+	{
+		AliFatal(Form("Unknown nucleus PDG: %d", fPdg));
 	}
 	
 	protons->Clear("nodelete");
 	neutrons->Clear("nodelete");
+	lambdas->Clear("nodelete");
 	antiprotons->Clear("nodelete");
 	antineutrons->Clear("nodelete");
+	antilambdas->Clear("nodelete");
 	
 	delete protons;
 	delete neutrons;
+	delete lambdas;
 	delete antiprotons;
 	delete antineutrons;
+	delete antilambdas;
 }
 
-Bool_t AliGenLightNuclei::Coalescence(const TParticle* n1, const TParticle* n2) const
+Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVector& p2) const
 {
 //
-// returns true if the nucleons are inside of an sphere of radius p0
-// (assume the nucleons are in the same place e.g. PYTHIA, PHOJET,...)
+// returns true if the 2 nucleons have momentum < p0 in their CM frame
 //
-	Double_t deltaP = this->GetPcm(n1->Px(), n1->Py(), n1->Pz(), n1->GetMass(), 
-	                               n2->Px(), n2->Py(), n2->Pz(), n2->GetMass());
+	TLorentzVector p1cm(p1);
+	TLorentzVector p2cm(p2);
 	
-	return ( deltaP < fP0);
+	TLorentzVector p = p1 + p2;
+	TVector3 b = -p.BoostVector();
+	
+	p1cm.Boost(b);
+	p2cm.Boost(b);
+	
+	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (Rndm() <= fSpinProb);
 }
 
-TParticle* AliGenLightNuclei::FindPartner(const TParticle* n0, const TList* nucleons, const TParticle* nx) const
+Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVector& p2, const TLorentzVector& p3) const
 {
 //
-// find the first nucleon partner within a sphere of radius p0
-// centered at n0 and exclude nucleon nx
+// returns true if the 3 nucleons have momentum < p0 in their CM frame
 //
-	TIter n_next(nucleons);
-	while(TParticle* n1 = dynamic_cast<TParticle*>( n_next()) )
+	TLorentzVector p1cm(p1);
+	TLorentzVector p2cm(p2);
+	TLorentzVector p3cm(p3);
+	
+	TLorentzVector p = p1 + p2 + p3;
+	TVector3 b = -p.BoostVector();
+	
+	p1cm.Boost(b);
+	p2cm.Boost(b);
+	p3cm.Boost(b);
+	
+	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (p3cm.Vect().Mag() < fP0) && (Rndm() <= fSpinProb);
+}
+
+Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVector& p2, const TLorentzVector& p3, const TLorentzVector& p4) const
+{
+//
+// returns true if the 4 nucleons have momentum < p0 in their CM frame
+//
+	TLorentzVector p1cm(p1);
+	TLorentzVector p2cm(p2);
+	TLorentzVector p3cm(p3);
+	TLorentzVector p4cm(p4);
+	
+	TLorentzVector p = p1 + p2 + p3 + p4;
+	TVector3 b = -p.BoostVector();
+	
+	p1cm.Boost(b);
+	p2cm.Boost(b);
+	p3cm.Boost(b);
+	p4cm.Boost(b);
+	
+	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (p3cm.Vect().Mag() < fP0) && (p4cm.Vect().Mag() < fP0) && (Rndm() <= fSpinProb);
+}
+
+Int_t AliGenLightNuclei::GenerateNuclei(Int_t pdg, Double_t mass, const TList* l1, const TList* l2)
+{
+//
+// a nucleus with A=2 is generated from the first n1-n2 nucleon cluster
+// that fulfill the coalescence condition
+//
+	Int_t npart = 0;
+	
+	TIter n1iter(l1);
+	while(TParticle* n1 = dynamic_cast<TParticle*>(n1iter()))
 	{
 		if(n1 == 0) continue;
-		if(n1 == nx) continue;
 		if(n1->GetStatusCode() == kCluster) continue;
-		if( !this->Coalescence(n0, n1) ) continue;
-		return n1;
-	}
-	
-	return 0;
-}
-
-Int_t AliGenLightNuclei::GenerateDeuterons(const TList* protons, const TList* neutrons)
-{
-//
-// a deuteron is generated from a pair of p-n nucleons
-// (the center of the sphere is one of the nucleons)
-//
-	Int_t npart = 0;
-	
-	TIter p_next(protons);
-	while(TParticle* n0 = dynamic_cast<TParticle*>(p_next()) )
-	{
-		if(n0 == 0) continue;
-		if(n0->GetStatusCode() == kCluster) continue;
 		
-		TParticle* partner = this->FindPartner(n0, neutrons, 0);
+		TLorentzVector p1(n1->Px(), n1->Py(), n1->Pz(), n1->Energy());
 		
-		if(partner == 0) continue;
+		TIter n2iter(l2);
+		if(l2 == l1) n2iter = n1iter;
 		
-		this->PushDeuteron(n0, partner);
-		
-		++npart;
+		while(TParticle* n2 = dynamic_cast<TParticle*>( n2iter()))
+		{
+			if(n2 == 0) continue;
+			if(n2 == n1) continue;
+			if(n2->GetStatusCode() == kCluster) continue;
+			
+			TLorentzVector p2(n2->Px(), n2->Py(), n2->Pz(), n2->Energy());
+			
+			if(!this->Coalescence(p1, p2)) continue;
+			
+			this->PushNucleus(pdg, mass, n1, n2);
+			
+			++npart;
+			
+			break;
+		}
 	}
 	
 	return npart;
 }
 
-Int_t AliGenLightNuclei::GenerateTritons(const TList* protons, const TList* neutrons)
+Int_t AliGenLightNuclei::GenerateNuclei(Int_t pdg, Double_t mass, const TList* l1, const TList* l2, const TList* l3)
 {
 //
-// a triton is generated from a cluster of p-n-n nucleons with same momentum
-// (triangular configuration)
+// a nucleus with A=3 is generated from the first n1-n2-n3 nucleon cluster
+// that fulfill the coalescence condition
 //
 	Int_t npart = 0;
 	
-	TIter p_next(protons);
-	while(TParticle* n0 = dynamic_cast<TParticle*>(p_next()) )
+	TIter n1iter(l1);
+	while(TParticle* n1 = dynamic_cast<TParticle*>(n1iter()))
 	{
-		if(n0 == 0) continue;
-		if(n0->GetStatusCode() == kCluster) continue;
+		if(n1 == 0) continue;
+		if(n1->GetStatusCode() == kCluster) continue;
 		
-		TParticle* partner1 = this->FindPartner(n0, neutrons, 0);
+		TLorentzVector p1(n1->Px(), n1->Py(), n1->Pz(), n1->Energy());
 		
-		if(partner1 == 0) continue;
+		TIter n2iter(l2);
+		if(l2 == l1) n2iter = n1iter;
 		
-		TParticle* partner2 = this->FindPartner(n0, neutrons, partner1);
-		
-		if(partner2 == 0) continue;
-		
-		// check that the partners coalesce between themselves
-		
-		if(!this->Coalescence(partner1, partner2)) continue;
-		
-		this->PushTriton(n0, partner1, partner2);
-		
-		++npart;
+		while(TParticle* n2 = dynamic_cast<TParticle*>( n2iter()) )
+		{
+			if(n2 == 0) continue;
+			if(n2 == n1) continue;
+			if(n2->GetStatusCode() == kCluster) continue;
+			
+			TLorentzVector p2(n2->Px(), n2->Py(), n2->Pz(), n2->Energy());
+			
+			TIter n3iter(l3);
+			if(l3 == l1) n3iter = n1iter;
+			if(l3 == l2) n3iter = n2iter;
+			
+			while(TParticle* n3 = dynamic_cast<TParticle*>( n3iter()) )
+			{
+				if(n3 == 0) continue;
+				if(n3 == n1) continue;
+				if(n3 == n2) continue;
+				if(n3->GetStatusCode() == kCluster) continue;
+				
+				TLorentzVector p3(n3->Px(), n3->Py(), n3->Pz(), n3->Energy());
+				
+				if(!this->Coalescence(p1, p2, p3)) continue;
+				
+				this->PushNucleus(pdg, mass, n1, n2, n3);
+				
+				++npart;
+				
+				break;
+			}
+			
+			if(n2->GetStatusCode() == kCluster) break;
+		}
 	}
 	
 	return npart;
 }
 
-Int_t AliGenLightNuclei::GenerateHe3Nuclei(const TList* protons, const TList* neutrons)
+Int_t AliGenLightNuclei::GenerateNuclei(Int_t pdg, Double_t mass, const TList* l1, const TList* l2, const TList* l3, const TList* l4)
 {
 //
-// a He3 nucleus is generated from a cluster of p-n-p nucleons with same momentum
-// (triangular configuration)
+// a nucleus with A=4 is generated from the first n1-n2-n3-n4 nucleon cluster
+// that fulfill the coalescence condition
 //
 	Int_t npart = 0;
 	
-	TIter p_next(protons); // center of the sphere
-	while(TParticle* n0 = dynamic_cast<TParticle*>(p_next()) )
+	TIter n1iter(l1);
+	while(TParticle* n1 = dynamic_cast<TParticle*>(n1iter()))
 	{
-		if(n0 == 0) continue;
-		if(n0->GetStatusCode() == kCluster) continue;
+		if(n1 == 0) continue;
+		if(n1->GetStatusCode() == kCluster) continue;
 		
-		TParticle* partner1 = this->FindPartner(n0, neutrons, 0);
+		TLorentzVector p1(n1->Px(), n1->Py(), n1->Pz(), n1->Energy());
 		
-		if(partner1 == 0) continue;
+		TIter n2iter(l2);
+		if(l2 == l1) n2iter = n1iter;
 		
-		TParticle* partner2 = this->FindPartner(n0, protons, n0);
-		
-		if(partner2 == 0) continue;
-		
-		// check that the partners coalesce between themselves
-		
-		if(!this->Coalescence(partner1, partner2)) continue;
-		
-		this->PushHe3Nucleus(n0, partner1, partner2);
-		
-		++npart;
+		while(TParticle* n2 = dynamic_cast<TParticle*>( n2iter()))
+		{
+			if(n2 == 0) continue;
+			if(n2->GetStatusCode() == kCluster) continue;
+			
+			TLorentzVector p2(n2->Px(), n2->Py(), n2->Pz(), n2->Energy());
+			
+			TIter n3iter(l3);
+			if(l3 == l1) n3iter = n1iter;
+			if(l3 == l2) n3iter = n2iter;
+			
+			while(TParticle* n3 = dynamic_cast<TParticle*>( n3iter()))
+			{
+				if(n3 == 0) continue;
+				if(n3 == n1) continue;
+				if(n3 == n2) continue;
+				if(n3->GetStatusCode() == kCluster) continue;
+				
+				TLorentzVector p3(n3->Px(), n3->Py(), n3->Pz(), n3->Energy());
+				
+				TIter n4iter(l4);
+				if(l4 == l1) n4iter = n1iter;
+				if(l4 == l2) n4iter = n2iter;
+				if(l4 == l3) n4iter = n3iter;
+			
+				while(TParticle* n4 = dynamic_cast<TParticle*>( n4iter()))
+				{
+					if(n4 == 0) continue;
+					if(n4 == n1) continue;
+					if(n4 == n2) continue;
+					if(n4 == n3) continue;
+					if(n4->GetStatusCode() == kCluster) continue;
+					
+					TLorentzVector p4(n4->Px(), n4->Py(), n4->Pz(), n4->Energy());
+					
+					if(!this->Coalescence(p1, p2, p3, p4)) continue;
+					
+					this->PushNucleus(pdg, mass, n1, n2, n3, n4);
+					
+					++npart;
+					
+					break;
+				}
+				
+				if(n3->GetStatusCode() == kCluster) break;
+			}
+			
+			if(n2->GetStatusCode() == kCluster) break;
+		}
 	}
 	
 	return npart;
-}
-
-Int_t AliGenLightNuclei::GenerateHe4Nuclei(const TList* protons, const TList* neutrons)
-{
-//
-// a He4 nucleus is generated from a cluster of p-n-p-n nucleons with same momentum
-// (tetrahedron configuration)
-//
-	Int_t npart = 0;
-	
-	TIter p_next(protons); // center of the sphere
-	while(TParticle* n0 = dynamic_cast<TParticle*>(p_next()) )
-	{
-		if(n0 == 0) continue;
-		if(n0->GetStatusCode() == kCluster) continue;
-		
-		TParticle* partner1 = this->FindPartner(n0, neutrons, 0);
-		
-		if(partner1 == 0) continue;
-		
-		TParticle* partner2 = this->FindPartner(n0, protons, n0);
-		
-		if(partner2 == 0) continue;
-		
-		TParticle* partner3 = this->FindPartner(n0, neutrons, partner1);
-		
-		if(partner3 == 0) continue;
-		
-		// check that the partners coalesce between themselves
-		
-		if(!this->Coalescence(partner1, partner2)) continue;
-		if(!this->Coalescence(partner1, partner3)) continue;
-		if(!this->Coalescence(partner2, partner3)) continue;
-		
-		this->PushHe4Nucleus(n0, partner1, partner2, partner3 );
-		
-		++npart;
-	}
-	
-	return npart;
-}
-
-void AliGenLightNuclei::PushDeuteron(TParticle* parent1, TParticle* parent2)
-{
-//
-// push a deuteron to the particle stack
-//
-	Int_t pdg = ( parent1->GetPdgCode() > 0 ) ? kDeuteron : kAntiDeuteron;
-	this->PushNucleus(pdg, 1.87561282, parent1, parent2);
-}
-
-void AliGenLightNuclei::PushTriton(TParticle* parent1, TParticle* parent2, TParticle* parent3)
-{
-//
-// push a triton to the particle stack
-//
-	Int_t pdg = ( parent1->GetPdgCode() > 0 ) ? kTriton : kAntiTriton;
-	this->PushNucleus(pdg, 2.80925, parent1, parent2, parent3);
-}
-
-void AliGenLightNuclei::PushHe3Nucleus(TParticle* parent1, TParticle* parent2, TParticle* parent3)
-{
-//
-// push a He3 nucleus to the particle stack
-//
-	Int_t pdg = ( parent1->GetPdgCode() > 0 ) ? kHe3Nucleus : kAntiHe3Nucleus;
-	this->PushNucleus(pdg, 2.80923, parent1, parent2, parent3);
-}
-
-void AliGenLightNuclei::PushHe4Nucleus(TParticle* parent1, TParticle* parent2, TParticle* parent3, TParticle* parent4)
-{
-//
-// push a He4 nucleus to the particle stack
-//
-	Int_t pdg = ( parent1->GetPdgCode() > 0 ) ? kAlpha : kAntiAlpha;
-	this->PushNucleus(pdg, 3.727417, parent1, parent2, parent3, parent4);
 }
 
 void AliGenLightNuclei::PushNucleus(Int_t pdg, Double_t mass, TParticle* parent1, TParticle* parent2, TParticle* parent3, TParticle* parent4)
@@ -412,25 +445,4 @@ void AliGenLightNuclei::PushNucleus(Int_t pdg, Double_t mass, TParticle* parent1
 	parent2->SetBit(kDoneBit);
 	if(parent3 != 0) parent3->SetBit(kDoneBit);
 	if(parent4 != 0) parent4->SetBit(kDoneBit);
-}
-
-Double_t AliGenLightNuclei::GetS(Double_t p1x, Double_t p1y, Double_t p1z, Double_t m1, Double_t p2x, Double_t p2y, Double_t p2z, Double_t m2) const
-{
-//
-// square of the center of mass energy
-//
-	Double_t E1 = TMath::Sqrt( p1x*p1x + p1y*p1y + p1z*p1z + m1*m1);
-	Double_t E2 = TMath::Sqrt( p2x*p2x + p2y*p2y + p2z*p2z + m2*m2);
-	
-	return (E1+E2)*(E1+E2) - ((p1x+p2x)*(p1x+p2x) + (p1y+p2y)*(p1y+p2y) + (p1z+p2z)*(p1z+p2z));
-}
-
-Double_t AliGenLightNuclei::GetPcm(Double_t p1x, Double_t p1y, Double_t p1z, Double_t m1, Double_t p2x, Double_t p2y, Double_t p2z, Double_t m2) const
-{
-//
-// momentum in the CM frame for 2 particles
-//
-	Double_t s = this->GetS(p1x, p1y, p1z, m1, p2x, p2y, p2z, m2);
-	
-	return TMath::Sqrt( (s-(m1-m2)*(m1-m2))*(s-(m1+m2)*(m1+m2)) )/(2.*TMath::Sqrt(s));
 }

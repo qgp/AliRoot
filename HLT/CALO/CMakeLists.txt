@@ -58,6 +58,7 @@ set(SRCS
     AliHLTCaloRecoParamHandler.cxx
     AliHLTCaloSanityInspector.cxx
     AliHLTCaloSharedMemoryInterfacev2.cxx
+    AliHLTCaloTriggerRawDigitDataStruct.cxx
     AliHLTEMCALDefinitions.cxx
     AliHLTEMCALGeometry.cxx
     AliHLTCaloUtilities.cxx
@@ -76,6 +77,8 @@ set(HDRS ${HDRS}
     AliHLTCaloRecPointDataStruct.h
     AliHLTCaloRecPointContainerStruct.h
     AliHLTCaloRecPointHeaderStruct.h
+    AliHLTCaloTriggerPatchDataStruct.h
+    AliHLTCaloTriggerPatchContainerStruct.h
 )
 
 # Generate the dictionary

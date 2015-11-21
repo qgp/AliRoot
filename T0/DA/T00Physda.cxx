@@ -67,19 +67,22 @@ int main(int argc, char **argv) {
     printf("Input file >>inPhys.dat<< not found !!!\n");
     return -1;
   }
-  int  kcbx, kt0bx, knpmtA, knpmtC;
-  float kclx,kcmx, kt0lx, kt0hx;
+  int  kcbx, kt0bx, knpmtA, knpmtC,kcfdbx;
+  float kclx,kcmx, kt0lx, kt0hx, kcfdlx, kcfdhx;
   
   while((c=getc(inp))!=EOF) {
     switch(c) {
-    case 'a': {fscanf(inp, "%d", &kcbx ); break;} //N of X bins hCFD1_CFD
-    case 'b': {fscanf(inp, "%f", &kclx ); break;} //Low x hCFD1_CFD
-    case 'c': {fscanf(inp, "%f", &kcmx ); break;} //High x hCFD1_CF
+    case 'a': {fscanf(inp, "%d", &kcbx ); break;} //N of X bins hCFD1minCFD
+    case 'b': {fscanf(inp, "%f", &kclx ); break;} //Low x hCFD1minCFD
+    case 'c': {fscanf(inp, "%f", &kcmx ); break;} //High x hCFD1minCFD
     case 'd': {fscanf(inp, "%d", &knpmtC ); break;} //number of reference PMTC
     case 'e': {fscanf(inp, "%d", &knpmtA ); break;} //number of reference PMTA
-    case 'f': {fscanf(inp, "%d", &kt0bx ); break;} //N of X bins hT0
-    case 'g': {fscanf(inp, "%f", &kt0lx ); break;} //Low x hT0
-    case 'k': {fscanf(inp, "%f", &kt0hx ); break;} //High x hT0
+    case 'f': {fscanf(inp, "%d", &kcfdbx ); break;} //N of X bins hCFD&OR
+    case 'g': {fscanf(inp, "%f", &kcfdlx ); break;} //Low x  hCFD&OR
+    case 'k': {fscanf(inp, "%f", &kcfdhx ); break;} //High x  hCFD&OR
+    case 'm': {fscanf(inp, "%d", &kt0bx ); break;} //N of X bins TVDC
+    case 'n': {fscanf(inp, "%f", &kt0lx ); break;} //Low x  TVDC
+    case 'q': {fscanf(inp, "%f", &kt0hx ); break;} //High x  TVDC
     }
   }
   fclose(inp);
@@ -153,13 +156,17 @@ int main(int argc, char **argv) {
   // Allocation of histograms - start
 
   TH1F *hCFD1minCFD[24];  
-  TH1F *hCFD[24];  
+  TH1F *hCFD[24], *hQT1[24], *hPed[24];  
    
   for(Int_t ic=0; ic<24; ic++) {
     hCFD1minCFD[ic] = new TH1F(Form("CFD1minCFD%d",ic+1),"CFD-CFD",kcbx,kclx,kcmx);
-    hCFD[ic] = new TH1F(Form("CFD%d",ic+1),"CFD",kt0bx,kt0lx,kt0hx);
+    hCFD[ic] = new TH1F(Form("CFD%d",ic+1),"CFD",kcfdbx,kcfdlx,kcfdhx);
+    hQT1[ic] = new TH1F(Form("QT1%d",ic+1),"QT1",kt0bx,kt0lx,kt0hx);
+    hPed[ic] = new TH1F(Form("hPed%d",ic+1),"pedestal",500,500,2000);
   }
-  TH1F *hVertex = new TH1F("hVertex","T0 time",kt0bx,kt0lx,kt0hx);
+  TH1F *hVertex = new TH1F("hVertex","TVDC",kt0bx,kt0lx,kt0hx);
+  TH1F *hOrA = new TH1F("hOrA","OrA",kcfdbx,kcfdlx,kcfdhx);
+  TH1F *hOrC = new TH1F("hOrC","OrC",kcfdbx,kcfdlx,kcfdhx);
   
    // Allocation of histograms - end
 
@@ -215,24 +222,24 @@ int main(int argc, char **argv) {
       // Enable the following two lines in case of real-data
       reader->RequireHeader(kTRUE);
       AliT0RawReader *start = new AliT0RawReader(reader, kTRUE);
-      start->SetPrintout(kTRUE);
+      // start->SetPrintout(kFALSE);
       // Read raw data
-      Int_t allData[107][5];
-      for(Int_t i0=0;i0<107;i0++)
+      Int_t allData[220][5];
+      for(Int_t i0=0;i0<220;i0++)
       	for(Int_t j0=0;j0<5;j0++)
 	  allData[i0][j0] = 0;
       
       if(start->Next()){
-	for (Int_t i=0; i<107; i++) {
+	for (Int_t i=0; i<211; i++) {
 	  for(Int_t iHit=0;iHit<5;iHit++){
 	    allData[i][iHit]= start->GetData(i,iHit);
 	  }
 	}
       }
-      if (allData[50][0] == 0) {
-        cout<<" no TVDC trigger "<<endl;
-        continue;
-      }
+      if (allData[50][0] == 0)     continue;
+      hVertex->Fill(allData[50][0]);
+      hOrA->Fill(allData[51][0]);
+      hOrC->Fill(allData[52][0]);
       // Fill the histograms
       walk = adc = amp = -999;
       for (Int_t in=0; in<12;  in++)
@@ -245,66 +252,35 @@ int main(int argc, char **argv) {
 	  chargeQT0[in]=allData[2*in+57][0];
 	  chargeQT1[in]=allData[2*in+58][0];
 	}
-     Float_t besttimeA=9999999;
-      Float_t besttimeC=9999999;
       Float_t time[24]; 
-       Float_t meanShift[24];
-       for (Int_t ik = 0; ik<24; ik++)
-	 { 	 
-	   if( ( chargeQT0[ik] - chargeQT1[ik])>0)  {
-	     adc = chargeQT0[ik] - chargeQT1[ik];
-	     //	cout<<ik <<"  "<<adc<<endl;
-	   }
-	   if(gramp[ik])
-	     amp = gramp[ik]->Eval(Double_t(adc));
-	  // if(amp < 0.1) continue;
-	   if(gr[ik]) 
-	     walk = Int_t(gr[ik]->Eval(Double_t(adc) ) );
-	   
-	   if(ik<12 && allData[ik+1][0]>0 && allData[knpmtC][0]>0 ){
-	     hCFD1minCFD[ik]->Fill(allData[ik+1][0]-allData[knpmtC][0]);
-	     if( walk >-100) hCFD[ik]->Fill(allData[ik+1][0] - walk);
-	   }
-	   
-	   if(ik>11 && allData[ik+45][0]>0 && allData[56+knpmtA][0]>0 )
-	     {
-	     hCFD1minCFD[ik]->Fill(allData[ik+45][0]-allData[56+knpmtA][0]);
-	      if( walk >-100) hCFD[ik]->Fill(allData[ik+45][0] - walk);
-	     }
-	  /*   
-	   if(iev == 10000) {	
-	     meanShift[ik] =  hCFD1minCFD[ik]->GetMean(); 
-	     if(ik==knpmtC || ik==(56+knpmtA)) meanShift[ik]=0;
-	   }
-	   */
-	 }
-	 /*
-      //fill  mean time _ fast reconstruction
-      if (iev > 10000 )
-	{
-	  for (Int_t in=0; in<12; in++)  
-	    {
-	      time[in] = allData[in+1][0] - meanShift[in]  ;
-	      time[in+12] = allData[in+56+1][0] ;
-	    }
-	  for (Int_t ipmt=0; ipmt<12; ipmt++){
-	    if(time[ipmt] > 1 ) {
-	      if(time[ipmt]<besttimeC)
-		besttimeC=time[ipmt]; //timeC
-	    }
+      Float_t meanShift[24];
+      for (Int_t ik = 0; ik<24; ik++)
+	{ 	 
+	  if( ( chargeQT0[ik] - chargeQT1[ik])>0)  {
+	    adc = chargeQT0[ik] - chargeQT1[ik];
+	    //	cout<<ik <<"  "<<adc<<endl;
 	  }
-	   for ( Int_t ipmt=12; ipmt<24; ipmt++){
-	     if(time[ipmt] > 1) {
-	       if(time[ipmt]<besttimeA) 
-		 besttimeA=time[ipmt]; //timeA
-	     }
-	   }
-	   if(besttimeA<9999999 &&besttimeC< 9999999) {
-	     Float_t t0 =0.001* 24.4 * Float_t( besttimeA+besttimeC)/2.;
-	     hVertex->Fill(t0);
-	   }
+	  if(gr[ik] && adc>0) 
+	    walk = Int_t(gr[ik]->Eval(Double_t(adc) ) );
+	  //	  cout<<ik<<" walk "<<walk<<" "<<allData[ik+1][0]<<endl; 
+	  if(ik<12 && allData[ik+1][0]>0  ){
+	    if( walk >-100) hCFD[ik]->Fill(allData[ik+1][0] - walk);
+	    hQT1[ik]->Fill(chargeQT1[ik]);
+	    if ( allData[knpmtC][0]>0 )
+	      hCFD1minCFD[ik]->Fill(allData[ik+1][0]-allData[knpmtC][0]);
+	  }
+	  
+	  if(ik>11 && allData[ik+45][0]>0 )
+	    {
+	      if( walk >-100) hCFD[ik]->Fill(allData[ik+45][0] - walk);
+	      hQT1[ik]->Fill(chargeQT1[ik]);
+	       if (allData[56+knpmtA][0]>0)
+		 hCFD1minCFD[ik]->Fill(allData[ik+45][0]-allData[56+knpmtA][0]);
+	    }
+	  if(ik<12 && allData[ik+1][0]==0 && adc>0 ) hPed[ik]->Fill(adc);
+	  if(ik>11 && allData[ik+45][0]==0 && adc>0 ) hPed[ik]->Fill(adc);
+
 	}
-	*/
 	   
      delete start;
      start = 0x0;
@@ -333,9 +309,12 @@ int main(int argc, char **argv) {
     hCFD1minCFD[j]->SetDirectory(&hist);
     hCFD1minCFD[j]->Write();
     hCFD[j]->Write();
-
+    hQT1[j]->Write();
+    hPed[j]->Write();
   }
   hVertex->Write();
+  hOrA->Write();
+  hOrC->Write();
   hist.Close();
   //delete hist;
 

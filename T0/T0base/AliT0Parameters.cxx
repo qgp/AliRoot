@@ -194,7 +194,7 @@ void AliT0Parameters::InitIfOnline()
       lookvalue->SetChannel(channel);
       lookkey->SetKey(ik);
       fgLookUp->GetMapLookup()->Add((TObject*)lookvalue,(TObject*)lookkey);
-      printf(" LookUp ik %i trm %i chain %i tdc %i  channel %i\n",ik, trm, chain, tdc, channel);	
+      //    printf(" LookUp ik %i trm %i chain %i tdc %i  channel %i\n",ik, trm, chain, tdc, channel);	
       if (channel<6) channel +=2;
       else {channel = 0; tdc++;}
       if (ik==104) {trm=7; chain=0; tdc=14; channel=2;}
@@ -228,6 +228,44 @@ AliT0Parameters::GetCFD(Int_t ipmt)
   // return  CFD channel
    
     return fgCalibData->GetCFDvalue(ipmt,0);
+}
+//__________________________________________________________________
+Float_t
+AliT0Parameters::GetQT1(Int_t ipmt) 
+  {
+  // return  CFD channel
+   
+    return fgCalibData->GetCFDvalue(ipmt,1);
+}
+//__________________________________________________________________
+Float_t
+AliT0Parameters::GetPedestalOld(Int_t ipmt) 
+  {
+  // return  CFD channel
+   
+    return fgCalibData->GetCFDvalue(ipmt,3);
+}
+//__________________________________________________________________
+Float_t
+AliT0Parameters::GetMeanOrA() 
+  {
+  // return  CFD channel
+   
+    return fgCalibData->GetCFDvalue(0,2);
+}
+Float_t
+AliT0Parameters::GetMeanOrC() 
+  {
+  // return  CFD channel
+   
+    return fgCalibData->GetCFDvalue(1,2);
+}
+Float_t
+AliT0Parameters::GetMeanTVDC() 
+  {
+  // return  CFD channel
+   
+    return fgCalibData->GetMeanVertex();
 }
 
 //__________________________________________________________________

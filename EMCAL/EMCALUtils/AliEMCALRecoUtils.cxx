@@ -596,17 +596,23 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
 {
   // Correct cluster energy from non linearity functions
   
-  if (!cluster) {
+  if (!cluster) 
+  {
     AliInfo("Cluster pointer null!");
     return 0;
   }
   
   Float_t energy = cluster->E();
-
-  if (energy < 0.05) {
-    // Clusters with less than 50 MeV or negative are not possible
-    AliInfo(Form("Too Low Cluster energy!, E = %f < 0.05 GeV",energy));
+  if (energy < 0.100) 
+  {
+    // Clusters with less than 100 MeV or negative are not possible
+    AliInfo(Form("Too low cluster energy!, E = %f < 0.100 GeV",energy));
     return 0;
+  }
+  else if(energy > 300.)
+  {
+    AliInfo(Form("Too high cluster energy!, E = %f GeV, do not apply non linearity",energy));
+    return energy;
   }
   
   switch (fNonLinearityFunction) 
@@ -688,7 +694,7 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
       
     case kBeamTestCorrected:
     {
-      //From beam test, corrected for material between beam and EMCAL
+      // From beam test, corrected for material between beam and EMCAL
       //fNonLinearityParams[0] =  0.99078
       //fNonLinearityParams[1] =  0.161499;
       //fNonLinearityParams[2] =  0.655166; 
@@ -703,7 +709,8 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
      
     case kBeamTestCorrectedv2:
     {
-      //From beam test, corrected for material between beam and EMCAL
+      // From beam test, corrected for material between beam and EMCAL
+      // Different function to kBeamTestCorrected
       //fNonLinearityParams[0] =  0.983504;
       //fNonLinearityParams[1] =  0.210106;
       //fNonLinearityParams[2] =  0.897274;
@@ -711,6 +718,21 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
       //fNonLinearityParams[4] =  152.299;
       //fNonLinearityParams[5] =  31.5028;
       //fNonLinearityParams[6] =  0.968;
+      energy *= fNonLinearityParams[6]/(fNonLinearityParams[0]*(1./(1.+fNonLinearityParams[1]*exp(-energy/fNonLinearityParams[2]))*1./(1.+fNonLinearityParams[3]*exp((energy-fNonLinearityParams[4])/fNonLinearityParams[5]))));
+      
+      break;
+    }
+      
+    case kBeamTestCorrectedv3:
+    {
+      // Same function as kBeamTestCorrectedv2, different default parametrization.
+      //fNonLinearityParams[0] =  0.976941;
+      //fNonLinearityParams[1] =  0.162310;
+      //fNonLinearityParams[2] =  1.08689;
+      //fNonLinearityParams[3] =  0.0819592;
+      //fNonLinearityParams[4] =  152.338;
+      //fNonLinearityParams[5] =  30.9594;
+      //fNonLinearityParams[6] =  0.9615;
       energy *= fNonLinearityParams[6]/(fNonLinearityParams[0]*(1./(1.+fNonLinearityParams[1]*exp(-energy/fNonLinearityParams[2]))*1./(1.+fNonLinearityParams[3]*exp((energy-fNonLinearityParams[4])/fNonLinearityParams[5]))));
       
       break;
@@ -785,14 +807,17 @@ Float_t AliEMCALRecoUtils::CorrectClusterEnergyLinearity(AliVCluster* cluster)
       break;
       
   }
-
+  
   return energy;
 }
 
+///
+/// Initialising Non Linearity Parameters for the different
+/// parametrizations available, defined in enum NonlinearityFunctions
+///
 //__________________________________________________
 void AliEMCALRecoUtils::InitNonLinearityParam()
 {
-  //Initialising Non Linearity Parameters
   
   if (fNonLinearityFunction == kPi0MC) {
     fNonLinearityParams[0] = 1.014;
@@ -859,13 +884,29 @@ void AliEMCALRecoUtils::InitNonLinearityParam()
   }
   
   if (fNonLinearityFunction == kBeamTestCorrectedv2) {
+    // Parameters until November 2015, use now kBeamTestCorrectedv3
     fNonLinearityParams[0] =  0.983504;
     fNonLinearityParams[1] =  0.210106;
     fNonLinearityParams[2] =  0.897274;
     fNonLinearityParams[3] =  0.0829064;
     fNonLinearityParams[4] =  152.299;
     fNonLinearityParams[5] =  31.5028;
-    fNonLinearityParams[6] =  0.968;
+    fNonLinearityParams[6] =  0.968;    
+  }
+
+  if (fNonLinearityFunction == kBeamTestCorrectedv3) {
+    
+    // New parametrization of kBeamTestCorrectedv2
+    // excluding point at 0.5 GeV from Beam Test Data
+    // https://indico.cern.ch/event/438805/contribution/1/attachments/1145354/1641875/emcalPi027August2015.pdf
+    
+    fNonLinearityParams[0] =  0.976941;
+    fNonLinearityParams[1] =  0.162310;
+    fNonLinearityParams[2] =  1.08689;
+    fNonLinearityParams[3] =  0.0819592;
+    fNonLinearityParams[4] =  152.338;
+    fNonLinearityParams[5] =  30.9594;
+    fNonLinearityParams[6] =  0.9615;
   }
 
   if (fNonLinearityFunction == kSDMv5) {
@@ -1126,12 +1167,12 @@ void AliEMCALRecoUtils::InitEMCALRecalibrationFactors()
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
   
-  fEMCALRecalibrationFactors = new TObjArray(12);
-  for (int i = 0; i < 12; i++) 
+  fEMCALRecalibrationFactors = new TObjArray(22);
+  for (int i = 0; i < 22; i++) 
     fEMCALRecalibrationFactors->Add(new TH2F(Form("EMCALRecalFactors_SM%d",i),
                                              Form("EMCALRecalFactors_SM%d",i),  48, 0, 48, 24, 0, 24));
   //Init the histograms with 1
-  for (Int_t sm = 0; sm < 12; sm++) 
+  for (Int_t sm = 0; sm < 22; sm++) 
   {
     for (Int_t i = 0; i < 48; i++) 
     {
@@ -1162,11 +1203,11 @@ void AliEMCALRecoUtils::InitEMCALTimeRecalibrationFactors()
   for (int i = 0; i < 4; i++) 
     fEMCALTimeRecalibrationFactors->Add(new TH1F(Form("hAllTimeAvBC%d",i),
                                                  Form("hAllTimeAvBC%d",i),  
-                                                 48*24*12,0.,48*24*12)          );
+                                                 48*24*22,0.,48*24*22)          );
   //Init the histograms with 1
   for (Int_t bc = 0; bc < 4; bc++) 
   {
-    for (Int_t i = 0; i < 48*24*12; i++) 
+    for (Int_t i = 0; i < 48*24*22; i++) 
       SetEMCALChannelTimeRecalibrationFactor(bc,i,0.);
   }
   
@@ -1186,9 +1227,9 @@ void AliEMCALRecoUtils::InitEMCALBadChannelStatusMap()
   Bool_t oldStatus = TH1::AddDirectoryStatus();
   TH1::AddDirectory(kFALSE);
   
-  fEMCALBadChannelMap = new TObjArray(12);
+  fEMCALBadChannelMap = new TObjArray(22);
   //TH2F * hTemp = new  TH2I("EMCALBadChannelMap","EMCAL SuperModule bad channel map", 48, 0, 48, 24, 0, 24);
-  for (int i = 0; i < 12; i++) 
+  for (int i = 0; i < 22; i++) 
   {
     fEMCALBadChannelMap->Add(new TH2I(Form("EMCALBadChannelMap_Mod%d",i),Form("EMCALBadChannelMap_Mod%d",i), 48, 0, 48, 24, 0, 24));
   }
@@ -1345,14 +1386,15 @@ void AliEMCALRecoUtils::RecalculateClusterPosition(const AliEMCALGeometry *geom,
   else    AliDebug(2,"Algorithm to recalculate position not selected, do nothing.");
 }  
 
+///
+/// For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
+/// The algorithm is a copy of what is done in AliEMCALRecPoint.
+///
 //_____________________________________________________________________________________________
 void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCALGeometry *geom, 
                                                                   AliVCaloCells* cells, 
                                                                   AliVCluster* clu)
-{
-  // For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
-  // The algorithm is a copy of what is done in AliEMCALRecPoint
-  
+{  
   Double_t eCell       = 0.;
   Float_t  fraction    = 1.;
   Float_t  recalFactor = 1.;
@@ -1361,7 +1403,7 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCAL
   Int_t    iTower  = -1, iIphi  = -1, iIeta  = -1;
   Int_t    iSupModMax = -1, iSM=-1, iphi   = -1, ieta   = -1;
   Float_t  weight = 0.,  totalWeight=0.;
-  Float_t  newPos[3] = {0,0,0};
+  Float_t  newPos[3] = {-1.,-1.,-1.};
   Double_t pLocal[3], pGlobal[3];
   Bool_t shared = kFALSE;
 
@@ -1426,13 +1468,15 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerGlobal(const AliEMCAL
   clu->SetPosition(newPos);
 }  
 
+///
+/// For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
+/// The algorithm works with the tower indeces, averages the indeces and from them it calculates the global position.
+///
 //____________________________________________________________________________________________
 void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerIndex(const AliEMCALGeometry *geom, 
                                                                  AliVCaloCells* cells, 
                                                                  AliVCluster* clu)
 {
-  // For a given CaloCluster recalculates the position for a given set of misalignment shifts and puts it again in the CaloCluster.
-  // The algorithm works with the tower indeces, averages the indeces and from them it calculates the global position
   
   Double_t eCell       = 1.;
   Float_t  fraction    = 1.;
@@ -1488,7 +1532,7 @@ void AliEMCALRecoUtils::RecalculateClusterPositionFromTowerIndex(const AliEMCALG
     //printf("Max cell? cell %d, amplitude org %f, fraction %f, recalibration %f, amplitude new %f \n",cellAbsId, cells->GetCellAmplitude(cellAbsId), fraction, recalFactor, eCell) ;
   }// cell loop
     
-  Float_t xyzNew[]={0.,0.,0.};
+  Float_t xyzNew[]={-1.,-1.,-1.};
   if (areInSameSM == kTRUE) {
     //printf("In Same SM\n");
     weightedCol = weightedCol/totalWeight;
@@ -2212,32 +2256,43 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToEMCalSurface(AliVTrack *track,
 
 
 //------------------------------------------------------------------------------------
+///
+/// Extrapolate track to EMCAL surface
+///
 Bool_t AliEMCALRecoUtils::ExtrapolateTrackToEMCalSurface(AliExternalTrackParam *trkParam, 
                                                          Double_t emcalR,
                                                          Double_t mass, 
                                                          Double_t step, 
                                                          Float_t &eta, 
                                                          Float_t &phi,
-							 Float_t &pt)
+                                                         Float_t &pt)
 {
-  //Extrapolate track to EMCAL surface
-  
   eta = -999, phi = -999, pt = -999;
+ 
   if (!trkParam) return kFALSE;
+  
   if (!AliTrackerBase::PropagateTrackToBxByBz(trkParam, emcalR, mass, step, kTRUE, 0.8, -1)) return kFALSE;
+  
   Double_t trkPos[3] = {0.,0.,0.};
+  
   if (!trkParam->GetXYZ(trkPos)) return kFALSE;
+  
   TVector3 trkPosVec(trkPos[0],trkPos[1],trkPos[2]);
+  
   eta = trkPosVec.Eta();
   phi = trkPosVec.Phi();
-  pt = trkParam->Pt();
-  if (phi<0)
-    phi += 2*TMath::Pi();
+  pt  = trkParam->Pt();
+  
+  if ( phi < 0 )
+    phi += TMath::TwoPi();
 
   return kTRUE;
 }
 
 //-----------------------------------------------------------------------------------
+///
+/// Return the residual by extrapolating a track param to a global position
+///
 Bool_t AliEMCALRecoUtils::ExtrapolateTrackToPosition(AliExternalTrackParam *trkParam, 
                                                      const Float_t *clsPos, 
                                                      Double_t mass, 
@@ -2245,23 +2300,34 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToPosition(AliExternalTrackParam *trkP
                                                      Float_t &tmpEta, 
                                                      Float_t &tmpPhi)
 {
-  //
-  //Return the residual by extrapolating a track param to a global position
-  //
   tmpEta = -999;
   tmpPhi = -999;
+  
   if (!trkParam) return kFALSE;
+  
   Double_t trkPos[3] = {0.,0.,0.};
   TVector3 vec(clsPos[0],clsPos[1],clsPos[2]);
-  Double_t alpha =  ((int)(vec.Phi()*TMath::RadToDeg()/20)+0.5)*20*TMath::DegToRad();
-  vec.RotateZ(-alpha); //Rotate the cluster to the local extrapolation coordinate system
-  if (!AliTrackerBase::PropagateTrackToBxByBz(trkParam, vec.X(), mass, step,kTRUE, 0.8, -1)) return kFALSE;
-  if (!trkParam->GetXYZ(trkPos)) return kFALSE; //Get the extrapolated global position
+  
+  Float_t phi = vec.Phi();
+  
+  if ( phi < 0 )
+    phi += TMath::TwoPi();
+  
+  // Rotate the cluster to the local extrapolation coordinate system
+  Double_t alpha = ((int)(phi*TMath::RadToDeg()/20)+0.5)*20*TMath::DegToRad();
+  
+  vec.RotateZ(-alpha); 
+  
+  if (!AliTrackerBase::PropagateTrackToBxByBz(trkParam, vec.X(), mass, step,kTRUE, 0.8, -1)) 
+    return kFALSE;
+  
+  if (!trkParam->GetXYZ(trkPos)) 
+    return kFALSE; // Get the extrapolated global position
 
   TVector3 clsPosVec(clsPos[0],clsPos[1],clsPos[2]);
   TVector3 trkPosVec(trkPos[0],trkPos[1],trkPos[2]);
 
-  // track cluster matching
+  // Track cluster matching
   tmpPhi = clsPosVec.DeltaPhi(trkPosVec);    // tmpPhi is between -pi and pi
   tmpEta = clsPosVec.Eta()-trkPosVec.Eta();
 
@@ -2269,6 +2335,9 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToPosition(AliExternalTrackParam *trkP
 }
 
 //----------------------------------------------------------------------------------
+///
+/// Return the residual by extrapolating a track param to a cluster
+///
 Bool_t AliEMCALRecoUtils::ExtrapolateTrackToCluster(AliExternalTrackParam *trkParam, 
                                                     const AliVCluster *cluster, 
                                                     Double_t mass, 
@@ -2276,11 +2345,9 @@ Bool_t AliEMCALRecoUtils::ExtrapolateTrackToCluster(AliExternalTrackParam *trkPa
                                                     Float_t &tmpEta, 
                                                     Float_t &tmpPhi)
 {
-  //
-  //Return the residual by extrapolating a track param to a cluster
-  //
   tmpEta = -999;
   tmpPhi = -999;
+  
   if (!cluster || !trkParam) 
     return kFALSE;
 

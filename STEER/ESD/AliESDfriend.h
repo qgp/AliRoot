@@ -13,7 +13,8 @@
 #include "AliESDfriendTrack.h"
 #include "AliVfriendEvent.h"
 
-class AliESDVZEROfriend;
+#include "AliESDVZEROfriend.h"
+
 class AliESDTZEROfriend;
 class AliESDADfriend;
 
@@ -24,7 +25,18 @@ public:
   AliESDfriend(const AliESDfriend &);
   AliESDfriend& operator=(const AliESDfriend& esd);  
   virtual ~AliESDfriend();
-
+  
+  // This function will set the ownership
+  // needed to read old ESDfriends
+  void SetOwner(){
+    fTracks.SetOwner();
+    Int_t n=fTracks.GetEntriesFast();
+    for(;n--;){
+      AliESDfriendTrack *t=(AliESDfriendTrack *)fTracks.UncheckedAt(n);
+      if(t)t->SetOwner();
+    }
+  }
+  
   Int_t GetNumberOfTracks() const {return fTracks.GetEntriesFast();}
   AliESDfriendTrack *GetTrack(Int_t i) const {
      return (AliESDfriendTrack *)fTracks.At(i);
@@ -38,8 +50,15 @@ public:
      new(fTracks[i]) AliESDfriendTrack(*t);
   }
 
-  void SetVZEROfriend(AliESDVZEROfriend * obj);
+  void SetVZEROfriend(const AliESDVZEROfriend * obj);
   AliESDVZEROfriend *GetVZEROfriend(){ return fESDVZEROfriend; }
+  const AliESDVZEROfriend *GetVZEROfriendConst() const { return fESDVZEROfriend; }
+  AliVVZEROfriend *GetVVZEROfriend(){ return fESDVZEROfriend; }
+  Int_t GetESDVZEROfriend( AliESDVZEROfriend &v ) const {
+    if( fESDVZEROfriend ){ v=*fESDVZEROfriend; return 0; }
+    return -1;
+  }
+
   void SetTZEROfriend(AliESDTZEROfriend * obj);
   AliESDTZEROfriend *GetTZEROfriend(){ return fESDTZEROfriend; }
   void SetADfriend(AliESDADfriend * obj);

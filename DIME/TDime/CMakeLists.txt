@@ -17,7 +17,9 @@
 set (MODULE TDime)
 
 # Module include folder
-include_directories(${AliRoot_SOURCE_DIR}/DIME/${MODULE})
+include_directories(${AliRoot_SOURCE_DIR}/DIME/${MODULE}
+                    ${AliRoot_SOURCE_DIR}/DIME/dime
+                   )
 
 # Additional includes - alphabetical order except ROOT
 include_directories(${ROOT_INCLUDE_DIR}
@@ -44,8 +46,8 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
 
 # Generate the ROOT map
-# Dependecies
-set(LIBDEPS dime EG)
+# Dependencies
+set(LIBDEPS dime EG EVGEN)
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # Additional compilation flags

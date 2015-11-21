@@ -232,6 +232,7 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fWriteESDfriend(kFALSE),
   fFillTriggerESD(kTRUE),
 
+  fSkipIncompleteDAQ(kTRUE),
   fCleanESD(kTRUE),
   fV0DCAmax(3.),
   fV0CsPmin(0.),
@@ -372,6 +373,7 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fWriteESDfriend(rec.fWriteESDfriend),
   fFillTriggerESD(rec.fFillTriggerESD),
 
+  fSkipIncompleteDAQ(rec.fSkipIncompleteDAQ),
   fCleanESD(rec.fCleanESD),
   fV0DCAmax(rec.fV0DCAmax),
   fV0CsPmin(rec.fV0CsPmin),
@@ -530,6 +532,7 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fWriteESDfriend        = rec.fWriteESDfriend;
   fFillTriggerESD        = rec.fFillTriggerESD;
 
+  fSkipIncompleteDAQ = rec.fSkipIncompleteDAQ;
   fCleanESD  = rec.fCleanESD;
   fV0DCAmax  = rec.fV0DCAmax;
   fV0CsPmin  = rec.fV0CsPmin;
@@ -1220,7 +1223,7 @@ Bool_t AliReconstruction::InitGRP() {
     AliDebug(1, Form("Detector List = %s", fRunLocalReconstruction.Data()));
     fRunTracking = MatchDetectorList(fRunTracking,detMask);
     fFillESD = MatchDetectorList(fFillESD,detMask);
-    fQADetectors = MatchDetectorList(fQADetectors,detMask);
+    if (fRunQA || fRunGlobalQA) fQADetectors = MatchDetectorList(fQADetectors,detMask);
     AliInfo(Form("fQADetectors=%s",fQADetectors.Data()));
     fDeleteRecPoints = MatchDetectorList(fDeleteRecPoints,detMask);
     fDeleteDigits    = MatchDetectorList(fDeleteDigits,detMask);
@@ -2091,14 +2094,18 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     AliSysInfo::AddStamp(Form("RawQA_%d",iEvent), 0,0,iEvent);
   }
 
-    // fill Event header information from the RawEventHeader
-    if (fRawReader){FillRawEventHeaderESD(fesd);}
-    if (fRawReader){FillRawEventHeaderESD(fhltesd);}
     if (fRawReader){
       // Store DAQ detector pattern and attributes
       fesd->SetDAQDetectorPattern(fRawReader->GetDetectorPattern()[0]);
       fesd->SetDAQAttributes(fRawReader->GetAttributes()[2]);
+      if (fesd->IsIncompleteDAQ() && fSkipIncompleteDAQ) {
+	AliInfoF("Abandoning incomplete event reconstruction: DAQ attr: 0x%08x",fesd->IsIncompleteDAQ());
+	return kTRUE;
+      }
     }
+    // fill Event header information from the RawEventHeader
+    if (fRawReader){FillRawEventHeaderESD(fesd);}
+    if (fRawReader){FillRawEventHeaderESD(fhltesd);}
 
     fesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
     fhltesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
@@ -3791,6 +3798,7 @@ void AliReconstruction::WriteAlignmentData(AliESDEvent* esd)
       if (nsp) {
 	AliTrackPointArray *sp = new AliTrackPointArray(nsp);
 	track->SetTrackPointArray(sp);
+	sp->SetBit(AliTrackPointArray::kTOFBugFixed);
 	Int_t isptrack = 0;
 	for (Int_t iDet = 5; iDet >= 0; iDet--) {
 	  AliTracker *tracker = fTracker[iDet];
@@ -4027,7 +4035,7 @@ Bool_t AliReconstruction::SetRunQA(TString detAndAction)
 	}
 	Int_t colon = detAndAction.Index(":") ; 
 	fQADetectors = detAndAction(0, colon) ; 
-	fQATasks   = detAndAction(colon+1, detAndAction.Sizeof() ) ; 
+	fQATasks   = detAndAction(colon+1, detAndAction.Length() ) ; 
 	if (fQATasks.Contains("ALL") ) {
 		fQATasks = Form("%d %d %d %d", AliQAv1::kRAWS, AliQAv1::kDIGITSR, AliQAv1::kRECPOINTS, AliQAv1::kESDS) ; 
 	} else {
@@ -4221,32 +4229,17 @@ Bool_t AliReconstruction::GetEventInfo()
   Int_t nclasses = classesArray.GetEntriesFast();
   for( Int_t iclass=0; iclass < nclasses; iclass++ ) {
     AliTriggerClass* trclass = (AliTriggerClass*)classesArray.At(iclass);
-    if (trclass && trclass->GetMask()>0) {
-      Int_t trindex = TMath::Nint(TMath::Log2(trclass->GetMask()));
-      if (fesd) fesd->SetTriggerClass(trclass->GetName(),trindex);
-      if (trmask & (1ull << trindex)) {
-	trclasses += " ";
-	trclasses += trclass->GetName();
-	trclasses += " ";
-	clustmask |= trclass->GetCluster()->GetClusterMask();
-	if (TriggerMatches2Alias(trclass->GetName(),fCosmicAlias)) fEventInfo.SetCosmicTrigger(kTRUE);
-	else if (TriggerMatches2Alias(trclass->GetName(),fLaserAlias))  fEventInfo.SetCalibLaserTrigger(kTRUE);
-	else fEventInfo.SetBeamTrigger(kTRUE);
-      }
-    }
-    if (trclass && trclass->GetMaskNext50()>0) {
-      Int_t trindex = TMath::Nint(TMath::Log2(trclass->GetMaskNext50()))+50;
-      if (fesd) fesd->SetTriggerClass(trclass->GetName(),trindex);
-      if (trmaskNext50 & (1ull << (trindex-50))) {
-	trclasses += " ";
-	trclasses += trclass->GetName();
-	trclasses += " ";
-	clustmask |= trclass->GetCluster()->GetClusterMask();
-	if (TriggerMatches2Alias(trclass->GetName(),fCosmicAlias)) fEventInfo.SetCosmicTrigger(kTRUE);
-	else if (TriggerMatches2Alias(trclass->GetName(),fLaserAlias))  fEventInfo.SetCalibLaserTrigger(kTRUE);
-	else fEventInfo.SetBeamTrigger(kTRUE);
-      }
-    }
+    Int_t trindex = trclass->GetIndex()-1;
+    if (fesd) fesd->SetTriggerClass(trclass->GetName(),trindex);
+    Bool_t match = trindex<50 ? (trmask & (1ull << trindex)) : (trmaskNext50 & (1ull << (trindex-50)));
+    if (!match) continue;
+    trclasses += " ";
+    trclasses += trclass->GetName();
+    trclasses += " ";
+    clustmask |= trclass->GetCluster()->GetClusterMask();
+    if (TriggerMatches2Alias(trclass->GetName(),fCosmicAlias)) fEventInfo.SetCosmicTrigger(kTRUE);
+    else if (TriggerMatches2Alias(trclass->GetName(),fLaserAlias))  fEventInfo.SetCalibLaserTrigger(kTRUE);
+    else fEventInfo.SetBeamTrigger(kTRUE);
   }
   fEventInfo.SetTriggerClasses(trclasses);
 
@@ -4895,14 +4888,9 @@ void AliReconstruction::ProcessTriggerAliases()
     // active classes mentioned in the alias will be converted to their masks
     for( Int_t iclass=0; iclass < nclasses; iclass++ ) {
       AliTriggerClass* trclass = (AliTriggerClass*)classesArray.At(iclass);
-      if (trclass && trclass->GetMask()>0) {
-	Int_t trindex = TMath::Nint(TMath::Log2(trclass->GetMask()));
-	fRawReader->LoadTriggerClass(trclass->GetName(),trindex);
-      }
-      if (trclass && trclass->GetMaskNext50()>0) {
-	Int_t trindex = TMath::Nint(TMath::Log2(trclass->GetMaskNext50()))+50;
-	fRawReader->LoadTriggerClass(trclass->GetName(),trindex);
-      }
+      if (!trclass) continue;
+      int trindex = trclass->GetIndex()-1;
+      fRawReader->LoadTriggerClass(trclass->GetName(),trindex);      
     }
     //
     // nullify all remaining triggers mentioned in the alias

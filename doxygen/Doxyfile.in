@@ -775,6 +775,7 @@ INPUT                  = @CMAKE_SOURCE_DIR@/doxygen \
                          @CMAKE_SOURCE_DIR@/TPC/stressTest/testSparse \
                          @CMAKE_SOURCE_DIR@/TPC/testMC \
                          @CMAKE_SOURCE_DIR@/TPC/TPCbase \
+                         @CMAKE_SOURCE_DIR@/TPC/TPCutil \
                          @CMAKE_SOURCE_DIR@/MUON \
                          @CMAKE_SOURCE_DIR@/MUON/DA \
                          @CMAKE_SOURCE_DIR@/MUON/MUONgeometry \
@@ -791,7 +792,10 @@ INPUT                  = @CMAKE_SOURCE_DIR@/doxygen \
                          @CMAKE_SOURCE_DIR@/MUON/MUONsim \
                          @CMAKE_SOURCE_DIR@/MUON/MUONshuttle \
                          @CMAKE_SOURCE_DIR@/MUON/MUONrec \
-                         @CMAKE_SOURCE_DIR@/MUON/macros
+                         @CMAKE_SOURCE_DIR@/MUON/macros \
+                         @CMAKE_SOURCE_DIR@/MONITOR \
+                         @CMAKE_SOURCE_DIR@/MONITOR/MONITORzmq \
+                         @CMAKE_SOURCE_DIR@/MONITOR/MONITOR \ 
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

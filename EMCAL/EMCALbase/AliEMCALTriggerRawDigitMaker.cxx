@@ -13,13 +13,6 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/*
- 
-
-
- 
-Author: R. GUERNANE LPSC Grenoble CNRS/IN2P3
-*/
 
 #include "AliEMCALTriggerRawDigitMaker.h"
 #include "AliEMCALTriggerSTURawStream.h"
@@ -88,7 +81,7 @@ fTriggerData(0x0)
 
   fDCSConfig = AliEMCALTriggerDCSConfigDB::Instance();
 
-  Int_t nRawDigits = fGeometry->GetNTotalTRU() * 96;  
+  Int_t nRawDigits = 5952; //fGeometry->GetNTotalTRU() * 96;
   for (Int_t i=0; i<nRawDigits; i++) fRawDigitIndex[i] = -1;
 }	
 
@@ -110,28 +103,25 @@ void AliEMCALTriggerRawDigitMaker::SetIO(AliRawReader* reader, AliCaloRawStreamV
 	fTriggerData   = data;
 }
 
-//_______________
+///
+/// Add bunch list of type AliCaloBunchInfo
+///
+//_________________
 void AliEMCALTriggerRawDigitMaker::Add(const std::vector<AliCaloBunchInfo> &bunchlist)
-{
-	// Add bunch list
-	
-	Int_t    hwAdd   = fCaloRawStream->GetHWAddress();
-	UShort_t iRCU    = fCaloRawStream->GetDDLNumber() % 2; // 0/1
-	UShort_t iBranch = ( hwAdd >> 11 ) & 0x1;              // 0/1
-	
-	// TRU id	
-	Int_t iTRU = ( (iRCU << 1) | iBranch ) - 1; // 0..2
-	
-	iTRU  = (fCaloRawStream->GetModule() % 2) ? 2 * (2 - iTRU) + 1 : 2 * iTRU;
-	
-	iTRU += 6 * int(fCaloRawStream->GetModule()/2);
-	
-	if (AliDebugLevel())
+{	
+  Int_t    hwAdd   = fCaloRawStream->GetHWAddress();
+  UShort_t iRCU    = fCaloRawStream->GetDDLNumber() % 2; // 0/1
+  Int_t    iSM     = fCaloRawStream->GetModule();
+  
+  Int_t iTRU = fGeometry->GetTriggerMapping()->GetTRUIndexFromOnlineHwAdd(hwAdd,iRCU,iSM);
+      
+  if (AliDebugLevel())
 	{
+    UShort_t iBranch = ( hwAdd >> 11 ) & 0x1; // 0/1
 		printf("===\n");
 		printf("| Hw Adress: 0x%x => SM# %2d / RCU# %d / Branch# %d / TRU# %2d / ADC# %2d\n",
 			   hwAdd, fCaloRawStream->GetModule(), iRCU, iBranch, iTRU, fCaloRawStream->GetColumn());
-	}
+  }
 	
 	Int_t idx;
 	
@@ -163,7 +153,7 @@ void AliEMCALTriggerRawDigitMaker::Add(const std::vector<AliCaloBunchInfo> &bunc
 				Int_t time = startBin--;
 				Int_t amp  = sig[iS];
 				
-				if (amp) timeSamples[nSamples++] = ((time << 12) & 0xFF000) | (amp & 0xFFF);
+				if (amp) timeSamples[nSamples++] = ((time << 16) & 0xFF0000) | (amp & 0xFFFF);
 				
 				if (AliDebugLevel())
 				{
@@ -380,10 +370,10 @@ void AliEMCALTriggerRawDigitMaker::PostProcess()
 		{
 			if (AliDebugLevel()) printf("| STU => TRU raw data are there!\n");
 			
-			Int_t nTRU = fGeometry->GetNTotalTRU();
+			Int_t nTRU = 32;//fGeometry->GetNTotalTRU();
 			for (Int_t i = 0; i < nTRU; i++)
 			{
-				iTRU = fGeometry->GetTRUIndexFromSTUIndex(i);
+			  iTRU = fGeometry->GetTRUIndexFromSTUIndex(i, 0);
 				
 				UInt_t adc[96]; for (Int_t j = 0; j < 96; j++) adc[j] = 0;
 				
@@ -424,7 +414,7 @@ void AliEMCALTriggerRawDigitMaker::PostProcess()
 		{
 			fSTURawStream->GetL0GammaPatch(i, iTRU, x);
 
-			iTRU = fGeometry->GetTRUIndexFromSTUIndex(iTRU);
+			iTRU = fGeometry->GetTRUIndexFromSTUIndex(iTRU, 0);
 			
 			const Int_t sizePatchL0 = 
 			((AliEMCALTriggerTRUDCSConfig*)fDCSConfig->GetTriggerDCSConfig()->GetTRUArr()->At(fGeometry->GetOnlineIndexFromTRUIndex(iTRU)))->GetSegmentation() 
@@ -468,7 +458,7 @@ void AliEMCALTriggerRawDigitMaker::PostProcess()
 			{
 				if (fSTURawStream->GetL1GammaPatch(i, ithr, iTRU, x, y)) // col (0..23), row (0..3)
 				{
-					iTRU = fGeometry->GetTRUIndexFromSTUIndex(iTRU);
+				  iTRU = fGeometry->GetTRUIndexFromSTUIndex(iTRU, 0);
 					
 					if (AliDebugLevel()) printf("| STU => Found L1 gamma patch at (%2d , %2d) in TRU# %2d\n", x, y, iTRU);
 					
@@ -544,7 +534,7 @@ void AliEMCALTriggerRawDigitMaker::Reset()
 {
 	// Reset
 	
-	Int_t nRawDigits = fGeometry->GetNTotalTRU() * 96;  
+	Int_t nRawDigits = 5952; //fGeometry->GetNTotalTRU() * 96;
 	for (Int_t i = 0; i < nRawDigits; i++) fRawDigitIndex[i] = -1;
 }
 

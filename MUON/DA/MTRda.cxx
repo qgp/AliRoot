@@ -38,7 +38,6 @@ extern "C" {
 
 #include <Riostream.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "AliRawReaderDate.h"
 
@@ -741,13 +740,14 @@ Bool_t ExportFiles(AliDAConfig& cfg)
 
     Bool_t modified = kFALSE;
     Bool_t globalExported = kFALSE;
+    Bool_t storeOCDB = kTRUE;
 
     ofstream out;
     TString file;
 
     out.open(fileExp.Data(), std::ofstream::out);
     if (!out.good()) {
-	printf("Failed to create file: %s\n",file.Data());
+	printf("Failed to create file: %s\n",fileExp.Data());
 	return kFALSE;
     }      
 
@@ -761,83 +761,136 @@ Bool_t ExportFiles(AliDAConfig& cfg)
     file = cfg.GetLocalMaskFileName();  
     if ((cfg.GetLocalMaskFileLastVersion() != cfg.GetLocalMaskFileVersion()) || initFES) {
       modified = kTRUE;
+      status = 0;
       status = daqDA_FES_storeFile(file.Data(), "LOCAL");
       if (status) {
 	printf("Failed to export file: %s\n",cfg.GetLocalMaskFileName());
 	return kFALSE;
       }
       if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetLocalMaskFileName());
-      out << cfg.GetLocalMaskFileName() << endl;
+      out << cfg.GetLocalMaskFileName() << "   " << storeOCDB << endl;
     }
 
     file = cfg.GetLocalLutFileName();
     if ((cfg.GetLocalLutFileLastVersion() != cfg.GetLocalLutFileVersion()) || initFES) {
       modified = kTRUE;
+      status = 0;
       status = daqDA_FES_storeFile(file.Data(), "LUT");
       if (status) {
 	printf("Failed to export file: %s\n",cfg.GetLocalLutFileName());
 	return kFALSE;
       }
       if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetLocalLutFileName());
-      out << cfg.GetLocalLutFileName() << endl;
+      out << cfg.GetLocalLutFileName() <<  "   " << storeOCDB << endl;
 
     }
 
     file = cfg.GetGlobalFileName();
-    if ((cfg.GetGlobalFileLastVersion() != cfg.GetGlobalFileVersion()) || modified || initFES || cfg.SaveScalers()) {
+    if ((cfg.GetGlobalFileLastVersion() != cfg.GetGlobalFileVersion()) || modified || initFES) {
       modified = kTRUE;
       globalExported = kTRUE;
+      status = 0;
       status = daqDA_FES_storeFile(file.Data(), "GLOBAL");
       if (status) {
 	printf("Failed to export file: %s\n",cfg.GetGlobalFileName());
 	return kFALSE;
       }
       if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetGlobalFileName());
-      out << cfg.GetGlobalFileName() << endl;
+      out << cfg.GetGlobalFileName() <<  "   " << storeOCDB << endl;
     }
 
     file = cfg.GetRegionalFileName();
-    if ( (cfg.GetRegionalFileLastVersion() != cfg.GetRegionalFileVersion()) || modified || initFES || cfg.SaveScalers()) {
+    if ( (cfg.GetRegionalFileLastVersion() != cfg.GetRegionalFileVersion()) || modified || initFES) {
+      status = 0;
       status = daqDA_FES_storeFile(file.Data(), "REGIONAL");
       if (status) {
 	printf("Failed to export file: %s\n",cfg.GetRegionalFileName());
 	return kFALSE;
       }
       if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetRegionalFileName());
-      out << cfg.GetRegionalFileName() << endl;
+      out << cfg.GetRegionalFileName() <<  "   " << storeOCDB << endl;
 
       // needed for the initialisation of the mapping
       if (!globalExported) {
 	file = cfg.GetGlobalFileName();
+	status = 0;
 	status = daqDA_FES_storeFile(file.Data(), "GLOBAL");
 	if (status) {
 	  printf("Failed to export file: %s\n",cfg.GetGlobalFileName());
 	  return kFALSE;
 	}
 	if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetGlobalFileName());
-	out << cfg.GetGlobalFileName() << endl;
+	out << cfg.GetGlobalFileName() <<  "   " << storeOCDB << endl;
       }
 
     }
 
-    if (cfg.SaveScalers()) {
-      out << cfg.GetTrigScalFileName() << endl;
-    }
-
     out.close();
-
-    // export Exported file to FES anyway
-    status = daqDA_FES_storeFile(fileExp.Data(), "EXPORTED");
-    if (status) {
-      printf("Failed to export file: %s\n", fileExp.Data());
-      return kFALSE;
-    }
-    if(cfg.GetPrintLevel()) printf("Export file: %s\n",fileExp.Data());
 
     // write last current file
     WriteLastCurrentFile(cfg,cfg.GetLastCurrentFileName());
 
     return kTRUE;
+}
+
+//__________________
+Bool_t ExportTRIGSCAL(AliDAConfig& cfg)
+{
+
+  /// Export trigger scalers file to FES
+  /// with global and regional configuration too
+
+  TString file;
+  Int_t status = 0;
+  Bool_t storeOCDB = kTRUE;
+
+  ofstream out;
+  out.open(fileExp.Data(), std::ofstream::app);
+  if (!out.good()) {
+    printf("Failed to open file in append mode: %s\n",fileExp.Data());
+    return kFALSE;
+  }
+
+  // global config
+  file = cfg.GetGlobalFileName();
+  status = 0;
+  status = daqDA_FES_storeFile(file.Data(), "GLOBAL");
+  if (status) {
+    printf("Failed to export file: %s\n",cfg.GetGlobalFileName());
+    return kFALSE;
+  }
+  if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetGlobalFileName());
+  storeOCDB = kFALSE;
+  out << cfg.GetGlobalFileName() <<  "   " << storeOCDB << endl;
+
+  // regional config
+  file = cfg.GetRegionalFileName();
+  status = 0;
+  status = daqDA_FES_storeFile(file.Data(), "REGIONAL");
+  if (status) {
+    printf("Failed to export file: %s\n",cfg.GetRegionalFileName());
+    return kFALSE;
+  }
+  if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetRegionalFileName());
+  storeOCDB = kFALSE;
+  out << cfg.GetRegionalFileName() <<  "   " << storeOCDB << endl;
+
+  // trigger scalers
+  file = cfg.GetTrigScalFileName();  
+  status = 0;
+  status = daqDA_FES_storeFile(file.Data(), "TRIGSCAL");
+  if (status) {
+    printf("Failed to export file: %s\n",cfg.GetTrigScalFileName());
+    return status;
+  }
+  if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetTrigScalFileName());
+  storeOCDB = kTRUE;
+  out << cfg.GetTrigScalFileName() <<  "   " << storeOCDB << endl;
+
+  out.close();
+
+  return kTRUE;
+
 }
 
 //__________________
@@ -856,6 +909,7 @@ Bool_t ImportFiles(AliDAConfig& cfg)
     gSystem->Setenv("DAQDALIB_PATH", "$DATE_ROOT/db");
 #endif
 
+    status = 0;
     status = daqDA_DB_getFile(cfg.GetDAConfigFileName(), cfg.GetDAConfigFileName());
     if (status) {
       printf("Failed to get DA config file from DB: %s\n",cfg.GetDAConfigFileName());
@@ -864,6 +918,7 @@ Bool_t ImportFiles(AliDAConfig& cfg)
  
     ReadDAConfig(cfg);
     
+    status = 0;
     status = daqDA_DB_getFile(cfg.GetCurrentFileName(), cfg.GetCurrentFileName());
     if (status) {
       printf("Failed to get current config file from DB: %s\n",cfg.GetCurrentFileName());
@@ -872,24 +927,28 @@ Bool_t ImportFiles(AliDAConfig& cfg)
     
     ReadFileNames(cfg);
 
+    status = 0;
     status = daqDA_DB_getFile(cfg.GetGlobalFileName(), cfg.GetGlobalFileName());
     if (status) {
       printf("Failed to get current config file from DB: %s\n", cfg.GetGlobalFileName());
       return kFALSE;
     }
 
+    status = 0;
     status = daqDA_DB_getFile(cfg.GetRegionalFileName(), cfg.GetRegionalFileName());
     if (status) {
       printf("Failed to get current config file from DB: %s\n",cfg.GetRegionalFileName());
       return kFALSE;
     }
 
+    status = 0;
     status = daqDA_DB_getFile(cfg.GetLocalMaskFileName(), cfg.GetLocalMaskFileName());
     if (status) {
       printf("Failed to get current config file from DB: %s\n",cfg.GetLocalMaskFileName());
       return kFALSE;
     }
 
+    status = 0;
     status = daqDA_DB_getFile(cfg.GetLocalLutFileName(), cfg.GetLocalLutFileName());
     if (status) {
       printf("Failed to get current config file from DB: %s\n",cfg.GetLocalLutFileName());
@@ -1049,12 +1108,14 @@ void UpdateGlobalMasks(AliDAConfig& cfg)
     // write last current file
     WriteLastCurrentFile(cfg,cfg.GetCurrentFileName());
 
+    status = 0;
     status = daqDA_DB_storeFile(cfg.GetGlobalFileName(), cfg.GetGlobalFileName());
     if (status) {
       printf("Failed to export file to DB: %s\n",cfg.GetGlobalFileName());
       return;
     }
     
+    status = 0;
     status = daqDA_DB_storeFile(cfg.GetCurrentFileName(), cfg.GetCurrentFileName());
     if (status) {
       printf("Failed to export file to DB: %s\n",cfg.GetCurrentFileName());
@@ -1257,12 +1318,14 @@ void MakePatternStore(AliDAConfig& cfg)
     // write last current file
     WriteLastCurrentFile(cfg,cfg.GetCurrentFileName());
 
+    status = 0;
     status = daqDA_DB_storeFile(cfg.GetLocalMaskFileName(), cfg.GetLocalMaskFileName());
     if (status) {
       printf("Failed to export file to DB: %s\n",cfg.GetLocalMaskFileName());
       return;
     }
     
+    status = 0;
     status = daqDA_DB_storeFile(cfg.GetCurrentFileName(), cfg.GetCurrentFileName());
     if (status) {
       printf("Failed to export file to DB: %s\n",cfg.GetCurrentFileName());
@@ -1277,10 +1340,12 @@ void MakePatternStore(AliDAConfig& cfg)
 int main(Int_t argc, Char_t **argv) 
 {
     /// main routine
-  
+
     // needed for streamer application
     gROOT->GetPluginManager()->AddHandler("TVirtualStreamerInfo", "*", "TStreamerInfo", "RIO", "TStreamerInfo()"); 
 
+    printf("MTRda version v.23102015.01 \n");
+  
     /* check that we got some arguments = list of files */
     if (argc<2) {
       printf("Wrong number of arguments\n");
@@ -1291,20 +1356,19 @@ int main(Int_t argc, Char_t **argv)
 
     Char_t inputFile[256] = "";
     inputFile[0] = 0;
-    if (argc > 1)
-      if (argv[1] != NULL)
+    if (argc > 1) {
+      if (argv[1] != NULL) {
         strncpy(inputFile, argv[1], 256);
-      else {
-        printf("MUONTRGda : No input File !\n");
+      } else {
+        printf("MTRda : No input File !\n");
         return -1;
       }
+    }
 
     // decoding the events
   
     Int_t status = 0;
     Int_t nDateEvents = 0;
-
-    void* event;
 
     // containers
     // old decoder
@@ -1373,12 +1437,14 @@ int main(Int_t argc, Char_t **argv)
     const Char_t* tableSOD[]  = {"ALL", "yes", "CAL", "all", NULL, NULL};
     monitorDeclareTable(const_cast<char**>(tableSOD));
 
+    status = 0;
     status = monitorSetDataSource(inputFile);
     if (status) {
       cerr << "ERROR : monitorSetDataSource status (hex) = " << hex << status
 	   << " " << monitorDecodeError(status) << endl;
       return -1;
     }
+    status = 0;
     status = monitorDeclareMp("MUON Trigger monitoring");
     if (status) {
       cerr << "ERROR : monitorDeclareMp status (hex) = " << hex << status
@@ -1390,11 +1456,11 @@ int main(Int_t argc, Char_t **argv)
     monitorSetNowait();
     monitorSetNoWaitNetworkTimeout(1000);
 
-    cout << "MUONTRGda : Reading data from file " << inputFile <<endl;
+    cout << "MTRda : Reading data from file " << inputFile <<endl;
 
     UInt_t nCalibEvents;
-    UInt_t elapsT;
-    UInt_t deltaT;
+    Double_t elapsT;
+    Double_t deltaT;
     UInt_t glSc[6];
     Bool_t overFlow, firstCalibEvent = kTRUE;
     const Int_t nTriChambers = AliMpConstants::NofTriggerChambers();
@@ -1428,6 +1494,7 @@ int main(Int_t argc, Char_t **argv)
     }
 
     FILE* fsc = fopen(cfg.GetTrigScalFileName(),"wb");
+    Bool_t writeScalers = kFALSE;
 
     UInt_t *globalInput = new UInt_t[4];
     Bool_t doUpdate = kFALSE;
@@ -1437,25 +1504,32 @@ int main(Int_t argc, Char_t **argv)
     // event loop
     while(1) 
     {
+
+      struct eventHeaderStruct *event(0x0);
       
       if (cfg.GetPrintLevel()) {
 	if (nEvents && nEvents % 1000 == 0) 	
 	  cout<<"Cumulated events " << nEvents << endl;
       }
       // check shutdown condition 
-      if (daqDA_checkShutdown()) 
-	  break;
+      if (daqDA_checkShutdown()) {
+	delete event;
+ 	break;
+      }
 
       // Skip Events if needed
       while (cfg.GetSkipEvents()) {
-	status = monitorGetEventDynamic(&event);
+	status = 0;
+	status = monitorGetEventDynamic((void**)&event);
 	cfg.DecSkipEvents();
       }
 
       // starts reading
-      status = monitorGetEventDynamic(&event);
+      status = 0;
+      status = monitorGetEventDynamic((void**)&event);
       if (status < 0)  {
-	cout << "MUONTRGda : EOF found" << endl;
+	cout << "MTRda : EOF found" << endl;
+	delete event;
 	break;
       }
 
@@ -1483,6 +1557,7 @@ int main(Int_t argc, Char_t **argv)
 	  doUpdate = kTRUE;
 	  cfg.IncDeadcEvent();
 	} else {
+	  delete event;
 	  continue;
 	}
       }
@@ -1532,7 +1607,7 @@ int main(Int_t argc, Char_t **argv)
 		firstCalibEvent = kFALSE;
 	      } else {
 		elapsT = darcHeaderHP->GetGlobalClock()/40e6; // [s]
-		if (elapsT > 50) {
+		if (elapsT > 50.) {
 		  //printf("Possible overflow: %x \n",darcHeaderHP->GetGlobalClock());
 		  overFlow = kTRUE;
 		} else {
@@ -1589,7 +1664,7 @@ int main(Int_t argc, Char_t **argv)
 			
 		      } // end strip loop
 		    } // end skip copy cards
-		  } // env check overflow
+		  } // end check overflow
 		} // end scalers calib event
 	      } // end valid local
 	    } // end loc loop
@@ -1627,19 +1702,20 @@ int main(Int_t argc, Char_t **argv)
       } // NextDDL
 
       if (cfg.SaveScalers()) {
-	if (!overFlow && (deltaT > cfg.GetScalerRecTime())) {
-	  //printf("Write scalers after %d events\n",nEvents);
+	if (!overFlow && (deltaT > (Double_t)cfg.GetScalerRecTime())) {
+	  printf("MTRda: write scalers after %d events\n",nEvents);
+	  writeScalers = kTRUE;
 	  Int_t ibw = 0;
 	  // global
 	  buffer[ibw++] = (nCalibEvents >> 24) & 0xff;
 	  buffer[ibw++] = (nCalibEvents >> 16) & 0xff;
 	  buffer[ibw++] = (nCalibEvents >>  8) & 0xff;
 	  buffer[ibw++] = (nCalibEvents >>  0) & 0xff;
-	  buffer[ibw++] = (deltaT >> 24) & 0xff;
-	  buffer[ibw++] = (deltaT >> 16) & 0xff;
-	  buffer[ibw++] = (deltaT >>  8) & 0xff;
-	  buffer[ibw++] = (deltaT >>  0) & 0xff;
-	  //printf("nev %u time %u \n",nCalibEvents,deltaT);
+	  buffer[ibw++] = ((UInt_t)(deltaT+0.5) >> 24) & 0xff;
+	  buffer[ibw++] = ((UInt_t)(deltaT+0.5) >> 16) & 0xff;
+	  buffer[ibw++] = ((UInt_t)(deltaT+0.5) >>  8) & 0xff;
+	  buffer[ibw++] = ((UInt_t)(deltaT+0.5) >>  0) & 0xff;
+	  printf("MTRda: calib events %u time %f \n",nCalibEvents,deltaT);
 	  for (Int_t bit = 0; bit < 6; bit++) {
 	    buffer[ibw++] = (glSc[bit] >> 24) & 0xff;
 	    buffer[ibw++] = (glSc[bit] >> 16) & 0xff;
@@ -1673,8 +1749,8 @@ int main(Int_t argc, Char_t **argv)
 	      }
 	    }
 	  }
-	  //printf("Write to buffer %d bytes.\n",ibw);
-	  fwrite(&buffer,ibw,1,fsc);
+	  printf("MTRda: write to buffer %d bytes.\n",ibw);
+	  fwrite(buffer,ibw,1,fsc);
 	  // reset
 	  deltaT = 0.;
 	  nCalibEvents = 0;
@@ -1693,6 +1769,8 @@ int main(Int_t argc, Char_t **argv)
 	}
       } // end write scalers
 
+      delete event;
+
       delete rawReader;
       delete rawStream;
 
@@ -1709,42 +1787,50 @@ int main(Int_t argc, Char_t **argv)
     fclose(fsc);
 
     if (cfg.SaveScalers()) {
-      //printf("Store scalers to FES, DATE_RUN_NUMBER %s \n",gSystem->Getenv("DATE_RUN_NUMBER"));
-      Int_t stat = 0;
-      TString file = cfg.GetTrigScalFileName();  
-      stat = daqDA_FES_storeFile(file.Data(), "TRIGSCAL");
-      if (stat) {
-	printf("Failed to export file: %s\n",cfg.GetTrigScalFileName());
-	return stat;
+      if (writeScalers) {
+	//printf("Store scalers to FES, DATE_RUN_NUMBER %s \n",gSystem->Getenv("DATE_RUN_NUMBER"));
+	if(!ExportTRIGSCAL(cfg)) {
+	  printf("ExportTRIGSCAL failed\n");
+	}
+      } else {
+	printf("Run too short ( < %d sec ), no scalers calculated! \n",cfg.GetScalerRecTime());
       }
-      if(cfg.GetPrintLevel()) printf("Export file: %s\n",cfg.GetTrigScalFileName());
-   }
+    }
+    
+    // export Exported file to FES
+    status = 0;
+    status = daqDA_FES_storeFile(fileExp.Data(), "EXPORTED");
+    if (status) {
+      printf("Failed to export file: %s\n", fileExp.Data());
+      return kFALSE;
+    }
+    if(cfg.GetPrintLevel()) printf("Export file: %s\n",fileExp.Data());
 
     timers.Stop();
 
-    cout << "MUONTRGda: DA enable: " << cfg.GetDAFlag() << endl;
-    cout << "MUONTRGda: Run number: " << runNumber << endl;
-    cout << "MUONTRGda: Nb of DATE events: " << nDateEvents << endl;
-    cout << "MUONTRGda: Nb of events used: " << nEvents << endl;
-    cout << "MUONTRGda: Nb of events used (noise): " << cfg.GetEventsN() << endl;
-    cout << "MUONTRGda: Nb of events used (deadc): " << cfg.GetEventsD() << endl;
-    cout << "MUONTRGda: Minumum nr of events for rate calculation: " << cfg.GetMinEvents() << endl;
-    cout << "MUONTRGda: Maximum nr of analyzed events: " << cfg.GetMaxEvents() << endl;
-    cout << "MUONTRGda: Skip events from start: " << cfg.GetSkipEvents() << endl;
-    cout << "MUONTRGda: Threshold for global noisy inputs: " << 100*cfg.GetThrN() << "%" << endl;
-    cout << "MUONTRGda: Threshold for global dead inputs: " << 100*cfg.GetThrD() << "%" << endl;
-    cout << "MUONTRGda: Threshold for local noisy inputs: " << 100*cfg.GetThrLocN() << "%" << endl;
-    cout << "MUONTRGda: Threshold for local dead inputs: " << 100*cfg.GetThrLocD() << "%" << endl;
-    cout << "MUONTRGda: Print level: " << cfg.GetPrintLevel() << endl;
-    cout << "MUONTRGda: Show decoder warnings: " << cfg.WithWarnings() << endl;
-    cout << "MUONTRGda: Use the fast decoder: " << cfg.UseFastDecoder() << endl;
-    cout << "MUONTRGda: DA mode (1=GLOBAL, 2=GLOBAL+LOCAL): " << cfg.GetDAMode() << endl;
-    cout << "MUONTRGda: Save scalers: " << cfg.SaveScalers() << endl;
+    cout << "MTRda: DA enable: " << cfg.GetDAFlag() << endl;
+    cout << "MTRda: Run number: " << runNumber << endl;
+    cout << "MTRda: Nb of DATE events: " << nDateEvents << endl;
+    cout << "MTRda: Nb of events used: " << nEvents << endl;
+    cout << "MTRda: Nb of events used (noise): " << cfg.GetEventsN() << endl;
+    cout << "MTRda: Nb of events used (deadc): " << cfg.GetEventsD() << endl;
+    cout << "MTRda: Minumum nr of events for rate calculation: " << cfg.GetMinEvents() << endl;
+    cout << "MTRda: Maximum nr of analyzed events: " << cfg.GetMaxEvents() << endl;
+    cout << "MTRda: Skip events from start: " << cfg.GetSkipEvents() << endl;
+    cout << "MTRda: Threshold for global noisy inputs: " << 100*cfg.GetThrN() << "%" << endl;
+    cout << "MTRda: Threshold for global dead inputs: " << 100*cfg.GetThrD() << "%" << endl;
+    cout << "MTRda: Threshold for local noisy inputs: " << 100*cfg.GetThrLocN() << "%" << endl;
+    cout << "MTRda: Threshold for local dead inputs: " << 100*cfg.GetThrLocD() << "%" << endl;
+    cout << "MTRda: Print level: " << cfg.GetPrintLevel() << endl;
+    cout << "MTRda: Show decoder warnings: " << cfg.WithWarnings() << endl;
+    cout << "MTRda: Use the fast decoder: " << cfg.UseFastDecoder() << endl;
+    cout << "MTRda: DA mode (1=GLOBAL, 2=GLOBAL+LOCAL): " << cfg.GetDAMode() << endl;
+    cout << "MTRda: Save scalers: " << cfg.SaveScalers() << endl;
     if (cfg.SaveScalers()) {
-      cout << "MUONTRGda: Time to record scalers: " << cfg.GetScalerRecTime() << " seconds" << endl;
+      cout << "MTRda: Time to record scalers: " << cfg.GetScalerRecTime() << " seconds" << endl;
     }
 
-    printf("MUONTRGda: Execution time : R:%7.2fs C:%7.2fs\n", timers.RealTime(), timers.CpuTime());
+    printf("MTRda: Execution time : R:%7.2fs C:%7.2fs\n", timers.RealTime(), timers.CpuTime());
 
     return status;
 

@@ -15,6 +15,7 @@
 
 /* $Id: AliADCalibData.cxx,                                            */
 #include <Riostream.h>
+#include <bitset>
 
 #include <TMath.h>
 #include <TObjString.h>
@@ -28,6 +29,7 @@
 #include "AliADDataDCS.h"
 #include "AliADCalibData.h"
 #include "AliADConst.h"
+#include "AliADLogicalSignal.h"
 #include "AliLog.h"
 
 ClassImp(AliADCalibData)
@@ -38,6 +40,8 @@ AliADCalibData::AliADCalibData():
   fLightYields(NULL),
   fPMGainsA(NULL),
   fPMGainsB(NULL),
+  fThrCalibA(NULL),
+  fThrCalibB(NULL),
   fBBAThreshold(0),
   fBBCThreshold(0) ,  
   fBGAThreshold(0) ,  
@@ -102,6 +106,8 @@ AliADCalibData::AliADCalibData(const char* name) :
   fLightYields(NULL),
   fPMGainsA(NULL),
   fPMGainsB(NULL),
+  fThrCalibA(NULL),
+  fThrCalibB(NULL),
   fBBAThreshold(0),
   fBBCThreshold(0) ,  
   fBGAThreshold(0) ,  
@@ -163,7 +169,9 @@ AliADCalibData::AliADCalibData(const AliADCalibData& calibda) :
   TNamed(calibda),
   fLightYields(NULL),
   fPMGainsA(NULL),
-  fPMGainsB(NULL)
+  fPMGainsB(NULL),
+  fThrCalibA(NULL),
+  fThrCalibB(NULL)
 {
 // copy constructor
 
@@ -241,6 +249,10 @@ AliADCalibData::~AliADCalibData()
     delete [] fPMGainsA;
   if (fPMGainsB)
     delete [] fPMGainsB;
+    if (fThrCalibA)
+    delete [] fThrCalibA;
+  if (fThrCalibB)
+    delete [] fThrCalibB;
 }
 
 //________________________________________________________________
@@ -306,34 +318,52 @@ Float_t AliADCalibData::GetGain(Int_t channel)
   Float_t gain = 0;
   if (hv>0)
     //gain = TMath::Exp(fPMGainsA[channel]+fPMGainsB[channel]*TMath::Log(hv));
-    gain = TMath::Power(hv/fPMGainsA[channel],fPMGainsB[channel])*kChargePerADC/kNPhotonsPerMIP;
+    gain = TMath::Power(hv/fPMGainsA[channel],fPMGainsB[channel])*kADChargePerADC/kNPhotonsPerMIP;
   return gain;
+}
+//________________________________________________________________
+Float_t AliADCalibData::GetADCperMIP(Int_t channel)
+{
+  // Computes the MIP position wrt gain curve and HV
+  // Argument passed is the PM number (aliroot numbering)
+  if (!fPMGainsA) InitPMGains();
+
+  // High Voltage retrieval from Calibration Data Base:  
+  Float_t hv = fMeanHV[channel];
+  Float_t ADCperMIP = 0;
+  if (hv>0)
+    ADCperMIP = TMath::Power(hv/fPMGainsA[channel],fPMGainsB[channel]);
+  return ADCperMIP;
+}
+//________________________________________________________________
+void  AliADCalibData::InitCalibThresholds()
+{
+  // Initialize the PM gain factors
+  // Read from a separate OCDB entry
+  if (fThrCalibA) return;
+
+  AliCDBEntry *entry = AliCDBManager::Instance()->Get("AD/Calib/Thresholds");
+  if (!entry) AliFatal("AD Thresholds are not found in OCDB !");
+  TH2F *thrCalib = (TH2F*)entry->GetObject();
+
+  fThrCalibA = new Float_t[16];
+  fThrCalibB = new Float_t[16];
+  for(Int_t i = 0 ; i < 16; ++i) {
+    fThrCalibA[i] = thrCalib->GetBinContent(i+1,1);
+    fThrCalibB[i] = thrCalib->GetBinContent(i+1,2);
+  }
 }
 
 //________________________________________________________________
-Float_t AliADCalibData::GetCalibDiscriThr(Int_t channel, Bool_t scaled)
+Float_t AliADCalibData::GetCalibDiscriThr(Int_t channel)
 {
   // The method returns actual TDC discri threshold
   // extracted from the data.
-  //
-  // In case scaled flag is set the threshold is scaled
-  // so that to get 4.0 for a FEE threshold of 4.0.
-  // In this way we avoid a change in the slewing correction
-  // for the entire 2010 p-p data.
-  //
-  // The method is to be moved to OCDB object.
-
+  if (!fThrCalibA) InitCalibThresholds();
+  
   Float_t thr = GetDiscriThr(channel);
 
-  Float_t calThr = 0;
-  if (thr <= 1.) 
-    calThr = 3.1;
-  else if (thr >= 2.)
-    calThr = (3.1+1.15*thr-1.7);
-  else
-    calThr = (3.1-0.3*thr+0.3*thr*thr);
-
-  if (scaled) calThr *= 4./(3.1+1.15*4.-1.7);
+  Float_t calThr = fThrCalibA[channel]*thr + fThrCalibB[channel];
 
   return calThr;
 }
@@ -346,10 +376,9 @@ void AliADCalibData::FillDCSData(AliADDataDCS * data){
 	
 	while ((  aliasName = (TObjString*) iter.Next() ))  {
 		AliDCSValue* aValue = (AliDCSValue*) params->GetValue(aliasName);
-		Int_t val;
+		UInt_t val;
 		if(aValue) {
-			val = aValue->GetInt();
-			AliInfo(Form("%s : %d",aliasName->String().Data(), val));
+			val = aValue->GetUInt();
 			SetParameter(aliasName->String(),val);
 		}
 	}	
@@ -486,10 +515,7 @@ void AliADCalibData::SetDeadMap(const Bool_t* deadMap)
 void AliADCalibData::SetTimeOffset(Float_t val, Int_t board, Int_t channel)
 {
   Int_t ch = AliADCalibData::GetOfflineChannelNumber(board,channel);
-  if(ch >= 0){
-    fTimeOffset[ch]=val;
-    AliInfo(Form("Time offset for channel %d set to %f",ch,fTimeOffset[ch]));
-  }
+  if(ch >= 0) fTimeOffset[ch]=val;
   else
     AliError("Board/Channel numbers are not valid");
 }
@@ -544,7 +570,6 @@ void AliADCalibData::SetTimeResolution(UShort_t resol, Int_t board)
 				fTimeResolution[board] = 12.5;
 				break;
 		}
-		AliInfo(Form("Time Resolution of board %d set to %f",board,fTimeResolution[board]));
 	} else AliError(Form("Board %d is not valid",board));
 }
 //________________________________________________________________
@@ -604,7 +629,6 @@ void AliADCalibData::SetWidthResolution(UShort_t resol, Int_t board)
 				break;
 				
 		}
-		AliInfo(Form("Width Resolution of board %d set to %f",board,fWidthResolution[board]));
 	}else AliError(Form("Board %d is not valid",board));
 }
 
@@ -622,10 +646,7 @@ void AliADCalibData::SetMatchWindow(UInt_t window, Int_t board)
 {
   // Set Match window of the HPTDC
   // The units are 25ns
-  if((board>=0) && (board<kNCIUBoards)){
-    fMatchWindow[board] = window;
-    AliInfo(Form("Match window of board %d set to %d",board,fMatchWindow[board]));
-  }
+  if((board>=0) && (board<kNCIUBoards)) fMatchWindow[board] = window;
   else
     AliError(Form("Board %d is not valid",board));
 }
@@ -644,10 +665,7 @@ void  AliADCalibData::SetSearchWindow(UInt_t window, Int_t board)
 {
   // Set Search window of the HPTDC
   // The units are 25ns
-  if((board>=0) && (board<kNCIUBoards)){
-    fSearchWindow[board] = window;
-    AliInfo(Form("Search window of board %d set to %d",board,fSearchWindow[board]));
-  }
+  if((board>=0) && (board<kNCIUBoards)) fSearchWindow[board] = window;
   else
     AliError(Form("Board %d is not valid",board));
 }
@@ -666,10 +684,7 @@ void AliADCalibData::SetTriggerCountOffset(UInt_t offset, Int_t board)
 {
   // Set trigger-count offsets of the HPTDC
   // The units are 25ns
-  if((board>=0) && (board<kNCIUBoards)){
-    fTriggerCountOffset[board] = offset;
-    AliInfo(Form("Trigger-count offset of board %d set to %d",board,fTriggerCountOffset[board]));
-  }
+  if((board>=0) && (board<kNCIUBoards)) fTriggerCountOffset[board] = offset;
   else
     AliError(Form("Board %d is not valid",board));
 }
@@ -688,10 +703,7 @@ void AliADCalibData::SetRollOver(UInt_t offset, Int_t board)
 {
   // Set Roll-over of the HPTDC
   // The units are 25ns
-  if((board>=0) && (board<kNCIUBoards)){
-    fRollOver[board] = offset;
-    AliInfo(Form("Roll-over offset of board %d set to %d",board,fRollOver[board]));
-  }
+  if((board>=0) && (board<kNCIUBoards)) fRollOver[board] = offset;
   else
     AliError(Form("Board %d is not valid",board));
 }
@@ -702,15 +714,7 @@ void AliADCalibData::SetDiscriThr(Float_t thr, Int_t board, Int_t channel)
   // Set the TDC discriminator
   // threshold values expressed in units of ADC
   Int_t ch = AliADCalibData::GetOfflineChannelNumber(board,channel);
-  if(ch >= 0){
-    if (thr > 0) {
-      fDiscriThr[ch]=thr;
-      AliInfo(Form("Discriminator threshold for channel %d set to %f",ch,fDiscriThr[ch]));
-    }
-    else {
-      AliWarning(Form("Ignore wrong threshold value (%f) for channel %d !",thr,ch));
-    }
-  }
+  if(ch >= 0) fDiscriThr[ch]=thr;
   else
     AliError("Board/Channel numbers are not valid");
 }
@@ -1114,7 +1118,7 @@ Int_t AliADCalibData::GetFEEChannelNumber(Int_t channel)
 {
   // Get FEE channel number
   // from offline channel index
-  if (channel >= 0 && channel < 16) return ((kOfflineChannel[channel] % 8));
+  if (channel >= 0 && channel < 16) return ((kOnlineChannel[channel] % 8));
 
   AliErrorClass(Form("Wrong channel index: %d",channel));
   return -1;
@@ -1124,7 +1128,7 @@ Int_t AliADCalibData::GetBoardNumber(Int_t channel)
 {
   // Get FEE board number
   // from offline channel index
-  Int_t OnChannel = kOfflineChannel[channel];
+  Int_t OnChannel = kOnlineChannel[channel];
   if (OnChannel >= 0 && OnChannel < 8) return (0);
   if (OnChannel >= 8 && OnChannel < 16) return (1);
 
@@ -1178,19 +1182,35 @@ for (Int_t CIUNumber = 0; CIUNumber < 2; ++CIUNumber) {
     }
 if(!gatesOpen){
  for(Int_t CIUNumber = 0; CIUNumber < 2; ++CIUNumber) {
-    printf("CIU= %d Clk1WinBB= %d DelayClk1WinBB = %d Clk2WinBB = %d DelayClk2WinBB = %d Clk1WinBG= %d DelayClk1WinBG = %d Clk2WinBG = %d DelayClk2WinBG = %d\n",
-	   CIUNumber,
-	   GetClk1Win1(CIUNumber),
-	   GetDelayClk1Win1(CIUNumber),
-	   GetClk2Win1(CIUNumber),
-	   GetDelayClk2Win1(CIUNumber),
-	   GetClk1Win2(CIUNumber),
-	   GetDelayClk1Win2(CIUNumber),
-	   GetClk2Win2(CIUNumber),
-	   GetDelayClk2Win2(CIUNumber));	  
+  	std::cout <<"CIU = "<<CIUNumber<<std::endl;
+	std::cout << "P1 BB " << std::bitset<5>(GetClk1Win1(CIUNumber))<<  "   P1 BG " << std::bitset<5>(GetClk1Win2(CIUNumber))<< std::endl;
+	std::cout << "P2 BB " << std::bitset<5>(GetClk2Win1(CIUNumber))<<  "   P2 BG " << std::bitset<5>(GetClk2Win2(CIUNumber))<< std::endl;
+	std::cout << "  L   " << std::bitset<5>(GetLatchWin1(CIUNumber))<< "     L   " << std::bitset<5>(GetLatchWin2(CIUNumber))<< std::endl;
+	std::cout << "  R   " << std::bitset<5>(GetResetWin1(CIUNumber))<< "     R   " << std::bitset<5>(GetResetWin2(CIUNumber))<< std::endl;
+	printf("\n");
+	std::cout << "BB Delay1 = " <<GetDelayClk1Win1(CIUNumber)<< "  BG Delay1 = " <<GetDelayClk1Win2(CIUNumber)<<std::endl;
+	std::cout << "BB Delay2 = " <<GetDelayClk2Win1(CIUNumber)<< "  BG Delay2 = " <<GetDelayClk2Win2(CIUNumber)<<std::endl;
+	printf("\n");
+  
+  	AliADLogicalSignal clk1BB(GetClk1Win1(CIUNumber),GetDelayClk1Win1(CIUNumber),GetLatchWin1(CIUNumber),GetResetWin1(CIUNumber));
+	AliADLogicalSignal clk2BB(GetClk2Win1(CIUNumber),GetDelayClk2Win1(CIUNumber),GetLatchWin1(CIUNumber),GetResetWin1(CIUNumber));
+	AliADLogicalSignal *fBBGate = new AliADLogicalSignal(clk1BB & clk2BB);
+	
+	std::cout<<"BB window = ["<<fBBGate->GetStartTime()<<" , "<<fBBGate->GetStopTime()<<"]"<<std::endl;
+	
+	AliADLogicalSignal clk1BG(GetClk1Win2(CIUNumber),GetDelayClk1Win2(CIUNumber),GetLatchWin2(CIUNumber),GetResetWin2(CIUNumber));
+	clk1BG.SetStartTime(clk1BG.GetStartTime()+2);
+	clk1BG.SetStopTime(clk1BG.GetStopTime()+2);
+	AliADLogicalSignal clk2BG(GetClk2Win2(CIUNumber),GetDelayClk2Win2(CIUNumber),GetLatchWin2(CIUNumber),GetResetWin2(CIUNumber));
+	clk2BG.SetStartTime(clk2BG.GetStartTime()-2);
+	clk2BG.SetStopTime(clk2BG.GetStopTime()-2);
+	AliADLogicalSignal *fBGGate = new AliADLogicalSignal(clk1BG & clk2BG);
+	
+	std::cout<<"BG window = ["<<fBGGate->GetStartTime()<<" , "<<fBGGate->GetStopTime()<<"]"<<std::endl;
+	printf("\n");	  
   }
 }
-else printf("Test windows 25ns\n");
+else printf("Test window 25ns\n");
 
 printf("\n");  
 printf("======================================================\n");
@@ -1199,13 +1219,15 @@ printf("======================================================\n");
 printf("\n"); 
  
   for(Int_t pmNumber = 0; pmNumber < 16; ++pmNumber) {
-    printf("ChOff = %d, ChOn = %d, HV = %.1f, Dead = %s, Threshold = %.1f, DelayHit = %.2f\n",
+    printf("ChOff = %d, ChOn = %d, HV = %.1f, MIP = %.1f ADC, Dead = %s, DelayHit = %.2f, Thr_DCS = %.1f, Thr_Calib = %.1f\n",
 	   pmNumber,
-	   kOfflineChannel[pmNumber],
+	   kOnlineChannel[pmNumber],
 	   GetMeanHV(pmNumber),
+	   GetADCperMIP(pmNumber),
 	   IsChannelDead(pmNumber)?"yes":"no",
+	   GetTimeOffset(pmNumber),
 	   GetDiscriThr(pmNumber),
-	   GetTimeOffset(pmNumber)
+	   GetCalibDiscriThr(pmNumber)
 	   );
   }
   
@@ -1217,7 +1239,100 @@ printf("\n");
 
     for(Int_t pmNumber = 0; pmNumber < 16; ++pmNumber) {
     	for(Int_t integrator = 0; integrator < 2; ++integrator){
-    		if(integrator == 0)printf("ChOff = %d, ChOn = %d, Int = %d, Pedestal = %.3f, Width = %3f,", pmNumber, kOfflineChannel[pmNumber],integrator, GetPedestal(pmNumber+16*integrator),GetSigma(pmNumber+16*integrator));
+    		if(integrator == 0)printf("ChOff = %d, ChOn = %d, Int = %d, Pedestal = %.3f, Width = %3f,", pmNumber, kOnlineChannel[pmNumber],integrator, GetPedestal(pmNumber+16*integrator),GetSigma(pmNumber+16*integrator));
+		else printf(" Int = %d, Pedestal = %.3f, Width = %3f\n", integrator, GetPedestal(pmNumber+16*integrator),GetSigma(pmNumber+16*integrator));	
+			}
+  }
+
+
+
+}
+
+//________________________________________________________________
+void AliADCalibData::PrintConfigShuttle()
+{
+
+printf("\n");  
+printf("======================================================\n");
+printf("=======================CCIU config====================\n");
+printf("======================================================\n");
+printf("\n"); 
+ 
+printf("Selected triggers = ");
+for(Int_t i = 0; i<5 ; i++) printf("%d ",GetTriggerSelected(i));
+printf("\n");
+
+printf("BBA thr = %d, BBC thr = %d\n",GetBBAThreshold(),GetBBCThreshold());
+printf("BGA thr = %d, BGC thr = %d\n",GetBGAThreshold(),GetBGCThreshold());
+printf("BBAforBG thr = %d, BBCforBG thr = %d\n",GetBBAForBGThreshold(),GetBBCForBGThreshold());
+
+  
+printf("\n"); 
+printf("======================================================\n");
+printf("=======================CIUs config====================\n");
+printf("======================================================\n");
+printf("\n");
+ 
+ for(Int_t CIUNumber = 0; CIUNumber < 2; ++CIUNumber) {
+    printf("CIU= %d, Time Res= %f, Width Res= %f, RollOver= %d, TrigCountOffset= %d, SearchWin= %d, MatchWin= %d\n",
+	   CIUNumber,
+	   GetTimeResolution(CIUNumber),
+	   GetWidthResolution(CIUNumber),
+	   GetRollOver(CIUNumber),
+	   GetTriggerCountOffset(CIUNumber),
+	   GetSearchWindow(CIUNumber),
+	   GetMatchWindow(CIUNumber));
+	   
+	  
+  }
+
+printf("\n");
+printf("=======================Trigger windows================\n"); 
+printf("\n");
+Bool_t gatesOpen = kTRUE;
+for (Int_t CIUNumber = 0; CIUNumber < 2; ++CIUNumber) {
+    if (GetDelayClk1Win1(CIUNumber)!=0 || GetDelayClk2Win1(CIUNumber)!=0 || GetDelayClk1Win2(CIUNumber)!=0 || GetDelayClk2Win2(CIUNumber)!=0) gatesOpen = kFALSE;
+    }
+if(!gatesOpen){
+ for(Int_t CIUNumber = 0; CIUNumber < 2; ++CIUNumber) {
+  	std::cout <<"CIU = "<<CIUNumber<<std::endl;
+	std::cout << "P1 BB " << std::bitset<5>(GetClk1Win1(CIUNumber))<<  "   P1 BG " << std::bitset<5>(GetClk1Win2(CIUNumber))<< std::endl;
+	std::cout << "P2 BB " << std::bitset<5>(GetClk2Win1(CIUNumber))<<  "   P2 BG " << std::bitset<5>(GetClk2Win2(CIUNumber))<< std::endl;
+	std::cout << "  L   " << std::bitset<5>(GetLatchWin1(CIUNumber))<< "     L   " << std::bitset<5>(GetLatchWin2(CIUNumber))<< std::endl;
+	std::cout << "  R   " << std::bitset<5>(GetResetWin1(CIUNumber))<< "     R   " << std::bitset<5>(GetResetWin2(CIUNumber))<< std::endl;
+	printf("\n");
+	std::cout << "BB Delay1 = " <<GetDelayClk1Win1(CIUNumber)<< "  BG Delay1 = " <<GetDelayClk1Win2(CIUNumber)<<std::endl;
+	std::cout << "BB Delay2 = " <<GetDelayClk2Win1(CIUNumber)<< "  BG Delay2 = " <<GetDelayClk2Win2(CIUNumber)<<std::endl;  
+  }
+}
+else printf("Test window 25ns\n");
+
+printf("\n");  
+printf("======================================================\n");
+printf("====================Channels config===================\n");
+printf("======================================================\n");
+printf("\n"); 
+ 
+  for(Int_t pmNumber = 0; pmNumber < 16; ++pmNumber) {
+    printf("ChOff = %d, ChOn = %d, HV = %.1f, Dead = %s, DelayHit = %.2f, Thr_DCS = %.1f\n",
+	   pmNumber,
+	   kOnlineChannel[pmNumber],
+	   GetMeanHV(pmNumber),
+	   IsChannelDead(pmNumber)?"yes":"no",
+	   GetTimeOffset(pmNumber),
+	   GetDiscriThr(pmNumber)
+	   );
+  }
+  
+printf("\n");
+printf("======================================================\n");
+printf("======================= Pedestal =====================\n");
+printf("======================================================\n");
+printf("\n");
+
+    for(Int_t pmNumber = 0; pmNumber < 16; ++pmNumber) {
+    	for(Int_t integrator = 0; integrator < 2; ++integrator){
+    		if(integrator == 0)printf("ChOff = %d, ChOn = %d, Int = %d, Pedestal = %.3f, Width = %3f,", pmNumber, kOnlineChannel[pmNumber],integrator, GetPedestal(pmNumber+16*integrator),GetSigma(pmNumber+16*integrator));
 		else printf(" Int = %d, Pedestal = %.3f, Width = %3f\n", integrator, GetPedestal(pmNumber+16*integrator),GetSigma(pmNumber+16*integrator));	
 			}
   }

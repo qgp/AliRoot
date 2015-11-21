@@ -21,6 +21,7 @@ class AliADCalibData: public TNamed {
   virtual ~AliADCalibData();
   void Reset();
   void PrintConfig();
+  void PrintConfigShuttle();
   void FillDCSData(AliADDataDCS * data);
 
   Float_t  GetPedestal(Int_t channel)   const {return fPedestal[channel];}
@@ -39,6 +40,7 @@ class AliADCalibData: public TNamed {
   Bool_t*  GetDeadMap()   const {return (bool*)fDeadChannel;} 
    
   Float_t  GetGain(Int_t channel);
+  Float_t  GetADCperMIP(Int_t channel);
   Float_t  GetTimeOffset(Int_t channel)	const {return fTimeOffset[channel];}
   Float_t* GetTimeOffset()   const {return (float*)fTimeOffset;}
   Float_t  GetTimeGain(Int_t channel)	const {return fTimeGain[channel];}
@@ -61,7 +63,7 @@ class AliADCalibData: public TNamed {
 
   Float_t  GetDiscriThr(Int_t channel)	const {return fDiscriThr[channel];}
   Float_t* GetDiscriThr()   const {return (Float_t*)fDiscriThr;}
-  Float_t  GetCalibDiscriThr(Int_t channel, Bool_t scaled);
+  Float_t  GetCalibDiscriThr(Int_t channel);
   
   UShort_t * GetClk1Win1() const {return (UShort_t*)fClk1Win1;};
   UShort_t GetClk1Win1(Int_t board ) const {return ((board>=0 && board<kNCIUBoards)?fClk1Win1[board]:0);};
@@ -231,6 +233,7 @@ class AliADCalibData: public TNamed {
  protected:
   void     InitLightYields();
   void     InitPMGains();
+  void     InitCalibThresholds();
   Bool_t   IsClkValid(UShort_t clock) const;
 
   Float_t  fPedestal[32];     // Mean pedestal values - used offline
@@ -287,8 +290,10 @@ class AliADCalibData: public TNamed {
   Float_t *fLightYields;       //! Light Yields channel by channel (read from separate OCDB entry)
   Float_t *fPMGainsA;          //! PM gain factors channel by channel (read from separate OCDB entry)
   Float_t *fPMGainsB;          //! PM gain factors channel by channel (read from separate OCDB entry)
+  Float_t *fThrCalibA;	       //! Thereshold calibration parameters channel by channel (read from separate OCDB entry)
+  Float_t *fThrCalibB;	       //! Thereshold calibration parameters channel by channel (read from separate OCDB entry)
 
-  ClassDef(AliADCalibData,1)    // AD Calibration data
+  ClassDef(AliADCalibData,2)    // AD Calibration data
 };
 
 #endif

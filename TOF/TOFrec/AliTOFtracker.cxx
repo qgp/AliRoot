@@ -510,9 +510,12 @@ void AliTOFtracker::MatchTracks( Int_t mLastStep){
     AliInfo(Form("Matching window=%f, since low multiplicity event (fNseedsTOF=%d)",
 		 dCut, fNseedsTOF));
   }
-  if(mLastStep == 2)
-    dCut=10.;
+  if(mLastStep == 2) dCut=10.;
 
+  if (AliTOFReconstructor::GetExtraTolerance()>0) {
+    dCut += AliTOFReconstructor::GetExtraTolerance();
+    AliInfoF("Extra %.2f tolerance on distance is added: dCut=%.2f",AliTOFReconstructor::GetExtraTolerance(),dCut);
+  }
 
   Double_t maxChi2=fkRecoParam->GetMaxChi2TRD();
   Bool_t timeWalkCorr    = fkRecoParam->GetTimeWalkCorr();
@@ -1128,6 +1131,9 @@ Int_t AliTOFtracker::LoadClusters(TTree *cTree) {
   for (Int_t i=0; i<nc; i++) {
     AliTOFcluster *c=(AliTOFcluster*)clusters->UncheckedAt(i);
 //PH    fClusters[i]=new AliTOFcluster(*c); fN++;
+
+    if (!c->Misalign()) AliWarning("Can't misalign this cluster !"); // RS
+
     fClusters[i]=c; fN++;
     c->SetESDID(-1);
   // Fill Digits QA histos

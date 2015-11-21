@@ -28,6 +28,7 @@
 #include "AliESDRun.h"
 #include "AliESDHeader.h"
 #include "AliESDTZERO.h"
+#include "AliESDFIT.h"
 #include "AliESDZDC.h"
 #include "AliESDACORDE.h"
 #include "AliESDAD.h"
@@ -120,6 +121,7 @@ public:
 		       kTOFclusters,
 		       kTOFhit,
 		       kTOFmatch,
+		       kESDFIT,
 		       kESDListN
   };
 
@@ -241,6 +243,10 @@ public:
   void SetFMDData(AliESDFMD * obj);
   AliESDFMD *GetFMDData() const { return fESDFMD; }
 
+  // FIT methods
+  const AliESDFIT*    GetESDFIT() const {return fESDFIT;}
+  void SetFITData(const AliESDFIT * obj);
+
 
   // TZERO CKB: put this in the header?
   const AliESDTZERO*    GetESDTZERO() const {return fESDTZERO;}
@@ -266,7 +272,11 @@ public:
   // VZERO 
   AliESDVZERO *GetVZEROData() const { return fESDVZERO; }
   void SetVZEROData(const AliESDVZERO * obj);
-	
+  Int_t GetVZEROData( AliESDVZERO &v ) const { 
+    if( fESDVZERO ){ v=*fESDVZERO; return 0; }
+    return -1;
+  }
+
  // ACORDE
   AliESDACORDE *GetACORDEData() const { return fESDACORDE;}
   void SetACORDEData(AliESDACORDE * obj);
@@ -547,6 +557,9 @@ public:
   void SetStdNames();
   void CopyFromOldESD();
   TList* GetList() const {return fESDObjects;}
+
+  //part of the hlt interface
+  void SetFriendEvent( AliVfriendEvent *f ) { AddObject(f); SetESDfriend(dynamic_cast<AliESDfriend*>(f));}
   
     //Following needed only for mixed event
   virtual Int_t        EventIndex(Int_t)       const {return 0;}
@@ -563,6 +576,8 @@ public:
   void SetDAQAttributes(UInt_t attributes) {fDAQAttributes = attributes;}
   UInt_t GetDAQDetectorPattern() const {return fDAQDetectorPattern;}
   UInt_t GetDAQAttributes() const {return fDAQAttributes;}
+
+  Bool_t IsIncompleteDAQ();
 
   virtual AliVEvent::EDataLayoutType GetDataLayoutType() const;
 
@@ -581,6 +596,7 @@ protected:
   AliESDFMD       *fESDFMD;           //! FMD object containing rough multiplicity
   AliESDVZERO     *fESDVZERO;         //! VZERO object containing rough multiplicity
   AliESDTZERO     *fESDTZERO;         //! TZEROObject
+  AliESDFIT       *fESDFIT;           //! FITObject
   AliESDVertex    *fTPCVertex;        //! Primary vertex estimated by the TPC
   AliESDVertex    *fSPDVertex;        //! Primary vertex estimated by the SPD
   AliESDVertex    *fPrimaryVertex;    //! Primary vertex estimated using ESD tracks
@@ -634,7 +650,7 @@ protected:
   UInt_t fDAQDetectorPattern; // Detector pattern from DAQ: bit 0 is SPD, bit 4 is TPC, etc. See event.h
   UInt_t fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
 
-  ClassDef(AliESDEvent,23)  //ESDEvent class 
+  ClassDef(AliESDEvent,24)  //ESDEvent class 
 };
 #endif 
 

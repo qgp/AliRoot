@@ -46,6 +46,7 @@ set(SRCS
     AliFileTag.cxx
     AliGenCocktailEventHeader.cxx
     AliGenDPMjetEventHeader.cxx
+    AliGenEpos3EventHeader.cxx
     AliGenEposEventHeader.cxx
     AliGenEventHeader.cxx
     AliGenEventHeaderTunedPbPb.cxx
@@ -130,6 +131,7 @@ set(SRCS
     AliVTrdTracklet.cxx
     AliVVertex.cxx
     AliVVZERO.cxx
+    AliVVZEROfriend.cxx
     AliVZDC.cxx
     TTreeStream.cxx
    )

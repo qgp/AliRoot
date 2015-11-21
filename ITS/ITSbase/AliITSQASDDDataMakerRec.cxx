@@ -27,6 +27,7 @@
 
 // --- ROOT system ---
 
+#include <RVersion.h>
 #include <TProfile2D.h>
 #include <TH2F.h>
 #include <TH1F.h>
@@ -52,6 +53,8 @@
 #include "AliCDBEntry.h"
 #include "AliITSCalibrationSDD.h"
 #include "AliITSQADataMakerRec.h"
+#include "AliLog.h"
+#include <iostream>
 
 class TGaxis;
 class TF1;
@@ -87,7 +90,8 @@ AliITSQASDDDataMakerRec::AliITSQASDDDataMakerRec(AliITSQADataMakerRec *aliITSQAD
   fTimeBinSize(4),
   fDDLModuleMap(0),
   fCalibration(0),
-  fHistoCalibration(0)
+  fHistoCalibration(0),
+  fPulserRun(99999999)
 {
   //ctor used to discriminate OnLine-Offline analysis
   fGenRawsOffset = new Int_t[AliRecoParam::kNSpecies];
@@ -119,7 +123,8 @@ AliITSQASDDDataMakerRec::AliITSQASDDDataMakerRec(const AliITSQASDDDataMakerRec& 
   fTimeBinSize(qadm.fTimeBinSize),
   fDDLModuleMap(qadm.fDDLModuleMap),
   fCalibration(qadm.fCalibration),
-  fHistoCalibration(qadm.fHistoCalibration)
+  fHistoCalibration(qadm.fHistoCalibration),
+  fPulserRun(qadm.fPulserRun)
 {
   //copy ctor 
   fAliITSQADataMakerRec->SetName((const char*)qadm.fAliITSQADataMakerRec->GetName()) ; 
@@ -240,9 +245,6 @@ void AliITSQASDDDataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObj
 	h10->SetBinContent(4,normCountsLay4);
       }
 
-      FillRelativeOccupancyHistos((TH2*)harr[kSDDRawLadModLay3Norm+offsRW],(TH1*)harr[kSDDRawRelOccLay3+offsRW]);
-      FillRelativeOccupancyHistos((TH2*)harr[kSDDRawLadModLay4Norm+offsRW],(TH1*)harr[kSDDRawRelOccLay4+offsRW]);
-    
       //
       if(fHistoCalibration){
 	TH1* hact3 = (TH1*)harr[kActiveModLay3+offsRW];
@@ -254,6 +256,7 @@ void AliITSQASDDDataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObj
 	      else hact3->SetBinContent(ii,jj,0);
 	    }
 	  }
+	  hact3->SetTitle(Form("SDDCalibL3 - Pulser Run %d",fPulserRun));
 	}
 	TH1* hact4 = (TH1*)harr[kActiveModLay4+offsRW];
 	if(hact4){
@@ -264,6 +267,7 @@ void AliITSQASDDDataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObj
 	      else hact4->SetBinContent(ii,jj,0);
 	    }
 	  }
+	  hact4->SetTitle(Form("SDDCalibL4 - Pulser Run %d",fPulserRun));
 	}
       }
     }//end raws
@@ -351,7 +355,7 @@ Int_t AliITSQASDDDataMakerRec::InitRaws()
   paveText0->SetBorderSize(1);
   paveText0->SetLineWidth(1);	
   
-  TH1F *h0 = new TH1F("SDDModPattern","HW Modules pattern",fgknSDDmodules,239.5,499.5); //0
+  TH1D *h0 = new TH1D("SDDModPattern","HW Modules pattern",fgknSDDmodules,239.5,499.5); //0
   h0->GetXaxis()->SetTitle("Module Number");
   h0->GetYaxis()->SetTitle("Counts");
   h0->SetOption("bar1");
@@ -371,7 +375,7 @@ Int_t AliITSQASDDDataMakerRec::InitRaws()
   paveText1->SetLineWidth(1);
 
   //zPhi distribution using ladder and modules numbers
-  TH2F *hphil3 = new TH2F("SDDphizL3","SDD #varphiz Layer3 ",12,0.5,6.5,14,0.5,14.5);//1
+  TH2D *hphil3 = new TH2D("SDDphizL3","SDD #varphiz Layer3 ",12,0.5,6.5,14,0.5,14.5);//1
   hphil3->GetXaxis()->SetTitle("z[Module Number L3 ]");
   hphil3->GetYaxis()->SetTitle("#varphi[ Ladder Number L3]");
   hphil3->SetStats(0);
@@ -386,7 +390,7 @@ Int_t AliITSQASDDDataMakerRec::InitRaws()
   paveText2->SetBorderSize(1);
   paveText2->SetLineWidth(1);
 
-  TH2F *hphil4 = new TH2F("SDDphizL4","SDD #varphiz Layer4 ",16,0.5,8.5,22,0.5,22.5); //2
+  TH2D *hphil4 = new TH2D("SDDphizL4","SDD #varphiz Layer4 ",16,0.5,8.5,22,0.5,22.5); //2
   hphil4->GetXaxis()->SetTitle("z[Module Number L4]");
   hphil4->GetYaxis()->SetTitle("#varphi[Ladder Number L4]");
   hphil4->SetStats(0);
@@ -421,13 +425,19 @@ Int_t AliITSQASDDDataMakerRec::InitRaws()
   rv = fAliITSQADataMakerRec->Add2RawsList(hphil4norm,kSDDRawLadModLay4Norm+offsRW, expert, !image, !saveCorr); 
   fSDDhRawsTask++;
 	
-  // Relative occupancy histos
-  TH1F *oL3 = new TH1F("SDDL3_RelativeOccupancy","Layer 3 Relative Occupancy",200,0.,0.2);
-  rv = fAliITSQADataMakerRec->Add2RawsList(oL3,kSDDRawRelOccLay3+offsRW, expert, !image, !saveCorr); //6  
+  // Histos with number of digits distributions (filled once per event)
+  Float_t digbins[201];
+  digbins[0]=-0.5;
+  for(Int_t ib=1; ib<=200; ib++) digbins[ib]=digbins[ib-1]+(1<<(ib/15));
+  Float_t modBins[fgknSDDmodules+1];
+  for(Int_t ib=0; ib<=fgknSDDmodules; ib++) modBins[ib]=239.5+ib;
+  
+  TH1F *hTotDigits = new TH1F("SDDnOfDigits","SDD Total number of digits ; # of digits",200,digbins);
+  rv = fAliITSQADataMakerRec->Add2RawsList(hTotDigits,kSDDNofDigits+offsRW, expert, !image, !saveCorr); //6  
   fSDDhRawsTask++;
   
-  TH1F *oL4 = new TH1F("SDDL4_RelativeOccupancy","Layer 4 Relative Occupancy",200,0.,0.2);
-  rv = fAliITSQADataMakerRec->Add2RawsList(oL4,kSDDRawRelOccLay4+offsRW, expert, !image, !saveCorr); //7   
+  TH2F *hDigitsPerModule = new TH2F("SDDnOfDigitsPerModule","SDD Digits vs module ; module ID ; # of digits", fgknSDDmodules,modBins,200,digbins);
+  rv = fAliITSQADataMakerRec->Add2RawsList(hDigitsPerModule,kSDDNofDigitsVsMod+offsRW, expert, !image, !saveCorr); //7   
   fSDDhRawsTask++;
   
   // active modules and drift regions
@@ -531,8 +541,10 @@ Int_t AliITSQASDDDataMakerRec::InitRaws()
     fSDDhRawsTask++;
 
     //Event Size 
-    TH1F *hsize = new TH1F("SDDEventSize","SDD Event Size ",500,-0.5,199.5); 
+    TH1F *hsize = new TH1F("SDDEventSize","SDD Event Size ",500,-0.5,199.5);
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,4,0)
     hsize->SetBit(TH1::kCanRebin);
+#endif
     hsize->GetXaxis()->SetTitle("Event Size [kB]");
     hsize->GetYaxis()->SetTitle("Entries");
     rv = fAliITSQADataMakerRec->Add2RawsList(hsize,kSDDDataSize+offsRW, expert, !image, !saveCorr); 
@@ -600,6 +612,9 @@ Int_t AliITSQASDDDataMakerRec::MakeRaws(AliRawReader* rawReader)
   
   Int_t lay, lad, det;   
   Int_t cnt = 0;
+  Int_t cntMod[fgknSDDmodules];
+  for(Int_t jmod=0; jmod<fgknSDDmodules; jmod++) cntMod[jmod]=0;
+  
   Int_t iddl = -1;
   Int_t isddmod = -1;
   Int_t coord1, coord2, signal, moduleSDD; 
@@ -668,8 +683,13 @@ Int_t AliITSQASDDDataMakerRec::MakeRaws(AliRawReader* rawReader)
 
     }//online
     cnt++;
+    if(moduleSDD>=0 && moduleSDD<fgknSDDmodules) cntMod[moduleSDD]++;
     if(!(cnt%10000)) AliDebug(AliQAv1::GetQADebugLevel(),Form(" %d raw digits read",cnt));
   }//end next()
+  fAliITSQADataMakerRec->FillRawsData(kSDDNofDigits+offsRW,cnt);
+  for(Int_t jmod=0; jmod<fgknSDDmodules; jmod++){
+    fAliITSQADataMakerRec->FillRawsData(kSDDNofDigitsVsMod+offsRW,jmod+fgkmodoffset,cntMod[jmod]);
+  }
   if(fkOnline){
     fAliITSQADataMakerRec->FillRawsData(kSDDDataSize+offsRW,size/1024.);//KB
   }
@@ -881,7 +901,9 @@ Int_t AliITSQASDDDataMakerRec::InitRecPoints()
   fSDDhRecPointsTask++;
   
   TH1F *h13 = new TH1F("SDDrdistrib_Layer3" ,"SDD r distribution Layer3" ,100,14.,16.5);
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,4,0)
   h13->SetBit(TH1::kCanRebin);
+#endif
   h13->GetXaxis()->SetTitle("r (cm)");
   h13->GetXaxis()->CenterTitle();
   h13->GetYaxis()->SetTitle("Entries");
@@ -889,7 +911,9 @@ Int_t AliITSQASDDDataMakerRec::InitRecPoints()
   fSDDhRecPointsTask++;
   
   TH1F *h14 = new TH1F("SDDrdistrib_Layer4" ,"SDD r distribution Layer4" ,100,23.,25.);
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,4,0)
   h14->SetBit(TH1::kCanRebin);
+#endif
   h14->GetXaxis()->SetTitle("r (cm)");
   h14->GetXaxis()->CenterTitle();
   h14->GetYaxis()->SetTitle("Entries");
@@ -912,7 +936,9 @@ Int_t AliITSQASDDDataMakerRec::InitRecPoints()
 
   
   TH1F *h17 = new TH1F("SDDdrifttime_Layer3","SDDdrifttime_Layer3",45,-0.5,4499.5);
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,4,0)
   h17->SetBit(TH1::kCanRebin);
+#endif
   h17->GetXaxis()->SetTitle("Drift time (ns)");
   h17->GetXaxis()->CenterTitle();
   h17->GetYaxis()->SetTitle("Entries");
@@ -920,7 +946,9 @@ Int_t AliITSQASDDDataMakerRec::InitRecPoints()
   fSDDhRecPointsTask++;
   
   TH1F *h18 = new TH1F("SDDdrifttime_Layer4","SDDdrifttime_Layer4",45,-0.5,4499.5);
+#if ROOT_VERSION_CODE < ROOT_VERSION(6,4,0)
   h18->SetBit(TH1::kCanRebin);
+#endif
   h18->GetXaxis()->SetTitle("Drift time (ns)");
   h18->GetXaxis()->CenterTitle();
   h18->GetYaxis()->SetTitle("Entries");
@@ -1215,6 +1243,9 @@ void AliITSQASDDDataMakerRec::CreateTheCalibration()
     if(!cacheStatus) calibSDD->SetObject(NULL);
     calibSDD->SetOwner(kTRUE);
     if(!cacheStatus) delete calibSDD;
+
+    AliCDBId cdbid=calibSDD->GetId();
+    fPulserRun=cdbid.GetFirstRun();
 
     AliITSCalibrationSDD * cal=NULL;
     for(Int_t imod=0;imod<fgknSDDmodules;imod++){

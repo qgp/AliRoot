@@ -78,10 +78,12 @@
 #include "AliDCSValue.h"
 #include "AliLog.h"
 #include "AliMpBusPatch.h"
+#include "AliMergeableCollection.h"
 
 #include <Riostream.h>
 #include <TArrayI.h>
 #include <TClass.h>
+#include "TF1.h"
 #include <TFile.h>
 #include <TH1F.h>
 #include <TList.h>
@@ -492,6 +494,57 @@ AliMUONCDB::Plot(const AliMUONVStore& store, const char* name, Int_t nbins)
 }
 
 //_____________________________________________________________________________
+Int_t AliMUONCDB::MakeBusPatchEvolution(AliMergeableCollection& hc, int timeResolution)
+{
+	/// Make a fake bus patch evolution mergeable collection, where
+	/// the (mean) occupancy is the bus patch id
+
+	 if (!AliMUONCDB::CheckMapping()) return 0;
+
+	 TDatime origin;
+
+	 double xmin = 0;
+	 double xmax = xmin + 3600;
+
+	 int nbins = TMath::Nint((xmax-xmin)/timeResolution);
+
+	TIter next(AliMpDDLStore::Instance()->CreateBusPatchIterator());
+	AliMpBusPatch* bp;
+
+	Int_t total(0);
+
+	TF1 f1("f1","pol0",xmin,xmax);
+
+	while ((bp = static_cast<AliMpBusPatch*>(next())))
+	{
+		++total;
+		TH1* h = new TH1F(Form("BP%04d",bp->GetId()),Form("Number of hits in %d s bins",timeResolution),nbins,xmin,xmax);
+		f1.SetParameter(0,bp->GetId());
+		h->FillRandom("f1",10000);
+		h->GetXaxis()->SetTimeDisplay(1);
+		h->GetXaxis()->SetTimeFormat("%d/%m/%y %H:%M");
+		h->GetXaxis()->SetTimeOffset(origin.Convert());
+		hc.Adopt(Form("/BUSPATCH/HITS/%ds",timeResolution),h);
+	}
+
+	// number of events needed for normalization
+
+	TH1* h = new TH1F(Form("Nevents%ds",timeResolution),Form("Number of events %d s bins",timeResolution),nbins,xmin,xmax);
+
+	f1.SetParameter(0,4200);
+
+	h->FillRandom("f1",10000);
+
+	h->GetXaxis()->SetTimeDisplay(1);
+	h->GetXaxis()->SetTimeFormat("%d/%m/%y %H:%M");
+	h->GetXaxis()->SetTimeOffset(origin.Convert());
+
+	hc.Adopt("",h);
+
+	return (total == 888);
+}
+
+//_____________________________________________________________________________
 Int_t 
 AliMUONCDB::MakeHVStore(TMap& aliasMap, Bool_t defaultValues)
 {
@@ -556,57 +609,124 @@ AliMUONCDB::MakeHVStore(TMap& aliasMap, Bool_t defaultValues)
 }
 
 //_____________________________________________________________________________
+void AliMUONCDB::AddDCSValue ( TMap& aliasMap, Int_t imeas, const char* smt, const char* sInOut, Int_t rpc, Float_t value )
+{
+  TString sMeasure = ( imeas == AliMpDCSNamer::kDCSHV ) ? "HV.vEff" : "HV.actual.iMon";
+  TString alias = Form("MTR_%s_%s_RPC%i_%s",sInOut,smt,rpc,sMeasure.Data());
+  TObjArray* valueSet = new TObjArray;
+  valueSet->SetOwner(kTRUE);
+
+  for ( UInt_t timeStamp = 0; timeStamp < 60*2; timeStamp += 60 ) {
+    AliDCSValue* dcsValue = new AliDCSValue(value,timeStamp);
+    valueSet->Add(dcsValue);
+  }
+
+  aliasMap.Add(new TObjString(alias),valueSet);
+}
+
+//_____________________________________________________________________________
 Int_t 
-AliMUONCDB::MakeTriggerDCSStore(TMap& aliasMap, Bool_t defaultValues)
+AliMUONCDB::MakeTriggerDCSStore(TMap& aliasMap)
 {
   /// Create a Trigger HV and Currents store
   
-  if (!AliMUONCDB::CheckMapping()) return 0;
-  
-  AliMpDCSNamer triggerDCSNamer("TRIGGER");
-  
-  TObjArray* aliases = triggerDCSNamer.GenerateAliases();
-  
+//  if (!AliMUONCDB::CheckMapping()) return 0;
+
   Int_t nChannels[2] = {0, 0};
-  
-  for ( Int_t i = 0; i < aliases->GetEntries(); ++i ) 
-  {
-    TObjString* alias = static_cast<TObjString*>(aliases->At(i));
-    TString& aliasName = alias->String();
 
-    TObjArray* valueSet = new TObjArray;
-    valueSet->SetOwner(kTRUE);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",1,10400.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",2,10351.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",3,10300.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",4,10450.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",5,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",6,10100.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",7,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",8,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","INSIDE",9,10350.);
 
-    Int_t measureType = triggerDCSNamer.DCSvariableFromDCSAlias(aliasName.Data());
-    if ( measureType < 0 ) {
-      AliErrorGeneralStream("AliMUONCDB") 
-        << "Failed to get DCS variable from an alias (trigger): "
-        << aliasName.Data() << endl;
-      return 0;
-    }
-        
-    for ( UInt_t timeStamp = 0; timeStamp < 60*15; timeStamp += 120 )
-    {
-      Float_t value = 
-	(measureType == AliMpDCSNamer::kDCSI) ? 2. : 8000.;
-      if (!defaultValues) {
-	switch (measureType){
-	case AliMpDCSNamer::kDCSI:
-	  value = GetRandom(2.,0.4,true);
-	  break;
-	case AliMpDCSNamer::kDCSHV:
-	  value = GetRandom(8000.,16.,true);
-	  break;
-	}
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",1,10300.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",2,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",3,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",4,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",5,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",6,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",7,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",8,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT11","OUTSIDE",9,10250.);
+
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",1,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",2,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",3,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",4,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",5,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",6,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",7,10400.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",8,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","INSIDE",9,10350.);
+
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",1,10400.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",2,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",3,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",4,10300.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",5,10300.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",6,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",7,10100.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",8,10400.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT12","OUTSIDE",9,10400.);
+
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",1,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",2,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",3,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",4,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",5,10100.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",6,10100.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",7,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",8,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","INSIDE",9,10250.);
+
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",1,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",2,10350.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",3,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",4,10100.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",5,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",6,10101.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",7,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",8,10300.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT21","OUTSIDE",9,10250.);
+
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",1,10300.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",2,10300.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",3,9624.); // FEERIC
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",4,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",5,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",6,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",7,10050.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",8,10050.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","INSIDE",9,10150.);
+
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",1,10225.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",2,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",3,10150.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",4,10100.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",5,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",6,10200.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",7,10250.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",8,10225.);
+  AddDCSValue(aliasMap,AliMpDCSNamer::kDCSHV,"MT22","OUTSIDE",9,10250.);
+
+  nChannels[0] = 72;
+
+  TString chName[4] = {"MT11","MT12","MT21","MT22"};
+
+  for ( Int_t ich=0; ich<4; ich++ ) {
+    for ( Int_t iside=0; iside<2; iside++ ) {
+      TString sInOut = ( iside == 0 ) ? "INSIDE" : "OUTSIDE";
+      for ( Int_t irpc=1; irpc<=9; irpc++ ) {
+        AddDCSValue(aliasMap,AliMpDCSNamer::kDCSI,chName[ich].Data(),sInOut.Data(),irpc,2.);
+        ++nChannels[1];
       }
-      AliDCSValue* dcsValue = new AliDCSValue(value,timeStamp);
-      valueSet->Add(dcsValue);
     }
-    aliasMap.Add(new TObjString(*alias),valueSet);
-    ++nChannels[measureType];
   }
-  
-  delete aliases;
   
   AliInfoGeneral("AliMUONCDB", Form("Trigger channels I -> %i   HV -> %i",nChannels[0], nChannels[1]));
   
@@ -1168,6 +1288,24 @@ AliMUONCDB::WriteTriggerEfficiency(Int_t startRun, Int_t endRun)
 }
 
 //_____________________________________________________________________________
+void
+AliMUONCDB::WriteHV(const char* inputFile, Int_t runNumber)
+{
+  /// Read HV values from an external file containing a TMap of the DCS values
+  /// store them into CDB located at cdbpath, with a validity period
+  /// of exactly one run
+  
+  TFile* f = TFile::Open(gSystem->ExpandPathName(inputFile));
+  
+  if (!f->IsOpen()) return;
+  
+  TMap* hvStore = static_cast<TMap*>(f->Get("map"));
+  
+  WriteToCDB("MUON/Calib/HV",hvStore,runNumber,runNumber,kFALSE);
+
+  delete hvStore;
+}
+//_____________________________________________________________________________
 void 
 AliMUONCDB::WriteHV(Bool_t defaultValues,
                     Int_t startRun, Int_t endRun)
@@ -1189,20 +1327,18 @@ AliMUONCDB::WriteHV(Bool_t defaultValues,
 
 //_____________________________________________________________________________
 void 
-AliMUONCDB::WriteTriggerDCS(Bool_t defaultValues,
-                    Int_t startRun, Int_t endRun)
+AliMUONCDB::WriteTriggerDCS(Int_t startRun, Int_t endRun)
 {
-  /// generate Trigger HV and current values (either const if defaultValues=true or random
-  /// if defaultValues=false, see makeTriggerDCSStore) and
-  /// store them into CDB located at cdbpath, with a validity period
+  /// generate Trigger HV and current values (using nominal HV for avalanche mode)
+  /// and store them into CDB located at cdbpath, with a validity period
   /// ranging from startRun to endRun
   
   TMap* triggerDCSStore = new TMap;
-  Int_t ngenerated = MakeTriggerDCSStore(*triggerDCSStore,defaultValues);
+  Int_t ngenerated = MakeTriggerDCSStore(*triggerDCSStore);
   AliInfoGeneral("AliMUONCDB", Form("Ngenerated = %d",ngenerated));
   if (ngenerated>0)
   {
-    WriteToCDB("MUON/Calib/TriggerDCS",triggerDCSStore,startRun,endRun,defaultValues);
+    WriteToCDB("MUON/Calib/TriggerDCS",triggerDCSStore,startRun,endRun,true);
   }
   delete triggerDCSStore;
 }
@@ -1311,11 +1447,19 @@ AliMUONCDB::WriteCapacitances(Bool_t defaultValues,
 }
 
 //_____________________________________________________________________________
+void AliMUONCDB::WriteMapping(Int_t startRun, Int_t endRun)
+{
+  gSystem->Setenv("MINSTALL",gSystem->ExpandPathName("$ALICE_ROOT/MUON/mapping"));
+  AliMpCDB::WriteMpData(startRun,endRun);
+  AliMpCDB::WriteMpRunData(startRun,endRun);
+}
+
+//_____________________________________________________________________________
 void
 AliMUONCDB::WriteTrigger(Bool_t defaultValues, Int_t startRun, Int_t endRun)
 {
   /// Writes all Trigger related calibration to CDB
-  WriteTriggerDCS(defaultValues,startRun,endRun);
+  WriteTriggerDCS(startRun,endRun);
   WriteLocalTriggerMasks(startRun,endRun);
   WriteRegionalTriggerConfig(startRun,endRun);
   WriteGlobalTriggerConfig(startRun,endRun);
@@ -1348,9 +1492,24 @@ AliMUONCDB::WriteConfig(Int_t startRun, Int_t endRun)
 
 //_____________________________________________________________________________
 void
+AliMUONCDB::WriteBPEVO(Int_t startRun, Int_t endRun)
+{
+  /// Write a fake bus patch evolution to OCDB
+
+  AliMergeableCollection bpevo("BPEVO");
+
+  if (MakeBusPatchEvolution(bpevo,60))
+  {
+	  WriteToCDB("MUON/Calib/BPEVO",&bpevo,startRun,endRun,kTRUE);
+  }
+ }
+
+//_____________________________________________________________________________
+void
 AliMUONCDB::WriteTracker(Bool_t defaultValues, Int_t startRun, Int_t endRun)
 {
   /// Writes all Tracker related calibration to CDB
+  WriteMapping(startRun,endRun);
   WriteHV(defaultValues,startRun,endRun);
   WritePedestals(defaultValues,startRun,endRun);
   WriteGains(defaultValues,startRun,endRun);
@@ -1358,6 +1517,7 @@ AliMUONCDB::WriteTracker(Bool_t defaultValues, Int_t startRun, Int_t endRun)
   WriteOccupancyMap(defaultValues,startRun,endRun);
   WriteRejectList(defaultValues,startRun,endRun);
   WriteConfig(startRun,endRun);
+  WriteBPEVO(startRun,endRun);
 }
 
 //_____________________________________________________________________________

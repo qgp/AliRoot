@@ -1,39 +1,40 @@
-//
-// Visualization of an EMCAL super module.
-//
-//  Author: Magali Estienne (magali.estienne@cern.ch)
-//  June 30 2008
-//
-
 #ifndef ALIEVEEMCALSMODULE_H
 #define ALIEVEEMCALSMODULE_H
 
+/* Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
+ * See cxx source for full Copyright notice                               */
+
+///
+/// \class AliEveEMCALSModule
+/// \brief Visualization of an EMCAL super module.
+///
+///  Visualization of an EMCAL super module for event display.
+///
+/// \author Magali Estienne <magali.estienne@cern.ch>, SUBATECH. EMCal implementation, June 2008
+/// \author Gustavo Conesa Balbastre <Gustavo.Conesa.Balbastre@cern.ch>, LPSC-IN2P3-CNRS. DCal implementation + doxygen, May 2015.
+///
+
 #include "AliEveEMCALSModuleData.h"
 
-class AliEveEMCALData;
-class TEveQuadSet;
-class TEveBoxSet;
-class TEveFrameBox;
-class TEvePointSet;
-class TClonesArray;
-class TTree;
-class TGedFrame;
-class TGeoNode; 
-class TGeoMatrix; 
-class AliRun;
-class AliEMCALGeometry;
-class AliESDEvent;
-class AliEMCAL;
-
-class TEveTrans;
 class TStyle;
 class TBuffer3DTypes;
 class TBuffer3D;
 class TVirtualPad;
 class TVirtualViewer3D;
+class TClonesArray;
+class TTree;
+class TGedFrame;
+
+class TEveQuadSet;
+class TEveBoxSet;
+class TEveFrameBox;
+class TEvePointSet;
+class TEveTrans;
+
+class AliRun;
+class AliESDEvent;
+
 class AliEveEMCALData;
-class AliEMCALHit;
-class AliEMCALDigit;
 
 class AliEveEMCALSModule : public TEveElement,
                            public TNamed,
@@ -41,53 +42,82 @@ class AliEveEMCALSModule : public TEveElement,
 {
 
  public:
+  
   AliEveEMCALSModule(Int_t smodid, const Text_t* n, const Text_t* t);
+  
   ~AliEveEMCALSModule();
 
-  void DropData() const;
+  virtual Bool_t CanEditMainColor()        const { return kTRUE      ; } // Remove?
 
-  virtual Bool_t CanEditMainColor() const { return kTRUE; }
-
-  void  SetDataSource(AliEveEMCALData * const data);
+  void  SetDataSource(AliEveEMCALData * data);
+  
   void  SetSModuleID(Int_t id);
-  void  SetFrameColor(Color_t col) { fFrameColor = col; };
-  const AliEveEMCALData* GetData() const { return fEMCALData; };
-  AliEveEMCALSModuleData* GetSModuleData() const;
-  Int_t GetID() const { return fSModuleID; };
+  
+  void  SetFrameColor(Color_t col)               { fFrameColor = col ; }
+  
+  const AliEveEMCALData* GetData()         const { return fEMCALData ; }
+  
+  void  DropData()                               { fEMCALSModuleData->DropData() ; }
+  
+  AliEveEMCALSModuleData* GetSModuleData() const ;
+  
+  Int_t GetID()                            const { return fSModuleID ; }
+  
   void  SetClusterSize(Int_t size);
+  
   void  SetHitSize(Int_t size);
 
-  void UpdateQuads();
+  void  UpdateQuads(Bool_t iHits, Bool_t iDigits, Bool_t iClusters);
 
+  TEveQuadSet * GetDigitQuadSet()          const { return fQuadSet   ; }
+  
+  TEveQuadSet * GetClusterQuadSet()        const { return fQuadSet2  ; }
+  
+  TEvePointSet* GetHitPointSet()           const { return fPointSet  ; }
+    
  protected:
-  AliEveEMCALData   *fEMCALData;        //  Data for the current event
-  AliEveEMCALSModuleData  *fEMCALSModuleData; //  Data of Super Module (SM)
-  Color_t                 fFrameColor;        //  Main coloring
-  Int_t                   fSModuleID;         //  Id of super module, 0 to 11
-  TEveQuadSet             *fQuadSet;          //  Digit container
-  TEveQuadSet             *fQuadSet2;         //  Cluster container
-  TEvePointSet            *fPointSet;         //  Hit container
-  Int_t                   fClusterSize;       //  Cluster point size
-  Int_t                   fHitSize;           //  Hit point size
-  Int_t                   fDebug;             //  Debug option
+  
+  AliEveEMCALData          *fEMCALData;        ///<  Data for the current event
+  AliEveEMCALSModuleData   *fEMCALSModuleData; ///<  Data of Super Module (SM)
+  Color_t                   fFrameColor;       ///<  Main coloring
+  Int_t                     fSModuleID;        ///<  Id of super module, 0 to 11
+  TEveQuadSet              *fQuadSet;          ///<  Digit container
+  TEveQuadSet              *fQuadSet2;         ///<  Cluster container
+  TEvePointSet             *fPointSet;         ///<  Hit container
+  Int_t                     fClusterSize;      ///<  Cluster point size
+  Int_t                     fHitSize;          ///<  Hit point size
+  Int_t                     fDebug;            ///<  Debug option
 
   static void InitStatics(AliEveEMCALSModuleData* md);
 
-  static   Bool_t           fgStaticInit;       // Flag for static variable initialization.
-  static   Float_t          fgSMBigBBox[3];    //  Bounding Box of full SM
-  static   Float_t          fgSMSmallBBox[3];  //  Bounding Box of half SM
-  static   TEveFrameBox    *fgFrameBigBox;     // Frame box per full SM
-  static   TEveFrameBox    *fgFrameSmallBox;   // Frame box per half SM
-  static   TEveRGBAPalette *fgFrameDigPalette; // Signal to color mapping for EMCAL digits
-  static   TEveRGBAPalette *fgFrameCluPalette; // Signal to color mapping for EMCAL clusters
+  static   Bool_t           fgStaticInit;      ///< Flag for static variable initialization.
+  
+  static   Float_t          fgSMBigBBox[3];    ///<  Bounding Box of full SM
+  static   Float_t          fgSMSmallBBox[3];  ///<  Bounding Box of 1/3 SM  
+  static   Float_t          fgSMDCalBBox[3];   ///<  Bounding Box of DCal SM
+  static   Float_t          fgSMSmallDBBox[3]; ///<  Bounding Box of 1/3 DCal SM
+  
+  static   TEveFrameBox    *fgFrameBigBox;     ///< Frame box per full SM
+  static   TEveFrameBox    *fgFrameSmallBox;   ///< Frame box per 1/3 SM
+  static   TEveFrameBox    *fgFrameDCalBox;    ///< Frame box per DCal SM
+  static   TEveFrameBox    *fgFrameSmallDBox;  ///< Frame box per 1/3 DCal SM
+  
+  static   TEveRGBAPalette *fgFrameDigPalette; ///< Signal to color mapping for EMCAL digits
+  static   TEveRGBAPalette *fgFrameCluPalette; ///< Signal to color mapping for EMCAL clusters
 
   void SetupColor(Int_t val, UChar_t* pix) const;
 
  private:
-  AliEveEMCALSModule(const AliEveEMCALSModule &esm);            
-  AliEveEMCALSModule& operator=(const AliEveEMCALSModule&); // Not implemented
+  
+  AliEveEMCALSModule           (const AliEveEMCALSModule &esm);  
+  
+  /// Assignment operator not implemented.
+  AliEveEMCALSModule& operator=(const AliEveEMCALSModule &esm); 
 
-  ClassDef(AliEveEMCALSModule, 0); // Base class for TRD hits visualisation
+  /// \cond CLASSIMP
+  ClassDef(AliEveEMCALSModule, 1) ;
+  /// \endcond
+
 };
 
-#endif
+#endif //ALIEVEEMCALSMODULE_H

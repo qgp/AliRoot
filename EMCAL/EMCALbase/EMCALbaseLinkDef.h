@@ -6,12 +6,12 @@
 
 #pragma link C++ class AliEMCALHit+;
 #pragma link C++ class AliEMCALLoader+;	
-#pragma link C++ class AliEMCALWsuCosmicRaySetUp+;
 #pragma link C++ class AliEMCALRecPoint+;
 #pragma link C++ class AliEMCALSDigitizer+;
 #pragma link C++ class AliEMCALDigitizer+;
 #pragma link C++ class AliEMCALDigit+;
 #pragma link C++ class AliEMCALCalibData+;
+#pragma link C++ class AliEMCALCalibTime+;
 #pragma link C++ class AliEMCALCalibTimeDep+;
 #pragma link C++ class AliEMCALPreprocessor+;
 #pragma link C++ class AliEMCALSensorTemp+;

@@ -550,7 +550,7 @@ void AliVZERO::GetCalibData()
   for(Int_t i = 0 ; i < 64; ++i) {
     Int_t board = AliVZEROCalibData::GetBoardNumber(i);
     fNBins[i] = TMath::Nint(((Float_t)(fCalibData->GetMatchWindow(board)+1)*25.0+
-			     (Float_t)kMaxTDCWidth*fCalibData->GetWidthResolution(board))/
+			     (Float_t)(kMaxTDCWidth+1)*fCalibData->GetWidthResolution(board))/
 			    fCalibData->GetTimeResolution(board));
     fBinSize[i] = fCalibData->GetTimeResolution(board);
   }
@@ -575,7 +575,7 @@ Float_t AliVZERO::CorrectLeadingTime(Int_t i, Float_t time, Float_t adc) const
   if (adc < 1e-6) return time;
 
   // Slewing correction
-  Float_t thr = fCalibData->GetCalibDiscriThr(i,kTRUE);
+  Float_t thr = fCalibData->GetCalibDiscriThr(i,kTRUE,AliCDBManager::Instance()->GetRun());
   time -= fTimeSlewing->Eval(adc/thr);
 
   return time;

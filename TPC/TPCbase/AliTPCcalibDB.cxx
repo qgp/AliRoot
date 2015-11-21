@@ -124,7 +124,7 @@ class AliTPCCalDet;
 #include "AliTriggerRunScalers.h"
 #include "AliTriggerScalers.h"
 #include "AliTriggerScalersRecord.h"
-
+#include "AliDAQ.h"
 /// \cond CLASSIMP
 ClassImp(AliTPCcalibDB)
 /// \endcond
@@ -185,6 +185,7 @@ AliTPCcalibDB::AliTPCcalibDB():
   fIonTailArray(0),
   fPulserData(0),
   fCEData(0),
+  fMaxTimeBinAllPads(-1),
   fHVsensors(),
   fGrRunState(0x0),
   fTemperature(0),
@@ -247,6 +248,7 @@ AliTPCcalibDB::AliTPCcalibDB(const AliTPCcalibDB& ):
   fIonTailArray(0),
   fPulserData(0),
   fCEData(0),
+  fMaxTimeBinAllPads(-1),
   fHVsensors(),
   fGrRunState(0x0),
   fTemperature(0),
@@ -354,12 +356,44 @@ void AliTPCcalibDB::SetRun(Long64_t run)
 void AliTPCcalibDB::Update(){
   /// cache the OCDB entries for simulation, reconstruction, calibration
 
-  AliCDBEntry * entry=0;
+  AliCDBEntry * entry=0x0;
   Bool_t cdbCache = AliCDBManager::Instance()->GetCacheFlag(); // save cache status
   AliCDBManager::Instance()->SetCacheFlag(kTRUE); // activate CDB cache
   fDButil = new AliTPCcalibDButil;
   //
   fRun = AliCDBManager::Instance()->GetRun();
+  
+  entry          = GetCDBEntry("TPC/Calib/Parameters");
+  if (entry){
+    //if (fPadNoise) delete fPadNoise;
+    entry->SetOwner(kTRUE);
+    fParam = (AliTPCParam*)(entry->GetObject());
+  }else{
+    AliFatal("TPC - Missing calibration entry TPC/Calib/Parameters");
+  }
+
+  //
+  // check the presence of the detectors
+  try {
+    entry = AliCDBManager::Instance()->Get("GRP/GRP/Data");
+  } catch(...) {
+    AliInfo("No GRP entry found");
+    entry = 0x0;
+  }
+  if (entry) {
+    AliGRPObject* grpData = dynamic_cast<AliGRPObject*>(entry->GetObject());
+    if (!grpData) {printf("Failed to get GRP data for run %d\n",fRun); return;}
+    Int_t activeDetectors = grpData->GetDetectorMask();
+    TString detStr = AliDAQ::ListOfTriggeredDetectors(activeDetectors);
+    //printf("Detectors in the data:\n%s\n",detStr.Data());
+    if ( detStr.Contains("TPC")==0){
+      AliInfo("TPC not present in the run");
+      return;
+    }
+  }
+
+ 
+
 
   entry          = GetCDBEntry("TPC/Calib/PadGainFactor");
   if (entry){
@@ -431,15 +465,7 @@ void AliTPCcalibDB::Update(){
     fTemperature = (AliTPCSensorTempArray*)entry->GetObject();
   }
 
-  entry          = GetCDBEntry("TPC/Calib/Parameters");
-  if (entry){
-    //if (fPadNoise) delete fPadNoise;
-    entry->SetOwner(kTRUE);
-    fParam = (AliTPCParam*)(entry->GetObject());
-  }else{
-    AliFatal("TPC - Missing calibration entry TPC/Calib/Parameters");
-  }
-
+ 
   entry          = GetCDBEntry("TPC/Calib/ClusterParam");
   if (entry){
     entry->SetOwner(kTRUE);
@@ -550,6 +576,9 @@ void AliTPCcalibDB::Update(){
 
   // Create Dead Channel Map
   InitDeadMap();
+
+  // Calculate derived ALTRO information
+  InitAltroData();
 
   //
   AliCDBManager::Instance()->SetCacheFlag(cdbCache); // reset original CDB cache
@@ -900,6 +929,54 @@ Int_t AliTPCcalibDB::InitDeadMap()
   return 1;
 }
 
+void AliTPCcalibDB::InitAltroData()
+{
+  /// Initialise derived ALTRO data
+  ///
+  /// List of required OCDB Entries
+  /// - TPC/Calib/AltroConfig
+  /// - TPC/Calib/Parameters
+
+  // ===| Maximum time bin |====================================================
+  //
+  // Calculate the maximum time using the 'AcqStart' cal pad object from
+  // TPC/Calib/AltroConfig
+  // if this object is not available, the value will return the max time bin
+  // stored in the AliTPCParam object from TPC/Calib/Parameters
+
+  fMaxTimeBinAllPads=-1;
+
+  const AliTPCCalPad *calPadAcqStop = GetALTROAcqStop();
+
+  if (calPadAcqStop) {
+    //find max elememt
+    // TODO: change this once the GetMaxElement function is implemented in AliTPCCalPad
+    Float_t maxBin=-1;
+    for (Int_t iroc=0; iroc<AliTPCCalPad::kNsec; ++iroc) {
+      const AliTPCCalROC *roc = calPadAcqStop->GetCalROC(iroc);
+      if (!roc) continue;
+      for (Int_t ichannel=0; ichannel<roc->GetNchannels(); ++ichannel) {
+        const Float_t val=roc->GetValue(ichannel);
+        if (val>maxBin) maxBin=val;
+      }
+    }
+    fMaxTimeBinAllPads = TMath::Nint(maxBin);
+  }
+
+  if (fMaxTimeBinAllPads<0) {
+    if (fParam) {
+      AliWarning("Could not access 'AcqStop' map from AltroConfig or invalid max time bine. fMaxTimeBinAllPads will be set from AliTPCParam.");
+      fMaxTimeBinAllPads = fParam->GetMaxTBin();
+    } else {
+      // last fallback
+      AliWarning("Could neither access 'Parameters' nor 'AcqStop' map from AltroConfig. fMaxTimeBinAllPads will be set to 1000.");
+      fMaxTimeBinAllPads=1000;
+    }
+  }
+
+  AliInfo(TString::Format("fMaxTimeBinAllPads set to %d", fMaxTimeBinAllPads).Data());
+}
+
 void AliTPCcalibDB::MakeTree(const char * fileName, TObjArray * array, const char * mapFileName, AliTPCCalPad* outlierPad, Float_t ltmFraction) {
   /// Write a tree with all available information
   /// if mapFileName is specified, the Map information are also written to the tree
@@ -1228,7 +1305,7 @@ void AliTPCcalibDB::UpdateRunInformations( Int_t run, Bool_t force){
 	fGRPMaps.Add(new TObjString(runstr),map);
       }
     }
-    fGRPArray.Add(new TObjString(runstr),grpRun);
+    fGRPArray.Add(new TObjString(runstr),(AliGRPObject*)grpRun->Clone());
   }
   entry = AliCDBManager::Instance()->Get("TPC/Calib/Goofie",run);
   if (entry){
@@ -1658,7 +1735,11 @@ void AliTPCcalibDB::UpdateChamberHighVoltageData()
   // check active state by analysing the scalers
   //
   // initialise graph with active running
-  AliCDBEntry *entry = GetCDBEntry("GRP/CTP/Scalers");
+  const char* hltMode = NULL;
+  hltMode = gSystem->Getenv("HLT_ONLINE_MODE");
+
+  AliCDBEntry *entry = NULL;
+  if (!hltMode) entry = GetCDBEntry("GRP/CTP/Scalers");
   if (entry) {
     // entry->SetOwner(kTRUE);
     AliTriggerRunScalers *sca = (AliTriggerRunScalers*)entry->GetObject();

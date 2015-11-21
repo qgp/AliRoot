@@ -73,7 +73,8 @@ public:
        kAD3=106, kAD4=107, kAD5=108, kAD6=109, kAD7=110, kAD8=111, kAD9=112, kAD10=113, 
        kAD11=114, kAD12=115, kAD13=116, kAD14=117, kAD15=118, kAD0D=119, kAD1D=120, kAD2D=121,
        kAD3D=122, kAD4D=123, kAD5D=124, kAD6D=125, kAD7D=126, kAD8D=127, kAD9D=128, kAD10D=129,
-       kAD11D=130, kAD12D=131, kAD13D=132, kAD14D=133, kAD15D=134, kL0=135
+       kAD11D=130, kAD12D=131, kAD13D=132, kAD14D=133, kAD15D=134, kL0=135,
+       k1ZAC=136, k1ZED=137, k1ZMD=138, k1ZMB=139
        };
   //  MAPPING !!!! NB !!!!! MUST BE THE SAME AS FOR AliZDCRawStream.h !!!!
 
@@ -93,6 +94,8 @@ public:
 		       AliESDEvent* esd) const {FillZDCintoESD(clustersTree, esd);}
   
   void   FillZDCintoESD(TTree *clustersTree, AliESDEvent *esd) const;
+  
+  int    GetChannelSignal(int det, int quad, Bool_t intime=kTRUE) const;
   
   // parameter settings for reconstruction
   void SetRecoMode(Int_t recoMode, Float_t beamEnergy) 
@@ -126,12 +129,12 @@ private:
   AliZDCReconstructor& operator =(const AliZDCReconstructor&); //Not implemented
 
   void   ReconstructEventpp(TTree *clustersTree, 
-	 Float_t corrADC[24][2], Int_t signalCodeADC[48], Bool_t isScalerOn, UInt_t* scaler, 
+	 Float_t corrADC[24][2], Int_t signalCodeADC[24], Int_t signalCodeTDC[7], Bool_t isScalerOn, UInt_t* scaler, 
 	 Int_t tdcData[32][4], const Int_t* const evQualityBlock, 
 	 const Int_t* const triggerBlock, const Int_t* const chBlock, UInt_t puBits) const;
 	 
   void   ReconstructEventPbPb(TTree *clustersTree, 
-	 Float_t corrADC[24][2], Int_t signalCodeADC[48], Bool_t isScalerOn, UInt_t* scaler, 
+	 Float_t corrADC[24][2], Int_t signalCodeADC[24], Int_t signalCodeTDC[7], Bool_t isScalerOn, UInt_t* scaler, 
 	 Int_t tdcData[32][4], const Int_t* const evQualityBlock, 
 	 const Int_t* const triggerBlock, const Int_t* const chBlock, UInt_t puBits) const;
 

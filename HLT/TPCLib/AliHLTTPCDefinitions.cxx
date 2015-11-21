@@ -24,7 +24,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "AliHLTTPCDefinitions.h"
-#include "AliHLTTPCTransform.h"
+#include "AliHLTTPCGeometry.h"
 #include <cerrno>
 
 /** ROOT macro for the implementation of ROOT specific class methods */
@@ -36,6 +36,7 @@ const AliHLTComponentDataType AliHLTTPCDefinitions::fgkPackedRawDataType = AliHL
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkUnpackedRawDataType = AliHLTComponentDataTypeInitializer("RAWUNPAK", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkClustersDataType = AliHLTComponentDataTypeInitializer("CLUSTERS", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRawClustersDataType = AliHLTComponentDataTypeInitializer("CLUSTRAW", kAliHLTDataOriginTPC);
+const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRawClustersDataTypeNotCompressed = AliHLTComponentDataTypeInitializer("CLUSNOTC", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRawClustersDescriptorDataType = AliHLTComponentDataTypeInitializer("CLRAWDSC", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkHWClustersDataType = AliHLTComponentDataTypeInitializer("HWCLUST1", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkAlterClustersDataType = AliHLTComponentDataTypeInitializer("HWCL_ALT", kAliHLTDataOriginTPC);
@@ -48,7 +49,8 @@ const AliHLTComponentDataType AliHLTTPCDefinitions::fgkClusterTracksModelDataTyp
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRemainingClustersModelDataType = AliHLTComponentDataTypeInitializer("REMCLSMD", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkClusterTracksCompressedDataType = AliHLTComponentDataTypeInitializer("CLSTRKCM", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRemainingClustersCompressedDataType = AliHLTComponentDataTypeInitializer("REMCLSCM", kAliHLTDataOriginTPC);
-										      								  	      
+const AliHLTComponentDataType AliHLTTPCDefinitions::fgkTPCFastTransformDataObjectDataType = AliHLTComponentDataTypeInitializer("HLTTPCFT", kAliHLTDataOriginTPC);
+
 const AliHLTComponentDataType& AliHLTTPCDefinitions::DDLEncodedEntropyRawDataType() {
   static AliHLTComponentDataType dt = AliHLTComponentDataTypeInitializer("DDLENCEN", kAliHLTDataOriginTPC);
   return dt;
@@ -67,6 +69,10 @@ const AliHLTComponentDataType& AliHLTTPCDefinitions::ClustersDataType() {
 }
 const AliHLTComponentDataType& AliHLTTPCDefinitions::RawClustersDataType() {
   static AliHLTComponentDataType dt = AliHLTComponentDataTypeInitializer("CLUSTRAW", kAliHLTDataOriginTPC);
+  return dt;
+}
+const AliHLTComponentDataType& AliHLTTPCDefinitions::RawClustersDataTypeNotCompressed() {
+  static AliHLTComponentDataType dt = AliHLTComponentDataTypeInitializer("CLUSOTC", kAliHLTDataOriginTPC);
   return dt;
 }
 const AliHLTComponentDataType& AliHLTTPCDefinitions::RawClustersDescriptorDataType() {
@@ -226,7 +232,7 @@ Int_t AliHLTTPCDefinitions::GetSingleSliceNr( ULong_t spec )
   AliHLTUInt8_t min=GetMinSliceNr(spec);
   AliHLTUInt8_t max=GetMaxSliceNr(spec);
   if (min!=max) return -EINVAL;
-  if (max>=AliHLTTPCTransform::GetNSlice()) return -ERANGE;
+  if (max>=AliHLTTPCGeometry::GetNSlice()) return -ERANGE;
   return min;
 }
 
@@ -238,6 +244,6 @@ Int_t AliHLTTPCDefinitions::GetSinglePatchNr( ULong_t spec )
   AliHLTUInt8_t min=GetMinPatchNr(spec);
   AliHLTUInt8_t max=GetMaxPatchNr(spec);
   if (min!=max) return -EINVAL;
-  if (max>=AliHLTTPCTransform::GetNumberOfPatches()) return -ERANGE;
+  if (max>=AliHLTTPCGeometry::GetNumberOfPatches()) return -ERANGE;
   return min;
 }

@@ -52,9 +52,7 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCClusterHistoComponent.h"
 #include "AliHLTTPCHistogramHandlerComponent.h"
 #include "AliHLTTPCTrackHistoComponent.h"
-#include "AliHLTTPCTrackDumpComponent.h"
 #include "AliHLTTPCHWCFDataReverterComponent.h"
-#include "AliHLTTPCHWClusterTransformComponent.h"
 #include "AliHLTTPCCFComparisonComponent.h"
 #include "AliHLTTPCDataCheckerComponent.h"
 #include "AliHLTTPCHWCFEmulatorComponent.h"
@@ -65,6 +63,8 @@ AliHLTTPCAgent gAliHLTTPCAgent;
 #include "AliHLTTPCDataPublisherComponent.h"
 #include "AliHLTTPCHWClusterDecoderComponent.h"
 #include "AliHLTTPCClusterTransformationComponent.h"
+#include "AliHLTTPCClusterTransformationMergerComponent.h"
+#include "AliHLTTPCClusterTransformationPrepareComponent.h"
 
 /** ROOT macro for the implementation of ROOT specific class methods */
 ClassImp(AliHLTTPCAgent)
@@ -118,6 +118,7 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
     TString sinkRawData;
     TString sinkHWClusterInput;
     TString dEdXInput;
+    TString hwcfemuInput;
     TString hwclustOutput;
     TString compressorInput;
     TString trackerInput;
@@ -147,33 +148,25 @@ int AliHLTTPCAgent::CreateConfigurations(AliHLTConfigurationHandler* handler,
 	  handler->CreateConfiguration(publisher.Data(), "TPCDigitPublisher", NULL , arg.Data());
 	}
 
-	// Hardware CF emulator
-	TString hwcfemu;
-	hwcfemu.Form("TPC-HWCFEmu_%02d_%d", slice, part);
-	arg="";
-	if (!bPublishRaw) arg+=" -do-mc 1";
-	handler->CreateConfiguration(hwcfemu.Data(), "TPCHWClusterFinderEmulator", publisher.Data(), arg.Data());
-	if (hwclustOutput.Length()>0) hwclustOutput+=" ";
-	hwclustOutput+=hwcfemu;
-	
-	TString hwcf;
-	hwcf.Form("TPC-HWCF_%02d_%d", slice, part);
-	handler->CreateConfiguration(hwcf.Data(), "TPCHWClusterTransform",hwcfemu.Data(), "-publish-raw");
-
-	//if (trackerInput.Length()>0) trackerInput+=" ";
-	//trackerInput+=hwcf;
-	//if (dEdXInput.Length()>0) dEdXInput+=" ";
-	//dEdXInput+=hwcf;
-	//if (sinkHWClusterInput.Length()>0) sinkHWClusterInput+=" ";
-	//sinkHWClusterInput+=hwcf;       
+	if (hwcfemuInput.Length()>0) hwcfemuInput+=" ";
+	hwcfemuInput+=publisher;
       }
     }
+
+	// Hardware CF emulator
+	TString hwcfemu;
+	hwcfemu.Form("TPC-HWCFEmu");
+	arg="";
+	if (!bPublishRaw) arg+=" -do-mc 1";
+	handler->CreateConfiguration(hwcfemu.Data(), "TPCHWClusterFinderEmulator", hwcfemuInput.Data(), arg.Data());
+	if (hwclustOutput.Length()>0) hwclustOutput+=" ";
+	hwclustOutput+=hwcfemu;
  
     TString hwcfDecoder = "TPC-HWCFDecoder";
     handler->CreateConfiguration(hwcfDecoder.Data(), "TPCHWClusterDecoder",hwclustOutput.Data(), "");
 
     TString clusterTransformation = "TPC-ClusterTransformation";
-    handler->CreateConfiguration(clusterTransformation.Data(), "TPCClusterTransformation",hwcfDecoder.Data(), "");
+    handler->CreateConfiguration(clusterTransformation.Data(), "TPCClusterTransformation",hwcfDecoder.Data(), "-offline-mode");
 
     if (trackerInput.Length()>0) trackerInput+=" ";
     trackerInput+=clusterTransformation;
@@ -362,9 +355,7 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTTPCClusterHistoComponent);
   pHandler->AddComponent(new AliHLTTPCHistogramHandlerComponent);
   pHandler->AddComponent(new AliHLTTPCTrackHistoComponent);
-  pHandler->AddComponent(new AliHLTTPCTrackDumpComponent);
   pHandler->AddComponent(new AliHLTTPCHWCFDataReverterComponent);
-  pHandler->AddComponent(new AliHLTTPCHWClusterTransformComponent);
   pHandler->AddComponent(new AliHLTTPCCFComparisonComponent);
   pHandler->AddComponent(new AliHLTTPCDataCheckerComponent);
   pHandler->AddComponent(new AliHLTTPCHWCFEmulatorComponent);
@@ -375,6 +366,8 @@ int AliHLTTPCAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
   pHandler->AddComponent(new AliHLTTPCDataPublisherComponent);
   pHandler->AddComponent(new AliHLTTPCHWClusterDecoderComponent);
   pHandler->AddComponent(new AliHLTTPCClusterTransformationComponent);
+  pHandler->AddComponent(new AliHLTTPCClusterTransformationPrepareComponent);
+  pHandler->AddComponent(new AliHLTTPCClusterTransformationMergerComponent);
   return 0;
 }
 
@@ -417,6 +410,7 @@ int AliHLTTPCAgent::GetHandlerDescription(AliHLTComponentDataType dt,
   // {'REMCLIDS':'TPC '}
   // {'CLIDSTRK':'TPC '}
   if (dt==AliHLTTPCDefinitions::RawClustersDataType() ||
+      dt==AliHLTTPCDefinitions::RawClustersDataTypeNotCompressed() ||
       dt==AliHLTTPCDefinitions::HWClustersDataType() ||
       dt==AliHLTTPCDefinitions::RemainingClustersCompressedDataType() ||
       dt==AliHLTTPCDefinitions::ClusterTracksCompressedDataType()) {
@@ -490,6 +484,7 @@ AliHLTOUTHandler* AliHLTTPCAgent::GetOutputHandler(AliHLTComponentDataType dt,
   // {'CLIDSTRK':'TPC '}
   // FIXME: needs to be commissioned
   // if (dt==AliHLTTPCDefinitions::RawClustersDataType() ||
+  //     dt==AliHLTTPCDefinitions::RawClustersDataTypeNotCompressed() ||
   //     dt==AliHLTTPCDefinitions::HWClustersDataType() ||
   //     dt==AliHLTTPCDefinitions::RemainingClustersCompressedDataType() ||
   //     dt==AliHLTTPCDefinitions::ClusterTracksCompressedDataType() ||

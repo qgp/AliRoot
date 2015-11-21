@@ -39,6 +39,7 @@ set(SRCS
     AliEMCALBiasAPD.cxx
     AliEMCALCalibAbs.cxx
     AliEMCALCalibData.cxx
+    AliEMCALCalibTime.cxx
     AliEMCALCalibMapAPD.cxx
     AliEMCALCalibReference.cxx
     AliEMCALCalibTempCoeff.cxx
@@ -68,7 +69,6 @@ set(SRCS
     AliEMCALTriggerSTUDCSConfig.cxx
     AliEMCALTriggerSTURawStream.cxx
     AliEMCALTriggerTRUDCSConfig.cxx
-    AliEMCALWsuCosmicRaySetUp.cxx
    )
 
 # Headers from sources

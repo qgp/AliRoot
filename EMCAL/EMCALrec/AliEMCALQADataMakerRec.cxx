@@ -34,6 +34,7 @@ Also calculate the ratio of amplitude from LED Monitor system (current/Reference
 #include <TH1F.h> 
 #include <TH1I.h> 
 #include <TH2F.h> 
+#include <TH3I.h>
 #include <TLine.h>
 #include <TText.h>
 #include <TProfile.h> 
@@ -76,6 +77,10 @@ using namespace std;
 ClassImp(AliEMCALQADataMakerRec)
            
 //____________________________________________________________________________ 
+/// constructor.
+///
+/// \param an Integer value to specify the fitting Algorithm to be used 
+/// 
 AliEMCALQADataMakerRec::AliEMCALQADataMakerRec(Int_t fitAlgo) :
   AliQADataMakerRec(AliQAv1::GetDetName(AliQAv1::kEMCAL), "EMCAL Quality Assurance Data Maker"),
   fFittingAlgorithm(0),
@@ -109,13 +114,34 @@ AliEMCALQADataMakerRec::AliEMCALQADataMakerRec(Int_t fitAlgo) :
   // ctor
   SetFittingAlgorithm(fitAlgo);
 
-  fGeom = new AliEMCALGeometry("EMCAL_COMPLETE12SMV1_DCAL_8SM", "EMCAL");
+  fGeom = AliEMCALGeometry::GetInstance();
+    
+  if(!fGeom)
+  {
+    AliCDBManager* man = AliCDBManager::Instance();
+    Int_t runNumber = man->GetRun();
+    fGeom =  AliEMCALGeometry::GetInstanceFromRunNumber(runNumber);
+  }
+  
+  if(!fGeom) 
+  {
+    AliWarning(Form("Using default geometry in reconstruction!!!"));
+    fGeom =  AliEMCALGeometry::GetInstance(AliEMCALGeometry::GetDefaultGeometryName());
+  }
+  
+  if ( !fGeom ) AliFatal(Form("Could not get geometry!"));
+  else          AliInfo (Form("Geometry name: <<%s>>",fGeom->GetName())); 
+  
 //  for (Int_t sm = 0 ; sm < fSuperModules ; sm++){
 //    fTextSM[sm] = NULL ;
 //  }
 }
 
 //____________________________________________________________________________ 
+/// copy constructor
+///
+/// \param AliEMCALQADataMakerRec&
+///
 AliEMCALQADataMakerRec::AliEMCALQADataMakerRec(const AliEMCALQADataMakerRec& qadm) :
   AliQADataMakerRec(), 
   fFittingAlgorithm(0),
@@ -156,9 +182,12 @@ AliEMCALQADataMakerRec::AliEMCALQADataMakerRec(const AliEMCALQADataMakerRec& qad
 }
 
 //__________________________________________________________________
+/// operator=
+///
+/// \param AliEMCALQADataMakerRec
+///
 AliEMCALQADataMakerRec& AliEMCALQADataMakerRec::operator = (const AliEMCALQADataMakerRec& qadm )
 {
-  // Equal operator.
   this->~AliEMCALQADataMakerRec();
   new(this) AliEMCALQADataMakerRec(qadm);
 //  fLineCol = NULL;
@@ -170,22 +199,30 @@ AliEMCALQADataMakerRec& AliEMCALQADataMakerRec::operator = (const AliEMCALQAData
 }
  
 //____________________________________________________________________________ 
+///Detector specific actions at end of cycle
+///
+/// \param task
+/// \param list of histograms
+///
 void AliEMCALQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArray ** list)
 {
-  //Detector specific actions at end of cycle
 	
 //  if(fCycleCounter)
 //	  GetRawsData(kNEventsPerTower)->Scale(1./fCycleCounter);
 
+  // reset triggers list to select all histos
+  ResetEventTrigClasses(); 
   // do the QA checking
-  ResetEventTrigClasses(); // reset triggers list to select all histos
   AliQAChecker::Instance()->Run(AliQAv1::kEMCAL, task, list) ;  
 }
 
 //____________________________________________________________________________ 
+///
+/// Get the reference histogram from OCDB
+///
 void AliEMCALQADataMakerRec::GetCalibRefFromOCDB()
 {
-  //Get the reference histogram from OCDB
+
   TString sName1("hHighEmcalRawMaxMinusMin") ;
   TString sName2("hLowLEDMonEmcalRawMaxMinusMin") ;
   sName1.Prepend(Form("%s_", AliRecoParam::GetEventSpecieName(AliRecoParam::kCalib))) ; 
@@ -222,23 +259,39 @@ void AliEMCALQADataMakerRec::GetCalibRefFromOCDB()
   }
  
   if(fCalibRefHistoPro && fLEDMonRefHistoPro){
-    
-    //Defining histograms binning, each 2D histogram covers all SMs
-    Int_t nSMSectors = fSuperModules / 2; // 2 SMs per sector
-    Int_t nbinsZ = 2*AliEMCALGeoParams::fgkEMCALCols;
-    Int_t nbinsPhi = nSMSectors * AliEMCALGeoParams::fgkEMCALRows;
-    
+  
+      // Defining histograms binning, each 2D histogram covers all SMs
+  Int_t nSMSectors = fSuperModules / 2; // 2 SMs per sector
+  
+  AliCDBManager* man = AliCDBManager::Instance();
+  Int_t runNumber = man->GetRun();
+  Int_t nbinsZ, nbinsPhi;
+  if (!(fGeom-> GetEMCGeometry()->GetGeoName().Contains("DCAL"))){
+    nbinsZ = AliEMCALGeoParams::fgkEMCALCols;
+    nbinsPhi = AliEMCALGeoParams::fgkEMCALRows;
+  }
+  else{
+    nbinsZ = AliEMCALTriggerMappingV2::fSTURegionNEta;
+    nbinsPhi = AliEMCALTriggerMappingV2::fSTURegionNPhi;
+  } 
     if(!fCalibRefHistoH2F)
       fCalibRefHistoH2F =  new TH2F("hCalibRefHisto", "hCalibRefHisto", nbinsZ, -0.5, nbinsZ - 0.5, nbinsPhi, -0.5, nbinsPhi -0.5);
     ConvertProfile2H(fCalibRefHistoPro,fCalibRefHistoH2F) ; 
   } else {
     AliFatal(Form("No reference object with name %s or %s found", sName1.Data(), sName2.Data())) ; 
   }
+
+ 
 }
 //____________________________________________________________________________ 
+///
+/// Create histograms to controll ESD
+/// Multiple paragraphs are split on multiple lines.
+///
+///
 void AliEMCALQADataMakerRec::InitESDs()
 {
-  //Create histograms to controll ESD
+
   const Bool_t expert   = kTRUE ; 
   const Bool_t image    = kTRUE ; 
   
@@ -257,14 +310,15 @@ void AliEMCALQADataMakerRec::InitESDs()
   TH1I * h4 = new TH1I("hESDCaloCellM", "ESDs CaloCell multiplicity in EMCAL;# of Clusters;Entries", 200, 0,  1000) ; 
   h4->Sumw2() ;
   Add2ESDsList(h4, kESDCaloCellM, !expert, image) ;
-  //
+  // 
   ClonePerTrigClass(AliQAv1::kESDS); // this should be the last line	
 }
 
 //____________________________________________________________________________ 
+/// create Digits histograms in Digits subdir 
+///
 void AliEMCALQADataMakerRec::InitDigits()
 {
-  // create Digits histograms in Digits subdir
   const Bool_t expert   = kTRUE ; 
   const Bool_t image    = kTRUE ; 
   
@@ -279,9 +333,12 @@ void AliEMCALQADataMakerRec::InitDigits()
 }
 
 //____________________________________________________________________________ 
+///
+/// create Reconstructed PoInt_ts histograms in RecPoints subdir
+///
 void AliEMCALQADataMakerRec::InitRecPoints()
 {
-  // create Reconstructed PoInt_ts histograms in RecPoints subdir
+  
   const Bool_t expert   = kTRUE ; 
   const Bool_t image    = kTRUE ; 
   
@@ -301,9 +358,12 @@ void AliEMCALQADataMakerRec::InitRecPoints()
 }
 
 //____________________________________________________________________________ 
+///
+///  create Raws histograms in Raws subdir
+///
 void AliEMCALQADataMakerRec::InitRaws()
 {
-  // create Raws histograms in Raws subdir
+
   const Bool_t expert   = kTRUE ; 
   const Bool_t saveCorr = kTRUE ; 
   const Bool_t image    = kTRUE ; 
@@ -313,12 +373,13 @@ void AliEMCALQADataMakerRec::InitRaws()
   Int_t nTot = fSuperModules * nTowersPerSM; // max number of towers in all SuperModules
     
   //Defining histograms binning, each 2D histogram covers all SMs
+  Int_t nTotTRUs = AliEMCALTriggerMappingV2::fNTotalTRU;  
   Int_t nSMSectors = fSuperModules / 2; // 2 SMs per sector
-  Int_t nbinsZ = AliEMCALTriggerMappingV2::fSTURegionNEta;
-  Int_t nbinsPhi = AliEMCALTriggerMappingV2::fSTURegionNPhi;
+  Int_t nbinsZ = 2*AliEMCALTriggerMappingV2::fSTURegionNEta;
+  Int_t nbinsPhi = 2*AliEMCALTriggerMappingV2::fSTURegionNPhi;
 	
-  Int_t nTRUCols = nbinsZ; //total TRU columns for 2D TRU histos
-  Int_t nTRURows = nbinsPhi; //total TRU rows for 2D TRU histos
+  Int_t nTRUCols = nbinsZ/2; // total TRU columns for 2D TRU histos
+  Int_t nTRURows = nbinsPhi/2; // total TRU rows for 2D TRU histos
    // counter info: number of channels per event (bins are SM index)
   TProfile * h0 = new TProfile("hLowEmcalSupermodules", "Low Gain EMC: # of towers vs SuperMod;SM Id;# of towers",
 			       fSuperModules, -0.5, fSuperModules-0.5, profileOption) ;
@@ -361,7 +422,7 @@ void AliEMCALQADataMakerRec::InitRaws()
 	
  
   // now repeat the same for TRU and LEDMon data
-  Int_t nTot2x2 = AliEMCALTriggerMappingV2::fNTotalTRU*AliEMCALTriggerMappingV2::fNModulesInTRU; // max number of TRU channels for all SuperModules
+  Int_t nTot2x2 = nTotTRUs*AliEMCALTriggerMappingV2::fNModulesInTRU; // max number of TRU channels for all SuperModules
 
   // counter info: number of channels per event (bins are SM index)
   TProfile * hT0 = new TProfile("hTRUEmcalSupermodules", "TRU EMC: # of TRU channels vs SuperMod;SM Id;# of TRU channels",
@@ -382,12 +443,12 @@ void AliEMCALQADataMakerRec::InitRaws()
   TH2I * hT3 = new TH2I("hTRUEmcalL0hits", "L0 trigger hits: Total number of 2x2 L0 generated",  nTRUCols, -0.5, nTRUCols - 0.5, nTRURows, -0.5, nTRURows-0.5);
   hT3->SetOption("COLZ");
   //hT3->Sumw2();
-  Add2RawsList(hT3, kNL0TRU, expert, image, !saveCorr);
+  Add2RawsList(hT3, kNL0TRU, !expert, image, !saveCorr);
 
   // L0 trigger hits: average time (bins are TRU channels)
   TProfile2D * hT4 = new TProfile2D("hTRUEmcalL0hitsAvgTime", "L0 trigger hits: average time bin", nTRUCols, -0.5, nTRUCols - 0.5, nTRURows, -0.5, nTRURows-0.5, profileOption);
   hT4->SetOption("COLZ");
-  Add2RawsList(hT4, kTimeL0TRU, expert, image, !saveCorr);
+  Add2RawsList(hT4, kTimeL0TRU, !expert, image, !saveCorr);
 
   // L0 trigger hits: first in the event (bins are TRU channels)
   TH1I * hT5 = new TH1I("hTRUEmcalL0hitsFirst", "L0 trigger hits: First hit in the event", nTot2x2, -0.5, nTot2x2);
@@ -398,9 +459,19 @@ void AliEMCALQADataMakerRec::InitRaws()
   TProfile * hT6 = new TProfile("hTRUEmcalL0hitsFirstAvgTime", "L0 trigger hits: average time of first hit", nTot2x2, -0.5, nTot2x2, profileOption); 
   Add2RawsList(hT6, kTimeL0FirstTRU, expert, !image, !saveCorr);
 
+	// L0 number of time sample: # of samples over the threshold out of the 13 time sample (bins are TRU channels)
+  TH2I * hT7 = new TH2I("hTRUEmcalL0Samples", "L0 fired trigger within a bunch per Patch", nTRUCols, -0.5, nTRUCols-0.5, nTRURows, -0.5, nTRURows-0.5);
+  hT7->SetOption("COLZ");
+  //hT3->Sumw2();
+  Add2RawsList(hT7, kNL0TRUSamples, !expert, image, !saveCorr);
+  
+  TH1I * hT8 = new TH1I("hRMSOfnTimes", "Dispersion of Time for Fired Triggers per Patch", nTotTRUs, -0.5, nTotTRUs-0.5);
+  hT8->Sumw2();
+  Add2RawsList(hT8, kNL0TRURMS, !expert, !image, !saveCorr);
+  
   // and also LED Mon..
   // LEDMon has both high and low gain channels, just as regular FEE/towers
-  Int_t nTotLEDMon = fSuperModules * AliEMCALGeoParams::fgkEMCALLEDRefs; // max number of LEDMon channels for all SuperModules //TO BE CHANGED HOW IS IT NOW WITH DCAL?
+  Int_t nTotLEDMon = fSuperModules * AliEMCALGeoParams::fgkEMCALLEDRefs; // max number of LEDMon channels for all SuperModules 
 
   // counter info: number of channels per event (bins are SM index)
   TProfile * hL0 = new TProfile("hLowLEDMonEmcalSupermodules", "LowLEDMon Gain EMC: # of strips vs SuperMod;SM Id;# of strips",
@@ -442,13 +513,13 @@ void AliEMCALQADataMakerRec::InitRaws()
 			       nTotLEDMon, -0.5, nTotLEDMon-0.5, profileOption) ;
   Add2RawsList(hL9, kPedHGLEDMon, expert, !image, !saveCorr) ;
   
-  //temp 2D amplitude histogram for the current run
+  // temp 2D amplitude histogram for the current run
   fHighEmcHistoH2F = new TH2F("h2DHighEC2", "High Gain EMC:Max - Min [ADC counts]", nbinsZ, -0.5 , nbinsZ-0.5, nbinsPhi, -0.5, nbinsPhi-0.5);
    fHighEmcHistoH2F->SetDirectory(0) ; // this histo must be memory resident
-  //add ratio histograms: to comapre the current run with the reference data 
+  // add ratio histograms: to comapre the current run with the reference data 
   TH2F * h15 = new TH2F("h2DRatioAmp", "High Gain Ratio to Reference:Amplitude_{current run}/Amplitude_{reference run}", nbinsZ, -0.5 , nbinsZ-0.5, 
                         nbinsPhi, -0.5, nbinsPhi-0.5);
-  //settings for display in amore
+  // settings for display in amore
   h15->SetTitle("Amplitude_{current run}/Amplitude_{reference run}"); 
   h15->SetMaximum(2.0);
   h15->SetMinimum(0.1);
@@ -459,7 +530,7 @@ void AliEMCALQADataMakerRec::InitRaws()
   h15->GetZaxis()->SetNdivisions(3);
   h15->UseCurrentStyle();
   h15->SetDirectory(0);
-  Add2RawsList(h15, k2DRatioAmp, expert, image, !saveCorr) ;
+  Add2RawsList(h15, k2DRatioAmp, !expert, image, !saveCorr) ;
 
   TH1F * h16 = new TH1F("hRatioDist", "Amplitude_{current run}/Amplitude_{reference run} ratio distribution", nTot, 0., 2.);
   // h16->SetMinimum(0.1); 
@@ -469,10 +540,10 @@ void AliEMCALQADataMakerRec::InitRaws()
   h16->SetDirectory(0);
   Add2RawsList(h16, kRatioDist, !expert, image, !saveCorr) ;
 
-  //add two histograms for shifter from the LED monitor system: comapre LED monitor with the reference run
-  //to be used for decision whether we need to change reference data
+  // add two histograms for shifter from the LED monitor system: comapre LED monitor with the reference run
+  // to be used for decision whether we need to change reference data
   TH1F * hL10 = new TH1F("hMaxMinusMinLEDMonRatio", "LEDMon amplitude, Ratio to reference run", nTotLEDMon, -0.5, nTotLEDMon-0.5) ;
-  //settings for display in amore
+  // settings for display in amore
   hL10->SetTitle("Amplitude_{LEDMon current}/Amplitude_{LEDMon reference}"); 
   hL10->SetMaximum(2.0);
   hL10->SetMinimum(0.1); 
@@ -480,30 +551,30 @@ void AliEMCALQADataMakerRec::InitRaws()
   hL10->UseCurrentStyle();
   hL10->SetDirectory(0);
 //  hL10->SetOption("E");
-  Add2RawsList(hL10, kLEDMonRatio, expert, image, !saveCorr) ;
+  Add2RawsList(hL10, kLEDMonRatio, !expert, image, !saveCorr) ;
 
   TH1F * hL11 = new TH1F("hMaxMinusMinLEDMonRatioDist", "LEDMon amplitude, Ratio distribution", nTotLEDMon, 0, 2);
   // hL11->SetMinimum(0.1) ;
   gStyle->SetOptStat(0);
   hL11->UseCurrentStyle();
   hL11->SetDirectory(0);
-  Add2RawsList(hL11, kLEDMonRatioDist, expert, image, !saveCorr) ;
+  Add2RawsList(hL11, kLEDMonRatioDist, !expert, image, !saveCorr) ;
   
   GetCalibRefFromOCDB();   
 
 
-	//STU histgrams
+	// STU histgrams
 
- //histos
- Int_t nSTUCols = nbinsZ;
- Int_t nSTURows = nbinsPhi;
-//		kAmpL1, kGL1, kJL1,
-//		kGL1V0, kJL1V0, kSTUTRU  
+ // histos
+ Int_t nSTUCols = nbinsZ/2;
+ Int_t nSTURows = nbinsPhi/2;
+// 		kAmpL1, kGL1, kJL1,
+// 		kGL1V0, kJL1V0, kSTUTRU  
 	
  TProfile2D *hS0 = new TProfile2D("hL1Amp", "Mean STU signal per Row and Column", nSTUCols, -0.5, nSTUCols-0.5, nSTURows, -0.5, nSTURows-0.5);
  Add2RawsList(hS0, kAmpL1, expert, !image, !saveCorr) ;
-	
- TH2F *hS1 = new TH2F("hL1Gamma", "L1 Gamma patch position (FastOR top-left)", nSTUCols, -0.50, nSTUCols-0.5, nSTURows + 5, -0.5, nSTURows-0.5 + 5); //+5 for better visible error box
+	//+5 for better visible error box
+ TH2F *hS1 = new TH2F("hL1Gamma", "L1 Gamma patch position (FastOR top-left)", nSTUCols, -0.50, nSTUCols-0.5, nSTURows + 5, -0.5, nSTURows-0.5 + 5); 
  Add2RawsList(hS1, kGL1, !expert, image, !saveCorr) ;
 	
  TH2F *hS2 = new TH2F("hL1Jet", "L1 Jet patch position (FastOR top-left)", 12, -0.5, nSTUCols-0.5, 16, 0, nSTURows-0.5);
@@ -524,14 +595,19 @@ void AliEMCALQADataMakerRec::InitRaws()
  hS3->SetOption("COLZ");
  hS4->SetOption("COLZ");
 
-  //
+  // 
   ClonePerTrigClass(AliQAv1::kRAWS); // this should be the last line
 }
 
 //____________________________________________________________________________
+///
+/// make QA data from ESDs
+///
+/// \param AliESDEvent
+///
 void AliEMCALQADataMakerRec::MakeESDs(AliESDEvent * esd)
 {
-  // make QA data from ESDs
+
 
   Int_t nTot = 0 ; 
   for ( Int_t index = 0; index < esd->GetNumberOfCaloClusters() ; index++ ) {
@@ -543,19 +619,23 @@ void AliEMCALQADataMakerRec::MakeESDs(AliESDEvent * esd)
   }
   FillESDsData(kESDCaloClusM,nTot) ;
 
-  //fill calo cells
+  // fill calo cells
   AliESDCaloCells* cells = esd->GetEMCALCells();
   FillESDsData(kESDCaloCellM,cells->GetNumberOfCells()) ;
 
   for ( Int_t index = 0; index < cells->GetNumberOfCells() ; index++ ) {
     FillESDsData(kESDCaloCellA,cells->GetAmplitude(index)) ;
   }
-  //
+
   IncEvCountCycleESDs();
   IncEvCountTotalESDs();
 }
 
 //____________________________________________________________________________
+/// Makes the histograms for Raw data
+///
+///
+/// \param AliRawReader
 void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 {
   // Check that all the reference histograms exist before we try to use them - otherwise call InitRaws
@@ -573,20 +653,38 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   // setup
   rawReader->Reset() ;
   AliCaloRawStreamV3 in(rawReader,"EMCAL"); 
-  rawReader->Select("EMCAL",0,AliDAQ::GetFirstSTUDDL()-1) ; //select EMCAL DDL's 
+  rawReader->Select("EMCAL",0,AliDAQ::GetFirstSTUDDL()-1) ; // select EMCAL DDL's 
 
   AliRecoParam::EventSpecie_t saveSpecie = fEventSpecie ;
   if (rawReader->GetType() == AliRawEventHeaderBase::kCalibrationEvent) { 
     SetEventSpecie(AliRecoParam::kCalib) ;	
   }
-
+  const Int_t nTowColsPerSM= 2 * AliEMCALTriggerMappingV2::fNEta;
+  const Int_t nTowRowsPerSM= 2 * AliEMCALTriggerMappingV2::fNPhi; // number of rows per SuperModule
+  
   const Int_t nTowersPerSM = 2*AliEMCALTriggerMappingV2::fNEta*2*AliEMCALTriggerMappingV2::fNPhi; // number of towers in a SuperModule; 24x48
   const Int_t nRows        = 2*AliEMCALTriggerMappingV2::fNPhi; // number of rows per SuperModule
-  const Int_t nStripsPerSM = AliEMCALGeoParams::fgkEMCALLEDRefs; // number of strips per SuperModule //TO BE CHECKED/CHANGED
+  const Int_t nStripsPerSM = AliEMCALGeoParams::fgkEMCALLEDRefs; // number of strips per SuperModule 
   const Int_t n2x2PerSM    = AliEMCALTriggerMappingV2::fNTRU * AliEMCALTriggerMappingV2::fNModulesInTRU; // number of TRU 2x2's per SuperModule
   const Int_t n2x2PerTRU   = AliEMCALTriggerMappingV2::fNModulesInTRU;
   const Int_t nTot2x2	   = fSuperModules * n2x2PerSM; // total TRU channel
 
+  Int_t maxNumL0PatchesPerTRU, nTotTRUs;
+  
+  if(fGeom->GetEMCGeometry()->GetGeoName().Contains("DCAL")){
+    maxNumL0PatchesPerTRU = (AliEMCALTriggerMappingV2::fNModulesInTRUPhi-1)*(AliEMCALTriggerMappingV2::fNModulesInTRUEta-1); // when 4x4 PatchMode for L0 trigger is ON
+    nTotTRUs = AliEMCALTriggerMappingV2::fNTotalTRU; // 52 TRUs : 32 EMCAL + 20  ( 14 + 6 unused ) DCAL
+  }
+  else{
+    maxNumL0PatchesPerTRU = (AliEMCALGeoParams::fgkEMCALTRURows-1)*(AliEMCALGeoParams::fgkEMCALTRUCols -1);
+    nTotTRUs = AliEMCALGeoParams::fgkEMCALTRUsPerSM * 10 + 2 ; //32 TRUs ( 3*10 Full_SM + 2 1/3_SM )
+  }
+  
+  //const Int_t nTot2x2 = nTotTRUs* n2x2PerTRU;// total TRU channel
+
+  // Set nTRUs array size to maximum possible 52, later it will be filled up to the real maximum
+  vector <unsigned int> startBins [AliEMCALTriggerMappingV2::fNTotalTRU][n2x2PerTRU];
+  
   // SM counters; decl. should be safe, assuming we don't get more than expected SuperModules..
   Int_t nTotalSMLG[AliEMCALGeoParams::fgkEMCALModules]       = {0};
   Int_t nTotalSMHG[AliEMCALGeoParams::fgkEMCALModules]       = {0};
@@ -596,9 +694,15 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 
   const Int_t nTRUL0ChannelBits = 10; // used for L0 trigger bits checks
 	int firstL0TimeBin = 999;
-  int triggers[nTot2x2][24]; //auxiliary array for L0 trigger - TODO remove hardcoded 24
+  int triggers[nTot2x2][24]; // auxiliary array for L0 trigger - TODO remove hardcoded 24
 	memset(triggers, 0, sizeof(int) * 24 * nTot2x2);
-
+  
+  // The next 2 array must be up to 96 (n2x2PerTRU) to account for the possibility
+  // to have 2x2 (single module) L0 trigger patches instead of 4x4 (2x2 modules)
+  // Set nTRUs array size to maximum possible 52, later it will be filled up to the real maximum
+  vector<Int_t> timeOfFiredPatches[AliEMCALTriggerMappingV2::fNTotalTRU][n2x2PerTRU];
+  
+  bool is2x2PatchModeActive = false; //default in Run2 is 4x4 Patch for L0 trigger
   Int_t iSM = 0; // SuperModule index 
   // start loop over input stream  
   while (in.NextDDL()) {
@@ -618,7 +722,7 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 	while (in.NextBunch()) {
 	  nsamples += in.GetBunchLength();
 	  bunchlist.push_back( AliCaloBunchInfo(in.GetStartTimeBin(), in.GetBunchLength(), in.GetSignals() ) );
-	} 
+	}  //Storing of each bunch per channel
 	
 	if (nsamples > 0) { // this check is needed for when we have zero-supp. on, but not sparse readout
 	  Float_t time = 0.; 
@@ -660,7 +764,7 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 		bunchIndex = ui;
 	      }
 	    }
-	  }
+	  }//bunch size and select earliest bunch
 
 	  // check bunch for entries in the pedestal sample range
 	  Int_t bunchLength = bunchlist.at(bunchIndex).GetLength(); 
@@ -675,37 +779,58 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 		nPed++;
 	      }	    
 	    } // i
-	  }
+	  }//PEDESTALS FOR REGULARE DATA!
+	  
+          /***************/
+	  // Storing TRUL0Id Data
 	  else { // TRU L0 Id Data
 	    // which TRU the channel belongs to?
-	    Int_t iTRUId = in.GetModule()*3 + (iRCU*in.GetBranch() + iRCU);
-
+	    //Int_t iTRUId = in.GetModule()*3 + (iRCU*in.GetBranch() + iRCU);    
+	    Int_t iHWaddress = in.GetHWAddress();
+	    Int_t iTRUId = fGeom->GetTRUIndexFromOnlineHwAdd(iHWaddress,iRCU,iSM);
 	    for (Int_t i = 0; i< bunchLength; i++) {
-	      for( Int_t j = 0; j < nTRUL0ChannelBits; j++ ){
-		// check if the bit j is 1
-		if( (sig[i] & ( 1 << j )) > 0 ){
-		  Int_t iTRUIdInSM = (in.GetColumn() - n2x2PerTRU)*nTRUL0ChannelBits+j;
-		  if(iTRUIdInSM < n2x2PerTRU) {
-		    Int_t iTRUAbsId = iTRUIdInSM + n2x2PerTRU * iTRUId;
-		    // Fill the histograms
-		    Int_t globTRUCol, globTRURow;
-		    GetTruChannelPosition(globTRURow, globTRUCol, iSM, iDDL, iBranch, iTRUIdInSM );
-		    
-		    FillRawsData(kNL0TRU, globTRUCol, globTRURow);
-		    FillRawsData(kTimeL0TRU, globTRUCol, globTRURow, startBin);
-		    triggers[iTRUAbsId][startBin] = 1;
-		    
-		    if((int)startBin < firstL0TimeBin) firstL0TimeBin = startBin;
-		  }
-		}
-	      }
-	      startBin--;
-	    } // i	
-	  } // TRU L0 Id data			
+              for( Int_t j = 0; j < nTRUL0ChannelBits; j++ ){
+                  // check if the bit j is 1
+                if( (sig[i] & ( 1 << j )) > 0 ){
+             
+                  Int_t iPatchInTRU = (in.GetColumn() - n2x2PerTRU)*nTRUL0ChannelBits+j;
+                  
+                  if(iPatchInTRU<n2x2PerTRU){
+		             timeOfFiredPatches[iTRUId][iPatchInTRU].push_back(startBin);
+			         startBins[iTRUId][iPatchInTRU].push_back(startBin);
+                  if((int)startBin < firstL0TimeBin) firstL0TimeBin = startBin;
+                   }
+                  else{
+                      //only possible if in.GetColumn()>nFastORinTRU && in.GetColumn()==105 and the 8th bit of all sig[i] is 1
+                    if(iPatchInTRU==97)
+                      is2x2PatchModeActive=true;
+                    else
+                      continue;
+                  }
+                }//check if bit j of sig i is 1
+              }//loop over the 10 bits of each sig[i]
+              startBin--;
+            }//loop over the 13 time samples sig[i]
+          }//TRU L0idData
+          /***************/ //Go to line 282 for the rest of the L0 code    
+		  	
 	  
-	  // fill histograms
-	  if ( in.IsLowGain() || in.IsHighGain() ) { // regular towers
-	    Int_t towerId = iSM*nTowersPerSM + in.GetColumn()*nRows + in.GetRow();
+	   // fill histograms
+          Int_t icol = in.GetColumn();
+          Int_t irow = in.GetRow();
+          
+          Int_t towerId = -1;
+          if ( in.IsLowGain() || in.IsHighGain() ) { // regular towers
+            
+            if (iSM < 10) //FULL EMCAL MODULES
+              towerId = iSM*nTowersPerSM + icol*nTowRowsPerSM + irow;
+            else if (iSM > 9 && iSM < 12) //1/3 EMCAL = OFFSET_FULL_EMCAL + iSM,irow,icol ->tower_number (nrows=1/3nrows EMCAL FULL)
+              towerId = 10*nTowersPerSM + (iSM-10)*nTowColsPerSM*(nTowRowsPerSM/3) + icol*(nTowRowsPerSM/3) + irow;
+            else if (iSM > 11 && iSM < 18)//FULL DCAL = OFFSET_FULL_EMCAL+ OFFSET_1/3_EMCAL + iSM,irow,icol ->tower_number
+              towerId = (iSM-2)*nTowersPerSM + 2*nTowColsPerSM*(nTowRowsPerSM/3) + icol*nTowRowsPerSM + irow;
+            else //1/3 DCAL = OFFSET_FULL_EMCAL+ OFFSET_1/3_EMCAL+ OFFSET_FULL_DCAL+ iSM,irow,icol ->tower_number (nrows=1/3nrows EM(D)CAL FULL)
+              towerId = 16*nTowersPerSM + (iSM-16)*nTowColsPerSM*(nTowRowsPerSM/3) + icol*(nTowRowsPerSM/3) + irow;
+              
 	    if ( in.IsLowGain() ) { 
 	      nTotalSMLG[iSM]++; 
 	      if ( (amp > fMinSignalLG) && (amp < fMaxSignalLG) ) { 
@@ -734,71 +859,126 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
  	  // TRU
 	  else if ( in.IsTRUData() && in.GetColumn()<AliEMCALGeoParams::fgkEMCAL2x2PerTRU) {
 	    // for TRU data, the mapping class holds the TRU Int_ternal 2x2 number (0..95) in the Column var..
-	    Int_t iTRU = (iRCU*in.GetBranch() + iRCU); //TRU0 is from RCU0, TRU1 from RCU1, TRU2 is from branch B on RCU1
-	    Int_t iTRU2x2Id = iSM*n2x2PerSM + iTRU*AliEMCALGeoParams::fgkEMCAL2x2PerTRU 
-	      + in.GetColumn();
-	    nTotalSMTRU[iSM]++; 
-	    if ( (amp > fMinSignalTRU) && (amp < fMaxSignalTRU) ) { 
-	      FillRawsData(kSigTRU,iTRU2x2Id, amp);
-	      //FillRawsData(kTimeTRU,iTRU2x2Id, time);
-	    }
-	    //if (nPed > 0) {
-	      //for (Int_t i=0; i<nPed; i++) {
-		//FillRawsData(kPedTRU,iTRU2x2Id, pedSamples[i]);
-	      //}
-	    //}
-	  }
-	  // LED Mon
-	  else if ( in.IsLEDMonData() ) {
-	    // for LED Mon data, the mapping class holds the gain info in the Row variable
-	    // and the Strip number in the Column..
-	    Int_t gain = in.GetRow(); 
-	    Int_t stripId = iSM*nStripsPerSM + in.GetColumn();
-	  
-	    if ( gain == 0 ) { 
-	      nTotalSMLGLEDMon[iSM]++; 
-	      if ( (amp > fMinSignalLGLEDMon) && (amp < fMaxSignalLGLEDMon) ) {
-		FillRawsData(kSigLGLEDMon,stripId, amp);
-		FillRawsData(kTimeLGLEDMon,stripId, time);
-	      }
-	      if (nPed > 0) {
-		for (Int_t i=0; i<nPed; i++) {
-		  FillRawsData(kPedLGLEDMon,stripId, pedSamples[i]);
-		}
-	      }
-	    } // gain==0
-	    else if ( gain == 1 ) {       	
-	      nTotalSMHGLEDMon[iSM]++; 
-	      if ( (amp > fMinSignalHGLEDMon) && (amp < fMaxSignalHGLEDMon) ) { 
-		FillRawsData(kSigHGLEDMon,stripId, amp);
-		FillRawsData(kTimeHGLEDMon,stripId, time);
-	      }
-	      if (nPed > 0) {
-		for (Int_t i=0; i<nPed; i++) {
-		  FillRawsData(kPedHGLEDMon,stripId, pedSamples[i]);
-		}
-	      }
-	    } // low or high gain
-	  } // LEDMon
-
-	} // SM index OK
-
+	   // Int_t iTRU = (iRCU*in.GetBranch() + iRCU); // TRU0 is from RCU0, TRU1 from RCU1, TRU2 is from branch B on RCU1
+	    //Int_t iTRU2x2Id = iSM*n2x2PerSM + iTRU*AliEMCALGeoParams::fgkEMCAL2x2PerTRU + in.GetColumn();
+	     Int_t iHWaddress = in.GetHWAddress();
+	     Int_t iTRU = fGeom->GetTRUIndexFromOnlineHwAdd(iHWaddress,iRCU,iSM); 
+	     nTotalSMTRU[iSM]++; 
+	     Int_t iTRU2x2Id; 
+	     Bool_t gotAbsFastORId=fGeom->GetAbsFastORIndexFromTRU(iTRU, in.GetColumn(), iTRU2x2Id);
+	     if(!gotAbsFastORId) 
+	     	 continue;
+	     else{
+	          nTotalSMTRU[iSM]++; 
+	    	  if ( (amp > fMinSignalTRU) && (amp < fMaxSignalTRU) ) { 
+	      	  FillRawsData(kSigTRU,iTRU2x2Id, amp);
+	      	// FillRawsData(kTimeTRU,iTRU2x2Id, time);
+	    	 }
+	     }
+	    // if (nPed > 0) {
+	      // for (Int_t i=0; i<nPed; i++) {
+		// FillRawsData(kPedTRU,iTRU2x2Id, pedSamples[i]);
+	      // }
+	    // }
+	  }//end TRU
+	   // LED Mon
+          else if ( in.IsLEDMonData() ) {
+              // for LED Mon data, the mapping class holds the gain info in the Row variable
+              // and the Strip number in the Column..
+            Int_t gain = in.GetRow();
+            Int_t stripId = iSM*nStripsPerSM + in.GetColumn();
+            
+            if ( gain == 0 ) {
+              nTotalSMLGLEDMon[iSM]++;
+              if ( (amp > fMinSignalLGLEDMon) && (amp < fMaxSignalLGLEDMon) ) {
+                FillRawsData(kSigLGLEDMon,stripId, amp);
+                FillRawsData(kTimeLGLEDMon,stripId, time);
+              }
+              if (nPed > 0) {
+                for (Int_t i=0; i<nPed; i++) {
+                  FillRawsData(kPedLGLEDMon,stripId, pedSamples[i]);
+                }
+              }
+            } // gain==0
+            else if ( gain == 1 ) {
+              nTotalSMHGLEDMon[iSM]++;
+              if ( (amp > fMinSignalHGLEDMon) && (amp < fMaxSignalHGLEDMon) ) {
+                FillRawsData(kSigHGLEDMon,stripId, amp);
+                FillRawsData(kTimeHGLEDMon,stripId, time);
+              }
+              if (nPed > 0) {
+                for (Int_t i=0; i<nPed; i++) {
+                  FillRawsData(kPedHGLEDMon,stripId, pedSamples[i]);
+                }
+              }//nPed>0
+            } // low or high gain
+          } // LEDMon
+        } // SM index OK
       } // nsamples>0 check, some data found for this channel; not only trailer/header
-    }// end while over channel 
-   
-  }//end while over DDL's, of input stream 
-  //filling some L0 trigger histos
+    }// end while over channel
+  }// end while over DDL's, of input stream
+  
+  /***************/
+    //Filling histograms for TRUL0IdData
+  Int_t AbsFastORId=-1;
+  Int_t AbsFastORIndexesIn4x4Patch[4]={-1};
+  Int_t AbsFastORFirstIndexIn4x4Patch;
+  Int_t globTRUCol, globTRURow;
+  bool worry=false;
+  for(int k=0; k < nTotTRUs; k++){
+  	double rms=0;
+    for(int h=0; h < maxNumL0PatchesPerTRU; h++){
+      if(timeOfFiredPatches[k][h].size()==0) continue;
+      else{ //Run 1 or 2x2PatchModeON L0Channels = modules in TRU
+        if(is2x2PatchModeActive || !(fGeom->GetEMCGeometry()->GetGeoName().Contains("DCAL"))){
+          if(fGeom->GetAbsFastORIndexFromTRU(k, h, AbsFastORId)){
+            fGeom->GetPositionInEMCALFromAbsFastORIndex(AbsFastORId, globTRUCol, globTRURow);
+            for(int s=0; s<timeOfFiredPatches[k][h].size(); s++){
+              FillRawsData(kNL0TRU, globTRUCol, globTRURow);
+              FillRawsData(kTimeL0TRU, globTRUCol, globTRURow, timeOfFiredPatches[k][h].at(s));
+              triggers[AbsFastORId][startBins[k][h].at(s)] = 1;
+            }
+            FillRawsData(kNL0TRUSamples, globTRUCol, globTRURow,timeOfFiredPatches[k][h].size());
+          }
+          else continue;
+        }
+        else{ //Run2 default L0Channels = 4x4 towers patches = 2x2 modules in TRU
+          if(fGeom->GetFastORIndexFromL0Index(k, h, AbsFastORIndexesIn4x4Patch, 4)){
+              for(int i=0;i<4;i++)
+              	//printf("AbsID = %d of the %d module in the %d Patch of the %d TRU\n",AbsFastORIndexesIn4x4Patch[i],i,h,k);
+              AbsFastORFirstIndexIn4x4Patch=AbsFastORIndexesIn4x4Patch[0];
+              fGeom->GetPositionInEMCALFromAbsFastORIndex(AbsFastORFirstIndexIn4x4Patch, globTRUCol, globTRURow);
+             //printf("TRU: %d \t PatchIndex:%d \t number of times for the fired patch: %d\n",k,h,timeOfFiredPatches[k][h].size());
+             //printf("First Index %d of the 4 modules making the patch\n", AbsFastORFirstIndexIn4x4Patch);
+              for(int s=0; s<timeOfFiredPatches[k][h].size(); s++){
+               //printf("%d time the patch has been fired and time: %d\n",s+1,timeOfFiredPatches[k][h].at(s));
+                FillRawsData(kNL0TRU, globTRUCol, globTRURow);
+                FillRawsData(kTimeL0TRU, globTRUCol, globTRURow, timeOfFiredPatches[k][h].at(s));
+                triggers[AbsFastORFirstIndexIn4x4Patch][startBins[k][h].at(s)] = 1;
+              }//number of times each module in a patch has fired the trigger
+            FillRawsData(kNL0TRUSamples, globTRUCol, globTRURow,timeOfFiredPatches[k][h].size());
+          }//position of the patch FOUND!
+          else
+            continue;
+        }//check which kind of patch has been SELECTED
+      }//the patch "h" in TRU "k" has been fired
+      
+    }//loop over the max number of AVAILABLE patches per TRU
+  }//loop on nTotTRUs (Run1 or Run2)
+  
+  /***************/
+  // filling some L0 trigger histos
   if( firstL0TimeBin < 999 ){
     for(Int_t i = 0; i < nTot2x2; i++) {	
       if( triggers[i][firstL0TimeBin] > 0 ) {
-	//histo->Fill(i,j);
+	// histo->Fill(i,j);
 	FillRawsData(kNL0FirstTRU, i);
 	FillRawsData(kTimeL0FirstTRU, i, firstL0TimeBin);
       }
     }
   }
   
-  //calculate the ratio of the amplitude and fill the histograms, only if the events type is Calib
+  // calculate the ratio of the amplitude and fill the histograms, only if the events type is Calib
   // RS: operation on the group of histos kSigHG,k2DRatioAmp,kRatioDist,kLEDMonRatio,kLEDMonRatio,kSigLGLEDMon
   const int hGrp[] = {kSigHG,k2DRatioAmp,kRatioDist,kLEDMonRatio,kLEDMonRatioDist,kSigLGLEDMon};
   if ( rawReader->GetType() == AliRawEventHeaderBase::kCalibrationEvent &&
@@ -810,12 +990,12 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
       if (!trArr) continue;  // no histos for current trigger
       //
       Double_t binContent = 0.;
-      TProfile* prSigHG      = (TProfile *)trArr->At(0); //kSigHG
-      TH1* th2DRatioAmp      = (TH1*) trArr->At(1); //k2DRatioAmp
-      TH1* thRatioDist       = (TH1*) trArr->At(2); //kRatioDist
-      TH1* thLEDMonRatio     = (TH1*) trArr->At(3); //kLEDMonRatio
-      TH1* thLEDMonRatioDist = (TH1*) trArr->At(4); //kLEDMonRatio
-      TH1* hSigLGLEDMon      = (TH1*) trArr->At(5); //kSigLGLEDMon
+      TProfile* prSigHG      = (TProfile *)trArr->At(0); // kSigHG
+      TH1* th2DRatioAmp      = (TH1*) trArr->At(1); // k2DRatioAmp
+      TH1* thRatioDist       = (TH1*) trArr->At(2); // kRatioDist
+      TH1* thLEDMonRatio     = (TH1*) trArr->At(3); // kLEDMonRatio
+      TH1* thLEDMonRatioDist = (TH1*) trArr->At(4); // kLEDMonRatio
+      TH1* hSigLGLEDMon      = (TH1*) trArr->At(5); // kSigLGLEDMon
       th2DRatioAmp->Reset("ICE");
       thRatioDist->Reset("ICE");
       thLEDMonRatio->Reset("ICE");
@@ -824,27 +1004,27 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
       thRatioDist->ResetStats();
       thLEDMonRatio->ResetStats();
       thLEDMonRatioDist->ResetStats();
+      
       ConvertProfile2H(prSigHG, fHighEmcHistoH2F);  
-      //
+      // 
       for(Int_t ix = 1; ix <= fHighEmcHistoH2F->GetNbinsX(); ix++) {
 	for(Int_t iy = 1; iy <= fHighEmcHistoH2F->GetNbinsY(); iy++) { 
 	  if(fCalibRefHistoH2F->GetBinContent(ix, iy)) 
 	    binContent = fHighEmcHistoH2F->GetBinContent(ix, iy)/fCalibRefHistoH2F->GetBinContent(ix, iy);
-	  th2DRatioAmp->SetBinContent(ix, iy, binContent);
-	  thRatioDist->Fill(binContent);
+	    th2DRatioAmp->SetBinContent(ix, iy, binContent);
+	    thRatioDist->Fill(binContent);
 	}
       } 
-      //
-      //Now for LED monitor system, to calculate the ratio as well
+      // 
+      // Now for LED monitor system, to calculate the ratio as well
       Double_t binError = 0. ;
-      // for the binError, we add the relative errors, squared
+      // For the binError, we add the relative errors, squared
       Double_t relativeErrorSqr = 0. ;
-      //
+      // 
       for(int ib = 1; ib <= fLEDMonRefHistoPro->GetNbinsX(); ib++) {
-	//
+	// 
 	if(fLEDMonRefHistoPro->GetBinContent(ib) != 0) {
 	  binContent = hSigLGLEDMon->GetBinContent(ib) / fLEDMonRefHistoPro->GetBinContent(ib);
-
 	  relativeErrorSqr = TMath::Power( (fLEDMonRefHistoPro->GetBinError(ib) / fLEDMonRefHistoPro->GetBinContent(ib)), 2);
 	  if( hSigLGLEDMon->GetBinContent(ib) != 0) {
 	    relativeErrorSqr += TMath::Power( (hSigLGLEDMon->GetBinError(ib)/hSigLGLEDMon->GetBinContent(ib)), 2);
@@ -891,7 +1071,7 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   IncEvCountTotalESDs();
   SetEventSpecie(saveSpecie) ; 
   
-	MakeRawsSTU(rawReader);
+  //MakeRawsSTU(rawReader);
 
   // just in case the next rawreader consumer forgets to reset; let's do it here again..
   rawReader->Reset() ;
@@ -899,9 +1079,11 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
 }
 
 //____________________________________________________________________________
+///
+/// makes data from Digits
+///
 void AliEMCALQADataMakerRec::MakeDigits()
 {
-  // makes data from Digits
   FillDigitsData(1,fDigitsArray->GetEntriesFast()) ; 
   TIter next(fDigitsArray) ; 
   AliEMCALDigit * digit ; 
@@ -912,6 +1094,12 @@ void AliEMCALQADataMakerRec::MakeDigits()
 }
 
 //____________________________________________________________________________
+///
+/// makes data from Digit Tree
+///
+///
+/// \param TTree
+///
 void AliEMCALQADataMakerRec::MakeDigits(TTree * digitTree)
 {
   // makes data from Digit Tree
@@ -934,9 +1122,14 @@ void AliEMCALQADataMakerRec::MakeDigits(TTree * digitTree)
 }
 
 //____________________________________________________________________________
+///
+/// makes data from RecPoints
+///
+///
+/// \param TTree
+///
 void AliEMCALQADataMakerRec::MakeRecPoints(TTree * clustersTree)
 {
-  // makes data from RecPoints
   TBranch *emcbranch = clustersTree->GetBranch("EMCALECARP");
   if (!emcbranch) { 
     AliError("can't get the branch with the EMCAL clusters !");
@@ -961,80 +1154,112 @@ void AliEMCALQADataMakerRec::MakeRecPoints(TTree * clustersTree)
 }
 
 //____________________________________________________________________________ 
+///
+/// Detector specific actions at start of cycle
+/// 
 void AliEMCALQADataMakerRec::StartOfDetectorCycle()
 {
-  //Detector specific actions at start of cycle
+
   
 }
 
 //____________________________________________________________________________ 
+///
+/// Set fitting algorithm and initialize it if this same algorithm was not set before.
+/// \param kind of fitting algorithm
+///
 void AliEMCALQADataMakerRec::SetFittingAlgorithm(Int_t fitAlgo)              
 {
-  //Set fitting algorithm and initialize it if this same algorithm was not set before.
 
   fFittingAlgorithm = fitAlgo; // Not sure we need this
 
   fRawAnalyzer    =  AliCaloRawAnalyzerFactory::CreateAnalyzer(fitAlgo);
   
-  // Init also here the TRU algo, even if it is fixed type.
+  //  Init also here the TRU algo, even if it is fixed type.
   fRawAnalyzerTRU = AliCaloRawAnalyzerFactory::CreateAnalyzer(Algo::kFakeAltro);
   fRawAnalyzerTRU->SetFixTau(kTRUE);
-  fRawAnalyzerTRU->SetTau(2.5); // default for TRU shaper
+  fRawAnalyzerTRU->SetTau(2.5); //  default for TRU shaper
 }
 
 //_____________________________________________________________________________________
-void AliEMCALQADataMakerRec::ConvertProfile2H(TProfile * p, TH2 * histo) 
-{  //I THINK THIS WHOLE METHOD SHOULD BE CHANGED BUT NEED TIME! 
-  // reset histogram
+///
+/// ConvertProfile2H 
+///
+/// \param TProfile
+/// \param histo
+///
+void AliEMCALQADataMakerRec::ConvertProfile2H(TProfile * p, TH2 * histo){ 
+ //  reset histogram
   histo->Reset("ICE") ; 
   histo->ResetStats(); 
 
   Int_t nbinsProf = p->GetNbinsX();
   
-  // loop through the TProfile p and fill the TH2F histo 
-  Int_t row = 0;
-  Int_t col = 0;
+  //  loop through the TProfile p and fill the TH2F histo 
   Double_t binContent = 0;
-  Int_t towerNum = 0; // global tower Id
-  //  i = 0; // tower Id within SuperModule
-  Int_t iSM = 0; // SuperModule index 
+  Int_t towerNum = 0; //  global tower Id
+  //   i = 0; //  tower Id within SuperModule
+  Int_t iSM=0; 
   Int_t iSMSide = 0; // 0=A, 1=C side
-  Int_t iSMSector = 0; // 2 SM's per sector
-  
-  // indices for 2D plots
+  Int_t iSMSector = 0; // 2 SM's per sector  
+  //  indices for 2D plots
   Int_t col2d = 0;
   Int_t row2d = 0;
+  Int_t kEMCALRows = 24; // TOWERs  nRows
+  Int_t kEMCALCols = 48; // TOWERs  nCols
+  Int_t kEMCALTowersPerSM = kEMCALRows * kEMCALCols; // nTOWERS in SM
   
   for (Int_t ibin = 1; ibin <= nbinsProf; ibin++) {
     towerNum = (Int_t) p->GetBinCenter(ibin);
     binContent = p->GetBinContent(ibin);
-    
-    // figure out what the tower indices are: col, row within a SuperModule
-    iSM = towerNum/(AliEMCALGeoParams::fgkEMCALRows * AliEMCALGeoParams::fgkEMCALCols);
-    col = (towerNum/AliEMCALGeoParams::fgkEMCALRows) % (AliEMCALGeoParams::fgkEMCALCols);
-    row = towerNum % (AliEMCALGeoParams::fgkEMCALRows);
-    
-    //DecodeTowerNum(towerNum, &SM, &col, &row);
-    // then we calculate what the global 2D coord are, based on which SM 
-    // we are in
-    iSMSector = iSM / 2;
-    iSMSide = iSM % 2;
-    
-    if (iSMSide == 1) { // C side, shown to the right
-      col2d = col + AliEMCALGeoParams::fgkEMCALCols;
-    }
-    else { // A side, shown to the left 
-      col2d = col; 
-    }
-    
-    row2d = row + iSMSector * AliEMCALGeoParams::fgkEMCALRows;
-    
-    histo->SetBinContent(col2d+1, row2d+1, binContent);
+           
+	if(towerNum<11520){
+		iSM = towerNum/(kEMCALTowersPerSM);
+		col2d = (towerNum/kEMCALRows) % kEMCALCols;
+		row2d = towerNum % kEMCALRows;
+	}
+	else if(towerNum>11519 && towerNum<12288){
+		iSM = 10 + (towerNum-11520)/(kEMCALTowersPerSM/3);//for the 10th SM the second part returns 0 (division between integers) 
+		col2d = ((towerNum-11520)/(kEMCALRows/3)) % kEMCALCols;
+		row2d = (towerNum-11520) % (kEMCALRows/3);
+	}
+	else if(towerNum>12287 && towerNum<19200){
+		iSM = 12 + (towerNum-12288)/(kEMCALTowersPerSM);//for the 12th SM the second part return 0 (division between integers) 
+		col2d = ((towerNum-12288)/kEMCALRows) % kEMCALCols;
+		row2d = (towerNum-12288) % kEMCALRows;
+	}
+	else{ //10 EMCAL_FULL + 2 EMCAL_1/3 + 6 DCAL_FULL 
+		iSM = 18 + (towerNum-19200)/(kEMCALTowersPerSM/3); //for the 18th SM the second part return 0 (division between integers)
+		col2d = ((towerNum-19200)/(kEMCALRows/3)) % kEMCALCols;
+		row2d = (towerNum-19200) % (kEMCALRows/3); 
+	}
+
+	iSMSector = iSM / 2;
+	iSMSide = iSM % 2;
+	if (iSMSide == 1) // C side, shown to the right
+		col2d += kEMCALCols;
+
+	if (towerNum>=0 && towerNum<12288)//EMCAL (FULL and 1/3 SM)
+	     row2d += iSMSector *kEMCALRows;
+	else if (towerNum>12287 && towerNum<19968)//DCAL =  EMCAL Offset (120+8) + Offset in DCAL Sectors (here they continue from 6, not 9) 
+	     row2d += 5*kEMCALRows + (kEMCALRows/3) + (iSMSector-6)*kEMCALRows;
+		
+	histo->SetBinContent(col2d+1, row2d+1, binContent);
   }
 } 
 //____________________________________________________________________________ 
-void AliEMCALQADataMakerRec::GetTruChannelPosition( Int_t &globRow, Int_t &globColumn, Int_t module, Int_t ddl, Int_t branch, Int_t column ) const
-{ // from local to global indices//I THINK THIS WHOLE METHOD SHOULD BE CHANGED BUT NEED THE TRU SCHEME! 
+/// from local to global indices
+///
+/// \param globRow = global row index 
+/// \param globColumn = global column index
+/// \param module = number of the module
+/// \param ddl = number of the ddl
+/// \param branch = number of the branch
+/// \param column = number of module column inside the TRU
+///
+/// \return 
+/*void AliEMCALQADataMakerRec::GetTruChannelPosition( Int_t &globRow, Int_t &globColumn, Int_t module, Int_t ddl, Int_t branch, Int_t column ) const
+{ // I THINK THIS WHOLE METHOD SHOULD BE CHANGED BUT NEED THE TRU SCHEME! 
   Int_t mrow;
   Int_t mcol;
   Int_t trow;
@@ -1053,7 +1278,7 @@ void AliEMCALQADataMakerRec::GetTruChannelPosition( Int_t &globRow, Int_t &globC
   tcol = column / 4;
   trow = column % 4;
 
-  //.combine
+  // .combine
   if( module%2 == 0 ){   // A side
     // mirror rows
     trow = 3 - trow;
@@ -1075,119 +1300,136 @@ void AliEMCALQADataMakerRec::GetTruChannelPosition( Int_t &globRow, Int_t &globC
   globColumn = mcol + tcol;
   return;
 
-}
-//____________________________________________________________________________ 
+}*/
+// ____________________________________________________________________________ 
+/// Creates the RAWSTU histograms
+/// 
+/// \param  AliRawReaded
+///
+/// \return 
 void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
-{ // STU specifics
+{ //  STU specifics
   AliEMCALTriggerSTURawStream* inSTU = new AliEMCALTriggerSTURawStream(rawReader);
 	
   rawReader->Reset();
   rawReader->Select("EMCAL",AliDAQ::GetFirstSTUDDL());
-  
-  //L1 segmentation
+   Int_t det=0; //detector index
+  Int_t h=0; //helper for TRU-STU conversion
+  // L1 segmentation
   Int_t sizeL1gsubr = 1;
   Int_t sizeL1gpatch = 2; 
   Int_t sizeL1jsubr = 4; 
 
-  //FOR DCAL
+  // FOR DCAL
   Int_t iEMCALtrig[AliEMCALTriggerMappingV2::fSTURegionNEta][AliEMCALTriggerMappingV2::fSTURegionNPhi];
   memset(iEMCALtrig, 0, sizeof(int) * AliEMCALTriggerMappingV2::fSTURegionNEta * AliEMCALTriggerMappingV2::fSTURegionNPhi);
-  //Int_t iEMCALtrig[AliEMCALGeoParams::fgkEMCALSTUCols][AliEMCALGeoParams::fgkEMCALSTURows];
-  //memset(iEMCALtrig, 0, sizeof(int) * AliEMCALGeoParams::fgkEMCALSTUCols * AliEMCALGeoParams::fgkEMCALSTURows);
+  // Int_t iEMCALtrig[AliEMCALGeoParams::fgkEMCALSTUCols][AliEMCALGeoParams::fgkEMCALSTURows];
+  // memset(iEMCALtrig, 0, sizeof(int) * AliEMCALGeoParams::fgkEMCALSTUCols * AliEMCALGeoParams::fgkEMCALSTURows);
 		
   if (inSTU->ReadPayLoad()) 
     {
-      //Fw version (use in case of change in L1 jet 
+      // Fw version (use in case of change in L1 jet 
       Int_t fw = inSTU->GetFwVersion();
-      Int_t sizeL1jpatch = 2+(fw >> 16);//NEED TO CHECK THIS!!! 
+      Int_t sizeL1jpatch = 2+(fw >> 16);// NEED TO CHECK THIS!!! 
 
-      //To check link
-      Int_t mask = inSTU->GetFrameReceived() ^ inSTU->GetRegionEnable();
+      // To check link
+      Long64_t mask = inSTU->GetFrameReceived() ^ inSTU->GetRegionEnable();
 
       for (int i = 0; i < AliEMCALTriggerMappingV2::fNTotalTRU; i++)
 	{
 		if (!((mask >> i) &  0x1)) FillRawsData(kSTUTRU, i);
 	}
 
-      //V0 signal in STU
+      // V0 signal in STU
       Int_t iV0Sig = inSTU->GetV0A()+inSTU->GetV0C();
-      
-      //FastOR amplitude receive from TRU
+      Int_t detector;
+      // FastOR amplitude receive from TRU
       for (Int_t i = 0; i < AliEMCALTriggerMappingV2::fNTotalTRU; i++)
 	{
+	  if(i==34 || i==35 || i==40 || i==41 || i==46 || i==47)continue;
 	  UInt_t adc[96];
 	  for (Int_t j = 0; j < 96; j++) adc[j] = 0;
+	   if(i>31) {
+	  det=1;  //Detector switch for STU (for TRUs EMCal and DCal are the same Detector 
+	  h=i-32; //General Offset DCAL STU / EMCAL+DCAL TRU
+	  } 
+	  if(i>35) h=i-34; //1st row DCAL offset STU/TRU 
+	  if(i>41) h=i-36; //2nd row DCAL offset STU/TRU
+	  if(i>47) h=i-38; //3rd row DCAL offset STU/TRU
 	  
-	  inSTU->GetADC(i, adc);
+	  inSTU->GetADC(h, adc);
 	  
-	  Int_t iTRU = fGeom->GetTRUIndexFromSTUIndex(i);//CHANGE WITH TRIGGERMAPPINGV2 METHOD
+	  Int_t iTRU = fGeom->GetTRUIndexFromSTUIndex(h,det);// CHANGE WITH TRIGGERMAPPINGV2 METHOD
 				
 	  for (Int_t j = 0; j < 96; j++)
 	    {
 	      Int_t idx;
-	      fGeom->GetAbsFastORIndexFromTRU(iTRU, j, idx);//CHANGE WITH TRIGGERMAPPINGV2 METHOD
+	      fGeom->GetAbsFastORIndexFromTRU(iTRU, j, idx);// CHANGE WITH TRIGGERMAPPINGV2 METHOD
 				
 	      Int_t px, py;
-	      fGeom->GetPositionInEMCALFromAbsFastORIndex(idx, px, py); //CHANGE WITH TRIGGERMAPPINGV2 METHOD
+	      fGeom->GetPositionInEMCALFromAbsFastORIndex(idx, px, py); // CHANGE WITH TRIGGERMAPPINGV2 METHOD
 					
 	      iEMCALtrig[px][py] = adc[j];
 	    }
 	}
 			
-      //L1 Gamma patches
-      Int_t iTRUSTU, x, y;
-      for (Int_t i = 0; i < inSTU->GetNL1GammaPatch(0); i++)
-	{
-	  if (inSTU->GetL1GammaPatch(i, 0, iTRUSTU, x, y)) // col (0..7), row (0..11)
-	    {
-	      Int_t iTRU;
-	      iTRU = fGeom->GetTRUIndexFromSTUIndex(iTRUSTU);//CHANGE WITH TRIGGERMAPPINGV2 METHOD
-	      //New position in CALORIMETER!
-	      //if (iTRU<30)
-	      	//Int_t phiG = 11 - y, etaG = x + 8 * int(iTRU/2); //position with new EMCAL TRU configuration !!check iTRU/2.. 
-	      //else if ((iTRU>29 && iTRU<32) || (iTRU>43))
-	      	//Int_t etaG = 23 - x, phiG = y + 4 * int(iTRU/2); //position in EMCAL 1/3 SMs !!check iTRU/2
-	      //else
-	      	//Int_t phiG = 11 - y, etaG = x + 8 * int(iTRU/2); //position in DCAL SMs !!!!Still have to check this!!!
-	      Int_t etaG = 23-x, phiG = y + 4 * int(iTRU/2); //position in EMCal
-	      if (iTRU%2) etaG += 24; //C-side// NEED THE NEW TRU NUMBERING SCHEME !!!!!
-					
-	      etaG = etaG - sizeL1gsubr * sizeL1gpatch + 1;
-				
-	      //Position of patch L1G (bottom-left FastOR of the patch)
-	      FillRawsData(kGL1, etaG, phiG);
-					
-	      //loop to sum amplitude of FOR in the gamma patch
-	      Int_t iL1GPatchAmp = 0;
-	      for (Int_t L1Gx = 0; L1Gx < sizeL1gpatch; L1Gx ++)
-		{
-		  for (Int_t L1Gy = 0; L1Gy < sizeL1gpatch; L1Gy ++)
-		    {
-		      if (etaG+L1Gx < AliEMCALTriggerMappingV2::fSTURegionNEta && phiG+L1Gy < AliEMCALTriggerMappingV2::fSTURegionNPhi) 
-		      	  iL1GPatchAmp += iEMCALtrig[etaG+L1Gx][phiG+L1Gy];
-		      //cout << iEMCALtrig[etaG+L1Gx][phiG+L1Gy] << endl;
-		    }
-		}
-	      
-	      //if (iL1GPatchAmp > 500) cout << "L1G amp =" << iL1GPatchAmp << endl;
-	      FillRawsData(kGL1V0, iV0Sig, iL1GPatchAmp);
-	      
+      // L1 Gamma patches
+      Int_t iTRUSTU, x, y,etaG,phiG;
+      for(detector=0; detector<2;detector++){ // 0 EMCAL , 1 DCAL
+      	for(Int_t i = 0; i < inSTU->GetNL1GammaPatch(detector); i++)
+	   {
+	     if (inSTU->GetL1GammaPatch(i, detector, iTRUSTU, x, y)) // col (0..7), row (0..11)
+	      {
+	        Int_t iTRU;
+	        iTRU = fGeom->GetTRUIndexFromSTUIndex(iTRUSTU,detector);// CHANGE WITH TRIGGERMAPPINGV2 METHOD
+	        if(!(fGeom->GetPositionInEMCALFromAbsFastORIndex( iTRU, etaG, phiG ))) continue;
+	      	else{
+      		      // Position of patch L1G (bottom-left FastOR of the patch)
+	      	      etaG = etaG - sizeL1gsubr * sizeL1gpatch + 1;
+	      	      FillRawsData(kGL1, etaG, phiG);
+	      	      
+	      // New position in CALORIMETER!
+	        // if (iTRU<30)
+	      	// Int_t phiG = 11 - y, etaG = x + 8 * int(iTRU/2); // position with new EMCAL TRU configuration !!check iTRU/2.. 
+	        // else if ((iTRU>29 && iTRU<32) || (iTRU>43))
+	      	// Int_t etaG = 23 - x, phiG = y + 4 * int(iTRU/2); // position in EMCAL 1/3 SMs !!check iTRU/2
+	        // else
+	      	// Int_t phiG = 11 - y, etaG = x + 8 * int(iTRU/2); // position in DCAL SMs !!!!Still have to check this!!!
+	        // Int_t etaG = 23-x, phiG = y + 4 * int(iTRU/2); // position in EMCal
+	        // if (iTRU%2) etaG += 24; // C-side// / NEED THE NEW TRU NUMBERING SCHEME !!!!!		
+	        // etaG = etaG - sizeL1gsubr * sizeL1gpatch + 1;
+						
+	      // loop to sum amplitude of FOR in the gamma patch
+	              Int_t iL1GPatchAmp = 0;
+	              for(Int_t L1Gx = 0; L1Gx < sizeL1gpatch; L1Gx ++)
+		         {
+		          for(Int_t L1Gy = 0; L1Gy < sizeL1gpatch; L1Gy ++)
+		             {
+		              if (etaG+L1Gx < AliEMCALTriggerMappingV2::fSTURegionNEta && phiG+L1Gy < AliEMCALTriggerMappingV2::fSTURegionNPhi) 
+		      	           iL1GPatchAmp += iEMCALtrig[etaG+L1Gx][phiG+L1Gy];
+		      // cout << iEMCALtrig[etaG+L1Gx][phiG+L1Gy] << endl;
+		             }
+		         }
+	      	      // if (iL1GPatchAmp > 500) cout << "L1G amp =" << iL1GPatchAmp << endl;
+	      	      FillRawsData(kGL1V0, iV0Sig, iL1GPatchAmp);
+	      	    }
+	    	}
 	    }
-	}
-		
-      //L1 Jet patches
-      for (Int_t i = 0; i < inSTU->GetNL1JetPatch(0); i++)
+       }		
+      // L1 Jet patches
+      for(detector=0; detector<2;detector++){ // 0 EMCAL , 1 DCAL
+      for (Int_t i = 0; i < inSTU->GetNL1JetPatch(detector); i++)
 	{
-	  if (inSTU->GetL1JetPatch(i, 0, x, y)) // col (0,15), row (0,11)
+	  if(inSTU->GetL1JetPatch(i, detector, x, y)) // / col (0,15), row (0,11)
 	    {
 	      
-	      Int_t etaJ = sizeL1jsubr * (11-y-sizeL1jpatch + 1); //CHECK THIS FOR JETS
+	      Int_t etaJ = sizeL1jsubr * (11-y-sizeL1jpatch + 1); // CHECK THIS FOR JETS
 	      Int_t phiJ = sizeL1jsubr * (15-x-sizeL1jpatch + 1);
 	      
-	      //position of patch L1J (FOR bottom-left)
+	      // position of patch L1J (FOR bottom-left)
 	      FillRawsData(kJL1, etaJ, phiJ);
 					
-	      //loop the sum aplitude of FOR in the jet patch
+	      // loop the sum aplitude of FOR in the jet patch
 	      Int_t iL1JPatchAmp = 0;
 	      for (Int_t L1Jx = 0; L1Jx < sizeL1jpatch*4; L1Jx ++)
 		{
@@ -1198,13 +1440,14 @@ void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 		    }
 		}
 		
-	      //cout << "L1J amp =" << iL1JPatchAmp << endl;
+	      // cout << "L1J amp =" << iL1JPatchAmp << endl;
 	      FillRawsData(kJL1V0, iV0Sig, iL1JPatchAmp);
-	    }
-	}
-    }
-		
-  //Fill FOR amplitude histo
+	   }//end-if
+	}//end patches loop
+     }//end detector loop
+  }//end inSTU->ReadPayload()
+ 		
+  // Fill FOR amplitude histo
   for (Int_t i = 0; i < AliEMCALTriggerMappingV2::fSTURegionNEta; i++)
     {
       for (Int_t j = 0; j < AliEMCALTriggerMappingV2::fSTURegionNPhi; j++)

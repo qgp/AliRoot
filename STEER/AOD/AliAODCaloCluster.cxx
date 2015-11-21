@@ -13,14 +13,13 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
-/* $Id$ */
-
 //-------------------------------------------------------------------------
 //     AOD calorimeter cluster class (for PHOS and EMCAL)
 //     Author: Markus Oldenburg, CERN
 //-------------------------------------------------------------------------
 
 #include <TLorentzVector.h>
+#include "AliLog.h"
 #include "AliAODCaloCluster.h"
 
 ClassImp(AliAODCaloCluster)
@@ -41,10 +40,15 @@ AliAODCaloCluster::AliAODCaloCluster() :
   fTracksMatched(),
   fNCells(0),
   fCellsAbsId(0x0),
-  fCellsAmpFraction(0x0)
+  fCellsAmpFraction(0x0),
+  fMCEnergyFraction(0.),
+  fIsExotic(kFALSE)
 {
   // default constructor
 
+  for (Int_t i = 0; i <= kLastUserDefEnergy; i++) {
+    fUserDefEnergy[i] = 1.;
+  }
 }
 
 //______________________________________________________________________________
@@ -70,10 +74,15 @@ AliAODCaloCluster::AliAODCaloCluster(Int_t id,
   fTracksMatched(),
   fNCells(0),
   fCellsAbsId(0x0),
-  fCellsAmpFraction(0x0)
+  fCellsAmpFraction(0x0),
+  fMCEnergyFraction(0.),
+  fIsExotic(kFALSE)
 {
   // constructor
 
+  for (Int_t i = 0; i <= kLastUserDefEnergy; i++) {
+    fUserDefEnergy[i] = 1.;
+  }
 }
 
 //______________________________________________________________________________
@@ -99,9 +108,15 @@ AliAODCaloCluster::AliAODCaloCluster(Int_t id,
   fTracksMatched(),
   fNCells(0),
   fCellsAbsId(0x0),
-  fCellsAmpFraction(0x0)
+  fCellsAmpFraction(0x0),
+  fMCEnergyFraction(0.),
+  fIsExotic(kFALSE)
 {
   // constructor
+
+  for (Int_t i = 0; i <= kLastUserDefEnergy; i++) {
+    fUserDefEnergy[i] = 1.;
+  }
 }
 
 
@@ -138,7 +153,9 @@ AliAODCaloCluster::AliAODCaloCluster(const AliAODCaloCluster& clus) :
   fTracksMatched(clus.fTracksMatched),
   fNCells(clus.fNCells),
   fCellsAbsId(0x0),
-  fCellsAmpFraction(0x0)
+  fCellsAmpFraction(0x0),
+  fMCEnergyFraction(clus.fMCEnergyFraction),
+  fIsExotic(clus.fIsExotic)
 {
   // Copy constructor
 
@@ -156,6 +173,10 @@ AliAODCaloCluster::AliAODCaloCluster(const AliAODCaloCluster& clus) :
         fCellsAmpFraction[i]=clus.fCellsAmpFraction[i];
     }
     
+  }
+
+  for (Int_t i = 0; i <= kLastUserDefEnergy; i++) {
+    fUserDefEnergy[i] = clus.fUserDefEnergy[i];
   }
   
 }
@@ -203,6 +224,13 @@ AliAODCaloCluster& AliAODCaloCluster::operator=(const AliAODCaloCluster& clus)
 
   }
 
+  fMCEnergyFraction = clus.fMCEnergyFraction;
+  fIsExotic = clus.fIsExotic;
+
+  for (Int_t i = 0; i <= kLastUserDefEnergy; i++) {
+    fUserDefEnergy[i] = clus.fUserDefEnergy[i];
+  }
+
   return *this;
 }
 
@@ -226,6 +254,34 @@ void AliAODCaloCluster::GetMomentum(TLorentzVector& p, Double_t *vertex ) const 
   //" Double_t vertex[3] ; esd->GetVertex()->GetXYZ(vertex) ; "
 
   Double32_t energy = E();
+  Float_t    pos[3];
+  GetPosition(pos);
+  
+  if(vertex){//calculate direction from vertex
+    pos[0]-=vertex[0];
+    pos[1]-=vertex[1];
+    pos[2]-=vertex[2];
+  }
+  
+  Double_t r = TMath::Sqrt(pos[0]*pos[0]+
+			   pos[1]*pos[1]+
+			   pos[2]*pos[2]   ) ; 
+     
+  if ( r > 0 ) 
+    p.SetPxPyPzE( energy*pos[0]/r,  energy*pos[1]/r,  energy*pos[2]/r,  energy) ; 
+  else
+    AliInfo("Null cluster radius, momentum calculation not possible");
+}
+
+//_______________________________________________________________________
+void AliAODCaloCluster::GetMomentum(TLorentzVector& p, Double_t *vertex, VCluUserDefEnergy_t t ) const {
+  // Returns TLorentzVector with momentum of the cluster. Only valid for clusters 
+  // identified as photons or pi0 (overlapped gamma) produced on the vertex
+  // Uses the user defined energy t
+  //Vertex can be recovered with esd pointer doing:  
+  //" Double_t vertex[3] ; esd->GetVertex()->GetXYZ(vertex) ; "
+
+  Double32_t energy = GetUserDefEnergy(t);
   Float_t    pos[3];
   GetPosition(pos);
   

@@ -235,8 +235,8 @@ Long64_t AliAnalysisTaskCfg::ExecuteMacro(const char *newargs)
       return -1;
    }
 //   Long64_t ptrTask = (Long64_t)mgr->GetTasks()->At(ntasks0);
+   TObject::SetBit(AliAnalysisTaskCfg::kLoaded, kTRUE);
    if (retval) {
-      TObject::SetBit(AliAnalysisTaskCfg::kLoaded, kTRUE);
       fRAddTask = reinterpret_cast<TObject*>(retval);
       if (fConfigDeps && dynamic_cast<TObject*>(fRAddTask)) {
          TString classname = fRAddTask->ClassName();
@@ -584,7 +584,7 @@ TObjArray *AliAnalysisTaskCfg::ExtractModulesFrom(const char *filename)
       } else if (cfg && line.BeginsWith("#Module.EndConfig")) {
          // Marker for the end of the config macro. EndConfig block is mandatory
          if (cfg && addConfig) {
-            addConfig->GetListOfLines()->AddFirst(new TObjString(Form("%s() {",gSystem->BaseName(addConfig->GetName()))));
+            addConfig->GetListOfLines()->AddFirst(new TObjString(Form("void %s() {",gSystem->BaseName(addConfig->GetName()))));
             addConfig->GetListOfLines()->AddLast(new TObjString("}"));
             cfg->SetConfigMacro(addConfig);
             addConfig = 0;

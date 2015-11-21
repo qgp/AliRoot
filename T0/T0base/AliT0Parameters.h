@@ -78,10 +78,16 @@ public:
   Float_t GetTimeDelayCFD(Int_t ipmt);
 //  Float_t GetTimeV0(Int_t ipmt = 512) {return  fTimeV0;}
   Float_t GetCFD (Int_t ipmt);
+  Float_t GetQT1(Int_t ipmt);
+  Float_t GetPedestalOld(Int_t ipmt);
+  Float_t GetMeanTVDC(); 
+  Float_t GetMeanOrC();
+  Float_t GetMeanOrA();
+
   void SetMeanT0(Float_t mean=512) { fMeanT0 = mean; };
   Float_t GetMeanT0 () {return fMeanT0;};
   void SetMeanVertex(Float_t mean=0) { fMeanVertex = mean; };
-   Float_t GetMeanVertex ();
+  Float_t GetMeanVertex ();
 
   TMap * GetMapLookup();
   Int_t GetChannel(Int_t trm,  Int_t tdc, Int_t chain, Int_t channel);

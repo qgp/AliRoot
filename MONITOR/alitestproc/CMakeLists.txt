@@ -20,7 +20,8 @@ include_directories(${AliRoot_SOURCE_DIR}/MONITOR/alitestproc
                    )
 
 # Additional include folders in alphabetical order
-include_directories(${AliRoot_SOURCE_DIR}/MONITOR/MONITOR
+include_directories(${ROOT_INCLUDE_DIR}
+                    ${AliRoot_SOURCE_DIR}/MONITOR/MONITOR
                    )
 
 # Sources in alphabetical order
@@ -33,7 +34,7 @@ string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 
 # Add an executable to the project using the specified source files
 add_executable(${MODULE} ${SRCS})
-target_link_libraries(${MODULE} MONITOR Rint)
+target_link_libraries(${MODULE} MONITOR STEERBase Gpad Graf Gui Hist RIO Thread EG Geom Graf3d MathCore Matrix Minuit Net Physics Tree VMC  Rint Core)
 
 set(MODULE_COMPILE_FLAGS)
 set(MODULE_LINK_FLAGS)

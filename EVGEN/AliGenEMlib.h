@@ -44,7 +44,7 @@ public:
 			  kOmegaParamPbPb, kOmegaParamPPb };
   
   enum PtParamSetPhi_t{ kPhiMtScal=0, kPhiParampp, kPhiParampplow, kPhiParampphigh,
-		        kPhiParamPbPb, kPhiParamPPb };
+		        kPhiParamPbPb, kPhiParamPPb, kPhiParamPPblow, kPhiParamPPbhigh };
   
   enum v2Sys_t{kLoV2Sys=-1, kNoV2Sys=0, kUpV2Sys=+1};
  
@@ -52,9 +52,9 @@ public:
 
   static void SelectParams( Int_t collisionSystem,
 			    Int_t ptSelectPi0, 
-			    Int_t ptSelectEta, 
-			    Int_t ptSelectOmega,
-			    Int_t ptSelectPhi, 
+			    Int_t ptSelectEta=kEtaMtScal, 
+			    Int_t ptSelectOmega=kOmegaMtScal,
+			    Int_t ptSelectPhi=kPhiMtScal, 
 			    Int_t centSelect=kpp, 
 			    Int_t v2sys=kNoV2Sys) {  
     fgSelectedCollisionsSystem = collisionSystem;

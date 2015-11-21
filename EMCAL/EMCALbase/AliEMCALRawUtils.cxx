@@ -60,7 +60,8 @@ AliEMCALRawUtils::AliEMCALRawUtils( Algo::fitAlgorithm fitAlgo) : fNoiseThreshol
 								  fFittingAlgorithm(fitAlgo),  
 								  fTimeMin(-1.),
 								  fTimeMax(1.),
-								  fUseFALTRO(kTRUE),
+                                                                  fUseFALTRO(kTRUE),
+                                                                  fUseL1Phase(kTRUE),
 								  fRawAnalyzer(0),
 								  fTriggerRawDigitMaker(0x0)
 {
@@ -172,21 +173,10 @@ void AliEMCALRawUtils::Digits2Raw()
       //
       // In the next lines shift the online cols or rows depending on the
       // SM to match the offline mapping.
-      //
-        
       // Apply the shifts (inverse to those in Raw2Digits):
         
-      if ( nSM == 13 || nSM == 15 || nSM == 17 )
-      {
-        // DCal odd SMs
-        ieta += 16; // Same cabling mapping as for EMCal, not considered offline.
-      }
-        
-      if ( nSM == 18 || nSM == 19 )
-      {
-        // DCal 1/3 SMs
-        iphi += 16; // Needed due to cabling mistake.
-      }
+      fGeom->ShiftOfflineToOnlineCellIndexes(nSM, iphi, ieta);
+      
       //
       //----------------------------------------------------------------------
 
@@ -362,7 +352,7 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, 
   Int_t lowGain  = 0;
   Int_t caloFlag = 0; // low, high gain, or TRU, or LED ref.
   
-  Float_t bcTimePhaseCorr = 0; // for BC-based L1 phase correction
+  Float_t bcTimePhaseCorr = 0; // for BC-based L1 phase correction, Run1 data
   Int_t bcMod4 = (reader->GetBCID() % 4); // LHC uses 40 MHz, EMCal uses 10 MHz clock
 	
   //AliCDBManager* man = AliCDBManager::Instance();
@@ -370,7 +360,8 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, 
 	
   Int_t runNumber = reader->GetRunNumber();
 
-  if ((runNumber >130850 ) && (bcMod4==0 || bcMod4==1)) 
+  // Apply this shift for Run1 data
+  if ((runNumber > 130850 && runNumber < 200000) && (bcMod4==0 || bcMod4==1)) 
     bcTimePhaseCorr = -1e-7; // subtract 100 ns for certain BC values
 
   while (in.NextDDL()) 
@@ -381,6 +372,11 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, 
     
       if ( caloFlag > 2 ) continue; // Work with ALTRO and FALTRO
     
+      
+      Int_t sm     = in.GetModule() ;
+      Int_t row    = in.GetRow   () ;
+      Int_t column = in.GetColumn() ;
+      
       //----------------------------------------------------------------------
       //
       // Online mapping and numbering is the same for EMCal and DCal SMs but:
@@ -391,24 +387,9 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, 
       // In the next lines shift the online cols or rows depending on the
       // SM to match the offline mapping.
       //
-        
-      Int_t sm     = in.GetModule() ;
-      Int_t row    = in.GetRow   () ;
-      Int_t column = in.GetColumn() ;
-        
-      // Apply the shifts:
-        
-      if ( sm == 13 || sm == 15 || sm == 17 )
-      {
-        // DCal odd SMs
-        column -= 16; // Same cabling mapping as for EMCal, not considered offline.
-      }
-
-      if ( sm == 18 || sm == 19 )
-      {
-        // DCal 1/3 SMs
-        row -= 16; // Needed due to cabling mistake.
-      }
+                
+      fGeom->ShiftOnlineToOfflineCellIndexes(sm, row, column);
+      
       //
       //---------------------------------------------------------------------
         
@@ -433,9 +414,12 @@ void AliEMCALRawUtils::Raw2Digits(AliRawReader* reader,TClonesArray *digitsArr, 
         Int_t id = fGeom->GetAbsCellIdFromCellIndexes(sm, row, column) ;
                 
         lowGain  = in.IsLowGain();
-                
-        fRawAnalyzer->SetL1Phase( in.GetL1Phase() );
-                
+            
+        if(fUseL1Phase)
+          fRawAnalyzer->SetL1Phase( in.GetL1Phase() );
+        else 
+          fRawAnalyzer->SetL1Phase( 0 );
+
         AliCaloFitResults res =  fRawAnalyzer->Evaluate( bunchlist, in.GetAltroCFG1(), in.GetAltroCFG2());
                 
         if(res.GetAmp() >= fNoiseThreshold )

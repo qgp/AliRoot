@@ -253,13 +253,16 @@ AliTPCseed::AliTPCseed(Double_t xr, Double_t alpha, const Double_t xx[5],
 AliTPCseed::~AliTPCseed(){
   //
   // destructor
+  AliDebug(5,"Destruct AliTPCseed - Begin");
   fNoCluster =0;
   if (fClusterOwner){
     for (Int_t icluster=0; icluster<160; icluster++){
-      delete fClusterPointer[icluster];
+      if(fClusterPointer[icluster])
+	delete fClusterPointer[icluster];
+      fClusterPointer[icluster]=0;
     }
   }
-
+  AliDebug(5,"Destruct AliTPCseed - End");
 }
 //_________________________________________________
 AliTPCseed & AliTPCseed::operator=(const AliTPCseed &param)
@@ -289,6 +292,10 @@ AliTPCseed & AliTPCseed::operator=(const AliTPCseed &param)
     fRelativeSector = param.fRelativeSector;
     fCurrentSigmaY2 = param.fCurrentSigmaY2;
     fCurrentSigmaZ2 = param.fCurrentSigmaZ2;
+    fCMeanSigmaY2p30 = param.fCMeanSigmaY2p30;
+    fCMeanSigmaZ2p30 = param.fCMeanSigmaZ2p30;
+    fCMeanSigmaY2p30R = param.fCMeanSigmaY2p30R;
+    fCMeanSigmaZ2p30R = param.fCMeanSigmaZ2p30R;
     fErrorY2        = param.fErrorY2;
     fErrorZ2        = param.fErrorZ2;
     fCurrentCluster = param.fCurrentCluster; // this is not allocated by AliTPCSeed
@@ -298,13 +305,12 @@ AliTPCseed & AliTPCseed::operator=(const AliTPCseed &param)
     fNoCluster      = param.fNoCluster;
     fSort           = param.fSort;
     fBSigned        = param.fBSigned;
+    for (Int_t i=0;i<9;i++) fDEDX[i] = param.fDEDX[i];
     for(Int_t i = 0;i<4;++i){
-      fDEDX[i]   = param.fDEDX[i];
       fSDEDX[i]  = param.fSDEDX[i];
       fNCDEDX[i] = param.fNCDEDX[i];
       fNCDEDXInclThres[i] = param.fNCDEDXInclThres[i];
     }
-    for (Int_t i=0;i<9;i++) fDEDX[i] = 0;
 
     for(Int_t i = 0;i<AliPID::kSPECIES;++i)fTPCr[i] = param.fTPCr[i];
     
