@@ -645,12 +645,12 @@ protected:
                              //  and T0spread as written in OCDB
   AliCentrality *fCentrality; //! Centrality for AA collision
   AliEventplane *fEventplane; //! Event plane for AA collision
-
+  Int_t     fNTPCFriend2Store; //! number of TPC friend tracks to store
   ULong64_t fDetectorStatus; // set detector event status bit for good event selection
   UInt_t fDAQDetectorPattern; // Detector pattern from DAQ: bit 0 is SPD, bit 4 is TPC, etc. See event.h
   UInt_t fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
 
-  ClassDef(AliESDEvent,24)  //ESDEvent class 
+  ClassDef(AliESDEvent,25)  //ESDEvent class 
 };
 #endif 
 
