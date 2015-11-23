@@ -29,7 +29,7 @@ struct AliEveData {
   TTree        *fAODTree;		// AOD tree.
   AliAODEvent  *fAOD;			// AODEvent object.
   AliRunLoader* fRunLoader;		// Run loader.
-  AliRawReader *fRawReader;             // Raw-data reader.
+  AliRawReader *fRawReader;     // Raw-data reader.
     
   AliEveData()
       : fESDFile(NULL)
