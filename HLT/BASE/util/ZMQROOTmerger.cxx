@@ -27,10 +27,7 @@ typedef std::map<std::string,std::string> stringMap;
 
 //methods
 TObject* UnpackMessage(zmq_msg_t* message);
-TString GetFullArgString(Int_t argc, char** argv);
 Int_t ProcessOptionString(TString arguments);
-stringMap* TokenizeOptionString(const TString str);
-Int_t ProcessOption(TString option, TString value);
 Int_t InitZMQ();
 void* InitZMQsocket(void* context, Int_t socketMode, const char* configs);
 void* work(void* param);
@@ -51,12 +48,19 @@ Int_t Merge(TObject* object, TCollection* list);
 
 //configuration vars
 Bool_t  fVerbose = kFALSE;
-TString fZMQconfigIN  = "PUSH";
+TString fZMQconfigIN  = "PULL";
 TString fZMQsubscriptionIN = "";
-TString fZMQconfigOUT  = "PULL";
+TString fZMQconfigOUT  = "PUSH";
 TString fZMQconfigMON  = "REP";
+Int_t   fZMQmaxQueueSize = 10;
+Int_t   fZMQtimeout = 0;
 
-Bool_t  fResetOnSend = kFALSE;
+Bool_t  fResetOnSend = kFALSE;      //reset on each send (also on scheduled pushing)
+Bool_t  fResetOnRequest = kFALSE;   //reset once after a single request
+
+TPRegexp* fSendSelection = NULL;
+
+Int_t fRunNumber = 0;
 
 //internal state
 TMap fMergeObjectMap;        //map of the merged objects, all incoming stuff is merged into these
@@ -72,6 +76,22 @@ void* fZMQcontext = NULL;    //ze zmq context
 void* fZMQmon = NULL;        //the request-reply socket, here we request the merged data
 void* fZMQout = NULL;        //the monitoring socket, here we publish a copy of the data
 void* fZMQin  = NULL;        //the in socket - entry point for the data to be merged.
+
+const char* fUSAGE = 
+    "ZMQROOTmerger options: Merge() all ROOT mergeables in the message.\n"
+    "merge based on what GetName() returns, the merged data can be retrieved at any time.\n"
+    " -in : data in, zmq config string, e.g. PUSH>tcp://localhost:123123\n"
+    " -out : data out\n"
+    " -mon : monitoring socket\n"
+    " -Verbose : print some info\n"
+    " -pushback-period : push the merged data once every n ms\n"
+    " -ResetOnSend : always reset after send\n"
+    " -ResetOnRequest : reset once after reply\n"
+    " -MaxObjects : merge after this many objects are in (default 1)\n"
+    " -reset : reset NOW\n"
+    " -select : set the selection regex for sending out objects,\n" 
+    "           valid for one reply if used in a request,\n"
+    ;
 
 void* work(void* /*param*/)
 {
@@ -177,23 +197,40 @@ Int_t Run()
 //_____________________________________________________________________
 Int_t HandleControlMessage(zmq_msg_t* topicMsg, zmq_msg_t* dataMsg, void* socket)
 {
+  string tmp;
+  tmp.assign((char*)zmq_msg_data(topicMsg),zmq_msg_size(topicMsg));
   if (strncmp((char*)zmq_msg_data(topicMsg),"CONFIG",6)==0)
   {
     //reconfigure (first send a reply to not cause problems on the other end)
     std::string requestBody;
     requestBody.assign(static_cast<char*>(zmq_msg_data(dataMsg)), zmq_msg_size(dataMsg));
 
-    std::string reply = "Reconfiguring...";
-    zmq_send(socket, "INFO", 4, ZMQ_SNDMORE);
-    zmq_send(socket, reply.c_str(), reply.size(), 0);
+    //std::string reply = "Reconfiguring...";
+    //zmq_send(socket, "INFO", 4, ZMQ_SNDMORE);
+    //zmq_send(socket, reply.c_str(), reply.size(), 0);
     ProcessOptionString(requestBody.c_str());
     return 1;
   }
   else if (strncmp((char*)zmq_msg_data(topicMsg),"INFO",4)==0)
   {
-    //do nothing, maybe log, send back an empty info reply
-    zmq_send(socket, "INFO", 4, ZMQ_SNDMORE);
-    zmq_send(socket, 0, 0, 0);
+    //check if we have a runnumber in the string
+    string info;
+    info.assign((char*)zmq_msg_data(dataMsg),zmq_msg_size(dataMsg));
+    size_t runTagPos = info.find("run");
+    size_t runStartPos = info.find("=",runTagPos);
+    size_t runEndPos = info.find(" ");
+    string runString = info.substr(runStartPos+1,runEndPos-runStartPos-1);
+    if (fVerbose) printf("received run=%s\n",runString.c_str());
+
+    int runnumber = atoi(runString.c_str());
+    
+    if (runnumber!=fRunNumber) 
+    {
+      if (fVerbose) printf("Run changed, resetting!\n");
+      ResetOutputData();
+    }
+   fRunNumber = runnumber; 
+
     return 1;
   }
   else
@@ -217,7 +254,14 @@ Int_t HandleDataIn(zmq_msg_t* topicMsg, zmq_msg_t* dataMsg, void* socket)
 //_____________________________________________________________________
 Int_t DoReply(zmq_msg_t* topicMsg, zmq_msg_t* dataMsg, void* socket)
 {
-  return DoSend(socket);
+  int rc = DoSend(socket);
+
+  //reset the "one shot" options to default values
+  fResetOnRequest = kFALSE;
+  if (fVerbose && fSendSelection) 
+    Printf("unsetting fSendSelection=%s",fSendSelection->GetPattern().Data());
+  delete fSendSelection; fSendSelection=NULL;
+  return rc;
 }
 
 //_____________________________________________________________________
@@ -228,7 +272,7 @@ Int_t DoReceive(zmq_msg_t* topicMsg, zmq_msg_t* dataMsg, void* socket)
   //topic
   AliHLTDataTopic dataTopic;
   memcpy(&dataTopic, zmq_msg_data(topicMsg),std::min(zmq_msg_size(topicMsg),sizeof(dataTopic)));
-  if (fVerbose) Printf("in: data: %s", dataTopic.Description().c_str());
+  if (fVerbose) Printf("in: data: %s, size: %zu bytes", dataTopic.Description().c_str(), zmq_msg_size(dataMsg));
   TObject* object = UnpackMessage(dataMsg );
   if (object)
   {
@@ -285,33 +329,49 @@ Int_t DoSend(void* socket)
 {
   //send back merged data, one object per frame
 
+  aliZMQmsg message;
+  char tmp[34];
+  int tmpLength = sprintf(tmp,"%i",fRunNumber);
+  string runNumberString = tmp;
+  string infoMessageString = "INFO";
+  alizmq_msg_add(&message, infoMessageString, runNumberString);
   Int_t rc = 0;
-  TIter mapIter(&fMergeObjectMap);
   TObject* object = NULL;
-  Int_t objectNumber=0;
-  while ((object = mapIter.Next()))
+  TObject* key = NULL;
+  
+  TIter mapIter(&fMergeObjectMap);
+  while ((key = mapIter.Next()))
   {
     //the topic
     AliHLTDataTopic topic = kAliHLTDataTypeTObject;
     //the data
-    
-    Int_t flags = ( objectNumber < fMergeObjectMap.GetEntries()-1 ) ? ZMQ_SNDMORE : 0;    
-    rc = alizmq_msg_send(topic, fMergeObjectMap.GetValue(object), socket, flags, 0);
-    if (rc<0)
-    {
-      Printf("could not send object");
-      break;
-    }
-    objectNumber++;
+    object = fMergeObjectMap.GetValue(key);
 
-    if (fResetOnSend)
+    const char* objectName = object->GetName();
+    if (fSendSelection && !fSendSelection->Match(objectName)) 
     {
-      ResetOutputData();
-      if (fVerbose) Printf("data reset on send");
+      if (fVerbose) Printf("     object %s did NOT make the selection %s", 
+                           objectName, fSendSelection->GetPattern().Data());
+      continue;
+    }
+
+    rc = alizmq_msg_add(&message, &topic, object);
+    if (fResetOnSend || fResetOnRequest) 
+    {
+      TPair* pair = fMergeObjectMap.RemoveEntry(key);
+      delete pair->Key();
+      delete pair->Value();
+      delete pair;
     }
   }
+
+  //send
+  int sentBytes = alizmq_msg_send(&message, socket, 0);
+  if (fVerbose) Printf("merger sent %i bytes", sentBytes);
+  alizmq_msg_close(&message);
+
   //always at least send an empty reply if we are replying
-  if (objectNumber==0 && alizmq_socket_type(socket)==ZMQ_REP)
+  if (sentBytes==0 && alizmq_socket_type(socket)==ZMQ_REP)
     alizmq_msg_send("INFO","NODATA",socket,0);
 
   fLastPushBackTime.Set();
@@ -325,64 +385,17 @@ void ResetOutputData()
   fMergeObjectMap.DeleteAll();
 }
 
-//______________________________________________________________________________
-Int_t ProcessOption(TString option, TString value)
-{
-  //process option
-  //to be implemented by the user
-  
-  //if (option.EqualTo("ZMQpollIn"))
-  //{
-  //  fZMQpollIn = (value.EqualTo("0"))?kFALSE:kTRUE;
-  //}
- 
-  if (option.EqualTo("reset")) 
-  {
-    ResetOutputData();
-  }
-  else if (option.EqualTo("ResetOnSend"))
-  {
-    fResetOnSend = value.Contains("0")?kFALSE:kTRUE;
-  }
-  else if (option.EqualTo("MaxObjects"))
-  {
-    fMaxObjects = value.Atoi();
-  }
-  else if (option.EqualTo("ZMQconfigIN") || option.EqualTo("in"))
-  {
-    fZMQconfigIN = value;
-  }
-  else if (option.EqualTo("ZMQconfigOUT") || option.EqualTo("out"))
-  {
-    fZMQconfigOUT = value;
-  }
-  else if (option.EqualTo("ZMQconfigMON") || option.EqualTo("mon"))
-  {
-    fZMQconfigMON = value;
-  }
-  else if (option.EqualTo("Verbose"))
-  {
-    fVerbose=kTRUE;
-  }
-  else if (option.EqualTo("pushback-period"))
-  {
-    fPushbackPeriod=value.Atoi();
-  }
-
-  return 1; 
-}
-
 //_______________________________________________________________________________________
 Int_t InitZMQ()
 {
   //init or reinit stuff
   Int_t rc = 0;
-  printf("in:  ");
-  rc += alizmq_socket_init(fZMQin,  fZMQcontext, fZMQconfigIN.Data(), 0, 200);
-  printf("out: ");
-  rc += alizmq_socket_init(fZMQout, fZMQcontext, fZMQconfigOUT.Data(), 0, 200);
-  printf("mon: ");
-  rc += alizmq_socket_init(fZMQmon, fZMQcontext, fZMQconfigMON.Data(), 0, 200);
+  rc = alizmq_socket_init(fZMQin,  fZMQcontext, fZMQconfigIN.Data(), fZMQtimeout, fZMQmaxQueueSize);
+  printf("in:  (%s) %s\n", alizmq_socket_name(rc), fZMQconfigIN.Data());
+  rc = alizmq_socket_init(fZMQout, fZMQcontext, fZMQconfigOUT.Data(), fZMQtimeout, fZMQmaxQueueSize);
+  printf("out: (%s) %s\n", alizmq_socket_name(rc), fZMQconfigOUT.Data());
+  rc = alizmq_socket_init(fZMQmon, fZMQcontext, fZMQconfigMON.Data(), fZMQtimeout, fZMQmaxQueueSize);
+  printf("mon: (%s) %s\n", alizmq_socket_name(rc) , fZMQconfigMON.Data());
   return 0;
 }
 
@@ -419,110 +432,78 @@ Int_t Merge(TObject* object, TCollection* mergeList)
   return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//_______________________________________________________________________________________
-TString GetFullArgString(Int_t argc, char** argv)
-{
-  TString argString;
-  TString argument="";
-  if (argc>0) {
-    for (Int_t i=1; i<argc; i++) {
-      argument=argv[i];
-      if (argument.IsNull()) continue;
-      if (!argString.IsNull()) argString+=" ";
-      argString+=argument;
-    }  
-  }
-  return argString;
-}
-
 //______________________________________________________________________________
 Int_t ProcessOptionString(TString arguments)
 {
   //process passed options
   Int_t nOptions=0;
-  stringMap* options = TokenizeOptionString(arguments);
+  stringMap* options = AliOptionParser::TokenizeOptionString(arguments);
   for (stringMap::iterator i=options->begin(); i!=options->end(); ++i)
   {
     //Printf("  %s : %s", i->first.data(), i->second.data());
-    if (ProcessOption(i->first,i->second)>0)
-      nOptions++;
+    const TString& option = i->first; 
+    const TString& value = i->second;
+    if (option.EqualTo("reset")) 
+    {
+      ResetOutputData();
+    }
+    else if (option.EqualTo("ResetOnRequest"))
+    {
+      fResetOnRequest = value.Contains("0")?kFALSE:kTRUE;
+    }
+    else if (option.EqualTo("ResetOnSend"))
+    {
+      fResetOnSend = value.Contains("0")?kFALSE:kTRUE;
+    }
+    else if (option.EqualTo("MaxObjects"))
+    {
+      fMaxObjects = value.Atoi();
+    }
+    else if (option.EqualTo("ZMQconfigIN") || option.EqualTo("in"))
+    {
+      fZMQconfigIN = value;
+    }
+    else if (option.EqualTo("ZMQconfigOUT") || option.EqualTo("out"))
+    {
+      fZMQconfigOUT = value;
+    }
+    else if (option.EqualTo("ZMQconfigMON") || option.EqualTo("mon"))
+    {
+      fZMQconfigMON = value;
+    }
+    else if (option.EqualTo("Verbose"))
+    {
+      fVerbose=kTRUE;
+    }
+    else if (option.EqualTo("pushback-period"))
+    {
+      fPushbackPeriod=value.Atoi();
+    }
+    else if (option.EqualTo("ZMQmaxQueueSize"))
+    {
+      fZMQmaxQueueSize=value.Atoi();
+    }
+    else if (option.EqualTo("ZMQtimeout"))
+    {
+      fZMQtimeout=value.Atoi();
+    }
+    else if (option.EqualTo("select"))
+    {
+      delete fSendSelection;
+      fSendSelection = new TPRegexp(value);
+      if (fVerbose) Printf("setting new regex %s",fSendSelection->GetPattern().Data());
+    }
     else
+    {
+      Printf("unrecognized option %s",option.Data());
+      nOptions=-1;
       break;
+    }
+    nOptions++;
   }
   delete options; //tidy up
 
   return nOptions; 
-}
-
-//______________________________________________________________________________
-stringMap* TokenizeOptionString(const TString str)
-{
-  //options have the form:
-  // -option value
-  // -option=value
-  // -option
-  // --option value
-  // --option=value
-  // --option
-  // option=value
-  // option value
-  // (value can also be a string like 'some string')
-  //
-  // options can be separated by ' ' or ',' arbitrarily combined, e.g:
-  //"-option option1=value1 --option2 value2, -option4=\'some string\'"
-  
-  //optionRE by construction contains a pure option name as 3rd submatch (without --,-, =)
-  //valueRE does NOT match options
-  TPRegexp optionRE("(?:(-{1,2})|((?='?[^,=]+=?)))"
-                    "((?(2)(?:(?(?=')'(?:[^'\\\\]++|\\.)*+'|[^, =]+))(?==?))"
-                    "(?(1)[^, =]+(?=[= ,$])))");
-  TPRegexp valueRE("(?(?!(-{1,2}|[^, =]+=))"
-                   "(?(?=')'(?:[^'\\\\]++|\\.)*+'"
-                   "|[^, =]+))");
-
-  stringMap* options = new stringMap;
-
-  TArrayI pos;
-  const TString mods="";
-  Int_t start = 0;
-  while (1) {
-    Int_t prevStart=start;
-    TString optionStr="";
-    TString valueStr="";
-    
-    //check if we have a new option in this field
-    Int_t nOption=optionRE.Match(str,mods,start,10,&pos);
-    if (nOption>0)
-    {
-      optionStr = str(pos[6],pos[7]-pos[6]);
-      optionStr=optionStr.Strip(TString::kBoth,'\'');
-      start=pos[1]; //update the current character to the end of match
-    }
-
-    //check if the next field is a value
-    Int_t nValue=valueRE.Match(str,mods,start,10,&pos);
-    if (nValue>0)
-    {
-      valueStr = str(pos[0],pos[1]-pos[0]);
-      valueStr=valueStr.Strip(TString::kBoth,'\'');
-      start=pos[1]; //update the current character to the end of match
-    }
-    
-    //skip empty entries
-    if (nOption>0 || nValue>0)
-    {
-      (*options)[optionStr.Data()] = valueStr.Data();
-    }
-    
-    if (start>=str.Length()-1 || start==prevStart ) break;
-  }
-
-  //for (stringMap::iterator i=options->begin(); i!=options->end(); ++i)
-  //{
-  //  printf("%s : %s\n", i->first.data(), i->second.data());
-  //}
-  return options;
 }
 
 //_______________________________________________________________________________________
@@ -531,17 +512,10 @@ int main(Int_t argc, char** argv)
   Int_t mainReturnCode=0;
 
   //process args
-  TString argString = GetFullArgString(argc,argv);
+  TString argString = AliOptionParser::GetFullArgString(argc,argv);
   if (ProcessOptionString(argString)<=0)
   {
-    printf("options: \n");
-    printf("in : data in, zmq config string, e.g. PUSH>tcp://localhost:123123\n");
-    printf("out : data out\n");
-    printf("mon : monitoring socket\n");
-    printf("Verbose : print some info\n");
-    printf("pushback-period : push the merged data once every n ms\n");
-    printf("ResetOnSend : always reset after send\n");
-    printf("reset : reset NOW\n");
+    printf("%s",fUSAGE);
     return 1;
   }
 

@@ -79,7 +79,7 @@ protected:
   AliHLTComponentBenchmark fBenchmark; // benchmark
   
   Int_t fSkipEvents;
-  Int_t fPrintStats;
+  Int_t fPrintStats; //print status messages: 0: never, 1: when pushing histograms (respect pushback-period), 2: always
   Int_t fEventsSinceSkip;
 
   TH2I* fHistSPDclusters_SPDrawSize;
@@ -91,6 +91,9 @@ protected:
   TH2I* fHistTPCtracks_TPCtracklets;
   TH2I* fHistITStracks_ITSOutTracks;
   TH2I* fHistTPCClusterSize_TPCCompressedSize;
+  TH2F* fHistZNA_VZEROTrigChargeA;
+  TH2F* fHistZNC_VZEROTrigChargeC;
+  TH2F* fHistZNT_VZEROTrigChargeT;
 
   ClassDef(AliHLTGlobalPromptRecoQAComponent, 0)
 };

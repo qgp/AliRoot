@@ -1,3 +1,5 @@
+#ifndef __AliZMQhelpers__
+#define __AliZMQhelpers__
 
 // blame: Mikolaj Krzewicki, mikolaj.krzewicki@cern.ch
 // some of it might be inspired by czmq.h
@@ -39,10 +41,13 @@ int alizmq_detach (void *self, const char *endpoints, bool serverish=false);
 
 //general multipart messages (aliZMQmsg)
 //to access, just iterate over it.
-int alizmq_msg_copy(aliZMQmsg* dst, aliZMQmsg* src);
 int alizmq_msg_recv(aliZMQmsg* message, void* socket, int flags);
+int alizmq_msg_add(aliZMQmsg* message, AliHLTDataTopic* topic, TObject* object, int compression=0);
+int alizmq_msg_add(aliZMQmsg* message, std::string& topic, std::string& data);
+int alizmq_msg_copy(aliZMQmsg* dst, aliZMQmsg* src);
 int alizmq_msg_send(aliZMQmsg* message, void* socket, int flags);
 int alizmq_msg_close(aliZMQmsg* message);
+
 //helpers for accessing data via iterators
 int alizmq_msg_iter_topic(aliZMQmsg::iterator it, AliHLTDataTopic& topic);
 int alizmq_msg_iter_data(aliZMQmsg::iterator it, TObject*& object);
@@ -56,6 +61,7 @@ int alizmq_msg_send(const AliHLTDataTopic& topic, TObject* object, void* socket,
 
 //deallocate an object - callback for ZMQ
 void alizmq_deleteTObject(void*, void* object);
+void alizmq_deleteTopic(void*, void* object);
 
 //simple zmq multi part message class
 //behaves like a map.
@@ -82,14 +88,18 @@ void alizmq_deleteTObject(void*, void* object);
 //simple option parser class
 class AliOptionParser {
 public:
+  AliOptionParser() {}
+  virtual ~AliOptionParser() {}
+  //implement this to process one option at a time
+  virtual int ProcessOption(TString /*option*/, TString /*value*/) {return 0;}
+  
   //call this to parse the args
   int ProcessOptionString(TString arguments);
-  int ProcessOptionString(int argc, char** argv);
-  //implement this to process one option at a time
-  int ProcessOption(TString /*option*/, TString /*value*/) {return 0;}
+  int ProcessOptionString(int argc, char** argv) { return ProcessOptionString(GetFullArgString(argc,argv)); }
+
   //convert argc/argv into a TString of options
-  TString GetFullArgString(int argc, char** argv);
-private:
-  stringMap* TokenizeOptionString(const TString str);
+  static TString GetFullArgString(int argc, char** argv);
+  static stringMap* TokenizeOptionString(const TString str);
 };
 
+#endif

@@ -11,14 +11,13 @@
 */
 
 #include "AliHLTComponent.h"
+#include "AliZMQhelpers.h"
 #include <map>
 #include <string>
 
-class AliHLTZMQsink : public AliHLTComponent {
+class AliHLTZMQsink : public AliHLTComponent, public AliOptionParser {
 public:
   
-  typedef map<std::string,std::string> stringMap;
-
   AliHLTZMQsink();
   virtual ~AliHLTZMQsink();
 
@@ -30,9 +29,7 @@ public:
   void GetOutputDataSize( unsigned long& constBase, double& inputMultiplier );
   AliHLTComponent* Spawn();
 
-  //new option parser
-  static stringMap* TokenizeOptionString(const TString str);
-  int ProcessOptionString(TString arguments);
+  //overload from AliOptionParser
   int ProcessOption(TString option, TString value);
 
 protected:
@@ -61,6 +58,7 @@ private:
   Int_t fLastPushbackDelayTime; //last push back time
   Bool_t fIncludePrivateBlocks; //include private blocks?
   Bool_t fZMQneverBlock;        //never block, even with a PUSH sock.
+  Bool_t fSendRunNumber; //send the run number in each message
   
   ClassDef(AliHLTZMQsink, 1)
 };

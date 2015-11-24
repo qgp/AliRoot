@@ -55,6 +55,7 @@
 #include "AliHLTCaloClusterReader.h"
 #include "AliESDCaloCluster.h"
 #include "AliESDVZERO.h"
+#include "AliESDZDC.h"
 #include "AliHLTGlobalVertexerComponent.h"
 #include "AliHLTVertexFinderBase.h"
 #include "AliSysInfo.h"
@@ -89,6 +90,9 @@ AliHLTGlobalPromptRecoQAComponent::AliHLTGlobalPromptRecoQAComponent()
   , fHistTPCtracks_TPCtracklets(NULL)
   , fHistITStracks_ITSOutTracks(NULL)
   , fHistTPCClusterSize_TPCCompressedSize(NULL)
+  , fHistZNA_VZEROTrigChargeA(NULL)
+  , fHistZNC_VZEROTrigChargeC(NULL)
+  , fHistZNT_VZEROTrigChargeT(NULL)
 {
   // see header file for class documentation
   // or
@@ -131,6 +135,8 @@ int AliHLTGlobalPromptRecoQAComponent::Configure(const char* arguments)
         fSkipEvents = argument.Atoi();
       }	else if (argument.CompareTo("-print-stats")==0) {
         fPrintStats = 1;
+      }	else if (argument.CompareTo("-print-stats-verbose")==0) {
+        fPrintStats = 2;
       }	else if (!argument.Contains("pushback-period")) {
 	HLTError("unknown argument %s", argument.Data());
 	iResult=-EINVAL;
@@ -200,9 +206,17 @@ void AliHLTGlobalPromptRecoQAComponent::GetInputDataTypes(AliHLTComponentDataTyp
   list.push_back(kAliHLTDataTypeTrack | kAliHLTDataOriginITS); //TPC-ITS tracks
   list.push_back(kAliHLTDataTypeTrack | kAliHLTDataOriginITSOut); //ITS-Out merged tracks
   
+  list.push_back(kAliHLTDataTypeESDContent | kAliHLTDataOriginZDC); //ZDC reco output
+
   list.push_back(kAliHLTDataTypeESDContent | kAliHLTDataOriginVZERO); //VZERO-RECO output
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginVZERO);
+  list.push_back(kAliHLTDataTypeESDContent | kAliHLTDataOriginZDC); //ZDC-RECO output
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginZDC);
   
   list.push_back(AliHLTEMCALDefinitions::fgkTriggerPatchDataType); //EMCAL-RECO output
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginEMCAL);
+  list.push_back(AliHLTEMCALDefinitions::fgkTriggerSTUDataType); //STU
+  list.push_back(AliHLTEMCALDefinitions::fgkTriggerRawDigitDataType); //TRU
   
   list.push_back(kAliHLTDataTypeESDObject|kAliHLTDataOriginOut);
   list.push_back(kAliHLTDataTypeESDfriendObject|kAliHLTDataOriginOut);
@@ -257,6 +271,9 @@ int AliHLTGlobalPromptRecoQAComponent::DoInit(int argc, const char** argv)
   fHistTPCClusterSize_TPCCompressedSize = new TH2I("TPCSize_TPCCompSize", "TPCSize vs TPC compressed size", 50, 0., 10000000., 50, 0., 10000000.);
   fHistTPCtracks_TPCtracklets = new TH2I("TPCntrk_TPCntrl", "TPCntrk vs TPCnTracklets", 50, 0., 25000., 50, 0., 40000.);
   fHistITStracks_ITSOutTracks = new TH2I("ITSntrk_ITSOutntrk", "ITSntrk vs ITSOutntrk", 50, 0., 25000., 50, 0., 25000.);
+  fHistZNA_VZEROTrigChargeA = new TH2F("VZEROTrigChargeA_ZNA", "ZNA vs. VZEROTriggerChargeA", 100, 0., 25000., 100, 0., 1500.);
+  fHistZNC_VZEROTrigChargeC = new TH2F("VZEROTrigChargeC_ZNC", "ZNC vs. VZEROTriggerChargeC", 100, 0., 50000., 100, 0., 1500.);
+  fHistZNT_VZEROTrigChargeT = new TH2F("VZEROTrigChargeT_ZNT", " ZN(A+C) vs. VZEROTriggerCharge(A+C)", 100, 0., 75000., 100, 0., 2500.);
 
   return iResult;
 }
@@ -297,6 +314,7 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
   AliHLTUInt32_t rawSizeITS = 0;
   AliHLTUInt32_t rawSizeVZERO = 0;
   AliHLTUInt32_t rawSizeEMCAL = 0;
+  AliHLTUInt32_t rawSizeZDC = 0;
   
   AliHLTUInt32_t nClustersTPC = 0;
   AliHLTUInt32_t rawSizeTPC = 0;
@@ -312,7 +330,18 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
   AliHLTUInt32_t nITSOutTracks = 0;
 
   float vZEROMultiplicity = 0.;
+  UShort_t vZEROTriggerChargeA = 0;
+  UShort_t vZEROTriggerChargeC = 0;
+
+  Double_t zdcZNC = 0.;
+  Double_t zdcZNA = 0.;
+
+  int zdcRecoSize = 0;
   int emcalRecoSize = 0;
+  int emcalTRU = 0;
+  int emcalSTU = 0;
+  
+  static int nEvents = 0;
   
   Bool_t bITSSPDVertex = kFALSE;
   
@@ -322,6 +351,12 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
   AliHLTUInt32_t nESDFriendSize = 0;
   AliHLTUInt32_t nFlatESDSize = 0;
   AliHLTUInt32_t nFlatESDFriendSize = 0;
+  
+  AliHLTUInt32_t nHLTInSize = 0;
+  AliHLTUInt32_t nHLTOutSize = 0;
+  float hltRatio;
+
+  nEvents++;
 
   //loop over input blocks and extract basic stats
   int nBlocks = evtData.fBlockCnt;  
@@ -388,18 +423,46 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
       const TObject* o = GetInputObjectFromIndex(ndx);
       if (o)
       {
-        const AliESDVZERO* v = dynamic_cast<const AliESDVZERO*>(o);
-        if (v)
+        const AliESDVZERO* esdVZERO = dynamic_cast<const AliESDVZERO*>(o);
+        if (esdVZERO)
         {
-          for (int i = 0;i < 64;i++) vZEROMultiplicity += v->GetMultiplicity(i);
+          for (int i = 0;i < 64;i++) vZEROMultiplicity += esdVZERO->GetMultiplicity(i);
+          vZEROTriggerChargeA = esdVZERO->GetTriggerChargeA();
+          vZEROTriggerChargeC = esdVZERO->GetTriggerChargeC();
         }
       }
+    }
+    
+    //ZDC Reco size
+    if (iter->fDataType == (kAliHLTDataTypeESDContent | kAliHLTDataOriginZDC))
+    {
+      zdcRecoSize += iter->fSize;
     }
     
     //EMCAL Reco Size
     if (iter->fDataType == AliHLTEMCALDefinitions::fgkTriggerPatchDataType)
     {
       emcalRecoSize += iter->fSize;
+    }
+    if (iter->fDataType == AliHLTEMCALDefinitions::fgkTriggerSTUDataType)
+    {
+      emcalSTU += iter->fSize;
+    }
+    if (iter->fDataType == AliHLTEMCALDefinitions::fgkTriggerRawDigitDataType)
+    {
+      emcalTRU += iter->fSize;
+    }
+
+    //ZDC tower energies
+    if (iter->fDataType == (kAliHLTDataTypeESDContent | kAliHLTDataOriginZDC))
+    {
+      const TObject* o = GetInputObjectFromIndex(ndx);
+      const AliESDZDC* esdZDC = dynamic_cast<const AliESDZDC*>(o);
+      if (esdZDC)
+      {
+        zdcZNC = esdZDC->GetZNCTowerEnergy()[0];
+        zdcZNA = esdZDC->GetZNATowerEnergy()[0];
+      }
     }
 
     //RAW sizes
@@ -438,6 +501,10 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
     if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginVZERO))
     {
       rawSizeVZERO += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginZDC))
+    {
+      rawSizeZDC += iter->fSize;
     }
     if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginEMCAL))
     {
@@ -492,6 +559,9 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
 
   compressionRatio = compressedSizeTPC > 0 ? ((float) hwcfSizeTPC / (float) compressedSizeTPC) : 0.f;
 
+  nHLTInSize = rawSizeSPD + rawSizeSSD + rawSizeSDD + hwcfSizeTPC + rawSizeVZERO + rawSizeEMCAL + rawSizeZDC;
+  nHLTOutSize = nESDSize + nESDFriendSize + nFlatESDSize + nFlatESDFriendSize + compressedSizeTPC;
+  hltRatio = nHLTInSize > 0 ? ((float) nHLTOutSize / (float) nHLTInSize) : 0.f;
 
   //fill histograms
   fHistSPDclusters_SPDrawSize->Fill(nClustersSPD, rawSizeSPD);
@@ -525,6 +595,19 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
   fHistTPCClusterSize_TPCCompressedSize->Fill(hwcfSizeTPC, compressedSizeTPC);
   if (fHistTPCClusterSize_TPCCompressedSize->GetEntries() && PushBack(fHistTPCClusterSize_TPCCompressedSize, kAliHLTDataTypeHistogram|kAliHLTDataOriginOut) > 0)
     fHistTPCClusterSize_TPCCompressedSize->Reset();
+  
+  //VZERO vs ZDC
+  fHistZNA_VZEROTrigChargeA->Fill(vZEROTriggerChargeA, zdcZNA);
+  if (fHistZNA_VZEROTrigChargeA->GetEntries() && PushBack(fHistZNA_VZEROTrigChargeA, kAliHLTDataTypeHistogram|kAliHLTDataOriginOut)>0)
+    fHistZNA_VZEROTrigChargeA->Reset();
+
+  fHistZNC_VZEROTrigChargeC->Fill(vZEROTriggerChargeC, zdcZNC);
+  if (fHistZNC_VZEROTrigChargeC->GetEntries() && PushBack(fHistZNC_VZEROTrigChargeC, kAliHLTDataTypeHistogram|kAliHLTDataOriginOut)>0)
+    fHistZNC_VZEROTrigChargeC->Reset();
+
+  fHistZNT_VZEROTrigChargeT->Fill(vZEROTriggerChargeA+vZEROTriggerChargeC, zdcZNA+zdcZNC);
+  if (fHistZNT_VZEROTrigChargeT->GetEntries() && PushBack(fHistZNT_VZEROTrigChargeT, kAliHLTDataTypeHistogram|kAliHLTDataOriginOut)>0)
+    fHistZNT_VZEROTrigChargeT->Reset();
 
   int pushed_something = 0;
   fHistITStracks_ITSOutTracks->Fill(nITSTracks, nITSOutTracks);
@@ -534,12 +617,12 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
     pushed_something = 1;
   }
 
-  if (fPrintStats && pushed_something) //Don't print this for every event if we use a pushback period
+  if (fPrintStats && (fPrintStats == 2 || pushed_something)) //Don't print this for every event if we use a pushback period
   {
-    HLTImportant("Blocks %d: HLT Reco QA Stats: SPD-Cl %d (%d), SDD-Cl %d (%d), SSD-Cl %d (%d) TPC-Cl %d (%d / %d / %d / %d), TPC-Comp %fx (%d)"
-      ", ITSSAP-Tr %d, TPC-Tr %d / %d, ITS-Tr %d / %d, SPD-Ver %d, V0 %f (%d), EMCAL %d (%d), ESD %d / %d (%d / %d)",
-      nBlocks, nClustersSPD, rawSizeSPD, nClustersSDD, rawSizeSDD, nClustersSSD, rawSizeSSD, nClustersTPC, rawSizeTPC, hwcfSizeTPC, clusterSizeTPC, clusterSizeTPCtransformed, compressionRatio, compressedSizeTPC,
-      nITSSAPtracks, nTPCtracklets, nTPCtracks, nITSTracks, nITSOutTracks, (int) bITSSPDVertex, vZEROMultiplicity, rawSizeVZERO, emcalRecoSize, rawSizeEMCAL, nESDSize, nFlatESDSize, nESDFriendSize, nFlatESDFriendSize);
+    HLTImportant("Events %d Blocks %4d: HLT Reco QA Stats: HLTInOut %d / %d / %4.1f%%, SPD-Cl %d (%d), SDD-Cl %d (%d), SSD-Cl %d (%d) TPC-Cl %d (%d / %d / %d / %d), TPC-Comp %5.3fx (%d)"
+      ", ITSSAP-Tr %d, TPC-Tr %d / %d, ITS-Tr %d / %d, SPD-Ver %d, V0 %6.2f (%d), EMCAL %d (%d / %d / %d), ZDC %d (%d), ESD %d / %d (%d / %d)",
+      nEvents, nBlocks, nHLTInSize, nHLTOutSize, hltRatio * 100, nClustersSPD, rawSizeSPD, nClustersSDD, rawSizeSDD, nClustersSSD, rawSizeSSD, nClustersTPC, rawSizeTPC, hwcfSizeTPC, clusterSizeTPC, clusterSizeTPCtransformed, compressionRatio, compressedSizeTPC,
+      nITSSAPtracks, nTPCtracklets, nTPCtracks, nITSTracks, nITSOutTracks, (int) bITSSPDVertex, vZEROMultiplicity, rawSizeVZERO, emcalRecoSize, emcalTRU, emcalSTU, rawSizeEMCAL, zdcRecoSize, rawSizeZDC, nESDSize, nFlatESDSize, nESDFriendSize, nFlatESDFriendSize);
   }
 
   return iResult;

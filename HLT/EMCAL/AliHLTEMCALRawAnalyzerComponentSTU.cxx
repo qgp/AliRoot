@@ -30,7 +30,6 @@ ClassImp(AliHLTEMCALRawAnalyzerComponentSTU)
 AliHLTEMCALRawAnalyzerComponentSTU::AliHLTEMCALRawAnalyzerComponentSTU():
 AliHLTCaloProcessor(),
 AliHLTCaloConstantsHandler("EMCAL"),
-fRawReaderMemoryPtr(NULL),
 fSTURawDigitMaker(NULL),
 fGeometry(NULL)
 {
@@ -38,7 +37,6 @@ fGeometry(NULL)
 
 AliHLTEMCALRawAnalyzerComponentSTU::~AliHLTEMCALRawAnalyzerComponentSTU() {
   if(fGeometry) delete fGeometry;
-  if(fRawReaderMemoryPtr) delete fRawReaderMemoryPtr;
 }
 
 int AliHLTEMCALRawAnalyzerComponentSTU::DoInit(int argc, const char **argv){
@@ -47,16 +45,12 @@ int AliHLTEMCALRawAnalyzerComponentSTU::DoInit(int argc, const char **argv){
   fSTURawDigitMaker = new AliHLTEMCALSTURawDigitMaker;
   fSTURawDigitMaker->SetGeometry(fGeometry);
 
-  fRawReaderMemoryPtr = new AliRawReaderMemory();
-
   return 0;
 }
 
 int AliHLTEMCALRawAnalyzerComponentSTU::DoDeinit(){
   if(fGeometry) delete fGeometry;
   fGeometry = NULL;
-  if(fRawReaderMemoryPtr) delete fRawReaderMemoryPtr;
-  fRawReaderMemoryPtr = NULL;
   return 0;
 }
 
@@ -74,9 +68,9 @@ AliHLTComponentDataType AliHLTEMCALRawAnalyzerComponentSTU::GetOutputDataType(){
 }
 
 void AliHLTEMCALRawAnalyzerComponentSTU::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier){
-  // Allocate size for 1000 digits
-  constBase = sizeof(AliHLTEMCALSTUHeaderStruct) + 1000 * sizeof(AliHLTCaloTriggerRawDigitDataStruct);
-  inputMultiplier = 0;
+  //
+  constBase = sizeof(AliHLTEMCALSTUHeaderStruct) + 5000 * sizeof(AliHLTCaloTriggerRawDigitDataStruct);
+  //inputMultiplier = 5.;
 }
 
 AliHLTComponent* AliHLTEMCALRawAnalyzerComponentSTU::Spawn(){
@@ -128,13 +122,16 @@ int AliHLTEMCALRawAnalyzerComponentSTU::DoEvent( const AliHLTComponentEventData&
       continue;
 
     // Initialize raw reader from input data
-    fRawReaderMemoryPtr->SetMemory(reinterpret_cast<UChar_t*>( iter->fPtr ), static_cast<ULong_t>(iter->fSize));
-    fRawReaderMemoryPtr->SetEquipmentID(iter->fSpecification + fCaloConstants->GetDDLOFFSET());
+    AliRawReaderMemory rawReaderMemoryPtr;
+    rawReaderMemoryPtr.SetMemory(reinterpret_cast<UChar_t*>( iter->fPtr ), static_cast<ULong_t>(iter->fSize));
+    rawReaderMemoryPtr.SetEquipmentID(iter->fSpecification + fCaloConstants->GetDDLOFFSET());
+    rawReaderMemoryPtr.Reset();
+    rawReaderMemoryPtr.NextEvent();
 
     fSTURawDigitMaker->Reset();
 
-    AliEMCALTriggerSTURawStream stustream(fRawReaderMemoryPtr);
-    fSTURawDigitMaker->ProcessSTUStream(fRawReaderMemoryPtr, &stustream);
+    AliEMCALTriggerSTURawStream stustream(&rawReaderMemoryPtr);
+    fSTURawDigitMaker->ProcessSTUStream(&stustream, iter->fSpecification == AliDAQ::GetFirstSTUDDL() ? 0 : 1);
     const AliEMCALTriggerData *triggerData = fSTURawDigitMaker->GetTriggerData();
 
     if(!headerInitialized){

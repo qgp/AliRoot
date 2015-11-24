@@ -42,11 +42,6 @@ template<typename T> class AliEMCALTriggerPatchFinder;
  */
 class AliHLTEMCALTriggerMaker : public TObject, public AliHLTLogging {
 public:
-  enum{
-    kOriginSTU = 0,
-    kOriginRECAL = 1,
-    kOriginCELLS = 1
-  };
   /**
    * Constructor
    */
@@ -76,12 +71,6 @@ public:
   void ResetADC();
 
   /**
-   * Set the origin of the trigger patches (STU, RECAL, CELLS)
-   * @param origin Origin of the trigger patches
-   */
-  void SetOrigin(UChar_t origin) { fOrigin = origin; }
-
-  /**
    * Add digit structure to the data grid
    * @param digit Input digit data
    */
@@ -94,6 +83,14 @@ public:
    * @param adc ADC value
    */
   void SetADC(Int_t col, Int_t row, Float_t adc);
+
+    /**
+   * Set the bit mask from the STU for a given col / row combination
+   * @param col Column
+   * @param row Row
+   * @param bitMask Bit mask
+   */
+  void SetBitMask(Int_t col, Int_t row, Int_t bitMask);
 
   /**
    * Set the pointer to the writeout buffer
@@ -109,13 +106,34 @@ public:
    */
   Int_t FindPatches();
 
+  /**
+   * Set the thresholds for jet trigger patches
+   * @param onlineTh Online threshold to be applied
+   * @param offlineTh Offline threshold to be applied
+   */
+  void SetJetThresholds(Float_t onlineTh, Float_t offlineTh) { fJetThresholdOnline = onlineTh; fJetThresholdOffline = offlineTh; }
+  
+  /**
+   * Set the thresholds for gamma trigger patches
+   * @param onlineTh Online threshold to be applied
+   * @param offlineTh Offline threshold to be applied
+   */
+  void SetGammaThresholds(Float_t onlineTh, Float_t offlineTh) { fGammaThresholdOnline = onlineTh; fGammaThresholdOffline = offlineTh; }
+
+  /**
+   * Set the thresholds for bkg trigger patches
+   * @param onlineTh Online threshold to be applied
+   * @param offlineTh Offline threshold to be applied
+   */
+  void SetBkgThresholds(Float_t onlineTh, Float_t offlineTh) { fBkgThresholdOnline = onlineTh; fBkgThresholdOffline = offlineTh; }
+
 protected:
   /**
    * Convert raw patches found by the trigger patch finders into HLT EMCAL trigger patches.
    * @param inputpatch EMCAL raw patch to be converted into an EMCAL HLT patch
    * @param output HLT trigger patch obtaied using the information in the EMCAL raw patch
    */
-   void MakeHLTPatch(const AliEMCALTriggerRawPatch &inputpatch, AliHLTCaloTriggerPatchDataStruct &output, UChar_t origin) const;
+   void MakeHLTPatch(const AliEMCALTriggerRawPatch &inputpatch, AliHLTCaloTriggerPatchDataStruct &output) const;
 
   /**
    * Initialise trigger patch finders in the EMCAL
@@ -127,7 +145,6 @@ protected:
   void InitializeDCALPatchFinders();
 
 private:
-  UChar_t                                       fOrigin;
   /** Pointer to the output buffer */
   AliHLTCaloTriggerPatchDataStruct              *fTriggerPatchDataPtr;
   /** Underlying EMCAL geometry*/
@@ -137,8 +154,25 @@ private:
   AliEMCALTriggerPatchFinder<float>             *fPatchFinder;
   /** Grid with ADC values used for the trigger patch finding */
   AliEMCALTriggerDataGrid<float>                *fADCValues;
+  /** Grid with ADC values used for the trigger patch finding */
+  AliEMCALTriggerDataGrid<float>                *fADCOfflineValues;
+  /** Grid with trigger bit mask from STU */
+  AliEMCALTriggerDataGrid<int>                  *fTriggerBitMasks;
 
-  ClassDef(AliHLTEMCALTriggerMaker, 1);
+  /** online threshold for gamma patches */
+  Float_t                                       fGammaThresholdOnline;
+  /** offline threshold for gamma patches */
+  Float_t                                       fGammaThresholdOffline;
+  /** online threshold for jet patches */
+  Float_t                                       fJetThresholdOnline;
+  /** offline threshold for jet patches */
+  Float_t                                       fJetThresholdOffline;
+  /** online threshold for bkg patches */
+  Float_t                                       fBkgThresholdOnline;
+  /** offline threshold for bkg patches */
+  Float_t                                       fBkgThresholdOffline;
+
+  ClassDef(AliHLTEMCALTriggerMaker, 2);
 };
 
 #endif
