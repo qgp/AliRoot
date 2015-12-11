@@ -50,9 +50,10 @@
 #include "TTreeStream.h"
 #include "AliLog.h"
 #include "TTimeStamp.h"
-#include "AliESDEvent.h"
-#include "AliESDfriend.h"
-#include "AliESDtrack.h"
+#include "AliVEvent.h"
+#include "AliVfriendEvent.h"
+#include "AliVTrack.h"
+#include "AliVfriendTrack.h"
 #include "AliTracker.h"
 #include "AliTPCClusterParam.h"
 #include "AliTPCParam.h"
@@ -60,6 +61,7 @@
 #include "AliTPCcalibDB.h"
 #include "AliTPCTransform.h"
 #include "AliTPCRecoParam.h"
+#include "AliTPCreco.h"
 #include "AliTPCclusterMI.h"
 #include "AliTPCseed.h"
 #include <TGeoManager.h>
@@ -128,20 +130,20 @@ AliTPCcalibCalib::~AliTPCcalibCalib() {
 }
 
 
-void     AliTPCcalibCalib::Process(AliESDEvent *event){
+void     AliTPCcalibCalib::Process(AliVEvent *event){
   //
   // 
   //
   if (!event) {
     return;
   }  
-  AliESDfriend *ESDfriend=static_cast<AliESDfriend*>(event->FindListObject("AliESDfriend"));
-  if (!ESDfriend) {
+  AliVfriendEvent *Vfriend=event->FindFriend();
+  if (!Vfriend) {
    return;
   }
-  if (ESDfriend->TestSkipBit()) return;
+  if (Vfriend->TestSkipBit()) return;
   if (GetDebugLevel()>20) printf("Hallo world: Im here\n");
-  Int_t ntracks=ESDfriend->GetNumberOfTracks();   
+  Int_t ntracks=Vfriend->GetNumberOfTracks();
   //AliTPCcalibDB::Instance()->SetExBField(fMagF);
 
   //
@@ -149,30 +151,35 @@ void     AliTPCcalibCalib::Process(AliESDEvent *event){
   //
 
   for (Int_t i=0;i<ntracks;++i) {
-    AliESDtrack *track = event->GetTrack(i);     
-    AliESDfriendTrack *friendTrack = (AliESDfriendTrack*) ESDfriend->GetTrack(i);
+    AliVTrack *track = event->GetVTrack(i);
+    AliVfriendTrack *friendTrack = const_cast<AliVfriendTrack*>(Vfriend->GetTrack(i));
     if (!friendTrack) continue;
     //track->SetFriendTrack(friendTrack);
     fCurrentFriendTrack=friendTrack;
-    const AliExternalTrackParam * trackIn  = track->GetInnerParam();
-    const AliExternalTrackParam * trackOut = track->GetOuterParam();
-    AliExternalTrackParam * tpcOut   = (AliExternalTrackParam *)friendTrack->GetTPCOut();
-    if (!trackIn) continue;
-    if (!trackOut) continue;
-    if (!tpcOut) continue;   
-    TObject *calibObject;
+
+    AliExternalTrackParam trckIn;
+    if((track->GetTrackParamIp(trckIn)) < 0) continue;
+
+    AliExternalTrackParam trckOut;
+    if((track->GetTrackParamOp(trckOut)) < 0) continue;
+
+    AliExternalTrackParam prmtpcOut;
+    if((friendTrack->GetTrackParamTPCOut(prmtpcOut)) < 0) continue;
+
+    AliTPCseed tpcSeed;
     AliTPCseed *seed = 0;
-    for (Int_t l=0;(calibObject=friendTrack->GetCalibObject(l));++l) {
-      if ((seed=dynamic_cast<AliTPCseed*>(calibObject))) break;
-    }
+    if (friendTrack->GetTPCseed(tpcSeed)==0) seed=&tpcSeed;
     if (!seed) continue;
     RefitTrack(track, seed, event->GetMagneticField());
-    (*tpcOut)=*(track->GetOuterParam());  
+    AliExternalTrackParam prmOut;
+    track->GetTrackParamOp(prmOut);
+    friendTrack->ResetTrackParamTPCOut(&prmOut);
+    friendTrack->ResetTPCseed(seed);
   }
   return;
 }
 
-Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Float_t magesd){
+Bool_t  AliTPCcalibCalib::RefitTrack(AliVTrack * track, AliTPCseed *seed, Float_t magesd){
   //
   // Refit track
   // if magesd==0 forget the curvature
@@ -189,7 +196,7 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
 
   static Int_t streamCounter=0;
   streamCounter++;
-  AliESDfriendTrack *friendTrack = fCurrentFriendTrack;
+  AliVfriendTrack *friendTrack = fCurrentFriendTrack;
 
   AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
   AliTPCParam     *param     = AliTPCcalibDB::Instance()->GetParameters();
@@ -209,13 +216,13 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   //
   //  AliTPCPointCorrection * corr =  AliTPCPointCorrection::Instance();
   TVectorD vec(5, seed->GetParameter());
-  for (Int_t irow=0;irow<159;irow++) {
+  for (Int_t irow=0;irow<kMaxRow;irow++) {
     AliTPCclusterMI *cluster=seed->GetClusterPointer(irow);
     if (!cluster) continue; 
     AliTPCclusterMI cl0(*cluster);
     Double_t x[3]={static_cast<Double_t>(cluster->GetRow()),cluster->GetPad(),cluster->GetTimeBin()};
     Int_t i[1]={cluster->GetDetector()};
-    AliTPCTrackerPoint * point = seed->GetTrackPoint(irow);
+    const AliTPCTrackerPoints::Point* point = seed->GetTrackPoint(irow);
     Double_t ty=0,tz=0;
      
     if (point){
@@ -226,8 +233,8 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
     //
     // get position correction
     //
-    Int_t ipad=0;
-    if (cluster->GetDetector()>35) ipad=1;
+    //Int_t ipad=0;
+    //if (cluster->GetDetector()>35) ipad=1;
     Float_t dy =0;//AliTPCClusterParam::SPosCorrection(0,ipad,cluster->GetPad(),cluster->GetTimeBin(),cluster->GetZ(),cluster->GetSigmaY2(),cluster->GetSigmaZ2(),cluster->GetMax());
     Float_t dz =0;//AliTPCClusterParam::SPosCorrection(1,ipad,cluster->GetPad(),cluster->GetTimeBin(),cluster->GetZ(),cluster->GetSigmaY2(),cluster->GetSigmaZ2(),cluster->GetMax());
     //
@@ -296,12 +303,15 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   // 
   // And now do refit
   //
-  AliExternalTrackParam * trackInOld  = (AliExternalTrackParam*)track->GetInnerParam();
-  AliExternalTrackParam * trackOuter = (AliExternalTrackParam*)track->GetOuterParam();
-  AliExternalTrackParam * trackOutOld   = (AliExternalTrackParam *)friendTrack->GetTPCOut();
-  Double_t mass =    TDatabasePDG::Instance()->GetParticle("pi+")->Mass();
+  AliExternalTrackParam trkInOld;
+  track->GetTrackParamIp(trkInOld);
+  AliExternalTrackParam * trackInOld = &trkInOld;
 
-    
+  AliExternalTrackParam trkOutOld;
+  friendTrack->GetTrackParamTPCOut(trkOutOld);
+  AliExternalTrackParam * trackOutOld = &trkOutOld;
+
+  Double_t mass =    TDatabasePDG::Instance()->GetParticle("pi+")->Mass();
 
   AliExternalTrackParam trackIn  = *trackOutOld;
   trackIn.ResetCovariance(kResetCov);
@@ -316,7 +326,7 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   //
   // Refit in
   //
-  for (Int_t irow=159; irow>0; irow--){
+  for (Int_t irow=kMaxRow; irow--;){
     AliTPCclusterMI *cl=seed->GetClusterPointer(irow);
     if (!cl) continue;
     if (cl->GetX()<80) continue;
@@ -355,7 +365,7 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   // Refit out
   //
   //Bool_t lastEdge=kFALSE;
-  for (Int_t irow=0; irow<160; irow++){
+  for (Int_t irow=0; irow<kMaxRow; irow++){
     AliTPCclusterMI *cl=seed->GetClusterPointer(irow);
     if (!cl) continue;
     if (cl->GetX()<80) continue;
@@ -397,7 +407,7 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   //
   // Refit in one more time
   //
-  for (Int_t irow=159; irow>0; irow--){
+  for (Int_t irow=kMaxRow;irow--;){
     AliTPCclusterMI *cl=seed->GetClusterPointer(irow);
     if (!cl) continue;
     if (cl->GetX()<80) continue;
@@ -453,7 +463,7 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
 	"ncl="<<ncl<<
 	"seed.="<<seed<<
 	"track.="<<track<<
-	"TrIn0.="<<trackInOld<<
+    "TrIn0.="<<trackInOld<<
 	"TrOut0.="<<trackOutOld<<
 	"TrIn1.="<<&trackIn<<
 	"TrOut1.="<<&trackOut<<
@@ -463,10 +473,11 @@ Bool_t  AliTPCcalibCalib::RefitTrack(AliESDtrack * track, AliTPCseed *seed, Floa
   //
   // And now rewrite ESDtrack and TPC seed
   //
- 
-  (*trackInOld)  = trackIn;
-  (*trackOutOld) = trackOut;
-  (*trackOuter) = trackOut;
+
+  track->ResetTrackParamIp(&trackIn);  // (*trackInOld)  = trackIn;
+  track->ResetTrackParamOp(&trackOut); // (*trackOuter) = trackOut;
+  friendTrack->ResetTrackParamTPCOut(&trackOut); //(*trackOutOld) = trackOut;
+
   AliExternalTrackParam *t = &trackIn;
   //track->Set(t->GetX(),t->GetAlpha(),t->GetParameter(),t->GetCovariance());
   seed->Set(t->GetX(),t->GetAlpha(),t->GetParameter(),t->GetCovariance());

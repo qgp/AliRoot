@@ -132,13 +132,13 @@ using namespace std;
 //
 #include "AliMagF.h"
 #include "AliTracker.h"
-#include "AliESD.h"
-#include "AliESDtrack.h"
-#include "AliESDfriend.h"
-#include "AliESDfriendTrack.h" 
+#include "AliVTrack.h"
+#include "AliVfriendEvent.h"
+#include "AliVfriendTrack.h"
 #include "AliTPCseed.h"
 #include "AliTPCclusterMI.h"
 #include "AliTPCROC.h"
+#include "AliTPCreco.h"
 
 #include "AliTPCParamSR.h"
 #include "AliTrackPointArray.h"
@@ -343,7 +343,7 @@ AliTPCcalibTracks::AliTPCcalibTracks(const Text_t *name, const Text_t *title, Al
    fRejectedTracksHisto    = new TH1I("RejectedTracksHisto", "Rejected tracks, sorted by failed cut", 100, -1, 10);
    fCalPadClusterPerPad    = new AliTPCCalPad("fCalPadClusterPerPad", "clusters per pad");
    fCalPadClusterPerPadRaw = new AliTPCCalPad("fCalPadClusterPerPadRaw", "clusters per pad, before cutting clusters");
-   fClusterCutHisto = new TH2I("fClusterCutHisto", "Cutted cluster over padRow; Cut Criterium; PadRow", 5,1,5, 160,0,159);
+   fClusterCutHisto = new TH2I("fClusterCutHisto", "Cutted cluster over padRow; Cut Criterium; PadRow", 5,1,5, 160,0,kMaxRow);
    
    
    TH1::AddDirectory(kFALSE);
@@ -632,7 +632,7 @@ void  AliTPCcalibTracks::FillResolutionHistoLocal(AliTPCseed * track){
   Int_t sectorG       = -1;      // working variable, sector of tracklet, has to stay constant for one tracklet
   Double_t refX=0;
   // ---------------------------------------------------------------------
-  for (Int_t irow = 0; irow < 159; irow++){
+  for (Int_t irow = 0; irow < kMaxRow; irow++){
     // loop over all rows along the track
     // fit tracklets (length: 13 rows) with pol2 in Y and Z direction
     // calculate mean chi^2 for this track-fit in Y and Z direction
@@ -672,7 +672,7 @@ void  AliTPCcalibTracks::FillResolutionHistoLocal(AliTPCseed * track){
 	refX=0;
       }
     }
-  }      // for (Int_t irow = 0; irow < 159; irow++)
+  }      // for (Int_t irow = 0; irow < kMaxRow; irow++)
   // mean chi^2 for all tracklet fits in Y and in Z direction: 
   csigmaY = TMath::Sqrt(TMath::Abs(csigmaY) / (nTrackletsAll+0.1));
   csigmaZ = TMath::Sqrt(TMath::Abs(csigmaZ) / (nTrackletsAll+0.1));
@@ -681,7 +681,7 @@ void  AliTPCcalibTracks::FillResolutionHistoLocal(AliTPCseed * track){
   //
   //
 
-  for (Int_t irow = kDelta; irow < 159-kDelta; irow++){
+  for (Int_t irow = kDelta; irow < kMaxRow-kDelta; irow++){
     // loop again over all rows along the track
     // do analysis
     // 
@@ -712,7 +712,7 @@ void  AliTPCcalibTracks::FillResolutionHistoLocal(AliTPCseed * track){
     if( fClusterParam && fClusterParam->GetWaveCorrectionMap() ){
       for (Int_t idelta = -kDelta; idelta <= kDelta; idelta++){
 	// loop over irow +- kDelta rows (neighboured rows)
-	if (idelta + irow < 0 || idelta + irow > 159) continue;   // don't go out of ROC
+	if (idelta + irow < 0 || idelta + irow >= kMaxRow) continue;   // don't go out of ROC
 	AliTPCclusterMI * currentCluster = track->GetClusterPointer(irow + idelta);
 	if (!currentCluster) continue;
 	if (currentCluster->GetType() < 0) continue;
@@ -731,7 +731,7 @@ void  AliTPCcalibTracks::FillResolutionHistoLocal(AliTPCseed * track){
       // 
       // 
       if (idelta == 0) continue;                                // don't use center cluster
-      if (idelta + irow < 0 || idelta + irow > 159) continue;   // don't go out of ROC
+      if (idelta + irow < 0 || idelta + irow >= kMaxRow) continue;   // don't go out of ROC
       AliTPCclusterMI * currentCluster = track->GetClusterPointer(irow + idelta);
       if (!currentCluster) continue;
       if (currentCluster->GetType() < 0) continue;
@@ -900,7 +900,7 @@ void  AliTPCcalibTracks::FillResolutionHistoLocal(AliTPCseed * track){
     xvar[0]=TMath::Sqrt(cluster0->GetSigmaZ2());
     fHisRMSZ->Fill(xvar);
     
-  }    // loop over all padrows along the track: for (Int_t irow = 0; irow < 159; irow++)
+  }    // loop over all padrows along the track: for (Int_t irow = 0; irow < kMaxRow; irow++)
 }  // FillResolutionHistoLocal(...)
 
 

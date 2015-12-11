@@ -60,7 +60,13 @@ public:
 
   void                SetEventInfo(AliEventInfo *evInfo) {fEventInfo = evInfo;}
   const AliEventInfo* GetEventInfo() const {return fEventInfo;}
-
+  //
+  virtual Bool_t OwnsESDObjects() const {return kFALSE;} //RS query if tracker owns some objects in the ESD/Friends
+  virtual void   CleanESDFriendsObjects(AliESDEvent*) {} //RS allow to tracker to clean the objects it ows in the friends
+  virtual void   CleanESDObjects(AliESDEvent*) {} //RS allow to tracker to clean the objects it ows in the ESD
+  //
+  Int_t GetNumberOfClusters() const {return fNClusters;}
+  //
 protected:
   AliTracker(const AliTracker &atr);
 private:
@@ -70,6 +76,9 @@ private:
 
   static AliRecoParam::EventSpecie_t fEventSpecie ; //! event specie, see AliRecoParam
   AliEventInfo*                      fEventInfo;    //! pointer to the event info object
+
+ protected:
+  Int_t fNClusters;                                 // number of clusters loaded
   
   ClassDef(AliTracker,6) //abstract tracker
 };

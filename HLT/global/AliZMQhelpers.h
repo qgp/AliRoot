@@ -16,6 +16,7 @@ typedef std::map<std::string,std::string> stringMap;
 typedef std::pair<zmq_msg_t*, zmq_msg_t*> aliZMQframe;
 typedef std::vector<aliZMQframe> aliZMQmsg;
 typedef std::vector<std::pair<std::string, std::string> > aliZMQmsgStr;
+typedef std::vector<std::pair<std::string, std::string> > aliStringVec;
 
 //  Init and bind/connect a ZMQ socket using a string:
 //  PUB@tcp://*:123123
@@ -43,12 +44,17 @@ int alizmq_detach (void *self, const char *endpoints, bool serverish=false);
 //to access, just iterate over it.
 int alizmq_msg_recv(aliZMQmsg* message, void* socket, int flags);
 int alizmq_msg_add(aliZMQmsg* message, AliHLTDataTopic* topic, TObject* object, int compression=0);
-int alizmq_msg_add(aliZMQmsg* message, std::string& topic, std::string& data);
+int alizmq_msg_add(aliZMQmsg* message, const std::string& topic, const std::string& data);
 int alizmq_msg_copy(aliZMQmsg* dst, aliZMQmsg* src);
 int alizmq_msg_send(aliZMQmsg* message, void* socket, int flags);
 int alizmq_msg_close(aliZMQmsg* message);
 
+//checking identity of the frame via iterator
+int alizmq_msg_iter_check(aliZMQmsg::iterator it, const AliHLTDataTopic& topic);
+int alizmq_msg_iter_check(aliZMQmsg::iterator it, const std::string& topic);
 //helpers for accessing data via iterators
+int alizmq_msg_iter_topic(aliZMQmsg::iterator it, std::string& topic);
+int alizmq_msg_iter_data(aliZMQmsg::iterator it, std::string& data);
 int alizmq_msg_iter_topic(aliZMQmsg::iterator it, AliHLTDataTopic& topic);
 int alizmq_msg_iter_data(aliZMQmsg::iterator it, TObject*& object);
 
@@ -99,7 +105,7 @@ public:
 
   //convert argc/argv into a TString of options
   static TString GetFullArgString(int argc, char** argv);
-  static stringMap* TokenizeOptionString(const TString str);
+  static aliStringVec* TokenizeOptionString(const TString str);
 };
 
 #endif

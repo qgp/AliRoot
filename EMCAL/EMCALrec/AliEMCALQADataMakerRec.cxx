@@ -198,7 +198,7 @@ AliEMCALQADataMakerRec& AliEMCALQADataMakerRec::operator = (const AliEMCALQAData
   return *this;
 }
  
-//____________________________________________________________________________ 
+ //____________________________________________________________________________ 
 ///Detector specific actions at end of cycle
 ///
 /// \param task
@@ -206,10 +206,13 @@ AliEMCALQADataMakerRec& AliEMCALQADataMakerRec::operator = (const AliEMCALQAData
 ///
 void AliEMCALQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArray ** list)
 {
-	
+	//TH1I *rmsL0=(TH1I*)list[fEventSpecie]->At(kNL0TRUSamples);
 //  if(fCycleCounter)
 //	  GetRawsData(kNEventsPerTower)->Scale(1./fCycleCounter);
-
+	/*for(int i=0; i<AliEMCALTriggerMappingV2::fSTURegionNEta; i++)
+		for(int j=0; j<AliEMCALTriggerMappingV2::fSTURegionNPhi; j++)
+			FillRawsData(kNL0TRURMS,i,j,rmsL0->GetBinError(i,j));
+  */
   // reset triggers list to select all histos
   ResetEventTrigClasses(); 
   // do the QA checking
@@ -465,9 +468,9 @@ void AliEMCALQADataMakerRec::InitRaws()
   //hT3->Sumw2();
   Add2RawsList(hT7, kNL0TRUSamples, !expert, image, !saveCorr);
   
-  TH1I * hT8 = new TH1I("hRMSOfnTimes", "Dispersion of Time for Fired Triggers per Patch", nTotTRUs, -0.5, nTotTRUs-0.5);
+  TH1F * hT8 = new TH1F("hRMSOfnTimes", "Dispersion of Time for Fired Triggers per Patch", nTRUCols*nTRURows, -0.5, nTRUCols*nTRURows-0.5);
   hT8->Sumw2();
-  Add2RawsList(hT8, kNL0TRURMS, !expert, !image, !saveCorr);
+  Add2RawsList(hT8, kNL0TRURMS, !expert, image, !saveCorr);
   
   // and also LED Mon..
   // LEDMon has both high and low gain channels, just as regular FEE/towers
@@ -532,7 +535,7 @@ void AliEMCALQADataMakerRec::InitRaws()
   h15->SetDirectory(0);
   Add2RawsList(h15, k2DRatioAmp, !expert, image, !saveCorr) ;
 
-  TH1F * h16 = new TH1F("hRatioDist", "Amplitude_{current run}/Amplitude_{reference run} ratio distribution", nTot, 0., 2.);
+  TH1F * h16 = new TH1F("hRatioDist", "Amplitude_{current run}/Amplitude_{reference run} ratio distribution", nTot, 0., 10000.);
   // h16->SetMinimum(0.1); 
   // h16->SetMaximum(100.);
   gStyle->SetOptStat(0);
@@ -598,6 +601,7 @@ void AliEMCALQADataMakerRec::InitRaws()
   // 
   ClonePerTrigClass(AliQAv1::kRAWS); // this should be the last line
 }
+
 
 //____________________________________________________________________________
 ///
@@ -692,6 +696,8 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   Int_t nTotalSMLGLEDMon[AliEMCALGeoParams::fgkEMCALModules] = {0};
   Int_t nTotalSMHGLEDMon[AliEMCALGeoParams::fgkEMCALModules] = {0};
 
+  Int_t rmsForTRUL0[AliEMCALTriggerMappingV2::fSTURegionN]={0};
+  
   const Int_t nTRUL0ChannelBits = 10; // used for L0 trigger bits checks
 	int firstL0TimeBin = 999;
   int triggers[nTot2x2][24]; // auxiliary array for L0 trigger - TODO remove hardcoded 24
@@ -794,9 +800,11 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
                 if( (sig[i] & ( 1 << j )) > 0 ){
              
                   Int_t iPatchInTRU = (in.GetColumn() - n2x2PerTRU)*nTRUL0ChannelBits+j;
-                  
+
                   if(iPatchInTRU<n2x2PerTRU){
+                  	 //printf("iTRU %d\tiPatchinTRU %d\tstartBin %d",iTRUId,iPatchInTRU,startBin)	;
 		             timeOfFiredPatches[iTRUId][iPatchInTRU].push_back(startBin);
+		             //printf("\tnumber of times a patch has fired: %d\n",timeOfFiredPatches[iTRUId][iPatchInTRU].size());
 			         startBins[iTRUId][iPatchInTRU].push_back(startBin);
                   if((int)startBin < firstL0TimeBin) firstL0TimeBin = startBin;
                    }
@@ -924,21 +932,33 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   Int_t AbsFastORIndexesIn4x4Patch[4]={-1};
   Int_t AbsFastORFirstIndexIn4x4Patch;
   Int_t globTRUCol, globTRURow;
+
   bool worry=false;
   for(int k=0; k < nTotTRUs; k++){
-  	double rms=0;
     for(int h=0; h < maxNumL0PatchesPerTRU; h++){
+      //printf("ciao: iTRU %d\tiPatchinTRU %d\t number of fired patches: %d\n",k,h,timeOfFiredPatches[k][h].size());
       if(timeOfFiredPatches[k][h].size()==0) continue;
       else{ //Run 1 or 2x2PatchModeON L0Channels = modules in TRU
+        Int_t maxTsample=-1, minTsample=20;
+        Float_t rms=0.;
         if(is2x2PatchModeActive || !(fGeom->GetEMCGeometry()->GetGeoName().Contains("DCAL"))){
           if(fGeom->GetAbsFastORIndexFromTRU(k, h, AbsFastORId)){
             fGeom->GetPositionInEMCALFromAbsFastORIndex(AbsFastORId, globTRUCol, globTRURow);
             for(int s=0; s<timeOfFiredPatches[k][h].size(); s++){
               FillRawsData(kNL0TRU, globTRUCol, globTRURow);
               FillRawsData(kTimeL0TRU, globTRUCol, globTRURow, timeOfFiredPatches[k][h].at(s));
+              
+              rms+=timeOfFiredPatches[k][h].at(s)*timeOfFiredPatches[k][h].at(s);
+              
+              if(timeOfFiredPatches[k][h].at(s)>maxTsample) maxTsample= timeOfFiredPatches[k][h].at(s);
+              if(timeOfFiredPatches[k][h].at(s)<minTsample) minTsample= timeOfFiredPatches[k][h].at(s);
+              
               triggers[AbsFastORId][startBins[k][h].at(s)] = 1;
             }
             FillRawsData(kNL0TRUSamples, globTRUCol, globTRURow,timeOfFiredPatches[k][h].size());
+            //FillRawsData(kNL0TRURMS,globTRURow*48+globTRUCol,maxTsample-minTsample); 
+            //printf("rms calculated with  SQRT(sum of times^2 / Ntimes samples) %f\n",TMath::Sqrt(rms/timeOfFiredPatches[k][h].size()));
+            FillRawsData(kNL0TRURMS,globTRURow*48+globTRUCol,TMath::Sqrt(rms/timeOfFiredPatches[k][h].size())); 
           }
           else continue;
         }
@@ -952,11 +972,19 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
              //printf("First Index %d of the 4 modules making the patch\n", AbsFastORFirstIndexIn4x4Patch);
               for(int s=0; s<timeOfFiredPatches[k][h].size(); s++){
                //printf("%d time the patch has been fired and time: %d\n",s+1,timeOfFiredPatches[k][h].at(s));
-                FillRawsData(kNL0TRU, globTRUCol, globTRURow);
+                rms+=timeOfFiredPatches[k][h].at(s)*timeOfFiredPatches[k][h].at(s);
+              	if(timeOfFiredPatches[k][h].at(s)>maxTsample) maxTsample= timeOfFiredPatches[k][h].at(s);
+              	if(timeOfFiredPatches[k][h].at(s)<minTsample) minTsample= timeOfFiredPatches[k][h].at(s);
+              	
+              	FillRawsData(kNL0TRU, globTRUCol, globTRURow);
                 FillRawsData(kTimeL0TRU, globTRUCol, globTRURow, timeOfFiredPatches[k][h].at(s));
                 triggers[AbsFastORFirstIndexIn4x4Patch][startBins[k][h].at(s)] = 1;
               }//number of times each module in a patch has fired the trigger
             FillRawsData(kNL0TRUSamples, globTRUCol, globTRURow,timeOfFiredPatches[k][h].size());
+             //FillRawsData(kNL0TRURMS,globTRURow*48+globTRUCol,maxTsample-minTsample); 
+            //printf("rms calculated with  SQRT(sum of times^2 / Ntimes samples) %f\n",TMath::Sqrt(rms/timeOfFiredPatches[k][h].size()));
+            // printf("\tfilling the bin %d with this value \n",globTRURow*48+globTRUCol);
+            FillRawsData(kNL0TRURMS,globTRURow*48+globTRUCol,TMath::Sqrt(rms/timeOfFiredPatches[k][h].size())); 
           }//position of the patch FOUND!
           else
             continue;
@@ -977,7 +1005,7 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
       }
     }
   }
-  
+   
   // calculate the ratio of the amplitude and fill the histograms, only if the events type is Calib
   // RS: operation on the group of histos kSigHG,k2DRatioAmp,kRatioDist,kLEDMonRatio,kLEDMonRatio,kSigLGLEDMon
   const int hGrp[] = {kSigHG,k2DRatioAmp,kRatioDist,kLEDMonRatio,kLEDMonRatioDist,kSigLGLEDMon};
@@ -1009,8 +1037,12 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
       // 
       for(Int_t ix = 1; ix <= fHighEmcHistoH2F->GetNbinsX(); ix++) {
 	for(Int_t iy = 1; iy <= fHighEmcHistoH2F->GetNbinsY(); iy++) { 
-	  if(fCalibRefHistoH2F->GetBinContent(ix, iy)) 
-	    binContent = fHighEmcHistoH2F->GetBinContent(ix, iy)/fCalibRefHistoH2F->GetBinContent(ix, iy);
+
+	 // if(fCalibRefHistoH2F->GetBinContent(ix, iy)){
+
+	    binContent = fHighEmcHistoH2F->GetBinContent(ix, iy);// /fCalibRefHistoH2F->GetBinContent(ix, iy);
+	   // }
+
 	    th2DRatioAmp->SetBinContent(ix, iy, binContent);
 	    thRatioDist->Fill(binContent);
 	}
@@ -1066,12 +1098,15 @@ void AliEMCALQADataMakerRec::MakeRaws(AliRawReader* rawReader)
   FillRawsData(kNtotTRU,nTotalTRU);
   FillRawsData(kNtotLGLEDMon,nTotalLGLEDMon);
   FillRawsData(kNtotHGLEDMon,nTotalHGLEDMon);
+  
+  //Last TRUL0 histogram to be filled with RMSs per channel, so AFTER all Channels hav been read 
+  
  
   IncEvCountCycleESDs();
   IncEvCountTotalESDs();
   SetEventSpecie(saveSpecie) ; 
   
-  //MakeRawsSTU(rawReader);
+  MakeRawsSTU(rawReader);
 
   // just in case the next rawreader consumer forgets to reset; let's do it here again..
   rawReader->Reset() ;
@@ -1300,6 +1335,152 @@ void AliEMCALQADataMakerRec::ConvertProfile2H(TProfile * p, TH2 * histo){
   globColumn = mcol + tcol;
   return;
 
+}
+// ____________________________________________________________________________ 
+/// Creates the RAWSTU histograms
+/// 
+/// \param  AliRawReader
+///
+/// \return 
+void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
+{ //  STU specifics
+  AliEMCALTriggerSTURawStream* inSTU = new AliEMCALTriggerSTURawStream(rawReader);
+  Int_t iEMCALtrig[AliEMCALTriggerMappingV2::fSTURegionNEta][AliEMCALTriggerMappingV2::fSTURegionNPhi]={{0}};
+  
+  for(int dete=0; dete<2; dete++){
+  	if(dete==0){		
+	  rawReader->Reset();
+	  rawReader->Select("EMCAL",AliDAQ::GetFirstSTUDDL(),AliDAQ::GetFirstSTUDDL());
+  	}
+  	else{
+  	  rawReader->Reset();
+  	  rawReader->Select("DCAL",AliDAQ::GetLastSTUDDL(),AliDAQ::GetLastSTUDDL());
+  	}
+  	printf("detector = %d \n",dete);
+  	Int_t h=0; //helper for TRU-STU conversion
+  	// L1 segmentation
+  	Int_t sizeL1gsubr = 1;
+  	Int_t sizeL1gpatch = 2; 
+  	Int_t sizeL1jsubr = 4; 
+  	
+  	if (inSTU->ReadPayLoad()){
+      Int_t fw = inSTU->GetFwVersion();
+  	  Int_t sizeL1jpatch = 2+(fw >> 16);
+  	  printf("Firmware= 0x%x \t sizeL1jetpatch= %d \n",fw,sizeL1jpatch);	
+      
+	Long64_t mask = inSTU->GetFrameReceived() ^ inSTU->GetRegionEnable();
+	
+		//32 STU for EMCAL and 14 for DCAL
+		printf("max number of STu for detector %d = %d\n",dete,(dete==0) ? 32 : 14);
+    for (int i = 0; i < (dete==0) ? 32 : 14; i++)
+	{
+		if (!((mask >> i) &  0x1)) FillRawsData(kSTUTRU, i);
+	}
+ 
+  // V0 signal in STU
+    Int_t iV0Sig = inSTU->GetV0A()+inSTU->GetV0C();
+    for (int i = 0; i < (dete==0) ? 32 : 14; i++)
+	{
+	printf("current STU : %d\n",i);
+      UInt_t adc[96];
+      for (Int_t j = 0; j < AliEMCALTriggerMappingV2::fNModulesInTRU; j++) adc[j] = 0;
+      
+      inSTU->GetADC(i, adc);
+      Int_t iTRU = fGeom->GetTRUIndexFromSTUIndex(h,dete);
+      
+      for (Int_t j = 0; j < AliEMCALTriggerMappingV2::fNModulesInTRU; j++)
+	    {
+	      Int_t idx;
+	      fGeom->GetAbsFastORIndexFromTRU(iTRU, j, idx);// CHANGE WITH TRIGGERMAPPINGV2 METHOD
+				
+	      Int_t px, py;
+	      fGeom->GetPositionInEMCALFromAbsFastORIndex(idx, px, py); // CHANGE WITH TRIGGERMAPPINGV2 METHOD
+					
+	      iEMCALtrig[px][py] = adc[j];
+	    }
+  	}
+  	 // L1 Gamma patches
+    Int_t iTRUSTU, x, y, etaG, phiG;
+    printf("Number of High Threshold Gamma patches for Detector %d : %d\n", dete, inSTU->GetNL1GammaPatch(0));
+    for(Int_t i = 0; i < inSTU->GetNL1GammaPatch(0); i++)
+	 {
+	    etaG=0, phiG=0;
+	    if (inSTU->GetL1GammaPatch(i, 0, iTRUSTU, x, y)) // col (0..7), row (0..11)
+	     {
+	       Int_t iTRU,id;
+	       	
+	       iTRU = fGeom->GetTRUIndexFromSTUIndex(iTRUSTU,dete);
+	        
+		   if(!fGeom->GetAbsFastORIndexFromPositionInTRU(iTRU, x, y, id))continue;
+
+	       if(!(fGeom->GetPositionInEMCALFromAbsFastORIndex( id, etaG, phiG ))) continue;
+	       else{
+	      	    // Position of patch L1G (bottom-left FastOR of the patch)
+        		//etaG = etaG - sizeL1gsubr * sizeL1gpatch + 1;
+      			//phiG = phiG - sizeL1gsubr * sizeL1gpatch + 1;
+      			
+      			FillRawsData(kGL1, etaG, phiG);
+      			Int_t iL1GPatchAmp = 0;
+	            for(Int_t L1Gx = 0; L1Gx < sizeL1gpatch; L1Gx ++)
+		         {
+		           for(Int_t L1Gy = 0; L1Gy < sizeL1gpatch; L1Gy ++)
+		             {
+		               if (((etaG-L1Gx)> 0 && (etaG+L1Gx) < AliEMCALTriggerMappingV2::fSTURegionNEta) && 
+		               		((phiG-L1Gy)>0 && (phiG+L1Gy) < AliEMCALTriggerMappingV2::fSTURegionNPhi)) 
+		      	           iL1GPatchAmp += iEMCALtrig[etaG+L1Gx][phiG+L1Gy];
+       				 }
+		         }
+		         FillRawsData(kGL1V0, iV0Sig, iL1GPatchAmp);
+	      	   }
+	    	}
+	  }
+	    // L1 Jet patches
+	      printf("Number of High Threshold Gamma patches for Detector %d : %d\n", dete, inSTU->GetNL1JetPatch(0));  
+	  for (Int_t i = 0; i < inSTU->GetNL1JetPatch(0); i++)
+	  {
+	    if(inSTU->GetL1JetPatch(i, 0, x, y)) // / col (0,15), row (0,11)
+	    {
+	      //GetPositionInEMCALFrom Something that crosses the TRU boundaries.
+	      //NEED To know how JET PATCHES ARE COMPUTED AND STORED.
+	      
+	      Int_t etaJ = x;
+	      Int_t phiJ = y;
+	      
+	      //Int_t etaJ = sizeL1jsubr * (11-y-sizeL1jpatch + 1); // CHECK THIS FOR JETS
+	      //64 EMCAL rows offset when reading DCAL patches 
+	      //Int_t phiJ = AliEMCALGeoParams::fgkEMCALSTURows*dete + sizeL1jsubr * (15-x-sizeL1jpatch + 1);
+	      
+		  // position of patch L1J (FOR bottom-left)
+	      FillRawsData(kJL1, x,y);
+					
+	      // loop the sum aplitude of FOR in the jet patch
+	      Int_t iL1JPatchAmp = 0;
+	      for (Int_t L1Jx = 0; L1Jx < sizeL1jpatch*4; L1Jx ++)
+		  {
+		  	for (Int_t L1Jy = 0; L1Jy < sizeL1jpatch*4; L1Jy ++)
+		  	  {
+		  	    if (etaJ+L1Jx < AliEMCALTriggerMappingV2::fSTURegionNEta && phiJ+L1Jy < AliEMCALTriggerMappingV2::fSTURegionNPhi) 
+		      	  iL1JPatchAmp += iEMCALtrig[etaJ+L1Jx][phiJ+L1Jy];
+		      }
+		  }
+		  // cout << "L1J amp =" << iL1JPatchAmp << endl;
+	      FillRawsData(kJL1V0, iV0Sig, iL1JPatchAmp);
+	   	}//end-if
+	  }//end patches loop		
+	  delete inSTU;
+     }//end inSTU->ReadPayload()  
+  }//end detector loop 
+      
+      
+     // Fill FOR amplitude histo
+  for (Int_t i = 0; i < AliEMCALTriggerMappingV2::fSTURegionNEta; i++)
+  {
+    for (Int_t j = 0; j < AliEMCALTriggerMappingV2::fSTURegionNPhi; j++)
+	{
+	  if (iEMCALtrig[i][j] != 0) FillRawsData(kAmpL1, i, j, iEMCALtrig[i][j]);
+	}
+  }
+  return;     
 }*/
 // ____________________________________________________________________________ 
 /// Creates the RAWSTU histograms
@@ -1309,31 +1490,62 @@ void AliEMCALQADataMakerRec::ConvertProfile2H(TProfile * p, TH2 * histo){
 /// \return 
 void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 { //  STU specifics
-  AliEMCALTriggerSTURawStream* inSTU = new AliEMCALTriggerSTURawStream(rawReader);
-	
-  rawReader->Reset();
-  rawReader->Select("EMCAL",AliDAQ::GetFirstSTUDDL());
-   Int_t det=0; //detector index
+
   Int_t h=0; //helper for TRU-STU conversion
-  // L1 segmentation
+  // L1 segmentation 
+  // !!!! IMPORTANT THESE ARE in units of MODULES (2*2 towers) !!!!
   Int_t sizeL1gsubr = 1;
   Int_t sizeL1gpatch = 2; 
-  Int_t sizeL1jsubr = 4; 
-
+  Int_t sizeL1jsubr = 2; 
+  Int_t sizeL1Jpatch, detPatchOffset, detPhiOffset;
+for(int det=0;det<2;det++){
+//printf("\n\n\n%d times inside the loop for detector",det);
+  if(det==0){	
+    rawReader->Reset();
+  	rawReader->Select("EMCAL",AliDAQ::GetFirstSTUDDL(),AliDAQ::GetFirstSTUDDL());
+    sizeL1Jpatch=2; //EMCAL 1 JetPatch = 4*4 subregions of 4x4 towers. = 4*4*2
+  }
+  else{
+  	rawReader->Reset();
+  	rawReader->Select("EMCAL",AliDAQ::GetLastSTUDDL(),AliDAQ::GetLastSTUDDL());
+    sizeL1Jpatch=1; //DCAL 1 JetPatch = 2*2 subregions of 4x4 towers= 2*2*1  * 4x4 towers.
+  }
+  detPhiOffset = AliEMCALGeoParams::fgkEMCALSTURows*det;
+  detPatchOffset = sizeL1jsubr*sizeL1jsubr*sizeL1Jpatch -1 ;
+  //Printf("detector : %c ", (det==0 ? 'E': 'D'));
+  //Printf("subregion %d   patch %d   detPatchOffset %d   detphiOffset %d ", sizeL1jsubr,sizeL1Jpatch,detPatchOffset,detPhiOffset);
+  AliEMCALTriggerSTURawStream inSTU(rawReader);
   // FOR DCAL
-  Int_t iEMCALtrig[AliEMCALTriggerMappingV2::fSTURegionNEta][AliEMCALTriggerMappingV2::fSTURegionNPhi];
-  memset(iEMCALtrig, 0, sizeof(int) * AliEMCALTriggerMappingV2::fSTURegionNEta * AliEMCALTriggerMappingV2::fSTURegionNPhi);
+  Int_t iEMCALtrig[AliEMCALTriggerMappingV2::fSTURegionNEta][AliEMCALTriggerMappingV2::fSTURegionNPhi]={{0}};
+  //memset(iEMCALtrig, 0, sizeof(int) * AliEMCALTriggerMappingV2::fSTURegionNEta * AliEMCALTriggerMappingV2::fSTURegionNPhi);
   // Int_t iEMCALtrig[AliEMCALGeoParams::fgkEMCALSTUCols][AliEMCALGeoParams::fgkEMCALSTURows];
   // memset(iEMCALtrig, 0, sizeof(int) * AliEMCALGeoParams::fgkEMCALSTUCols * AliEMCALGeoParams::fgkEMCALSTURows);
 		
-  if (inSTU->ReadPayLoad()) 
+  if (inSTU.ReadPayLoad()) 
     {
       // Fw version (use in case of change in L1 jet 
-      Int_t fw = inSTU->GetFwVersion();
-      Int_t sizeL1jpatch = 2+(fw >> 16);// NEED TO CHECK THIS!!! 
+      Int_t fw = inSTU.GetFwVersion();
+      //printf("\nFirmware value: 0x%x\n",fw);
+      //printf("Firmware masked 0xf000 = 0x%x\n",fw & 0xf000);
+      Int_t sizeL1jpatch = 2+(fw >> 16) ;
+      //Printf("sizeL1jetpatch : %d\n",sizeL1jpatch);
+      //Int_t sizeL1jpatch=sizeL1jpatchEta;
+      //Int_t sizeL1jpatchPhi ;
+      
+      
+      
+	  //to be checked !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      //printf("Firmware masked 0xf000 = 0x%x\n",fw & 0xf000);
+      /*if(fw & 0xf000 == 0xb000){//EMCAL,same dimensions
+      	sizeL1jpatchPhi=sizeL1jpatchEta;
+      }
+      else if(fw & 0xf000 == 0xd000){//DCAL,should be 16*10 //Let's see
+      	sizeL1jpatchPhi= 10;
+      }*/
+		      
 
       // To check link
-      Long64_t mask = inSTU->GetFrameReceived() ^ inSTU->GetRegionEnable();
+      Long64_t mask = inSTU.GetFrameReceived() ^ inSTU.GetRegionEnable();
 
       for (int i = 0; i < AliEMCALTriggerMappingV2::fNTotalTRU; i++)
 	{
@@ -1341,25 +1553,26 @@ void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 	}
 
       // V0 signal in STU
-      Int_t iV0Sig = inSTU->GetV0A()+inSTU->GetV0C();
-      Int_t detector;
+      Int_t iV0Sig = inSTU.GetV0A()+inSTU.GetV0C();
       // FastOR amplitude receive from TRU
-      for (Int_t i = 0; i < AliEMCALTriggerMappingV2::fNTotalTRU; i++)
+
+      for (Int_t i = 0; i < (det==0 ? 32 : 14); i++)
 	{
-	  if(i==34 || i==35 || i==40 || i==41 || i==46 || i==47)continue;
+//	  if(i==34 || i==35 || i==40 || i==41 || i==46 || i==47)continue;
 	  UInt_t adc[96];
 	  for (Int_t j = 0; j < 96; j++) adc[j] = 0;
-	   if(i>31) {
+
+	/*  if(i>31) {
 	  det=1;  //Detector switch for STU (for TRUs EMCal and DCal are the same Detector 
 	  h=i-32; //General Offset DCAL STU / EMCAL+DCAL TRU
 	  } 
 	  if(i>35) h=i-34; //1st row DCAL offset STU/TRU 
 	  if(i>41) h=i-36; //2nd row DCAL offset STU/TRU
 	  if(i>47) h=i-38; //3rd row DCAL offset STU/TRU
+	  */
 	  
-	  inSTU->GetADC(h, adc);
-	  
-	  Int_t iTRU = fGeom->GetTRUIndexFromSTUIndex(h,det);// CHANGE WITH TRIGGERMAPPINGV2 METHOD
+	  inSTU.GetADC(i, adc);	        
+	  Int_t iTRU = fGeom->GetTRUIndexFromSTUIndex(i,det);// CHANGE WITH TRIGGERMAPPINGV2 METHOD
 				
 	  for (Int_t j = 0; j < 96; j++)
 	    {
@@ -1375,17 +1588,26 @@ void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 			
       // L1 Gamma patches
       Int_t iTRUSTU, x, y,etaG,phiG;
-      for(detector=0; detector<2;detector++){ // 0 EMCAL , 1 DCAL
-      	for(Int_t i = 0; i < inSTU->GetNL1GammaPatch(detector); i++)
+      //Printf("Gamma patches");
+      //for(detector=0; detector<2;detector++){ // 0 EMCAL , 1 DCAL
+     // printf("Number of L1GammaPatches high threshold: %d\n",inSTU.GetNL1GammaPatch(0) );
+      	for(Int_t i = 0; i < inSTU.GetNL1GammaPatch(0); i++)
 	   {
-	     if (inSTU->GetL1GammaPatch(i, detector, iTRUSTU, x, y)) // col (0..7), row (0..11)
+	   etaG=0,phiG=0;
+	     if (inSTU.GetL1GammaPatch(i, 0, iTRUSTU, x, y)) // col (0..7), row (0..11)
 	      {
-	        Int_t iTRU;
-	        iTRU = fGeom->GetTRUIndexFromSTUIndex(iTRUSTU,detector);// CHANGE WITH TRIGGERMAPPINGV2 METHOD
-	        if(!(fGeom->GetPositionInEMCALFromAbsFastORIndex( iTRU, etaG, phiG ))) continue;
+	        Int_t iTRU,id;
+	        iTRU = fGeom->GetTRUIndexFromSTUIndex(iTRUSTU,det);
+	        
+		    if(!fGeom->GetAbsFastORIndexFromPositionInTRU(iTRU, x, y, id))continue;
+
+	        if(!(fGeom->GetPositionInEMCALFromAbsFastORIndex( id, etaG, phiG ))) continue;
 	      	else{
       		      // Position of patch L1G (bottom-left FastOR of the patch)
-	      	      etaG = etaG - sizeL1gsubr * sizeL1gpatch + 1;
+	      	  	 //Printf("position of the found patch (eta,phi)=([0,47],[0,63]) for EMCAL ([0,15]&&[32,47],[64,103]) for DCAL\t\t(%d,%d)",etaG,phiG);
+	      	      // etaG = (etaG - sizeL1gsubr) * sizeL1gpatch + 1;
+	      	      // phiG = (phiG - sizeL1gsubr) * sizeL1gpatch + 1;
+	      	     //Printf("position of the found patch (eta,phi) AFTER CORRECTION FOR PATCH size\t\t(%d,%d)",etaG,phiG);
 	      	      FillRawsData(kGL1, etaG, phiG);
 	      	      
 	      // New position in CALORIMETER!
@@ -1405,7 +1627,7 @@ void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 		         {
 		          for(Int_t L1Gy = 0; L1Gy < sizeL1gpatch; L1Gy ++)
 		             {
-		              if (etaG+L1Gx < AliEMCALTriggerMappingV2::fSTURegionNEta && phiG+L1Gy < AliEMCALTriggerMappingV2::fSTURegionNPhi) 
+		              if (((etaG-L1Gx)> 0 && (etaG+L1Gx) < AliEMCALTriggerMappingV2::fSTURegionNEta) && ((phiG-L1Gy)>0 && (phiG+L1Gy) < AliEMCALTriggerMappingV2::fSTURegionNPhi)) 
 		      	           iL1GPatchAmp += iEMCALtrig[etaG+L1Gx][phiG+L1Gy];
 		      // cout << iEMCALtrig[etaG+L1Gx][phiG+L1Gy] << endl;
 		             }
@@ -1415,19 +1637,28 @@ void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 	      	    }
 	    	}
 	    }
-       }		
+       //}		
       // L1 Jet patches
-      for(detector=0; detector<2;detector++){ // 0 EMCAL , 1 DCAL
-      for (Int_t i = 0; i < inSTU->GetNL1JetPatch(detector); i++)
+      //for(detector=0; detector<2;detector++){ // 0 EMCAL , 1 DCAL
+           //printf("Number of L1JetPatches high threshold: %d\n",inSTU.GetNL1JetPatch(0) ); 
+           for (Int_t i = 0; i < inSTU.GetNL1JetPatch(0); i++)
 	{
-	  if(inSTU->GetL1JetPatch(i, detector, x, y)) // / col (0,15), row (0,11)
+	  if(inSTU.GetL1JetPatch(i, 0, x, y)) // Position in patches units, should be the other way around (row, col)
 	    {
+	      //GetPositionInEMCALFrom Something that crosses the TRU boundaries.
 	      
-	      Int_t etaJ = sizeL1jsubr * (11-y-sizeL1jpatch + 1); // CHECK THIS FOR JETS
-	      Int_t phiJ = sizeL1jsubr * (15-x-sizeL1jpatch + 1);
-	      
-	      // position of patch L1J (FOR bottom-left)
-	      FillRawsData(kJL1, etaJ, phiJ);
+	      //NEED To know how JET PATCHES ARE COMPUTED AND STORED.
+	      //printf("sizeL1jsubr %d\n",sizeL1jsubr);
+	      //Printf("%dth patch in eta , %dth patch in phi",y , x);
+	      Int_t etaJ = y*sizeL1jsubr*sizeL1jsubr + detPatchOffset;
+	      //Int_t etaJ = sizeL1jsubr * (10-y); // CHECK THIS FOR JETS
+	      //64 EMCAL rows offset when reading DCAL patches 
+	      Int_t phiJ = detPhiOffset + x*sizeL1jsubr*sizeL1jsubr + detPatchOffset;
+	      //Printf("eta and phi EMCAL ([7,39],[7,55]) DCAL ([3,43],[67,99]) \t\t %d,%d\n\n",etaJ,phiJ);
+	      //Int_t phiJ = AliEMCALGeoParams::fgkEMCALSTURows*det + sizeL1jsubr * ((det==0 ? 14 : 8) -x) ;
+	      //printf("det %d JetPatch %d  x and y for jet patch %d\t%d and etaJ and phiJ  %d \t %d\n",det, i, x,y,etaJ, phiJ);
+		  // position of patch L1J (FOR bottom-left)
+	      FillRawsData(kJL1, etaJ +2, phiJ);
 					
 	      // loop the sum aplitude of FOR in the jet patch
 	      Int_t iL1JPatchAmp = 0;
@@ -1444,8 +1675,8 @@ void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 	      FillRawsData(kJL1V0, iV0Sig, iL1JPatchAmp);
 	   }//end-if
 	}//end patches loop
-     }//end detector loop
-  }//end inSTU->ReadPayload()
+     //}//end detector loop
+  }//end inSTU.ReadPayload()
  		
   // Fill FOR amplitude histo
   for (Int_t i = 0; i < AliEMCALTriggerMappingV2::fSTURegionNEta; i++)
@@ -1456,7 +1687,7 @@ void AliEMCALQADataMakerRec::MakeRawsSTU(AliRawReader* rawReader)
 	}
     }
   
-  delete inSTU;
+}
   return;
 }
 

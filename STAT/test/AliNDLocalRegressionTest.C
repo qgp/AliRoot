@@ -11,13 +11,13 @@
   AliNDLocalRegressionTest(10000,2,"cos(7*x[0]/pi)*sin(11*x[1]/pi)",0.1);
   //
   AliNDLocalRegressionTest(10000,2,"x[0]+x[1]",0.1);
- 
+
 */
 
 
 #include "THn.h"
 #include "TCanvas.h"
-#include "AliNDLocalRegression.h"
+#include "AliNDLocalRegression.h" 
 #include "TStyle.h"
 #include "TPaveText.h"
 
@@ -212,7 +212,7 @@ void UnitTestStreamer(){
 
 
 
-void AliNDLocalRegressionTest(Int_t npoints=10000, Int_t ndim=2, const char *sfromula="cos(7*x[0]/pi)*sin(19*x[1]/pi)", Double_t err=1){
+void AliNDLocalRegressionTest(Int_t npoints=10000, Int_t ndim=2, const char *sfromula="cos(7*x[0]/pi)*sin(11*x[1]/pi)", Double_t err=0.1){
   //
   // Local regression test method
   //
@@ -266,7 +266,7 @@ void AliNDLocalRegressionTest(Int_t npoints=10000, Int_t ndim=2, const char *sfr
   //
   // 1.) generate random input points
   //
-  for (Int_t ipoint=0; ipoint<npoints; ipoint++){
+  for (Int_t ipoint=0; ipoint<TMath::Abs(npoints); ipoint++){
     for (Int_t idim=0; idim<ndim; idim++){
       xyz[idim]=gRandom->Rndm();
     }
@@ -292,14 +292,16 @@ void AliNDLocalRegressionTest(Int_t npoints=10000, Int_t ndim=2, const char *sfr
   //
   // 2.) Make local fits 
   //
-  pfitNDIdeal->SetStreamer(pcstreamOutIdeal);
-  pfitNDGaus0->SetStreamer(pcstreamOutGaus0);
-  pfitNDGaus1->SetStreamer(pcstreamOutGaus1);
-  pfitNDGaus2->SetStreamer(pcstreamOutGaus2);
-  pfitNDGaus3->SetStreamer(pcstreamOutGaus3);
-  pfitNDBreit0->SetStreamer(pcstreamOutBreit0);
-  pfitNDBreit1->SetStreamer(pcstreamOutBreit1);
-  pfitNDBreit2->SetStreamer(pcstreamOutBreit2);
+  if (npoints>0){
+    pfitNDIdeal->SetStreamer(pcstreamOutIdeal);
+    pfitNDGaus0->SetStreamer(pcstreamOutGaus0);
+    pfitNDGaus1->SetStreamer(pcstreamOutGaus1);
+    pfitNDGaus2->SetStreamer(pcstreamOutGaus2);
+    pfitNDGaus3->SetStreamer(pcstreamOutGaus3);
+    pfitNDBreit0->SetStreamer(pcstreamOutBreit0);
+    pfitNDBreit1->SetStreamer(pcstreamOutBreit1);
+    pfitNDBreit2->SetStreamer(pcstreamOutBreit2);
+  }
   //
   pfitNDIdeal->SetHistogram((THn*)(hN->Clone()));
   pfitNDGaus0->SetHistogram((THn*)(hN->Clone()));
@@ -325,6 +327,7 @@ void AliNDLocalRegressionTest(Int_t npoints=10000, Int_t ndim=2, const char *sfr
   pfitNDBreit1->MakeFit(treeIn, "val+noiseBreit:err", "xyz0:xyz1","Entry$%2==1", "0.02:0.02","2:2",0.0001);  // sample Breit1
   pfitNDBreit2->MakeFit(treeIn, "val+noiseBreit:err", "xyz0:xyz1","Entry$%2==1", "0.02:0.02","2:2",0.0001);  // sample Breit2 without outlier filtering
   //
+  if (npoints<0) return;  // callgrind mode of operation
   pfitNDIdeal->AddVisualCorrection(pfitNDIdeal,1);
   pfitNDGaus0->AddVisualCorrection(pfitNDGaus0,2);
   pfitNDGaus1->AddVisualCorrection(pfitNDGaus1,3);
@@ -382,6 +385,9 @@ Bool_t UnitTestContrain(){
     regressionUpdate0->AddWeekConstrainsAtBoundaries(nDims, indexes,relWeight0, pcstream);
     regressionUpdate1->AddWeekConstrainsAtBoundaries(nDims, indexes,relWeight1, pcstream);
   }
+  regressionUpdate1->AddWeekConstrainsAtBoundaries(nDims, indexes,relWeight1, pcstream,kTRUE);
+
+
   regressionUpdate0->SetName("pfitNDGaus0_Updated");
   regressionUpdate1->SetName("pfitNDGaus1_Updated");
   AliNDLocalRegression::AddVisualCorrection(regressionUpdate0);
@@ -395,15 +401,21 @@ Bool_t UnitTestContrain(){
   TH1 * his[10]={0};
   TCanvas *canvasUnitTestConstrain = new TCanvas("canvasUnitTestConstrain","canvasUnitTestConstrain");
   treeIn->SetLineColor(4);
-  treeIn->Draw("(pfitNDGaus0_Updated-pfitNDIdeal)>>hisSmoothed(100,-0.2,0.2)","abs(xyz0-0.5)<0.45&&abs(xyz1-0.05)<0.45","");
+  treeIn->Draw("(pfitNDGaus1_Updated-pfitNDIdeal)>>hisSmoothedC(100,-0.2,0.2)","abs(xyz0-0.5)<0.45&&abs(xyz1-0.05)<0.45","");
   his[0]=treeIn->GetHistogram();
-  his[0]->Fit("gaus","+");
   treeIn->SetLineColor(2);
-  treeIn->Draw("(pfitNDGaus0-pfitNDIdeal)>>hisNotSmoothed(100,-0.2,0.2)","abs(xyz0-0.5)<0.45&&abs(xyz1-0.05)<0.45","same");
+  treeIn->Draw("(pfitNDGaus0_Updated-pfitNDIdeal)>>hisSmoothed(100,-0.2,0.2)","abs(xyz0-0.5)<0.45&&abs(xyz1-0.05)<0.45","");
   his[1]=treeIn->GetHistogram();
+  treeIn->SetLineColor(1);
+  treeIn->SetLineColor(1);
+  treeIn->Draw("(pfitNDGaus0-pfitNDIdeal)>>hisNotSmoothed(100,-0.2,0.2)","abs(xyz0-0.5)<0.45&&abs(xyz1-0.05)<0.45","same");
+  his[2]=treeIn->GetHistogram();
+  his[0]->Fit("gaus","+");
   his[1]->Fit("gaus","+");
+  his[2]->Fit("gaus","+");
   his[0]->Draw();
   his[1]->Draw("same");
+  his[2]->Draw("same");
   canvasUnitTestConstrain->SaveAs("canvasUnitTestConstrain.png");
   
 }

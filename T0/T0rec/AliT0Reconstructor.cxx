@@ -600,11 +600,13 @@ void AliT0Reconstructor::Reconstruct(AliRawReader* rawReader, TTree*recTree) con
 	      timecent = fTime0vertex[i0];
 	    timefull = -9999; 
 	    if (i0<12) 
-	      if(alldata[i0+1][iHit]>1) 
+            {
+	      if(alldata[i0+1][iHit]>1)
 		timefull = (Float_t(alldata[i0+1][iHit]) - timecent)* channelWidth* 0.001;
 	      else 
 		if(alldata[i0+45][iHit]>1) 
 		  timefull = (Float_t(alldata[i0+45][iHit]) - timecent)* channelWidth* 0.001;
+            }
 	    frecpoints.SetTimeFull(i0, iHit,timefull) ;
 	  }
 	}
@@ -925,7 +927,7 @@ void  AliT0Reconstructor::ReadOldQTC(Int_t alldata[220][5], Int_t amplitude[26] 
   for (int iii=12; iii<24; iii++) ind[iii]=57;
   ind[24]=5;
   ind[25]=55;
-  for (Int_t in=0; in<26;  in++)
+  for (Int_t in=0; in<24;  in++)
     {
       /*      if(in==24|| in==25)
 	printf(" MPD %i %i %i data %i %i \n",

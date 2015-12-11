@@ -125,6 +125,11 @@ int AliHLTEMCALTriggerDataMakerComponent::DoEvent( const AliHLTComponentEventDat
     } else if(iter->fDataType == AliHLTEMCALDefinitions::fgkTriggerSTUDataType){
       // Handle STU data
       AliHLTEMCALSTUHeaderStruct *stuheader = reinterpret_cast<AliHLTEMCALSTUHeaderStruct *>(iter->fPtr);
+      AliHLTInt32_t sizeExpected = sizeof(AliHLTEMCALSTUHeaderStruct) + sizeof(AliHLTCaloTriggerRawDigitDataStruct) * stuheader->fNRawDigits;
+      if(iter->fSize != sizeExpected){
+        HLTWarning("STU-reader: Size of the input buffer not matching for amount of digits, expected %d, obtained %d", sizeExpected, iter->fSize);
+        continue;
+      }
       dataptr = reinterpret_cast<AliHLTCaloTriggerRawDigitDataStruct *>(reinterpret_cast<AliHLTUInt8_t*>(iter->fPtr) + sizeof(AliHLTEMCALSTUHeaderStruct));
       HLTDebug("Data containing %d STU digits", stuheader->fNRawDigits);
       ReadSTUData(stuheader, dataptr);
@@ -158,8 +163,9 @@ int AliHLTEMCALTriggerDataMakerComponent::DoEvent( const AliHLTComponentEventDat
 void AliHLTEMCALTriggerDataMakerComponent::ReadSTUData(AliHLTEMCALSTUHeaderStruct *headerptr, AliHLTCaloTriggerRawDigitDataStruct *dataptr){
   fSTUHeader = *headerptr;
   for(UShort_t idig = 0; idig < headerptr->fNRawDigits; idig++){
-	if(dataptr->fID > kMaxChannels){
+	if(dataptr->fID > kMaxChannels || dataptr->fID < 0){
 		HLTWarning("Invalid TRU index: %d", dataptr->fID);
+		dataptr++;
 		continue;
 	}
     fRawIndexesSTU[dataptr->fID] = fNRawDigitsSTU;
@@ -226,9 +232,9 @@ void AliHLTEMCALTriggerDataMakerComponent::CombineTRUSTUDigit(
   AliHLTCaloTriggerRawDigitDataStruct merged;
   target.fID = trudigit.fID;
   target.fNTimeSamples = trudigit.fNTimeSamples;
-  memcpy(target.fTimeSamples, trudigit.fTimeSamples, sizeof(Int_t) * 15);
+  memcpy(target.fTimeSamples, trudigit.fTimeSamples, sizeof(target.fTimeSamples));
   target.fNL0Times = trudigit.fNL0Times;
-  memcpy(target.fL0Times, trudigit.fL0Times, sizeof(UChar_t) * 10);
+  memcpy(target.fL0Times, trudigit.fL0Times, sizeof(target.fL0Times));
   target.fL1TimeSum = studigit.fL1TimeSum;
   target.fTriggerBits = trudigit.fTriggerBits | studigit.fTriggerBits;
 }

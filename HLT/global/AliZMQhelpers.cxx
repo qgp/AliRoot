@@ -11,7 +11,9 @@
 
 #include "AliHLTDataTypes.h"
 #include "TString.h"
+#include "TObjString.h"
 #include "TPRegexp.h"
+#include "TObjArray.h"
 #include "AliHLTMessage.h"
 
 
@@ -160,6 +162,11 @@ int alizmq_socket_init(void*& socket, void* context, std::string config, int tim
   int zmqSocketMode = 0;
   std::string zmqEndpoints = "";
 
+  size_t configStartPos = config.find_first_not_of(" \t\n");
+  size_t configEndPos = config.find_last_not_of(" \t\n");
+  if (configStartPos!=std::string::npos && configEndPos!=std::string::npos)
+  { config = config.substr(configStartPos,configEndPos-configStartPos+1); }
+
   if (config.empty()) return 0;
 
   std::size_t found = config.find_first_of("@>-+");
@@ -235,7 +242,7 @@ int alizmq_socket_init(void*& socket, void* context, std::string config, int tim
 }
 
 //_______________________________________________________________________________________
-int alizmq_msg_add(aliZMQmsg* message, std::string& topic, std::string& data)
+int alizmq_msg_add(aliZMQmsg* message, const std::string& topic, const std::string& data)
 {
   //add a frame to the mesage
   int rc = 0;
@@ -388,6 +395,39 @@ int alizmq_msg_close(aliZMQmsg* message)
     delete (i->second); i->second=NULL;
   }
   message->clear();
+  return 0;
+}
+
+//_______________________________________________________________________________________
+int alizmq_msg_iter_check(aliZMQmsg::iterator it, const AliHLTDataTopic& topic)
+{
+  AliHLTDataTopic actualTopic;
+  alizmq_msg_iter_topic(it, actualTopic);
+  if (actualTopic == topic) return 0;
+  return 1;
+}
+
+//_______________________________________________________________________________________
+int alizmq_msg_iter_check(aliZMQmsg::iterator it, const std::string& topic)
+{
+  std::string actualTopic;
+  alizmq_msg_iter_topic(it, actualTopic);
+  return actualTopic.compare(0,topic.size(),topic);
+}
+
+//_______________________________________________________________________________________
+int alizmq_msg_iter_topic(aliZMQmsg::iterator it, std::string& topic)
+{
+  zmq_msg_t* message = it->first;
+  topic.assign((char*)zmq_msg_data(message),zmq_msg_size(message));
+  return 0;
+}
+
+//_______________________________________________________________________________________
+int alizmq_msg_iter_data(aliZMQmsg::iterator it, std::string& data)
+{
+  zmq_msg_t* message = it->second;
+  data.assign((char*)zmq_msg_data(message),zmq_msg_size(message));
   return 0;
 }
 
@@ -551,9 +591,9 @@ TString AliOptionParser::GetFullArgString(int argc, char** argv)
 int AliOptionParser::ProcessOptionString(TString arguments)
 {
   //process passed options, return number of processed valid options
-  stringMap* options = TokenizeOptionString(arguments);
+  aliStringVec* options = TokenizeOptionString(arguments);
   int nOptions=0;
-  for (stringMap::iterator i=options->begin(); i!=options->end(); ++i)
+  for (aliStringVec::iterator i=options->begin(); i!=options->end(); ++i)
   {
     //printf("  %s : %s\n", i->first.data(), i->second.data());
     if (ProcessOption(i->first,i->second)<0)
@@ -569,7 +609,7 @@ int AliOptionParser::ProcessOptionString(TString arguments)
 }
 
 //______________________________________________________________________________
-stringMap* AliOptionParser::TokenizeOptionString(const TString str)
+aliStringVec* AliOptionParser::TokenizeOptionString(const TString strIn)
 {
   //options have the form:
   // -option value
@@ -594,8 +634,16 @@ stringMap* AliOptionParser::TokenizeOptionString(const TString str)
                    "(?(?=')'(?:[^'\\\\]++|\\.)*+'"
                    "|[^ =]+))");
 
-  stringMap* options = new stringMap;
+  aliStringVec* options = new aliStringVec;
 
+  //first split in lines (by newline) and ignore comments
+  TObjArray* lines = strIn.Tokenize("\n\r");
+  TIter nextLine(lines);
+  while (TObjString* objString = (TObjString*)nextLine())
+  {
+  TString line = objString->String();
+  if (line.BeginsWith("#")) continue;
+  if (line.BeginsWith("//")) continue;
   TArrayI pos;
   const TString mods="";
   Int_t start = 0;
@@ -605,20 +653,22 @@ stringMap* AliOptionParser::TokenizeOptionString(const TString str)
     TString valueStr="";
 
     //check if we have a new option in this field
-    Int_t nOption=optionRE.Match(str,mods,start,10,&pos);
+    Int_t nOption=optionRE.Match(line,mods,start,10,&pos);
     if (nOption>0)
     {
-      optionStr = str(pos[6],pos[7]-pos[6]);
+      optionStr = line(pos[6],pos[7]-pos[6]);
+      optionStr=optionStr.Strip(TString::kBoth,'\n');
       optionStr=optionStr.Strip(TString::kBoth,'\'');
       optionStr=optionStr.Strip(TString::kLeading,'-');
       start=pos[1]; //update the current character to the end of match
     }
 
     //check if the next field is a value
-    Int_t nValue=valueRE.Match(str,mods,start,10,&pos);
+    Int_t nValue=valueRE.Match(line,mods,start,10,&pos);
     if (nValue>0)
     {
-      valueStr = str(pos[0],pos[1]-pos[0]);
+      valueStr = line(pos[0],pos[1]-pos[0]);
+      valueStr=valueStr.Strip(TString::kBoth,'\n');
       valueStr=valueStr.Strip(TString::kBoth,'\'');
       start=pos[1]; //update the current character to the end of match
     }
@@ -626,11 +676,16 @@ stringMap* AliOptionParser::TokenizeOptionString(const TString str)
     //skip empty entries
     if (nOption>0 || nValue>0)
     {
-      (*options)[optionStr.Data()] = valueStr.Data();
+      options->push_back(std::make_pair(optionStr.Data(),valueStr.Data()));
     }
 
-    if (start>=str.Length()-1 || start==prevStart ) break;
+    if (start>=line.Length()-1 || start==prevStart ) break;
   }
+
+  }//while(nextLine())
+  lines->Delete();
+  delete lines;
+
   return options;
 }
 

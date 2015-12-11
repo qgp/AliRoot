@@ -101,7 +101,7 @@ int AliHLTEMCALRawAnalyzerComponentSTU::DoEvent( const AliHLTComponentEventData&
     return 0;
   }
 
-  UInt_t totSize            = 0;
+  UInt_t totSize = 0, ndigitddl = 0;
   const AliHLTComponentBlockData* iter = NULL;
   unsigned long ndx;
 
@@ -153,13 +153,17 @@ int AliHLTEMCALRawAnalyzerComponentSTU::DoEvent( const AliHLTComponentEventData&
       headerPtr->fL1FrameMask = triggerData->GetL1FrameMask();
       headerInitialized = true;
     }
-    totSize += fSTURawDigitMaker->WriteRawDigitsBuffer(dataIter, availableSize);
-    dataIter += fSTURawDigitMaker->GetNumberOfRawDigits();
-    ndigittotal = fSTURawDigitMaker->GetNumberOfRawDigits();
+    int digitoutputsize = fSTURawDigitMaker->WriteRawDigitsBuffer(dataIter, availableSize);
+    ndigitddl = digitoutputsize/(sizeof(AliHLTCaloTriggerRawDigitDataStruct));
+    dataIter += ndigitddl; // fSTURawDigitMaker->GetNumberOfRawDigits();
+    ndigittotal += ndigitddl;
+    totSize += digitoutputsize;
   }
 
   headerPtr->fNRawDigits = ndigittotal;
   HLTDebug("Successfully decoded %d digits.", headerPtr->fNRawDigits);
+
+  if (ndigittotal == 0) return 0; //Do not push an empty block
 
   AliHLTComponentBlockData bdChannelData;
   FillBlockData( bdChannelData );

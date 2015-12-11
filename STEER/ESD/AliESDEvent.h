@@ -289,7 +289,7 @@ public:
 
 
   void SetESDfriend(const AliESDfriend *f) const;
-  void GetESDfriend(AliESDfriend *f) const;
+  void GetESDfriend(AliESDfriend *f);
   virtual AliESDfriend* FindFriend() const;
 
   void SetPrimaryVertexTPC(const AliESDVertex *vertex); 
@@ -353,6 +353,9 @@ public:
   AliMultiplicity *GetMultiplicity() const {return fSPDMult;}
   void   EstimateMultiplicity(Int_t &tracklets,Int_t &trITSTPC,Int_t &trITSSApure,
 			      Double_t eta=1.,Bool_t useDCAFlag=kTRUE,Bool_t useV0Flag=kTRUE) const;
+
+  Int_t GetNumberOfTPCClusters()      const {return fNTPCClusters;}
+  void  SetNumberOfTPCClusters(int n)       {fNTPCClusters = n;}
 
   Bool_t Clean(Float_t *cleanPars);
   Bool_t RemoveKink(Int_t i)   const;
@@ -578,7 +581,10 @@ public:
   UInt_t GetDAQAttributes() const {return fDAQAttributes;}
 
   Bool_t IsIncompleteDAQ();
-
+  //
+  void  SetNTPCFriend2Store(Int_t v)       {fNTPCFriend2Store=v;}
+  Int_t GetNTPCFriend2Store()        const {return fNTPCFriend2Store;}
+  //
   virtual AliVEvent::EDataLayoutType GetDataLayoutType() const;
 
 protected:
@@ -630,13 +636,12 @@ protected:
   TClonesArray *fErrorLogs;        //! Raw-data reading error messages
  
   Bool_t fOldMuonStructure;        //! Flag if reading ESD with old MUON structure
-
+  
   AliESD       *fESDOld;           //! Old esd Structure
   AliESDfriend *fESDFriendOld;     //! Old friend esd Structure
   Bool_t    fConnected;            //! flag if leaves are alreday connected
   Bool_t    fUseOwnList;           //! Do not use the list from the esdTree but use the one created by this class 
   Bool_t    fTracksConnected;      //! flag if tracks have already pointer to event set
-
   static const char* fgkESDListName[kESDListN]; //!
 
   AliTOFHeader *fTOFHeader;  //! event times (and sigmas) as estimated by TOF
@@ -649,8 +654,9 @@ protected:
   ULong64_t fDetectorStatus; // set detector event status bit for good event selection
   UInt_t fDAQDetectorPattern; // Detector pattern from DAQ: bit 0 is SPD, bit 4 is TPC, etc. See event.h
   UInt_t fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
+  Int_t  fNTPCClusters;  // number of TPC clusters
 
-  ClassDef(AliESDEvent,25)  //ESDEvent class 
+  ClassDef(AliESDEvent,26)  //ESDEvent class 
 };
 #endif 
 

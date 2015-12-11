@@ -203,14 +203,15 @@ void AliHLTEMCALSTURawDigitMaker::ProcessSTUStream(AliEMCALTriggerSTURawStream *
 
 Int_t AliHLTEMCALSTURawDigitMaker::WriteRawDigitsBuffer(AliHLTCaloTriggerRawDigitDataStruct *bufferptr, AliHLTUInt32_t &availableSize) const {
   Int_t outputsize = 0;
-  if(availableSize < sizeof(AliHLTCaloTriggerRawDigitDataStruct)){
-	  HLTWarning("Not enough space in buffer available");
-	  return 0;
-  }
   for(Int_t idig = 0; idig < fNRawDigits; idig++){
 	if(availableSize < sizeof(AliHLTCaloTriggerRawDigitDataStruct)){
 		HLTWarning("Buffer exceeded after %d digits", idig);
 		break;
+	}
+	if (fRawDigitBuffer[idig].fID < 0 || fRawDigitBuffer[idig].fID >= fgkNRawDigits)
+	{
+		HLTWarning("Invalid TRU Index in Output %d", fRawDigitBuffer[idig].fID);
+		continue;
 	}
     *bufferptr = fRawDigitBuffer[idig];
     bufferptr++;
@@ -227,6 +228,12 @@ void AliHLTEMCALSTURawDigitMaker::Reset() {
 }
 
 AliHLTCaloTriggerRawDigitDataStruct &AliHLTEMCALSTURawDigitMaker::GetRawDigit(Int_t index){
+  if (index < 0){
+    HLTWarning("Invalid STU Index %d", index);
+    AliHLTCaloTriggerRawDigitDataStruct &dig = fRawDigitBuffer[fgkNRawDigits - 1];
+    InitializeRawDigit(dig);
+    return dig;
+  }
   if(fRawDigitIndex[index] >= 0){
     return fRawDigitBuffer[fRawDigitIndex[index]];
   }

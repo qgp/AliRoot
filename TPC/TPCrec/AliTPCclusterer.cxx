@@ -229,7 +229,7 @@ void AliTPCclusterer::SetOutput(TTree * tree)
   fOutput= tree;
   AliTPCClustersRow clrow("AliTPCclusterMI");
   AliTPCClustersRow *pclrow=&clrow;  
-  fOutput->Branch("Segment","AliTPCClustersRow",&pclrow,32000,200);    
+  fOutput->Branch("Segment","AliTPCClustersRow",&pclrow,32000,99);    
 }
 
 
@@ -611,20 +611,20 @@ void AliTPCclusterer::AddCluster(AliTPCclusterMI &c, bool addtoarray, Float_t * 
   //
   //
   //
-  
-  AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
-  if (!transform) {
-    AliFatal("Tranformations not in calibDB");    
-    return;
+  if ( !AliTPCReconstructor::GetCompactClusters() ) {
+    AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+    if (!transform) {
+      AliFatal("Tranformations not in calibDB");    
+      return;
+    }
+    transform->SetCurrentRecoParam((AliTPCRecoParam*)fRecoParam);
+    Double_t x[3]={static_cast<Double_t>(c.GetRow()),static_cast<Double_t>(c.GetPad()),static_cast<Double_t>(c.GetTimeBin())};
+    Int_t i[1]={fSector};
+    transform->Transform(x,i,0,1);
+    c.SetX(x[0]);
+    c.SetY(x[1]);
+    c.SetZ(x[2]);
   }
-  transform->SetCurrentRecoParam((AliTPCRecoParam*)fRecoParam);
-  Double_t x[3]={static_cast<Double_t>(c.GetRow()),static_cast<Double_t>(c.GetPad()),static_cast<Double_t>(c.GetTimeBin())};
-  Int_t i[1]={fSector};
-  transform->Transform(x,i,0,1);
-  c.SetX(x[0]);
-  c.SetY(x[1]);
-  c.SetZ(x[2]);
-  //
   //
   if (ki<=1 || ki>=fMaxPad-1 || kj==1 || kj==fMaxTime-2) {
     c.SetType(-(c.GetType()+3));  //edge clusters
@@ -658,9 +658,9 @@ void AliTPCclusterer::AddCluster(AliTPCclusterMI &c, bool addtoarray, Float_t * 
 //     AliTPCclusterInfo * info = new AliTPCclusterInfo(matrix,nbins,graph);
 //     cl->SetInfo(info);
 //   }
-  if (!fRecoParam->DumpSignal()) {
-    cl->SetInfo(0);
-  }
+//  if (!fRecoParam->DumpSignal()) {
+//    cl->SetInfo(0);
+//  }
   const Int_t kClusterStream=128; // stream level should be per action - to be added to the AliTPCReconstructor
   if ( (AliTPCReconstructor::StreamLevel()&kClusterStream)==kClusterStream) {
     Float_t xyz[3];
@@ -774,8 +774,10 @@ void AliTPCclusterer::Digits2Clusters()
     
     
     fMaxBin=fMaxTime*(fMaxPad+6);  // add 3 virtual pads  before and 3 after
-    fBins    =new Float_t[fMaxBin];
-    fSigBins =new Int_t[fMaxBin];
+    Float_t binsStack[fMaxBin];
+    Int_t   sigBinsStack[fMaxBin];
+    fBins    = binsStack; //new Float_t[fMaxBin];
+    fSigBins = sigBinsStack; //new Int_t[fMaxBin];
     fNSigBins = 0;
     memset(fBins,0,sizeof(Float_t)*fMaxBin);
     
@@ -797,11 +799,14 @@ void AliTPCclusterer::Digits2Clusters()
 
     FindClusters(noiseROC);
     FillRow();
-    fRowCl->GetArray()->Clear("C");    
+    // fRowCl->GetArray()->Clear("C");     //RS AliTPCclusterMI does not allocate memory
+    fRowCl->GetArray()->Clear();    
     nclusters+=fNcluster;    
 
-    delete[] fBins;
-    delete[] fSigBins;
+    fBins = 0;
+    fSigBins = 0;
+    //    delete[] fBins; // RS moved to stack
+    //    delete[] fSigBins;
   }  
  
   Info("Digits2Clusters", "Number of found clusters : %d", nclusters);
@@ -941,7 +946,8 @@ void AliTPCclusterer::ProcessSectorData(){
     FindClusters(noiseROC);
     
     FillRow();
-    if(fBClonesArray == kFALSE) fRowCl->GetArray()->Clear("C");
+    //    if(fBClonesArray == kFALSE) fRowCl->GetArray()->Clear("C");
+    if(fBClonesArray == kFALSE) fRowCl->GetArray()->Clear(); // RS AliTPCclusterMI does not allocate memory
     fNclusters += fNcluster;
     
   } // End of loop to find clusters
@@ -1372,8 +1378,8 @@ Double_t AliTPCclusterer::ProcesSignal(Float_t *signal, Int_t nchannels, Int_t i
   //
   //
   Float_t kMin =fRecoParam->GetDumpAmplitudeMin();   // minimal signal to be dumped
-  Float_t *dsignal = new Float_t[nchannels];
-  Float_t *dtime   = new Float_t[nchannels];
+  Float_t dsignal[nchannels];
+  Float_t dtime[nchannels];
   for (Int_t i=0; i<nchannels; i++){
     dtime[i] = i;
     dsignal[i] = signal[i];
@@ -1404,8 +1410,8 @@ Double_t AliTPCclusterer::ProcesSignal(Float_t *signal, Int_t nchannels, Int_t i
       "\n";
   }
 
-  delete [] dsignal;
-  delete [] dtime;
+  //  delete [] dsignal; // RS Moved to stack but where it is used? 
+  //  delete [] dtime;
   if (rms06>fRecoParam->GetMaxNoise()) {
     pedestalEvent+=1024.;
     return 1024+median; // sign noisy channel in debug mode
@@ -1552,7 +1558,8 @@ Int_t AliTPCclusterer::ReadHLTClusters()
       clusterArray->Compress();
 
       FillRow();
-      fRowCl->GetArray()->Clear("c");
+      //fRowCl->GetArray()->Clear("c");
+      fRowCl->GetArray()->Clear(); // RS: AliTPCclusterMI does not allocate memory
       
     } // for (fRow = 0; fRow < nRows; fRow++) {
     fNclusters+=nClusterSectorGood;

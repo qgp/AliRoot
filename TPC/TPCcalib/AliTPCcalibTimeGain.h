@@ -17,8 +17,8 @@ class TH3F;
 class TH2F;
 class TList;
 class TGraphErrors;
-class AliESDEvent;
-class AliESDtrack;
+class AliVEvent;
+class AliVTrack;
 class AliTPCcalibLaser;
 class AliTPCseed;
 
@@ -31,48 +31,52 @@ public:
   AliTPCcalibTimeGain(const Text_t *name, const Text_t *title, UInt_t StartTime, UInt_t EndTime, Int_t deltaIntegrationTimeGain);
   virtual ~AliTPCcalibTimeGain();
   //
-  virtual void           Process(AliESDEvent *event);
+  virtual void           Process(AliVEvent *event);
   virtual Long64_t       Merge(TCollection *li);
   virtual void           AnalyzeRun(Int_t minEntries);
   //
-  void                   ProcessCosmicEvent(AliESDEvent *event);
-  void                   ProcessBeamEvent(AliESDEvent *event);
+  void                   ProcessCosmicEvent(AliVEvent *event);
+  void                   ProcessBeamEvent(AliVEvent *event);
   //
   void                   CalculateBetheAlephParams(TH2F *hist, Double_t * ini);
   static void            BinLogX(THnSparse *h, Int_t axisDim);
   static void            BinLogX(TH1 *h);
   //
-  THnSparse *            GetHistGainTime() const {return (THnSparse*) fHistGainTime;};
-  TH2F      *            GetHistDeDxTotal() const {return (TH2F*) fHistDeDxTotal;};
+  THnSparse *            GetHistGainTime() const {return (THnSparse*) fHistGainTime;}
+  TH2F      *            GetHistDeDxTotal() const {return (TH2F*) fHistDeDxTotal;}
   //
   TGraphErrors *         GetGraphGainVsTime(Int_t runNumber = 0, Int_t minEntries = 2000);
   static AliSplineFit *  MakeSplineFit(TGraphErrors * graph);
   TGraphErrors *         GetGraphAttachment(Int_t minEntries, Int_t nmaxBin, Float_t fracLow=0.1, Float_t fracUp=0.9);
   //
-  void SetMIP(Float_t MIP){fMIP = MIP;};
-  void SetUseMax(Bool_t UseMax){fUseMax = UseMax;};
-  void SetLowerTrunc(Float_t LowerTrunc){fLowerTrunc = LowerTrunc;};
-  void SetUpperTrunc(Float_t UpperTrunc){fUpperTrunc = UpperTrunc;};
-  void SetUseShapeNorm(Bool_t UseShapeNorm){fUseShapeNorm = UseShapeNorm;};
-  void SetUsePosNorm(Bool_t UsePosNorm){fUsePosNorm = UsePosNorm;};
-  void SetUsePadNorm(Int_t UsePadNorm){fUsePadNorm = UsePadNorm;};
-  void SetIsCosmic(Bool_t IsCosmic){fIsCosmic = IsCosmic;};
-  void SetLowMemoryConsumption(Bool_t LowMemoryConsumption){fLowMemoryConsumption = LowMemoryConsumption;};
-  void SetUseCookAnalytical(Bool_t UseCookAnalytical){fUseCookAnalytical = UseCookAnalytical;};
+  void SetMIP(Float_t MIP){fMIP = MIP;}
+  void SetUseMax(Bool_t UseMax){fUseMax = UseMax;}
+  void SetLowerTrunc(Float_t LowerTrunc){fLowerTrunc = LowerTrunc;}
+  void SetUpperTrunc(Float_t UpperTrunc){fUpperTrunc = UpperTrunc;}
+  void SetUseShapeNorm(Bool_t UseShapeNorm){fUseShapeNorm = UseShapeNorm;}
+  void SetUsePosNorm(Bool_t UsePosNorm){fUsePosNorm = UsePosNorm;}
+  void SetUsePadNorm(Int_t UsePadNorm){fUsePadNorm = UsePadNorm;}
+  void SetIsCosmic(Bool_t IsCosmic){fIsCosmic = IsCosmic;}
+  void SetLowMemoryConsumption(Bool_t LowMemoryConsumption){fLowMemoryConsumption = LowMemoryConsumption;}
+  void SetUseCookAnalytical(Bool_t UseCookAnalytical){fUseCookAnalytical = UseCookAnalytical;}
   //
-  void SetCutMinCrossRows(Int_t crossRows){fCutCrossRows = crossRows;};
-  void SetCutMaxEta(Float_t maxEta){fCutEtaWindow = maxEta;};
-  void SetCutRequireITSrefit(Bool_t requireItsRefit = kFALSE){fCutRequireITSrefit = requireItsRefit;};
-  void SetCutMaxDcaXY(Float_t maxXY){fCutMaxDcaXY = maxXY;}; 
-  void SetCutMaxDcaZ(Float_t maxZ){fCutMaxDcaZ = maxZ;}; 
+  void SetCutMinCrossRows(Int_t crossRows){fCutCrossRows = crossRows;}
+  void SetCutMaxEta(Float_t maxEta){fCutEtaWindow = maxEta;}
+  void SetCutRequireITSrefit(Bool_t requireItsRefit = kFALSE){fCutRequireITSrefit = requireItsRefit;}
+  void SetCutMaxDcaXY(Float_t maxXY){fCutMaxDcaXY = maxXY;}
+  void SetCutMaxDcaZ(Float_t maxZ){fCutMaxDcaZ = maxZ;}
   //
-  void SetMinMomentumMIP(Float_t minMom = 0.4){fMinMomentumMIP = minMom;};
-  void SetMaxMomentumMIP(Float_t maxMom = 0.6){fMaxMomentumMIP = maxMom;};
-  void SetAlephParameters(Float_t * parameters){for(Int_t j=0;j<5;j++) fAlephParameters[j] = parameters[j];};
+  void SetMinMomentumMIP(Float_t minMom = 0.4){fMinMomentumMIP = minMom;}
+  void SetMaxMomentumMIP(Float_t maxMom = 0.6){fMaxMomentumMIP = maxMom;}
+  void SetAlephParameters(Float_t * parameters){for(Int_t j=0;j<5;j++) fAlephParameters[j] = parameters[j];}
 
   static void SetMergeEntriesCut(Double_t entriesCut){fgMergeEntriesCut = entriesCut;}
 
   Double_t GetEntries() const {return fHistGainTime->GetEntries();}
+
+  // full reset: discard all statistics, zero histograms, start again.
+  // called in online mode (HLT) after sending output for merging.
+  virtual Bool_t            ResetOutputData();
 
 private:
   static Double_t fgMergeEntriesCut;  //maximal number of entries for merging  -can be modified via setter
@@ -115,10 +119,10 @@ private:
   //
   AliTPCcalibTimeGain(const AliTPCcalibTimeGain&); 
   AliTPCcalibTimeGain& operator=(const AliTPCcalibTimeGain&); 
-  void     Process(AliESDtrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);};
+  void     Process(AliVTrack *track, Int_t runNo=-1){AliTPCcalibBase::Process(track,runNo);}
   void     Process(AliTPCseed *track){return AliTPCcalibBase::Process(track);}
 
-  ClassDef(AliTPCcalibTimeGain, 2);
+  ClassDef(AliTPCcalibTimeGain, 2)
 };
 
 #endif

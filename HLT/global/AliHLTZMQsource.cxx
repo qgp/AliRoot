@@ -125,6 +125,9 @@ int AliHLTZMQsource::DoInit( int argc, const char** argv )
     HLTError("cannot initialize ZMQ socket %s, %s",fZMQinConfig.Data(),zmq_strerror(errno));
     return -1;
   }
+
+  //subscribe
+  rc = zmq_setsockopt(fZMQin, ZMQ_SUBSCRIBE, fMessageFilter.Data(), fMessageFilter.Length());
   
   HLTMessage(Form("socket create ptr %p %s",fZMQin,(rc<0)?zmq_strerror(errno):""));
   HLTImportant(Form("ZMQ connected to: %s rc %i %s",fZMQinConfig.Data(),rc,(rc<0)?zmq_strerror(errno):""));
@@ -153,7 +156,7 @@ int AliHLTZMQsource::DoProcessing( const AliHLTComponentEventData& evtData,
   int retCode=0;
 
   // process data events only
-  if (!IsDataEvent()) return 0;
+  //if (!IsDataEvent()) return 0;
 
   //init internal
   AliHLTUInt32_t outputBufferCapacity = outputBufferSize;
@@ -162,14 +165,15 @@ int AliHLTZMQsource::DoProcessing( const AliHLTComponentEventData& evtData,
   void* block = NULL;
 
   int blockTopicSize=-1;
-  AliHLTDataTopic blockTopic;
+  AliHLTDataTopic blockTopic = kAliHLTAnyDataType | kAliHLTDataOriginAny;
   int rc = -1;
- 
+
   //in case we do requests: request first and poll for replies
   //if no reply arrives after a timeout period, reset the connection
   if (fZMQsocketType==ZMQ_REQ)
   {
     //send request (header + an empty body for good measure)
+    HLTMessage("sending request");
     zmq_send(fZMQin, fMessageFilter.Data(), fMessageFilter.Length(), ZMQ_SNDMORE);
     zmq_send(fZMQin, 0, 0, 0);
     //wait for reply
@@ -177,12 +181,14 @@ int AliHLTZMQsource::DoProcessing( const AliHLTComponentEventData& evtData,
     rc = zmq_poll( sockets, 1, fZMQrequestTimeout );
     if (rc==-1) 
     {
+      HLTImportant("request interrupted");
       //interrupted, stop processing
       return 0;
     }
     if (! (sockets[0].revents & ZMQ_POLLIN))
     {
       //if we got no reply reset the connection, probably source died
+      HLTImportant("request timed out after %i us",fZMQrequestTimeout);
       rc = alizmq_socket_init(fZMQin, fZMQcontext, fZMQinConfig.Data(), 0, 10 ); 
       if (rc<0) 
       {
@@ -197,8 +203,10 @@ int AliHLTZMQsource::DoProcessing( const AliHLTComponentEventData& evtData,
 
   int64_t more=0;
   size_t moreSize=sizeof(more);
+  int frameNumber=0;
   do //multipart, get all parts
   {
+    frameNumber++;
     outputBufferCapacity -= blockSize;
     outputBufferSize += blockSize;
     block = outputBuffer + outputBufferSize;
@@ -214,6 +222,13 @@ int AliHLTZMQsource::DoProcessing( const AliHLTComponentEventData& evtData,
       if (blockSize > outputBufferCapacity) {retCode = ENOSPC; break;}//no space for message
       zmq_getsockopt(fZMQin, ZMQ_RCVMORE, &more, &moreSize);
     }
+
+    //if we subscribe AND the body is empty skip the first frame as it is just a subscription topic
+    //TODO: rethink this logic
+    if (frameNumber==1 && 
+        fZMQsocketType==ZMQ_SUB && 
+        !fMessageFilter.IsNull() && 
+        blockSize <= 0 ) continue;
 
     if (blockTopicSize <= 0) continue; //empty header, dont push back
 
@@ -259,7 +274,7 @@ int AliHLTZMQsource::ProcessOption(TString option, TString value)
     }
   }
 
-  if (option.EqualTo("MessageFilter"))
+  if (option.EqualTo("MessageFilter") || option.EqualTo("subscription"))
   {
     fMessageFilter = value;
   }

@@ -17,6 +17,7 @@
 #include <TObjArray.h>
 #include <THashList.h>
 #include <TH1.h>
+#include <TString.h>
 
 #include "AliEMCALTriggerConstants.h"
 #include "AliEMCALTriggerFastOR.h"
@@ -24,6 +25,8 @@
 #include "AliEMCALTriggerPatchInfo.h"
 #include "AliEMCALTriggerBitConfig.h"
 #include "AliEMCALGeometry.h"
+
+#include "AliHLTCTPData.h"
 
 #include "AliHLTCaloTriggerPatchDataStruct.h"
 #include "AliHLTCaloTriggerHeaderStruct.h"
@@ -40,10 +43,17 @@ AliHLTEMCALTriggerQAComponent::AliHLTEMCALTriggerQAComponent() :
   AliHLTCaloProcessor(),
   fTriggerBitConfig(NULL),
   fHistoResetOnPush(kTRUE),
+  fFilterTrgClass(""),
   fLocalEventCount(0),
   fGeometry(NULL),
-  fTriggerQAPtr(NULL)
+  fTriggerQAPtr(NULL),
+  fTrgClassHistos(0),
+  fFiredTriggerClasses()
 {
+  SetPbPb2015TriggerClasses();
+
+  memset(fEMCalBkg, 0, sizeof(Double_t)*3);
+  memset(fDCalBkg, 0, sizeof(Double_t)*3);
 }
 
 AliHLTEMCALTriggerQAComponent::~AliHLTEMCALTriggerQAComponent()
@@ -52,20 +62,51 @@ AliHLTEMCALTriggerQAComponent::~AliHLTEMCALTriggerQAComponent()
   if (fGeometry) delete fGeometry;
 }
 
+void AliHLTEMCALTriggerQAComponent::SetPbPb2015TriggerClasses()
+{
+  fFilterTrgClass = "CINT7-B-NOPF-CENT"
+      "CINT7EG1-B-NOPF-CENTNOPMD CINT7EG2-B-NOPF-CENTNOPMD CINT7EJ1-B-NOPF-CENTNOPMD CINT7EJ2-B-NOPF-CENTNOPMD"
+      "CINT7DG1-B-NOPF-CENTNOPMD CINT7DG2-B-NOPF-CENTNOPMD CINT7DJ1-B-NOPF-CENTNOPMD CINT7DJ2-B-NOPF-CENTNOPMD";
+}
+
+int AliHLTEMCALTriggerQAComponent::RetrieveFiredTriggerClasses()
+{
+  int nTrgClasses = 0;
+  fFiredTriggerClasses.clear();
+  const AliHLTCTPData * ctpdata = this->CTPData();
+  if (ctpdata) {
+    AliHLTComponentTriggerData trgdat;
+    AliHLTTriggerMask_t mask = ctpdata->ActiveTriggers(trgdat);
+    for (int index=0; index<gkNCTPTriggerClasses; index++) {
+      if ((mask&(AliHLTTriggerMask_t(0x1)<<index)) == 0) continue;
+      TString trgClass = ctpdata->Name(index);
+      if (!fFilterTrgClass.Contains(trgClass)) continue;
+      fFiredTriggerClasses.push_back(trgClass);
+      nTrgClasses++;
+    }
+  }
+  return nTrgClasses;
+}
+
 int AliHLTEMCALTriggerQAComponent::DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
-					   AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* /*outputPtr*/, AliHLTUInt32_t& /*size*/,
-					   std::vector<AliHLTComponentBlockData>& /*outputBlocks*/)
+    AliHLTComponentTriggerData& /*trigData*/, AliHLTUInt8_t* /*outputPtr*/, AliHLTUInt32_t& /*size*/,
+    std::vector<AliHLTComponentBlockData>& /*outputBlocks*/)
 {
   //patch in order to skip calib events
   if (!IsDataEvent()) return 0;
 
   if (!blocks) return 0;
 
+  //if (!RetrieveFiredTriggerClasses()) return 0;
+  if (!RetrieveFiredTriggerClasses()) {
+    HLTDebug("No trigger classes received\n");
+  }
+
   const AliHLTComponentBlockData* iter = 0;
-  
+
   for (Int_t ndx = 0; ndx < evtData.fBlockCnt; ndx++) {
     iter = blocks + ndx;
-    
+
     if(!CheckInputDataType(iter->fDataType)) continue;
 
     if (iter->fDataType == AliHLTEMCALDefinitions::fgkTriggerPatchDataType) {
@@ -77,10 +118,18 @@ int AliHLTEMCALTriggerQAComponent::DoEvent(const AliHLTComponentEventData& evtDa
   }
 
   fTriggerQAPtr->EventCompleted();
-  
+
   fLocalEventCount++;
 
-  TIter next(fTriggerQAPtr->GetListOfHistograms());
+  PushHistograms(fTriggerQAPtr->GetListOfHistograms());
+  PushHistograms(fTrgClassHistos);
+
+  return 0;
+}
+
+void AliHLTEMCALTriggerQAComponent::PushHistograms(THashList* list)
+{
+  TIter next(list);
 
   TH1* histo = 0;
 
@@ -92,8 +141,124 @@ int AliHLTEMCALTriggerQAComponent::DoEvent(const AliHLTComponentEventData& evtDa
       }
     }
   }
+}
 
-  return 0;
+void AliHLTEMCALTriggerQAComponent::CreateTrgClassHistograms(const TString& trgClass, TString patchTag)
+{
+  TString hname;
+
+  TString patchTypes[3] = {"Online", "Recalc", "Offline"};
+
+  Int_t max = 2000;
+  if (patchTag.Contains("JE")) max = 6000;
+
+  for (Int_t i = 0; i < 3; i++) {
+    hname = Form("EMCTRQA_%s_%s_%s_PatchAmp", trgClass.Data(), patchTag.Data(), patchTypes[i].Data());
+    TH1* hTrgPatchAmp = new TH1F(hname, hname, max/4, 0, max);
+    fTrgClassHistos->Add(hTrgPatchAmp);
+
+    hname = Form("EMCTRQA_%s_%s_%s_PatchAmpSubtracted", trgClass.Data(), patchTag.Data(), patchTypes[i].Data());
+    TH1* hTrgPatchAmpSub = new TH1F(hname, hname, max/4, -max/2, max/2);
+    fTrgClassHistos->Add(hTrgPatchAmpSub);
+  }
+}
+
+void AliHLTEMCALTriggerQAComponent::FillTrgClassHistograms(const AliEMCALTriggerPatchInfo& patch, const TString& trgClass, TString patchTag)
+{
+  TString hname;
+  TH1* hist = 0;
+
+  // Should find a more elegant way... for the moment it works!
+  hname = Form("EMCTRQA_%s_%s_Offline_PatchAmp", trgClass.Data(), patchTag.Data());
+  hist = static_cast<TH1*>(fTrgClassHistos->FindObject(hname));
+  if (!hist) CreateTrgClassHistograms(trgClass, patchTag);
+
+  Double_t bkg[3] = {0};
+  if (patch.IsDCalPHOS()) {
+    bkg[0] = fEMCalBkg[0] * patch.GetPatchSize()*patch.GetPatchSize();
+    bkg[1] = fEMCalBkg[1] * patch.GetPatchSize()*patch.GetPatchSize();
+    bkg[2] = fEMCalBkg[2] * patch.GetPatchSize()*patch.GetPatchSize();
+  }
+  else {
+    bkg[0] = fDCalBkg[0] * patch.GetPatchSize()*patch.GetPatchSize();
+    bkg[1] = fDCalBkg[1] * patch.GetPatchSize()*patch.GetPatchSize();
+    bkg[2] = fDCalBkg[2] * patch.GetPatchSize()*patch.GetPatchSize();
+  }
+
+  if (patch.IsOnline()) {
+    hname = Form("EMCTRQA_%s_%s_Online_PatchAmp", trgClass.Data(), patchTag.Data());
+    hist = static_cast<TH1*>(fTrgClassHistos->FindObject(hname));
+    hist->Fill(patch.GetADCAmp());
+
+    hname = Form("EMCTRQA_%s_%s_Online_PatchAmpSubtracted", trgClass.Data(), patchTag.Data());
+    hist = static_cast<TH1*>(fTrgClassHistos->FindObject(hname));
+
+    hist->Fill(patch.GetADCAmp() - bkg[0]);
+  }
+
+  if (patch.IsRecalc()) {
+    hname = Form("EMCTRQA_%s_%s_Recalc_PatchAmp", trgClass.Data(), patchTag.Data());
+    hist = static_cast<TH1*>(fTrgClassHistos->FindObject(hname));
+    hist->Fill(patch.GetADCAmp());
+
+    hname = Form("EMCTRQA_%s_%s_Recalc_PatchAmpSubtracted", trgClass.Data(), patchTag.Data());
+    hist = static_cast<TH1*>(fTrgClassHistos->FindObject(hname));
+
+    hist->Fill(patch.GetADCAmp() - bkg[1]);
+  }
+
+  if (patch.IsOfflineSimple()) {
+    hname = Form("EMCTRQA_%s_%s_Offline_PatchAmp", trgClass.Data(), patchTag.Data());
+    hist = static_cast<TH1*>(fTrgClassHistos->FindObject(hname));
+    hist->Fill(patch.GetADCOfflineAmp());
+
+    hname = Form("EMCTRQA_%s_%s_Offline_PatchAmpSubtracted", trgClass.Data(), patchTag.Data());
+    hist = static_cast<TH1*>(fTrgClassHistos->FindObject(hname));
+
+    hist->Fill(patch.GetADCOfflineAmp() - bkg[2]);
+  }
+}
+
+void AliHLTEMCALTriggerQAComponent::ProcessTriggerClasses(const AliEMCALTriggerPatchInfo& patch)
+{
+  TString histname;
+
+  // TO DO: a lot of hard-coded stuff... only relevant for PbPb 2015, will need to change it after heavy ion data taking
+
+  for (unsigned int i = 0; i < fFiredTriggerClasses.size(); i++) {
+    TString trgClass = fFiredTriggerClasses[i];
+    if (patch.IsJetHigh() || patch.IsJetHighSimple() || patch.IsJetHighRecalc()) {
+      if ((trgClass == "CINT7-B-NOPF-CENT") ||
+          (trgClass.Contains("DJ1") && patch.IsDCalPHOS()) ||
+          (trgClass.Contains("EJ1") && patch.IsEMCal())) {
+        FillTrgClassHistograms(patch, trgClass, "JEH");
+      }
+    }
+
+    if (patch.IsJetLow() || patch.IsJetLowSimple() || patch.IsJetLowRecalc()) {
+      if ((trgClass == "CINT7-B-NOPF-CENT") ||
+          (trgClass.Contains("DJ1") && patch.IsDCalPHOS()) ||
+          (trgClass.Contains("EJ1") && patch.IsEMCal())) {
+        FillTrgClassHistograms(patch, trgClass, "JEL");
+      }
+    }
+
+    if (patch.IsGammaHigh() || patch.IsGammaHighSimple() || patch.IsGammaHighRecalc()) {
+      if ((trgClass == "CINT7-B-NOPF-CENT") ||
+          (trgClass.Contains("DG1") && patch.IsDCalPHOS()) ||
+          (trgClass.Contains("EG1") && patch.IsEMCal())) {
+        FillTrgClassHistograms(patch, trgClass, "GAH");
+      }
+    }
+
+    if (patch.IsGammaLow() || patch.IsGammaLowSimple() || patch.IsGammaLowRecalc()) {
+      if ((trgClass == "CINT7-B-NOPF-CENT") ||
+          (trgClass.Contains("DG1") && patch.IsDCalPHOS()) ||
+          (trgClass.Contains("EG1") && patch.IsEMCal())) {
+        FillTrgClassHistograms(patch, trgClass, "GAL");
+      }
+    }
+  }
 }
 
 void AliHLTEMCALTriggerQAComponent::ProcessTriggerPatches(const AliHLTComponentBlockData* block)
@@ -105,10 +270,21 @@ void AliHLTEMCALTriggerQAComponent::ProcessTriggerPatches(const AliHLTComponentB
 
   AliEMCALTriggerPatchInfo patch;
   patch.SetTriggerBitConfig(fTriggerBitConfig);
-  
+
+  for(UInt_t ipatch = 0; ipatch < nPatches; ipatch++) {
+    HLTPatch2Patch(hltpatchPtr[ipatch], patch);
+    fTriggerQAPtr->ProcessBkgPatch(&patch);
+  }
+
+  fTriggerQAPtr->ComputeBackground();
+
+  fTriggerQAPtr->GetEMCalBkg(fEMCalBkg);
+  fTriggerQAPtr->GetEMCalBkg(fDCalBkg);
+
   for(UInt_t ipatch = 0; ipatch < nPatches; ipatch++) {
     HLTPatch2Patch(hltpatchPtr[ipatch], patch);
     fTriggerQAPtr->ProcessPatch(&patch);
+    ProcessTriggerClasses(patch);
   }
 }
 
@@ -116,12 +292,12 @@ void AliHLTEMCALTriggerQAComponent::ProcessTriggerFastors(const AliHLTComponentB
 {
   AliHLTCaloTriggerPatchDataStruct* hltpatchPtr = reinterpret_cast<AliHLTCaloTriggerPatchDataStruct*>(block->fPtr);
   if (!hltpatchPtr) return;
-  
+
   AliHLTCaloTriggerHeaderStruct* triggerhead = reinterpret_cast<AliHLTCaloTriggerHeaderStruct *>(block->fPtr);
   AliHLTCaloTriggerDataStruct *dataptr = reinterpret_cast<AliHLTCaloTriggerDataStruct *>(reinterpret_cast<AliHLTUInt8_t* >(block->fPtr) + sizeof(AliHLTCaloTriggerHeaderStruct));
 
   AliEMCALTriggerFastOR fastor;
-  
+
   HLTDebug("Received %d fastor triggers", triggerhead->fNfastor);
   for(Int_t datacount = 0; datacount < triggerhead->fNfastor; datacount++) {
     HLTFastor2Fastor(dataptr[datacount], fastor);
@@ -152,7 +328,8 @@ void AliHLTEMCALTriggerQAComponent::HLTPatch2Patch(const AliHLTCaloTriggerPatchD
 
 void AliHLTEMCALTriggerQAComponent::HLTFastor2Fastor(const AliHLTCaloTriggerDataStruct& htlfastor, AliEMCALTriggerFastOR& fastor) const
 {  
-  fastor.Initialize(htlfastor.fAmplitude, htlfastor.fL1TimeSum, htlfastor.fRow, htlfastor.fCol, fGeometry->GetGeometryPtr());
+  // TO DO: here I always pass 8 as L0 time, need to check whether L0 times are in fact processed upstream
+  fastor.Initialize(htlfastor.fAmplitude, htlfastor.fL1TimeSum, htlfastor.fRow, htlfastor.fCol, 8, fGeometry->GetGeometryPtr());
 }
 
 const char* AliHLTEMCALTriggerQAComponent::GetComponentID()
@@ -189,6 +366,11 @@ AliHLTComponent* AliHLTEMCALTriggerQAComponent::Spawn()
 
 int AliHLTEMCALTriggerQAComponent::DoInit(int argc, const char** argv)
 {
+  //Init the CTP data
+  if (SetupCTPData() == -ENOMEM) {
+    HLTError("could not SetupCTPData(); ENOMEM");
+    return -ENOMEM;
+  }
   InitialiseGeometry();
   fTriggerQAPtr = new AliEMCALTriggerQA;
   fTriggerQAPtr->Init();
@@ -203,25 +385,23 @@ int AliHLTEMCALTriggerQAComponent::DoInit(int argc, const char** argv)
       Int_t dl = option.Atoi();
       if (dl >= 0) fTriggerQAPtr->SetDebugLevel(dl);
     }
-    if (option.BeginsWith("-thJE")) {
-      option.Remove(0, 5);
-      Int_t th = option.Atoi();
-      if (th >= 0) {
-	fTriggerQAPtr->SetTrigThr(EMCALTrigger::kEMCalRecalcL1Jet, th);
-      }
+    if (option.BeginsWith("-disableOffline")) {
+      fTriggerQAPtr->EnablePatchType(AliEMCALTriggerQA::kOfflinePatch, kFALSE);
     }
-    if (option.BeginsWith("-thGA")) {
-      option.Remove(0, 5);
-      Int_t th = option.Atoi();
-      if (th >= 0) {
-	fTriggerQAPtr->SetTrigThr(EMCALTrigger::kEMCalRecalcL1Gamma, th);
-      }
+    if (option.BeginsWith("-disableOnline")) {
+      fTriggerQAPtr->EnablePatchType(AliEMCALTriggerQA::kOnlinePatch, kFALSE);
+    }
+    if (option.BeginsWith("-disableRecalc")) {
+      fTriggerQAPtr->EnablePatchType(AliEMCALTriggerQA::kRecalcPatch, kFALSE);
     }
   }
 
   // if not specified use new trigger bit config
   if (!fTriggerBitConfig) fTriggerBitConfig = new AliEMCALTriggerBitConfigNew;
-  
+
+  fTrgClassHistos = new THashList();
+  fTrgClassHistos->SetName("trgClassHistos");
+
   return 0;
 }
 
@@ -236,7 +416,7 @@ int AliHLTEMCALTriggerQAComponent::Deinit()
     delete fGeometry;
     fGeometry = 0;
   }
-  
+
   return 0;
 }
 

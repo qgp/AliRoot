@@ -21,6 +21,7 @@
 #include <map>
 #include "TFile.h"
 #include "TSystem.h"
+#include "TStyle.h"
 #include "signal.h"
 class MySignalHandler;
 
@@ -48,6 +49,7 @@ TFile* fFile=NULL;
 
 int fPollInterval = 0;
 int fPollTimeout = 1000; //1s
+Bool_t fSort = kTRUE;
 
 //internal state
 void* fZMQcontext = NULL;             //ze zmq context
@@ -57,9 +59,18 @@ TApplication* gApp;
 TCanvas* fCanvas;
 TObjArray fDrawables;
 
+TString fStatus = "";
+Int_t fRunNumber = 0;
 TPRegexp* fSelectionRegexp = NULL;
+TPRegexp* fUnSelectionRegexp = NULL;
 TString fDrawOptions;
+Bool_t fScaleLogX = kFALSE;
+Bool_t fScaleLogY = kFALSE;
+Bool_t fScaleLogZ = kFALSE;
 Bool_t fResetOnRequest = kFALSE;
+Int_t fHistStats = 0;
+
+Bool_t fAllowResetAtSOR = kTRUE;
 
 ULong64_t iterations=0;
 
@@ -71,8 +82,12 @@ const char* fUSAGE =
     " -timeout : how long to wait for the server to reply (s)\n"
     " -Verbose : be verbose\n"
     " -select : only show selected histograms (by regexp)\n"
+    " -unselect : as select, only inverted\n"
     " -drawoptions : what draw option to use\n"
     " -file : dump input to file and exit\n"
+    " -log[xyz] : use log scale on [xyz] dimension\n"
+    " -histstats : histogram stat box options (default 0)\n"
+    " -AllowResetAtSOR : 0/1 to reset at change of run\n"
     ;
 //_______________________________________________________________________________________
 class MySignalHandler : public TSignalHandler
@@ -107,21 +122,18 @@ void* run(void* arg)
     //send a request if we are using REQ
     if (fZMQsocketModeIN==ZMQ_REQ)
     {
-      TString request;
-      TString requestTopic;
+      string request;
       
-      if (fSelectionRegexp) 
+      if (fSelectionRegexp || fUnSelectionRegexp) 
       {
-        requestTopic = "CONFIG";
-        request = "select="+fSelectionRegexp->GetPattern();
+        if (fSelectionRegexp) request += " select="+fSelectionRegexp->GetPattern();
+        if (fUnSelectionRegexp) request += " unselect="+fUnSelectionRegexp->GetPattern();
         if (fResetOnRequest) request += " ResetOnRequest";
-        zmq_send(fZMQin, requestTopic.Data(), requestTopic.Length(), ZMQ_SNDMORE);
-        zmq_send(fZMQin, request.Data(), request.Length(), ZMQ_SNDMORE);
+        alizmq_msg_send("CONFIG", request, fZMQin, ZMQ_SNDMORE);
       }
 
-      if (fVerbose) Printf("sending request %s %s",requestTopic.Data(), request.Data());
-      zmq_send(fZMQin, "", 0, ZMQ_SNDMORE);
-      zmq_send(fZMQin, "", 0, 0);
+      if (fVerbose) Printf("sending request CONFIG %s", request.c_str());
+      alizmq_msg_send("", "", fZMQin, 0);
     }
     
     //wait for the data
@@ -151,13 +163,43 @@ void* run(void* arg)
       alizmq_msg_recv(&message, fZMQin, 0);
       for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
       {
+        if (alizmq_msg_iter_check(i, "INFO")==0)
+        {
+            //check if we have a runnumber in the string
+            string info;
+            alizmq_msg_iter_data(i,info);
+            if (fVerbose) Printf("processing INFO %s", info.c_str());
+            
+            fCanvas->SetTitle(info.c_str());
+            size_t runTagPos = info.find("run");
+            if (runTagPos != std::string::npos)
+            {
+              size_t runStartPos = info.find("=",runTagPos);
+              size_t runEndPos = info.find(" ");
+              string runString = info.substr(runStartPos+1,runEndPos-runStartPos-1);
+              if (fVerbose) printf("received run=%s\n",runString.c_str());
+  
+              int runnumber = atoi(runString.c_str());
+  
+              if (runnumber!=fRunNumber && fAllowResetAtSOR) 
+              {
+                  if (fVerbose) printf("Run changed, resetting!\n");
+                  fDrawables.Delete();
+                  fCanvas->Clear();
+                  gSystem->ProcessEvents();
+              }
+              fRunNumber = runnumber; 
+            }
+            continue;
+        }
+
         TObject* object;
         alizmq_msg_iter_data(i, object);
         if (object) UpdatePad(object);
 
         if (!fFileName.IsNull()) 
         {
-          DumpToFile(object);
+          if (object) DumpToFile(object);
         }
       }
       alizmq_msg_close(&message);
@@ -186,6 +228,7 @@ int main(int argc, char** argv)
   gApp->SetReturnFromRun(true);
   //gApp->Run();
   
+  gStyle->SetOptStat(fHistStats);
   fCanvas = new TCanvas();
   gSystem->ProcessEvents();
   
@@ -246,10 +289,16 @@ int UpdatePad(TObject* object)
   TObject* drawable = fDrawables.FindObject(name);
   int padIndex = fDrawables.IndexOf(drawable);
 
-  if (fVerbose) Printf("in: %s", name);
+  if (fVerbose) Printf("in: %s (%s)", name, object->ClassName());
   Bool_t selected = kTRUE;
+  Bool_t unselected = kFALSE;
   if (fSelectionRegexp) selected = fSelectionRegexp->Match(name);
-  if (!selected) return 0;
+  if (fUnSelectionRegexp) unselected = fUnSelectionRegexp->Match(name);
+  if (!selected || unselected) 
+  {
+      delete object;
+      return 0;
+  }
  
   if (drawable)
   {
@@ -270,6 +319,25 @@ int UpdatePad(TObject* object)
     //add the new object to the collection, restructure the canvas 
     //and redraw everything
     fDrawables.AddLast(object);
+
+    if (fSort)
+    {
+      TObjArray sortedTitles(fDrawables.GetEntries());
+      for (int i=0; i<fDrawables.GetEntries(); i++)
+      { sortedTitles.AddAt(new TNamed(fDrawables[i]->GetTitle(),fDrawables[i]->GetName()),i); }
+      sortedTitles.Sort();
+      TObjArray sortedDrawables(fDrawables.GetEntries());
+      for (int i=0; i<fDrawables.GetEntries(); i++)
+      {
+        const char* name = sortedTitles[i]->GetTitle();
+        TObject* tmp = fDrawables.FindObject(name);
+        int index = fDrawables.IndexOf(tmp);
+        sortedDrawables.AddAt(fDrawables[index],i); 
+      }
+      for (int i=0; i<sortedDrawables.GetEntries(); i++)
+      { fDrawables.AddAt(sortedDrawables[i],i); }
+      sortedTitles.Delete();
+    }
     
     //after we clear the canvas, the pads are gone, clear the pad cache as well
     fCanvas->Clear();
@@ -280,8 +348,11 @@ int UpdatePad(TObject* object)
     {
       TObject* obj = fDrawables[i];
       fCanvas->cd(i+1);
+      if (fScaleLogX) gPad->SetLogx();
+      if (fScaleLogY) gPad->SetLogy();
+      if (fScaleLogZ) gPad->SetLogz();
       if (fVerbose) Printf("  drawing %s in pad %i", obj->GetName(), i);
-      if (obj) obj->Draw();
+      if (obj) obj->Draw(fDrawOptions);
     }
   }
   gSystem->ProcessEvents();
@@ -293,9 +364,9 @@ int UpdatePad(TObject* object)
 int ProcessOptionString(TString arguments)
 {
   //process passed options
-  stringMap* options = AliOptionParser::TokenizeOptionString(arguments);
+  aliStringVec* options = AliOptionParser::TokenizeOptionString(arguments);
   int nOptions = 0;
-  for (stringMap::iterator i=options->begin(); i!=options->end(); ++i)
+  for (aliStringVec::iterator i=options->begin(); i!=options->end(); ++i)
   {
     //Printf("  %s : %s", i->first.data(), i->second.data());
     const TString& option = i->first;
@@ -321,6 +392,11 @@ int ProcessOptionString(TString arguments)
       delete fSelectionRegexp;
       fSelectionRegexp=new TPRegexp(value);
     }
+    else if (option.EqualTo("unselect"))
+    {
+      delete fUnSelectionRegexp;
+      fUnSelectionRegexp=new TPRegexp(value);
+    }
     else if (option.EqualTo("ResetOnRequest"))
     {
       fResetOnRequest = kTRUE;
@@ -329,9 +405,33 @@ int ProcessOptionString(TString arguments)
     {
       fDrawOptions = value;
     }
+    else if (option.EqualTo("logx"))
+    {
+      fScaleLogX=kTRUE;
+    }
+    else if (option.EqualTo("logy"))
+    {
+      fScaleLogY=kTRUE;
+    }
+    else if (option.EqualTo("logz"))
+    {
+      fScaleLogZ=kTRUE;
+    }
     else if (option.EqualTo("file"))
     {
       fFileName = value;
+    }
+    else if (option.EqualTo("sort"))
+    {
+      fSort=value.Contains(0)?kFALSE:kTRUE;
+    }
+    else if (option.EqualTo("histstats"))
+    {
+      fHistStats = value.Atoi();
+    }
+    else if (option.EqualTo("AllowResetAtSOR"))
+    {
+      fAllowResetAtSOR = (option.Contains("0")||option.Contains("no"))?kFALSE:kTRUE;
     }
     else
     {

@@ -148,9 +148,9 @@ int AliHLTTPCClusterTransformationComponent::DoInit( int argc, const char** argv
     TStopwatch timer;
     timer.Start();
     int err = 0;
-	if ( fInitializeByObjectInDoEvent ) {
-	  HLTInfo( "Cluster Transformation will initialize on the fly in DoEvent loop via FastTransformation Data Object" );
-	}
+    if ( fInitializeByObjectInDoEvent == 1 ) {
+          HLTInfo( "Cluster Transformation will initialize on the fly in DoEvent loop via FastTransformation Data Object, skipping initialization." );
+    }
     else if( fOfflineMode ) {
       err = fgTransform.Init( GetBz(), GetTimeStamp() );
 	  fInitialized = true;
@@ -223,9 +223,13 @@ int AliHLTTPCClusterTransformationComponent::ScanConfigurationArgument(int argc,
       fInitializeByObjectInDoEvent = 1;
       HLTDebug("Initialize on the fly mode set.");
       iRet++;
+    } else if (argument.CompareTo("-update-object-on-the-fly")==0){
+      fInitializeByObjectInDoEvent = 2;
+      HLTDebug("Initialize object at startup and update on the fly mode set.");
+      iRet++;
     } else {
       iRet = -EINVAL;
-      HLTInfo("Unknown argument %s",argv[i]);     
+      HLTError("Unknown argument %s",argv[i]);     
     }
   } 
   return iRet;
@@ -259,7 +263,7 @@ int AliHLTTPCClusterTransformationComponent::DoEvent(const AliHLTComponentEventD
 		}
 		if (fInitialized)
 		{
-			HLTImportant("Received updated cluster transformation map");
+			HLTImportant("Received updated cluster transformation map with new calibration");
 			fgTransform.DeInit();
 		}
 		else
@@ -289,7 +293,7 @@ int AliHLTTPCClusterTransformationComponent::DoEvent(const AliHLTComponentEventD
   fBenchmark.Start(0);
 
   // Initialise the transformation here once more for the case of off-line reprocessing
-  if( !fgTimeInitialisedFromEvent ){
+  if( fInitializeByObjectInDoEvent != 1 && fOfflineMode && !fgTimeInitialisedFromEvent ){
     Long_t currentTime = static_cast<AliHLTUInt32_t>(time(NULL));
     Long_t eventTimeStamp = GetTimeStamp();
     if( TMath::Abs( fgTransform.GetCurrentTimeStamp() - eventTimeStamp )>60 && 

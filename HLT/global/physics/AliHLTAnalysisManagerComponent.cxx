@@ -81,6 +81,7 @@ ClassImp(AliHLTAnalysisManagerComponent)
 AliHLTAnalysisManagerComponent::AliHLTAnalysisManagerComponent() :
   AliHLTProcessor(),
   fUID(0),
+  fQuickEndRun(false),
   fAnalysisManager(NULL),
   fInputHandler(NULL),
   fAddTaskMacro(""),
@@ -88,7 +89,13 @@ AliHLTAnalysisManagerComponent::AliHLTAnalysisManagerComponent() :
   fEnableDebug(kFALSE),
   fResetAfterPush(kTRUE),
   fPushEventModulo(0),
-  fNEvents(0)
+  fNEvents(0),
+  fMinTracks(0),
+  fQueueDepth(0),
+  fAsyncProcess(0),
+  fForceKillAsyncProcess(-1),
+  fPushRequestOngoing(kFALSE),
+  fAsyncProcessor()
 {
   // an example component which implements the ALICE HLT processor
   // interface and does some analysis on the input raw data
@@ -172,15 +179,12 @@ AliHLTComponent* AliHLTAnalysisManagerComponent::Spawn() {
  * ---------------------------------------------------------------------------------
  */
 
-// #################################################################################
-Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*argv*/ ) {
-  // see header file for class documentation
-  HLTInfo("----> AliHLTAnalysisManagerComponent::DoInit");
-
-  if (!gGeoManager)
+void* AliHLTAnalysisManagerComponent::AnalysisManagerInit(void*)
 {
-   AliCDBPath path("GRP","Geometry","Data");
-   if(path.GetPath())
+  if (!gGeoManager)
+  {
+    AliCDBPath path("GRP","Geometry","Data");
+    if(path.GetPath())
     {
       //      HLTInfo("configure from entry %s", path.GetPath());
       AliCDBEntry *pEntry = AliCDBManager::Instance()->Get(path/*,GetRunNo()*/);
@@ -198,16 +202,6 @@ Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*a
 	    HLTFatal("can not fetch object \"%s\" from OCDB", path.GetPath().Data());
 	}
     }
-}
-  //process arguments
-  ProcessOptionString(GetComponentArgs());
-
-  if (!fEnableDebug)
-  {
-    //shut up AliSysInfo globally, prevents syswatch.log files from being created
-    //dont open any debug files
-    AliSysInfo::SetDisabled(kTRUE);
-    TTreeSRedirector::SetDisabled(kTRUE);
   }
 
   fAnalysisManager = new AliHLTAnalysisManager();
@@ -221,18 +215,124 @@ Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*a
   }
 
   fAnalysisManager->InitAnalysis();
+  return(NULL);
+}
+
+// #################################################################################
+Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*argv*/ ) {
+  // see header file for class documentation
+  HLTInfo("----> AliHLTAnalysisManagerComponent::DoInit");
+
+  //process arguments
+  ProcessOptionString(GetComponentArgs());
+
+  if (!fEnableDebug)
+  {
+    //shut up AliSysInfo globally, prevents syswatch.log files from being created
+    //dont open any debug files
+    AliSysInfo::SetDisabled(kTRUE);
+    TTreeSRedirector::SetDisabled(kTRUE);
+  }
+
+  HLTInfo("AliHLTAnalysisManagerComponent::DoInit (with QueueDepth %d)", fQueueDepth);
+  if (fAsyncProcessor.Initialize(fQueueDepth, fAsyncProcess > 0, fAsyncProcess)) return(1);
+
+  fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerInit, NULL);
 
   return 0;
+}
+
+void* AliHLTAnalysisManagerComponent::AnalysisManagerExit(void*)
+{
+  if (fWriteAnalysisToFile && fAnalysisManager) 
+    fAnalysisManager->WriteAnalysisToFile();
+  delete fAnalysisManager;
+  return(NULL);
 }
 
 // #################################################################################
 Int_t AliHLTAnalysisManagerComponent::DoDeinit() {
   // see header file for class documentation
 
-  if (fWriteAnalysisToFile && fAnalysisManager) 
-    fAnalysisManager->WriteAnalysisToFile();
-  delete fAnalysisManager;
+  if (fForceKillAsyncProcess != -1) fAsyncProcessor.ForceChildExit(fForceKillAsyncProcess);
+  if (fAsyncProcessor.GetNumberOfAsyncTasksInQueue())
+  {
+    HLTError("Cannot deinitialize AsyncProcessor - Still tasks in queue");
+    //We wait for all tasks in the queue, fetch the results, and drop them.
+    //This might result in a memory leak but will at least shut down the thread properly.
+    fAsyncProcessor.WaitForTasks(0);
+    while (fAsyncProcessor.IsQueuedTaskCompleted()) fAsyncProcessor.RetrieveQueuedTaskResult();
+  }
+
+  if (fForceKillAsyncProcess == -1)
+  {
+    fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerExit, NULL);
+  }
+
+  fAsyncProcessor.Deinitialize();
   return 0;
+}
+
+void AliHLTAnalysisManagerComponent::CleanEventData(AnalysisManagerQueueData* eventData)
+{
+  if (fAsyncProcess)
+  {
+    fAsyncProcessor.FreeBuffer(eventData);
+  }
+  else
+  {
+    delete eventData->fEvent;
+    delete eventData->fFriend;
+    delete eventData;
+  }
+}
+
+void* AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent(void* tmpEventData)
+{
+  AnalysisManagerQueueData* eventData = (AnalysisManagerQueueData*) tmpEventData;
+  
+  void* retVal = NULL;
+
+  if (!*((volatile bool*) &fQuickEndRun))
+  {
+    TStopwatch stopwatch;
+    if (fQueueDepth == 0) stopwatch.Start();
+  
+    fInputHandler->InitTaskInputData(eventData->fEvent, eventData->fFriend, fAnalysisManager->GetTasks());
+    fAnalysisManager->ExecAnalysis();
+    fInputHandler->FinishEvent();
+  
+    //pushes once every n seconds if
+    //configured with -pushback-period=n
+    //fAnalysisManager->GetOutputs() is an TObjArray of AliAnalysisDataContainer objects
+    fNEvents++;
+    if (fPushEventModulo == 0 || fNEvents % fPushEventModulo == 0)
+    {
+      retVal = fAnalysisManager->GetOutputs();
+    }
+  
+    if (fQueueDepth == 0)
+    {
+      stopwatch.Stop();
+      AliSysInfo::AddStamp("analysisTiming",eventData->fEvent->GetNumberOfTracks(),stopwatch.RealTime()*1000,stopwatch.CpuTime()*1000);
+    }
+  }
+
+  bool requestPush = eventData->fRequestPush;
+  CleanEventData(eventData);
+
+  //In AsyncMode, we copy the content to a temporary buffer an reset the Analysis Manager directly
+  if (retVal && fQueueDepth)
+  {
+    //If we are an async process, we cannot access the pushback-period of the parent process, so we use this flag
+    if (!(fAsyncProcess ? requestPush : CheckPushbackPeriod())) return(NULL); 
+
+    retVal = fAsyncProcessor.SerializeIntoBuffer((TObject*) retVal, this);
+    if (fResetAfterPush) {fAnalysisManager->ResetOutputData();}
+  }
+
+  //In synchronous mode, we can just return the object
+  return(retVal);
 }
 
 // #################################################################################
@@ -251,46 +351,95 @@ Int_t AliHLTAnalysisManagerComponent::DoEvent(const AliHLTComponentEventData& ev
     fUID = ( gSystem->GetPid() + t.GetNanoSec())*10 + evtData.fEventID;
   }
 
-  if (!IsDataEvent())
+  if (IsDataEvent())
   {
-    //on EOR push unconditionally
-    const AliHLTComponentBlockData* pBlock = 
-      GetFirstInputBlock(kAliHLTDataTypeEOR|kAliHLTDataOriginAny);
-    if (pBlock) 
+    // -- Get ESD object
+    // -------------------
+    AliVEvent* vEvent=NULL;
+    AliVfriendEvent* vFriend=NULL;
+    AnalysisManagerQueueData* eventData;
+    if (fAsyncProcess)
     {
-      PushAndReset(fAnalysisManager->GetOutputs()); 
+      eventData = (AnalysisManagerQueueData*) fAsyncProcessor.AllocateBuffer();
     }
-    return 0;
+    else
+    {
+      eventData = new AnalysisManagerQueueData;
+    }
+    if (eventData == NULL)
+    {
+      HLTError("Memory Allocation Error");
+      return(-ENOSPC);
+    }
+    iResult = ReadInput(eventData);
+    if (iResult != 0 || !eventData->fEvent)
+    {
+      CleanEventData(eventData);
+      return(iResult);
+    }
+
+    if (eventData->fEvent) {HLTInfo("----> event %p has %d tracks: \n", eventData->fEvent, eventData->fEvent->GetNumberOfTracks());}
+    if (eventData->fFriend) {HLTInfo("----> friend %p has %d tracks: \n", eventData->fFriend, eventData->fFriend->GetNumberOfTracks());}
+
+    if (eventData->fEvent->GetNumberOfTracks() >= fMinTracks)
+    {
+      if (fMinTracks) HLTImportant("Event has %d tracks, running AnalysisManager", eventData->fEvent->GetNumberOfTracks());
+      eventData->fRequestPush = CheckPushbackPeriod() && !fPushRequestOngoing;
+      if (fAsyncProcessor.QueueAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent, eventData))
+      {
+        CleanEventData(eventData); //Could not queue this task, clean up
+      }
+      else if (eventData->fRequestPush)
+      {
+        fPushRequestOngoing = kTRUE;
+      }
+    }
+    else
+    {
+      CleanEventData(eventData); //Buffers have been allocated, clean up
+    }
   }
-
-  // -- Get ESD object
-  // -------------------
-  AliVEvent* vEvent=NULL;
-  AliVfriendEvent* vFriend=NULL;
-  iResult = ReadInput(vEvent,vFriend);
-
-  if (!vEvent) {HLTInfo("no event!"); return -1;}
-
-  if (vEvent)  {HLTInfo("----> event %p has %d tracks: ", vEvent, vEvent->GetNumberOfTracks());}
-  if (vFriend) {HLTInfo("----> friend %p has %d tracks: ", vFriend, vFriend->GetNumberOfTracks());}
-
-  //__Run the tasks__
-  fInputHandler->InitTaskInputData(vEvent, vFriend, fAnalysisManager->GetTasks());
-  fAnalysisManager->ExecAnalysis();
-  fInputHandler->FinishEvent();
-
-  //pushes once every n seconds if
-  //configured with -pushback-period=n
-  //fAnalysisManager->GetOutputs() is an TObjArray of AliAnalysisDataContainer objects
-  fNEvents++;
-  if (fPushEventModulo == 0 || fNEvents % fPushEventModulo == 0)
+  
+  if (!IsDataEvent() && GetFirstInputBlock(kAliHLTDataTypeEOR | kAliHLTDataOriginAny))
   {
-    PushAndReset(fAnalysisManager->GetOutputs()); 
+    fQuickEndRun = false;
+  }
+  if (!IsDataEvent() && GetFirstInputBlock(kAliHLTDataTypeEOR | kAliHLTDataOriginAny))
+  {
+    fQuickEndRun = true;
+    if (fForceKillAsyncProcess != -1) fAsyncProcessor.ForceChildExit(fForceKillAsyncProcess);
+    fAsyncProcessor.WaitForTasks(0);
   }
 
-  stopwatch.Stop();
-  AliSysInfo::AddStamp("analysisTiming",vEvent->GetNumberOfTracks(),stopwatch.RealTime()*1000,stopwatch.CpuTime()*1000);
-  return iResult;
+  while (fAsyncProcessor.IsQueuedTaskCompleted())
+  {
+    void* retVal = fAsyncProcessor.RetrieveQueuedTaskResult();
+    if (retVal)
+    {
+      if (fQueueDepth)
+      {
+        AliHLTAsyncProcessor::AliHLTAsyncProcessorBuffer* ret = (AliHLTAsyncProcessor::AliHLTAsyncProcessorBuffer*) retVal;
+	int pushResult = PushBack(ret->fPtr, ret->fSize, kAliHLTDataTypeTObject|kAliHLTDataOriginHLT,fUID);
+	fPushRequestOngoing = kFALSE;
+	if (pushResult)  HLTInfo("HLT Analysis Manager pushing output: %p (%d bytes)", retVal, pushResult);
+
+	fAsyncProcessor.FreeBuffer(ret);
+      }
+      else
+      {
+        TObject* retObj = (TObject*) retVal;
+        int pushResult = PushBack(retObj, kAliHLTDataTypeTObject|kAliHLTDataOriginHLT,fUID);
+        if (pushResult > 0)
+        {
+           if (fResetAfterPush) fAnalysisManager->ResetOutputData();
+           HLTInfo("HLT Analysis Manager pushing output: %p (%d bytes)", retVal, pushResult);
+        }
+        delete retObj;
+      }
+    }
+  }
+
+  return 0;
 }
 
 // #################################################################################
@@ -320,21 +469,12 @@ Int_t AliHLTAnalysisManagerComponent::ReadPreprocessorValues(const Char_t* /*mod
 }
 
 // #################################################################################
-Int_t AliHLTAnalysisManagerComponent::PushAndReset(TObject* object)
-{
-  //push the data - the data might not get pushed, depending on the 
-  //"-pushback-period=" argument which might delay the actual push. 
-  //pushResult==0 if pushing delayed.
-  //
-  int pushResult = PushBack(object, kAliHLTDataTypeTObject|kAliHLTDataOriginHLT,fUID);
-  if (pushResult > 0 && fResetAfterPush) {fAnalysisManager->ResetOutputData();}
-  return 0;
-}
-
-// #################################################################################
-Int_t AliHLTAnalysisManagerComponent::ReadInput(AliVEvent*& vEvent, AliVfriendEvent*& vFriend)
+Int_t AliHLTAnalysisManagerComponent::ReadInput(AnalysisManagerQueueData* eventData)
 {
   //read input, return code 0 for normal events, 1 for EOR
+  
+  AliVEvent* vEvent = NULL;
+  AliVfriendEvent* vFriend = NULL;
 
   Int_t iResult=0;
   for ( const TObject *iter = GetFirstInputObject(kAliHLTDataTypeESDObject); iter != NULL; iter = GetNextInputObject() ) {
@@ -343,6 +483,14 @@ Int_t AliHLTAnalysisManagerComponent::ReadInput(AliVEvent*& vEvent, AliVfriendEv
       HLTWarning("Wrong ESDEvent object received");
       iResult = -1;
       continue;
+    }
+    if (fAsyncProcess)
+    {
+      HLTFatal("Invalid configuration: HLTAnalysisManager must process FlatESDs not ESDs in async-process mode!");
+    }
+    if (RemoveInputObjectFromCleanupList(vEvent) == NULL)
+    {
+      HLTError("Error taking ownership for esdEvent, cannot queue async calibration task.");
     }
     vEvent->GetStdContent();
   }
@@ -353,42 +501,130 @@ Int_t AliHLTAnalysisManagerComponent::ReadInput(AliVEvent*& vEvent, AliVfriendEv
       iResult = -1;
       continue;
     }
-  }
-
-  if (!vEvent){ 
+    if (fAsyncProcess)
     {
-      const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeFlatESD|kAliHLTDataOriginOut);
-      if (pBlock) {
-      AliFlatESDEvent* tmpFlatEvent=reinterpret_cast<AliFlatESDEvent*>( pBlock->fPtr );
-        tmpFlatEvent->Reinitialize();
-      if (tmpFlatEvent->GetSize()==pBlock->fSize ){
-      } else {
-        tmpFlatEvent = NULL;
-        iResult=-1;
-        HLTWarning("data mismatch in block %s (0x%08x): size %d -> ignoring flatESD information",
-            DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification, pBlock->fSize);
-      }
-      vEvent = tmpFlatEvent;
-      }
+      HLTFatal("Invalid configuration: HLTAnalysisManager must process FlatESDs not ESDs in async-process mode!");
     }
-
-    if( vEvent ){
-      const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeFlatESDFriend|kAliHLTDataOriginOut);
-      if (pBlock) {
-      AliFlatESDFriend* tmpFlatFriend = reinterpret_cast<AliFlatESDFriend*>( pBlock->fPtr );
-        tmpFlatFriend->Reinitialize();
-      if (tmpFlatFriend->GetSize()==pBlock->fSize ){
-      } else {
-        tmpFlatFriend = NULL;
-        iResult=-1;
-        HLTWarning("data mismatch in block %s (0x%08x): size %d -> ignoring flatESDfriend information", 
-            DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification, pBlock->fSize);
-      }
-      vFriend = tmpFlatFriend;
-      }
+    if (RemoveInputObjectFromCleanupList(vFriend) == NULL)
+    {
+      HLTError("Error taking ownership for esdEvent-friends, cannot queue async calibration task.");
     }
   }
-  return iResult;
+
+    size_t flatEsdSize;
+    if (!vEvent)
+    {
+	const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeFlatESD|kAliHLTDataOriginOut);
+	if (pBlock)
+	{
+	    AliFlatESDEvent* tmpFlatEvent=reinterpret_cast<AliFlatESDEvent*>( pBlock->fPtr );
+	    AliFlatESDEvent* tmpCopy;
+	    if (tmpFlatEvent)
+	    {
+		AliFlatESDEvent* tmpCopy;
+		if (fAsyncProcess)
+		{
+			if (pBlock->fSize + sizeof(AnalysisManagerQueueData) > fAsyncProcessor.BufferSize())
+			{
+				HLTError("Insufficient buffer size for Flat-ESD");
+				tmpFlatEvent = NULL;
+			}
+			else
+			{
+				tmpCopy = (AliFlatESDEvent*) (((char*) eventData) + sizeof(AnalysisManagerQueueData));
+			}
+		}
+		else
+		{
+			tmpCopy = (AliFlatESDEvent*) new Byte_t[pBlock->fSize];
+		}
+
+		if (tmpCopy == NULL)
+		{
+			HLTError("Memory allocation error");
+			tmpFlatEvent = NULL;
+		}
+		else
+		{
+			memcpy((void*) tmpCopy, (void*) tmpFlatEvent, pBlock->fSize);
+			tmpFlatEvent = tmpCopy;
+			tmpFlatEvent->Reinitialize();
+
+			if (tmpFlatEvent->GetSize() != pBlock->fSize)
+			{
+				tmpFlatEvent = NULL;
+				iResult=-1;
+    				HLTWarning("data mismatch in block %s (0x%08x): size %d -> ignoring flatESD information",
+				DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification, pBlock->fSize);
+			}
+			else
+			{
+				vEvent = tmpFlatEvent;
+				flatEsdSize = pBlock->fSize;
+				if (flatEsdSize % 32) flatEsdSize += 32 - flatEsdSize % 32;
+			}
+		}
+	    }
+	}
+    }
+
+    if( vEvent )
+    {
+	const AliHLTComponentBlockData* pBlock=GetFirstInputBlock(kAliHLTDataTypeFlatESDFriend|kAliHLTDataOriginOut);
+	if (pBlock)
+	{
+	    AliFlatESDFriend* tmpFlatFriend = reinterpret_cast<AliFlatESDFriend*>( pBlock->fPtr );
+	    AliFlatESDFriend* tmpCopy;
+	    if (tmpFlatFriend)
+	    {
+		AliFlatESDFriend* tmpCopy;
+		if (fAsyncProcess)
+		{
+			if (pBlock->fSize + flatEsdSize + sizeof(AnalysisManagerQueueData) > fAsyncProcessor.BufferSize())
+			{
+				HLTError("Insufficient buffer size for Flat-ESD Friend");
+				tmpFlatFriend = NULL;
+			}
+			else
+			{
+				tmpCopy = (AliFlatESDFriend*) (((char*) vEvent) + flatEsdSize);
+			}
+		}
+		else
+		{
+			tmpCopy  = (AliFlatESDFriend*) new Byte_t[pBlock->fSize];
+		}
+
+		if (tmpCopy == NULL)
+		{
+			HLTError("Memory allocation error");
+			tmpFlatFriend = NULL;
+		}
+		else
+		{
+			memcpy((void*) tmpCopy, (void*) tmpFlatFriend, pBlock->fSize);
+			tmpFlatFriend = tmpCopy;
+			tmpFlatFriend->Reinitialize();
+
+			if (tmpFlatFriend->GetSize() != pBlock->fSize)
+			{
+				tmpFlatFriend = NULL;
+				iResult=-1;
+				HLTWarning("data mismatch in block %s (0x%08x): size %d -> ignoring flatESDfriend information", 
+				DataType2Text(pBlock->fDataType).c_str(), pBlock->fSpecification, pBlock->fSize);
+			}
+			else
+			{
+				vFriend = tmpFlatFriend;
+			}
+		}
+	    }
+	}
+    }
+    
+    eventData->fEvent = vEvent;
+    eventData->fFriend = vFriend;
+    return iResult;
 }
 
 // #################################################################################
@@ -396,27 +632,52 @@ int AliHLTAnalysisManagerComponent::ProcessOption(TString option, TString value)
 {
   //process option
   //to be implemented by the user
-  if (option.Contains("WriteAnalysisToFile")) 
+  if (option.EqualTo("WriteAnalysisToFile")) 
   {
     fWriteAnalysisToFile=(value.Contains("0"))?kFALSE:kTRUE;
     HLTInfo("fWriteAnalysisToFile=%i\n",fWriteAnalysisToFile?1:0);
   }
-  else if (option.Contains("AddTaskMacro"))
+  else if (option.EqualTo("AddTaskMacro"))
   {
     fAddTaskMacro=value;
     HLTInfo("fAddTaskMacro=%s\n",fAddTaskMacro.Data());
   }
-  else if (option.Contains("PushEventModulo"))
+  else if (option.EqualTo("PushEventModulo"))
   {
     fPushEventModulo=atoi(value.Data());
     HLTInfo("fPushEventModulo=%d\n",fPushEventModulo);
   }
-  else if (option.Contains("ResetAfterPush"))
+  else if (option.EqualTo("MinTracks"))
+  {
+    fMinTracks=atoi(value.Data());
+    HLTInfo("fMinTracks=%d\n",fMinTracks);
+  }
+  else if (option.EqualTo("QueueDepth"))
+  {
+    fQueueDepth=atoi(value.Data());
+    HLTInfo("fQueueDepth=%d\n",fQueueDepth);
+  }
+  else if (option.EqualTo("AsyncProcess"))
+  {
+    fAsyncProcess=atoi(value.Data());
+    if (fAsyncProcess == 1) fAsyncProcess = 100000000;
+    if (fAsyncProcess) HLTInfo("AsyncProcess (%d bytes buffer)\n", fAsyncProcess);
+  }
+  else if (option.EqualTo("ForceKillAsyncProcess"))
+  {
+    fForceKillAsyncProcess=atoi(value.Data());
+    if (fAsyncProcess) HLTInfo("ForceKillAsyncProcess set to %d\n", fForceKillAsyncProcess);
+  }
+  else if (option.EqualTo("ResetAfterPush"))
   {
     fResetAfterPush=(value.Contains("0")?kFALSE:kTRUE);
     HLTInfo("fResetAfterPush=%i\n",fResetAfterPush?1:0);
   }
-  else if (option.Contains("EnableDebug"))
+  else if (option.EqualTo("NoFullQueueWarning"))
+  {
+    fAsyncProcessor.SetFullQueueWarning(0);
+  }
+  else if (option.EqualTo("EnableDebug"))
   {
     fEnableDebug=value.Contains("1");
     HLTInfo("fEnableDebug=%s",fEnableDebug?"1":"0");

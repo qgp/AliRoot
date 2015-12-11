@@ -66,6 +66,7 @@ set(SRCS
     AliHLTGlobalFlatEsdConverterComponent.cxx
     AliHLTGlobalEsdToFlatConverterComponent.cxx
     AliHLTGlobalFlatEsdTestComponent.cxx
+    AliHLTRootObjectMergerComponent.cxx
     AliFlatESDEvent.cxx
     AliFlatESDEvent.h
     AliFlatESDFriend.cxx
@@ -149,5 +150,4 @@ install(FILES ${HDRS} DESTINATION include)
 
 #install macros
 install(DIRECTORY macros DESTINATION HLT/global)
-install(DIRECTORY scripts DESTINATION HLT/global)
 install(DIRECTORY physics/macros DESTINATION HLT/global/physics/)

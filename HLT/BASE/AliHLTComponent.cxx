@@ -1323,6 +1323,11 @@ AliHLTComponentDataType AliHLTComponent::GetDataType(const TObject* pObject)
   return dt;
 }
 
+int AliHLTComponent::GetCurrentInputBlockIndex()
+{
+  return(fCurrentInputBlock);
+}
+
 AliHLTUInt32_t AliHLTComponent::GetSpecification(const TObject* pObject)
 {
   // see header file for function documentation
@@ -1465,18 +1470,63 @@ AliHLTUInt32_t AliHLTComponent::GetSpecification(const AliHLTComponentBlockData*
   return iSpec;
 }
 
+bool AliHLTComponent::CheckPushbackPeriod()
+{
+  if (fPushbackPeriod>0) {
+    // suppress the output
+    TTimeStamp time;
+    if (fLastPushBackTime<0 || (int)time.GetSec()-fLastPushBackTime<fPushbackPeriod) return false;
+  }
+  return(true);
+}
+
+int AliHLTComponent::SerializeObject(TObject* pObject, void* &buffer_tmp, size_t &size)
+{
+    //Copy from the PushBack function below to serialize into a new buffer
+    //See header file for input parameter description!!!
+    char* &buffer = (char*&) buffer_tmp;
+    AliHLTMessage msg(kMESS_OBJECT);
+    msg.SetCompressionLevel(fCompressionLevel);
+    msg.WriteObject(pObject);
+    size_t bufsize = size;
+    size = msg.Length();
+    if (size == 0)
+    {
+	buffer = NULL;
+	size = 0;
+	return 0;
+    }
+    msg.SetLength();
+    msg.Compress();
+    char *mbuf = msg.Buffer();
+    if (msg.CompBuffer())
+    {
+      msg.SetLength();
+      mbuf = msg.CompBuffer();
+      size = msg.CompLength();
+    }
+    if (buffer != NULL)
+    {
+	if (bufsize < size) return(1);
+	bufsize = 0;
+    }
+    else if (buffer == NULL)
+    {
+	buffer = (char*) malloc(size + bufsize);
+	if (buffer == NULL) return(1);
+    }
+    memcpy(buffer + bufsize, mbuf, size);
+    return 0;
+}
+
 int AliHLTComponent::PushBack(const TObject* pObject, const AliHLTComponentDataType& dt, AliHLTUInt32_t spec, 
 			      void* pHeader, int headerSize)
 {
   // see header file for function documentation
   ALIHLTCOMPONENT_BASE_STOPWATCH();
+  if (!CheckPushbackPeriod()) return 0;
   int iResult=0;
   fLastObjectSize=0;
-  if (fPushbackPeriod>0) {
-    // suppress the output
-    TTimeStamp time;
-    if (fLastPushBackTime<0 || (int)time.GetSec()-fLastPushBackTime<fPushbackPeriod) return 0;
-  }
   if (pObject) {
     AliHLTMessage msg(kMESS_OBJECT);
     msg.SetCompressionLevel(fCompressionLevel);
@@ -1532,12 +1582,7 @@ int AliHLTComponent::PushBack(const void* pBuffer, int iSize, const AliHLTCompon
 {
   // see header file for function documentation
   ALIHLTCOMPONENT_BASE_STOPWATCH();
-  if (fPushbackPeriod>0) {
-    // suppress the output
-    TTimeStamp time;
-    if (fLastPushBackTime<0 || (int)time.GetSec()-fLastPushBackTime<fPushbackPeriod) return 0;
-  }
-
+  if (!CheckPushbackPeriod()) return(0);
   return InsertOutputBlock(pBuffer, iSize, dt, spec, pHeader, headerSize);
 }
 
@@ -1549,6 +1594,14 @@ int AliHLTComponent::PushBack(const void* pBuffer, int iSize, const char* dtID, 
   AliHLTComponentDataType dt;
   SetDataType(dt, dtID, dtOrigin);
   return PushBack(pBuffer, iSize, dt, spec, pHeader, headerSize);
+}
+
+int AliHLTComponent::PushBack(const std::string& pString, const AliHLTComponentDataType& dt, 
+	                      AliHLTUInt32_t spec, void* pHeader, int headerSize)
+{
+  int rc = 0;
+  rc = InsertOutputBlock(pString.c_str(), pString.size(), dt, spec, pHeader, headerSize);
+  return rc;
 }
 
 int AliHLTComponent::InsertOutputBlock(const void* pBuffer, int iBufferSize, const AliHLTComponentDataType& dt, AliHLTUInt32_t spec,
@@ -2258,8 +2311,8 @@ int AliHLTComponent::ProcessEvent( const AliHLTComponentEventData& evtData,
       fLastPushBackTime=time.GetSec();
       fLastPushBackTime-=gRandom->Integer(fPushbackPeriod);
       //HLTImportant("time: %i, fLastPushBackTime: %i",(int)time.GetSec(),fLastPushBackTime);
-    } else if ((int)time.GetSec()-fLastPushBackTime>=fPushbackPeriod) {
-      fLastPushBackTime=time.GetSec();
+    } else if ((int)time.GetSec()-fLastPushBackTime >= fPushbackPeriod) {
+      if (outputBlockCnt) fLastPushBackTime=time.GetSec() - gRandom->Integer(fPushbackPeriod/3);
     }
   }
 

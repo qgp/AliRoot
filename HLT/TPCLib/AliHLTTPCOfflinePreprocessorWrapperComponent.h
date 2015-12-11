@@ -1,13 +1,13 @@
 // -*- Mode: C++ -*-
 
-#ifndef ALIHLTTPCCLUSTERTRANSFORMATIONMERGERCOMPONENT_H
-#define ALIHLTTPCCLUSTERTRANSFORMATIONMERGERCOMPONENT_H
+#ifndef ALIHLTTPCOFFLINEPREPROCESSORWRAPPERCOMPONENT_H
+#define ALIHLTTPCOFFLINEPREPROCESSORWRAPPERCOMPONENT_H
 
 //* This file is property of and copyright by the ALICE HLT Project        * 
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //* See cxx source for full Copyright notice                               *
 
-/** @file   AliHLTTPCClusterTransformationMergerComponent.h
+/** @file   AliHLTTPCOfflinePreprocessorWrapperComponent.h
     @author Sergey Gorbunov
     @date   
     @brief
@@ -20,23 +20,24 @@
 // visit http://web.ift.uib.no/~kjeks/doc/alice-hlt
 
 #include "AliHLTProcessor.h"
+#include "AliHLTAsyncMemberProcessor.h"
 
-class AliHLTTPCClusterTransformation;
-
+class AliAnalysisDataContainer;
+class AliCDBEntry;
 
 /**
- * @class AliHLTTPCClusterTransformationMergerComponent
+ * @class AliHLTTPCOfflinePreprocessorWrapperComponent
  * @ingroup alihlt_tpc_components
  */
 
-class AliHLTTPCClusterTransformationMergerComponent : public AliHLTProcessor {
+class AliHLTTPCOfflinePreprocessorWrapperComponent : public AliHLTProcessor {
     
 public:
 
   /** standard constructor */    
-  AliHLTTPCClusterTransformationMergerComponent();           
+  AliHLTTPCOfflinePreprocessorWrapperComponent();           
   /** destructor */
-  virtual ~AliHLTTPCClusterTransformationMergerComponent();
+  virtual ~AliHLTTPCOfflinePreprocessorWrapperComponent();
 
   // Public functions to implement AliHLTComponent's interface.
   // These functions are required for the registration process
@@ -60,9 +61,7 @@ protected:
   // These functions provide initialization as well as the actual processing capabilities of the component. 
 
   int DoInit( int argc, const char** argv );
-  int DoEvent( const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks, 
-		     AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr, 
-		     AliHLTUInt32_t& size, vector<AliHLTComponentBlockData>& outputBlocks );
+  Int_t DoEvent( const AliHLTComponentEventData& evtData, AliHLTComponentTriggerData& trigData);
   int DoDeinit();
   
   int Reconfigure(const char* cdbEntry, const char* chainId);  
@@ -73,17 +72,23 @@ protected:
   
 private:
    
-  int fCumulative;
-  int fTotalInputs;
-  TObject* fObj;
           
   /** copy constructor prohibited */
-  AliHLTTPCClusterTransformationMergerComponent(const AliHLTTPCClusterTransformationMergerComponent&);
+  AliHLTTPCOfflinePreprocessorWrapperComponent(const AliHLTTPCOfflinePreprocessorWrapperComponent&);
 
   /** assignment operator prohibited */
-  AliHLTTPCClusterTransformationMergerComponent& operator=(const AliHLTTPCClusterTransformationMergerComponent&);
+  AliHLTTPCOfflinePreprocessorWrapperComponent& operator=(const AliHLTTPCOfflinePreprocessorWrapperComponent&);
+  
+  AliAnalysisDataContainer* GetDataContainer(TObject* obj);
 
-  ClassDef(AliHLTTPCClusterTransformationMergerComponent, 0)
+  AliCDBEntry* RunPreprocessor(AliAnalysisDataContainer* dataContainer);
+  void* AsyncRunPreprocessor(void*);
+  
+  AliHLTAsyncMemberProcessor<AliHLTTPCOfflinePreprocessorWrapperComponent> fAsyncProcessor;
+  int fAsyncProcessorQueueDepth;
+  int fAsyncProcess;
+  
+  ClassDef(AliHLTTPCOfflinePreprocessorWrapperComponent, 0)
 };
 
 #endif

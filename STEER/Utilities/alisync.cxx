@@ -18,6 +18,9 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <sys/stat.h>
+#include <limits.h>
+#include <libgen.h>
 
 #include "RConfig.h"
 #include "TFile.h"
@@ -44,15 +47,16 @@ static const char *USAGE =
       "   -v [<level>]\n"
       "      Set verbosity level to <level>. If <level> is not provided defaults to maximum verbosity (99).\n"
       "   -o <output directory>\n"
-      "      Set the output directory (defaults to current one).\n"
+      "      Set the output directory, i.e. where the files should be copied to. Defaults to the current one.\n"
       "   -j <# jobs>\n"
       "      Use <# jobs> parallel jobs to do the fetching (1 by default). \n"
       "   -t <# seconds>\n"
-      "      Timeout fetching after <seconds> seconds.\n"
+      "      Set per-file timeout while fetching to <# seconds> seconds.\n"
       "   -n <# retries>\n"
-      "      Retry for <# retries> retries before considering the file as not available.\n"
+      "      Retry fetching for <# retries> retries before considering the file as not available.\n"
       "   -s <success rate>\n"
-      "      Do not bother fetching more files after success rate has been reached.\n"
+      "      Do not bother fetching more files after success rate has been reached. \n"
+      "      E.g. if you are fine with only 90\% of the files being transferred, specify `-s 0.9'.\n"
       "   -i <regex>\n"
       "      Include TKeys whose name matches <regex>. This option can be used multiple times.\n";
 
@@ -82,6 +86,25 @@ void dieIf(bool condition, int exitCode, const char *fmt, ...)
   vprintf(fmt, args);
   va_end(args);
   exit(exitCode);
+}
+
+// Helper for recursive directory creation
+static void recursiveLocalMkdir(const char *dir) {
+  char tmp[PATH_MAX];
+  char *p = NULL;
+  size_t len;
+  
+  snprintf(tmp, sizeof(tmp),"%s",dir);
+  len = strlen(tmp);
+  if(tmp[len - 1] == '/')
+          tmp[len - 1] = 0;
+  for(p = tmp + 1; *p; p++)
+          if(*p == '/') {
+                  *p = 0;
+                  mkdir(tmp, S_IRWXU);
+                  *p = '/';
+          }
+  mkdir(tmp, S_IRWXU);
 }
 
 struct JobInfo {
@@ -115,16 +138,6 @@ struct NotMatchPathSeparator
   }
 };
 
-
-std::string
-basename( std::string const& pathname )
-{
-  return std::string( 
-      std::find_if(pathname.rbegin(), pathname.rend(),
-                   MatchPathSeparator()).base(),
-      pathname.end());
-}
-
 static std::vector<JobInfo> gJobs;
 
 // Downloading of files:
@@ -137,21 +150,36 @@ void downloadFile(const JobInfo &info,
   gSystem->Load("libTreePlayer");
 
   static const std::string prefix = "alien://"; 
-  if (info.filename.compare(0, prefix.size(), prefix) == 0
-      || outdir.compare(0, prefix.size(), prefix) == 0)
-    TGrid::Connect("alien://");
-  bool useAtomic = true;
-  if (outdir.compare(0, prefix.size(), prefix) == 0)
-    useAtomic = false;
+  // Keep track wether destination or source is actually alien
+  bool isAlienDest = outdir.compare(0, prefix.size(), prefix) == 0;
+  bool isAlienSrc = info.filename.compare(0, prefix.size(), prefix) == 0;
 
-  std::string tmpdest = outdir + "/." + basename(info.filename) + ".tmp";
-  std::string dest = outdir + "/" + basename(info.filename);
+  if (isAlienSrc || isAlienDest)
+    TGrid::Connect("alien://");
+
+  char *relDir = strdup(dirname(strdup(info.filename.c_str() + (isAlienSrc ? prefix.size() : 0))));
+  char *tmpFilename = strdup(basename(strdup(info.filename.c_str())));
+  std::string tmpdest = outdir + "/" + relDir + "/." + tmpFilename + ".tmp";
+  char *tmpoutdestCpy = strdup(tmpdest.c_str());
+  char *tmpoutdir = strdup(dirname(tmpoutdestCpy));
+  std::string dest = outdir + "/" + relDir + "/" + tmpFilename;
+
   // If destination is a local file, remove old temporary file.
   // else we really copy directly where we want to be.
-  if (useAtomic)
+  if (isAlienDest == false) {
+    recursiveLocalMkdir(tmpoutdir);
     unlink(tmpdest.c_str());
-  else
+  } else {
+    assert(gGrid);
+    assert(strncmp("alien://", tmpoutdir, prefix.size()) == 0);
+    dieIf(gGrid->Mkdir(tmpoutdir+prefix.size(), "-p") == 0, 
+          1, "Unable to create %s\n", tmpoutdir);
     tmpdest = dest;
+  }
+  free(tmpoutdir);
+  free(relDir);
+  free(tmpFilename);
+
   // If no regexps specified, simply use TFile::Cp. If regular
   // expressions specified, copy only the tkeys that match those files.
   if (regexps.empty())
@@ -190,19 +218,20 @@ void downloadFile(const JobInfo &info,
       if (tree)
       {
         tree->SetBranchStatus("*",1);
-        for (size_t ei = 0, ee = tree->GetEntries(); ei != ee; ++ei)
-        {
-          tree->GetEntry(ei, 1);
-        }
+        TTree *cloned = tree->CloneTree();
+        dest->WriteTObject(cloned, oldKey->GetName());
+        delete cloned;
       }
-      dest->WriteTObject(content, oldKey->GetName());
+      else
+        dest->WriteTObject(content, oldKey->GetName());
+      delete content;
     }
     src->Close();
     dest->WriteKeys();
     dest->Close();
   }
   // In case the file is local, we need to move it in place.
-  if (useAtomic) 
+  if (!isAlienDest) 
     if (rename(tmpdest.c_str(), dest.c_str()))
     {
       unlink(tmpdest.c_str());

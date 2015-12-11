@@ -22,8 +22,6 @@
 //zmq payloads, maybe a AliZMQmessage class which would by default be multipart and provide
 //easy access to payloads based on topic or so (a la HLT GetFirstInputObject() etc...)
 
-typedef std::map<std::string,std::string> stringMap;
-
 //methods
 int ProcessOptionString(TString arguments);
 int InitZMQ();
@@ -46,12 +44,21 @@ void* fZMQmon = NULL;        //the request-reply socket, here we request the mer
 void* fZMQout = NULL;        //the monitoring socket, here we publish a copy of the data
 void* fZMQin  = NULL;        //the in socket - entry point for the data to be merged.
 
+int fZMQtimeout = -1;
+int fSleep = 0;
+std::string reqTopic;
+std::string reqBody;
+
 const char* fUSAGE =
   "ZMQproxy: a simple monitored ZMQ proxy\n"
   "options:\n"
   " -in : socket in\n"
   " -out : socket out\n"
   " -mon : monitor socket\n"
+  " -sleep : sleep between polls\n"
+  " -timeout : timeout for a poll\n"
+  " -requestTopic : request topic\n"
+  " -requestBody : request body\n"
   ;
 
 void* work(void* /*param*/)
@@ -98,9 +105,9 @@ int InitZMQ()
 int ProcessOptionString(TString arguments)
 {
   //process passed options
-  stringMap* options = AliOptionParser::TokenizeOptionString(arguments);
+  aliStringVec* options = AliOptionParser::TokenizeOptionString(arguments);
   int nOptions = 0;
-  for (stringMap::iterator i=options->begin(); i!=options->end(); ++i)
+  for (aliStringVec::iterator i=options->begin(); i!=options->end(); ++i)
   {
     const TString& option = i->first;
     const TString& value = i->second;
