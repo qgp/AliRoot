@@ -381,7 +381,7 @@ Int_t AliHLTAnalysisManagerComponent::DoEvent(const AliHLTComponentEventData& ev
     if (eventData->fEvent) {HLTInfo("----> event %p has %d tracks: \n", eventData->fEvent, eventData->fEvent->GetNumberOfTracks());}
     if (eventData->fFriend) {HLTInfo("----> friend %p has %d tracks: \n", eventData->fFriend, eventData->fFriend->GetNumberOfTracks());}
 
-    if (eventData->fEvent->GetNumberOfTracks() >= fMinTracks)
+    if (eventData->fEvent && eventData->fFriend && eventData->fEvent->GetNumberOfTracks() >= fMinTracks)
     {
       if (fMinTracks) HLTImportant("Event has %d tracks, running AnalysisManager", eventData->fEvent->GetNumberOfTracks());
       eventData->fRequestPush = CheckPushbackPeriod() && !fPushRequestOngoing;
