@@ -829,11 +829,13 @@ Bool_t AliEveEventManager::InitOCDB(int runNo)
     if (!defaultStorage) AliFatal("At this point we really should have the default storage set!");
     if (defaultStorage->GetId("GRP/GRP/Data", runNo))
     {
+        cout<<"AliEveEventManager::InitOCDB : GRP Data from default storage"<<endl;
         cdb->SetRun(runNo);
     }
     else
     {
         //now if we don't have a GRP we need to get one from somewhere
+        cout<<"AliEveEventManager::InitOCDB : GRP Data from prompt reco params"<<endl;
         ReceivePromptRecoParameters(runNo);
     }
     
