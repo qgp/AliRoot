@@ -325,7 +325,7 @@ void AliEveEventManagerWindow::DoMarkEvent()
 void AliEveEventManagerWindow::DoScreenshot()
 {
     AliEveSaveViews *viewsSaver = new AliEveSaveViews();
-    viewsSaver->SaveWithDialog();
+    viewsSaver->Save();
 }
 
 void AliEveEventManagerWindow::DoReloadOffline()
