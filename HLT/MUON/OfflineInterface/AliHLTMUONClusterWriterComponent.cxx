@@ -98,58 +98,58 @@ int AliHLTMUONClusterWriterComponent::DoInit(int argc, const char** argv)
 {
   /// Inherited from AliHLTComponent.
   /// Parses the command line parameters and initialises the component.
-  
+
   HLTInfo("Initialising dHLT cluster writer component.");
-  
+
   const char* fileName = NULL;
-  
+
   for (int i = 0; i < argc; i++) {
-    
+
     // file name
     if (strcmp(argv[i], "-datafile") == 0) {
-      
+
       if (fileName != NULL) HLTWarning("file name was already specified. Will replace previous value given by -datafile.");
-      
+
       if (argc <= i+1) {
         HLTError("The file name was not specified.");
         return -EINVAL;
       }
-      
+
       fileName = argv[++i];
-      
+
     }
-    
+
   }
-  
+
   // prepare storage of clusters in an AliMUONVCluster format
   fFile = new TFile(fileName,"RECREATE");
   if (!fFile) {
     HLTError("Cannot open file named %s.",fileName);
     return -EPERM;
   }
-  
+
   fTree = new TTree("TreeR","Clusters");
   if (!fTree) {
     HLTError("Cannot create cluster tree \"TreeR\".");
     CleanMemory();
     return -ENOMEM;
   }
-  
+
   fClusterStore = new AliMUONClusterStoreV2();
   if (!fClusterStore) {
     HLTError("Cannot create cluster store.");
     CleanMemory();
     return -ENOMEM;
   }
-  
+
   if (!fClusterStore->Connect(*fTree, kTRUE)) {
     HLTError("Cannot connect cluster store to the tree.");
     CleanMemory();
     return -EIO;
   }
-  
+
   fDigitIds.reserve(100);
-  
+
   return 0;
 }
 
@@ -157,18 +157,18 @@ int AliHLTMUONClusterWriterComponent::DoInit(int argc, const char** argv)
 int AliHLTMUONClusterWriterComponent::DoDeinit()
 {
   /// Inherited from AliHLTComponent. Performs a cleanup of the component.
-  
+
   HLTInfo("Deinitialising dHLT cluster writer component.");
-  
+
   assert(fFile != 0x0 && fTree != 0x0);
-  
+
   // save clusters
   fFile->cd();
   fTree->Write();
   fFile->Close();
-  
+
   CleanMemory();
-  
+
   return 0;
 }
 
@@ -177,48 +177,52 @@ int AliHLTMUONClusterWriterComponent::DumpEvent(const AliHLTComponentEventData& 
                                                 AliHLTComponentTriggerData& /*trigData*/)
 {
   /// Inherited from AliHLTDataSink. Processes the new event data.
-  
+
   assert(fTree != 0x0 && fClusterStore != 0x0);
-  
+
   int iResult(0);
-  
+
   // skip non physics events (e.g. SOR, EOR)
   if (!IsDataEvent()) return iResult;
-  
+
   fClusterStore->Clear();
-  
+
   // loop over objects in blocks of data type "ClusterStore"
   const TObject *pObj = GetFirstInputObject(AliHLTMUONConstants::ClusterStoreDataType());
   while (pObj) {
-    
+
     const AliMUONVClusterStore *pClStore = dynamic_cast<const AliMUONVClusterStore*>(pObj);
     if (pClStore) StoreClusters(pClStore);
     else {
       HLTError("The data block of type \"ClusterStore\" does not contains a cluster store.");
+      #if __APPLE__
       iResult = -EFTYPE;
+      #else
+      iResult = -ENODATA;
+      #endif
     }
-    
+
     pObj = GetNextInputObject();
-    
+
   }
-  
+
   // loop over blocks of data type "PreClustersBlock"
   const AliHLTComponentBlockData *pBlock = GetFirstInputBlock(AliHLTMUONConstants::PreClustersBlockDataType());
   while (pBlock) {
-    
+
     int status = fPreClusterBlock.Reset(pBlock->fPtr, pBlock->fSize, false);
     if (status >= 0) StorePreClusters(pBlock->fSpecification);
     else {
       HLTError("Invalid data block of type \"PreClustersBlock\" for DE %d.",pBlock->fSpecification);
       iResult = status;
     }
-    
+
     pBlock = GetNextInputBlock();
-    
+
   }
-  
+
   fTree->Fill();
-  
+
   return iResult;
 }
 
@@ -226,48 +230,48 @@ int AliHLTMUONClusterWriterComponent::DumpEvent(const AliHLTComponentEventData& 
 void AliHLTMUONClusterWriterComponent::StoreClusters(const AliMUONVClusterStore* clStore)
 {
   /// transfert the clusters to the internal cluster store
-  
+
   Int_t clIndex = fClusterStore->GetSize();
   UInt_t clId(0);
-  
+
   TIter nextCl(clStore->CreateIterator());
   AliMUONVCluster *cluster(0x0);
   while ((cluster = static_cast<AliMUONVCluster*>(nextCl()))) {
-    
+
     // change the cluster index (its ID has to be unique to add it to the new store)
     clId = AliMUONVCluster::BuildUniqueID(cluster->GetChamberId(), cluster->GetDetElemId(), clIndex);
     cluster->SetUniqueID(clId);
-    
+
     // add the cluster to the internal store
     if (fClusterStore->Add(*cluster)) ++clIndex;
-    
+
   }
-  
+
 }
 
 //_________________________________________________________________________________________________
 void AliHLTMUONClusterWriterComponent::StorePreClusters(int deId)
 {
   /// transfert the preclusters to the internal cluster store
-  
+
   AliMUONVCluster *cluster(0x0);
   Int_t clIndex = fClusterStore->GetSize();
   Int_t chId(deId/100-1);
-  
+
   const std::vector<AliHLTMUONPreClusterStruct> &preclusters = fPreClusterBlock.GetPreClusters();
-  for (std::vector<const AliHLTMUONPreClusterStruct>::iterator precluster = preclusters.begin(); precluster != preclusters.end(); ++precluster) {
-    
+  for (std::vector<AliHLTMUONPreClusterStruct>::const_iterator precluster = preclusters.begin(); precluster != preclusters.end(); ++precluster) {
+
     // store a new cluster (its ID has to be unique to add it to the new store)
     cluster = fClusterStore->Add(chId, deId, clIndex);
     ++clIndex;
-    
+
     // add the list of digit Ids
     fDigitIds.clear();
     for (AliHLTUInt32_t iDigit = 0; iDigit < precluster->fNDigits; ++iDigit)
       fDigitIds.push_back(precluster->fDigits[iDigit].fId);
     cluster->SetDigitsId(precluster->fNDigits, &fDigitIds.front());
-    
+
   }
-  
+
 }
 

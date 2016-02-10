@@ -106,59 +106,67 @@ int AliHLTMUONDigitReaderComponent::DoInit(int argc, const char** argv)
 {
   /// Inherited from AliHLTComponent.
   /// Parses the command line parameters and initialises the component.
-  
+
   HLTInfo("Initialising dHLT digit reader component.");
-  
+
   const char* fileName = NULL;
-  
+
   for (int i = 0; i < argc; i++) {
-    
+
     // file name
     if (strcmp(argv[i], "-datafile") == 0) {
-      
+
       if (fileName != NULL) HLTWarning("file name was already specified. Will replace previous value given by -datafile.");
-      
+
       if (argc <= i+1) {
         HLTError("The file name was not specified.");
         return -EINVAL;
       }
-      
+
       fileName = argv[++i];
-      
+
     }
-    
+
     // split per DE
     if (strcmp(argv[i], "-perDE") == 0) fPerDE = kTRUE;
-    
+
   }
-  
+
   // prepare reading of digits
   fFile = new TFile(fileName,"READ");
   if (!fFile) {
     HLTError("Cannot open file named %s.",fileName);
     return -ENOENT;
   }
-  
+
   fTree = dynamic_cast<TTree*>(fFile->Get("TreeD"));
   if (!fTree) {
     HLTError("Cannot find digit tree \"TreeD\" in file named %s.",fileName);
     CleanMemory();
+    #if __APPLE__
     return -EFTYPE;
+    #else
+    return -ENODATA;
+    #endif
   }
-  
+
   fDigitStore = AliMUONVDigitStore::Create(*fTree);
   if (!fDigitStore) {
     HLTError("Cannot create digit store.");
     CleanMemory();
+    #if __APPLE__
     return -EFTYPE;
+    #else
+    return -ENODATA;
+    #endif
   }
-  
+
   if (!fDigitStore->Connect(*fTree)) {
     HLTError("Cannot connect digit store to the tree.");
     CleanMemory();
     return -EIO;
   }
-  
+
   return 0;
 }
 
@@ -166,11 +174,11 @@ int AliHLTMUONDigitReaderComponent::DoInit(int argc, const char** argv)
 int AliHLTMUONDigitReaderComponent::DoDeinit()
 {
   /// Inherited from AliHLTComponent. Performs a cleanup of the component.
-  
+
   HLTInfo("Deinitialising dHLT digit reader component.");
-  
+
   CleanMemory();
-  
+
   return 0;
 }
 
@@ -181,40 +189,40 @@ int AliHLTMUONDigitReaderComponent::GetEvent(const AliHLTComponentEventData& evt
                                              AliHLTComponentBlockDataList& /*outputBlocks*/)
 {
   /// Inherited from AliHLTDataSource. Processes the new event data.
-  
+
   assert(fTree != 0x0 && fDigitStore != 0x0);
-  
+
   // skip non physics events (e.g. SOR, EOR)
   if (!IsDataEvent()) return 0;
-  
+
   UInt_t eventnumber = UInt_t(evtData.fEventID);
   if (eventnumber >= fTree->GetEntries()) return -EINVAL;
-  
+
   // load digits
   fDigitStore->Clear();
   fTree->GetEntry(eventnumber);
   if (fDigitStore->GetSize() < 1) return 0;
-  
+
   // register digits with positive charge
   int status(0);
   TIterator *digits(0x0);
   AliMUONVDigit *digit(0x0);
   AliHLTMUONDigitsBlockWriter *digitblock(0x0);
   if (fPerDE) { // one block per dE
-    
+
     digits = fDigitStore->CreateTrackerIterator();
     while ((digit = static_cast<AliMUONVDigit*>(digits->Next())) && digit->Charge() <= 0) continue;
     Int_t currentDE = digit ? digit->DetElemId() : -1;
     AliHLTUInt32_t totalBytesUsed(0);
     while (digit) {
-      
+
       // create a digits data block for the new DE
       if (!digitblock)
         if ((status = CreateDigitBlock(outputPtr+totalBytesUsed, size-totalBytesUsed, digitblock)) < 0) break;
-      
+
       // add the digit to the current block
       if ((status = AddDigit(*digit, *digitblock)) < 0) break;
-      
+
       // get the next digit and register the current block if we are done with this DE
       while ((digit = static_cast<AliMUONVDigit*>(digits->Next())) && digit->Charge() <= 0) continue;
       if (!digit || digit->DetElemId() != currentDE) {
@@ -225,38 +233,38 @@ int AliHLTMUONDigitReaderComponent::GetEvent(const AliHLTComponentEventData& evt
         delete digitblock;
         digitblock = 0x0;
       }
-      
+
     }
-    
+
   } else { // all in the same block
-    
+
     // create a digits data block
     status = CreateDigitBlock(outputPtr, size, digitblock);
-    
+
     if (status >= 0) {
-      
+
       digits = fDigitStore->CreateIterator();
       while ((digit = static_cast<AliMUONVDigit*>(digits->Next()))) {
-        
+
         if (digit->Charge() <= 0) continue;
-        
+
         // add the digit to the block
         if ((status = AddDigit(*digit, *digitblock)) < 0) break;
-        
+
       }
-      
+
       // register the block if not empty
       if (status >= 0 && digitblock->Nentries() > 0) {
         AliHLTUInt32_t bytesUsed(digitblock->BytesUsed());
         status = PushBack(outputPtr, bytesUsed, AliHLTMUONConstants::DigitBlockDataType(), 0);
       }
-      
+
     }
-    
+
   }
   delete digitblock;
   delete digits;
-  
+
   return status;
 }
 
@@ -265,13 +273,13 @@ int AliHLTMUONDigitReaderComponent::CreateDigitBlock(AliHLTUInt8_t *outputPtr, A
                                                      AliHLTMUONDigitsBlockWriter *&digitblock)
 {
   /// Create a digits data block.
-  
+
   digitblock = new AliHLTMUONDigitsBlockWriter(outputPtr, size);
   if (!digitblock->InitCommonHeader()) {
     HLTError("The buffer is too small to store a new digit block.");
     return -ENOBUFS;
   }
-  
+
   return 0;
 }
 
@@ -279,7 +287,7 @@ int AliHLTMUONDigitReaderComponent::CreateDigitBlock(AliHLTUInt8_t *outputPtr, A
 int AliHLTMUONDigitReaderComponent::AddDigit(AliMUONVDigit &digit, AliHLTMUONDigitsBlockWriter &digitblock)
 {
   /// Add a digit to the block.
-  
+
   AliHLTMUONDigitStruct *digit2 = digitblock.AddEntry();
   if (!digit2) {
     HLTError("The buffer is too small to store a new digit.");
@@ -288,7 +296,7 @@ int AliHLTMUONDigitReaderComponent::AddDigit(AliMUONVDigit &digit, AliHLTMUONDig
   digit2->fId = digit.GetUniqueID();
   digit2->fIndex = 0;
   digit2->fADC = static_cast<AliHLTUInt16_t>(digit.ADC());
-  
+
   return 0;
 }
 
