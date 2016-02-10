@@ -311,15 +311,6 @@ AliAODEvent* AliEveEventManager::AssertAOD()
 
 AliRawReader* AliEveEventManager::AssertRawReader()
 {
-    // Make sure raw-reader is initialized and return it.
-    
-    static const TEveException kEH("AliEveEventManager::AssertRawReader ");
-    
-    if (fgMaster == 0 || fgMaster->fHasEvent == kFALSE)
-        throw (kEH + "ALICE event not ready.");
-    if (fgMaster->fCurrentData->fRawReader == 0)
-        throw (kEH + "RawReader not ready.");
-    
     return fgMaster->fCurrentData->fRawReader;
 }
 
@@ -632,7 +623,6 @@ void AliEveEventManager::AfterNewEventLoaded()
         
         mv->ImportEventRPhi(top);
         mv->ImportEventRhoZ(top);
-        mv->ImportEventMuon(top);
         
         gEve->GetBrowser()->RaiseWindow();
         gEve->FullRedraw3D();
@@ -698,7 +688,6 @@ void AliEveEventManager::AfterNewEventLoaded()
         
         mv->ImportEventRPhi(top);
         mv->ImportEventRhoZ(top);
-        mv->ImportEventMuon(top);
         
         gEve->GetBrowser()->RaiseWindow();
         gEve->FullRedraw3D();
