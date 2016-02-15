@@ -1292,6 +1292,11 @@ int AliHLTComponent::CleanupInputObjects()
     // pops up again.
     if (pObj &&
 	(!TObject::GetObjectStat() || gObjectTable->PtrIsValid(pObj))) {
+      TCollection* coll = dynamic_cast<TCollection*>(pObj);
+      if (coll)
+      {
+        coll->SetOwner(kTRUE);
+      }
       delete pObj;
     }
   }
