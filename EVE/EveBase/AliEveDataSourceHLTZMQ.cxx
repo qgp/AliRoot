@@ -273,23 +273,23 @@ void AliEveDataSourceHLTZMQ::NextEvent()
     fCurrentData.Clear();
     fCurrentData.fESD = esdObject;
     
-      AliEveEventManager::GetMaster()->DestroyElements();
+      AliEveEventManager::Instance()->DestroyElements();
       
-      if(esdObject->GetRunNumber() != AliEveEventManager::GetMaster()->GetCurrentRun()){
-          AliEveEventManager::GetMaster()->ResetMagneticField();
-              AliEveEventManager::GetMaster()->SetCurrentRun(esdObject->GetRunNumber());
+      if(esdObject->GetRunNumber() != AliEveEventManager::Instance()->GetCurrentRun()){
+          AliEveEventManager::Instance()->ResetMagneticField();
+              AliEveEventManager::Instance()->SetCurrentRun(esdObject->GetRunNumber());
       }
       
-    AliEveEventManager::GetMaster()->SetHasEvent(true);
-    AliEveEventManager::GetMaster()->AfterNewEventLoaded();
-    //if (AliEveEventManager::GetMaster()->GetAutoLoad()) {
-    //  AliEveEventManager::GetMaster()->StartAutoLoadTimer();
+    AliEveEventManager::Instance()->SetHasEvent(true);
+    AliEveEventManager::Instance()->AfterNewEventLoaded();
+    //if (AliEveEventManager::Instance()->GetAutoLoad()) {
+    //  AliEveEventManager::Instance()->StartAutoLoadTimer();
     //}
   }
   else
   {
     cout<<"No new event is avaliable."<<endl;
-    //AliEveEventManager::GetMaster()->NoEventLoaded();
+    //AliEveEventManager::Instance()->NoEventLoaded();
   }
   zmq_msg_close(&message);
 #endif
