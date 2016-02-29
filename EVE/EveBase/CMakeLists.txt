@@ -60,7 +60,6 @@ set(SRCS
     AliEveESDSPDTracklets.cxx
     AliEveESDTracks.cxx
     AliEveESDV0s.cxx
-    AliEveEtaPtView.cxx
     AliEveEventManager.cxx
     AliEveEventManagerEditor.cxx
     AliEveEventSelector.cxx
