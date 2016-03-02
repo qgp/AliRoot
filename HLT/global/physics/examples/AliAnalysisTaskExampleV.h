@@ -38,7 +38,7 @@ class AliAnalysisTaskExampleV : public AliAnalysisTask {
     TH1F            *fHistEta;       // pseudorapidity spectrum
     // NEW HISTO to be declared here
     
-    AliVEvent *fV;
+    AliVEvent *fV; //!
     
     AliAnalysisTaskExampleV(const AliAnalysisTaskExampleV&); // not implemented
     AliAnalysisTaskExampleV& operator=(const AliAnalysisTaskExampleV&); // not implemented
