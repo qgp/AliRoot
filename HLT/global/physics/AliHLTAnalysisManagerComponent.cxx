@@ -82,6 +82,7 @@ AliHLTAnalysisManagerComponent::AliHLTAnalysisManagerComponent() :
   AliHLTProcessor(),
   fUID(0),
   fQuickEndRun(false),
+  fAnalysisInitialized(false),
   fAnalysisManager(NULL),
   fInputHandler(NULL),
   fAddTaskMacro(""),
@@ -215,7 +216,10 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerInit(void*)
     gROOT->Macro(fAddTaskMacro);
   }
 
-  fAnalysisManager->InitAnalysis();
+  if (fAnalysisManager->InitAnalysis() == kFALSE)
+  {
+    return((void*) -1);
+  }
   return(NULL);
 }
 
@@ -238,7 +242,10 @@ Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*a
   HLTInfo("AliHLTAnalysisManagerComponent::DoInit (with QueueDepth %d)", fQueueDepth);
   if (fAsyncProcessor.Initialize(fQueueDepth, fAsyncProcess > 0, fAsyncProcess)) return(1);
 
-  fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerInit, NULL);
+  if (fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerInit, NULL) == NULL)
+  {
+    fAnalysisInitialized = kTRUE;
+  }
 
   return 0;
 }
@@ -349,6 +356,8 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent(void* tmpEventData)
 Int_t AliHLTAnalysisManagerComponent::DoEvent(const AliHLTComponentEventData& evtData,
     AliHLTComponentTriggerData& /*trigData*/) {
   // see header file for class documentation
+  
+  if (!fAnalysisInitialized) return(0);
 
   TStopwatch stopwatch;
   stopwatch.Start();
