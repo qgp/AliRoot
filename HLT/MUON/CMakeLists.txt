@@ -77,6 +77,7 @@ set(SRCS
     OfflineInterface/AliHLTMUONTriggerRecordsSource.cxx
     OnlineAnalysis/AliHLTMUONCalculations.cxx
     OnlineAnalysis/AliHLTMUONClusterFinderComponent.cxx
+    OnlineAnalysis/AliHLTMUONDigitLoaderComponent.cxx
     OnlineAnalysis/AliHLTMUONDecisionComponent.cxx
     OnlineAnalysis/AliHLTMUONFullTrackerComponent.cxx
     OnlineAnalysis/AliHLTMUONFullTracker.cxx
@@ -135,4 +136,4 @@ install(FILES ${HDRS} DESTINATION include)
 
 # Compilation of some executables
 add_subdirectory(utils)
-      
+

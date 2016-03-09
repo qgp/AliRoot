@@ -39,6 +39,7 @@
 #include "AliHLTMUONClusterFinderComponent.h"
 #include "AliHLTMUONRawDataHistoComponent.h"
 #include "AliHLTMUONClusterHistoComponent.h"
+#include "AliHLTMUONDigitLoaderComponent.h"
 #include "AliHLTMUONPreclusterFinderComponent.h"
 #include "AliHLTMUONClusterWriterComponent.h"
 #include "AliHLTMUONDigitReaderComponent.h"
@@ -71,7 +72,7 @@ bool AliHLTMUONAgent::IsMuonModuleLoaded()
 	// If the check was already done then use the cached value.
 	if (fgMuonModuleLoaded > 0) return true;
 	if (fgMuonModuleLoaded < 0) return false;
-	
+
 	if (gAlice != NULL)
 	{
 		// Search for a module in gAlice deriving from AliMUON.
@@ -86,7 +87,7 @@ bool AliHLTMUONAgent::IsMuonModuleLoaded()
 			}
 		}
 	}
-	
+
 	fgMuonModuleLoaded = -1;
 	return false;
 }
@@ -128,7 +129,7 @@ const char* AliHLTMUONAgent::GetReconstructionChains(AliRawReader* rawReader,
 	/// If rawReader is not NULL then the standard dHLT chain is run taking
 	/// data from raw DDL data. Otherwise runloader is checked and if it is
 	/// not NULL then a dHLT chain is run with input data from digits.
-	
+
 	if (rawReader != NULL)
 	{
 		// Check if there is any data from the tracker and trigger.
@@ -145,13 +146,13 @@ const char* AliHLTMUONAgent::GetReconstructionChains(AliRawReader* rawReader,
 			if (rawReader->ReadHeader()) dataFromTrigger = true;
 		}
 		rawReader->Reset();
-		
+
 		// If raw data was found for our detector then select the
 		// appropriate chain.
 		if (dataFromTracker and dataFromTrigger)
 			return "dHLT-sim-fromRaw";
 	}
-	
+
 	if (runloader != NULL)
 	{
 		// IsMuonModuleLoaded() is used to check if the muon module was loaded
@@ -160,7 +161,7 @@ const char* AliHLTMUONAgent::GetReconstructionChains(AliRawReader* rawReader,
 		if (IsMuonModuleLoaded() and runloader->GetLoader("MUONLoader") != NULL)
 			return "dHLT-sim";
 	}
-	
+
 	return "";
 }
 
@@ -172,7 +173,7 @@ const char* AliHLTMUONAgent::GetRequiredComponentLibraries() const
 	/// this module agent depend on.
 	/// @return list of component libraries as a blank-separated string.
 	///
-	
+
 	// List of libraries that we depend on.
 	static const char* libs[] =
 	{
@@ -222,7 +223,7 @@ const char* AliHLTMUONAgent::GetRequiredComponentLibraries() const
 		"libAliHLTUtil.so",
 		NULL
 	};
-	
+
 	// First check if the library is not already loaded. If it is then we have
 	// no reason to declare it as needed, so that we do not load it again.
 	static TString result;
@@ -260,13 +261,13 @@ int AliHLTMUONAgent::CreateConfigurations(
 	/// dHLT-sim-fromRaw  - standard dHLT chain taking raw DDL data as input.
 	/// dHLT-sim-fromMC   - dHLT chain taking Monte Carlo hit data as input.
 	///                     So hit reconstruction is not checked, just the tracker.
-	
+
 	if (handler == NULL) return 0;
-	
+
 	const char* trackerId = AliHLTMUONConstants::MansoTrackerFSMId();
 	const char* fullTrackerId = AliHLTMUONConstants::FullTrackerId();
 	const char* decCompId = AliHLTMUONConstants::DecisionComponentId();
-	
+
 	if (rawReader != NULL)
 	{
 		// Implement the dHLT-sim-fromRaw dHLT simulation chain reading
@@ -340,31 +341,31 @@ int AliHLTMUONAgent::CreateConfigurations(
 		handler->CreateConfiguration("RecoRawDDL20", hrId, "RawDDL20", "-ddl 20 -cdb");
 		handler->CreateConfiguration("RecoRawDDL21", trId, "RawDDL21", "-ddl 21 -cdb -suppress_partial_triggers");
 		handler->CreateConfiguration("RecoRawDDL22", trId, "RawDDL22", "-ddl 22 -cdb -suppress_partial_triggers");
-		
+
 		const char* recoSrcs = "RecoRawDDL13 RecoRawDDL14 RecoRawDDL15 RecoRawDDL16 RecoRawDDL17"
 			" RecoRawDDL18 RecoRawDDL19 RecoRawDDL20 RecoRawDDL21 RecoRawDDL22";
 		handler->CreateConfiguration("MansoTrackerForRaw", trackerId, recoSrcs, "");
-		
+
 		handler->CreateConfiguration("DecisionForRaw", decCompId, "MansoTrackerForRaw", "");
-		
+
 		TString outputSrcs = "DecisionForRaw MansoTrackerForRaw ";
 		outputSrcs += recoSrcs;
 		handler->CreateConfiguration("dHLT-sim-fromRaw", "BlockFilter", outputSrcs, "");
-		
+
 		// For reconstruction using full tracker.
 		const char* recoSrcsFull = " RecoRawDDL1 RecoRawDDL2 RecoRawDDL3 RecoRawDDL4 RecoRawDDL5 RecoRawDDL6 "
 			" RecoRawDDL7 RecoRawDDL8 RecoRawDDL9 RecoRawDDL10 RecoRawDDL11 RecoRawDDL12 "
 			" RecoRawDDL13 RecoRawDDL14 RecoRawDDL15 RecoRawDDL16 RecoRawDDL17 "
 			" RecoRawDDL18 RecoRawDDL19 RecoRawDDL20 RecoRawDDL21 RecoRawDDL22 ";
 		handler->CreateConfiguration("FullTrackerForRaw", fullTrackerId, recoSrcsFull, "-cdb");
-		
+
 		handler->CreateConfiguration("DecisionForRawFullTrk", decCompId, "FullTrackerForRaw", "");
-		
+
 		TString outputSrcsFull = "DecisionForRawFullTrk FullTrackerForRaw ";
 		outputSrcsFull += recoSrcsFull;
 		handler->CreateConfiguration("dHLT-sim-fromRaw-fullTracker", "BlockFilter", outputSrcsFull, "");
 	}
-	
+
 	if (IsMuonModuleLoaded() and runloader != NULL)
 	{
 		// Implement the dHLT-sim dHLT simulation chain reading from
@@ -392,17 +393,17 @@ int AliHLTMUONAgent::CreateConfigurations(
 		handler->CreateConfiguration("RecoDDL20", hrId, "DigitDDL20", "-ddl 20 -cdb");
 		handler->CreateConfiguration("RecoDDL21", trId, "DigitDDL21", "-ddl 21 -cdb -suppress_partial_triggers");
 		handler->CreateConfiguration("RecoDDL22", trId, "DigitDDL22", "-ddl 22 -cdb -suppress_partial_triggers");
-		
+
 		const char* recoSrcs = "RecoDDL13 RecoDDL14 RecoDDL15 RecoDDL16 RecoDDL17"
 			" RecoDDL18 RecoDDL19 RecoDDL20 RecoDDL21 RecoDDL22";
 		handler->CreateConfiguration("MansoTracker", trackerId, recoSrcs, "");
-		
+
 		handler->CreateConfiguration("Decision", decCompId, "MansoTracker", "");
-		
+
 		TString outputSrcs = "Decision MansoTracker ";
 		outputSrcs += recoSrcs;
 		handler->CreateConfiguration("dHLT-sim", "BlockFilter", outputSrcs.Data(), "");
-	
+
 		// Implement the dHLT-sim-fromMC dHLT simulation chain reading
 		// Monte Carlo geant hits and putting those into a tracker component.
 		const char* rhsId = AliHLTMUONConstants::RecHitsSourceId();
@@ -417,18 +418,18 @@ int AliHLTMUONAgent::CreateConfigurations(
 		handler->CreateConfiguration("HitsDDL20", rhsId, NULL, "-simdata -plane right -chamber 10");
 		handler->CreateConfiguration("TrigRecsDDL21", trsId, NULL, "-hitdata -plane left");
 		handler->CreateConfiguration("TrigRecsDDL22", trsId, NULL, "-hitdata -plane right");
-		
+
 		const char* dataSrcs = "HitsDDL13 HitsDDL14 HitsDDL15 HitsDDL16 HitsDDL17"
 			" HitsDDL18 HitsDDL19 HitsDDL20 TrigRecsDDL21 TrigRecsDDL22";
 		handler->CreateConfiguration("MansoTrackerForMC", trackerId, dataSrcs, "");
-		
+
 		handler->CreateConfiguration("DecisionForMC", decCompId, "MansoTrackerForMC", "");
-		
+
 		outputSrcs = "DecisionForMC MansoTrackerForMC ";
 		outputSrcs += dataSrcs;
 		handler->CreateConfiguration("dHLT-sim-fromMC", "BlockFilter", outputSrcs.Data(), "");
 	}
-	
+
 	// Create a chain for generating AliESDEvent objects from dHLT raw reconstructed data.
 	handler->CreateConfiguration("HLTOUTPubTrigRecs", "AliHLTOUTPublisher", NULL, "-datatype 'TRIGRECS' 'MUON'");
 	handler->CreateConfiguration("HLTOUTPubMansoTracks", "AliHLTOUTPublisher", NULL, "-datatype 'MANTRACK' 'MUON'");
@@ -439,7 +440,7 @@ int AliHLTMUONAgent::CreateConfigurations(
 			"HLTOUTPubTrigRecs HLTOUTPubMansoTracks HLTOUTPubTracks",
 			"-make_minimal_esd"
 		);
-	
+
 	// Create a chain for rootifying the raw dHLT data and dumping to file.
 	// This is used during AliRoot reconstruction.
 	handler->CreateConfiguration("HLTOUTPubTrigDbg", "AliHLTOUTPublisher", NULL, "-datatype 'TRIGRDBG' 'MUON'");
@@ -463,38 +464,39 @@ int AliHLTMUONAgent::CreateConfigurations(
 			"HLTOUTConverter",
 			"-concatenate-events -datafile dHLTRawData.root -specfmt"
 		);
-	
+
 	return 0;
 }
 
 
 int AliHLTMUONAgent::RegisterComponents(AliHLTComponentHandler* pHandler) const
 {
-	///
-	/// Registers all available components of this module.
-	/// @param [in] pHandler  instance of the component handler.
-	///
-	
-	if (pHandler == NULL) return -EINVAL;
-	pHandler->AddComponent(new AliHLTMUONRecHitsSource);
-	pHandler->AddComponent(new AliHLTMUONTriggerRecordsSource);
-	pHandler->AddComponent(new AliHLTMUONDigitPublisherComponent);
-	pHandler->AddComponent(new AliHLTMUONRootifierComponent);
-	pHandler->AddComponent(new AliHLTMUONHitReconstructorComponent);
-	pHandler->AddComponent(new AliHLTMUONTriggerReconstructorComponent);
-	pHandler->AddComponent(new AliHLTMUONMansoTrackerFSMComponent);
-	pHandler->AddComponent(new AliHLTMUONFullTrackerComponent);
-	pHandler->AddComponent(new AliHLTMUONDecisionComponent);
-	pHandler->AddComponent(new AliHLTMUONESDMaker);
-	pHandler->AddComponent(new AliHLTMUONEmptyEventFilterComponent);
-	pHandler->AddComponent(new AliHLTMUONDataCheckerComponent);
-	pHandler->AddComponent(new AliHLTMUONClusterFinderComponent);
-	pHandler->AddComponent(new AliHLTMUONRawDataHistoComponent);
-	pHandler->AddComponent(new AliHLTMUONClusterHistoComponent);
-        pHandler->AddComponent(new AliHLTMUONPreclusterFinderComponent);
-        pHandler->AddComponent(new AliHLTMUONClusterWriterComponent);
-        pHandler->AddComponent(new AliHLTMUONDigitReaderComponent);
-	return 0;
+  ///
+  /// Registers all available components of this module.
+  /// @param [in] pHandler  instance of the component handler.
+  ///
+
+  if (pHandler == NULL) return -EINVAL;
+  pHandler->AddComponent(new AliHLTMUONRecHitsSource);
+  pHandler->AddComponent(new AliHLTMUONTriggerRecordsSource);
+  pHandler->AddComponent(new AliHLTMUONDigitPublisherComponent);
+  pHandler->AddComponent(new AliHLTMUONRootifierComponent);
+  pHandler->AddComponent(new AliHLTMUONHitReconstructorComponent);
+  pHandler->AddComponent(new AliHLTMUONTriggerReconstructorComponent);
+  pHandler->AddComponent(new AliHLTMUONMansoTrackerFSMComponent);
+  pHandler->AddComponent(new AliHLTMUONFullTrackerComponent);
+  pHandler->AddComponent(new AliHLTMUONDecisionComponent);
+  pHandler->AddComponent(new AliHLTMUONESDMaker);
+  pHandler->AddComponent(new AliHLTMUONEmptyEventFilterComponent);
+  pHandler->AddComponent(new AliHLTMUONDataCheckerComponent);
+  pHandler->AddComponent(new AliHLTMUONClusterFinderComponent);
+  pHandler->AddComponent(new AliHLTMUONRawDataHistoComponent);
+  pHandler->AddComponent(new AliHLTMUONClusterHistoComponent);
+  pHandler->AddComponent(new AliHLTMUONDigitLoaderComponent);
+  pHandler->AddComponent(new AliHLTMUONPreclusterFinderComponent);
+  pHandler->AddComponent(new AliHLTMUONClusterWriterComponent);
+  pHandler->AddComponent(new AliHLTMUONDigitReaderComponent);
+  return 0;
 }
 
 
@@ -509,7 +511,7 @@ int AliHLTMUONAgent::GetHandlerDescription(
 	) const
 {
 	/// Get handler decription for MUON data in the HLTOUT data stream.
-	
+
 	if (dt == AliHLTMUONConstants::TriggerRecordsBlockDataType() or
 	    dt == AliHLTMUONConstants::MansoTracksBlockDataType() or
 	    dt == AliHLTMUONConstants::TracksBlockDataType()
@@ -523,7 +525,7 @@ int AliHLTMUONAgent::GetHandlerDescription(
 		desc = AliHLTOUTHandlerDesc(kChain, dt, "dHLT-make-esd");
 		return 1;
 	}
-	
+
 	if (dt == AliHLTMUONConstants::TriggerRecordsBlockDataType() or
 	    dt == AliHLTMUONConstants::TrigRecsDebugBlockDataType() or
 	    dt == AliHLTMUONConstants::RecHitsBlockDataType() or
@@ -566,7 +568,7 @@ int AliHLTMUONAgent::GetHandlerDescription(
 		desc = AliHLTOUTHandlerDesc(kProprietary, dt, "AliHLTOUTHandlerIgnore");
 		return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -581,13 +583,13 @@ AliHLTOUTHandler* AliHLTMUONAgent::GetOutputHandler(
 	)
 {
 	/// Get specific handler for MUON data in the HLTOUT data stream.
-	
+
 	HLTDebug("Trying to create HLTOUT handler for data type = %s and"
 		" specification = 0x%8.8X",
 		AliHLTComponent::DataType2Text(dt).c_str(),
 		spec
 	);
-	
+
 	if (dt == AliHLTMUONConstants::TriggerRecordsBlockDataType() or
 	    dt == AliHLTMUONConstants::MansoTracksBlockDataType() or
 	    dt == AliHLTMUONConstants::TracksBlockDataType()
@@ -628,7 +630,7 @@ AliHLTOUTHandler* AliHLTMUONAgent::GetOutputHandler(
 	{
 		return &fgkDataIgnoreHandler;
 	}
-	
+
 	return NULL;
 }
 
@@ -636,7 +638,7 @@ AliHLTOUTHandler* AliHLTMUONAgent::GetOutputHandler(
 int AliHLTMUONAgent::DeleteOutputHandler(AliHLTOUTHandler* pInstance)
 {
 	HLTDebug("Trying to delete HLTOUT handler: %p", pInstance);
-	
+
 	if (pInstance==NULL) return -EINVAL;
 
 	if (pInstance==fgkESDMakerChain) {
