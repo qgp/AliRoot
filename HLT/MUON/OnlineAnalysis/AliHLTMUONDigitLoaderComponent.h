@@ -14,24 +14,25 @@
 ///  @brief  load digits from raw data
 ///
 
-// #include <vector>
-// #include <TExMap.h>
 #include "AliHLTProcessor.h"
 #include "AliHLTMUONDigitsBlockStruct.h"
 
 #include "AliMUONTrackerDDLDecoderEventHandler.h"
 #include "AliMUONTrackerDDLDecoder.h"
 #include "AliHLTMUONDataBlockWriter.h"
+
+#include <TExMap.h>
+
 /**
  * @class AliHLTMUONDigitLoaderComponent
  * @brief A processing component for the dHLT tracker DDL reconstruction.
  *
  * <h2>General properties:</h2>
  *
- * Component ID: \b MUONPreclusterFinder <br>
+ * Component ID: \b MUONDigitLoader <br>
  * Library: \b libAliHLTMUON.so  <br>
  * Input Data Types: ('DDL_RAW ', 'MUON') <br>
- * Output Data Types: ('CLUSTORE', 'MUON') <br>
+ * Output Data Types: ('Digit', 'MUON') <br>
  *
  * @ingroup alihlt_muon_components
  */
@@ -70,6 +71,9 @@ class AliHLTMUONDigitLoaderComponent : public AliHLTProcessor
 
   private:
 
+  // create mapping
+  void CreateMapping( void );
+
   // create digit block
   int CreateDigitBlock(
     AliHLTUInt8_t*, AliHLTUInt32_t ,
@@ -97,6 +101,10 @@ class AliHLTMUONDigitLoaderComponent : public AliHLTProcessor
 
   /// Not implemented.
   AliHLTMUONDigitLoaderComponent& operator = (const AliHLTMUONDigitLoaderComponent& /*obj*/);
+
+  /// maps detector id to the plane type of cathode 0
+  /** this is needed to get the right unique id for decoded digits */
+  TExMap fDEPlaneType;
 
   /// raw data decoder
   AliMUONTrackerDDLDecoder<RawDecoderHandler> fRawDecoder;

@@ -28,10 +28,14 @@
 
 #include "AliCDBManager.h"
 #include "AliCodeTimer.h"
+#include "AliMpConstants.h"
 #include "AliMpDDLStore.h"
+#include "AliMpDEIterator.h"
+#include "AliMpSegmentation.h"
+#include "AliMpVSegmentation.h"
 #include "AliMUONCDB.h"
+#include "AliMUONConstants.h"
 #include "AliMUONVDigit.h"
-
 
 ClassImp(AliHLTMUONDigitLoaderComponent)
 
@@ -189,10 +193,10 @@ int AliHLTMUONDigitLoaderComponent::DoInit(int argc, const char** argv)
   // Load the MUON mapping from CDB and create the internal mapping
   // MUON mapping also needed for raw data decoding
   if( !AliMUONCDB::LoadMapping() ) return -EIO;
+  CreateMapping();
 
   AliCodeTimer::Instance()->Reset();
 
-  HLTInfo( "done" );
   return 0;
 
 }
@@ -273,6 +277,36 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
 
 }
 
+
+//_________________________________________________________________________________________________
+void AliHLTMUONDigitLoaderComponent::CreateMapping()
+{
+  fDEPlaneType.Clear();
+
+  // loop over chambers
+  for( Int_t iCh = 0; iCh < AliMUONConstants::NTrackingCh(); ++iCh )
+  {
+
+    // loop over detector element
+    AliMpDEIterator iterator;
+    for( iterator.First(iCh); !iterator.IsDone(); iterator.Next() )
+    {
+
+      // get detector element
+      const Int_t deId( iterator.CurrentDEId() );
+
+      // get segmentation for cathode 0
+      const AliMpVSegmentation* segmentation = AliMpSegmentation::Instance()->GetMpSegmentation( deId, AliMp::kCath0 );
+
+      // store corresponding plane type
+      fDEPlaneType.Add( deId, segmentation->PlaneType() );
+
+    }
+
+  }
+
+}
+
 //_________________________________________________________________________________________________
 int AliHLTMUONDigitLoaderComponent::CreateDigitBlock(
   AliHLTUInt8_t *outputPtr,
@@ -307,20 +341,21 @@ void AliHLTMUONDigitLoaderComponent::RawDecoderHandler::OnData(UInt_t data, bool
   if (adc <= 0) return;
 
   // get plane index
-//   const AliMp::PlaneType planeType = (manuId & AliMpConstants::ManuMask(AliMp::kNonBendingPlane)) ? AliMp::kNonBendingPlane : AliMp::kBendingPlane;
-//   const UChar_t iPlane = (planeType == AliMp::kNonBendingPlane) ? 1 : 0;
+  const AliMp::PlaneType planeType = (manuId & AliMpConstants::ManuMask(AliMp::kNonBendingPlane)) ? AliMp::kNonBendingPlane : AliMp::kBendingPlane;
 
-  // get cathod index
-  const UChar_t iCath = 0;
+  // get cathode index
+  const Int_t iCath = ( planeType == fParent->fDEPlaneType.GetValue( fDetElemId ) ) ? 0:1;
 
-  // get pad index
-  UInt_t padId = AliMUONVDigit::BuildUniqueID(fDetElemId, manuId, manuChannel, iCath);
+  // get pad unique id
+  const UInt_t padId = AliMUONVDigit::BuildUniqueID(fDetElemId, manuId, manuChannel, iCath );
 
   // add new digit
   AliHLTMUONDigitStruct* digit = fParent->fDigitblock->AddEntry();
   digit->fId = padId;
   digit->fIndex = 0;
   digit->fADC = adc;
+
+  std::cerr << *digit << endl;
 
 }
 
