@@ -392,6 +392,7 @@ void AliHLTMUONPreclusterFinderComponent::CreateMapping()
       for (UChar_t iCath = 0; iCath < 2; ++iCath) {
 
         de.iCath[iPlane[iCath]] = iCath;
+
         de.nFiredPads[iPlane[iCath]] = 0;
         de.firedPads[iPlane[iCath]].reserve(de.nPads[iPlane[iCath]]/10); // 10% occupancy
 
