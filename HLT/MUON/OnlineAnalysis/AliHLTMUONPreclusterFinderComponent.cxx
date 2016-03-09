@@ -73,7 +73,6 @@ void AliHLTMUONPreclusterFinderComponent::GetInputDataTypes(AliHLTComponentDataT
 {
   /// Inherited from AliHLTComponent. Returns the list of expected input data types.
   list.clear();
-  list.push_back(AliHLTMUONConstants::DDLRawDataType());
   list.push_back(AliHLTMUONConstants::DigitBlockDataType());
 }
 
