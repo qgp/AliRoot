@@ -156,8 +156,8 @@ int AliHLTMUONClusterWriterComponent::DoInit(int argc, const char** argv)
 //_________________________________________________________________________________________________
 int AliHLTMUONClusterWriterComponent::DoDeinit()
 {
-  /// Inherited from AliHLTComponent. Performs a cleanup of the component.
 
+  /// Inherited from AliHLTComponent. Performs a cleanup of the component.
   HLTInfo("Deinitialising dHLT cluster writer component.");
 
   assert(fFile != 0x0 && fTree != 0x0);
@@ -173,8 +173,9 @@ int AliHLTMUONClusterWriterComponent::DoDeinit()
 }
 
 //_________________________________________________________________________________________________
-int AliHLTMUONClusterWriterComponent::DumpEvent(const AliHLTComponentEventData& /*evtData*/,
-                                                AliHLTComponentTriggerData& /*trigData*/)
+int AliHLTMUONClusterWriterComponent::DumpEvent(
+  const AliHLTComponentEventData& /*evtData*/,
+  AliHLTComponentTriggerData& /*trigData*/ )
 {
   /// Inherited from AliHLTDataSink. Processes the new event data.
 
