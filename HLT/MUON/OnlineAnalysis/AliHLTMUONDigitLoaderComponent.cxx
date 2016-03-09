@@ -41,8 +41,6 @@ ClassImp(AliHLTMUONDigitLoaderComponent)
 
 //_________________________________________________________________________________________________
 AliHLTMUONDigitLoaderComponent::AliHLTMUONDigitLoaderComponent() :
-    AliHLTProcessor(),
-    fRawDecoder(),
     fBadEvent(kFALSE),
     fDigitblock(0x0)
 {
