@@ -36,18 +36,12 @@
 #include "AliMUONConstants.h"
 #include "AliMUONVDigit.h"
 
-// MUON mapping
-#include "AliMpDDLStore.h"
+// // MUON mapping
 #include "AliMpCDB.h"
 #include "AliMpDEIterator.h"
 #include "AliMpVSegmentation.h"
 #include "AliMpSegmentation.h"
 #include "AliMpVPadIterator.h"
-#include "AliMpPad.h"
-#include "AliMpConstants.h"
-
-// HLT
-#include "AliHLTCDHWrapper.h"
 
 // STEER
 #include "AliCDBManager.h"
@@ -58,16 +52,8 @@ ClassImp(AliHLTMUONPreclusterFinderComponent)
 
 
 //_________________________________________________________________________________________________
-AliHLTMUONPreclusterFinderComponent::AliHLTMUONPreclusterFinderComponent() :
-AliHLTProcessor(),
-fRawDecoder(),
-fBadEvent(kFALSE),
-fDEIndices(),
-fPreClusterBlock()
-{
-  /// Default constructor
-  fRawDecoder.GetHandler().SetParent(this);
-}
+AliHLTMUONPreclusterFinderComponent::AliHLTMUONPreclusterFinderComponent()
+{}
 
 //_________________________________________________________________________________________________
 AliHLTMUONPreclusterFinderComponent::~AliHLTMUONPreclusterFinderComponent()
@@ -255,45 +241,14 @@ int AliHLTMUONPreclusterFinderComponent::DoEvent(const AliHLTComponentEventData&
   // skip non physics events (e.g. SOR, EOR)
   if (!IsDataEvent()) return 0;
 
-  fBadEvent = kFALSE;
   Bool_t inBlocks = kFALSE;
 
   // reset fired pad and precluster information
   ResetPadsAndPreclusters();
 
-  // loop over blocks of the data type "DDL_RAW"
-  AliCodeTimerStartGeneral("LoadDigitsFromRaw");
-  const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(AliHLTMUONConstants::DDLRawDataType());
-  while (pBlock) {
-
-    // get the pointer to the begining and the size of the raw data block (after the CDH)
-    AliHLTCDHWrapper cdh(pBlock->fPtr);
-    AliHLTUInt32_t headerSize = cdh.GetHeaderSize();
-    AliHLTUInt32_t totalDDLSize = pBlock->fSize;
-    AliHLTUInt32_t ddlRawDataSize = totalDDLSize - headerSize;
-    AliHLTUInt32_t *buffer = reinterpret_cast<AliHLTUInt32_t*>(pBlock->fPtr) + headerSize/sizeof(AliHLTUInt32_t);
-
-    // decode the block to get the fired pads
-    fRawDecoder.Decode(buffer,ddlRawDataSize);
-    if (fBadEvent) {
-      HLTError("Error found while decoding the raw data block.");
-      #if __APPLE__
-      return -EFTYPE;
-      #else
-      return -ENODATA;
-      #endif
-    }
-
-    inBlocks = kTRUE;
-
-    pBlock = GetNextInputBlock();
-
-  }
-  AliCodeTimerStopGeneral("LoadDigitsFromRaw");
-
   // loop over objects in blocks of data type "DIGITS"
   AliCodeTimerStartGeneral("LoadDigits");
-  pBlock = GetFirstInputBlock(AliHLTMUONConstants::DigitBlockDataType());
+  const AliHLTComponentBlockData* pBlock = GetFirstInputBlock(AliHLTMUONConstants::DigitBlockDataType());
   while (pBlock) {
 
     AliHLTMUONDigitsBlockReader dblock(pBlock->fPtr, pBlock->fSize);
@@ -870,99 +825,3 @@ Int_t AliHLTMUONPreclusterFinderComponent::StorePreClusters(AliHLTUInt8_t* outpu
   return status;
 
 }
-
-//_________________________________________________________________________________________________
-void AliHLTMUONPreclusterFinderComponent::RawDecoderHandler::OnData(UInt_t data, bool /*parityError*/)
-{
-  /// OnData is called for every raw data word found within a bus patch.
-  /// Every data word received by a call to OnData is associated to the bus patch
-  /// header received in the most recent call to OnNewBusPatch.
-  /// The default behaviour of this method is to do nothing.
-  /// - param UInt_t  This is the raw data word as found within the bus patch payload.
-  /// - param bool  Flag indicating if the raw data word had a parity error.
-  ///       This will always be set to false if fSendDataOnParityError in the
-  ///       AliMUONTrackerDDLDecoder class was set to false.
-
-  // decode the raw data word
-  UShort_t manuId;
-  UChar_t manuChannel;
-  UShort_t adc;
-  UnpackADC(data, manuId, manuChannel, adc);
-
-  if (adc <= 0) return;
-
-  // get plane index
-  AliMp::PlaneType planeType = (manuId & AliMpConstants::ManuMask(AliMp::kNonBendingPlane)) ? AliMp::kNonBendingPlane : AliMp::kBendingPlane;
-  UChar_t iPlane = (planeType == AliMp::kNonBendingPlane) ? 1 : 0;
-
-  // get cathod index
-  mpDE &de(fParent->fMpDEs[fParent->fDEIndices.GetValue(fDetElemId)]);
-  UChar_t iCath = de.iCath[iPlane];
-
-  // get pad index
-  UInt_t padId = AliMUONVDigit::BuildUniqueID(fDetElemId, manuId, manuChannel, iCath);
-  UShort_t iPad = de.padIndices[iPlane].GetValue(padId);
-  if (iPad == 0) return;
-  --iPad;
-
-  // register this digit in the list of digits we own
-  if (de.nOwnDigits >= static_cast<UShort_t>(de.ownDigits.size())) de.ownDigits.push_back(new AliHLTMUONDigitStruct);
-  AliHLTMUONDigitStruct *digit = de.ownDigits[de.nOwnDigits];
-  digit->fId = padId;
-  digit->fIndex = iPad;
-  digit->fADC = adc;
-  ++de.nOwnDigits;
-
-  // then in the list of fired digits
-  UShort_t iDigit = de.nFiredPads[0] + de.nFiredPads[1];
-  if (iDigit >= static_cast<UShort_t>(de.digits.size())) de.digits.push_back(digit);
-  else de.digits[iDigit] = digit;
-  de.pads[iPad].iDigit = iDigit;
-  de.pads[iPad].useMe = kTRUE;
-
-  // set this pad as fired
-  if (de.nFiredPads[iPlane] < static_cast<UShort_t>(de.firedPads[iPlane].size()))
-    de.firedPads[iPlane][de.nFiredPads[iPlane]] = iPad;
-  else de.firedPads[iPlane].push_back(iPad);
-  ++de.nFiredPads[iPlane];
-
-}
-
-//_________________________________________________________________________________________________
-void AliHLTMUONPreclusterFinderComponent::RawDecoderHandler::OnNewBusPatch(const AliMUONBusPatchHeaderStruct* header, const void* /*data*/)
-{
-  /// OnNewBusPatch is called whenever a new bus patch header is found in
-  /// the payload. Every bus patch received by a call to OnNewBusPatch is
-  /// associated to the DSP header received in the most recent call to OnNewDSP.
-  /// The default behaviour of this method is to do nothing.
-  /// - param const AliMUONBusPatchHeaderStruct*  This is a pointer to the bus patch
-  ///                header as found in the DDL payload.
-  /// - param const void*  This is a pointer to the start of the bus patch's contents,
-  ///              specifically the raw data words.
-  /// Note: both pointers point into the memory buffer being parsed, so the
-  /// contents must not be modified. On the other hand this is very efficient
-  /// because no memory copying is required.
-
-  // get the detection element ID containing this bus patch
-  fDetElemId = AliMpDDLStore::Instance()->GetDEfromBus(header->fBusPatchId);
-}
-
-//_________________________________________________________________________________________________
-void AliHLTMUONPreclusterFinderComponent::RawDecoderHandler::OnError(ErrorCode /*error*/, const void* /*location*/)
-{
-  /// Whenever a parsing error of the DDL payload is encountered because of
-  /// corruption of the raw data (eg. bit flips) the OnError method is called
-  /// immediately at the point this error is discovered.
-  /// The default behaviour of this method is to do nothing.
-  /// - param ErrorCode  This is an error code indicating the kind of problem
-  ///               encountered with the DDL payload.
-  /// - param const void*  This is a pointer into the DDL payload memory buffer
-  ///         indicating the exact location where the parsing error happened
-  ///         or i.e. the location of the corruption.
-  /// Note that a relative offset in bytes from the start of the memory buffer
-  /// can be calculated by: storing the buffer pointer received in OnNewBuffer
-  /// earlier in fBufferStart for example, and then the offset is given by:
-  ///   offset = (unsigned long)location - (unsigned long)fBufferStart;
-  fParent->fBadEvent = kTRUE;
-}
-

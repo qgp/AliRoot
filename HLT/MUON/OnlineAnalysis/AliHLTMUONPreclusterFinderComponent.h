@@ -17,8 +17,6 @@
 #include <vector>
 #include <TExMap.h>
 #include "AliHLTProcessor.h"
-#include "AliMUONTrackerDDLDecoderEventHandler.h"
-#include "AliMUONTrackerDDLDecoder.h"
 #include "AliHLTMUONPreClustersBlock.h"
 #include "AliHLTMUONDataBlockReader.h"
 
@@ -40,43 +38,31 @@ class AliHLTMUONPreclusterFinderComponent : public AliHLTProcessor
 public:
   AliHLTMUONPreclusterFinderComponent();
   virtual ~AliHLTMUONPreclusterFinderComponent();
-  
+
   // Public functions to implement AliHLTProcessor's interface.
   // These functions are required for the registration process
-  
+
   virtual const char* GetComponentID();
   virtual void GetInputDataTypes(AliHLTComponentDataTypeList& list);
   virtual AliHLTComponentDataType GetOutputDataType();
   virtual void GetOutputDataSize(unsigned long& constBase, double& inputMultiplier);
   virtual AliHLTComponent* Spawn();
-  
+
 protected:
-  
+
   // Protected functions to implement AliHLTProcessor's interface.
   // These functions provide initialization as well as the actual processing
   // capabilities of the component.
-  
+
   virtual int DoInit(int argc, const char** argv);
   virtual int DoDeinit();
   virtual int DoEvent(const AliHLTComponentEventData& evtData, const AliHLTComponentBlockData* blocks,
                       AliHLTComponentTriggerData& trigData, AliHLTUInt8_t* outputPtr,
                       AliHLTUInt32_t& size, AliHLTComponentBlockDataList& outputBlocks);
   using AliHLTProcessor::DoEvent;
-  
+
 private:
-  
-  // internal class to interface the raw data decoder
-  class RawDecoderHandler : public AliMUONTrackerDDLDecoderEventHandler {
-  public:
-    void OnNewBusPatch(const AliMUONBusPatchHeaderStruct* header, const void* data);
-    void OnData(UInt_t data, bool parityError);
-    void OnError(ErrorCode error, const void* location);
-    void SetParent(AliHLTMUONPreclusterFinderComponent* parent) { fParent = parent; }
-  private:
-    AliHLTMUONPreclusterFinderComponent* fParent;
-    Int_t fDetElemId;
-  };
-  
+
   // pad structure in the internal mapping
   struct mpPad {
     UShort_t iDigit; // index of the corresponding digit
@@ -85,7 +71,7 @@ private:
     Float_t area[2][2]; // 2D area
     Bool_t useMe; // kFALSE if no digit attached or already visited
   };
-  
+
   // DE structure in the internal mapping
   struct mpDE {
     Int_t id; // unique ID
@@ -101,7 +87,7 @@ private:
     UShort_t nOrderedPads[2]; // current number of fired pads in the following arrays
     std::vector<UShort_t> orderedPads[2]; // indices of fired pads ordered after preclustering and merging
   };
-  
+
   // precluster structure
   struct preCluster {
     UShort_t firstPad; // index of first associated pad in the orderedPads array
@@ -110,48 +96,45 @@ private:
     Bool_t useMe; // kFALSE if precluster already merged to another one
     Bool_t storeMe; // kTRUE if precluster to be saved (merging result)
   };
-  
+
   // Do not allow copying of this class.
   /// Not implemented.
   AliHLTMUONPreclusterFinderComponent(const AliHLTMUONPreclusterFinderComponent& /*obj*/);
   /// Not implemented.
   AliHLTMUONPreclusterFinderComponent& operator = (const AliHLTMUONPreclusterFinderComponent& /*obj*/);
-  
+
   void CreateMapping();
   void FindNeighbours(mpDE &de, UChar_t iPlane);
-  
+
   void LoadDigits(const AliHLTMUONDigitsBlockReader &dblock);
   void ResetPadsAndPreclusters();
-  
+
   void PreClusterizeRecursive();
   void AddPad(mpDE &de, UShort_t iPad, preCluster &cl);
-  
+
   void MergePreClusters();
   void MergePreClusters(preCluster &cl, std::vector<preCluster*> preClusters[2],
                         UShort_t nPreClusters[2], mpDE &de, UChar_t iPlane,
                         preCluster *&mergedCl);
   preCluster* UsePreClusters(preCluster *cl, mpDE &de);
   void MergePreClusters(preCluster &cl1, preCluster &cl2, mpDE &de);
-  
+
   Bool_t AreOverlapping(preCluster &cl1, preCluster &cl2, mpDE &de, Float_t precision);
   Bool_t AreOverlapping(Float_t area1[2][2], Float_t area2[2][2], Float_t precision);
-  
+
   //void StorePreClusters();
   Int_t StorePreClusters(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size);
-  
+
   static const UChar_t fgkNDEs = 156; ///< number of DEs
-  
-  AliMUONTrackerDDLDecoder<RawDecoderHandler> fRawDecoder; ///< raw decoder
-  Bool_t fBadEvent; ///< flag to identify events with raw data decoding issue
-  
+
   mpDE fMpDEs[fgkNDEs]; ///< internal mapping
   TExMap fDEIndices; ///< maps DE indices from DE IDs
-  
+
   UShort_t fNPreClusters[fgkNDEs][2]; ///< number of preclusters in each cathods of each DE
   std::vector<preCluster*> fPreClusters[fgkNDEs][2]; ///< list of preclusters in each cathods of each DE
-  
+
   AliHLTMUONPreClustersBlock fPreClusterBlock; ///< to fill preclusters data blocks
-  
+
   ClassDef(AliHLTMUONPreclusterFinderComponent, 0)
 };
 
