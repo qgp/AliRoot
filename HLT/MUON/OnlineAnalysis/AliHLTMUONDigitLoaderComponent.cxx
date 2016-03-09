@@ -250,11 +250,11 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
     {
 
       HLTError("Error found while decoding the raw data block.");
-      #if __APPLE__
-      return -EFTYPE;
-      #else
-      return -ENODATA;
-      #endif
+//       #if __APPLE__
+//       return -EFTYPE;
+//       #else
+//       return -ENODATA;
+//       #endif
     }
 
     pBlock = GetNextInputBlock();
@@ -349,11 +349,19 @@ void AliHLTMUONDigitLoaderComponent::RawDecoderHandler::OnData(UInt_t data, bool
 
   // add new digit
   AliHLTMUONDigitStruct* digit = fParent->fDigitblock->AddEntry();
-  digit->fId = padId;
-  digit->fIndex = 0;
-  digit->fADC = adc;
+  if( digit )
+  {
 
-  std::cerr << *digit << endl;
+    digit->fId = padId;
+    digit->fIndex = 0;
+    digit->fADC = adc;
+
+  } else {
+
+    // HLTError("The buffer is too small to store a new digit block.");
+    fParent->fBadEvent = kTRUE;
+
+  }
 
 }
 
