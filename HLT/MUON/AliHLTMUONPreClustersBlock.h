@@ -139,9 +139,6 @@ private:
   /// number of digits in the last precluster (write mode)
   AliHLTUInt16_t *fLastNDigits;
 
-  /// current digit in the last precluster (write mode)
-  AliHLTMUONDigitStruct *fLastDigit;
-
   /// list of preclusters
   std::vector<AliHLTMUONPreClusterStruct> fPreClusters;
 

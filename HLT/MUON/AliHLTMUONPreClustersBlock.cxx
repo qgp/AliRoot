@@ -33,10 +33,9 @@ AliHLTMUONPreClustersBlock::AliHLTMUONPreClustersBlock() :
     fWriteMode(false),
     fSize4PreCl(0),
     fSize4Digit(0),
-    fCurrentSize(1),
+    fCurrentSize(0),
     fNPreClusters(0x0),
-    fLastNDigits(0x0),
-    fLastDigit(0x0)
+    fLastNDigits(0x0)
 {
   // default constructor
 }
@@ -46,12 +45,11 @@ AliHLTMUONPreClustersBlock::AliHLTMUONPreClustersBlock(void *buffer, AliHLTUInt3
   AliHLTLogging(),
   fSize(size),
   fWriteMode(write),
-  fSize4PreCl((size > fgkSizeOfUShort+fgkSizeOfDigit) ? size - fgkSizeOfUShort - fgkSizeOfDigit : 0),
-  fSize4Digit((size > fgkSizeOfDigit) ? size - fgkSizeOfDigit : 0),
-  fCurrentSize(size+1),
+  fCurrentSize(0),
+  fSize4PreCl(0),
+  fSize4Digit(0),
   fNPreClusters(0x0),
-  fLastNDigits(0x0),
-  fLastDigit(0x0)
+  fLastNDigits(0x0)
 {
 
   /// constructor
@@ -83,31 +81,29 @@ int AliHLTMUONPreClustersBlock::Reset(void *buffer, AliHLTUInt32_t size, bool wr
   fWriteMode = write;
 
   // reset
-  fSize4PreCl = (size > fgkSizeOfUShort+fgkSizeOfDigit) ? size - fgkSizeOfUShort - fgkSizeOfDigit : 0;
-  fSize4Digit = (size > fgkSizeOfDigit) ? size - fgkSizeOfDigit : 0;
+  const AliHLTUInt32_t minSizeOfCluster = fgkSizeOfUShort + fgkSizeOfDigit;
+  fSize4PreCl = ( size > minSizeOfCluster ) ? size - minSizeOfCluster : 0;
+  fSize4Digit = ( size > fgkSizeOfDigit ) ? size - fgkSizeOfDigit : 0;
   fLastNDigits = 0x0;
-  fLastDigit = 0x0;
   fPreClusters.clear();
 
-  if (size >= fgkSizeOfUShort) {
+  if( size >= fgkSizeOfUShort )
+  {
 
-    // store number of precluster
+    // store number of precluster and increment buffer
     fNPreClusters = reinterpret_cast<AliHLTUInt16_t*>(fBuffer);
-
-    // increment buffer and size read
-    // reinterpret_cast<AliHLTUInt16_t*>(fBuffer) += 1;
     fBuffer = (reinterpret_cast<AliHLTUInt16_t*>(fBuffer) + 1);
-    fCurrentSize = sizeof(AliHLTUInt16_t);
+    fCurrentSize = fgkSizeOfUShort;
 
+    // assign 0 clusters in write mode
     if (fWriteMode)
     {
 
-      // assign 0 clusters in write mode
       *fNPreClusters = 0;
 
     } else {
 
-      // read
+      // read buffer otherwise
       status = ReadBuffer();
 
     }
@@ -128,6 +124,7 @@ int AliHLTMUONPreClustersBlock::Reset(void *buffer, AliHLTUInt32_t size, bool wr
       status = -EILSEQ;
 
     }
+
   }
 
   return status;
@@ -141,35 +138,34 @@ int AliHLTMUONPreClustersBlock::StartPreCluster(const AliHLTMUONDigitStruct &dig
   // start a new precluster
   assert(fWriteMode);
 
-  if (fCurrentSize > fSize4PreCl)
+  // could move back to constructor (or reset)
+  if( fCurrentSize > fSize4PreCl )
   {
     HLTError("The buffer is too small to store a new precluster.");
     fLastNDigits = 0x0;
-    fLastDigit = 0x0;
     return -ENOBUFS;
   }
 
   // use current buffer position to store number of digits
   // and increment buffer
   fLastNDigits = reinterpret_cast<AliHLTUInt16_t*>( fBuffer );
-  // reinterpret_cast<AliHLTUInt16_t*>( fBuffer ) += 1;
   fBuffer = (reinterpret_cast<AliHLTUInt16_t*>( fBuffer ) + 1);
-  fCurrentSize += sizeof(AliHLTUInt16_t);
+  fCurrentSize += fgkSizeOfUShort;
 
   // assign
   *fLastNDigits = 1;
 
   // store digit and increment buffer
-  fLastDigit = reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer );
-  // reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer ) += 1;
+  AliHLTMUONDigitStruct* lastDigit = reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer );
+  *lastDigit = digit;
   fBuffer = (reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer ) + 1);
-  fCurrentSize += sizeof(AliHLTMUONDigitStruct);
+  fCurrentSize += fgkSizeOfDigit;
 
   // increment number of pre-clusters
   (*fNPreClusters) += 1;
 
   // insert in list
-  AliHLTMUONPreClusterStruct preCluster = {*fLastNDigits, fLastDigit};
+  AliHLTMUONPreClusterStruct preCluster = {*fLastNDigits, lastDigit};
   fPreClusters.push_back(preCluster);
 
   return 0;
@@ -183,15 +179,13 @@ int AliHLTMUONPreClustersBlock::AddDigit(const AliHLTMUONDigitStruct &digit)
   /// add a new digit to the current precluster
 
   assert(fWriteMode);
-
-  if (fCurrentSize > fSize4Digit)
+  if( fCurrentSize > fSize4Digit )
   {
     HLTError("The buffer is too small to store a new digit.");
-    fLastDigit = 0x0;
     return -ENOBUFS;
   }
 
-  if (fLastNDigits == 0x0 || fLastDigit == 0x0)
+  if( !fLastNDigits )
   {
     HLTError("No precluster to attach the new digit to.");
     return -EPERM;
@@ -202,9 +196,8 @@ int AliHLTMUONPreClustersBlock::AddDigit(const AliHLTMUONDigitStruct &digit)
 
   // assign digit to the buffer and increment buffer
   *(reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer )) = digit;
-  // reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer )+=1;
   fBuffer = (reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer ) + 1);
-  fCurrentSize += sizeof(AliHLTMUONDigitStruct);
+  fCurrentSize += fgkSizeOfDigit;
 
   // increment number of digits in the stored cluster
   if( !fPreClusters.empty() ) fPreClusters.back().fNDigits++;
@@ -224,6 +217,7 @@ int AliHLTMUONPreClustersBlock::ReadBuffer()
   // make sure fNPreClusters was assigned
   if (fNPreClusters == 0x0) return -EILSEQ;
 
+  // initialize status
   int status = 0;
 
   // rolling pre-cluster
@@ -239,7 +233,6 @@ int AliHLTMUONPreClustersBlock::ReadBuffer()
     {
 
       nDigits = reinterpret_cast<AliHLTUInt16_t*>(fBuffer);
-      // reinterpret_cast<AliHLTUInt16_t*>(fBuffer)+=1;
       fBuffer = (reinterpret_cast<AliHLTUInt16_t*>(fBuffer) + 1);
       fCurrentSize += sizeof( AliHLTUInt16_t );
 
@@ -256,7 +249,6 @@ int AliHLTMUONPreClustersBlock::ReadBuffer()
     {
 
       AliHLTMUONDigitStruct* digit = reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer );
-      // reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer ) += (*nDigits);
       fBuffer = (reinterpret_cast<AliHLTMUONDigitStruct*>( fBuffer ) + (*nDigits));
       fCurrentSize += (*nDigits) * sizeof( AliHLTMUONDigitStruct );
 
@@ -275,6 +267,21 @@ int AliHLTMUONPreClustersBlock::ReadBuffer()
 
     }
 
+  }
+
+  // sanity check on read size
+  if( fCurrentSize != fSize && status >= 0 )
+  {
+    HLTError("The number of bytes read differs from the buffer size");
+    status = -EILSEQ;
+  }
+
+  // reset in case of negative status
+  if( status < 0 )
+  {
+    fCurrentSize = fSize+1;
+    fNPreClusters = 0x0;
+    fPreClusters.clear();
   }
 
   return status;
