@@ -68,6 +68,9 @@
 #pragma link C++ class AliHLTMUONPreclusterFinderComponent+;
 #pragma link C++ class AliHLTMUONClusterWriterComponent+;
 #pragma link C++ class AliHLTMUONDigitReaderComponent+;
+
+// new classes
 #pragma link C++ class AliHLTMUONDigitLoaderComponent+;
+#pragma link C++ class AliHLTMUONNewClusterFinderComponent+;
 
 #endif // __CINT__

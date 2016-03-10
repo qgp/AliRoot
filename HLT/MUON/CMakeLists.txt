@@ -85,6 +85,7 @@ set(SRCS
     OnlineAnalysis/AliHLTMUONHitReconstructor.cxx
     OnlineAnalysis/AliHLTMUONMansoTrackerFSMComponent.cxx
     OnlineAnalysis/AliHLTMUONMansoTrackerFSM.cxx
+    OnlineAnalysis/AliHLTMUONNewClusterFinderComponent.cxx
     OnlineAnalysis/AliHLTMUONPreclusterFinderComponent.cxx
     OnlineAnalysis/AliHLTMUONTriggerReconstructorComponent.cxx
     OnlineAnalysis/AliHLTMUONTriggerReconstructor.cxx
