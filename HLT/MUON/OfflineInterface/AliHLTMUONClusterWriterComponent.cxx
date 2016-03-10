@@ -212,10 +212,17 @@ int AliHLTMUONClusterWriterComponent::DumpEvent(
   while (pBlock) {
 
     int status = fPreClusterBlock.Reset(pBlock->fPtr, pBlock->fSize, false);
-    if (status >= 0) StorePreClusters(pBlock->fSpecification);
-    else {
+    if (status >= 0)
+    {
+
+      StorePreClusters(pBlock->fSpecification);
+      std::cerr << fPreClusterBlock << std::endl;
+
+    } else {
+
       HLTError("Invalid data block of type \"PreClustersBlock\" for DE %d.",pBlock->fSpecification);
       iResult = status;
+
     }
 
     pBlock = GetNextInputBlock();
