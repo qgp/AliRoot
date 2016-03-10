@@ -42,7 +42,7 @@ ClassImp(AliHLTMUONDigitLoaderComponent)
 //_________________________________________________________________________________________________
 AliHLTMUONDigitLoaderComponent::AliHLTMUONDigitLoaderComponent() :
     fBadEvent(kFALSE),
-    fDigitblock(0x0)
+    fDigitsBlock(0x0)
 {
   /// Default constructor
   fRawDecoder.GetHandler().SetParent(this);
@@ -216,7 +216,7 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
   AliHLTComponentTriggerData& /*trigData*/,
   AliHLTUInt8_t* outputPtr,
   AliHLTUInt32_t& size,
-  AliHLTComponentBlockDataList& /*outputBlocks*/)
+  AliHLTComponentBlockDataList& outputBlocks )
 {
 
   /// Inherited from AliHLTProcessor. Processes the new event data.
@@ -228,7 +228,7 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
   fBadEvent = kFALSE;
 
   // create digit block
-  int status = CreateDigitBlock( outputPtr, size, fDigitblock );
+  int status = CreateDigitBlock( outputPtr, size, fDigitsBlock );
   if( status < 0 ) return status;
 
   // loop over blocks of the data type "DDL_RAW"
@@ -263,12 +263,13 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
 
   // push data
   // TODO: could check here whether at least one digit was added
-  const AliHLTUInt32_t bytesUsed = fDigitblock->BytesUsed();
+  const AliHLTUInt32_t bytesUsed = fDigitsBlock->BytesUsed();
+
   status = PushBack( outputPtr, bytesUsed, AliHLTMUONConstants::DigitBlockDataType(), 0);
 
   // cleanup
-  delete fDigitblock;
-  fDigitblock = 0x0;
+  delete fDigitsBlock;
+  fDigitsBlock = 0x0;
 
   AliCodeTimerStopGeneral("LoadDigitsFromRaw");
   return status;
@@ -348,7 +349,7 @@ void AliHLTMUONDigitLoaderComponent::RawDecoderHandler::OnData(UInt_t data, bool
   const UInt_t padId = AliMUONVDigit::BuildUniqueID(fDetElemId, manuId, manuChannel, iCath );
 
   // add new digit
-  AliHLTMUONDigitStruct* digit = fParent->fDigitblock->AddEntry();
+  AliHLTMUONDigitStruct* digit = fParent->fDigitsBlock->AddEntry();
   if( digit )
   {
 

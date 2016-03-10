@@ -113,7 +113,7 @@ class AliHLTMUONDigitLoaderComponent : public AliHLTProcessor
   Bool_t fBadEvent;
 
   // digit block writer
-  AliHLTMUONDigitsBlockWriter* fDigitblock;
+  AliHLTMUONDigitsBlockWriter* fDigitsBlock;
 
   friend class AliMUONTrackerDDLDecoder<RawDecoderHandler>;
 
