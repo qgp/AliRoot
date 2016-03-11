@@ -43,12 +43,9 @@ ClassImp(AliHLTMUONClusterWriterComponent)
 
 //_________________________________________________________________________________________________
 AliHLTMUONClusterWriterComponent::AliHLTMUONClusterWriterComponent() :
-AliHLTDataSink(),
 fFile(0x0),
 fTree(0x0),
-fClusterStore(0x0),
-fPreClusterBlock(),
-fDigitIds()
+fClusterStore(0x0)
 {
   /// Default constructor
 }
