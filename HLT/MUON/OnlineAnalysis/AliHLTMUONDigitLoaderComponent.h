@@ -75,7 +75,7 @@ class AliHLTMUONDigitLoaderComponent : public AliHLTProcessor
   void CreateMapping( void );
 
   // create digit block
-  int CreateDigitBlock(
+  int CreateDigitsBlock(
     AliHLTUInt8_t*, AliHLTUInt32_t ,
     AliHLTMUONDigitsBlockWriter*& ) const;
 

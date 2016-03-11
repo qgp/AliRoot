@@ -228,7 +228,7 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
   fBadEvent = kFALSE;
 
   // create digit block
-  int status = CreateDigitBlock( outputPtr, size, fDigitsBlock );
+  int status = CreateDigitsBlock( outputPtr, size, fDigitsBlock );
   if( status < 0 ) return status;
 
   // loop over blocks of the data type "DDL_RAW"
@@ -307,7 +307,7 @@ void AliHLTMUONDigitLoaderComponent::CreateMapping()
 }
 
 //_________________________________________________________________________________________________
-int AliHLTMUONDigitLoaderComponent::CreateDigitBlock(
+int AliHLTMUONDigitLoaderComponent::CreateDigitsBlock(
   AliHLTUInt8_t *outputPtr,
   AliHLTUInt32_t size,
   AliHLTMUONDigitsBlockWriter *&digitblock ) const
