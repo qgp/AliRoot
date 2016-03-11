@@ -248,13 +248,8 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
     fRawDecoder.Decode(buffer,ddlRawDataSize);
     if( fBadEvent )
     {
-
       HLTError("Error found while decoding the raw data block.");
-//       #if __APPLE__
-//       return -EFTYPE;
-//       #else
-//       return -ENODATA;
-//       #endif
+      return -ENODATA;
     }
 
     pBlock = GetNextInputBlock();
