@@ -263,9 +263,13 @@ int AliHLTMUONDigitLoaderComponent::DoEvent(
 
   // push data
   // TODO: could check here whether at least one digit was added
-  const AliHLTUInt32_t bytesUsed = fDigitsBlock->BytesUsed();
+  if( fDigitsBlock->Nentries() > 0 )
+  {
 
-  status = PushBack( outputPtr, bytesUsed, AliHLTMUONConstants::DigitBlockDataType(), 0);
+    const AliHLTUInt32_t bytesUsed = fDigitsBlock->BytesUsed();
+    status = PushBack( outputPtr, bytesUsed, AliHLTMUONConstants::DigitBlockDataType(), 0);
+
+  }
 
   // cleanup
   delete fDigitsBlock;
