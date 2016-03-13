@@ -57,7 +57,7 @@ set(ALIROOT_DEPENDENCIES STEERBase ESD RAWDatabase RAWDatarec MUONraw MUONrec)
 set(LIBDEPS ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
-# Create an object to be reused in case of static libraries 
+# Create an object to be reused in case of static libraries
 # Otherwise the sources will be compiled twice
 add_library(${MODULE}-object OBJECT ${SRCS} G__${MODULE}.cxx)
 # Follow headers dependencies
@@ -80,10 +80,15 @@ if(${CMAKE_SYSTEM} MATCHES Darwin)
     set_target_properties(${MODULE} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM} MATCHES Darwin)
 
+add_executable(o2muon-filter-raw o2muon-filter-raw.cxx)
+target_link_libraries(o2muon-filter-raw RAWDatabase RAWDatarec MUONo2)
+
 # Installation
 install(TARGETS ${MODULE}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
+
+install(TARGETS o2muon-filter-raw RUNTIME DESTINATION bin)
 
 install(FILES ${HDRS} DESTINATION include)
 
@@ -95,7 +100,7 @@ if(ALIROOT_STATIC)
     # list of shared dependencies / the name of the variable containing the list of static ones
     generate_static_dependencies("${ALIROOT_DEPENDENCIES}" "STATIC_ALIROOT_DEPENDENCIES")
     target_link_libraries(${MODULE}-static ${STATIC_ALIROOT_DEPENDENCIES} Root)
-    
+
     # Public include folders that will be propagated to the dependecies
     target_include_directories(${MODULE}-static PUBLIC ${incdirs})
 
@@ -106,4 +111,3 @@ if(ALIROOT_STATIC)
             ARCHIVE DESTINATION lib
             LIBRARY DESTINATION lib)
 endif(ALIROOT_STATIC)
-
