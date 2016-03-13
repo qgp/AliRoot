@@ -105,8 +105,8 @@ class AliAODEvent : public AliVEvent {
 
   virtual  Bool_t InitMagneticField() const {return fHeader ? fHeader->InitMagneticField() : kFALSE;}
 
-  void   SetDAQAttributes(UInt_t attributes) {fDAQAttributes = attributes;}
-  UInt_t GetDAQAttributes() const {return fDAQAttributes;}
+  void   SetDAQAttributes(UInt_t attributes) {if (fHeader) fHeader->SetDAQAttributes(attributes);}
+  UInt_t GetDAQAttributes() const            {return fHeader ? fHeader->GetDAQAttributes() : 0;}
   Bool_t IsIncompleteDAQ();
 
 
@@ -264,13 +264,12 @@ class AliAODEvent : public AliVEvent {
   const TGeoHMatrix* GetEMCALMatrix(Int_t /*i*/)const { return NULL; }
 
 
-  // -- Dimuons
-  TClonesArray *GetDimuons()              const { return fDimuons; }
-  Int_t         GetNDimuons()             const { return fDimuons->GetEntriesFast(); }
-  Int_t         GetNumberOfDimuons()      const { return GetNDimuons(); }
-  AliAODDimuon *GetDimuon(Int_t nDimu)    const { return (AliAODDimuon*)fDimuons->UncheckedAt(nDimu); }
-  Int_t         AddDimuon(const AliAODDimuon* dimu)
-    {new((*fDimuons)[fDimuons->GetEntriesFast()]) AliAODDimuon(*dimu); return fDimuons->GetEntriesFast()-1;}
+  // -- Dimuons (\deprecated)
+  TClonesArray *GetDimuons() const;
+  Int_t         GetNDimuons() const;
+  Int_t         GetNumberOfDimuons() const;
+  AliAODDimuon *GetDimuon(Int_t nDimu) const;
+  Int_t         AddDimuon(const AliAODDimuon* dimu);
   
   // // -- TRD
   Int_t GetNumberOfTrdTracks() const { return fTrdTracks ? fTrdTracks->GetEntriesFast() : 0; }
@@ -338,7 +337,6 @@ class AliAODEvent : public AliVEvent {
 
   TList   *fAODObjects; //  list of AODObjects
   TFolder *fAODFolder;  //  folder structure of branches
-  UInt_t   fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
   Bool_t   fConnected;  //! flag if leaves are alreday connected 
   Bool_t   fTracksConnected;      //! flag if tracks have already pointer to event set
   // standard content
@@ -370,7 +368,7 @@ class AliAODEvent : public AliVEvent {
   
   static const char* fAODListName[kAODListN]; //!
 
-  ClassDef(AliAODEvent,93);
+  ClassDef(AliAODEvent,94);
 };
 
 #endif

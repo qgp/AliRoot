@@ -218,7 +218,7 @@ public:
   Float_t  GetSuperModulesPar(Int_t ipar)     const { return fEMCGeometry->GetSuperModulesPar(ipar)  ; }
   //
   Int_t    GetSMType(Int_t nSupMod)           const { if( nSupMod > fEMCGeometry->GetNumberOfSuperModules() ) return -1;
-                                                      return fEMCSMSystem[nSupMod]		     ; }
+                                                      return fEMCGeometry->GetEMCSystem()[nSupMod]		     ; }
   Bool_t   IsDCALSM(Int_t nSupMod) const;
   Bool_t   IsDCALExtSM(Int_t nSupMod) const;
   Bool_t   GetPhiBoundariesOfSM(Int_t nSupMod, Double_t &phiMin, Double_t &phiMax)    const 
@@ -319,7 +319,7 @@ public:
   Bool_t  RelPosCellInSModule(Int_t absId, Double_t loc[3]) const;
   Bool_t  RelPosCellInSModule(Int_t absId, TVector3 &vloc)  const;
 
-  Int_t  * GetEMCSystem()            const { return fEMCSMSystem          ; }     //EMC System, SM type list
+  Int_t  * GetEMCSystem()            const { return fEMCGeometry->GetEMCSystem()          ; }     //EMC System, SM type list
   // Local Coordinates of SM
   TArrayD  GetCentersOfCellsEtaDir() const { return fCentersOfCellsEtaDir ; }     // size fNEta*fNETAdiv (for TRD1 only) (eta or z in SM, in cm)
   TArrayD  GetCentersOfCellsXDir()   const { return fCentersOfCellsXDir   ; }     // size fNEta*fNETAdiv (for TRD1 only) (       x in SM, in cm)
@@ -349,7 +349,8 @@ public:
   //Returns shift-rotational matrixes for different volumes
   const TGeoHMatrix * GetMatrixForSuperModule(Int_t smod) const ;
   const TGeoHMatrix * GetMatrixForSuperModuleFromGeoManager(Int_t smod) const ;
-	
+  const TGeoHMatrix * GetMatrixForSuperModuleFromArray(Int_t smod) const ;
+
   Bool_t GetAbsFastORIndexFromTRU(const Int_t iTRU, const Int_t iADC, Int_t& id) const { 
     return fTriggerMapping->GetAbsFastORIndexFromTRU(iTRU, iADC, id);
   }
@@ -361,6 +362,9 @@ public:
   }
   Bool_t GetAbsFastORIndexFromPositionInEMCAL(const Int_t iEta, const Int_t iPhi, Int_t& id) const { 
     return fTriggerMapping->GetAbsFastORIndexFromPositionInEMCAL(iEta, iPhi, id);
+  }
+  Bool_t GetAbsFastORIndexFromPHOSSubregion(const Int_t iPHOS, Int_t& id) const {
+    return fTriggerMapping->GetAbsFastORIndexFromPHOSSubregion(iPHOS, id);
   }
   Bool_t GetTRUFromAbsFastORIndex(const Int_t id, Int_t& iTRU, Int_t& iADC) const { 
     return fTriggerMapping->GetTRUFromAbsFastORIndex(id, iTRU, iADC);
@@ -404,10 +408,31 @@ public:
   Int_t  GetNTotalTRU() const { 
     return fTriggerMapping->GetNTRU(); 
   }
-  Int_t GetTRUIndexFromOnlineHwAdd(Int_t hwAdd, Int_t ddl, Int_t sm)const{
+  Int_t  GetTRUIndexFromOnlineHwAdd(Int_t hwAdd, Int_t ddl, Int_t sm)const{
     return fTriggerMapping->GetTRUIndexFromOnlineHwAdd(hwAdd, ddl, sm);
   }
-  
+  Bool_t GetSTUIndexFromTRUIndex(    const Int_t id, Int_t& idx                                    ) const { 
+    return fTriggerMapping->GetSTUIndexFromTRUIndex(id, idx ); 
+  }
+  Int_t  GetSTUIndexFromTRUIndex(    const Int_t id                                                ) const { 
+    return fTriggerMapping->GetSTUIndexFromTRUIndex(id      ); 
+  }
+  Bool_t GetTRUFromSTU(const Int_t iTRU, const Int_t iADC, Int_t& oTRU, Int_t& oADC, Int_t detector) const { 
+    return fTriggerMapping->GetTRUFromSTU(iTRU, iADC, oTRU, oADC, detector); 
+  }
+  Bool_t GetSTUFromTRU(const Int_t iTRU, const Int_t iADC, Int_t& oTRU, Int_t& oADC                ) const {
+    return fTriggerMapping->GetSTUFromTRU(iTRU, iADC, oTRU, oADC          ); 
+  }
+  Bool_t GetTRUFromSTU(const Int_t iTRU, const Int_t ieta, const Int_t iphi, Int_t& oTRU, Int_t& oeta, Int_t& ophi, Int_t detector) const {
+    return fTriggerMapping->GetTRUFromSTU(iTRU, ieta, iphi, oTRU, oeta, ophi, detector) ;
+  }
+  Bool_t GetSTUFromTRU(const Int_t iTRU, const Int_t ieta, const Int_t iphi, Int_t& oTRU, Int_t& oeta, Int_t& ophi                ) const {
+    return fTriggerMapping->GetSTUFromTRU(iTRU, ieta, iphi, oTRU, oeta, ophi          ) ;
+  }
+  Int_t  GetTriggerMappingVersion() const {
+    return fTriggerMapping->GetUniqueID();
+  }
+
 protected:
 
   void Init(void);     		     // initializes the parameters of EMCAL
@@ -417,7 +442,7 @@ protected:
   AliEMCALTriggerMapping* fTriggerMapping; // Trigger mapping
   
   TString  fGeoName;                 // geometry name
-  Int_t    *fEMCSMSystem;	           // geometry structure
+  //Int_t    *fEMCSMSystem;	         // [fEMCGeometry.fNumberOfSuperModules] geometry structure
   Int_t    fKey110DEG;               // for calculation abs cell id; 19-oct-05 
   Int_t    fnSupModInDCAL;           // for calculation abs cell id; 06-nov-12
   Int_t    fNCellsInSupMod;          // number cell in super module

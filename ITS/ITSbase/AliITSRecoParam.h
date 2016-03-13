@@ -342,6 +342,9 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void SetMaxSPDcontrForSAToUseAllClusters(Int_t contr=50) { fMaxSPDcontrForSAToUseAllClusters=contr; return; }
   Int_t GetMaxSPDcontrForSAToUseAllClusters() const { return fMaxSPDcontrForSAToUseAllClusters; }
 
+  void SetMaxSPDClforSPDOnly(Int_t ncl=400) {fMaxSPDClforSPDOnly = ncl; return; }
+  Int_t GetMaxSPDClforSPDOnly() const { return fMaxSPDClforSPDOnly; }
+
   void   SetSAUsedEdxInfo(Bool_t opt=kTRUE) { fSAUsedEdxInfo=opt; return; }
   Bool_t GetSAUsedEdxInfo() const { return fSAUsedEdxInfo; }
 
@@ -498,12 +501,19 @@ class AliITSRecoParam : public AliDetectorRecoParam
   void ReconstructOnlySPD(){fOptReco="SPD";}
   TString GetOptReco() const {return fOptReco;}
 
+  // RS Max number of clusters seen in PbPb2011 was 7000
+  // Even if you change it, keep it <65535
+  enum {kMaxClusterPerLayer=32000}; // max clusters per layer
+  enum {kMaxClusterPerLayer5 =kMaxClusterPerLayer*2/5}; 
+  enum {kMaxClusterPerLayer10=kMaxClusterPerLayer*2/10};
+  enum {kMaxClusterPerLayer20=kMaxClusterPerLayer*2/20}; 
   //
+  /*
   enum {kMaxClusterPerLayer=70000}; //7000*10;   // max clusters per layer
   enum {kMaxClusterPerLayer5=28000};//7000*10*2/5;  // max clusters per layer
   enum {kMaxClusterPerLayer10=14000};//7000*10*2/10; // max clusters per layer
   enum {kMaxClusterPerLayer20=7000};//7000*10*2/20; // max clusters per layer
-
+  */
  protected:
   //
   static const Int_t fgkLayersNotToSkip[AliITSgeomTGeo::kNLayers]; // array with layers not to skip
@@ -687,6 +697,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   Bool_t fSAOnePointTracks; // one-cluster tracks in SA (only for cosmics!)
   Bool_t fSAUseAllClusters; // do not skip clusters used by MI (same track twice in AliESDEvent!)
   Int_t fMaxSPDcontrForSAToUseAllClusters; // maximum nContr of SPD vertex for which trackerSA will reuse all ITS clusters
+  Int_t fMaxSPDClforSPDOnly;              // clusterize SPDonly if N SPD0,1 clusters > threshold
   Bool_t fSAUsedEdxInfo;   // use/not use dE/dx in ITS for assign mass hypothesis
 
   Bool_t fSelectBestMIP03;          // (MI) Multiply norm chi2 by interpolated one in hypthesis analysis
@@ -793,7 +804,7 @@ class AliITSRecoParam : public AliDetectorRecoParam
   AliITSRecoParam(const AliITSRecoParam & param);
   AliITSRecoParam & operator=(const AliITSRecoParam &param);
 
-  ClassDef(AliITSRecoParam,54) // ITS reco parameters
+  ClassDef(AliITSRecoParam,55) // ITS reco parameters
 };
 
 #endif

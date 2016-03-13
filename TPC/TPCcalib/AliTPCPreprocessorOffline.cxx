@@ -50,6 +50,7 @@
 #include "TMap.h"
 #include "TGraphErrors.h"
 #include "AliExternalTrackParam.h"
+#include "TROOT.h"
 #include "TFile.h"
 #include "TDirectory.h"
 #include "TGraph.h"
@@ -100,6 +101,7 @@ ClassImp(AliTPCPreprocessorOffline)
 //_____________________________________________________________________________
 AliTPCPreprocessorOffline::AliTPCPreprocessorOffline():
   TNamed("TPCPreprocessorOffline","TPCPreprocessorOffline"),
+  fNormaliseQA(kTRUE),
   fMinEntries(500),                      // minimal number of entries for fit
   fStartRun(0),                         // start Run - used to make fast selection in THnSparse
   fEndRun(0),                           // end   Run - used to make fast selection in THnSparse
@@ -114,6 +116,7 @@ AliTPCPreprocessorOffline::AliTPCPreprocessorOffline():
   fFitMIP(0),                  // fit of dependence - MIP
   fFitCosmic(0),               // fit of dependence - Plateu
   fGainArray(new TObjArray),               // array to be stored in the OCDB
+  fArrQAhist(0x0),
   fGainMIP(0),          // calibration component for MIP
   fGainCosmic(0),       // calibration component for cosmic
   fGainMult(0),
@@ -624,18 +627,18 @@ void AliTPCPreprocessorOffline::AddAlignmentGraphs(  TObjArray * vdriftArray, Al
   if (arrayTOF->GetEntries()>0) mstatTOF= AliTPCcalibDButil::MakeStatRelKalman(arrayTOF,0.7,1000,fMaxVdriftCorr);
   if (arrayTRD->GetEntries()>0) mstatTRD= AliTPCcalibDButil::MakeStatRelKalman(arrayTRD,0.7,50,fMaxVdriftCorr);
   //
-  TObjArray * arrayITSP= AliTPCcalibDButil::SmoothRelKalman(arrayITS,*mstatITS, 0, 5.);
-  TObjArray * arrayITSM= AliTPCcalibDButil::SmoothRelKalman(arrayITS,*mstatITS, 1, 5.);
+  TObjArray * arrayITSP= AliTPCcalibDButil::SmoothRelKalman(arrayITS,mstatITS, 0, 5.);
+  TObjArray * arrayITSM= AliTPCcalibDButil::SmoothRelKalman(arrayITS,mstatITS, 1, 5.);
   TObjArray * arrayITSB= AliTPCcalibDButil::SmoothRelKalman(arrayITSP,arrayITSM);
-  TObjArray * arrayTOFP= AliTPCcalibDButil::SmoothRelKalman(arrayTOF,*mstatTOF, 0, 5.);
-  TObjArray * arrayTOFM= AliTPCcalibDButil::SmoothRelKalman(arrayTOF,*mstatTOF, 1, 5.);
+  TObjArray * arrayTOFP= AliTPCcalibDButil::SmoothRelKalman(arrayTOF,mstatTOF, 0, 5.);
+  TObjArray * arrayTOFM= AliTPCcalibDButil::SmoothRelKalman(arrayTOF,mstatTOF, 1, 5.);
   TObjArray * arrayTOFB= AliTPCcalibDButil::SmoothRelKalman(arrayTOFP,arrayTOFM);
 
   TObjArray * arrayTRDP= 0x0;
   TObjArray * arrayTRDM= 0x0;
   TObjArray * arrayTRDB= 0x0;
-  arrayTRDP= AliTPCcalibDButil::SmoothRelKalman(arrayTRD,*mstatTRD, 0, 5.);
-  arrayTRDM= AliTPCcalibDButil::SmoothRelKalman(arrayTRD,*mstatTRD, 1, 5.);
+  arrayTRDP= AliTPCcalibDButil::SmoothRelKalman(arrayTRD,mstatTRD, 0, 5.);
+  arrayTRDM= AliTPCcalibDButil::SmoothRelKalman(arrayTRD,mstatTRD, 1, 5.);
   arrayTRDB= AliTPCcalibDButil::SmoothRelKalman(arrayTRDP,arrayTRDM);
   //
   //
@@ -1037,7 +1040,16 @@ void AliTPCPreprocessorOffline::ReadGainGlobal(const Char_t* fileName){
 Bool_t AliTPCPreprocessorOffline::AnalyzeGain(Int_t startRunNumber, Int_t endRunNumber, Int_t minEntriesGaussFit,  Float_t FPtoMIPratio){
   //
   // Analyze gain - produce the calibration graphs
- //
+  // Uses the MIP pions integrated over all chambers, eta and multiplicity
+  // This provides the absolute normalization to channel 50 in the end
+  //
+  // TODO: o What happens in case the MIPs are not flat in eta, and/or multiplicity?
+  //         In CPass0 it will not be flat.
+  //         Can we fill the histograms flat in multiplicity?
+  //       o Does the phi distribution play a role (inactive sector parts)?
+  //       o In principle one could normalise over eta, by first projecting in slices
+  //         of eta, normalize each slice and then sum
+  //
 
   // 1.) try to create MIP spline
   if (fGainMIP) 
@@ -1045,6 +1057,16 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeGain(Int_t startRunNumber, Int_t endRun
     fGainMIP->GetHistGainTime()->GetAxis(5)->SetRangeUser(startRunNumber, endRunNumber);
     fGainMIP->GetHistGainTime()->GetAxis(2)->SetRangeUser(1.51,2.49); // only beam data
     fGainMIP->GetHistGainTime()->GetAxis(4)->SetRangeUser(0.39,0.51); // only MIP pions
+
+    // ---| QA histogram |---
+    if (fArrQAhist) {
+      TH2D *hQA = fGainMIP->GetHistGainTime()->Projection(0,1);
+      hQA->SetName("TGRAPHERRORS_MEAN_GAIN_BEAM_ALL_QA");
+      hQA->SetTitle("MIP calibration collisions; time;d#it{E}/d#it{x} (arb. unit)");
+      hQA->GetXaxis()->SetRangeUser(hQA->FindFirstBinAbove(1), hQA->FindLastBinAbove(1));
+      fArrQAhist->Add(hQA);
+    }
+
     //
     fGraphMIP = AliTPCcalibBase::FitSlices(fGainMIP->GetHistGainTime(),0,1,minEntriesGaussFit,10,0.1,0.7);
     if (fGraphMIP->GetN()==0) fGraphMIP = 0x0;
@@ -1058,6 +1080,16 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeGain(Int_t startRunNumber, Int_t endRun
   {
     fGainCosmic->GetHistGainTime()->GetAxis(2)->SetRangeUser(0.51,1.49); // only cosmics
     fGainCosmic->GetHistGainTime()->GetAxis(4)->SetRangeUser(20,100);    // only Fermi-Plateau muons
+
+    // ---| QA histogram |---
+    if (fArrQAhist) {
+      TH2D *hQA = fGainMIP->GetHistGainTime()->Projection(0,1);
+      hQA->SetName("TGRAPHERRORS_MEAN_GAIN_COSMIC_ALL_QA");
+      hQA->SetTitle("MIP calibration cosmics; time;d#it{E}/d#it{x} (arb. unit)");
+      hQA->GetXaxis()->SetRangeUser(hQA->FindFirstBinAbove(1), hQA->FindLastBinAbove(1));
+      fArrQAhist->Add(hQA);
+    }
+
     //
     fGraphCosmic = AliTPCcalibBase::FitSlices(fGainCosmic->GetHistGainTime(),0,1,minEntriesGaussFit,10);
     if (fGraphCosmic->GetN()==0) fGraphCosmic = 0x0;
@@ -1178,48 +1210,102 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeAttachment(Int_t startRunNumber, Int_t 
 Bool_t AliTPCPreprocessorOffline::AnalyzePadRegionGain(){
   //
   // Analyze gain for different pad regions - produce the calibration graphs 0,1,2
+  // Uses the MIP pions integrated over all chambers, eta and multiplicity
+  // TODO: o What happens in case the MIPs are not equally distributed over
+  //         eta and multiplicity? In CPass0 neither will be flat.
+  //         Can we fill the histograms flat in eta (and multiplicity)?
+  //       o In principle one could normalise over eta, by first projecting in slices
+  //         of eta, normalize each slice and then sum
   //
-  if (fGainMult) 
-  {
-    TH2D * histQmax = (TH2D*) fGainMult->GetHistPadEqual()->Projection(0,2);
-    TH2D * histQtot = (TH2D*) fGainMult->GetHistPadEqual()->Projection(1,2);
-    //
-    TObjArray arr;
-    histQmax->FitSlicesY(0,0,-1,0,"QNR",&arr);
-    Double_t xMax[3] = {0,1,2};
-    Double_t yMax[3]    = {((TH1D*)arr.At(1))->GetBinContent(1),
-			   ((TH1D*)arr.At(1))->GetBinContent(2),
-			   ((TH1D*)arr.At(1))->GetBinContent(3)};
-    Double_t yMaxErr[3] = {((TH1D*)arr.At(1))->GetBinError(1),
-			   ((TH1D*)arr.At(1))->GetBinError(2),
-			   ((TH1D*)arr.At(1))->GetBinError(3)};
-    //
-    histQtot->FitSlicesY(0,0,-1,0,"QNR",&arr);
-    Double_t xTot[3] = {0,1,2};
-    Double_t yTot[3]    = {((TH1D*)arr.At(1))->GetBinContent(1),
-			   ((TH1D*)arr.At(1))->GetBinContent(2),
-			   ((TH1D*)arr.At(1))->GetBinContent(3)};
-    Double_t yTotErr[3] = {((TH1D*)arr.At(1))->GetBinError(1),
-			   ((TH1D*)arr.At(1))->GetBinError(2),
-			   ((TH1D*)arr.At(1))->GetBinError(3)};
-    Double_t truncationFactor=AliTPCcalibGainMult::GetTruncatedMeanPosition(yTot[0],yTot[1],yTot[2],1000);
-    for (Int_t i=0;i<3; i++){
-      yMax[i]*=truncationFactor;
-      yTot[i]*=truncationFactor;
-    }
+  if (!fGainMult) return kFALSE;
 
-    TGraphErrors * fitPadRegionQmax = new TGraphErrors(3, xMax, yMax, 0, yMaxErr);    
-    TGraphErrors * fitPadRegionQtot = new TGraphErrors(3, xTot, yTot, 0, yTotErr);
-    //
-    fitPadRegionQtot->SetName("TGRAPHERRORS_MEANQTOT_PADREGIONGAIN_BEAM_ALL");// set proper names according to naming convention
-    fitPadRegionQmax->SetName("TGRAPHERRORS_MEANQMAX_PADREGIONGAIN_BEAM_ALL");// set proper names according to naming convention
-    //
-    fGainArray->AddLast(fitPadRegionQtot);
-    fGainArray->AddLast(fitPadRegionQmax);
-    return kTRUE;
-  } 
-  return kFALSE;
+  THnSparseF *histPadEqual=fGainMult->GetHistPadEqual();
+//   histPadEqual->GetAxis(4)->SetRangeUser(.35,.65);
+//   TH2D * histQmaxTmp = (TH2D*) histPadEqual->Projection(0,2);
+//   TH2D * histQtotTmp = (TH2D*) histPadEqual->Projection(1,2);
+//   histQmaxTmp->SetDirectory(0);
+//   histQtotTmp->SetDirectory(0);
+//   histPadEqual->GetAxis(4)->SetRangeUser(-.65,-.35);
+//   TH2D * histQmax = (TH2D*) histPadEqual->Projection(0,2);
+//   TH2D * histQtot = (TH2D*) histPadEqual->Projection(1,2);
+//   histQmax->Add(histQmaxTmp);
+//   histQtot->Add(histQtotTmp);
+//   delete histQmaxTmp;
+//   delete histQtotTmp;
+  TH2 * histQmax = AliTPCcalibBase::NormalizedProjection(histPadEqual,0,2,4);
+  TH2 * histQtot = AliTPCcalibBase::NormalizedProjection(histPadEqual,1,2,4);
 
+// === old part
+//   TObjArray arr;
+//   histQmax->FitSlicesY(0,0,-1,0,"QNR",&arr);
+//   Double_t xMax[3] = {0,1,2};
+//   Double_t yMax[3]    = {((TH1D*)arr.At(1))->GetBinContent(1),
+//                          ((TH1D*)arr.At(1))->GetBinContent(2),
+//                          ((TH1D*)arr.At(1))->GetBinContent(3)};
+//   Double_t yMaxErr[3] = {((TH1D*)arr.At(1))->GetBinError(1),
+//                          ((TH1D*)arr.At(1))->GetBinError(2),
+//                          ((TH1D*)arr.At(1))->GetBinError(3)};
+//   //
+//   histQtot->FitSlicesY(0,0,-1,0,"QNR",&arr);
+//   Double_t xTot[3] = {0,1,2};
+//   Double_t yTot[3]    = {((TH1D*)arr.At(1))->GetBinContent(1),
+//                          ((TH1D*)arr.At(1))->GetBinContent(2),
+//                          ((TH1D*)arr.At(1))->GetBinContent(3)};
+//   Double_t yTotErr[3] = {((TH1D*)arr.At(1))->GetBinError(1),
+//                          ((TH1D*)arr.At(1))->GetBinError(2),
+//                          ((TH1D*)arr.At(1))->GetBinError(3)};
+//   Double_t truncationFactor=AliTPCcalibGainMult::GetTruncatedMeanPosition(yTot[0],yTot[1],yTot[2],1000);
+//   for (Int_t i=0;i<3; i++){
+//     yMax[i]*=truncationFactor;
+//     yTot[i]*=truncationFactor;
+//   }
+//
+//   TGraphErrors * fitPadRegionQmax = new TGraphErrors(3, xMax, yMax, 0, yMaxErr);
+//   TGraphErrors * fitPadRegionQtot = new TGraphErrors(3, xTot, yTot, 0, yTotErr);
+// ^^^ End old part
+
+//   histQmax->GetXaxis()->SetRange(1,3);
+//   histQtot->GetXaxis()->SetRange(1,3);
+  TGraphErrors *fitPadRegionQmax = AliTPCcalibBase::FitSlices(histQmax,1000,10,.3,.7);
+  TGraphErrors *fitPadRegionQtot = AliTPCcalibBase::FitSlices(histQtot,1000,10,.3,.7);
+  histQmax->GetXaxis()->SetRange(0,-1);
+  histQtot->GetXaxis()->SetRange(0,-1);
+  fitPadRegionQmax->RemovePoint(3);
+  fitPadRegionQtot->RemovePoint(3);
+
+  Double_t *yMax=fitPadRegionQmax->GetY();
+  Double_t *yTot=fitPadRegionQtot->GetY();
+  Double_t truncationFactor=AliTPCcalibGainMult::GetTruncatedMeanPosition(yTot[0],yTot[1],yTot[2],1000);
+  for (Int_t i=0;i<3; i++){
+    yMax[i]*=truncationFactor;
+    yTot[i]*=truncationFactor;
+  }
+
+  //
+  fitPadRegionQtot->SetName("TGRAPHERRORS_MEANQTOT_PADREGIONGAIN_BEAM_ALL");// set proper names according to naming convention
+  fitPadRegionQmax->SetName("TGRAPHERRORS_MEANQMAX_PADREGIONGAIN_BEAM_ALL");// set proper names according to naming convention
+  //
+  fGainArray->AddLast(fitPadRegionQtot);
+  fGainArray->AddLast(fitPadRegionQmax);
+
+  // ---| QA histograms |---
+  if (fArrQAhist) {
+    // --- Qmax ---
+    histQmax->SetName("TGRAPHERRORS_MEANQMAX_PADREGIONGAIN_BEAM_ALL_QA");
+    histQmax->SetTitle("Pad region calibration Q_{max}; pad region;d#it{E}/d#it{x}_{Qmax} (arb. unit)");
+    fArrQAhist->Add(histQmax);
+
+    // --- Qtot ---
+    histQtot->SetName("TGRAPHERRORS_MEANQTOT_PADREGIONGAIN_BEAM_ALL_QA");
+    histQtot->SetTitle("Pad region calibration Q_{tot}; pad region;d#it{E}/d#it{x}_{Qtot} (arb. unit)");
+    fArrQAhist->Add(histQtot);
+
+  } else {
+    delete histQmax;
+    delete histQtot;
+  }
+
+  return kTRUE;
 }
 
 //_____________________________________________________________________________
@@ -1227,6 +1313,12 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeGainDipAngle(Int_t padRegion)  {
   //
   // Analyze gain as a function of multiplicity and produce calibration graphs
   // padRegion -- 0: short, 1: medium, 2: long, 3: absolute calibration of full track
+  // Uses the MIP pions integrated over all chambers and multiplicity
+  // Noramlisation is done to the mean of the slices fit (i.e. tan(lambda)=0.5)
+  //
+  // TODO: What happens in case the MIPs are not equally distributed over
+  //       multiplicity? In CPass0 it will not be flat.
+  //       Can we fill the histograms flat in multiplicity?
   //
   Int_t kMarkers[10]={25,24,20,21,22};
   Int_t kColors[10]={1,2,4,3,6};
@@ -1264,14 +1356,41 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeGainDipAngle(Int_t padRegion)  {
 
   TGraphErrors * graphMax = TStatToolkit::MakeStat1D( histQmax,0,0.8,4,kMarkers[padRegion],kColors[padRegion]);
   TGraphErrors * graphTot = TStatToolkit::MakeStat1D( histQtot,0,0.8,4,kMarkers[padRegion],kColors[padRegion]);
-  delete histQmax;
-  delete histQtot;
 
   //
   const char* names[4]={"SHORT","MEDIUM","LONG","ABSOLUTE"};
   //
-  Double_t meanMax = TMath::Mean(graphMax->GetN(), graphMax->GetY());
-  Double_t meanTot = TMath::Mean(graphTot->GetN(), graphTot->GetY());
+  const Double_t meanMax = TMath::Mean(graphMax->GetN(), graphMax->GetY());
+  const Double_t meanTot = TMath::Mean(graphTot->GetN(), graphTot->GetY());
+
+  // ---| QA histograms |---
+  if (fArrQAhist) {
+    // --- Qmax ---
+    histQmax->SetName(Form("TGRAPHERRORS_QMAX_DIPANGLE_%s_BEAM_ALL_QA",names[padRegion]));
+    histQmax->SetTitle(Form("tan(#lambda) calibration Q_{max} %s; tan(#lambda);d#it{E}/d#it{x}_{Qmax} (arb. unit)",names[padRegion]));
+    fArrQAhist->Add(histQmax);
+
+    // --- Qtot ---
+    histQtot->SetName(Form("TGRAPHERRORS_QTOT_DIPANGLE_%s_BEAM_ALL_QA",names[padRegion]));
+    histQtot->SetTitle(Form("tan(#lambda) calibration Q_{tot} %s; tan(#lambda);d#it{E}/d#it{x}_{Qtot} (arb. unit)",names[padRegion]));
+    fArrQAhist->Add(histQtot);
+
+    // ---| scale to mean multiplicity |---
+    if(fNormaliseQA && meanMax>0) {
+      TAxis *a=histQmax->GetYaxis();
+      a->SetLimits(a->GetXmin()/meanMax, a->GetXmax()/meanMax);
+    }
+    if(fNormaliseQA && meanTot>0) {
+      TAxis *a=histQtot->GetYaxis();
+      a->SetLimits(a->GetXmin()/meanTot, a->GetXmax()/meanTot);
+    }
+
+  } else {
+    delete histQmax;
+    delete histQtot;
+  }
+
+  //
   if (meanMax<=0 || meanTot<=0){
     AliError(Form("meanMax=%f",meanMax));
     AliError(Form("meanTot=%f",meanTot));
@@ -1311,6 +1430,14 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeGainDipAngle(Int_t padRegion)  {
 Bool_t AliTPCPreprocessorOffline::AnalyzeGainMultiplicity() {
   //
   // Analyze gain as a function of multiplicity and produce calibration graphs
+  // Uses the MIP pions integrated over all chambers and eta
+  // Noramlisation is done to the mean of the slices fit (i.e. sector average)
+  //
+  // TODO: o What happens in case the MIPs are not flat in eta?
+  //         In CPass0 it will not be flat.
+  //         Can we fill the histograms flat in multiplicity?
+  //       o Is it better to use the median in case one chamber fit fails?
+  //       o The gain mult does not have tan(lambda) as dim
   //
   if (!fGainMult) return kFALSE;
   fGainMult->GetHistGainMult()->GetAxis(3)->SetRangeUser(3,3);
@@ -1330,16 +1457,45 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeGainMultiplicity() {
   TH1D * meanMax = (TH1D*)arrMax.At(1);
   TH1D * meanTot = (TH1D*)arrTot.At(1);
   Float_t meanMult = histMultMax->GetMean();
-  delete histMultMax;
-  delete histMultTot;
-  if(meanMax->GetBinContent(meanMax->FindBin(meanMult))) {
-    meanMax->Scale(1./meanMax->GetBinContent(meanMax->FindBin(meanMult)));
+  const Double_t qMaxCont=meanMax->GetBinContent(meanMax->FindBin(meanMult));
+  const Double_t qTotCont=meanTot->GetBinContent(meanTot->FindBin(meanMult));
+
+  // ---| QA histograms |---
+  if (fArrQAhist) {
+    // --- Qmax ---
+    histMultMax->SetName("TGRAPHERRORS_MEANQMAX_MULTIPLICITYDEPENDENCE_BEAM_ALL_QA");
+    histMultMax->SetTitle("Multiplicity correction Q_{max};#ESD tracks;d#it{E}/d#it{x}_{Qmax} (arb. unit)");
+    fArrQAhist->Add(histMultMax);
+
+    // --- Qtot ---
+    histMultTot->SetName("TGRAPHERRORS_MEANQTOT_MULTIPLICITYDEPENDENCE_BEAM_ALL_QA");
+    histMultTot->SetTitle("Multiplicity correction Q_{tot};#ESD tracks;d#it{E}/d#it{x}_{Qtot} (arb. unit)");
+    fArrQAhist->Add(histMultTot);
+
+    // ---| scale to mean multiplicity |---
+    if(fNormaliseQA && qMaxCont>0) {
+      TAxis *a=histMultMax->GetYaxis();
+      a->SetLimits(a->GetXmin()/qMaxCont, a->GetXmax()/qMaxCont);
+    }
+    if(fNormaliseQA && qTotCont>0) {
+      TAxis *a=histMultTot->GetYaxis();
+      a->SetLimits(a->GetXmin()/qTotCont, a->GetXmax()/qTotCont);
+    }
+
+  } else {
+    delete histMultMax;
+    delete histMultTot;
+  }
+
+  // ---| scale to mean multiplicity |---
+  if(qMaxCont) {
+    meanMax->Scale(1./qMaxCont);
   }
   else {
    return kFALSE;
   }
-  if(meanTot->GetBinContent(meanTot->FindBin(meanMult))) {
-    meanTot->Scale(1./meanTot->GetBinContent(meanTot->FindBin(meanMult)));
+  if(qTotCont) {
+    meanTot->Scale(1./qTotCont);
   }
   else {
    return kFALSE;
@@ -1396,9 +1552,9 @@ Bool_t AliTPCPreprocessorOffline::AnalyzeGainChamberByChamber(){
   // get chamber by chamber gain
   //
   if (!fGainMult) return kFALSE;
-  TGraphErrors *grShort  = fGainMult->GetGainPerChamberRobust(0);
-  TGraphErrors *grMedium = fGainMult->GetGainPerChamberRobust(1);
-  TGraphErrors *grLong   = fGainMult->GetGainPerChamberRobust(2);
+  TGraphErrors *grShort  = fGainMult->GetGainPerChamberRobust(0, kFALSE, fArrQAhist, fNormaliseQA);
+  TGraphErrors *grMedium = fGainMult->GetGainPerChamberRobust(1, kFALSE, fArrQAhist, fNormaliseQA);
+  TGraphErrors *grLong   = fGainMult->GetGainPerChamberRobust(2, kFALSE, fArrQAhist, fNormaliseQA);
   if (grShort==0x0 || grMedium==0x0 || grLong==0x0) {
     delete grShort;
     delete grMedium;
@@ -1503,7 +1659,6 @@ void AliTPCPreprocessorOffline::MakeFitTime(){
   fAlignTree->SetAlias("isVertex","refX<10");
   // 
   Int_t  npointsMax=30000000;
-  TStatToolkit toolkit;
   Double_t chi2=0;
   Int_t    npoints=0;
   TVectorD param;
@@ -1912,6 +2067,84 @@ Int_t AliTPCPreprocessorOffline::GetStatus()
   }
 
   return fCalibrationStatus;
+}
+
+//_____________________________________________________________________________
+void AliTPCPreprocessorOffline::FillQA(Bool_t qa, Bool_t norm/*=kTRUE*/)
+{
+  // setup QA histogram array
+  if (qa && !fArrQAhist) {
+    fArrQAhist = new TObjArray;
+    fArrQAhist->SetOwner();
+  } else {
+    delete fArrQAhist;
+    fArrQAhist = 0x0;
+  }
+
+  fNormaliseQA=norm;
+}
+
+//_____________________________________________________________________________
+void AliTPCPreprocessorOffline::MakeQAPlotsGain(TString outputDirectory/*=""*/, TString fileTypes/*="png"*/)
+{
+  // Draw QA histograms, one per file
+  // if outputDirectory is non empty, the QA canvases will be written to the output directory
+  // fileTypes can contain output formats, comma separated. Default is one png per canvas.
+  //           also recognized jpg, gif, root.
+  //           in case of root, all canvases are written to one root file
+  if (!fArrQAhist) return;
+
+  TDirectory *dir=gDirectory;
+  TFile *f=0x0;
+  if (fileTypes.Contains("root")) {
+    f=new TFile(TString::Format("%s/GainQA.root", outputDirectory.Data()),"recreate");
+  }
+
+  const Int_t ntypes=5;
+  const TString ftypes[ntypes]={"png","jpg","gif","pdf","eps"};
+
+  for (Int_t ihist=0; ihist<fArrQAhist->GetEntriesFast(); ++ihist) {
+    dir->cd();
+    TH2 *h = static_cast<TH2*>(fArrQAhist->UncheckedAt(ihist));
+    if (!h) continue;
+    TString histName = h->GetName();
+    TString canvName=histName;
+    canvName.Prepend("c_");
+    TCanvas *c = static_cast<TCanvas*>(gROOT->GetListOfCanvases()->FindObject(canvName));
+    if (!c) {
+      c=new TCanvas(canvName, canvName, 700,500);
+    }
+    c->Clear();
+    c->SetLogz();
+
+    h->Draw("colz");
+
+    // ---| check for derived histogram and draw it on top |---
+    histName.ReplaceAll("_QA","");
+    TObject *o = fGainArray->FindObject(histName);
+    if (o) {
+      o->Draw("same");
+    }
+
+    // ---| save output |---
+    if (!outputDirectory.IsNull()) {
+      // --- loop over file types ---
+      for (Int_t itype=0; itype<ntypes; ++itype) {
+        if (fileTypes.Contains(ftypes[itype])) {
+          c->SaveAs(TString::Format("%s/%s.%s", outputDirectory.Data(), c->GetName(), ftypes[itype].Data()));
+        }
+      }
+
+      // --- save to file if requested ---
+      if (f) {
+        f->cd();
+        c->Write();
+        dir->cd();
+      }
+    }
+  }
+
+  delete f;
 }
 
 /*

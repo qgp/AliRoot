@@ -7,6 +7,7 @@
 
 #include "AliReconstructor.h"
 #include "AliTPCRecoParam.h"
+#include "TVector.h"
 #include <TString.h>
 
 class AliTPCParam;
@@ -48,7 +49,22 @@ public:
   static TTreeSRedirector    *GetDebugStreamer(){return fgDebugStreamer;}
   static void SetDebugStreamer(TTreeSRedirector    *debugStreamer){fgDebugStreamer=debugStreamer;}
   void ParseOptions(AliTPCtracker* tracker) const;
-  
+  static  const Double_t * GetSystematicError()  { return (fSystematicErrors)? fSystematicErrors->GetMatrixArray():0;}
+  static  const Double_t * GetSystematicErrorCluster() { return (fSystematicErrorClusters) ? fSystematicErrorClusters->GetMatrixArray():0;}
+  static  const Double_t * GetExtendedRoads()  { return (fgExtendedRoads)? fgExtendedRoads->GetMatrixArray():0; }
+  static  const Double_t * GetPrimaryDCACut()  { return (fgPrimaryDCACut)? fgPrimaryDCACut->GetMatrixArray():0; }
+  static        Double_t   GetPrimaryZ2XCut()  { return fgPrimaryZ2XCut; }
+  static        Double_t   GetZOutSectorCut()  { return fgZOutSectorCut; }
+  static        Bool_t     GetCompactClusters() { return fgCompactClusters;}
+
+  static  void SetSystematicError( TVectorD *vec)  { fSystematicErrors=vec;}
+  static  void SetSystematicErrorCluster( TVectorD *vec ) { fSystematicErrorClusters=vec;}
+  static  void SetExtendedRoads( TVectorD *extendedRoads ) { fgExtendedRoads=extendedRoads;}
+  static  void SetPrimaryDCACut( TVectorD *dcacut )        { fgPrimaryDCACut=dcacut;}
+  static  void SetPrimaryZ2XCut( double v )                { fgPrimaryZ2XCut=v; }
+  static  void SetZOutSectorCut( double v )                { fgZOutSectorCut=v; }
+  static  void SetCompactClusters(Bool_t v)                { fgCompactClusters=v;}
+
 private:
   AliTPCReconstructor(const AliTPCReconstructor&); //Not implemented
   AliTPCReconstructor& operator=(const AliTPCReconstructor&); //Not implemented
@@ -58,6 +74,15 @@ private:
   AliTPCclusterer*           fClusterer;   // TPC clusterer
   static AliTPCAltroEmulator * fAltroEmulator;    // ALTRO emulator
   static TString             fgPIDRespnonsePath;           // path to PIDResponse
+  //
+  // varaibles which overwrite content of the TPCRecoParam in case of custom recosntrcution (e.g CPass0 with imperfect calibration)
+  static TVectorD            * fSystematicErrors;    // systematic errors for the TPC tracks
+  static TVectorD            * fSystematicErrorClusters;    // systematic errors for the TPC tracks
+  static TVectorD            * fgExtendedRoads;       // extended roads for clusters
+  static TVectorD            * fgPrimaryDCACut;       // only primaries passing DCAYZ cut are reconstructed
+  static Double_t              fgPrimaryZ2XCut;       // cut on Z2X for fast primaries reco 
+  static Double_t              fgZOutSectorCut;       // cut on Z going on other side of CE 
+  static Bool_t                fgCompactClusters;     // if true, cluster coordinates will be set to 0 in clusterizer
   TObjArray *fArrSplines;                  // array of pid splines
 
   void SetSplinesFromOADB(const char* tmplt, AliESDpid *esdPID);

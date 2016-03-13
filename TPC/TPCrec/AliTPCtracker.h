@@ -21,13 +21,12 @@
 #include "AliTPCclusterMI.h"
 #include "AliTPCtrackerSector.h"
 #include "AliESDfriend.h"
-
+#include "AliTPCseed.h"
 
 
 class TFile;
 class AliTPCParam;
 class AliTPCseed;
-class AliTPCTrackerPoint;
 class AliESDEvent;
 class AliESDtrack;
 class TTree;
@@ -64,6 +63,8 @@ public:
     kStreamFindKinks          =0x40000,    // flag: stream track infroamtion in the FindKinks method
     kStreamSeeddEdx           =0x80000     // flag: stream TPC dEdx intermediate information  AliTPCseed::CookdEdxNorm (to check and validate methods used in calibration)
   };
+  enum {kMaxFriendTracks=2000};
+
   AliTPCtracker();
   AliTPCtracker(const AliTPCParam *par); 
   virtual ~AliTPCtracker();
@@ -82,7 +83,7 @@ public:
   Int_t LoadInnerSectors();
   Int_t LoadOuterSectors();
   virtual void FillClusterArray(TObjArray* array) const;
-  void   Transform(AliTPCclusterMI * cluster);
+  void Transform(AliTPCclusterMI * cluster);
   void ApplyTailCancellation();
   void ApplyXtalkCorrection();
   void CalculateXtalkCorrection();
@@ -141,10 +142,15 @@ public:
    Double_t F3n(Double_t x1,Double_t y1, Double_t x2,Double_t y2, Double_t z1,Double_t z2, 
                 Double_t c) const; 
    Bool_t GetProlongation(Double_t x1, Double_t x2, Double_t x[5], Double_t &y, Double_t &z) const;
+   Bool_t GetProlongationLine(Double_t x1, Double_t x2, Double_t x[5], Double_t &y, Double_t &z) const;
    //
    void ResetSeedsPool();
    void MarkSeedFree( TObject* seed );
    TObject *&NextFreeSeed();
+   //
+   void FillSeedClusterStatCache(const AliTPCseed* seed);
+   void GetCachedSeedClusterStatistic(Int_t first, Int_t last, Int_t &found, Int_t &foundable, Int_t &shared, Bool_t plus2) const;
+   void GetSeedClusterStatistic(const AliTPCseed* seed, Int_t first, Int_t last, Int_t &found, Int_t &foundable, Int_t &shared, Bool_t plus2) const;
    //
  public:
    void SetUseHLTClusters(Int_t useHLTClusters) {fUseHLTClusters = useHLTClusters;} // set usage from HLT clusters from rec.C options
@@ -163,9 +169,21 @@ public:
 
    // public for ToyMC usage
    void MakeSeeds2(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1, Bool_t bconstrain=kTRUE); 
+   void MakeSeeds2Dist(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1, Bool_t bconstrain=kTRUE); 
    void MakeSeeds3(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1, Int_t ddsec=0); 
+   void MakeSeeds3Dist(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1, Int_t ddsec=0); 
    void SumTracks(TObjArray *arr1,TObjArray *&arr2);
    void SignClusters(const TObjArray * arr, Float_t fnumber=3., Float_t fdensity=2.);  
+   //
+   Bool_t DistortX(const AliTPCseed* seed, double& x, int row);
+   //
+   virtual Bool_t OwnsESDObjects() const {return kTRUE;} //RS TPC owns the seeds stored in the friends
+   virtual void   CleanESDFriendsObjects(AliESDEvent* esd);
+   virtual void   CleanESDTracksObjects(TObjArray* trcList);
+   //
+   Double_t GetDistortionX(double x, double y, double z, int sec, int row);
+   Double_t GetYSectEdgeDist(int sec, int row, double ymax, double z);
+   static Int_t GetTrackSector(double alpha);
 
 private:
   Bool_t IsFindable(AliTPCseed & t);
@@ -179,6 +197,7 @@ private:
    inline Double_t  GetXrow(Int_t row) const;
    inline Double_t  GetMaxY(Int_t row) const;
    inline Int_t GetRowNumber(Double_t x) const;
+   inline Int_t GetRowNumber(const AliTPCseed* seed) const;
    Int_t GetRowNumber(Double_t x[3]) const;
    inline Double_t GetPadPitchLength(Double_t x) const;
    inline Double_t GetPadPitchLength(Int_t row) const;
@@ -188,6 +207,7 @@ private:
    void ReadSeeds(const AliESDEvent *const event, Int_t direction);  //read seeds from the event
 
    void MakeSeeds5(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1);
+   void MakeSeeds5Dist(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2, Float_t cuts[4], Float_t deltay = -1);
   
 
    AliTPCseed *MakeSeed(AliTPCseed *const track, Float_t r0, Float_t r1, Float_t r2); //reseed
@@ -247,14 +267,32 @@ private:
    TTreeSRedirector *fDebugStreamer;     //!debug streamer
    Int_t  fUseHLTClusters;              // use HLT clusters instead of offline clusters
    //
-  
-   TObjArray * fCrossTalkSignalArray;  // for 36 sectors    
+   Double_t fClExtraRoadY;              //! extra additiom to Y road for FindCluster
+   Double_t fClExtraRoadZ;              //! extra addition Z road for FindCluster
+   Double_t fExtraClErrYZ2;             //! extra cl.error Y^2+Z^2
+   Double_t fExtraClErrY2;              //! extra cl.error Y^2
+   Double_t fExtraClErrZ2;              //! extra cl.error Z^2
+   Double_t fPrimaryDCAZCut;            //! special cut on DCAz for primaries tracking only, disables secondaries seeding
+   Double_t fPrimaryDCAYCut;            //! special cut on DCAy for primaries tracking only, disables secondaries seeding
+   Bool_t   fDisableSecondaries;        //! special flag to disable secondaries seeding
+   TObjArray * fCrossTalkSignalArray;  // for 36 sectors 
+   AliTPCclusterMI** fClPointersPool;  //! pool of cluster pointers for seeds stored in friends
+   AliTPCclusterMI** fClPointersPoolPtr; //! pointer on the current free slot in the pool
+   Int_t fClPointersPoolSize; // number of seeds holding the cluster arrays
    TClonesArray* fSeedsPool;            //! pool of seeds
+   TClonesArray* fHelixPool;            //! pool of helises
+   TClonesArray* fETPPool;              //! pool of helises
    TArrayI fFreeSeedsID;                //! array of ID's of freed seeds
    Int_t fNFreeSeeds;                   //! number of seeds freed in the pool
    Int_t fLastSeedID;                   //! id of the pool seed on which is returned by the NextFreeSeed method
    //
-   ClassDef(AliTPCtracker,4) 
+   Bool_t fClStatFoundable[kMaxRow];    //! cached info on foundable clusters of the seed
+   Bool_t fClStatFound[kMaxRow];        //! cached info on found clusters of the seed   
+   Bool_t fClStatShared[kMaxRow];       //! cached info on shared clusters of the seed   
+   //
+   Int_t fAccountDistortions;           //! flag to account for distortions. RS: to set!
+   //
+   ClassDef(AliTPCtracker,5) 
 };
 
 
@@ -286,7 +324,22 @@ Double_t  AliTPCtracker::GetMaxY(Int_t row) const {
 Int_t AliTPCtracker::GetRowNumber(Double_t x) const
 {
   //
-  return (x>133.) ? fOuterSec->GetRowNumber(x)+fInnerSec->GetNRows():fInnerSec->GetRowNumber(x);
+  if (x<133.) return TMath::Max(fInnerSec->GetRowNumber(x),0);
+  return TMath::Min(fOuterSec->GetRowNumber(x)+fInnerSec->GetNRows(),158);
+}
+
+Int_t AliTPCtracker::GetRowNumber(const AliTPCseed* t) const
+{
+  // last row of the seed or row corresponding to x
+  int row = t->GetRow();
+  /*
+  int rowX = GetRowNumber(t->GetX());
+  if (TMath::Abs(row-rowX)>1 && row>-1) {
+    printf("MISMATCH Seed %d\n",t->GetPoolID());
+    printf("GetROW: %d %d %f %s\n",row,rowX,t->GetX(),row==rowX ? "":"!!!!!!!!!**********!!!!!!!!!!!************!!!!!!!!!!!");
+  }
+  */
+  return (row>-1&&row<159) ? row : GetRowNumber(t->GetX());
 }
 
 Double_t  AliTPCtracker::GetPadPitchLength(Double_t x) const

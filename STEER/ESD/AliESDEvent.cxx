@@ -173,11 +173,14 @@ AliESDEvent::AliESDEvent():
   fTOFHeader(0),
   fCentrality(0),
   fEventplane(0),
+  fNTPCFriend2Store(0),
   fDetectorStatus(0xFFFFFFFF),
   fDAQDetectorPattern(0xFFFF),
-  fDAQAttributes(0xFFFF)
+  fDAQAttributes(0xFFFF),
+  fNTPCClusters(0)
 {
 }
+
 //______________________________________________________________________________
 AliESDEvent::AliESDEvent(const AliESDEvent& esd):
   AliVEvent(esd),
@@ -228,9 +231,11 @@ AliESDEvent::AliESDEvent(const AliESDEvent& esd):
   fTOFHeader(new AliTOFHeader(*esd.fTOFHeader)),
   fCentrality(new AliCentrality(*esd.fCentrality)),
   fEventplane(new AliEventplane(*esd.fEventplane)),
+  fNTPCFriend2Store(esd.fNTPCFriend2Store),
   fDetectorStatus(esd.fDetectorStatus),
   fDAQDetectorPattern(esd.fDAQDetectorPattern),
-  fDAQAttributes(esd.fDAQAttributes)
+  fDAQAttributes(esd.fDAQAttributes),
+  fNTPCClusters(esd.fNTPCClusters)
 {
   printf("copying ESD event...\n");   // AU
   // CKB init in the constructor list and only add here ...
@@ -369,14 +374,15 @@ AliESDEvent & AliESDEvent::operator=(const AliESDEvent& source) {
   
   fCentrality = source.fCentrality;
   fEventplane = source.fEventplane;
-
   fConnected  = source.fConnected;
   fUseOwnList = source.fUseOwnList;
 
   fDetectorStatus = source.fDetectorStatus;
   fDAQDetectorPattern = source.fDAQDetectorPattern;
   fDAQAttributes = source.fDAQAttributes;
+  fNTPCClusters = source.fNTPCClusters;
 
+  fNTPCFriend2Store = source.fNTPCFriend2Store;
   fTracksConnected = kFALSE;
   ConnectTracks();
   return *this;
@@ -423,12 +429,12 @@ void AliESDEvent::Reset()
 
   // Handle the cases
   // Std content + Non std content
-
   // Reset the standard contents
   ResetStdContent(); 
   fDetectorStatus = 0xFFFFFFFF;
   fDAQDetectorPattern = 0xFFFF;
   fDAQAttributes = 0xFFFF;
+  fNTPCClusters = 0;
   //  reset for the old data without AliESDEvent...
   if(fESDOld)fESDOld->Reset();
   if(fESDFriendOld){
@@ -679,12 +685,23 @@ void AliESDEvent::SetESDfriend(const AliESDfriend *ev) const
   // in case of old esds 
   // if(fESDOld)CopyFromOldESD();
 
-  Int_t ntrk=ev->GetNumberOfTracks();
- 
-  for (Int_t i=0; i<ntrk; i++) {
-    const AliESDfriendTrack *f=ev->GetTrack(i);
-    if (!f) {AliFatal(Form("NULL pointer for ESD track %d",i));}
-    GetTrack(i)->SetFriendTrack(f);
+  Int_t ntrkF=ev->GetNumberOfTracks();
+  if (ev->GetESDIndicesStored()) { // new format: sparse friends
+    for (Int_t i=0; i<ntrkF; i++) {
+      AliESDfriendTrack *f=ev->GetTrack(i);
+      int esdid = f->GetESDtrackID();
+      AliESDtrack* esdt = GetTrack(esdid);
+      if (!esdt) {AliFatalF("ESDfriendTrack %d points on non-existing ESDtrack %d",i,esdid);}
+      if (esdt->GetFriendNotStored()) {AliFatalF("ESDtrack %d did not store the friend, but ESDfriendTrack %d points on it",esdid,i);}
+      esdt->SetFriendTrack(f);
+    }
+  }
+  else {
+    for (Int_t i=0; i<ntrkF; i++) { // old format: 1 to 1 correspondence
+      const AliESDfriendTrack *f=ev->GetTrack(i);
+      if (!f) {AliFatal(Form("NULL pointer for ESD track %d",i));}
+      GetTrack(i)->SetFriendTrack(f);
+    }
   }
 }
 
@@ -698,7 +715,39 @@ Bool_t  AliESDEvent::RemoveKink(Int_t rm) const
 // ---------------------------------------------------------
   Int_t last=GetNumberOfKinks()-1;
   if ((rm<0)||(rm>last)) return kFALSE;
-
+  TClonesArray &a=*fKinks;
+  AliESDkink* kink = GetKink(rm);
+  // release kink indices from ESDtracks
+  for (int i=2;i--;) {
+    AliESDtrack* trc = GetTrack(kink->GetIndex(i));
+    int indK[3]={0,0,0},restK=0;
+    for (int j=0;j<3;j++) {
+      int ind = trc->GetKinkIndex(j);
+      if (!ind) break;
+      if (TMath::Abs(ind)!=rm+1) indK[restK++] = ind;
+    }
+    trc->SetKinkIndexes(indK);
+  }
+  //
+  a.RemoveAt(rm);
+  if (rm==last) return kTRUE;
+  kink = GetKink(last);
+  new (a[rm]) AliESDkink(*kink);
+  // 
+  // update references on the moved kink
+  for (int i=2;i--;) {
+    AliESDtrack* trc = GetTrack(kink->GetIndex(i));
+    int indK[3]={0,0,0},restK=0;
+    for (int j=0;j<3;j++) {
+      int ind = trc->GetKinkIndex(j);
+      if (!ind) break;
+      int lastI = last+1;
+      if (ind==lastI) indK[j] = lastI;
+      else if (ind==-lastI) indK[j] = -lastI;
+    }
+    trc->SetKinkIndexes(indK);
+  }
+  //
   return kTRUE;
 }
 
@@ -720,6 +769,7 @@ Bool_t  AliESDEvent::RemoveV0(Int_t rm) const
 
   Int_t used=0;
 
+  /* // RS if it is, so what? Cascade has complete information
   // Check if this V0 comes from a reconstructed decay
   Int_t ncs=GetNumberOfCascades();
   for (Int_t n=0; n<ncs; n++) {
@@ -734,6 +784,7 @@ Bool_t  AliESDEvent::RemoveV0(Int_t rm) const
     if (csIdxP==lastIdxP)
        if (csIdxN==lastIdxN) used++;
   }
+  */ 
 
   //Replace the removed V0 with the last V0 
   TClonesArray &a=*fV0s;
@@ -744,6 +795,9 @@ Bool_t  AliESDEvent::RemoveV0(Int_t rm) const
   //v0 is pointing to the last V0 candidate... 
   new (a[rm]) AliESDv0(*v0);
   delete a.RemoveAt(last);
+
+  /* 
+     // RS: why do we need to remap indices of the tracks when just the V0 is removed?
 
   if (!used) return kTRUE;
   
@@ -764,19 +818,19 @@ Bool_t  AliESDEvent::RemoveV0(Int_t rm) const
          if (!used) return kTRUE;
       }
   }
-
+  */
   return kTRUE;
 }
 
 //______________________________________________________________________________
-Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const 
+AliESDfriendTrack*  AliESDEvent::RemoveTrack(Int_t rm) const 
 {
 // ---------------------------------------------------------
 // Remove a track and references to it from ESD,
 // if this track does not come from a reconstructed decay
 // ---------------------------------------------------------
   Int_t last=GetNumberOfTracks()-1;
-  if ((rm<0)||(rm>last)) return kFALSE;
+  if ((rm<0)||(rm>last)) return 0;
 
   Int_t used=0;
 
@@ -786,7 +840,7 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
      Int_t n=fTPCVertex->GetNIndices();
      while (n--) {
        Int_t idx=Int_t(primIdx[n]);
-       if (rm==idx) return kFALSE;
+       if (rm==idx) return 0;
        if (idx==last) used++; 
      }
   }
@@ -795,7 +849,7 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
      Int_t n=fPrimaryVertex->GetNIndices();
      while (n--) {
        Int_t idx=Int_t(primIdx[n]);
-       if (rm==idx) return kFALSE;
+       if (rm==idx) return 0;
        if (idx==last) used++; 
      }
   }
@@ -806,11 +860,11 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
     AliESDv0 *v0=GetV0(n);
 
     Int_t idx=v0->GetNindex();
-    if (rm==idx) return kFALSE;
+    if (rm==idx) return 0;
     if (idx==last) used++;
 
     idx=v0->GetPindex();
-    if (rm==idx) return kFALSE;
+    if (rm==idx) return 0;
     if (idx==last) used++;
   }
 
@@ -819,44 +873,47 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
     AliESDcascade *cs=GetCascade(n);
 
     Int_t idx=cs->GetIndex();
-    if (rm==idx) return kFALSE;
+    if (rm==idx) return 0;
     if (idx==last) used++;
 
     AliESDv0 *v0=cs;
     idx=v0->GetNindex();
-    if (rm==idx) return kFALSE;
+    if (rm==idx) return 0;
     if (idx==last) used++;
 
     idx=v0->GetPindex();
-    if (rm==idx) return kFALSE;
+    if (rm==idx) return 0;
     if (idx==last) used++;
   }
 
   Int_t nkn=GetNumberOfKinks();
+  /*RS
   for (Int_t n=0; n<nkn; n++) {
     AliESDkink *kn=GetKink(n);
 
     Int_t idx=kn->GetIndex(0);
-    if (rm==idx) return kFALSE;
+    if (rm==idx) return 0;
     if (idx==last) used++;
 
     idx=kn->GetIndex(1);
-    if (rm==idx) return kFALSE;
+    if (rm==idx) return 0;
     if (idx==last) used++;
   }
-
+  */
   // Check if this track is associated with a CaloCluster
   Int_t ncl=GetNumberOfCaloClusters();
+
   for (Int_t n=0; n<ncl; n++) {
     AliESDCaloCluster *cluster=GetCaloCluster(n);
     TArrayI *arr=cluster->GetTracksMatched();
     Int_t s=arr->GetSize();
     while (s--) {
       Int_t idx=arr->At(s);
-      if (rm==idx) return kFALSE;
+      if (rm==idx) return 0;
       if (idx==last) used++;     
     }
   }
+
 
   // from here on we remove the track
   //
@@ -864,17 +921,27 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
   TClonesArray &a=*fTracks;
   AliESDtrack* trm = GetTrack(rm);
   trm->SuppressTOFMatches(); // remove reference to this track from stored TOF clusters
-  delete a.RemoveAt(rm);
+  AliESDfriendTrack* trfKeep = (AliESDfriendTrack*)trm->GetFriendTrack(); // friend should be cleaned in the reco
+  trm->ReleaseESDfriendTrack();
+  a.RemoveAt(rm);
   //
-  if (rm==last) return kTRUE;
+  if (rm==last) return trfKeep;
 
   AliESDtrack *t=GetTrack(last);
   if (!t) {AliFatal(Form("NULL pointer for ESD track %d",last));}
   t->SetID(rm);
-  new (a[rm]) AliESDtrack(*t);
+  //
+  // RS: we need to transfer the eventual friend track pointer, w/o creating a clone
+  AliESDfriendTrack* tfr = (AliESDfriendTrack*)t->GetFriendTrack();
+  t->ReleaseESDfriendTrack(); // nullify friend pointer
+  AliESDtrack* trMove = new (a[rm]) AliESDtrack(*t);
+  trMove->SetFriendTrackPointer(tfr);
+  trMove->SetFriendTrackID(trm->GetFriendTrackID());
+  trMove->SetFriendNotStored(tfr==0);
+  tfr->SetESDtrackID(rm);
   delete a.RemoveAt(last);
 
-  if (!used) return kTRUE;
+  if (!used) return trfKeep;
   
 
   // Remap the indices of the tracks used for the primary vertex reconstruction
@@ -886,7 +953,7 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
        if (idx==last) {
           primIdx[n]=Short_t(rm); 
           used--;
-          if (!used) return kTRUE;
+          if (!used) return trfKeep;
        }
      }
   }  
@@ -898,7 +965,7 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
        if (idx==last) {
           primIdx[n]=Short_t(rm); 
           used--;
-          if (!used) return kTRUE;
+          if (!used) return trfKeep;
        }
      }
   }  
@@ -909,12 +976,12 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
     if (v0->GetIndex(0)==last) {
        v0->SetIndex(0,rm);
        used--;
-       if (!used) return kTRUE;
+       if (!used) return trfKeep;
     }
     if (v0->GetIndex(1)==last) {
        v0->SetIndex(1,rm);
        used--;
-       if (!used) return kTRUE;
+       if (!used) return trfKeep;
     }
   }
 
@@ -923,18 +990,18 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
     if (cs->GetIndex()==last) {
        cs->SetIndex(rm);
        used--;
-       if (!used) return kTRUE;
+       if (!used) return trfKeep;
     }
     AliESDv0 *v0=cs;
     if (v0->GetIndex(0)==last) {
        v0->SetIndex(0,rm);
        used--;
-       if (!used) return kTRUE;
+       if (!used) return trfKeep;
     }
     if (v0->GetIndex(1)==last) {
        v0->SetIndex(1,rm);
        used--;
-       if (!used) return kTRUE;
+       if (!used) return trfKeep;
     }
   }
 
@@ -943,12 +1010,12 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
     if (kn->GetIndex(0)==last) {
        kn->SetIndex(rm,0);
        used--;
-       if (!used) return kTRUE;
+       if (!used) return trfKeep;
     }
     if (kn->GetIndex(1)==last) {
        kn->SetIndex(rm,1);
        used--;
-       if (!used) return kTRUE;
+       if (!used) return trfKeep;
     }
   }
 
@@ -962,16 +1029,16 @@ Bool_t  AliESDEvent::RemoveTrack(Int_t rm) const
       if (idx==last) {
          arr->AddAt(rm,s);
          used--; 
-         if (!used) return kTRUE;
+         if (!used) return trfKeep;
       }
     }
   }
 
-  return kTRUE;
+  return trfKeep;
 }
 
 //______________________________________________________________________________
-Bool_t AliESDEvent::Clean(Float_t *cleanPars) 
+Bool_t AliESDEvent::Clean(Float_t *cleanPars, TObjArray* tracks2destroy) 
 {
   //
   // Remove the data which are not needed for the physics analysis.
@@ -1022,14 +1089,20 @@ Bool_t AliESDEvent::Clean(Float_t *cleanPars)
 
   const AliESDVertex *vertex=GetPrimaryVertexSPD();
   Bool_t vtxOK=vertex->GetStatus();
-  
+
+  tracks2destroy->Clear();
+
   Int_t nTracks=GetNumberOfTracks();
   for (Int_t i=nTracks-1; i>=0; i--) {
     AliESDtrack *track=GetTrack(i);
     if (!track) {AliFatal(Form("NULL pointer for ESD track %d",i));}
     Float_t xy,z; track->GetImpactParameters(xy,z);
     if ((TMath::Abs(xy) > dmax) || (vtxOK && (TMath::Abs(z) > zmax))) {
-      if (RemoveTrack(i)) rc=kTRUE;
+      AliESDfriendTrack *remTr = RemoveTrack(i);
+      if (remTr) {
+	rc=kTRUE;
+	tracks2destroy->Add(remTr);
+      }
     }
   }
 
@@ -1473,27 +1546,29 @@ void AliESDEvent::SetADData(AliESDAD * obj)
 }
 
 //______________________________________________________________________________
-void AliESDEvent::GetESDfriend(AliESDfriend *ev) const 
+void AliESDEvent::GetESDfriend(AliESDfriend *ev)
 {
   //
   // Extracts the complementary info from the ESD
+  // RS: instead of cloning full objects, create shallow copies of friend tracks
   //
   if (!ev) return;
 
   Int_t ntrk=GetNumberOfTracks();
-
+  int nfadd = 0;
   for (Int_t i=0; i<ntrk; i++) {
     AliESDtrack *t=GetTrack(i);
     if (!t) {AliFatal(Form("NULL pointer for ESD track %d",i));}
-    const AliESDfriendTrack *f=t->GetFriendTrack();
-    ev->AddTrack(f);
-
-    t->ReleaseESDfriendTrack();// Not to have two copies of "friendTrack"
-
+    if (t->GetFriendNotStored()) continue; // skip this one
+    AliESDfriendTrack *f = (AliESDfriendTrack*)t->GetFriendTrack();
+    AliESDfriendTrack *fcopy = ev->AddTrack(f,kTRUE); // create shallow copy
+    fcopy->SetESDtrackID(i);
+    t->SetFriendTrackID(nfadd);
+    f->SetESDtrackID(nfadd++);
   }
-
   AliESDfriend *fr = (AliESDfriend*)(const_cast<AliESDEvent*>(this)->FindFriend());
   if (fr) ev->SetVZEROfriend(fr->GetVZEROfriend());
+  ev->SetESDIndicesStored(kTRUE);
 }
 
 //______________________________________________________________________________
@@ -1584,6 +1659,10 @@ void AliESDEvent::CreateStdContent()
   // create the standard AOD content and set pointers
 
   // create standard objects and add them to the TList of objects
+  if (fESDObjects->GetEntries()>=kESDListN) {
+    AliInfoF("StdContent has %d entries, will not create new ones",fESDObjects->GetEntries());
+    return;
+  }
   AddObject(new AliESDRun());
   AddObject(new AliESDHeader());
   AddObject(new AliESDZDC());
@@ -1738,6 +1817,7 @@ void AliESDEvent::WriteToTree(TTree* tree) const {
   tree->Branch("fDetectorStatus",(void*)&fDetectorStatus,"fDetectorStatus/l");
   tree->Branch("fDAQDetectorPattern",(void*)&fDAQDetectorPattern,"fDAQDetectorPattern/i");
   tree->Branch("fDAQAttributes",(void*)&fDAQAttributes,"fDAQAttributes/i");
+  tree->Branch("fNTPCClusters",(void*)&fNTPCClusters,"fNTPCClusters/I");
 }
 
 //______________________________________________________________________________

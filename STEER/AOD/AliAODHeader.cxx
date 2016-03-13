@@ -47,6 +47,7 @@ AliAODHeader::AliAODHeader() :
   fNQTheta(0),
   fQTheta(0x0),
   fTriggerMask(0),
+  fTriggerMaskNext50(0),
   fFiredTriggers(),
   fRunNumber(-999),  
   fRefMult(-999),
@@ -56,6 +57,7 @@ AliAODHeader::AliAODHeader() :
   fNDimuons(0),
   fNGlobalMuons(0),               // AU
   fNGlobalDimuons(0),             // AU
+  fDAQAttributes(0),
   fEventType(0),
   fOrbitNumber(0),
   fPeriodNumber(0),
@@ -114,6 +116,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fNQTheta(0),
   fQTheta(0x0),
   fTriggerMask(0),
+  fTriggerMaskNext50(0),
   fFiredTriggers(),
   fRunNumber(nRun),
   fRefMult(-999),
@@ -123,6 +126,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fNDimuons(0),
   fNGlobalMuons(0),               // AU
   fNGlobalDimuons(0),             // AU
+  fDAQAttributes(0),
   fEventType(0),
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
@@ -181,6 +185,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   Double_t p2Energy,
 			   Double_t *emEnergy,
  			   ULong64_t trigMask,
+ 			   ULong64_t trigMask50,
 			   UChar_t trigClus,
 			   UInt_t evttype,
 			   const Float_t *vzeroEqFactors,
@@ -188,7 +193,8 @@ AliAODHeader::AliAODHeader(Int_t nRun,
 			   Int_t nMuons,
 			   Int_t nDimuons,
 			   Int_t nGlobalMuons,                 // AU
-			   Int_t nGlobalDimuons) :             // AU
+			   Int_t nGlobalDimuons,
+			   UInt_t daqAttrib) :             // AU
   AliVAODHeader(),
   fMagneticField(magField),
   fMuonMagFieldScale(muonMagFieldScale),
@@ -204,6 +210,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fNQTheta(0),
   fQTheta(0x0),
   fTriggerMask(trigMask),
+  fTriggerMaskNext50(trigMask50),
   fFiredTriggers(),
   fRunNumber(nRun),  
   fRefMult(refMult),
@@ -213,6 +220,7 @@ AliAODHeader::AliAODHeader(Int_t nRun,
   fNDimuons(nDimuons),
   fNGlobalMuons(nGlobalMuons),               // AU
   fNGlobalDimuons(nGlobalDimuons),           // AU
+  fDAQAttributes(daqAttrib),
   fEventType(evttype),
   fOrbitNumber(nOrbit),
   fPeriodNumber(nPeriod),
@@ -277,6 +285,7 @@ AliAODHeader::AliAODHeader(const AliAODHeader& hdr) :
   fNQTheta(0),
   fQTheta(0x0),
   fTriggerMask(hdr.fTriggerMask),
+  fTriggerMaskNext50(hdr.fTriggerMaskNext50),
   fFiredTriggers(hdr.fFiredTriggers),
   fRunNumber(hdr.fRunNumber),  
   fRefMult(hdr.fRefMult), 
@@ -358,6 +367,7 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fZDCN2Energy      = hdr.fZDCN2Energy;
     fZDCP2Energy      = hdr.fZDCP2Energy;
     fTriggerMask      = hdr.fTriggerMask;
+    fTriggerMaskNext50= hdr.fTriggerMaskNext50;
     fFiredTriggers    = hdr.fFiredTriggers;
     fRunNumber        = hdr.fRunNumber;
     fRefMult          = hdr.fRefMult;
@@ -376,6 +386,7 @@ AliAODHeader& AliAODHeader::operator=(const AliAODHeader& hdr)
     fNDimuons         = hdr.fNDimuons;
     fNGlobalMuons     = hdr.fNGlobalMuons;           // AU
     fNGlobalDimuons   = hdr.fNGlobalDimuons;         // AU
+    fDAQAttributes    = hdr.fDAQAttributes;
     fDiamondZ         = hdr.fDiamondZ;
     fDiamondSig2Z     = hdr.fDiamondSig2Z;
     fOfflineTrigger   = hdr.fOfflineTrigger;
@@ -504,6 +515,7 @@ void AliAODHeader::Print(Option_t* /*option*/) const
   printf("Orbit Number #          : %d\n", fOrbitNumber);
   printf("Period Number #         : %d\n", fPeriodNumber);
   printf("Trigger mask            : %lld\n", fTriggerMask);
+  printf("Trigger mask(next50)    : %lld\n", fTriggerMaskNext50);
   printf("Trigger cluster         : %d\n", fTriggerCluster);
   printf("Event Type              : %d\n", fEventType);
   printf("Magnetic field          : %f\n", fMagneticField);

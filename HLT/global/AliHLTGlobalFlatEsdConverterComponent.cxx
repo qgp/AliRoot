@@ -340,7 +340,7 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
     }
   }
 
-  HLTWarning("converted %d TPC %d ITS %d ITSout track(s) to GlobalBarrelTrack", tracksTPC.size(), tracksITS.size(), tracksITSOut.size() );
+  HLTInfo("converted %d TPC %d ITS %d ITSout track(s) to GlobalBarrelTrack", tracksTPC.size(), tracksITS.size(), tracksITSOut.size() );
   
   // Set TPC MC labels to tracks
   for( UInt_t itr=0; itr < tracksTPC.size(); itr++) {
@@ -676,7 +676,6 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
 
   }while(0);  // End of filling flat ESD structure
 
-
   if( err ){
     HLTWarning( "Output buffer size %d exceeded, flat ESD event is not stored", maxOutputSize );
   } else {
@@ -689,7 +688,7 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
     outputBlocks.push_back( outBlock );
     fBenchmark.AddOutput(outBlock.fSize);
     size += outBlock.fSize;
-			outsizeEvent = outBlock.fSize;
+    outsizeEvent = outBlock.fSize;
   }
   
 
@@ -700,7 +699,6 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
   // Fill the flat ESD friend structure
   //
   
-  HLTWarning("Using approximate time-pad coordinates for clusters, see jira ATO-146");
   while( !err && fProduceFriend ){ // single loop for easy break in case of output buffer overflow
 
     // ---------- Access to clusters --------------------
@@ -736,7 +734,7 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
     size_t freeSpaceTotal = maxOutputSize - size;
     size_t freeSpace = freeSpaceTotal;
 
-    err = ( freeSpace < sizeof( AliFlatESDEvent ) );    
+    err = ( freeSpace < sizeof( AliFlatESDFriend ) );    
     if( err ) break;
 
     new (flatFriend) AliFlatESDFriend;
@@ -833,8 +831,6 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
       if( err ) break;
       new (flatTrack) AliFlatESDFriendTrack;
       
-      freeSpace = freeSpaceTotal - flatFriend->GetSize();
-      
       flatTrack->SetSkipBit( 0 );
       flatTrack->SetTrackParamTPCOut( tpcOutTrack );
       flatTrack->SetTrackParamITSOut( itsOut );
@@ -861,7 +857,7 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
 	int iPartition = AliHLTTPCSpacePointData::GetPatch(id);
 	int iCluster = AliHLTTPCSpacePointData::GetNumber(id);
 	
-	if(iSlice<0 || iSlice>36 || iPartition<0 || iPartition>5){
+	if(iSlice<0 || iSlice>35 || iPartition<0 || iPartition>5){
 	  HLTError("Corrupted TPC cluster Id: slice %d, partition %d, cluster %d", iSlice, iPartition, iCluster);
 	  continue;
 	}
@@ -901,7 +897,7 @@ int AliHLTGlobalFlatEsdConverterComponent::DoEvent( const AliHLTComponentEventDa
 	tpcTrack->Propagate( TMath::DegToRad()*(sector%18*20.+10.), cl.GetX(), GetBz() );
 	Double_t angle2 = tpcTrack->GetSnp()*tpcTrack->GetSnp();
 	angle2 = (angle2<1) ?TMath::Sqrt(angle2/(1-angle2)) :10.; 
-	AliTPCTrackerPoint point;
+	AliTPCTrackerPoints::Point point;
 	point.SetAngleY( angle2 );
 	point.SetAngleZ( tpcTrack->GetTgl() );
 

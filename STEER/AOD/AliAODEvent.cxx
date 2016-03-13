@@ -561,7 +561,7 @@ void AliAODEvent::ClearStd()
   if (fHMPIDrings) 
      fHMPIDrings   ->Clear();    
   if (fDimuons)
-    fDimuons       ->Clear();
+    fDimuons       ->Clear("C");
   if (fTrdTracks)
     fTrdTracks     ->Clear();
 	
@@ -982,6 +982,7 @@ void AliAODEvent::Reset()
   // Std content + Non std content
 
   ClearStd();
+  
   if(fAODObjects->GetSize()>kAODListN){
     // we have non std content
     // this also covers aodfriends
@@ -1115,10 +1116,49 @@ void AliAODEvent::ConnectTracks() {
 Bool_t AliAODEvent::IsIncompleteDAQ() 
 {
   // check if DAQ has set the incomplete event attributes
-  return (fDAQAttributes&ATTR_2_B(ATTR_INCOMPLETE_EVENT))!=0 
-    ||   (fDAQAttributes&ATTR_2_B(ATTR_FLUSHED_EVENT))!=0;
+  UInt_t daqAttr = GetDAQAttributes();
+  return (daqAttr&ATTR_2_B(ATTR_INCOMPLETE_EVENT))!=0 
+    ||   (daqAttr&ATTR_2_B(ATTR_FLUSHED_EVENT))!=0;
     
 }
 
 AliVEvent::EDataLayoutType AliAODEvent::GetDataLayoutType() const {return AliVEvent::kAOD;}
 
+//______________________________________________________________________________
+TClonesArray* AliAODEvent::GetDimuons() const
+{
+  return fDimuons;
+}
+
+//______________________________________________________________________________
+Int_t AliAODEvent::GetNDimuons() const
+{
+  return fDimuons ? fDimuons->GetEntriesFast() : 0;
+}
+
+//______________________________________________________________________________
+Int_t AliAODEvent::GetNumberOfDimuons() const
+{
+  return GetNDimuons();
+}
+
+//______________________________________________________________________________
+AliAODDimuon* AliAODEvent::GetDimuon(Int_t nDimu) const
+{
+  if ( fDimuons )
+  {
+    return (AliAODDimuon*)fDimuons->UncheckedAt(nDimu);
+  }
+  return 0x0;
+}
+
+//______________________________________________________________________________
+Int_t AliAODEvent::AddDimuon(const AliAODDimuon* dimu)
+{
+  if ( fDimuons )
+  {
+    new((*fDimuons)[fDimuons->GetEntriesFast()]) AliAODDimuon(*dimu);
+    return fDimuons->GetEntriesFast()-1;
+  }
+  return -1;
+}

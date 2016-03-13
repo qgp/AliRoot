@@ -66,6 +66,7 @@
 #include "AliRun.h"
 #include "AliRunLoader.h"
 #include "AliRunTag.h"
+#include <fstream>
 
 using std::ifstream;
 ClassImp(AliQAManager) 
@@ -1352,7 +1353,7 @@ void AliQAManager::RunOneEvent(AliESDEvent *& esd, AliESDEvent *& hltesd)
       if (iDet == AliQAv1::kHLT) {
         TObjArray esdarray;
         esdarray.Add(esd); 
-        esdarray.Add(hltesd); 
+        if (hltesd) esdarray.Add(hltesd); 
         qadm->Exec(AliQAv1::kESDS, &esdarray);
       } else {
         qadm->Exec(AliQAv1::kESDS, esd) ;        

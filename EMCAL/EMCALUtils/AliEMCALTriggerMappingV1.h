@@ -23,6 +23,7 @@ public:
   Bool_t                    GetAbsFastORIndexFromPositionInTRU(Int_t iTRU, Int_t iEta, Int_t iPhi, Int_t& id) const;	
   Bool_t                    GetAbsFastORIndexFromPositionInSM( Int_t  iSM, Int_t iEta, Int_t iPhi, Int_t& id) const;	
   Bool_t                    GetAbsFastORIndexFromPositionInEMCAL(                Int_t iEta, Int_t iPhi, Int_t& id) const;
+  Bool_t                    GetAbsFastORIndexFromPHOSSubregion( Int_t iPHOS, Int_t& id) const {return kFALSE;}
   Bool_t                                GetTRUFromAbsFastORIndex(Int_t id, Int_t& iTRU, Int_t& iADC) const;
   Bool_t   GetPositionInTRUFromAbsFastORIndex(Int_t id, Int_t& iTRU, Int_t& iEta, Int_t& iPhi) const;
   Bool_t    GetPositionInSMFromAbsFastORIndex(Int_t id, Int_t& iSM, Int_t& iEta, Int_t& iPhi) const;
@@ -37,7 +38,19 @@ public:
   Bool_t           GetOnlineIndexFromTRUIndex(Int_t id, Int_t& idx) const;
   Int_t            GetOnlineIndexFromTRUIndex(Int_t id) const;
   Bool_t            GetFastORIndexFromL0Index(Int_t iTRU, Int_t id, Int_t idx[], Int_t size) const;
-	
+
+
+
+
+  Bool_t  GetSTUIndexFromTRUIndex(    Int_t id, Int_t& idx                  ) const{return kFALSE;};
+  Int_t   GetSTUIndexFromTRUIndex(    Int_t id                              ) const{return 0;}
+  Bool_t  GetTRUFromSTU(Int_t iTRU, Int_t iADC, Int_t& oTRU, Int_t& oADC, Int_t detector) const{return kFALSE;}
+  Bool_t  GetSTUFromTRU(Int_t iTRU, Int_t iADC, Int_t& oTRU, Int_t& oADC                ) const{return kFALSE;}
+  Bool_t  GetTRUFromSTU(Int_t iTRU, Int_t ieta, Int_t iphi, Int_t& oTRU, Int_t& oeta, Int_t& ophi, Int_t detector) const{return kFALSE;}
+  Bool_t  GetSTUFromTRU(Int_t iTRU, Int_t ieta, Int_t iphi, Int_t& oTRU, Int_t& oeta, Int_t& ophi                ) const{return kFALSE;}
+
+
+
 private:
 	                    AliEMCALTriggerMappingV1(const AliEMCALTriggerMappingV1& rhs);
 	         AliEMCALTriggerMappingV1& operator=(const AliEMCALTriggerMappingV1& rhs);

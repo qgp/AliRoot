@@ -27,31 +27,28 @@
 
 ClassImp(AliESDfriend)
 
-AliESDfriend::AliESDfriend(): AliVfriendEvent(), fTracks("AliESDfriendTrack",1),
+AliESDfriend::AliESDfriend(): AliVfriendEvent(), 
+  fESDIndicesStored(kFALSE),
+  fTracks("AliESDfriendTrack",1),
   fESDVZEROfriend(NULL),
   fESDTZEROfriend(NULL),
-  fESDADfriend(NULL),
-  fNclustersTPC(),
-  fNclustersTPCused()
+  fESDADfriend(NULL)
 {
  //
  // Default constructor
  //
-  for (Int_t i=0;i<72;i++)
-  {
-    fNclustersTPC[i]=0;
-    fNclustersTPCused[i]=0;
-  }
+  fTracks.SetOwner(kTRUE);
+  memset(fNclustersTPC,0,sizeof(fNclustersTPC));
+  memset(fNclustersTPCused,0,sizeof(fNclustersTPCused));
 }
 
 AliESDfriend::AliESDfriend(const AliESDfriend &f) :
   AliVfriendEvent(f),
+  fESDIndicesStored(f.fESDIndicesStored),
   fTracks(f.fTracks),
   fESDVZEROfriend(f.fESDVZEROfriend ? new AliESDVZEROfriend(*f.fESDVZEROfriend) : NULL),
   fESDTZEROfriend(f.fESDTZEROfriend ? new AliESDTZEROfriend(*f.fESDTZEROfriend) : NULL),
-  fESDADfriend(f.fESDADfriend ? new AliESDADfriend(*f.fESDADfriend) : NULL),
-  fNclustersTPC(),
-  fNclustersTPCused()
+  fESDADfriend(f.fESDADfriend ? new AliESDADfriend(*f.fESDADfriend) : NULL)
 {
  //
  // Copy constructor
@@ -67,8 +64,10 @@ AliESDfriend& AliESDfriend::operator=(const AliESDfriend& esd)
     // Assignment operator
     if(&esd == this) return *this;
     TObject::operator=(esd);
+    fESDIndicesStored = esd.fESDIndicesStored;
     // Clean up the old TClonesArray
-    fTracks.Delete();
+    DeleteTracksSafe();
+    //    fTracks.Delete();
     // Assign the new one
     fTracks = esd.fTracks;
 
@@ -103,7 +102,8 @@ AliESDfriend::~AliESDfriend() {
   //
   // Destructor
   //
-  fTracks.Delete();
+  DeleteTracksSafe();
+  //fTracks.Delete();
   if(fESDVZEROfriend)
     delete fESDVZEROfriend;
   fESDVZEROfriend=0;
@@ -115,13 +115,40 @@ AliESDfriend::~AliESDfriend() {
   fESDADfriend=0;
 }
 
+void AliESDfriend::DeleteTracksSafe()
+{
+  // delete tracks taking care of eventual shared objects in the tracks (e.g. TPCclusters)
+  int ntr=fTracks.GetEntriesFast();
+  for (int i=0;i<ntr;i++) {
+    AliESDfriendTrack* trc = (AliESDfriendTrack*)fTracks[i];
+    trc->TagSuppressSharedObjectsBeforeDeletion();
+  }
+  fTracks.Delete();
+}
+
+void AliESDfriend::ResetSoft()
+{
+  // Reset friend information, used for the shalow copy
+  for (int i=fTracks.GetEntriesFast();i--;) fTracks[i]->Clear();
+  fTracks.Clear();    
+  for (Int_t i=0;i<72;i++)
+  {
+    fNclustersTPC[i]=0;
+    fNclustersTPCused[i]=0;
+  }
+  delete fESDVZEROfriend; fESDVZEROfriend=0;
+  delete fESDTZEROfriend; fESDTZEROfriend=0;
+  delete fESDADfriend; fESDADfriend=0;
+}
+
 
 void AliESDfriend::Reset()
 {
   //
   // Reset friend information
   //
-  fTracks.Delete();
+  DeleteTracksSafe();
+  //  fTracks.Delete();
   for (Int_t i=0;i<72;i++)
   {
     fNclustersTPC[i]=0;
@@ -131,7 +158,6 @@ void AliESDfriend::Reset()
   delete fESDTZEROfriend; fESDTZEROfriend=0;
   delete fESDADfriend; fESDADfriend=0;
 }  
-
 
 void AliESDfriend::SetVZEROfriend(const AliESDVZEROfriend * obj)
 {

@@ -35,7 +35,8 @@ AliPHOSCpvRawDigiProducer::AliPHOSCpvRawDigiProducer():
   fCpvMinE(10.),
   fRawStream(0),
   fhErrors(0),
-  fPedFilesRLoaded(kFALSE)
+  fPedFilesRLoaded(kFALSE),
+  fCalibData(0x0)
 {
   fGeom=AliPHOSGeometry::GetInstance() ;
   if(!fGeom) fGeom = AliPHOSGeometry::GetInstance("IHEP");
@@ -60,7 +61,8 @@ AliPHOSCpvRawDigiProducer::AliPHOSCpvRawDigiProducer(AliRawReader * rawReader):
   fCpvMinE(10.),
   fRawStream(0),
   fhErrors(0),
-  fPedFilesRLoaded(kFALSE)
+  fPedFilesRLoaded(kFALSE),
+  fCalibData(0x0)
 {
   fGeom=AliPHOSGeometry::GetInstance() ;
   if(!fGeom) fGeom = AliPHOSGeometry::GetInstance("IHEP");
@@ -208,6 +210,9 @@ void AliPHOSCpvRawDigiProducer::MakeDigits(TClonesArray * digits) const
 	  charge  = 0;
       }
       if(charge < fCpvMinE) charge = 0;
+      if(fCalibData)
+	if(fCalibData->IsBadChannelCpv(relId[0],relId[2],relId[3]))
+	  charge=0;
       if (charge>0) new((*digits)[iDigit++]) AliPHOSDigit(-1,absId,charge,0.);
       
     }

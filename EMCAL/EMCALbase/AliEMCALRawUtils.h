@@ -34,6 +34,7 @@ class AliCaloCalibPedestal;
 class AliCaloRawAnalyzer;
 class AliEMCALTriggerRawDigitMaker;
 class AliEMCALTriggerData;
+class TClonesArray;
 
 #include "AliCaloConstants.h"
 
@@ -48,7 +49,7 @@ public:
   void     Digits2Raw();
   
   void     Raw2Digits(AliRawReader *reader, TClonesArray *digitsArr, const AliCaloCalibPedestal* pedbadmap,
-				      TClonesArray *digitsTRG=0x0, AliEMCALTriggerData* trgData = 0x0);
+				      TClonesArray *digitsTRG=0x0, TClonesArray *trgData=0x0);
   
   void     AddDigit(TClonesArray *digitsArr, Int_t id, Int_t lowGain, Float_t amp, Float_t time, Float_t chi2, Int_t ndf);
   
@@ -82,6 +83,8 @@ public:
     
   void     SetFALTROUsage(Bool_t val)         { fUseFALTRO = val          ; }
   
+  void     SetL1PhaseUsage(Bool_t val)        { fUseL1Phase = val         ; }
+  
   AliCaloRawAnalyzer *GetRawAnalyzer()  const { return fRawAnalyzer       ; }
   
   virtual Option_t* GetOption()         const { return fOption.Data()     ; }
@@ -113,13 +116,15 @@ private:
   Float_t fTimeMax;                     ///< Maximum threshold for the time of the signal.
     
   Bool_t  fUseFALTRO;                   ///< Use FALTRO and pass it to the digits.
+  
+  Bool_t  fUseL1Phase;                  ///< Use L1Phase time shift.
     
   AliCaloRawAnalyzer *fRawAnalyzer;     ///< e.g. for sample selection for fits.
     
   AliEMCALTriggerRawDigitMaker* fTriggerRawDigitMaker;	///< Trigger raw digit info.
  
   /// \cond CLASSIMP
-  ClassDef(AliEMCALRawUtils,7) ;
+  ClassDef(AliEMCALRawUtils,8) ;
   /// \endcond
 
 };

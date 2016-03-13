@@ -14,7 +14,8 @@
 # **************************************************************************
 
 # Module
-set (MODULE Utilities)
+set(MODULE Utilities)
+add_definitions(-D_MODULE_="${MODULE}")
 # Aditional include folders in alphabetical order except ROOT
 include_directories(${ROOT_INCLUDE_DIR} 
                    )
@@ -23,7 +24,10 @@ include_directories(${ROOT_INCLUDE_DIR}
 # Otherwise the sources will be compiled twice
 # Add a library to the project using the object
 add_executable(alihadd alihadd.cxx)
+add_executable(alisync alisync.cxx)
 target_link_libraries(alihadd RIO Hist Core)
+target_link_libraries(alisync RIO Hist Core Net Tree)
  
 # Installation
 install(TARGETS alihadd RUNTIME DESTINATION bin)
+install(TARGETS alisync RUNTIME DESTINATION bin)

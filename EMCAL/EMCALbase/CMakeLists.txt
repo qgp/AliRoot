@@ -15,6 +15,7 @@
 
 # Module
 set(MODULE EMCALbase)
+add_definitions(-D_MODULE_="${MODULE}")
 
 # Module include folder
 include_directories(${AliRoot_SOURCE_DIR}/EMCAL/${MODULE})
@@ -39,6 +40,7 @@ set(SRCS
     AliEMCALBiasAPD.cxx
     AliEMCALCalibAbs.cxx
     AliEMCALCalibData.cxx
+    AliEMCALCalibTime.cxx
     AliEMCALCalibMapAPD.cxx
     AliEMCALCalibReference.cxx
     AliEMCALCalibTempCoeff.cxx

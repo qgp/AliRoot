@@ -14,6 +14,7 @@
 #include "AliITSRecoParam.h"
 #include "AliITSgeomTGeo.h"
 #include "AliESDtrack.h"
+#include "AliTrackerBase.h"
 
 /* $Id$ */
 
@@ -29,6 +30,7 @@ public:
   ~AliITStrackV2(){fESDtrack=0;}
 
   void   SetCheckInvariant(Bool_t check=kTRUE) {fCheckInvariant=check;}
+  Bool_t GetCheckInvariant()             const {return fCheckInvariant;}
   Bool_t CorrectForMeanMaterial(Double_t xOverX0, Double_t xTimesRho,
 				Bool_t anglecorr=kFALSE) {
     return AliExternalTrackParam::CorrectForMeanMaterial(xOverX0,xTimesRho,GetMass(),anglecorr);
@@ -68,13 +70,16 @@ public:
   Double_t GetdEdx() const {return fdEdx;}
   Double_t GetPIDsignal() const {return GetdEdx();}
   using AliExternalTrackParam::GetC;
-  Double_t GetC() const {return AliExternalTrackParam::GetC(GetBz());}
+  //Double_t GetC() const {return AliExternalTrackParam::GetC(GetBz());} // RS in the ITS constant field can be used
+  Double_t GetC() const {return AliExternalTrackParam::GetC(AliTrackerBase::GetBz());}
   Double_t GetD(Double_t x, Double_t y) const {
-    return AliExternalTrackParam::GetD(x,y,GetBz());
+    return AliExternalTrackParam::GetD(x,y,AliTrackerBase::GetBz());
+    //    return AliExternalTrackParam::GetD(x,y,GetBz()); // RS in the ITS constant field can be used
   }
   using AliExternalTrackParam::GetDZ;
   void GetDZ(Double_t xv, Double_t yv, Double_t zv, Float_t dz[2]) const {
-    return AliExternalTrackParam::GetDZ(xv,yv,zv,GetBz(),dz);
+    //    return AliExternalTrackParam::GetDZ(xv,yv,zv,GetBz(),dz);
+    return AliExternalTrackParam::GetDZ(xv,yv,zv,AliTrackerBase::GetBz(),dz); // RS in the ITS constant field can be used
   }
 
   Bool_t GetGlobalXYZat(Double_t xloc,Double_t &x,Double_t &y,Double_t &z) const;

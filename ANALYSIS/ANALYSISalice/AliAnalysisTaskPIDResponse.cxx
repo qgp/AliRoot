@@ -48,6 +48,7 @@ fTunedOnDataMask(0),
 fRecoPassTuned(0),
 fUseTPCEtaCorrection(kTRUE),
 fUseTPCMultiplicityCorrection(kTRUE),
+fUseTRDEtaCorrection(kTRUE),
 fUserDataRecoPass(-1)
 {
   //
@@ -71,6 +72,7 @@ fTunedOnDataMask(0),
 fRecoPassTuned(0),
 fUseTPCEtaCorrection(kTRUE),
 fUseTPCMultiplicityCorrection(kTRUE),
+fUseTRDEtaCorrection(kTRUE),
 fUserDataRecoPass(-1)
 {
   //
@@ -121,10 +123,19 @@ void AliAnalysisTaskPIDResponse::UserCreateOutputObjects()
         fPIDResponse->SetCustomTPCpidResponse(resp.Data());
         AliInfo(Form("Setting custom TPC response file: '%s'",resp.Data()));
       }
+      else if (resp.BeginsWith("TPC-OADB:")){
+        resp.ReplaceAll("TPC-OADB:","");
+        fPIDResponse->SetCustomTPCpidResponseOADBFile(resp.Data());
+        AliInfo(Form("Setting custom TPC response OADB file: '%s'",resp.Data()));
+      }
       else if (resp.BeginsWith("TPC-Maps:")){
         resp.ReplaceAll("TPC-Maps:","");
         fPIDResponse->SetCustomTPCetaMaps(resp.Data());
         AliInfo(Form("Setting custom TPC eta maps file: '%s'",resp.Data()));
+      }
+      else if (resp.BeginsWith("TPC-dEdxType:")){
+        resp.ReplaceAll("TPC-dEdxType:","");
+        fPIDResponse->GetTPCResponse().SetdEdxTypeFromString(resp);
       }
     }
     delete arr;
@@ -148,6 +159,8 @@ void AliAnalysisTaskPIDResponse::UserExec(Option_t */*option*/)
 
     fPIDResponse->SetUseTPCEtaCorrection(fUseTPCEtaCorrection);
     fPIDResponse->SetUseTPCMultiplicityCorrection(fUseTPCMultiplicityCorrection);
+
+    fPIDResponse->SetUseTRDEtaCorrection(fUseTRDEtaCorrection);
   }
 
   fPIDResponse->InitialiseEvent(event,fRecoPass);

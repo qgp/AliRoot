@@ -24,6 +24,7 @@ include_directories(${AliRoot_SOURCE_DIR}/HLT/EMCAL
 include_directories(${AliRoot_SOURCE_DIR}/EMCAL/EMCALbase
                     ${AliRoot_SOURCE_DIR}/EMCAL/EMCALraw
                     ${AliRoot_SOURCE_DIR}/EMCAL/EMCALUtils
+                    ${AliRoot_SOURCE_DIR}/EMCAL/EMCALTriggerBase
                     ${AliRoot_SOURCE_DIR}/HLT/CALO
                     ${AliRoot_SOURCE_DIR}/HLT/BASE
                     ${AliRoot_SOURCE_DIR}/HLT/BASE/util
@@ -43,16 +44,30 @@ set(SRCS
     AliHLTEMCALDigitMakerComponent.cxx
     AliHLTEMCALMapper.cxx
     AliHLTEMCALRawAnalyzerComponent.cxx
+    AliHLTEMCALRawAnalyzerStandardComponent.cxx
     AliHLTEMCALRawAnalyzerCrudeComponent.cxx
     AliHLTEMCALRawAnalyzerFastFitComponent.cxx
     AliHLTEMCALRawAnalyzerLMSComponent.cxx
     AliHLTEMCALRawAnalyzerNNComponent.cxx
     AliHLTEMCALRawAnalyzerPeakFinderComponent.cxx
+    AliHLTEMCALRawHistoMaker.cxx
+    AliHLTEMCALRawHistoMakerComponent.cxx
     AliHLTEMCALRecoParamHandler.cxx
+    AliHLTEMCALTriggerDataMakerComponent.cxx
+    AliHLTEMCALTriggerMaker.cxx
+    AliHLTEMCALTriggerMakerComponent.cxx
+    AliHLTEMCALTRURawDigitMaker.cxx
+    AliHLTEMCALRawAnalyzerComponentTRU.cxx
+    AliHLTEMCALSTURawDigitMaker.cxx
+    AliHLTEMCALRawAnalyzerComponentSTU.cxx
+    AliHLTEMCALTriggerQAComponent.cxx
    )
 
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
+set(HDRS ${HDRS}
+    AliHLTEMCALSTUHeaderStruct.h
+)
 
 # Generate the dictionary
 # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
@@ -61,7 +76,7 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS STEERBase STEER CDB HLTbase AliHLTUtil AliHLTCalo EMCALbase EMCALUtils EMCALraw)
+set(LIBDEPS STEERBase STEER CDB HLTbase AliHLTUtil AliHLTCalo EMCALbase EMCALUtils EMCALraw EMCALTriggerBase)
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # Add a library to the project using the specified source files

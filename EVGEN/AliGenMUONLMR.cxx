@@ -36,9 +36,19 @@ ClassImp(AliGenMUONLMR)
       fDecay[i] = NULL;
     }						 
 
-    for (int i=0; i<3; i++) {
-      fDalitz[i] = NULL;
-    }						 
+    for (int i=0; i<3; i++) fDalitz[i] = NULL;
+
+    fThetaOpt[kEtaDalitz]      = kPolarized;
+    fThetaOpt[kOmegaDalitz]    = kPolarized;
+    fThetaOpt[kEtaPrimeDalitz] = kPolarized;
+
+    fThetaOpt[kEta2Body]      = kFlat;
+    fThetaOpt[kRho2Body]      = kFlat;
+    fThetaOpt[kOmega2Body]    = kFlat;
+    fThetaOpt[kPhi2Body]      = kFlat;
+
+    fThetaOpt[kPionSemiMuonic] = kFlat;
+    fThetaOpt[kKaonSemiMuonic] = kFlat;
 
   }
 
@@ -251,7 +261,7 @@ void AliGenMUONLMR::SetCMSEnergy(CMSEnergies energy){
   // function for polarized theta distributions
   fCosTheta = new TF1 ("fCosTheta","1+[0]*x*x",-1,1);
   fCosTheta->SetParameter(0,1);
-	
+ 
   // Dalitz decays 
   Int_t nbins = 1000;
   Double_t xmin = 0, xmax = 2; 
@@ -259,11 +269,12 @@ void AliGenMUONLMR::SetCMSEnergy(CMSEnergies energy){
   fDalitz[1] = new TH1F("hDalitzOmega","",nbins,xmin,xmax);
   fDalitz[2] = new TH1F("hDalitzEtaPrime","",nbins,xmin,xmax);
 	
-  Double_t meta   = pdgdb->GetParticle("eta")->Mass(); 
-  Double_t momega = pdgdb->GetParticle("omega")->Mass(); 
-  Double_t metaPrime = pdgdb->GetParticle("eta'")->Mass(); 
-  Double_t mpi0   = pdgdb->GetParticle("pi0")->Mass(); 
-  Double_t md3 = 0, mres = 0; 
+  Double_t meta      = pdgdb->GetParticle("eta")  ->Mass(); 
+  Double_t momega    = pdgdb->GetParticle("omega")->Mass(); 
+  Double_t metaPrime = pdgdb->GetParticle("eta'") ->Mass(); 
+  Double_t mpi0      = pdgdb->GetParticle("pi0")  ->Mass(); 
+  Double_t md3       = 0;
+  Double_t mres      = 0;
 	
   for (Int_t index = 0; index < 3; index++) { 
     if (index == 0) { 
@@ -325,9 +336,12 @@ AliGenMUONLMR::AliGenMUONLMR (AliGenMUONLMR &gen) : AliGenMC(),
     fParticle[i] = (TParticle*) gen.fParticle[i]->Clone(); 
   }
   
-  for(Int_t i = 0; i<2; i++) fDecay[i] = (TF1*) gen.fDecay[i]->Clone(); 
-  for(Int_t i = 0; i<3; i++) fDalitz[i] = (TH1F*) gen.fDalitz[i]->Clone(); 
-  for(Int_t i = 0; i<2; i++) fMu[i] = (TParticle*) gen.fMu[i]->Clone(); 
+  for (Int_t i=0; i<2; i++) fDecay[i] = (TF1*) gen.fDecay[i]->Clone(); 
+  for (Int_t i=0; i<2; i++) fMu[i] = (TParticle*) gen.fMu[i]->Clone(); 
+  for (Int_t i=0; i<3; i++) fDalitz[i] = (TH1F*) gen.fDalitz[i]->Clone();
+
+  for (Int_t iProc=0; iProc<kNProcess; iProc++) fThetaOpt[iProc] = gen.fThetaOpt[iProc];
+
 }
 
 //-----------------------------------------------------------
@@ -353,19 +367,24 @@ AliGenMUONLMR& AliGenMUONLMR::operator=(const AliGenMUONLMR &gen) {
       fParticle[i] = (TParticle*) gen.fParticle[i]->Clone(); 
     }
     
-    for(Int_t i = 0; i<2; i++) fDecay[i] = (TF1*) gen.fDecay[i]->Clone(); 
-    for(Int_t i = 0; i<3; i++) fDalitz[i] = (TH1F*) gen.fDalitz[i]->Clone(); 
-    for(Int_t i = 0; i<2; i++) fMu[i] = (TParticle*) gen.fMu[i]->Clone(); 
+    for(Int_t i=0; i<2; i++) fDecay[i] = (TF1*) gen.fDecay[i]->Clone(); 
+    for(Int_t i=0; i<2; i++) fMu[i] = (TParticle*) gen.fMu[i]->Clone(); 
+    for(Int_t i=0; i<3; i++) fDalitz[i] = (TH1F*) gen.fDalitz[i]->Clone();
+
+    for (Int_t iProc=0; iProc<kNProcess; iProc++) fThetaOpt[iProc] = gen.fThetaOpt[iProc];
+    
   }
+  
   return *this; 
+
 }
 
- 
 //-----------------------------------------------------------
 
-AliGenMUONLMR::~AliGenMUONLMR()
-{
+AliGenMUONLMR::~AliGenMUONLMR() {
+
   // Default destructor
+
   for (Int_t i=0; i<7; i++) { 
     delete fPt[i]; 
     delete fY[i]; 
@@ -580,6 +599,14 @@ void AliGenMUONLMR::Generate() {
 //------------------------------------------------------------------
 
 void AliGenMUONLMR::Decay2Body(TParticle *mother){ 
+
+  Int_t process = -1; 
+  if      (mother->GetPdgCode() == 221) process = kEta2Body;
+  else if (mother->GetPdgCode() == 113) process = kRho2Body;
+  else if (mother->GetPdgCode() == 223) process = kOmega2Body;
+  else if (mother->GetPdgCode() == 333) process = kPhi2Body;
+  else return;
+  
   // performs decay in two muons of the low mass resonances
   Double_t md1 = fMu[0]->GetMass(); 
   Int_t pdg = mother->GetPdgCode(); 
@@ -587,13 +614,21 @@ void AliGenMUONLMR::Decay2Body(TParticle *mother){
   // if mother is a rho, extract the mass from its line shape
   // otherwise consider the resonance mass 
   if (pdg == 113) mres = fRhoLineShape->GetRandom(); 
-  else mres = mother->GetCalcMass(); 
+  else mres = mother->GetCalcMass();
   //  while (mres < md1 + md2) mres =  fDsigmaDm[res]->GetRandom();
   // energies and momenta in rest frame 
   Double_t e1 = mres / 2.;
   Double_t p1 = TMath::Sqrt((e1 + md1)*(e1 - md1)); 
   // orientation in decaying particle rest frame
-  Double_t costheta = gRandom->Rndm() * 2 - 1;
+  Double_t costheta = 0; 
+  if      (fThetaOpt[process] == kFlat)      costheta = gRandom->Rndm() * 2. - 1.;
+  else if (fThetaOpt[process] == kPolarized) costheta = fCosTheta -> GetRandom();
+  else {
+    AliError("No valid option for cos(theta) distribution!!!");
+    return;
+  }
+  if (costheta > 1) costheta =  1; 
+  if (costheta <-1) costheta = -1;   
   Double_t sintheta = TMath::Sqrt((1. + costheta)*(1. - costheta));
   Double_t phi      = 2. * TMath::Pi() * gRandom->Rndm(); 
   Double_t px1      = p1 * sintheta * TMath::Cos(phi); 
@@ -622,7 +657,13 @@ void AliGenMUONLMR::Decay2Body(TParticle *mother){
 
 //------------------------------------------------------------------
 
-void AliGenMUONLMR::DecayPiK(TParticle *mother, Bool_t &hasDecayed){ 
+void AliGenMUONLMR::DecayPiK(TParticle *mother, Bool_t &hasDecayed){
+
+  Int_t process = -1; 
+  if      (TMath::Abs(mother->GetPdgCode()) == 211) process = kPionSemiMuonic;
+  else if (TMath::Abs(mother->GetPdgCode()) == 321) process = kKaonSemiMuonic;
+  else return;
+  
   // performs decays of pions and kaons
   Double_t md1 = fMu[0]->GetMass(); 
   // extract the mass from the resonance's line shape
@@ -635,7 +676,15 @@ void AliGenMUONLMR::DecayPiK(TParticle *mother, Bool_t &hasDecayed){
   Double_t e1 = (mres*mres + md1*md1)/(2*mres);
   Double_t p1 = TMath::Sqrt((e1 + md1)*(e1 - md1)); 
   // orientation in decaying particle rest frame
-  Double_t costheta = gRandom->Rndm() * 2 - 1;
+  Double_t costheta = 0; 
+  if      (fThetaOpt[process] == kFlat)      costheta = gRandom->Rndm() * 2. - 1.;
+  else if (fThetaOpt[process] == kPolarized) costheta = fCosTheta -> GetRandom();
+  else {
+    AliError("No valid option for cos(theta) distribution!!!");
+    return;
+  }
+  if (costheta > 1) costheta =  1; 
+  if (costheta <-1) costheta = -1; 
   Double_t sintheta = TMath::Sqrt((1. + costheta)*(1. - costheta));
   Double_t phi      = 2. * TMath::Pi() * gRandom->Rndm(); 
   Double_t px1      = p1 * sintheta * TMath::Cos(phi); 
@@ -672,16 +721,20 @@ void AliGenMUONLMR::DalitzDecay(TParticle *mother){
   Double_t mres = mother->GetCalcMass(); 
   Double_t mumass  = fMu[0]->GetMass(); 
   Double_t md3  = 0;  // unless differently specified, third particle is a photon 
-  if (mother->GetPdgCode() == 223) md3 = 0.134977; // if mother is an omega, third particle is a pi0
-  Int_t index = 0; 
-  if (mother->GetPdgCode() == 221) index = 0;  // eta
-  else if (mother->GetPdgCode() == 223) index = 1; // omega  
-  else if (mother->GetPdgCode() == 331) index = 2; // etaPrime  
+
+  Int_t process = -1; 
+  if      (mother->GetPdgCode() == 221) process = kEtaDalitz;
+  else if (mother->GetPdgCode() == 223) process = kOmegaDalitz;
+  else if (mother->GetPdgCode() == 331) process = kEtaPrimeDalitz;
+  else return;
+
+  if (mother->GetPdgCode() == 223) md3 = TDatabasePDG::Instance()->GetParticle("pi0")->Mass(); // if mother is an omega, third particle is a pi0
+
   Int_t flag = 0; 
   Double_t xd=0, mvirt2=0; 
   Double_t countIt = 0;
   while (flag==0) {  
-    xd       = fDalitz[index]->GetRandom(); 
+    xd       = fDalitz[process]->GetRandom(); 
     mvirt2   = xd * mres * mres;   // mass of virtual photon 
     // check kinematics 
     if (mres - md3 > TMath::Sqrt(mvirt2) && TMath::Sqrt(mvirt2)/2. > mumass) flag=1;
@@ -704,11 +757,19 @@ void AliGenMUONLMR::DalitzDecay(TParticle *mother){
   }
   Double_t p1 = TMath::Sqrt(psquare);
   //theta angle between the pos. muon and the virtual photon 
-  Double_t costheta = fCosTheta->GetRandom();
-  if (costheta>1)  costheta = 1; 
-  if (costheta<-1) costheta = -1; 
+
+  Double_t costheta = 0; 
+  if      (fThetaOpt[process] == kFlat)      costheta = gRandom->Rndm() * 2. - 1.;
+  else if (fThetaOpt[process] == kPolarized) costheta = fCosTheta -> GetRandom();
+  else {
+    AliError("No valid option for cos(theta) distribution!!!");
+    return;
+  }
+  if (costheta > 1) costheta =  1; 
+  if (costheta <-1) costheta = -1; 
+
   Double_t sintheta = TMath::Sqrt((1. + costheta)*(1. - costheta));
-  Double_t phi      = 2 * TMath::Pi() * gRandom->Rndm();
+  Double_t phi      = 2.* TMath::Pi() * gRandom->Rndm();
   Double_t sinphi   = TMath::Sin(phi);
   Double_t cosphi   = TMath::Cos(phi);
 

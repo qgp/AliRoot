@@ -15,7 +15,7 @@
 
 //-------------------------------------------------------------------------
 //     Container class for ESD AD data
-//     Author: Brigitte Cheynis & Cvetan Cheshkov
+//     Author: Michal Broz
 //-------------------------------------------------------------------------
 
 #include "AliESDAD.h"
@@ -47,7 +47,9 @@ AliESDAD::AliESDAD()
       fTime[j]  = 0.0; 
       fWidth[j] = 0.0; 
       fBBFlag[j]= kFALSE;
-      fBGFlag[j]= kFALSE;  
+      fBGFlag[j]= kFALSE;
+      for(Int_t k = 0; k < 21; ++k) fIsBB[j][k] = fIsBG[j][k] = kFALSE; 
+      fAdcTail[j]   = 0.0; 
    }
 }
 
@@ -76,6 +78,11 @@ AliESDAD::AliESDAD(const AliESDAD &o)
        fWidth[j]  = o.fWidth[j];
        fBBFlag[j] = o.fBBFlag[j];
        fBGFlag[j] = o.fBGFlag[j];
+       for(Int_t k = 0; k < 21; ++k) {
+	 fIsBB[j][k] = o.fIsBB[j][k];
+	 fIsBG[j][k] = o.fIsBG[j][k];
+       }
+       fAdcTail[j]    = o.fAdcTail[j];
    }
 }
 
@@ -107,6 +114,8 @@ AliESDAD::AliESDAD(UInt_t BBtriggerADA, UInt_t BGtriggerADA,
        fWidth[j]  = Width[j];
        fBBFlag[j] = BBFlag[j];
        fBGFlag[j] = BGFlag[j];
+       for(Int_t k = 0; k < 21; ++k) fIsBB[j][k] = fIsBG[j][k] = kFALSE;
+       fAdcTail[j]    = 0.0;
    }
 }
 
@@ -139,6 +148,11 @@ AliESDAD& AliESDAD::operator=(const AliESDAD& o)
        fWidth[j]  = o.fWidth[j];
        fBBFlag[j] = o.fBBFlag[j];
        fBGFlag[j] = o.fBGFlag[j];
+       for(Int_t k = 0; k < 21; ++k) {
+	 fIsBB[j][k] = o.fIsBB[j][k];
+	 fIsBG[j][k] = o.fIsBG[j][k];
+       }
+       fAdcTail[j]    = o.fAdcTail[j];
    }
   return *this;
 }
@@ -260,6 +274,36 @@ Float_t AliESDAD::GetAdcADC(Int_t i) const
   // given cell of ADC
   if (OutOfRange(i, "AliESDAD::GetAdcADC:",8)) return -1;
   return fAdc[i];
+}
+
+//__________________________________________________________________________
+Float_t AliESDAD::GetAdcTail(Int_t i) const
+
+{
+  // returns ADC charge in a
+  // given cell of AD
+  if (OutOfRange(i, "AliESDAD::GetAdcTail:",16)) return -1;
+  return fAdcTail[i];
+}
+
+//__________________________________________________________________________
+Float_t AliESDAD::GetAdcTailADA(Int_t i) const
+
+{
+  // returns ADC charge in a
+  // given cell of ADA
+  if (OutOfRange(i, "AliESDAD::GetAdcTailADA:",8)) return -1;
+  return fAdcTail[8+i];
+}
+
+//__________________________________________________________________________
+Float_t AliESDAD::GetAdcTailADC(Int_t i) const
+
+{
+  // returns ADC charge in a
+  // given cell of ADC
+  if (OutOfRange(i, "AliESDAD::GetAdcTailADC:",8)) return -1;
+  return fAdcTail[i];
 }
 
 //__________________________________________________________________________

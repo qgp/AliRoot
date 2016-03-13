@@ -52,7 +52,13 @@
 #include <fstream>
 #include <TRandom.h>
 #include <TTimeStamp.h>
-#include <AliXRDPROOFtoolkit.h>
+#include "TSystem.h"
+#include "AliXRDPROOFtoolkit.h"
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
+
 
 
 /// \cond CLASSIMP
@@ -112,12 +118,12 @@ TChain* AliXRDPROOFtoolkit::MakeChain(const char*fileIn, const char * treeName, 
     if (counter<=startFile) continue;
     if ((maxFiles>0) && (counter>maxFiles+startFile)) break;
 
-    TFile * f = TFile::Open(currentFile.Data());
-    if (f){
-      chain->Add(currentFile.Data());
-    }
-
-    delete f;
+    //    TFile * f = TFile::Open(currentFile.Data());
+    //    if (f){
+    chain->Add(currentFile.Data());
+    //    }
+    
+    //    delete f;
   }
 
   in.close();

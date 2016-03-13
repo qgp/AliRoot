@@ -42,11 +42,14 @@ set(SRCS
     AliAnalysisTaskSE.cxx
     AliAnalysisTaskStat.cxx
     AliAnalysisTaskTagCreator.cxx
+    AliTrackSelectionFactory.cxx
     AliAODv0KineCuts.cxx
+    AliAODTrackSelection.cxx
     AliESDpidCuts.cxx
     AliESDtrackCuts.cxx
     AliESDv0Cuts.cxx
     AliESDv0KineCuts.cxx
+    AliESDTrackSelection.cxx
     AliEventPoolLoop.cxx
     AliEventPoolManager.cxx
     AliEventPoolOTF.cxx
@@ -58,6 +61,7 @@ set(SRCS
     AliTagAnalysis.cxx
     AliUnfolding.cxx
     AliVZEROEPSelectionTask.cxx
+    AliVTrackSelection.cxx
     AliXMLCollection.cxx
   )
 

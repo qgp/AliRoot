@@ -38,7 +38,6 @@ extern "C" {
 
 #include <Riostream.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "AliRawReaderDate.h"
 
@@ -1345,7 +1344,7 @@ int main(Int_t argc, Char_t **argv)
     // needed for streamer application
     gROOT->GetPluginManager()->AddHandler("TVirtualStreamerInfo", "*", "TStreamerInfo", "RIO", "TStreamerInfo()"); 
 
-    printf("MTRda version v.29092015.01 \n");
+    printf("MTRda version v.23102015.01 \n");
   
     /* check that we got some arguments = list of files */
     if (argc<2) {
@@ -1357,13 +1356,14 @@ int main(Int_t argc, Char_t **argv)
 
     Char_t inputFile[256] = "";
     inputFile[0] = 0;
-    if (argc > 1)
-      if (argv[1] != NULL)
+    if (argc > 1) {
+      if (argv[1] != NULL) {
         strncpy(inputFile, argv[1], 256);
-      else {
-        printf("MUONTRGda : No input File !\n");
+      } else {
+        printf("MTRda : No input File !\n");
         return -1;
       }
+    }
 
     // decoding the events
   
@@ -1456,7 +1456,7 @@ int main(Int_t argc, Char_t **argv)
     monitorSetNowait();
     monitorSetNoWaitNetworkTimeout(1000);
 
-    cout << "MUONTRGda : Reading data from file " << inputFile <<endl;
+    cout << "MTRda : Reading data from file " << inputFile <<endl;
 
     UInt_t nCalibEvents;
     Double_t elapsT;
@@ -1505,28 +1505,31 @@ int main(Int_t argc, Char_t **argv)
     while(1) 
     {
 
-      void *event;
+      struct eventHeaderStruct *event(0x0);
       
       if (cfg.GetPrintLevel()) {
 	if (nEvents && nEvents % 1000 == 0) 	
 	  cout<<"Cumulated events " << nEvents << endl;
       }
       // check shutdown condition 
-      if (daqDA_checkShutdown()) 
-	  break;
+      if (daqDA_checkShutdown()) {
+	delete event;
+ 	break;
+      }
 
       // Skip Events if needed
       while (cfg.GetSkipEvents()) {
 	status = 0;
-	status = monitorGetEventDynamic(&event);
+	status = monitorGetEventDynamic((void**)&event);
 	cfg.DecSkipEvents();
       }
 
       // starts reading
       status = 0;
-      status = monitorGetEventDynamic(&event);
+      status = monitorGetEventDynamic((void**)&event);
       if (status < 0)  {
-	cout << "MUONTRGda : EOF found" << endl;
+	cout << "MTRda : EOF found" << endl;
+	delete event;
 	break;
       }
 
@@ -1554,6 +1557,7 @@ int main(Int_t argc, Char_t **argv)
 	  doUpdate = kTRUE;
 	  cfg.IncDeadcEvent();
 	} else {
+	  delete event;
 	  continue;
 	}
       }
@@ -1699,7 +1703,7 @@ int main(Int_t argc, Char_t **argv)
 
       if (cfg.SaveScalers()) {
 	if (!overFlow && (deltaT > (Double_t)cfg.GetScalerRecTime())) {
-	  //printf("Write scalers after %d events\n",nEvents);
+	  printf("MTRda: write scalers after %d events\n",nEvents);
 	  writeScalers = kTRUE;
 	  Int_t ibw = 0;
 	  // global
@@ -1711,7 +1715,7 @@ int main(Int_t argc, Char_t **argv)
 	  buffer[ibw++] = ((UInt_t)(deltaT+0.5) >> 16) & 0xff;
 	  buffer[ibw++] = ((UInt_t)(deltaT+0.5) >>  8) & 0xff;
 	  buffer[ibw++] = ((UInt_t)(deltaT+0.5) >>  0) & 0xff;
-	  //printf("nev %u time %f \n",nCalibEvents,deltaT);
+	  printf("MTRda: calib events %u time %f \n",nCalibEvents,deltaT);
 	  for (Int_t bit = 0; bit < 6; bit++) {
 	    buffer[ibw++] = (glSc[bit] >> 24) & 0xff;
 	    buffer[ibw++] = (glSc[bit] >> 16) & 0xff;
@@ -1745,8 +1749,8 @@ int main(Int_t argc, Char_t **argv)
 	      }
 	    }
 	  }
-	  //printf("Write to buffer %d bytes.\n",ibw);
-	  fwrite(&buffer,ibw,1,fsc);
+	  printf("MTRda: write to buffer %d bytes.\n",ibw);
+	  fwrite(buffer,ibw,1,fsc);
 	  // reset
 	  deltaT = 0.;
 	  nCalibEvents = 0;
@@ -1804,29 +1808,29 @@ int main(Int_t argc, Char_t **argv)
 
     timers.Stop();
 
-    cout << "MUONTRGda: DA enable: " << cfg.GetDAFlag() << endl;
-    cout << "MUONTRGda: Run number: " << runNumber << endl;
-    cout << "MUONTRGda: Nb of DATE events: " << nDateEvents << endl;
-    cout << "MUONTRGda: Nb of events used: " << nEvents << endl;
-    cout << "MUONTRGda: Nb of events used (noise): " << cfg.GetEventsN() << endl;
-    cout << "MUONTRGda: Nb of events used (deadc): " << cfg.GetEventsD() << endl;
-    cout << "MUONTRGda: Minumum nr of events for rate calculation: " << cfg.GetMinEvents() << endl;
-    cout << "MUONTRGda: Maximum nr of analyzed events: " << cfg.GetMaxEvents() << endl;
-    cout << "MUONTRGda: Skip events from start: " << cfg.GetSkipEvents() << endl;
-    cout << "MUONTRGda: Threshold for global noisy inputs: " << 100*cfg.GetThrN() << "%" << endl;
-    cout << "MUONTRGda: Threshold for global dead inputs: " << 100*cfg.GetThrD() << "%" << endl;
-    cout << "MUONTRGda: Threshold for local noisy inputs: " << 100*cfg.GetThrLocN() << "%" << endl;
-    cout << "MUONTRGda: Threshold for local dead inputs: " << 100*cfg.GetThrLocD() << "%" << endl;
-    cout << "MUONTRGda: Print level: " << cfg.GetPrintLevel() << endl;
-    cout << "MUONTRGda: Show decoder warnings: " << cfg.WithWarnings() << endl;
-    cout << "MUONTRGda: Use the fast decoder: " << cfg.UseFastDecoder() << endl;
-    cout << "MUONTRGda: DA mode (1=GLOBAL, 2=GLOBAL+LOCAL): " << cfg.GetDAMode() << endl;
-    cout << "MUONTRGda: Save scalers: " << cfg.SaveScalers() << endl;
+    cout << "MTRda: DA enable: " << cfg.GetDAFlag() << endl;
+    cout << "MTRda: Run number: " << runNumber << endl;
+    cout << "MTRda: Nb of DATE events: " << nDateEvents << endl;
+    cout << "MTRda: Nb of events used: " << nEvents << endl;
+    cout << "MTRda: Nb of events used (noise): " << cfg.GetEventsN() << endl;
+    cout << "MTRda: Nb of events used (deadc): " << cfg.GetEventsD() << endl;
+    cout << "MTRda: Minumum nr of events for rate calculation: " << cfg.GetMinEvents() << endl;
+    cout << "MTRda: Maximum nr of analyzed events: " << cfg.GetMaxEvents() << endl;
+    cout << "MTRda: Skip events from start: " << cfg.GetSkipEvents() << endl;
+    cout << "MTRda: Threshold for global noisy inputs: " << 100*cfg.GetThrN() << "%" << endl;
+    cout << "MTRda: Threshold for global dead inputs: " << 100*cfg.GetThrD() << "%" << endl;
+    cout << "MTRda: Threshold for local noisy inputs: " << 100*cfg.GetThrLocN() << "%" << endl;
+    cout << "MTRda: Threshold for local dead inputs: " << 100*cfg.GetThrLocD() << "%" << endl;
+    cout << "MTRda: Print level: " << cfg.GetPrintLevel() << endl;
+    cout << "MTRda: Show decoder warnings: " << cfg.WithWarnings() << endl;
+    cout << "MTRda: Use the fast decoder: " << cfg.UseFastDecoder() << endl;
+    cout << "MTRda: DA mode (1=GLOBAL, 2=GLOBAL+LOCAL): " << cfg.GetDAMode() << endl;
+    cout << "MTRda: Save scalers: " << cfg.SaveScalers() << endl;
     if (cfg.SaveScalers()) {
-      cout << "MUONTRGda: Time to record scalers: " << cfg.GetScalerRecTime() << " seconds" << endl;
+      cout << "MTRda: Time to record scalers: " << cfg.GetScalerRecTime() << " seconds" << endl;
     }
 
-    printf("MUONTRGda: Execution time : R:%7.2fs C:%7.2fs\n", timers.RealTime(), timers.CpuTime());
+    printf("MTRda: Execution time : R:%7.2fs C:%7.2fs\n", timers.RealTime(), timers.CpuTime());
 
     return status;
 

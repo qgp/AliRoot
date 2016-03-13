@@ -1,4 +1,3 @@
-
 /**************************************************************************
  * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
@@ -14,6 +13,13 @@
  * provided "as is" without express or implied warranty.                  *
  **************************************************************************/
 
+//_________________________________________________________________________
+//  This class provides access to EMCAL/DCAL STU DDL raw data.
+//--
+//  Author      : Hiroki Yokoyama (Univ. of TSUKUBA / Univ. of Grenoble)
+//  contact     : hiroki.yokoyama@cern.ch
+//  Last Update : 23. Nov. 2015
+//_________________________________________________________________________
 
 #include "AliEMCALTriggerSTURawStream.h"
 #include "AliRawReader.h"
@@ -114,10 +120,6 @@ AliEMCALTriggerSTURawStream::AliEMCALTriggerSTURawStream(AliRawReader* rawReader
   fFrameReceived(0)       ,
   fFwVersion(0)     
 {
-  //
-  fRawReader->Reset();
-  fRawReader->Select("EMCAL",AliDAQ::GetFirstSTUDDL());
-  //
   for(int i=0;i<max_L0GammaPatchIndex;i++) 
     fL0GammaPatchIndex[i]     = 0 ;
   for(int i=0;i<max_L1Gamma;          i++)
@@ -188,10 +190,9 @@ Bool_t AliEMCALTriggerSTURawStream::ReadPayLoad()
       eqId   = fRawReader->GetEquipmentId();
       eqSize = fRawReader->GetEquipmentSize();
     }
+    if(iword > max_payload_size -1 )return kFALSE ;
     word32[iword++] = w32;
-    //if(iword<905)cout<<dec<<iword+9    <<" , "<<hex<<w32<<endl;
-    //else         cout<<dec<<iword-905+9<<" , "<<hex<<w32<<endl;
-
+    //cout<<dec<<setw(5)<<iword<<" , "<<hex<<setw(10)<<w32<<dec<<setw(10)<<w32<<endl;
   }
 
   Int_t   poffset = 0     ;
@@ -228,22 +229,31 @@ Bool_t AliEMCALTriggerSTURawStream::ReadPayLoad()
     fPayload        = V1_2Raw   ;
     fDetector       = kEMCAL    ;
   }
-  else if(iword==(kPayLoadSizeV2_DCAL                            + kPayLoadSizeV2_EMCAL                           )){
-    poffset   = (fDetector == kDCAL)? 0           : kPayLoadSizeV2_DCAL                           ;
-    fPayload  = (fDetector == kDCAL)? V2DCAL      : V2EMCAL                                       ;
+  
+  else if(iword==(kPayLoadSizeV2_DCAL                            )){
+    poffset         = 0         ;
+    fPayload        = V2DCAL    ;
+    fDetector       = kDCAL     ;
   }
-  else if(iword==(kPayLoadSizeV2_DCAL                            + kPayLoadSizeV2_EMCAL + kPayLoadSizeV2_EMCAL_Raw)){
-    poffset   = (fDetector == kDCAL)? 0           : kPayLoadSizeV2_DCAL                           ;
-    fPayload  = (fDetector == kDCAL)? V2DCAL      : V2EMCALRaw                                    ;
+
+  else if(iword==(kPayLoadSizeV2_EMCAL                           )){
+    poffset         = 0         ;
+    fPayload        = V2EMCAL   ;
+    fDetector       = kEMCAL    ;
   }
-  else if(iword==(kPayLoadSizeV2_DCAL  + kPayLoadSizeV2_DCAL_Raw + kPayLoadSizeV2_EMCAL                           )){
-    poffset   = (fDetector == kDCAL)? 0           : kPayLoadSizeV2_DCAL + kPayLoadSizeV2_DCAL_Raw ;
-    fPayload  = (fDetector == kDCAL)? V2DCALRaw   : V2EMCAL                                       ;
+
+  else if(iword==(kPayLoadSizeV2_DCAL  + kPayLoadSizeV2_DCAL_Raw )){
+    poffset         = 0           ;
+    fPayload        = V2DCALRaw   ;
+    fDetector       = kDCAL       ;
   }
-  else if(iword==(kPayLoadSizeV2_DCAL  + kPayLoadSizeV2_DCAL_Raw + kPayLoadSizeV2_EMCAL + kPayLoadSizeV2_EMCAL_Raw)){
-    poffset   = (fDetector == kDCAL)? 0           : kPayLoadSizeV2_DCAL + kPayLoadSizeV2_DCAL_Raw ;
-    fPayload  = (fDetector == kDCAL)? V2DCALRaw   : V2EMCALRaw                                    ;
+
+  else if(iword==(kPayLoadSizeV2_EMCAL + kPayLoadSizeV2_EMCAL_Raw)){
+    poffset         = 0           ;
+    fPayload        = V2EMCALRaw  ;
+    fDetector       = kEMCAL      ;
   }
+  
   else{
     AliError(Form("STU payload (eqId: %d, eqSize: %d) doesn't match expected size! %d word32", eqId, eqSize, iword));
     return kFALSE;
@@ -335,7 +345,7 @@ Bool_t AliEMCALTriggerSTURawStream::ReadPayLoad()
       for(int i=0;i<3;i++) fJ[i][0] = word32[index++] ;
       for(int i=0;i<3;i++) fG[i][1] = word32[index++] ;
       for(int i=0;i<3;i++) fJ[i][1] = word32[index++] ;
-      fRho            = word32[index++]        & 0x3FFFFFFF   ;
+      fRho            = word32[index++]        & 0x000FFFFF   ;
       fRegionEnable   = word32[index++] ;
       fFrameReceived  = word32[index++] ;
       fFwVersion      = ( word32[index]        & 0x0000FFFF)  ;
@@ -344,9 +354,9 @@ Bool_t AliEMCALTriggerSTURawStream::ReadPayLoad()
       offset = index  ;      
       
       fL1GammaThreshold [0] = GetThreshold(fG[0][0], fG[1][0], fG[2][0], fV0A, fV0C); 
-      fL1JetThreshold   [0] = GetThreshold(/*fJ[0][0], fJ[1][0],*/0,0, fJ[2][0], fV0A, fV0C);
+      fL1JetThreshold   [0] = GetThreshold(fJ[0][0], fJ[1][0], fJ[2][0], fV0A, fV0C);
       fL1GammaThreshold [1] = GetThreshold(fG[0][1], fG[1][1], fG[2][1], fV0A, fV0C); 
-      fL1JetThreshold   [1] = GetThreshold(/*fJ[0][1], fJ[1][1],*/0,0, fJ[2][1], fV0A, fV0C);
+      fL1JetThreshold   [1] = GetThreshold(fJ[0][1], fJ[1][1], fJ[2][1], fV0A, fV0C);
       nJetThresh    = 2;
       nGammaThresh  = 2;
       break;
@@ -372,9 +382,9 @@ Bool_t AliEMCALTriggerSTURawStream::ReadPayLoad()
       offset = index  ;
       
       fL1GammaThreshold [0] = GetThreshold(fG[0][0], fG[1][0], fG[2][0], fV0A, fV0C); 
-      fL1JetThreshold   [0] = GetThreshold(/*fJ[0][0], fJ[1][0],*/0,0, fJ[2][0], fV0A, fV0C);
+      fL1JetThreshold   [0] = GetThreshold(fJ[0][0], fJ[1][0], fJ[2][0], fV0A, fV0C);
       fL1GammaThreshold [1] = GetThreshold(fG[0][1], fG[1][1], fG[2][1], fV0A, fV0C); 
-      fL1JetThreshold   [1] = GetThreshold(/*fJ[0][1], fJ[1][1],*/0,0, fJ[2][1], fV0A, fV0C);
+      fL1JetThreshold   [1] = GetThreshold(fJ[0][1], fJ[1][1], fJ[2][1], fV0A, fV0C);
       nGammaThresh  = 2;
       nJetThresh    = 2;
       break;
@@ -386,6 +396,15 @@ Bool_t AliEMCALTriggerSTURawStream::ReadPayLoad()
     }
   }//end switch
   
+  //##############################
+  //firmware version confirmation    
+  if( 
+      (fDetector==kEMCAL && ((fFwVersion & 0xf000)!=0xb000) ) ||
+      (fDetector==kDCAL  && ((fFwVersion & 0xf000)!=0xd000) ) 
+    ){
+    return kFALSE;
+  }
+  //##############################
   
   //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   // start decoding
@@ -482,7 +501,9 @@ void AliEMCALTriggerSTURawStream::DecodeL1JetPatchIndexes(const int i, UInt_t *w
   for (Int_t ix = 0; ix < nSubregion_eta - (jetSize-1) ; ix++){
     UInt_t currentrow = word32[offset + ix];
     for (Int_t iy = 0; iy < nSubregion_phi - (jetSize-1); iy++){
-      if (currentrow & (1 << iy)){
+      Int_t bit = (fDetector == kDCAL)? (currentrow & (1 << iy)) : (currentrow & (1<<(nSubregion_phi-jetSize-iy)));
+      //if (currentrow & (1 << iy))
+      if (bit){
         fNL1JetPatch[i]                          = fNL1JetPatch[i] + 1;
         fL1JetPatchIndex[fNL1JetPatch[i] - 1][i] = ((ix << 8) & 0xFF00) | (iy & 0xFF);
       }
@@ -605,7 +626,7 @@ void AliEMCALTriggerSTURawStream::DecodeTRUADC(UInt_t *word32, const int offset)
 //_____________________________________________________________________________
 void AliEMCALTriggerSTURawStream::DecodePHOSSubregion(UInt_t *word32, const int offset){
   for (Int_t index=0;index<36;index++){
-    fPHOSSubregion[index] = word32[offset + index] & 0x7FFFF  ;
+    fPHOSSubregion[index] = word32[offset + index] & 0xFFFFFFFF  ;
   }
 }
 

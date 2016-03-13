@@ -107,7 +107,6 @@
 //                                                                           //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-
 #include <TArrayD.h>
 #include <TArrayF.h>
 #include <TArrayS.h>
@@ -230,9 +229,17 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fStopOnMissingTriggerFile(kTRUE),
   fWriteAlignmentData(kFALSE),
   fWriteESDfriend(kFALSE),
+  fWriteHLTESD(kTRUE),
   fFillTriggerESD(kTRUE),
-
-  fSkipIncompleteDAQ(kFALSE),
+  //
+  fWriteThisFriend(kFALSE),
+  fSkipFriendsForLargeZ(kFALSE),
+  fMaxFriendTracks(3000),
+  fFractionFriends(0.03),
+  fFractionHLTESD(1.0),
+  fSkipFriendsCutZ(50),
+  //
+  fSkipIncompleteDAQ(kTRUE),
   fCleanESD(kTRUE),
   fV0DCAmax(3.),
   fV0CsPmin(0.),
@@ -259,7 +266,6 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fFirstEvent(0),
   fLastEvent(-1),
   fNumberOfEventsPerFile((UInt_t)-1),
-  fFractionFriends(0.04),
   fOptions(),
   fLoadAlignFromCDB(kTRUE),
   fLoadAlignData("ALL"),
@@ -308,6 +314,7 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fesd(NULL),
   fhltesd(NULL),
   fesdf(NULL),
+  fesdfDummy(NULL),
   ffile(NULL),
   ffileF(NULL),
   ftree(NULL),
@@ -335,7 +342,8 @@ AliReconstruction::AliReconstruction(const char* gAliceFilename) :
   fDeclTriggerClasses(""),
   fStopped(kFALSE),
   fMaxRSS(0),
-  fMaxVMEM(0)
+  fMaxVMEM(0),
+  fNAbandonedEv(0)
 {
 // create reconstruction object with default parameters
   AliGeomManager::Destroy();
@@ -371,8 +379,16 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fStopOnMissingTriggerFile(rec.fStopOnMissingTriggerFile),
   fWriteAlignmentData(rec.fWriteAlignmentData),
   fWriteESDfriend(rec.fWriteESDfriend),
+  fWriteHLTESD(rec.fWriteHLTESD),
   fFillTriggerESD(rec.fFillTriggerESD),
-
+  //
+  fWriteThisFriend(rec.fWriteThisFriend),
+  fSkipFriendsForLargeZ(rec.fSkipFriendsForLargeZ),
+  fMaxFriendTracks(rec.fMaxFriendTracks),
+  fFractionFriends(rec.fFractionFriends),
+  fFractionHLTESD(rec.fFractionHLTESD),
+  fSkipFriendsCutZ(rec.fSkipFriendsCutZ),
+  //
   fSkipIncompleteDAQ(rec.fSkipIncompleteDAQ),
   fCleanESD(rec.fCleanESD),
   fV0DCAmax(rec.fV0DCAmax),
@@ -400,7 +416,6 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fFirstEvent(rec.fFirstEvent),
   fLastEvent(rec.fLastEvent),
   fNumberOfEventsPerFile(rec.fNumberOfEventsPerFile),
-  fFractionFriends(rec.fFractionFriends),
   fOptions(),
   fLoadAlignFromCDB(rec.fLoadAlignFromCDB),
   fLoadAlignData(rec.fLoadAlignData),
@@ -449,6 +464,7 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fesd(NULL),
   fhltesd(NULL),
   fesdf(NULL),
+  fesdfDummy(NULL),
   ffile(NULL),
   ffileF(NULL),
   ftree(NULL),
@@ -476,7 +492,8 @@ AliReconstruction::AliReconstruction(const AliReconstruction& rec) :
   fDeclTriggerClasses(rec.fDeclTriggerClasses),
   fStopped(kFALSE),
   fMaxRSS(0),
-  fMaxVMEM(0)
+  fMaxVMEM(0),
+  fNAbandonedEv(0)
 {
 // copy constructor
 
@@ -530,8 +547,17 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fStopOnMissingTriggerFile = rec.fStopOnMissingTriggerFile;
   fWriteAlignmentData    = rec.fWriteAlignmentData;
   fWriteESDfriend        = rec.fWriteESDfriend;
+  fWriteHLTESD           = rec.fWriteHLTESD;
   fFillTriggerESD        = rec.fFillTriggerESD;
-
+  //
+  //
+  fWriteThisFriend = rec.fWriteThisFriend;
+  fSkipFriendsForLargeZ = rec.fSkipFriendsForLargeZ;
+  fMaxFriendTracks = rec.fMaxFriendTracks;
+  fFractionFriends = rec.fFractionFriends;
+  fFractionHLTESD = rec.fFractionHLTESD;
+  fSkipFriendsCutZ = rec.fSkipFriendsCutZ;
+  //
   fSkipIncompleteDAQ = rec.fSkipIncompleteDAQ;
   fCleanESD  = rec.fCleanESD;
   fV0DCAmax  = rec.fV0DCAmax;
@@ -560,7 +586,6 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fFirstEvent                    = rec.fFirstEvent;
   fLastEvent                     = rec.fLastEvent;
   fNumberOfEventsPerFile         = rec.fNumberOfEventsPerFile;
-  fFractionFriends               = rec.fFractionFriends;
 
   for (Int_t i = 0; i < rec.fOptions.GetEntriesFast(); i++) {
     if (rec.fOptions[i]) fOptions.Add(rec.fOptions[i]->Clone());
@@ -647,6 +672,7 @@ AliReconstruction& AliReconstruction::operator = (const AliReconstruction& rec)
   fesd     = NULL;
   fhltesd  = NULL;
   fesdf    = NULL;
+  fesdfDummy    = NULL;
   ffile    = NULL;
   ffileF   = NULL;
   ftree    = NULL;
@@ -1165,7 +1191,9 @@ Bool_t AliReconstruction::InitGRP() {
     else {
        AliInfo("Found an AliGRPObject in GRP/GRP/Data, reading it");
        fGRPData = dynamic_cast<AliGRPObject*>(entry->GetObject());  // new GRP entry
-       entry->SetOwner(0);
+       entry->SetOwner(0); // RS don't manipulate with GRP
+       entry->SetObject(0); // others will reread the object
+       AliCDBManager::Instance()->UnloadFromCache("GRP/GRP/Data");
     }
 
     //    FIX ME: The unloading of GRP entry is temporarily disabled
@@ -1223,7 +1251,7 @@ Bool_t AliReconstruction::InitGRP() {
     AliDebug(1, Form("Detector List = %s", fRunLocalReconstruction.Data()));
     fRunTracking = MatchDetectorList(fRunTracking,detMask);
     fFillESD = MatchDetectorList(fFillESD,detMask);
-    fQADetectors = MatchDetectorList(fQADetectors,detMask);
+    if (fRunQA || fRunGlobalQA) fQADetectors = MatchDetectorList(fQADetectors,detMask);
     AliInfo(Form("fQADetectors=%s",fQADetectors.Data()));
     fDeleteRecPoints = MatchDetectorList(fDeleteRecPoints,detMask);
     fDeleteDigits    = MatchDetectorList(fDeleteDigits,detMask);
@@ -1888,13 +1916,17 @@ void AliReconstruction::SlaveBegin(TTree*)
     ffileF = TFile::Open("AliESDfriends.root", "RECREATE");
     ftreeF = new TTree("esdFriendTree", "Tree with ESD Friend objects");
     fesdf  = new AliESDfriend();
+    fesdf->SetESDIndicesStored(kTRUE); // new sparse format
+    fesdfDummy  = new AliESDfriend();
+    fesdf->SetESDIndicesStored(kTRUE);
+    fesdfDummy->SetSkipBit(kTRUE); // empty copy
     ftreeF->Branch("ESDfriend.","AliESDfriend", &fesdf);
     fesd->AddObject(fesdf);
     ffile->cd();
   }
   ftree->GetUserInfo()->Add(fesd);
 
-  fhlttree = new TTree("HLTesdTree", "Tree with HLT ESD objects");
+  if (fWriteHLTESD) fhlttree = new TTree("HLTesdTree", "Tree with HLT ESD objects");
   fhltesd = new AliESDEvent();
   fhltesd->CreateStdContent();
   // read the ESD template from CDB
@@ -1910,19 +1942,23 @@ void AliReconstruction::SlaveBegin(TTree*)
   }
   AliESDEvent* pESDLayout=dynamic_cast<AliESDEvent*>(hltESDConfig->GetObject());
   if (pESDLayout) {
-      // init all internal variables from the list of objects
-      pESDLayout->GetStdContent();
-
-      // copy content and create non-std objects
-      *fhltesd=*pESDLayout;
-      fhltesd->Reset();
+    // init all internal variables from the list of objects
+    pESDLayout->GetStdContent();
+    
+    // copy content and create non-std objects
+    *fhltesd=*pESDLayout;
+    fhltesd->Reset();
   } else {
-      AliError(Form("error setting hltEsd layout from \"HLT/Calib/esdLayout\": invalid object type"));
+    AliError(Form("error setting hltEsd layout from \"HLT/Calib/esdLayout\": invalid object type"));
   }
-
-  fhltesd->WriteToTree(fhlttree);
-  fhlttree->GetUserInfo()->Add(fhltesd);
-
+  if (fWriteHLTESD) {
+    fhltesd->WriteToTree(fhlttree);
+    fhlttree->GetUserInfo()->Add(fhltesd);
+  }
+  else {
+    AliInfo("HLT ESD tree writing is disabled");
+  }
+  
   ProcInfo_t procInfo;
   gSystem->GetProcInfo(&procInfo);
   AliInfo(Form("Current memory usage %ld %ld", procInfo.fMemResident, procInfo.fMemVirtual));
@@ -1956,7 +1992,9 @@ void AliReconstruction::SlaveBegin(TTree*)
     fRecoHandler->SetEvent(fesd);
     fRecoHandler->SetESDfriend(fesdf);
     fRecoHandler->SetHLTEvent(fhltesd);
-    fRecoHandler->SetHLTTree(fhlttree);
+    if (fWriteHLTESD) {
+      fRecoHandler->SetHLTTree(fhlttree);
+    }
     fAnalysis->SetInputEventHandler(fRecoHandler);
     // Enter external loop mode
     fAnalysis->SetExternalLoop(kTRUE);
@@ -1969,6 +2007,10 @@ void AliReconstruction::SlaveBegin(TTree*)
   //
   ProcessTriggerAliases();
   //
+  if (!fWriteHLTESD) AliInfo("Writing of HLT ESD tree is disabled");
+  else AliInfoF("%.2f%% of HLT ESD events will be stored",fFractionHLTESD*100.0);
+  AliInfoF("%.2f%% of ESD friends  will be stored",fFractionFriends*100.0);
+
   return;
 }
 
@@ -2024,6 +2066,23 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 
   AliCodeTimerAuto("",0);
 
+  if (fRawReader){
+    // Store DAQ detector pattern and attributes
+    fesd->SetDAQDetectorPattern(fRawReader->GetDetectorPattern()[0]);
+    fesd->SetDAQAttributes(fRawReader->GetAttributes()[2]);
+    if (fesd->IsIncompleteDAQ() && fSkipIncompleteDAQ) {
+      AliInfo(" ");
+      AliInfoF("Abandoning incomplete event with RAW_ID=%d reconstruction: DAQ attr: 0x%08x",iEvent,fesd->GetDAQAttributes());
+      AliInfoF("ATTENTION: %d events were already abandoned: next stored event will have ID:%d",fNAbandonedEv,iEvent-fNAbandonedEv);
+      AliInfo(" ");
+      fNAbandonedEv++;
+      return kTRUE;
+    }
+  }
+
+  iEvent -= fNAbandonedEv;
+
+
   AliSysInfo::AddStamp(Form("StartEv_%d",iEvent), 0,0,iEvent);
 
   if (iEvent >= fRunLoader->GetNumberOfEvents()) {
@@ -2057,6 +2116,7 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
   }
   AliInfo(Form("================================= Processing event %d of type %-10s ==================================", iEvent,fRecoParam.PrintEventSpecie()));
   fEventInfo.Print();
+
 
   AliSysInfo::AddStamp(Form("StartReco_%d",iEvent), 0,0,iEvent);
   // Set the reco-params
@@ -2094,18 +2154,15 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     AliSysInfo::AddStamp(Form("RawQA_%d",iEvent), 0,0,iEvent);
   }
 
-    if (fRawReader){
-      // Store DAQ detector pattern and attributes
-      fesd->SetDAQDetectorPattern(fRawReader->GetDetectorPattern()[0]);
-      fesd->SetDAQAttributes(fRawReader->GetAttributes()[2]);
-      if (fesd->IsIncompleteDAQ() && fSkipIncompleteDAQ) {
-	AliInfo("Abandoning incomplete event reconstruction");
-	return kTRUE;
-      }
-    }
     // fill Event header information from the RawEventHeader
-    if (fRawReader){FillRawEventHeaderESD(fesd);}
-    if (fRawReader){FillRawEventHeaderESD(fhltesd);}
+    if (fRawReader){
+      FillRawEventHeaderESD(fesd);
+      FillRawEventHeaderESD(fhltesd);
+    }
+    else { // fill MC info
+      FillMCEventHeaderESD(fesd);
+      FillMCEventHeaderESD(fhltesd);
+    }
 
     fesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
     fhltesd->SetRunNumber(fRunLoader->GetHeader()->GetRun());
@@ -2280,7 +2337,7 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     UShort_t selectedIdx[ntracks];
 
     for (Int_t itrack=0; itrack<ntracks; itrack++){
-      const Double_t kMaxStep = 1;   //max step over the material
+      const Double_t kMaxStep = 5;   //max step over the material
       Bool_t ok;
 
       AliESDtrack *track = fesd->GetTrack(itrack);
@@ -2344,7 +2401,13 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 	   }
 	 } 
        }
+       Bool_t usePureSA = ftVertexer->GetITSpureSA();
+       if (!fesd->GetNumberOfTPCClusters()) {
+	 AliInfo("No TPC clusters: VertexerTracks will run with ITSpureSA tracks");
+	 ftVertexer->SetITSpureSA(kTRUE);
+       }
        AliESDVertex *pvtx=ftVertexer->FindPrimaryVertex(fesd);
+       ftVertexer->SetITSpureSA(usePureSA); // restore use settings
        if (pvtx) {
 	 if(constrSPD){
 	   TString title=pvtx->GetTitle();
@@ -2496,10 +2559,9 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     AliSysInfo::AddStamp(Form("Analysis_%d",iEvent), 0,0,iEvent);     
   }  
   //
-  if (fWriteESDfriend) {
+  if (fWriteThisFriend) {
     fesd->GetESDfriend(fesdf);
     AliSysInfo::AddStamp(Form("CreateFriend_%d",iEvent), 0,0,iEvent);     
-  
   }
   //
   Long64_t nbf;
@@ -2519,37 +2581,49 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
     AliSysInfo::AddStamp(Form("WriteFriend_%d",iEvent), 0,0,iEvent);     
   }
   //
-  //
   // Auto-save the ESD tree in case of prompt reco @P2
   if (fRawReader && fRawReader->UseAutoSaveESD()) {
     ftree->AutoSave("SaveSelf");
     if (fWriteESDfriend) ftreeF->AutoSave("SaveSelf");
   }
   // write HLT ESD
-  
-  nbf = fhlttree->Fill();
-  if (fTreeBuffSize>0 && fhlttree->GetAutoFlush()<0 && (fMemCountESDHLT += nbf)>fTreeBuffSize ) { // default limit is still not reached
-    nbf = fhlttree->GetZipBytes();
-    if (nbf>0) nbf = -nbf;
-    else       nbf = fhlttree->GetEntries();
-    fhlttree->SetAutoFlush(nbf);
-    AliInfo(Form("Calling fhlttree->SetAutoFlush(%lld) | W:%lld T:%lld Z:%lld",
-		 nbf,fMemCountESDHLT,fhlttree->GetTotBytes(),fhlttree->GetZipBytes()));        
+  if (fWriteHLTESD) {
+    if (gRandom->Rndm()>fFractionHLTESD) {
+      AliInfo("HLT ESD for this event will be empty");
+      fhltesd->Reset();
+    } 
+    nbf = fhlttree->Fill();
+    if (fTreeBuffSize>0 && fhlttree->GetAutoFlush()<0 && (fMemCountESDHLT += nbf)>fTreeBuffSize ) { // default limit is still not reached
+      nbf = fhlttree->GetZipBytes();
+      if (nbf>0) nbf = -nbf;
+      else       nbf = fhlttree->GetEntries();
+      fhlttree->SetAutoFlush(nbf);
+      AliInfo(Form("Calling fhlttree->SetAutoFlush(%lld) | W:%lld T:%lld Z:%lld",
+		   nbf,fMemCountESDHLT,fhlttree->GetTotBytes(),fhlttree->GetZipBytes()));        
+    }
   }
-    
-    gSystem->GetProcInfo(&procInfo);
-    Long_t dMres=(procInfo.fMemResident-oldMres)/1024;
-    Long_t dMvir=(procInfo.fMemVirtual-oldMvir)/1024;
-    Float_t dCPU=procInfo.fCpuUser+procInfo.fCpuSys-oldCPU;
-    aveDMres+=(dMres-aveDMres)/(iEvent-fFirstEvent+1);
-    aveDMvir+=(dMvir-aveDMvir)/(iEvent-fFirstEvent+1);
-    aveDCPU+=(dCPU-aveDCPU)/(iEvent-fFirstEvent+1);
-    AliInfo(Form("======================= End Event %d: Res %ld(%3ld <%3ld>) Vir %ld(%3ld <%3ld>) CPU %5.2f <%5.2f> ===================",
-                iEvent, procInfo.fMemResident/1024, dMres, aveDMres, procInfo.fMemVirtual/1024, dMvir, aveDMvir, dCPU, aveDCPU));
-    oldMres=procInfo.fMemResident;
-    oldMvir=procInfo.fMemVirtual;
-    oldCPU=procInfo.fCpuUser+procInfo.fCpuSys;
+
+  gSystem->GetProcInfo(&procInfo);
+  Long_t dMres=(procInfo.fMemResident-oldMres)/1024;
+  Long_t dMvir=(procInfo.fMemVirtual-oldMvir)/1024;
+  Float_t dCPU=procInfo.fCpuUser+procInfo.fCpuSys-oldCPU;
+  aveDMres+=(dMres-aveDMres)/(iEvent-fFirstEvent+1);
+  aveDMvir+=(dMvir-aveDMvir)/(iEvent-fFirstEvent+1);
+  aveDCPU+=(dCPU-aveDCPU)/(iEvent-fFirstEvent+1);
+  AliInfo(Form("======================= End Event %d: Res %ld(%3ld <%3ld>) Vir %ld(%3ld <%3ld>) CPU %5.2f <%5.2f> ===================",
+	       iEvent, procInfo.fMemResident/1024, dMres, aveDMres, procInfo.fMemVirtual/1024, dMvir, aveDMvir, dCPU, aveDCPU));
+  oldMres=procInfo.fMemResident;
+  oldMvir=procInfo.fMemVirtual;
+  oldCPU=procInfo.fCpuUser+procInfo.fCpuSys;
   
+  if (fTracker[AliQAv1::kTPC]) {
+    fTracker[AliQAv1::kTPC]->UnloadClusters();
+    AliSysInfo::AddStamp(Form("TUnloadCluster%s_%d",fgkDetectorName[AliQAv1::kTPC],iEvent), AliQAv1::kTPC,4, iEvent);
+  }
+  if (fLoader[AliQAv1::kTPC]) {
+    fLoader[AliQAv1::kTPC]->UnloadRecPoints();
+    AliSysInfo::AddStamp(Form("RUnloadCluster%s_%d",fgkDetectorName[AliQAv1::kTPC],iEvent), AliQAv1::kTPC,5, iEvent);
+  }
     
   return kTRUE;
 }
@@ -2557,12 +2631,11 @@ Bool_t AliReconstruction::ProcessEvent(Int_t iEvent)
 void AliReconstruction::CleanProcessedEvent()
 {
     //
+    //    if (fWriteESDfriend) ResetFriends();
+    ResetFriends(); // RS: Important: first reset friends to be sure objects owned by trackers are released
+
     fesd->Reset();
     fhltesd->Reset();
-    if (fWriteESDfriend) {
-      fesdf->~AliESDfriend();
-      new (fesdf) AliESDfriend(); // Reset...
-    }
 
     for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
       if (fReconstructor[iDet]) fReconstructor[iDet]->FinishEvent();
@@ -2671,7 +2744,7 @@ void AliReconstruction::SlaveTerminate()
 
   // we want to have only one tree version number
   ftree->Write(ftree->GetName(),TObject::kOverwrite);
-  fhlttree->Write(fhlttree->GetName(),TObject::kOverwrite);
+  if (fWriteHLTESD) fhlttree->Write(fhlttree->GetName(),TObject::kOverwrite);
 
   if (fWriteESDfriend) {
     ffileF->cd();
@@ -3156,6 +3229,7 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd,AliESDpid &PID)
     AliSysInfo::AddStamp(Form("Tracking0%s_%d",fgkDetectorName[iDet],eventNr), iDet,3,eventNr);
     // preliminary PID in TPC needed by the ITS tracker
     if (iDet == 1) {
+      esd->SetNumberOfTPCClusters(fTracker[iDet]->GetNumberOfClusters());
       GetReconstructor(1)->FillESD((TTree*)NULL, (TTree*)NULL, esd);
       PID.MakePIDForTracking(esd);
       AliSysInfo::AddStamp(Form("MakePID0%s_%d",fgkDetectorName[iDet],eventNr), iDet,4,eventNr);
@@ -3220,6 +3294,10 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd,AliESDpid &PID)
   //stop filling residuals for the "outer" detectors
   if (fRunGlobalQA) AliTracker::SetFillResiduals(fRecoParam.GetEventSpecie(), kFALSE);     
 
+  // At this moment we decide if the friends need to be stored, since TPC stores heavy calib objects there
+  fWriteThisFriend = fWriteESDfriend ? DecideFriendsStorage() : kFALSE;
+  if (!fWriteThisFriend) fesd->SetNTPCFriend2Store(0); // don't store TPC seeds
+
   // pass 3: TRD + TPC + ITS refit inwards
 
   for (Int_t iDet = 2; iDet >= 0; iDet--) {
@@ -3255,18 +3333,22 @@ Bool_t AliReconstruction::RunTracking(AliESDEvent*& esd,AliESDpid &PID)
 
   // write space-points to the ESD in case alignment data output
   // is switched on
-  if (fWriteAlignmentData) {
+  if (fWriteAlignmentData && fWriteESDfriend) {
     WriteAlignmentData(esd);
     AliSysInfo::AddStamp(Form("WrtAlignData_%d",eventNr), 0,0, eventNr);
   }
   
   for (Int_t iDet = 3; iDet >= 0; iDet--) {
     if (!fTracker[iDet]) continue;
+    // 
+    // RS: TPC clusters will be unloaded in the end of process event, since used in the friends calib objects
     // unload clusters
-    fTracker[iDet]->UnloadClusters();
-    AliSysInfo::AddStamp(Form("TUnloadCluster%s_%d",fgkDetectorName[iDet],eventNr), iDet,4, eventNr);
-    fLoader[iDet]->UnloadRecPoints();
-    AliSysInfo::AddStamp(Form("RUnloadCluster%s_%d",fgkDetectorName[iDet],eventNr), iDet,5, eventNr);
+    if (iDet!=AliQAv1::kTPC) {
+      fTracker[iDet]->UnloadClusters();
+      AliSysInfo::AddStamp(Form("TUnloadCluster%s_%d",fgkDetectorName[iDet],eventNr), iDet,4, eventNr);
+      fLoader[iDet]->UnloadRecPoints();
+      AliSysInfo::AddStamp(Form("RUnloadCluster%s_%d",fgkDetectorName[iDet],eventNr), iDet,5, eventNr);
+    }
   }
   // stop filling residuals for TPC and ITS
   if (fRunGlobalQA) AliTracker::SetFillResiduals(fRecoParam.GetEventSpecie(), kFALSE);     
@@ -3285,10 +3367,16 @@ Bool_t AliReconstruction::CleanESD(AliESDEvent *esd){
   Int_t nV0s=esd->GetNumberOfV0s();
   AliInfo
   (Form("Number of ESD tracks and V0s before cleaning: %d %d",nTracks,nV0s));
-
+  TObjArray tracks2remove;
   Float_t cleanPars[]={fV0DCAmax,fV0CsPmin,fDmax,fZmax};
-  Bool_t rc=esd->Clean(cleanPars);
-
+  Bool_t rc=esd->Clean(cleanPars,&tracks2remove);
+  if (rc) { // physically destroy removed tracks
+    for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
+      if (!fTracker[iDet]) continue;
+      if (fTracker[iDet]->OwnsESDObjects()) fTracker[iDet]->CleanESDTracksObjects(&tracks2remove);
+    }
+    tracks2remove.Delete();
+  }
   nTracks=esd->GetNumberOfTracks();
   nV0s=esd->GetNumberOfV0s();
   AliInfo
@@ -3431,6 +3519,7 @@ Bool_t AliReconstruction::FillTriggerScalers(AliESDEvent*& esd)
   }
   return kTRUE;
 }
+
 //_____________________________________________________________________________
 Bool_t AliReconstruction::FillRawEventHeaderESD(AliESDEvent*& esd)
 {
@@ -3448,6 +3537,21 @@ Bool_t AliReconstruction::FillRawEventHeaderESD(AliESDEvent*& esd)
 
   esd->SetTimeStamp(fRawReader->GetTimestamp());  
   esd->SetEventType(fRawReader->GetType());
+
+  return kTRUE;
+}
+
+//_____________________________________________________________________________
+Bool_t AliReconstruction::FillMCEventHeaderESD(AliESDEvent*& esd)
+{
+  // 
+  // Filling information from MC Header
+  // 
+  AliHeader* headerMC = fRunLoader->GetHeader();
+  if (!headerMC || !esd) return kFALSE;
+
+  AliInfo("Filling information from MC Header");
+  esd->SetTimeStamp(headerMC->GetTimeStamp());  
 
   return kTRUE;
 }
@@ -3778,11 +3882,15 @@ void AliReconstruction::WriteAlignmentData(AliESDEvent* esd)
 {
   // Write space-points which are then used in the alignment procedures
   // For the moment only ITS, TPC, TRD and TOF
-
+  if (!fWriteThisFriend) {
+    AliInfo("Will not write alignment data since the friends are not stored");
+    return;
+  }
   Int_t ntracks = esd->GetNumberOfTracks();
   for (Int_t itrack = 0; itrack < ntracks; itrack++)
     {
       AliESDtrack *track = esd->GetTrack(itrack);
+      if (track->GetFriendNotStored()) continue; // no need of alignment data for friends which are not stored
       Int_t nsp = 0;
       Int_t idx[200];
       for (Int_t i=0; i<200; ++i) idx[i] = -1; //PH avoid uninitialized values
@@ -4035,7 +4143,7 @@ Bool_t AliReconstruction::SetRunQA(TString detAndAction)
 	}
 	Int_t colon = detAndAction.Index(":") ; 
 	fQADetectors = detAndAction(0, colon) ; 
-	fQATasks   = detAndAction(colon+1, detAndAction.Sizeof() ) ; 
+	fQATasks   = detAndAction(colon+1, detAndAction.Length() ) ; 
 	if (fQATasks.Contains("ALL") ) {
 		fQATasks = Form("%d %d %d %d", AliQAv1::kRAWS, AliQAv1::kDIGITSR, AliQAv1::kRECPOINTS, AliQAv1::kESDS) ; 
 	} else {
@@ -4460,13 +4568,16 @@ Bool_t AliReconstruction::IsHighPt() const {
   const Double_t pTmin = 1.5;
   const Double_t pTmax = 100;
   ULong_t mask = 0;
-  mask |= (AliESDtrack::kITSrefit);
-  mask |= (AliESDtrack::kTPCrefit);
+  //  mask |= (AliESDtrack::kITSrefit);
+  //  mask |= (AliESDtrack::kTPCrefit);
+  mask |= (AliESDtrack::kITSin);
+  mask |= (AliESDtrack::kTPCin);
   const Double_t pTminCosmic = 5.;
   const Double_t pTmaxCosmic = 100;
   ULong_t maskCosmic = 0;
   Int_t cosmicCount=0;
-  maskCosmic |= (AliESDtrack::kTPCrefit);
+  //  maskCosmic |= (AliESDtrack::kTPCrefit);
+  maskCosmic |= (AliESDtrack::kTPCin);
 
   Bool_t isOK = kFALSE;
 
@@ -4516,59 +4627,28 @@ Bool_t AliReconstruction::IsCosmicOrCalibSpecie() const {
   return isOK;
 }
 
+
 //______________________________________________________________________________
-void AliReconstruction::WriteESDfriend() {
-  // Fill the ESD friend in the tree. The required fraction of ESD friends is stored
-  // in fFractionFriends. We select events where we store the ESD friends according
-  // to the following algorithm:
-  // 1. Store all Cosmic or Calibration events within the required fraction
-  // 2. Sample "high Pt" events within the remaining fraction after step 1.
-  // 3. Sample randomly events if we still have remaining slot
-
-  fNall++;
-  Bool_t isSelected = kFALSE;
+void AliReconstruction::ResetFriends() 
+{
+  // destroy friends taking care to release objects eventually owned by detectors
+  for (Int_t iDet = 0; iDet < kNDetectors; iDet++) {
+    if (!fTracker[iDet]) continue;
+    if (fTracker[iDet]->OwnsESDObjects()) fTracker[iDet]->CleanESDFriendsObjects(fesd);
+  }
   //
-  // Store all friends for B field OFF 
-  if (TMath::Abs(AliTrackerBase::GetBz())<0.5) isSelected=kTRUE;
+  if (!fesdf) return;
+  // RS now friends for writing contain shallow copy of non-persistent friend tracks of AliESDtracks
+  fesdf->ResetSoft(); // soft reset: Tracks are Cleared rather then Deleted
+  //  fesdf->~AliESDfriend();
+  //  new (fesdf) AliESDfriend(); // Reset...
+}
 
-  if (IsCosmicOrCalibSpecie()) { // Selection of calib or cosmic events
-    fNspecie++;
-
-    isSelected = kTRUE;
-    fSspecie++;
-  }
-  
-  Double_t remainingFraction = fFractionFriends;
-  remainingFraction -= ((Double_t)(fSspecie)/(Double_t)(fNall));
-  
-  if (IsHighPt())  { // Selection of "high Pt" events
-    fNhighPt++;
-    Double_t curentHighPtFraction = ((Double_t)(fNhighPt+1))/((Double_t)(fNall+1));
-    // "Bayesian" estimate supposing that without events all the events are of the required type
-    
-    if (!isSelected) {
-      Double_t rnd = gRandom->Rndm()*curentHighPtFraction;
-      if (rnd<remainingFraction) {
-	isSelected = kTRUE;
-	fShighPt++;
-      }
-    }
-  }
-  remainingFraction -= ((Double_t)(fShighPt)/(Double_t)(fNall));
-  
-  // Random selection to fill the remaining fraction (if any)
-  if (!isSelected) {
-    Double_t rnd = gRandom->Rndm();
-    if (rnd<remainingFraction) {	
-      isSelected = kTRUE;
-    }
-  }
-  
-  if (!isSelected) {
-    fesdf->~AliESDfriend();
-    new (fesdf) AliESDfriend(); // Reset...
-    fesdf->SetSkipBit(kTRUE);
-  }
+//______________________________________________________________________________
+void AliReconstruction::WriteESDfriend() 
+{
+  // Fill the ESD friend in the tree. 
+  if (!fWriteThisFriend) ftreeF->SetBranchAddress("ESDfriend.",&fesdfDummy);
   //
   Long64_t nbf = ftreeF->Fill();
   if (fTreeBuffSize>0 && ftreeF->GetAutoFlush()<0 && (fMemCountESDF += nbf)>fTreeBuffSize ) { // default limit is still not reached
@@ -4579,7 +4659,7 @@ void AliReconstruction::WriteESDfriend() {
     AliInfo(Form("Calling ftreeF->SetAutoFlush(%lld) | W:%lld T:%lld Z:%lld",
 		 nbf,fMemCountESDF,ftreeF->GetTotBytes(),ftreeF->GetZipBytes()));        
   }
-  
+  if (!fWriteThisFriend) ftreeF->SetBranchAddress("ESDfriend.",&fesdf); // restore real friend
 }
 
 //_________________________________________________________________
@@ -4917,4 +4997,138 @@ Bool_t AliReconstruction::TriggerMatches2Alias(const char* trigName, const char*
   TString altrig = al->GetTitle();
   return altrig.Contains(Form(" %s ",trigName));
   //
+}
+
+//___________________________________________________
+Bool_t AliReconstruction::DecideFriendsStorage()
+{
+  // Decide if and what should be stored in the friends
+  // Decision is taken on 
+  // 1) even level: unconditionally for cosmic and calib event,
+  // priority for events with high pt tracks
+  // 2) optionally on track level: priority according to kPriority.. flags below
+  const Double_t pTminHigh = 1.5, pTmaxHigh = 100;
+  const ULong_t kMaskHighPt = AliESDtrack::kITSout|AliESDtrack::kTPCin;
+  const ULong_t kPriorityFlag[] =
+  {    AliESDtrack::kTPCin
+      ,AliESDtrack::kITSpureSA|AliESDtrack::kITSout
+      ,AliESDtrack::kITSout|AliESDtrack::kTPCin
+      ,AliESDtrack::kITSout|AliESDtrack::kTPCin|AliESDtrack::kTRDout
+      ,AliESDtrack::kITSout|AliESDtrack::kTPCin|AliESDtrack::kTOFout
+      ,AliESDtrack::kITSout|AliESDtrack::kTPCin|AliESDtrack::kTRDout|AliESDtrack::kTOFout
+      ,AliESDtrack::kITSout|AliESDtrack::kTPCin|AliESDtrack::kPHOSmatch
+      ,AliESDtrack::kITSout|AliESDtrack::kTPCin|AliESDtrack::kEMCALmatch
+      ,AliESDtrack::kITSout|AliESDtrack::kTPCin|AliESDtrack::kHMPIDout
+      };
+  const int kNPrio = sizeof(kPriorityFlag)/sizeof(ULong_t);
+  const ULong_t highPtMask = AliESDtrack::kITSin|AliESDtrack::kTPCin;
+  float fracHighPt = 0, nHighPtCheck = 0;
+  // 
+  Bool_t isSelected = kFALSE;
+  int ntrk = fesd->GetNumberOfTracks();
+  fesd->SetNTPCFriend2Store(ntrk); // by default - all tracks
+  //
+  // Unconditionally store Field off, Cosmic and Calib events
+  double bz = AliTrackerBase::GetBz();
+  if (TMath::Abs(bz)<0.5) {
+    isSelected=kTRUE;
+    AliInfo("AliESDfriends event stored: non-standard field event");
+    return isSelected;
+  }
+  if (fEventInfo.HasCosmicTrigger() || fEventInfo.HasCalibLaserTrigger()) {
+    //      if (IsCosmicOrCalibSpecie()) {    
+    isSelected = kTRUE; // Selection of calib or cosmic events
+    AliInfo("AliESDfriends event stored: calibration or cosmic event");
+    return isSelected;
+  }
+  //
+  // analyze event on tracks level
+  static TArrayS weights;
+  static TArrayI indices;
+  Bool_t sparsify = 
+    (fMaxFriendTracks>0 && (ntrk > fMaxFriendTracks)) ||
+    (fSkipFriendsForLargeZ && fSkipFriendsCutZ>0); // applied to no-its tracks
+  //
+  if (sparsify && ntrk>weights.GetSize()) { // arrays are used only in case of sparsification
+    weights.Set(ntrk+100);
+    indices.Set(ntrk+100);
+  }
+  Short_t *pWeights = weights.GetArray(); // for fast access
+  Int_t   *pIndices = indices.GetArray();
+  //
+  for (Int_t itrk=0; itrk<ntrk; ++itrk) {
+    //	  
+    AliESDtrack * trk = fesd->GetTrack(itrk);
+    ULong_t status = trk->GetStatus();
+    //
+    // tag high pt tracks
+    Bool_t isHighPt = kFALSE;
+    if ( (status&kMaskHighPt) == kMaskHighPt ) {      
+      double pt = trk->Pt();
+      isHighPt =  (pt>pTminHigh && pt<pTmaxHigh);
+      nHighPtCheck++;
+      if (isHighPt) fracHighPt++;
+    }
+    //
+    if (sparsify) {
+      int pri = 0;    // define track priority
+      for (pri=kNPrio;pri--;) {
+	ULong_t priFlags=kPriorityFlag[pri],priFlagsOK = priFlags&status;
+	// stupidly, from the from the status flags it is not clear if there are TRD tracklets matched
+	if (priFlags&AliESDtrack::kTRDout && !trk->GetTRDntracklets()) continue;
+	if (priFlags&AliESDtrack::kTPCout && trk->GetTPCNcls()<16) continue; // disregard TPC tracks with low Nclus
+	if (priFlagsOK==kPriorityFlag[pri]) break;
+      }
+      pWeights[itrk] = ++pri;      // to have it positive
+      if (isHighPt) pWeights[itrk] += kNPrio;  // high pt tracks have highest priority
+      else {
+	if (fSkipFriendsCutZ>0 && !(status&AliESDtrack::kITSin) && (status&AliESDtrack::kTPCin)) {
+	  double z;
+	  if (!trk->GetInnerParam()->GetZAt(0,bz,z) || TMath::Abs(z)>fSkipFriendsCutZ) pWeights[itrk] = -kNPrio;
+	}
+      }
+    }
+    //
+  }
+  if (nHighPtCheck>0) fracHighPt = fracHighPt/nHighPtCheck; 
+  //
+  // decide if we store the friend event at all
+  int nkept=0, nkeptTPC=0;
+  if (gRandom->Rndm()/(1.+fracHighPt) < fFractionFriends) {
+    isSelected = kTRUE;
+    if (sparsify) {
+      TMath::Sort(ntrk,pWeights,pIndices); // sort in order of decreasing priorities
+      // flag low-priority tracks not not store friends
+      //
+      for (int itrk=0;itrk<ntrk;itrk++) {
+	int ind = pIndices[itrk];
+	AliESDtrack* trk = fesd->GetTrack(ind);
+	if (nkept>=fMaxFriendTracks) { // no room anymore
+	  trk->SetFriendNotStored(kTRUE); 
+	  //AliInfoF("FrOff %d:%d reached %d W: %d",itrk,ind, nkept,pWeights[ind]);
+	  continue; 
+	}
+	// did not reach the limit yet
+	if (pWeights[ind]>0 || !fSkipFriendsForLargeZ) { // in principle, worth storing
+	  nkept++;
+	  if (trk->GetTPCNcls()>15) nkeptTPC++;
+	  //AliInfoF("FrON  %d:%d saved %d/%d W: %d",itrk,ind, nkept,nkeptTPC,pWeights[ind]);
+	  continue;
+	}
+	// negative weight and strict rejection of such track requested
+	//AliInfoF("FrOff  %d:%d saved %d/%d W: %d",itrk,ind, nkept,nkeptTPC,pWeights[ind]);
+	fesd->GetTrack(ind)->SetFriendNotStored(kTRUE); // unconditional rejections
+	//
+      }
+    }
+    else nkept = nkeptTPC = ntrk;
+  }
+  //
+  if (isSelected) AliInfoF("AliESDfriends event stored: %d (with TPC: %d) out of %d friend tracks will be kept",
+			   nkept,nkeptTPC,ntrk);
+  else            AliInfo("AliESDfriends will not be stored for this event");
+  //
+  fesd->SetNTPCFriend2Store(nkeptTPC);
+  //
+  return isSelected;
 }

@@ -158,7 +158,9 @@ public:
   void     SetEMCALMatrix(TGeoHMatrix*matrix, Int_t i) {if(fESDRun) fESDRun->SetEMCALMatrix(matrix,i);}
   const TGeoHMatrix* GetEMCALMatrix(Int_t i) const {return fESDRun?fESDRun->GetEMCALMatrix(i):0x0;}
   void     SetCaloTriggerType(const Int_t* type) {if (fESDRun) fESDRun->SetCaloTriggerType(type);}
+  void     SetCaloTriggerType(int i,const Int_t* type) {if (fESDRun) fESDRun->SetCaloTriggerType(i,type);}
   Int_t*   GetCaloTriggerType() const {return fESDRun?fESDRun->GetCaloTriggerType():0x0;}
+  Int_t*   GetCaloTriggerType(int i) const {return fESDRun?fESDRun->GetCaloTriggerType(i):0x0;}
   virtual const Float_t* GetVZEROEqFactors() const {return fESDRun?fESDRun->GetVZEROEqFactors():0x0;}
   virtual Float_t        GetVZEROEqMultiplicity(Int_t i) const;
 	
@@ -289,7 +291,7 @@ public:
 
 
   void SetESDfriend(const AliESDfriend *f) const;
-  void GetESDfriend(AliESDfriend *f) const;
+  void GetESDfriend(AliESDfriend *f);
   virtual AliESDfriend* FindFriend() const;
 
   void SetPrimaryVertexTPC(const AliESDVertex *vertex); 
@@ -354,10 +356,13 @@ public:
   void   EstimateMultiplicity(Int_t &tracklets,Int_t &trITSTPC,Int_t &trITSSApure,
 			      Double_t eta=1.,Bool_t useDCAFlag=kTRUE,Bool_t useV0Flag=kTRUE) const;
 
-  Bool_t Clean(Float_t *cleanPars);
+  Int_t GetNumberOfTPCClusters()      const {return fNTPCClusters;}
+  void  SetNumberOfTPCClusters(int n)       {fNTPCClusters = n;}
+
+  Bool_t Clean(Float_t *cleanPars, TObjArray* track2destroy);
   Bool_t RemoveKink(Int_t i)   const;
   Bool_t RemoveV0(Int_t i)     const;
-  Bool_t RemoveTrack(Int_t i)  const;
+  AliESDfriendTrack* RemoveTrack(Int_t i)  const;
 
   const AliESDVertex *GetPileupVertexSPD(Int_t i) const {
     return (const AliESDVertex *)(fSPDPileupVertices?fSPDPileupVertices->At(i):0x0);
@@ -578,7 +583,10 @@ public:
   UInt_t GetDAQAttributes() const {return fDAQAttributes;}
 
   Bool_t IsIncompleteDAQ();
-
+  //
+  void  SetNTPCFriend2Store(Int_t v)       {fNTPCFriend2Store=v;}
+  Int_t GetNTPCFriend2Store()        const {return fNTPCFriend2Store;}
+  //
   virtual AliVEvent::EDataLayoutType GetDataLayoutType() const;
 
 protected:
@@ -630,13 +638,12 @@ protected:
   TClonesArray *fErrorLogs;        //! Raw-data reading error messages
  
   Bool_t fOldMuonStructure;        //! Flag if reading ESD with old MUON structure
-
+  
   AliESD       *fESDOld;           //! Old esd Structure
   AliESDfriend *fESDFriendOld;     //! Old friend esd Structure
   Bool_t    fConnected;            //! flag if leaves are alreday connected
   Bool_t    fUseOwnList;           //! Do not use the list from the esdTree but use the one created by this class 
   Bool_t    fTracksConnected;      //! flag if tracks have already pointer to event set
-
   static const char* fgkESDListName[kESDListN]; //!
 
   AliTOFHeader *fTOFHeader;  //! event times (and sigmas) as estimated by TOF
@@ -645,12 +652,13 @@ protected:
                              //  and T0spread as written in OCDB
   AliCentrality *fCentrality; //! Centrality for AA collision
   AliEventplane *fEventplane; //! Event plane for AA collision
-
+  Int_t     fNTPCFriend2Store; //! number of TPC friend tracks to store
   ULong64_t fDetectorStatus; // set detector event status bit for good event selection
   UInt_t fDAQDetectorPattern; // Detector pattern from DAQ: bit 0 is SPD, bit 4 is TPC, etc. See event.h
   UInt_t fDAQAttributes; // Third word of attributes from DAQ: bit 7 corresponds to HLT decision 
+  Int_t  fNTPCClusters;  // number of TPC clusters
 
-  ClassDef(AliESDEvent,24)  //ESDEvent class 
+  ClassDef(AliESDEvent,27)  //ESDEvent class 
 };
 #endif 
 

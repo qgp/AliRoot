@@ -137,8 +137,14 @@
 #pragma link C++ class AliTPCExactPoint+;     // defined in AliComplexCluster.h -- moved from TPCrec
 #pragma link C++ class AliTPCClusterPoint+;   // defined in AliComplexCluster.h - moved from TPCrec
 #pragma link C++ class AliTPCTrackerPoint+;   // defined in AliComplexCluster.h - moved from TPCrec
+#pragma link C++ class AliTPCTrackerPoints+;   // defined in AliComplexCluster.h - array of more economical AliTPCTrackerPoint
+#pragma link C++ class AliTPCTrackerPoints::Point+;   // defined in AliComplexCluster.h - more economical AliTPCTrackerPoint
 #pragma link C++ class AliTPCTrackPoint+;     // defined in AliComplexCluster.h - moved from TPCrec
 #pragma link C++ class AliTPCTrackPoint2+;    // defined in AliComplexCluster.h - moved from TPCrec
 #pragma link C++ class AliTPCSAMPAEmulator+;   //UTIL SAMPA emulator
+
+#pragma link C++ class AliTPCChebCorr+;       // Wrapper for Chebyshev-parameterized corrections
+#pragma link C++ class AliTPCChebDist+;       // Wrapper for Chebyshev-parameterized distortions
+
 #endif
 

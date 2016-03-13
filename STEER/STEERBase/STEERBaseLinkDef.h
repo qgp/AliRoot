@@ -59,6 +59,7 @@
 #pragma link C++ class AliGenDPMjetEventHeader+;
 #pragma link C++ class AliGenHerwigEventHeader+;
 #pragma link C++ class AliGenGeVSimEventHeader+;
+#pragma link C++ class AliGenEpos3EventHeader+;
 #pragma link C++ class AliGenEposEventHeader+;
 #pragma link C++ class AliStack+;
 #pragma link C++ class AliMCEventHandler+;
@@ -76,6 +77,9 @@
 #pragma link C++ class  AliMagWrapCheb+;
 #pragma link C++ class  AliCheb3DCalc+;
 #pragma link C++ class  AliCheb3D+;
+#pragma link C++ class  AliCheb2DStack+;
+#pragma link C++ class  AliCheb2DStackF+;
+#pragma link C++ class  AliCheb2DStackS+;
 
 #pragma link C++ class  AliNeutralTrackParam+;
 
@@ -148,6 +152,7 @@
 #pragma link C++ class AliGenHepMCEventHeader+;
 #pragma link C++ class AliMergeableCollection+;
 #pragma link C++ class AliMergeableCollectionIterator+;
+#pragma link C++ class AliMergeableCollectionProxy+;
 
 #pragma link C++ class AliVersion+;
 

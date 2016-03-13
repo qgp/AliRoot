@@ -34,6 +34,9 @@
 #include "AliHLTTPCHWCFData.h"
 #include "AliHLTErrorGuard.h"
 #include "AliHLTTPCRawClustersDescriptor.h"
+#include "AliGRPManager.h"
+#include "AliGRPObject.h"
+#include "AliDAQ.h"
 
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
@@ -56,6 +59,7 @@ AliHLTTPCHWClusterDecoderComponent::AliHLTTPCHWClusterDecoderComponent()
 fpDecoder(NULL),
 fpClusterMerger(NULL),
 fDoMerge(1),
+fTPCPresent(0),
 fBenchmark("HWClusterDecoder")
 {
   // see header file for class documentation
@@ -87,8 +91,10 @@ void AliHLTTPCHWClusterDecoderComponent::GetInputDataTypes( vector<AliHLTCompone
   // see header file for class documentation
 
   list.clear(); 
-  list.push_back( AliHLTTPCDefinitions::fgkHWClustersDataType | kAliHLTDataOriginTPC  );
-  list.push_back( AliHLTTPCDefinitions::fgkAliHLTDataTypeClusterMCInfo | kAliHLTDataOriginTPC );
+  list.push_back( AliHLTTPCDefinitions::HWClustersDataType() | kAliHLTDataOriginTPC  );
+  list.push_back( AliHLTTPCDefinitions::AliHLTDataTypeClusterMCInfo() | kAliHLTDataOriginTPC );
+  list.push_back( AliHLTTPCDefinitions::RawClustersDataType() | kAliHLTDataOriginTPC );
+  list.push_back( AliHLTTPCDefinitions::RawClustersDescriptorDataType() | kAliHLTDataOriginTPC );
 }
 
 AliHLTComponentDataType AliHLTTPCHWClusterDecoderComponent::GetOutputDataType() { 
@@ -101,9 +107,9 @@ int AliHLTTPCHWClusterDecoderComponent::GetOutputDataTypes(AliHLTComponentDataTy
   // see header file for class documentation
 
   tgtList.clear();
-  tgtList.push_back( AliHLTTPCDefinitions::fgkRawClustersDataType  | kAliHLTDataOriginTPC );
-  tgtList.push_back( AliHLTTPCDefinitions::RawClustersDescriptorDataType() );
-  tgtList.push_back( AliHLTTPCDefinitions::fgkAliHLTDataTypeClusterMCInfo | kAliHLTDataOriginTPC );
+  tgtList.push_back( AliHLTTPCDefinitions::RawClustersDataType()  | kAliHLTDataOriginTPC );
+  tgtList.push_back( AliHLTTPCDefinitions::RawClustersDescriptorDataType() | kAliHLTDataOriginTPC );
+  tgtList.push_back( AliHLTTPCDefinitions::AliHLTDataTypeClusterMCInfo() | kAliHLTDataOriginTPC );
   return tgtList.size();
 }
 
@@ -125,6 +131,16 @@ int AliHLTTPCHWClusterDecoderComponent::DoInit( int argc, const char** argv )
   
   int iResult=0;
 
+  AliGRPManager mgr;
+  mgr.ReadGRPEntry();
+  fTPCPresent = ((mgr.GetGRPData()->GetDetectorMask() & AliDAQ::kTPC) != 0);
+
+  if (!fTPCPresent)
+  {
+    HLTWarning("TPC missing in detector mask, disabling TPC Processing");
+    return(iResult);
+  }
+
   fpDecoder=new AliHLTTPCHWCFData;
   if (!fpDecoder) iResult=-ENOMEM;
   
@@ -141,6 +157,7 @@ int AliHLTTPCHWClusterDecoderComponent::DoInit( int argc, const char** argv )
 
 int AliHLTTPCHWClusterDecoderComponent::DoDeinit() { 
   // see header file for class documentation   
+  if (!fTPCPresent) return 0;
   if (!fpDecoder) delete fpDecoder;
   fpDecoder=NULL;
   delete fpClusterMerger;
@@ -220,6 +237,7 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
   UInt_t maxOutSize = size;
   size = 0;
   int iResult = 0;
+  if (!fTPCPresent) return 0;
   if(!IsDataEvent()) return 0;
 
   if (!fpDecoder) return -ENODEV;
@@ -273,7 +291,7 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
 
       HLTDebug("minSlice: %d, minPartition: %d", AliHLTTPCDefinitions::GetMinSliceNr(*iter), AliHLTTPCDefinitions::GetMinPatchNr(*iter));     
       
-      long maxRawClusters = ((long)maxOutSize-size-sizeof(AliHLTTPCRawClusterData))/sizeof(AliHLTTPCRawCluster);
+      long maxRawClusters = ((long)maxOutSize-size-sizeof(AliHLTTPCRawClusterData))/sizeof(AliHLTTPCRawCluster) - 1; //Subract 1 to correct for rounding
        
       if( maxRawClusters<=0 ) {
 	HLTWarning("No more space to add raw clusters, exiting!");
@@ -351,7 +369,7 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
     FillBlockData(bd);
     bd.fOffset        = size;
     bd.fSize          = sizeof(AliHLTTPCRawClustersDescriptor);
-    bd.fDataType      = AliHLTTPCDefinitions::RawClustersDescriptorDataType();
+    bd.fDataType      = AliHLTTPCDefinitions::RawClustersDescriptorDataType() | kAliHLTDataOriginTPC;
     if( maxOutSize < size + bd.fSize ){
 	HLTWarning( "Output buffer (%db) is too small, required %db", maxOutSize, size+bd.fSize);
 	iResult  = -ENOSPC;
@@ -364,6 +382,23 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
     fBenchmark.AddOutput(bd.fSize);    
     HLTBenchmark("header data block of size %d", bd.fSize);
   }
+
+  if( iResult>=0 ){
+    //
+    // forward unpacked clusters if they are present
+    // to forward input data, one should only forward the block descriptors, without copying the data. 
+    // The framework will recognise that these blocks are forwarded, as they have fPtr field !=NULL, and take the data from fPtr pointer   
+    //
+    for( unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++ ){
+      const AliHLTComponentBlockData* iter = blocks+ndx;      
+      if(  iter->fDataType == AliHLTTPCDefinitions::RawClustersDataType() || iter->fDataType == AliHLTTPCDefinitions::RawClustersDescriptorDataType() ){
+	if( !iter->fPtr ) continue;
+	fBenchmark.AddOutput(iter->fSize);
+	outputBlocks.push_back( *iter );
+      }
+    } 
+  }
+  
   fBenchmark.Stop(0);
   HLTInfo(fBenchmark.GetStatistics());
   

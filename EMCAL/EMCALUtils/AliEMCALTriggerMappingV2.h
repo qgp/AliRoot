@@ -66,6 +66,7 @@ public:
   Bool_t  GetAbsFastORIndexFromPositionInTRU(Int_t iTRU, Int_t iEta, Int_t iPhi, Int_t& id) const;	
   Bool_t  GetAbsFastORIndexFromPositionInSM( Int_t  iSM, Int_t iEta, Int_t iPhi, Int_t& id) const;	
   Bool_t  GetAbsFastORIndexFromPositionInEMCAL(                Int_t iEta, Int_t iPhi, Int_t& id) const;
+  Bool_t  GetAbsFastORIndexFromPHOSSubregion( Int_t iPHOS, Int_t& id) const;
 
   //********************************************
   //Get TRU/SM/EMCAL Geometry from FastOR index
@@ -74,6 +75,14 @@ public:
   Bool_t  GetPositionInTRUFromAbsFastORIndex(   Int_t id, Int_t& iTRU , Int_t& iEta, Int_t& iPhi) const;
   Bool_t  GetPositionInSMFromAbsFastORIndex(    Int_t id, Int_t& iSM  , Int_t& iEta, Int_t& iPhi) const;
   Bool_t  GetPositionInEMCALFromAbsFastORIndex( Int_t id,               Int_t& iEta, Int_t& iPhi) const;
+
+  //********************************************
+  //TRU vs. STU
+  //********************************************
+  Bool_t  GetTRUFromSTU(Int_t iTRU, Int_t iADC, Int_t& oTRU, Int_t& oADC, Int_t detector) const;
+  Bool_t  GetSTUFromTRU(Int_t iTRU, Int_t iADC, Int_t& oTRU, Int_t& oADC                ) const;
+  Bool_t  GetTRUFromSTU(Int_t iTRU, Int_t ieta, Int_t iphi, Int_t& oTRU, Int_t& oeta, Int_t& ophi, Int_t detector) const;
+  Bool_t  GetSTUFromTRU(Int_t iTRU, Int_t ieta, Int_t iphi, Int_t& oTRU, Int_t& oeta, Int_t& ophi                ) const;
 
   //********************************************
   //Cell Index
@@ -86,6 +95,8 @@ public:
   //********************************************
   Bool_t  GetTRUIndexFromSTUIndex(    Int_t id, Int_t& idx , Int_t detector ) const;
   Int_t   GetTRUIndexFromSTUIndex(    Int_t id             , Int_t detector ) const;
+  Bool_t  GetSTUIndexFromTRUIndex(    Int_t id, Int_t& idx                  ) const;
+  Int_t   GetSTUIndexFromTRUIndex(    Int_t id                              ) const;
   Bool_t  GetTRUIndexFromOnlineIndex( Int_t id, Int_t& idx) const{idx = id  ; return kTRUE  ;};
   Int_t   GetTRUIndexFromOnlineIndex( Int_t id            ) const{return id ;};
   Bool_t  GetOnlineIndexFromTRUIndex( Int_t id, Int_t& idx) const{idx = id  ; return kTRUE  ;};

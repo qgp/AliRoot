@@ -128,10 +128,10 @@ void AliZDCReconstructor::Init()
   }
   else if((beamType.CompareTo("A-A")) == 0 || (beamType.CompareTo("AA")) == 0){
     fRecoMode=2;
-    if(!fgRecoParam) fgRecoParam = const_cast<AliZDCRecoParam*>(GetRecoParam());
+    /*if(!fgRecoParam) fgRecoParam = const_cast<AliZDCRecoParam*>(GetRecoParam());
     if(fgRecoParam){
       fgRecoParam->SetGlauberMCDist(fBeamEnergy);	
-    } 
+    }*/ 
   }
 
   AliCDBEntry *entry = AliCDBManager::Instance()->Get("GRP/Calib/LHCClockPhase"); 
@@ -176,8 +176,8 @@ void AliZDCReconstructor::Init(TString beamType, Float_t beamEnergy)
   }
   else if((beamType.CompareTo("A-A")) == 0 || (beamType.CompareTo("AA")) == 0){
     fRecoMode=2;
-    if(!fgRecoParam) fgRecoParam = const_cast<AliZDCRecoParam*>(GetRecoParam());
-    if( fgRecoParam ) fgRecoParam->SetGlauberMCDist(fBeamEnergy);	
+    //if(!fgRecoParam) fgRecoParam = const_cast<AliZDCRecoParam*>(GetRecoParam());
+    //if( fgRecoParam ) fgRecoParam->SetGlauberMCDist(fBeamEnergy);	
   }    
 
   AliCDBEntry *entry = AliCDBManager::Instance()->Get("GRP/Calib/LHCClockPhase"); 
@@ -262,23 +262,22 @@ void AliZDCReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) co
   } // Loop over digits
   
   // PEDESTAL subtraction
-  for(int ich=0; ich<kNch; ich++){
-     if(chPedSubMode[ich]==kTRUE){
+  // Nov 2015: if PedSubMode==kTRUE but coefficients are null, mean value must be subtracted!!!!!
+  for(int ich=0; ich<24; ich++){
+     if(chPedSubMode[ich]==kTRUE && (TMath::Abs(corrCoeff1[ich])>0. && TMath::Abs(corrCoeff0[ich])>0.)){
        // Pedestal subtraction from correlation ------------------------------------------------
-       for(int igain=0; igain<=1; igain++){ 
+       for(int igain=0; igain<=1; igain++) 
        	   adcCorr[ich][igain] = (float) (adcInTime[ich][igain] - (corrCoeff1[ich+igain*kNch]*adcOutOfTime[ich][igain]+corrCoeff0[ich+igain*kNch]));
-       }
      }
-     else{
+     else if((chPedSubMode[ich]==kFALSE) || (chPedSubMode[ich]==kTRUE && ((TMath::Abs(corrCoeff1[ich]))<1e5 && TMath::Abs(corrCoeff0[ich])<1e5))){
         // Pedestal subtraction from mean value ------------------------------------------------
         for(int igain=0; igain<=1; igain++){
-	   adcCorr[ich][igain] = (float) (adcInTime[ich][igain]-meanPed[ich+igain*kNch]);
+	   adcCorr[ich][igain] = (float) (adcInTime[ich][igain] - meanPed[ich+igain*kNch]);
 	}
       }
-  }
   // Ch. debug
-  //printf("\n  TDC channels   ZEM1 %d ZEM2 %d ZNC %d ZPC %d ZNA %d  ZPA %d L0 %d\n\n",
-  //tdcCabling[0],tdcCabling[1],tdcCabling[2],tdcCabling[3],tdcCabling[4],tdcCabling[5],tdcCabling[6]);
+  //printf("ZDC rec.ADC: ch.%d (code %d) rawADC %d subMode %d meanPed %f pedfromcorr = %f  -> corrADC HR %f \n", ich, adcSignal[ich], adcInTime[ich][0], chPedSubMode[ich], meanPed[ich], corrCoeff1[ich]*adcOutOfTime[ich][0]+corrCoeff0[ich], adcCorr[ich][0]);
+  }
   
    // Ch. debug
    //printf("\n ---- AliZDCReconstructor: rec from digits\n");
@@ -346,10 +345,12 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
   //printf(" iskL0set %d  tdcSignalCode[15] %d \n",iskL0set, tdcSignalCode[15]);
   
   Bool_t isScalerOn=kFALSE;
-  Int_t jsc=0, itdc=0, iprevtdc=-1, ihittdc=0;
+  Int_t jsc=0, itdc=0, ihittdc=0;
+  Int_t iprevtdc[32];
   UInt_t scalerData[32]={0,};
   Int_t tdcData[32][4];	
   for(Int_t k=0; k<32; k++){
+    iprevtdc[k]=-1;
     for(Int_t i=0; i<4; i++) tdcData[k][i]=0;
   }
   
@@ -455,13 +456,10 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
        else if(tdcSignalCode[itdc]==kZPAD && tdcCabling[5]<0)  tdcCabling[5] = itdc;
        else if(tdcSignalCode[itdc]==kL0 && tdcCabling[6]<0)    tdcCabling[6] = itdc;
        //
-       if(itdc==iprevtdc) ihittdc++;
-       else ihittdc=0;
-       if(ihittdc<4) tdcData[itdc][ihittdc] = rawData.GetZDCTDCDatum();
-       iprevtdc=itdc;
+       iprevtdc[itdc]++;
+       if(iprevtdc[itdc]<4) tdcData[itdc][iprevtdc[itdc]] = rawData.GetZDCTDCDatum();
        // Ch. debug
-       //if(ihittdc==0) printf("   TDC%d %f ns  ",itdc, 0.025*tdcData[itdc][ihittdc]);
-       //printf("   TDCch.%d signal %d \n",itdc, rawData.GetCabledSignal());
+       //printf("   TDCch.%d hit %d signal %d value %d\n",itdc, iprevtdc[itdc], rawData.GetCabledSignal(),rawData.GetZDCTDCDatum());
    }// ZDC TDC DATA
    // ***************************** Reading PU
    else if(rawData.GetADCModule()==kPUGeo){
@@ -1404,6 +1402,13 @@ void AliZDCReconstructor::FillZDCintoESD(TTree *clustersTree, AliESDEvent* esd) 
   // Ch. debug
   //printf("\n  FillZDCintoESD: TDC channels  ZEM1 %d  ZEM2 %d ZNC %d ZPC %d ZNA %d ZPA %d L0 %d\n\n",  tdcCabling[0],tdcCabling[1],tdcCabling[2],tdcCabling[3],tdcCabling[4],tdcCabling[5],tdcCabling[6]);
   
+  fESDZDC->SetZEM1TDChit(kFALSE);
+  fESDZDC->SetZEM2TDChit(kFALSE);
+  fESDZDC->SetZNCTDChit(kFALSE);
+  fESDZDC->SetZPCTDChit(kFALSE);
+  fESDZDC->SetZNATDChit(kFALSE);
+  fESDZDC->SetZPATDChit(kFALSE);
+  
   Int_t tdcValues[32][4] = {{0,}}; 
   Float_t tdcCorrected[32][4] = {{999.,}};
   for(Int_t jk=0; jk<32; jk++){
@@ -1420,6 +1425,7 @@ void AliZDCReconstructor::FillZDCintoESD(TTree *clustersTree, AliESDEvent* esd) 
       else if(tdcCabling[5]>0. && jk==tdcCabling[5] && TMath::Abs(tdcValues[jk][lk])>1e-09) fESDZDC->SetZPATDChit(kTRUE);
     }
   }
+  //printf("\n  FillZDCintoESD: hit TDC         ZEM1 %d  ZEM2 %d ZNC %d ZPC %d ZNA %d ZPA %d \n",  fESDZDC->IsZEM1hit(),fESDZDC->IsZEM2hit(),fESDZDC->IsZNChit(),fESDZDC->IsZPChit(),fESDZDC->IsZNAhit(),fESDZDC->IsZPAhit());
   
   // Writing TDC data into ZDC ESDs
   // 4/2/2011 -> Subtracting L0 (tdcValues[15]) instead of ADC gate 

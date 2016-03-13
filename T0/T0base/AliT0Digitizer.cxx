@@ -136,7 +136,7 @@ AliT0Digitizer::AliT0Digitizer(AliDigitizationInput* digInput)
 
       if (x1q)  delete [] x1q;
       if (y1q)  delete [] y1q;
-      fAmpQTC.Print();
+      // fAmpQTC.Print();
     }
   }
 }
@@ -344,9 +344,8 @@ void AliT0Digitizer::Digitize(Option_t* /*option*/)
 	  // put slewing 
 	  TGraph *fu=(TGraph*) fParam ->GetWalk(i);
 	  if(fu)  slew=fu->Eval(Float_t(qtCh));
-	  
-	  //	  trCFD=trCFD-Int_t(fMaxValue[i]-slew);
-	  trCFD = trCFD + Int_t(slew); //for the same channel as cosmic
+	  if(!fRun2)
+	    trCFD = trCFD + Int_t(slew); //for the same channel as cosmic
 	  ftimeCFD->AddAt(Int_t (trCFD),i);
 	  trLED = Int_t(trCFD  + sl );
 	  ftimeLED->AddAt(trLED,i); 

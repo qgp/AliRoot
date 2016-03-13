@@ -17,6 +17,16 @@
 #pragma link C++ class  AliESDInputHandlerRP+;
 #pragma link C++ class  AliESDRun+;
 #pragma link C++ class  AliESDHeader+;
+
+#pragma read \
+  sourceClass="AliESDHeader" \
+  targetClass="AliESDHeader" \
+  source="TObjArray fIRBufferArray" \
+  version="[10-13]"	\
+  target="fIRBufferArray" \
+  targetType="TObjArray" \
+  code="{fIRBufferArray=onfile.fIRBufferArray; fIRBufferArray.SetOwner(kTRUE); onfile.fIRBufferArray.SetOwner(kFALSE);onfile.fIRBufferArray.Clear();}"
+
 #pragma link C++ class  AliESDHLTDecision+;
 #pragma link C++ class  AliESDZDC+;
 #pragma link C++ class  AliESDCaloTrigger+;
@@ -30,7 +40,8 @@
   targetType="Int_t*" \
   code="{fTriggerBits = new Int_t[onfile.fNEntries]; for (Int_t i=0; i<onfile.fNEntries; ++i) fTriggerBits[i]=(onfile.fColumn && onfile.fRow)?onfile.fTriggerBits[onfile.fColumn[i]][onfile.fRow[i]]:0;}"
 
-#pragma link C++ class  AliESDfriend+;                                                                                                           
+#pragma link C++ class  AliESDfriend+;
+
 #pragma read sourceClass="AliESDtrack" targetClass="AliESDtrack" source="UChar_t fTRDpidQuality"  version="[-47]" target="fTRDntracklets" targetType="UChar_t" code="{fTRDntracklets=onfile.fTRDpidQuality;}"
 // see http://root.cern.ch/svn/root/trunk/io/doc/DataModelEvolution.txt
 

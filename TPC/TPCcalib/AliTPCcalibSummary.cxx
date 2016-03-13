@@ -852,6 +852,9 @@ void AliTPCcalibSummary::ProcessGain(Int_t irun, Int_t timeStamp){
   static TGraphErrors ggrDipAngleTotLong;
   static TGraphErrors ggrDipAngleTotAbsolute;
   //
+  static TGraphErrors ggrMultiplicityTot;
+  static TGraphErrors ggrMultiplicityMax;
+  //
   static TVectorD vFitDipAngleParMaxShort(3);
   static TVectorD vFitDipAngleParMaxMedium(3);
   static TVectorD vFitDipAngleParMaxLong(3);
@@ -861,8 +864,9 @@ void AliTPCcalibSummary::ProcessGain(Int_t irun, Int_t timeStamp){
   static TVectorD vFitDipAngleParTotMedium(3);
   static TVectorD vFitDipAngleParTotLong(3);
   static TVectorD vFitDipAngleParTotAbsolute(3);
-
-  
+  static Int_t gainMIPTime0=0;
+  static Int_t gainMIPTime1=0;
+   
   vGainGraphIROC.Zero();
   vGainGraphOROCmed.Zero();
   vGainGraphOROClong.Zero();
@@ -925,7 +929,11 @@ void AliTPCcalibSummary::ProcessGain(Int_t irun, Int_t timeStamp){
     TGraphErrors *grPadEqualTot = (TGraphErrors * ) gainSplines->FindObject("TGRAPHERRORS_MEANQTOT_PADREGIONGAIN_BEAM_ALL");
     if (grPadEqualMax) ggrPadEqualMax = *grPadEqualMax;
     if (grPadEqualTot) ggrPadEqualTot = *grPadEqualTot;
-
+    //
+    TGraphErrors * grMultiplicityTot  = (TGraphErrors *) gainSplines->FindObject("TGRAPHERRORS_MEANQTOT_MULTIPLICITYDEPENDENCE_BEAM_ALL");
+    TGraphErrors * grMultiplicityMax  = (TGraphErrors *) gainSplines->FindObject("TGRAPHERRORS_MEANQMAX_MULTIPLICITYDEPENDENCE_BEAM_ALL");
+    if (grMultiplicityTot) ggrMultiplicityTot = *grMultiplicityTot;
+    if (grMultiplicityMax) ggrMultiplicityTot = *grMultiplicityMax;
 
     if (graphGainIROC && graphGainOROCMedium && graphGainOROCLong) {
       Double_t x=0,y=0;
@@ -947,7 +955,11 @@ void AliTPCcalibSummary::ProcessGain(Int_t irun, Int_t timeStamp){
        }
     }
     
-    if (graphMIP) gainMIP = AliTPCcalibDButil::EvalGraphConst(graphMIP,timeStamp);
+    if (graphMIP) {
+      gainMIP = AliTPCcalibDButil::EvalGraphConst(graphMIP,timeStamp);
+      gainMIPTime0=graphMIP->GetX()[0];
+      gainMIPTime1=graphMIP->GetX()[graphMIP->GetN()-1];
+    }
     if (graphCosmic) gainCosmic = AliTPCcalibDButil::EvalGraphConst(graphCosmic,timeStamp);
     if (graphAttach) attachMIP = AliTPCcalibDButil::EvalGraphConst(graphAttach,timeStamp);
     if (graphMIP)  AliTPCcalibDButil::GetNearest(graphMIP, timeStamp, dMIP,dummy);
@@ -986,7 +998,12 @@ void AliTPCcalibSummary::ProcessGain(Int_t irun, Int_t timeStamp){
     "grDipAngleTotLong.="         << &ggrDipAngleTotLong         <<
     "grDipAngleTotAbsolute.="     << &ggrDipAngleTotAbsolute     <<
     //
-    "gainMIP="                    << gainMIP                     <<
+    "grMultiplicityTot.="         << &ggrMultiplicityTot         <<
+    "grMultiplicityMax.="         << &ggrMultiplicityMax         <<
+    //
+    "gainMIP="                    << gainMIP                     <<   // gain normalization parameter
+    "gainMIPTime0="               << gainMIPTime0                <<   // first bin for time calibration
+    "gainMIPTime1="               << gainMIPTime1                <<   // last bin for gain calibration
     "attachMIP="                  << attachMIP                   <<
     "dMIP="                       << dMIP                        <<
     "gainCosmic="                 << gainCosmic                   ;
@@ -1063,7 +1080,6 @@ void AliTPCcalibSummary::ProcessDriftCERef(){
   //
   if (!isCalc){
     // make fits only once
-    TStatToolkit toolkit;
     Double_t chi2=0;
     Int_t    npoints=0;
     TVectorD param;
@@ -1148,7 +1164,6 @@ void AliTPCcalibSummary::ProcessPulserRef(){
   //
   if (!isCalc){
     // make fits only once
-    TStatToolkit toolkit;
     Double_t chi2=0;
     Int_t    npoints=0;
     TVectorD param;
@@ -1324,8 +1339,47 @@ void AliTPCcalibSummary::ProcessCurrent(Int_t irun, Int_t itime){
 
 }
 
+void AliTPCcalibSummary::AddMetadataRawQA(TTree * treeRawQATPC){
+  //
+  // Make Aliases and description for Raw QA trending
+  //
+  treeRawQATPC->SetAlias("isIROC","(Iteration$<36)");
+  treeRawQATPC->SetAlias("isOROC","(Iteration$>=36)");
+  treeRawQATPC->SetAlias("occOK0","(occQA.fElements>0)");
+  treeRawQATPC->SetAlias("occIROC","Sum$(occQA.fElements*(isIROC*occOK0))/Sum$(isIROC*occOK0)");
+  treeRawQATPC->SetAlias("occOROC","Sum$(occQA.fElements*(isOROC*occOK0))/Sum$(isOROC*occOK0)");
+
+  TStatToolkit::AddMetadata(treeRawQATPC,"occIROC.AxisTitle","Occupancy IROC ");
+  TStatToolkit::AddMetadata(treeRawQATPC,"occIROC.Title","Sum$(occQA.fElements*(isIROC*occOK0))/Sum$(isIROC*occOK0)");
+  TStatToolkit::AddMetadata(treeRawQATPC,"occIROC.Legend","IROC occ.");
+  TStatToolkit::AddMetadata(treeRawQATPC,"occIROC.Comment","Digits occupancy in IROC  #(A>thr)/#All as obtained in AMORE QA");
+  TStatToolkit::AddMetadata(treeRawQATPC,"occOROC.AxisTitle","Occupancy IROC ");
+  TStatToolkit::AddMetadata(treeRawQATPC,"occOROC.Title","Sum$(occQA.fElements*(isOROC*occOK0))/Sum$(isOROC*occOK0)");
+  TStatToolkit::AddMetadata(treeRawQATPC,"occOROC.Legend","OROC occ.");
+  TStatToolkit::AddMetadata(treeRawQATPC,"occOROC.Comment","Digits occupanncy in OROC  #(A>thr)/#All as obtained in AMORE QA");
+}
+
+void AliTPCcalibSummary::AddMetadataGain(TTree * treeRawQATPC){
+  //
+  // Define aliases and valriable description for some important gain calibration parameters
+  //
+  treeRawQATPC->SetAlias("gainDefined","gainMIP!=0&&abs(dits)<1800");
+  TStatToolkit::AddMetadata(treeRawQATPC,"gainMIP.AxisTitle","gain conversion (50/MIP)");
+  TStatToolkit::AddMetadata(treeRawQATPC,"gainMIP.Title","gainMIP");
+  TStatToolkit::AddMetadata(treeRawQATPC,"gainMIP.Legend","gain(t)");
+  TStatToolkit::AddMetadata(treeRawQATPC,"gainMIP.Comment","Gain normalization coeficient used for time dependenta gain calibation. Last correction to move combined dEdx for MIP to channel 50");
+
+}
 
 
+void AliTPCcalibSummary::AddMetadata(TTree * tree){
+  //
+  // add metadata for automatic documentiation 
+  //
+  AddMetadataRawQA(tree);
+  AddMetadataGain(tree);
+  
+}
 
 // TCanvas * DrawCEDiff(TTree * tree){
   

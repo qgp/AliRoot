@@ -15,6 +15,7 @@
 
 # Module
 set(MODULE STAT)
+add_definitions(-D_MODULE_="${MODULE}")
 
 # Module include folders
 include_directories(${AliRoot_SOURCE_DIR}/${MODULE})
@@ -33,6 +34,7 @@ set(SRCS
     TKDSpline.cxx
     TStatToolkit.cxx
     AliNDLocalRegression.cxx
+    AliExternalInfo.cxx
   )
 
 # Headers from sources

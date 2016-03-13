@@ -23,6 +23,7 @@ else()
     find_library(LIBCUDA_SO_PATH libcuda.so)
     string(FIND ${LIBCUDA_SO_PATH} "-NOTFOUND" LIBCUDA_SO_PATH_NOTFOUND )
 endif(NOT CUDA_FOUND)
+message( STATUS "Building HLT with CUDA support" )
 
 if(LIBCUDA_SO_PATH_NOTFOUND GREATER -1)
   message( FATAL_ERROR "NVIDIA CUDA libcuda.so not found. Please install or set HLT_CUDA=OFF" )
@@ -98,7 +99,7 @@ generate_rootmap("${MODULE}" "" "")
 # Add a library to the project using the specified source files
 add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
 #CUDA run-time and driver
-target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH})
+target_link_libraries(${MODULE} ${CUDA_LIBRARIES} ${LIBCUDA_SO_PATH} AliHLTTPC)
 
 # Additional compilation flags
 set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")

@@ -39,7 +39,7 @@ const Char_t*      AliEMCALGeometry::fgkDefaultGeometryName = "EMCAL_COMPLETE12S
 
 //____________________________________________________________________________
 AliEMCALGeometry::AliEMCALGeometry():
-  fEMCGeometry(0x0),fTriggerMapping(0x0),fGeoName(0),fEMCSMSystem(0x0),
+  fEMCGeometry(0x0),fTriggerMapping(0x0),fGeoName(0),
   fKey110DEG(0),fnSupModInDCAL(0),fNCellsInSupMod(0),fNETAdiv(0),fNPHIdiv(0),
   fNCellsInModule(0),fPhiBoundariesOfSM(0x0),fPhiCentersOfSM(0x0),
   fPhiCentersOfSMSec(0x0),fPhiCentersOfCells(0x0),fCentersOfCellsEtaDir(0x0),
@@ -67,7 +67,7 @@ AliEMCALGeometry::AliEMCALGeometry():
 //____________________________________________________________________________
 AliEMCALGeometry::AliEMCALGeometry(const AliEMCALGeometry & geo)
   : TNamed(geo),
-    fEMCGeometry(geo.fEMCGeometry),fTriggerMapping(geo.fTriggerMapping),fGeoName(geo.fGeoName),fEMCSMSystem(geo.fEMCSMSystem),
+    fEMCGeometry(geo.fEMCGeometry),fTriggerMapping(geo.fTriggerMapping),fGeoName(geo.fGeoName),
     fKey110DEG(geo.fKey110DEG),fnSupModInDCAL(geo.fnSupModInDCAL),fNCellsInSupMod(geo.fNCellsInSupMod),fNETAdiv(geo.fNETAdiv),fNPHIdiv(geo.fNPHIdiv),
     fNCellsInModule(geo.fNCellsInModule),fPhiBoundariesOfSM(geo.fPhiBoundariesOfSM),fPhiCentersOfSM(geo.fPhiCentersOfSM),
     fPhiCentersOfSMSec(geo.fPhiCentersOfSMSec),fPhiCentersOfCells(geo.fPhiCentersOfCells),fCentersOfCellsEtaDir(geo.fCentersOfCellsEtaDir),
@@ -95,7 +95,7 @@ AliEMCALGeometry::AliEMCALGeometry(const AliEMCALGeometry & geo)
 AliEMCALGeometry::AliEMCALGeometry(const Text_t* name,   const Text_t* title,
                                    const Text_t* mcname, const Text_t* mctitle) 
   : TNamed(name, title),
-    fEMCGeometry(0x0),fTriggerMapping(0x0),fGeoName(0),fEMCSMSystem(0x0),
+    fEMCGeometry(0x0),fTriggerMapping(0x0),fGeoName(0),
     fKey110DEG(0),fnSupModInDCAL(0),fNCellsInSupMod(0),fNETAdiv(0),fNPHIdiv(0),
     fNCellsInModule(0),fPhiBoundariesOfSM(0x0),fPhiCentersOfSM(0x0),
     fPhiCentersOfSMSec(0x0),fPhiCentersOfCells(0x0),fCentersOfCellsEtaDir(0x0),
@@ -112,7 +112,6 @@ AliEMCALGeometry::AliEMCALGeometry(const Text_t* name,   const Text_t* title,
   
   fEMCGeometry = new AliEMCALEMCGeometry(name,title,mcname,mctitle);
   fGeoName = fEMCGeometry->GetGeoName();
-  fEMCSMSystem = fEMCGeometry->GetEMCSystem();
   fKey110DEG = fEMCGeometry->GetKey110DEG();
   fnSupModInDCAL = fEMCGeometry->GetnSupModInDCAL();
   fNCellsInSupMod = fEMCGeometry->GetNCellsInSupMod();
@@ -289,20 +288,25 @@ AliEMCALGeometry* AliEMCALGeometry::GetInstanceFromRunNumber(Int_t runNumber,   
 {
   //printf("AliEMCALGeometry::GetInstanceFromRunNumber() - run %d, geoName <<%s>> \n",runNumber,geoName.Data());
   
+  static bool showInfo = !(getenv("HLT_ONLINE_MODE") && strcmp(getenv("HLT_ONLINE_MODE"), "on") == 0);
+  
   if      ( runNumber >= 104064 && runNumber < 140000  ) 
   {
     // 2009-2010 runs
     // First year geometry, 4 SM.
     
-    if(!geoName.Contains("FIRSTYEARV1") && geoName!="")
-    { 
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
-      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
-      printf("\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year\n");
-    }
-    else 
+    if (showInfo)
     {
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>\n");
+      if(!geoName.Contains("FIRSTYEARV1") && geoName!="")
+      { 
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+        printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+        printf("\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year\n");
+      }
+      else 
+      {
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>\n");
+      }
     }
     
     return AliEMCALGeometry::GetInstance("EMCAL_FIRSTYEARV1","EMCAL",mcname,mctitle) ;
@@ -311,17 +315,19 @@ AliEMCALGeometry* AliEMCALGeometry::GetInstanceFromRunNumber(Int_t runNumber,   
   {
     // Almost complete EMCAL geometry, 10 SM. Year 2011 configuration
     
-    if(!geoName.Contains("COMPLETEV1") && geoName!="")
+    if (showInfo)
     {
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
-      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
-      printf("\t In use <<EMCAL_COMPLETEV1>>, check run number and year\n");
+      if(!geoName.Contains("COMPLETEV1") && geoName!="")
+      {
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+        printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+        printf("\t In use <<EMCAL_COMPLETEV1>>, check run number and year\n");
+      }
+      else 
+      {
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>\n");
+      }
     }
-    else 
-    {
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>\n");
-    }
-    
     return AliEMCALGeometry::GetInstance("EMCAL_COMPLETEV1","EMCAL",mcname,mctitle) ;
   }
   else if ( runNumber >  176000 && runNumber <= 197692 )
@@ -329,34 +335,38 @@ AliEMCALGeometry* AliEMCALGeometry::GetInstanceFromRunNumber(Int_t runNumber,   
     // Complete EMCAL geometry, 12 SM. Year 2012 and on
     // The last 2 SM were not active, anyway they were there.
     
-    if(!geoName.Contains("COMPLETE12SMV1") && geoName!="")
+    if (showInfo)
     {
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
-      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
-      printf("\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year\n");
+      if(!geoName.Contains("COMPLETE12SMV1") && geoName!="")
+      {
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+        printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+        printf("\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year\n");
+      }
+      else 
+      {
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETE12SMV1>>\n");
+      }
     }
-    else 
-    {
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETE12SMV1>>\n");
-    }
-    
     return AliEMCALGeometry::GetInstance("EMCAL_COMPLETE12SMV1","EMCAL",mcname,mctitle) ;
   }
   else // Run 2
   {
     // EMCAL + DCAL geometry, 20 SM. Year 2015 and on
     
-    if(!geoName.Contains("DCAL_8SM") && geoName!="")
+    if (showInfo)
     {
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
-      printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
-      printf("\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year\n");
+      if(!geoName.Contains("DCAL_8SM") && geoName!="")
+      {
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** \n");
+        printf("\t Specified geometry name <<%s>> for run %d is not considered! \n",geoName.Data(),runNumber);
+        printf("\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year\n");
+      }
+      else 
+      {
+        printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>\n");
+      }
     }
-    else 
-    {
-      printf("AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>\n");
-    }
-
     return AliEMCALGeometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM","EMCAL",mcname,mctitle) ;
   }  
 }
@@ -1308,6 +1318,25 @@ const TGeoHMatrix * AliEMCALGeometry::GetMatrixForSuperModule(Int_t smod) const
   return 0 ;
 }
 
+
+///
+/// Provides shift-rotation matrix for EMCAL from fkSModuleMatrix[smod]
+/// Unsafe method, not to be used in reconstruction, just check there is 
+/// something in the array of matrices without crashing, for EVE checks.
+///
+/// \return alignment matrix for a super module number
+/// \param smod: super module number
+///
+//______________________________________________________________________________________
+const TGeoHMatrix * AliEMCALGeometry::GetMatrixForSuperModuleFromArray(Int_t smod) const 
+{	
+  if(smod < 0 || smod > fEMCGeometry->GetNumberOfSuperModules()) 
+    AliFatal(Form("Wrong supermodule index -> %d",smod));
+  
+  return fkSModuleMatrix[smod] ;
+}
+
+
 ///
 /// Provides shift-rotation matrix for EMCAL from the TGeoManager.
 /// \return alignment matrix for a super module number
@@ -1506,13 +1535,13 @@ void AliEMCALGeometry::SetMisalMatrix(const TGeoHMatrix * m, Int_t smod)
 //__________________________________________________________________________________________________________________
 Bool_t AliEMCALGeometry::IsDCALSM(Int_t iSupMod) const
 {
-  if( fEMCSMSystem[iSupMod] == kDCAL_Standard || fEMCSMSystem[iSupMod] == kDCAL_Ext ) return kTRUE;
+  if( fEMCGeometry->GetEMCSystem()[iSupMod] == kDCAL_Standard || fEMCGeometry->GetEMCSystem()[iSupMod] == kDCAL_Ext ) return kTRUE;
   return kFALSE;
 }
 
 //__________________________________________________________________________________________________________________
 Bool_t AliEMCALGeometry::IsDCALExtSM(Int_t iSupMod) const
 {
-  if( fEMCSMSystem[iSupMod] == kDCAL_Ext ) return kTRUE;
+  if( fEMCGeometry->GetEMCSystem()[iSupMod] == kDCAL_Ext ) return kTRUE;
   return kFALSE;
 }

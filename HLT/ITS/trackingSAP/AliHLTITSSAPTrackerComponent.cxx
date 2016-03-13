@@ -126,7 +126,7 @@ void AliHLTITSSAPTrackerComponent::GetInputDataTypes( vector<AliHLTComponentData
 {
   // see header file for class documentation
   list.clear();
-  list.push_back( kAliHLTDataTypeESDVertex|kAliHLTDataOriginITS );
+  list.push_back( kAliHLTDataTypeESDVertex|kAliHLTDataOriginITSSPD );
   list.push_back( kAliHLTDataTypeClusters|kAliHLTDataOriginITSSSD );
   list.push_back( kAliHLTDataTypeClusters|kAliHLTDataOriginITSSPD );
   list.push_back( kAliHLTDataTypeClusters|kAliHLTDataOriginITSSDD );
@@ -484,7 +484,7 @@ int AliHLTITSSAPTrackerComponent::DoEvent
       }
     }
     else {
-      HLTWarning("No SPD vertex, skip ITS standalone reconstruction");
+      HLTInfo("No SPD vertex, skip ITS standalone reconstruction");
       return 0;
     }
   }  

@@ -15,6 +15,7 @@
 
 # Module
 set(MODULE dateStream)
+add_definitions(-D_MODULE_="${MODULE}")
 
 include_directories(${AliRoot_SOURCE_DIR}/${MODULE})
 
@@ -36,3 +37,4 @@ set_target_properties(${MODULE} PROPERTIES LINK_FLAGS "${MODULE_LINK_FLAGS}")
 
 # Installation
 install(TARGETS ${MODULE} RUNTIME DESTINATION bin)
+install(FILES event.h DESTINATION include)
