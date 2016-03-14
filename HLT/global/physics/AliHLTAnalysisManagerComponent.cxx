@@ -213,7 +213,7 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerInit(void*)
   if (fAddTaskMacro.Length()>0) 
   {
     HLTInfo("Executing the macro: %s\n",fAddTaskMacro.Data());
-    gROOT->Macro(fAddTaskMacro);
+    gROOT->Macro(fAddTaskMacro + "\\;");
   }
 
   if (fAnalysisManager->InitAnalysis() == kFALSE)
