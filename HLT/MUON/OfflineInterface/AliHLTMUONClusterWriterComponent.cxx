@@ -213,7 +213,6 @@ int AliHLTMUONClusterWriterComponent::DumpEvent(
     {
 
       StorePreClusters(pBlock->fSpecification);
-      std::cerr << fPreClusterBlock << std::endl;
 
     } else {
 
@@ -279,4 +278,3 @@ void AliHLTMUONClusterWriterComponent::StorePreClusters(int deId)
   }
 
 }
-
