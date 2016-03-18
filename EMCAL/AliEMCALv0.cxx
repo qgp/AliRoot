@@ -176,6 +176,10 @@ void AliEMCALv0::CreateGeometry()
     fCalFrame = new AliEMCALSpaceFrame();
     fCalFrame->CreateGeometry();
   }
+
+  // Set the sampling fraction used at creation hit level
+  // Previously called in AliEMCALEMCGeometry::Init(), put it here for proper initialization by Geant3/4
+  geom->GetEMCGeometry()->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(),TVirtualMC::GetMC()->GetTitle());
 }
 
 //______________________________________________________________________
