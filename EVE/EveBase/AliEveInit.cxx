@@ -88,6 +88,7 @@ fPath(path)
     
     // read all files with names matching "geom_list_XYZ.txt"
     vector<string> detectorsList;
+
     string geomPath = settings.GetValue("simple.geom.path","${ALICE_ROOT}/EVE/resources/geometry/run2/");
     string alirootBasePath = gSystem->Getenv("ALICE_ROOT");
     size_t alirootPos = geomPath.find("${ALICE_ROOT}");
