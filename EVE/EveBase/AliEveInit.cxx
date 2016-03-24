@@ -52,7 +52,7 @@ fPath(path)
     bool autoloadEvents   = settings.GetValue("events.autoload.set",false);   // set autoload by default
     bool fullscreen       = settings.GetValue("fullscreen.mode",false);       // hide left and bottom tabs
     
-    TString ocdbStorage   = settings.GetValue("OCDB.default.path","local://$ALICE_ROOT/../src/OCDB");// default path to OCDB
+    TString ocdbStorage   = settings.GetValue("OCDB.default.path","local://$ALICE_ROOT/OCDB");// default path to OCDB
     
     
     Info("AliEveInit",Form("\n\nOCDB path:%s\n\n",ocdbStorage.Data()));
@@ -91,8 +91,8 @@ fPath(path)
     
     // read all files with names matching "geom_list_XYZ.txt"
     vector<string> detectorsList;
-    TSystemDirectory dir(Form("%s/../src/%s",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/")),
-                         Form("%s/../src/%s",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/")));
+    TSystemDirectory dir(Form("%s/%s",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/")),
+                         Form("%s/%s",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/")));
     
     TList *files = dir.GetListOfFiles();
     
@@ -266,8 +266,8 @@ void AliEveInit::AddMacros()
     TEnv settings;
     GetConfig(&settings);
     vector<string> detectorsList;
-    TSystemDirectory dir(Form("%s/../src/EVE/macros/data/",gSystem->Getenv("ALICE_ROOT")),
-                         Form("%s/../src/EVE/macros/data/",gSystem->Getenv("ALICE_ROOT")));
+    TSystemDirectory dir(Form("%s/EVE/macros/data/",gSystem->Getenv("ALICE_ROOT")),
+                         Form("%s/EVE/macros/data/",gSystem->Getenv("ALICE_ROOT")));
     
     TList *files = dir.GetListOfFiles();
     

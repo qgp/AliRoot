@@ -9,10 +9,15 @@
 #include "AliEveInit.h"
 
 #include <TFile.h>
+#include <TSystem.h>
+#include <TEnv.h>
 
 TEveGeoShape* AliEveGeomGentle::GetSimpleGeom(char* detector)
 {
-    TFile f(Form("$ALICE_ROOT/EVE/resources/geometry/simple_geom_%s.root",detector));
+    TEnv settings;
+    AliEveInit::GetConfig(&settings);
+    
+    TFile f(Form("%s/%s/simple_geom_%s.root",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/"),detector));
     TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) f.Get(detector);
     TEveGeoShape* gsre = TEveGeoShape::ImportShapeExtract(gse);
     f.Close();
@@ -27,9 +32,6 @@ TEveGeoShape* AliEveGeomGentle::GetSimpleGeom(char* detector)
         detector = "TPC";
     }
 
-    TEnv settings;
-    AliEveInit::GetConfig(&settings);
-    
     DrawDeep(gsre,
              settings.GetValue(Form("%s.color",detector),-1),
              settings.GetValue(Form("%s.trans",detector),-1),
