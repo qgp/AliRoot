@@ -19,8 +19,8 @@
 
 #include "AliMUONPedestalSubprocessor.h"
 #include "AliMUONHVSubprocessor.h"
+#include "AliMUONLVSubprocessor.h"
 #include "AliMUONGMSSubprocessor.h"
-#include "AliMUONGainSubprocessor.h"
 #include "AliMUONOccupancySubprocessor.h"
 #include "AliLog.h"
 #include "AliMUONBusPatchEvolutionSubprocessor.h"
@@ -33,8 +33,8 @@
 /// \class AliMUONTrackerPreprocessor
 ///
 /// Shuttle preprocessor for MUON tracker
-/// 
-/// It's simply a manager class that deals with a list of sub-tasks 
+///
+/// It's simply a manager class that deals with a list of sub-tasks
 /// (of type AliMUONVSubprocessor).
 ///
 /// \author Laurent Aphecetche
@@ -48,15 +48,15 @@ ClassImp(AliMUONTrackerPreprocessor)
 AliMUONTrackerPreprocessor::AliMUONTrackerPreprocessor(AliShuttleInterface* shuttle)
 : AliMUONPreprocessor("MCH",shuttle),
 fPedestalSubprocessor(new AliMUONPedestalSubprocessor(this)),
-fGMSSubprocessor(new AliMUONGMSSubprocessor(this)),    
+fGMSSubprocessor(new AliMUONGMSSubprocessor(this)),
 fHVSubprocessor(new AliMUONHVSubprocessor(this,kTRUE)),
-fGainSubprocessor(new AliMUONGainSubprocessor(this)),
 fOccupancySubprocessor(new AliMUONOccupancySubprocessor(this)),
 fBusPatchEvolutionSubprocessor(new AliMUONBusPatchEvolutionSubprocessor(this)),
-fConfigSubprocessor(new AliMUONConfigSubprocessor(this))
+fConfigSubprocessor(new AliMUONConfigSubprocessor(this)),
+fLVSubprocessor(new AliMUONLVSubprocessor(this))
 {
-  /// ctor. 
-    
+  /// ctor.
+
     AddRunType("PEDESTAL");
     AddRunType("CALIBRATION");
     AddRunType("GMS");
@@ -71,10 +71,10 @@ AliMUONTrackerPreprocessor::~AliMUONTrackerPreprocessor()
   delete fPedestalSubprocessor;
   delete fGMSSubprocessor;
   delete fHVSubprocessor;
-  delete fGainSubprocessor;
   delete fOccupancySubprocessor;
   delete fBusPatchEvolutionSubprocessor;
   delete fConfigSubprocessor;
+  delete fLVSubprocessor;
 }
 
 //_____________________________________________________________________________
@@ -84,21 +84,16 @@ AliMUONTrackerPreprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
   /// Re-register the subprocessor(s) depending on the actual runType
 
   ClearSubprocessors();
-  
+
   TString runType = GetRunType();
-  
+
   fIsValid = kTRUE;
   fIsApplicable = kTRUE;
-  
+
   if ( runType == "PEDESTAL" )
   {
     Add(fPedestalSubprocessor); // to be called only for pedestal runs
     Log("INFO-Will run Pedestal subprocessor");
-  }
-  else if ( runType == "CALIBRATION" )
-  {
-    Add(fGainSubprocessor); // to be called only for gain runs
-    Log("INFO-Will run Gain subprocessor");
   }
   else if ( runType == "GMS" )
   {
@@ -110,10 +105,12 @@ AliMUONTrackerPreprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
     Bool_t useDCS(kTRUE);
 
     Add(fHVSubprocessor,useDCS); // to be called only for physics runs
+    Add(fLVSubprocessor,useDCS);
     Add(fOccupancySubprocessor);
     Add(fBusPatchEvolutionSubprocessor);
     Add(fConfigSubprocessor);
-    
+
+    Log("INFO-Will run LV subprocessor");
     Log("INFO-Will run HV subprocessor");
     if ( static_cast<AliMUONHVSubprocessor*>(fHVSubprocessor)->IncludeHVCurrent() )
     {
@@ -122,13 +119,13 @@ AliMUONTrackerPreprocessor::Initialize(Int_t run, UInt_t startTime, UInt_t endTi
     Log("INFO-Will run Occupancy subprocessor");
     Log("INFO-Will run Bus Patch Evolution subprocessor");
     Log("INFO-Will run Config subprocessor");
-    
+
   }
   else
   {
     fIsApplicable = kFALSE;
   }
-  
+
   AliMUONPreprocessor::Initialize(run,startTime,endTime);
-  
+
 }

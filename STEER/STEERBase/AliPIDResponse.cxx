@@ -654,7 +654,7 @@ void AliPIDResponse::ExecNewRun()
   // by the new method for backward compatibility
   Bool_t doOldTPCPID=kTRUE;
   if (fUseTPCNewResponse) {
-    doOldTPCPID =! InitializeTPCResponse();
+    doOldTPCPID = !InitializeTPCResponse();
     if (doOldTPCPID) {
       AliWarning("No TPC response parametrisations found using the new method. Falling back to the old method.");
     }
@@ -1272,7 +1272,7 @@ Bool_t AliPIDResponse::InitializeTPCResponse()
   Int_t recopass = fRecoPass;
   if(fIsMC && fTuneMConData && ((fTuneMConDataMask & kDetTPC) == kDetTPC)) recopass = fRecoPassUser;
 
-  const Bool_t returnValue = fTPCResponse.InitFromOADB(fRun, TString::Format("%d", recopass), fileNamePIDresponse);
+  const Bool_t returnValue = fTPCResponse.InitFromOADB(fRun, TString::Format("%d", recopass), fileNamePIDresponse, fUseTPCMultiplicityCorrection);
   AliInfo("------------------------------------------------------------------------------------------");
 
   return returnValue;
@@ -1955,8 +1955,8 @@ Bool_t AliPIDResponse::IdentifiedAsElectronTRD(const AliVTrack *vtrack,Double_t 
 Bool_t AliPIDResponse::IdentifiedAsElectronTRD(const AliVTrack *vtrack, Int_t &ntracklets,Double_t efficiencyLevel,Double_t centrality,AliTRDPIDResponse::ETRDPIDMethod PIDmethod) const {
   //
   // Check whether track is identified as electron under a given electron efficiency hypothesis
-    //
-    // ntracklets is the number of tracklets that has been used to calculate the PID signal
+  //
+  // ntracklets is the number of tracklets that has been used to calculate the PID signal
 
   Double_t probs[AliPID::kSPECIES];
 
@@ -2726,11 +2726,11 @@ Int_t AliPIDResponse::CalculateTRDResponse(const AliVTrack *track,Double_t p[],A
     Float_t mom[6]={0.};
     Double_t dedx[48]={0.};  // Allocate space for the maximum number of TRD slices
     Int_t nslices = TRDslicesForPID[1] - TRDslicesForPID[0] + 1;
-    AliDebug(1, Form("First Slice: %d, Last Slice: %d, Number of slices: %d",  TRDslicesForPID[0], TRDslicesForPID[1], nslices));
     for(UInt_t ilayer = 0; ilayer < 6; ilayer++){
 	mom[ilayer] = track->GetTRDmomentum(ilayer);
 	for(UInt_t islice = TRDslicesForPID[0]; islice <= TRDslicesForPID[1]; islice++){
-	    dedx[ilayer*nslices+islice-TRDslicesForPID[0]] = track->GetTRDslice(ilayer, islice);
+            // do not consider tracklets with no momentum (should be non functioning chambers)
+            if(mom[ilayer]>0) dedx[ilayer*nslices+islice-TRDslicesForPID[0]] = track->GetTRDslice(ilayer, islice);
 	}
     }
 
@@ -2746,7 +2746,6 @@ AliPIDResponse::EDetPidStatus AliPIDResponse::GetComputeTRDProbability  (const A
 
   // set flat distribution (no decision)
   for (Int_t j=0; j<nSpecies; j++) p[j]=1./nSpecies;
-
   const EDetPidStatus pidStatus=GetTRDPIDStatus(track);
   if (pidStatus!=kDetPidOk) return pidStatus;
 

@@ -16,7 +16,7 @@ Bool_t AliMUONTrackerDataSourceTypes::IsInAliasList(const char* type, const char
   TIter next(a);
   TObjString* str;
   TString stype(type);
-  
+
   while ( ( str = static_cast<TObjString*>(next()) ) )
   {
     if ( !str->String().CompareTo(stype,TString::kIgnoreCase) )
@@ -30,24 +30,10 @@ Bool_t AliMUONTrackerDataSourceTypes::IsInAliasList(const char* type, const char
 }
 
 //_____________________________________________________________________________
-/// Whether type is of Capacitance flavour
-Bool_t AliMUONTrackerDataSourceTypes::IsCapacitances(const char* type)
-{
-  return IsInAliasList(type,AliasesForCapacitances());
-}
-
-//_____________________________________________________________________________
 /// Whether type is of Configuration flavour
 Bool_t AliMUONTrackerDataSourceTypes::IsConfig(const char* type)
 {
   return IsInAliasList(type,AliasesForConfig());
-}
-
-//_____________________________________________________________________________
-/// Whether type is of Gains flavour
-Bool_t AliMUONTrackerDataSourceTypes::IsGains(const char* type)
-{
-  return IsInAliasList(type,AliasesForGains());
 }
 
 //_____________________________________________________________________________
@@ -57,6 +43,12 @@ Bool_t AliMUONTrackerDataSourceTypes::IsHV(const char* type)
   return IsInAliasList(type,AliasesForHV());
 }
 
+//_____________________________________________________________________________
+/// Whether type is of LV flavour
+Bool_t AliMUONTrackerDataSourceTypes::IsLV(const char* type)
+{
+  return IsInAliasList(type,AliasesForLV());
+}
 //_____________________________________________________________________________
 /// Whether type is of Occupancy flavour
 Bool_t AliMUONTrackerDataSourceTypes::IsOccupancy(const char* type)
