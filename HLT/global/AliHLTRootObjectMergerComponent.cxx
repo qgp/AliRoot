@@ -84,6 +84,7 @@ void* AliHLTRootObjectMergerComponent::cleanup(void*)
 {
   if (fObj) delete fObj;
   fObj = NULL;
+  return(NULL);
 }
 
 int AliHLTRootObjectMergerComponent::DoDeinit() {
