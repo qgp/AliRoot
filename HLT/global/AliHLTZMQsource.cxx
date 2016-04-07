@@ -44,6 +44,7 @@ AliHLTZMQsource::AliHLTZMQsource()
   , fMessageFilter("")
   , fZMQrequestTimeout(1000)
   , fZMQneverBlock(kTRUE)
+  , fForwardHLTinput(false)
 {
 }
 
@@ -115,7 +116,7 @@ int AliHLTZMQsource::DoInit( int argc, const char** argv )
 
   int rc = 0;
   //init ZMQ stuff
-  fZMQcontext = zmq_ctx_new();
+  fZMQcontext = alizmq_context();
   HLTMessage(Form("ctx create rc %i errno %i",rc,errno));
 
   //init ZMQ socket
@@ -163,6 +164,17 @@ int AliHLTZMQsource::DoProcessing( const AliHLTComponentEventData& evtData,
   outputBufferSize=0;
   int blockSize = 0;
   void* block = NULL;
+
+  //if we want to forward HLT input:
+  if (fForwardHLTinput)
+  {
+    for (int iBlock = 0;
+        iBlock < evtData.fBlockCnt;
+        iBlock++) 
+    {
+      Forward(&blocks[iBlock]);
+    }  
+  }
 
   int blockTopicSize=-1;
   AliHLTDataTopic blockTopic = kAliHLTAnyDataType | kAliHLTDataOriginAny;
@@ -273,23 +285,29 @@ int AliHLTZMQsource::ProcessOption(TString option, TString value)
         return -EINVAL;
     }
   }
-
-  if (option.EqualTo("MessageFilter") || option.EqualTo("subscription"))
+  else if (option.EqualTo("MessageFilter") || option.EqualTo("subscription"))
   {
     fMessageFilter = value;
   }
-
-  if (option.EqualTo("ZMQrequestTimeout"))
+  else if (option.EqualTo("ZMQrequestTimeout"))
   {
     fZMQrequestTimeout = value.Atoi();
   }
-
-  if (option.EqualTo("ZMQneverBlock"))
+  else if (option.EqualTo("ZMQneverBlock"))
   {
     if (value.EqualTo("0") || value.EqualTo("no") || value.Contains("false",TString::kIgnoreCase))
       fZMQneverBlock = kFALSE;
     else if (value.EqualTo("1") || value.EqualTo("yes") || value.Contains("true",TString::kIgnoreCase) )
       fZMQneverBlock = kTRUE;
+  }
+  else if (option.EqualTo("forwardHLTinput"))
+  {
+    fForwardHLTinput = true;
+  }
+  else
+  {
+    HLTError("unrecognized option %s", option.Data());
+    return -1;
   }
 
   return 1; 
