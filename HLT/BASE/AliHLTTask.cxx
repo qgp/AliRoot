@@ -1,6 +1,6 @@
 // $Id$
 //**************************************************************************
-//* This file is property of and copyright by the                          * 
+//* This file is property of and copyright by the                          *
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //*                                                                        *
 //* Primary Authors: Matthias Richter <Matthias.Richter@ift.uib.no>        *
@@ -17,7 +17,7 @@
 
 /// @file   AliHLTTask.cxx
 /// @author Matthias Richter
-/// @date   
+/// @date
 /// @brief  Implementation of HLT tasks.
 ///
 
@@ -128,7 +128,7 @@ int AliHLTTask::CreateComponent(AliHLTConfiguration* pConfiguration, AliHLTCompo
 	  pComponent->SetComponentDescription(description.Data());
 	  const AliHLTAnalysisEnvironment* pEnv=pCH->GetEnvironment();
 	  if ((iResult=pComponent->Init(pEnv, NULL, argc, argv))>=0) {
-	    //HLTDebug("component %s (%p) created", pComponent->GetComponentID(), pComponent); 
+	    //HLTDebug("component %s (%p) created", pComponent->GetComponentID(), pComponent);
 	  } else {
 	    HLTError("Initialization of component \"%s\" failed with error %d", pComponent->GetComponentID(), iResult);
 	  }
@@ -158,7 +158,7 @@ int AliHLTTask::Deinit()
   AliHLTComponent* pComponent=GetComponent();
   fpComponent=NULL;
   if (pComponent) {
-    //HLTDebug("delete component %s (%p)", pComponent->GetComponentID(), pComponent); 
+    //HLTDebug("delete component %s (%p)", pComponent->GetComponentID(), pComponent);
     pComponent->Deinit();
     delete pComponent;
   } else {
@@ -418,7 +418,7 @@ int AliHLTTask::StartRun()
     }
     if (iResult>=0) {
       // send the SOR event
-      
+
     }
   } else {
     HLTError("task %s (%p) does not have a component", GetName(), this);
@@ -505,7 +505,7 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
 	    block++;
 	  }
 	  HLTDebug("Task %s (%p) successfully subscribed to %d data block(s) of task %s (%p)", GetName(), this, iResult, pSrcTask->GetName(), pSrcTask);
-	  iSourceDataBlock=fBlockDataArray.size();	  
+	  iSourceDataBlock=fBlockDataArray.size();
 	  iResult=0;
 	} else {
 	  HLTError("Task %s (%p): subscription to task %s (%p) failed with error %d", GetName(), this, pSrcTask->GetName(), pSrcTask, iResult);
@@ -516,7 +516,7 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
 	iResult=-EFAULT;
       }
       lnk=lnk->Next();
-    }    
+    }
 
     // process the event
     int iNofTrial=0; // repeat processing if component returns -ENOSPC
@@ -593,6 +593,9 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
       case gkAliEventTypeSoftware:    l1msg = 0x01; break;
       }
       evtTrigData.fCommonHeader[1] = AliHLTUInt32_t(l1msg) << 14;
+
+      evtTrigData.fCommonHeader[1] |= AliHLTUInt32_t(3) << 24; // force CDH version to 3
+
       evtTrigData.fCommonHeader[3] = ((l1msg & 0x1) == 0x1) ? (participatingDetectors & 0xFFFFFF) : 0x0;
       evtTrigData.fCommonHeader[5] = (trgMask & AliHLTTriggerMask_t(0xffffffff)).to_ulong();
       evtTrigData.fCommonHeader[6] = ((trgMask>>32) & AliHLTTriggerMask_t(0x3ffff)).to_ulong();
@@ -626,7 +629,7 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
 	//  HLTFatal("input and output buffer overlap for block descriptor %d (ptr %p size %d): output buffer %p %d",
 	//	   iblock, fBlockDataArray[iblock].fPtr, fBlockDataArray[iblock].fSize,
 	//	   pTgtBuffer, size);
-	//}	
+	//}
 
 	// process
 	evtData.fBlockCnt=fBlockDataArray.size();
@@ -789,7 +792,7 @@ int AliHLTTask::SubscribeSourcesAndSkip()
 {
   // function carries out the proper cleanup of the source components
   // by subscribing and releasing
-  int iResult=0;  
+  int iResult=0;
   AliHLTTask* pSrcTask=NULL;
   AliHLTTaskPList subscribedTaskList;
 
@@ -984,7 +987,7 @@ int AliHLTTask::CustomCleanup()
   return 0;
 }
 
-int AliHLTTask::LoggingVarargs(AliHLTComponentLogSeverity severity, 
+int AliHLTTask::LoggingVarargs(AliHLTComponentLogSeverity severity,
 				    const char* originClass, const char* originFunc,
 				    const char* file, int line, ... ) const
 {
