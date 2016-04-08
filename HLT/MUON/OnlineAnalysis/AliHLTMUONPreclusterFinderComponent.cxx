@@ -164,19 +164,21 @@ int AliHLTMUONPreclusterFinderComponent::DoInit(int argc, const char** argv)
     HLTError("The CDB path was not set.");
     return -EINVAL;
   } else {
-    cdbManager->SetDefaultStorage(cdbPath);
     if (!cdbManager->IsDefaultStorageSet()) {
-      HLTError("Invalid CDB path: %s.", cdbPath);
-      return -EINVAL;
+      // only set the OCDB stuff if not already done by someone else
+      cdbManager->SetDefaultStorage(cdbPath);
+      if (!cdbManager->IsDefaultStorageSet()) {
+        HLTError("Invalid CDB path: %s.", cdbPath);
+        return -EINVAL;
+      }
+      // Set the run number
+      if (run == -1) {
+        HLTError("The run number was not set.");
+        return -EINVAL;
+      } else {
+        cdbManager->SetRun(run);
+      }
     }
-  }
-
-  // Set the run number
-  if (run == -1) {
-    HLTError("The run number was not set.");
-    return -EINVAL;
-  } else {
-    cdbManager->SetRun(run);
   }
 
   // Load the MUON mapping from CDB and create the internal mapping
