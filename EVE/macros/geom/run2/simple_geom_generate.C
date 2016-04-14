@@ -49,7 +49,7 @@ void AddNodes(TGeoNode *node, TEveGeoNode *parent, Int_t depth, Int_t depthmax,T
 }
 
 void simple_geom_generate(char *detectorName="", int runNumber=0)
-{
+{    
     if(strcmp(detectorName,"")==0){
         cout<<"Give name of the detector as a first argument!"<<endl;
         return;
@@ -81,31 +81,25 @@ void simple_geom_generate(char *detectorName="", int runNumber=0)
             }
         }
     }
-    
     // load geometry library
     gSystem->Load("libGeom");
     
     // create visualisation manager
     TEveManager::Create();
-    
     // load config file
     TEnv settings;
     AliEveInit::GetConfig(&settings);
-    
     // set OCDB path from config and set run number for which we want to generate geometry
-    AliCDBManager::Instance()->SetDefaultStorage(settings.GetValue("OCDB.default.path","local://$ALICE_ROOT/../src/OCDB"));
+    AliCDBManager::Instance()->SetDefaultStorage(settings.GetValue("OCDB.default.path","local://$ALICE_ROOT/OCDB"));
     AliCDBManager::Instance()->SetRun(runNumber);
-    
     // load geometry from OCDB
     AliGeomManager::LoadGeometry();
     gGeoManager = AliGeomManager::GetGeometry();
     gGeoManager->DefaultColors();
-    
     // find main node for our detector
     TGeoNode* tnode = gGeoManager->GetTopNode();
     tnode->SetVisibility(kFALSE);
-    
-    
+
     for(int i=0;i<detectorsList.size();i++)
     {
         TString path;

@@ -108,10 +108,10 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 
 # Dependecies
-set(LIBDEPS STEERBase STEER ESD MONITORzmq AOD RAWDatabase MUONrec RAWDatarec ANALYSISalice EG Eve Ged Gpad Graf Graf3d Gui Minuit Net RGL Rint HLTbase ASImage)
+set(LIBDEPS STEERBase STEER ESD AOD RAWDatabase MUONrec RAWDatarec ANALYSISalice EG Eve Ged Gpad Graf Graf3d Gui Minuit Net RGL Rint HLTbase ASImage)
 
 if(ZEROMQ_FOUND)
-    set( LIBDEPS ${LIBDEPS} ${ZEROMQ_LIBRARIES} )
+    set( LIBDEPS ${LIBDEPS} ${ZEROMQ_LIBRARIES} MONITORzmq)
 endif(ZEROMQ_FOUND)
 
 # Generate the ROOT map

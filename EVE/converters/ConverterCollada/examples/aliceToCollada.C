@@ -138,7 +138,7 @@ void aliceToCollada(const char* outFile="aliceGeom.dae")
     {
         if(detectorsList[i]!="ACO")
         {
-            TFile f(Form("../../../resources/geometry/run2/simple_geom_%s.root",detectorsList[i].c_str()));
+            TFile f(Form("../../resources/geometry/run2/simple_geom_%s.root",detectorsList[i].c_str()));
             TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) f.Get(detectorsList[i].c_str());
             f.Close();
             colladaBuffer->CreateNode(detectorsList[i].c_str());
