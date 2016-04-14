@@ -121,9 +121,9 @@ fPath(path)
     {
         if(settings.GetValue(Form("%s.draw",detectorsList[i].c_str()), true))
         {
-            if(detectorsList[i]=="TPC" || detectorsList[i]=="MCH")
+            if(detectorsList[i]=="TPC" || detectorsList[i]=="MCH" || detectorsList[i]=="MFT")
             {
-                // don't load MUON and standard TPC to R-Phi view
+                // don't load MUON+MFT and standard TPC to R-Phi view
                 mv->InitSimpleGeom(geomGentle->GetSimpleGeom((char*)detectorsList[i].c_str()),false);
             }
             else if(detectorsList[i]=="RPH")
