@@ -10,17 +10,23 @@
 
 #include <TFile.h>
 #include <TSystem.h>
-#include <TEnv.h>
+#include <iostream>
+
+using namespace std;
 
 TEveGeoShape* AliEveGeomGentle::GetSimpleGeom(char* detector)
 {
     TEnv settings;
     AliEveInit::GetConfig(&settings);
-    
-    TFile f(Form("%s/%s/simple_geom_%s.root",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/"),detector));
-    TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) f.Get(detector);
+
+    TFile *f = TFile::Open(Form("%s/%s/simple_geom_%s.root",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/"),detector));
+    if(!f){
+        cout<<"AliEveGeomGentle::GetSimpleGeom -- no file with geometry found!"<<endl;
+        return nullptr;
+    }
+    TEveGeoShapeExtract* gse = (TEveGeoShapeExtract*) f->Get(detector);
     TEveGeoShape* gsre = TEveGeoShape::ImportShapeExtract(gse);
-    f.Close();
+    f->Close();
     
     // tricks for different R-Phi geom of TPC:
     if(strcmp(detector,"RPH")!=0) // don't add RPhi TPC geom to the 3D view
