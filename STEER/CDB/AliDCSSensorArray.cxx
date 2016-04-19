@@ -24,7 +24,8 @@
 #include "AliDCSSensorArray.h"
 #include "AliLog.h"
 #include <TMath.h>
-
+#include "AliDCSSensor.h"
+#include "AliNDLocalRegression.h"
 ClassImp(AliDCSSensorArray)
 
 const Double_t kSecInHour = 3600.; // seconds in one hour
@@ -168,10 +169,10 @@ AliDCSSensorArray::AliDCSSensorArray(const AliDCSSensorArray &c):TNamed(c),
 AliDCSSensorArray::~AliDCSSensorArray()
 {
   //
-  // AliDCSSensorArray destructor
+  // AliDCSSensorArray destructor  - we have somehwere double delete - had to be disabled -TO BE FIXED LATER
   //
-  fSensors->Delete();
-  delete fSensors;
+  //fSensors->Delete();
+  //delete fSensors;
 
 }
 
@@ -746,4 +747,58 @@ void AliDCSSensorArray::AddSensors(AliDCSSensorArray *newSensors)
     new ((*fSensors)[numOld+i]) AliDCSSensor(*sens);
   }
 }  
+
+void  AliDCSSensorArray::DumpToTree(const char * fname, Int_t deltaT, Int_t sigmaT){
+  ///
+  /// Dump the content of the DCS sensor array into the tree
+  /// Usage:
+  ///   1.) visualization
+  ///   2.) make a numerical diff (if saved as root file)
+  ///   3.) make a "alphabetic" diff if saved as xml file
+  ///
+  Int_t nSensors = fSensors->GetEntries();
+  UInt_t nBins=TMath::Nint(Double_t(fEndTime-fStartTime)/deltaT)+1;  
+  UInt_t startTime=deltaT*(fStartTime/deltaT);
+  TVectorF values(nSensors);
+  TVectorF valuesSmooth(nSensors);
+
+  for (Int_t iSensor=0; iSensor<nSensors; iSensor++){
+    AliDCSSensor *sensor=  GetSensorNum (iSensor);
+    TGraph *gr = sensor->GetGraph();
+    if (gr) gr->Sort();
+  }
+  //
+  //
+  TTreeSRedirector *pcstream = new TTreeSRedirector(fname,"recreate");
+  for (Int_t itime=0; itime<nBins; itime++) {
+    UInt_t evalTime=startTime+itime*deltaT;
+    TTimeStamp timeStamp(evalTime);
+    (*pcstream)<<"sensorDumpTime"<<"evalTime="<<evalTime;
+    for (Int_t iSensor=0; iSensor<nSensors; iSensor++){
+      AliDCSSensor *sensor=  GetSensorNum (iSensor);
+      values[iSensor]=sensor->GetValue(timeStamp);
+      TGraph *gr = sensor->GetGraph();
+      valuesSmooth[iSensor]=0;
+      if (gr){
+	valuesSmooth[iSensor]=AliNDLocalRegression::EvalGraphKernel(gr, (timeStamp-sensor->GetStartTime())/3600., sigmaT/3600.,3,0,1);
+      }
+      (*pcstream)<<"sensorDumpTime"<<TString::Format("%s=",(sensor->GetStringID()).Data())<<values[iSensor];      
+      (*pcstream)<<"sensorDumpTime"<<TString::Format("s%s=",(sensor->GetStringID()).Data())<<valuesSmooth[iSensor];      
+    }
+    (*pcstream)<<"sensorDumpTime"<<"\n";
+  }
+
+  (*pcstream)<<"sensorDumpFull"<<"array.="<<this<<"\n";    
+  for (Int_t iSensor=0; iSensor<nSensors; iSensor++){
+    AliDCSSensor *sensor=  GetSensorNum (iSensor);
+    if (sensor->GetGraph()){
+      (*pcstream)<<"sensorDump"<<TString::Format("gr%s.=",(sensor->GetStringID()).Data())<<sensor; 
+     }
+  }
+  (*pcstream)<<"sensorDump"<<"\n";
+  
+  delete pcstream;
+
+
+}
   

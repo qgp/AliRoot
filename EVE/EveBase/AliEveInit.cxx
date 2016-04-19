@@ -14,9 +14,7 @@
 #include <AliEveMacro.h>
 #include <AliEveGeomGentle.h>
 #include <AliEveDataSourceOffline.h>
-#include <AliEveDataSourceHLTZMQ.h>
 #include <AliEveEventManager.h>
-
 #include <AliCDBManager.h>
 
 #include <TGrid.h>
@@ -72,7 +70,6 @@ fPath(path)
     }
     
     AliEveDataSourceOffline *dataSourceOffline  = (AliEveDataSourceOffline*)man->GetDataSourceOffline();
-    AliEveDataSourceHLTZMQ  *dataSourceHLT      = (AliEveDataSourceHLTZMQ*) man->GetDataSourceHLTZMQ();
     
     ImportMacros();
     Init();
@@ -91,11 +88,18 @@ fPath(path)
     
     // read all files with names matching "geom_list_XYZ.txt"
     vector<string> detectorsList;
-    TSystemDirectory dir(Form("%s/%s",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/")),
-                         Form("%s/%s",gSystem->Getenv("ALICE_ROOT"),settings.GetValue("simple.geom.path","EVE/resources/geometry/run2/")));
+
+    string geomPath = settings.GetValue("simple.geom.path","${ALICE_ROOT}/EVE/resources/geometry/run2/");
+    string alirootBasePath = gSystem->Getenv("ALICE_ROOT");
+    size_t alirootPos = geomPath.find("${ALICE_ROOT}");
     
+    if(alirootPos != string::npos){
+        geomPath.replace(alirootPos,alirootPos+13,alirootBasePath);
+    }
+    
+    TSystemDirectory dir(geomPath.c_str(),geomPath.c_str());
     TList *files = dir.GetListOfFiles();
-    
+
     if (files)
     {
         TRegexp e("simple_geom_[A-Z,0-9][A-Z,0-9][A-Z,0-9].root");
@@ -115,6 +119,11 @@ fPath(path)
                 detectorsList.push_back(detName.Data());
             }
         }
+    }
+    else{
+        cout<<"\n\nAliEveInit -- geometry files not found!!!"<<endl;
+        cout<<"Searched directory was:"<<endl;
+        dir.Print();
     }
     
     for(int i=0;i<detectorsList.size();i++)
