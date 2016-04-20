@@ -496,6 +496,10 @@ void AliEveEventManager::AfterNewEventLoaded()
     else if(fCurrentData->fAOD){
         InitOCDB(fCurrentData->fAOD->GetRunNumber());
     }
+    else if(fCurrentData->fRawReader){
+        InitOCDB(fCurrentData->fRawReader->GetRunNumber());
+    }
+        
 
     cout<<"\n\n--------- AliEveEventManager::AfterNewEventLoaded ---------\n\n"<<endl;
     
