@@ -72,11 +72,12 @@ const Double_t AliMFTGeometry::kHoleShift1=2.8;        // shift of the FPC crew
 const Double_t AliMFTGeometry::kHoleShift2=3.6;        // shift of the FPC pin locator
 const Double_t AliMFTGeometry::kConnectorOffset=0.4;    // distance between the connector and the start of the FPC
 const Double_t AliMFTGeometry::kCapacitorDx=0.05;
-const Double_t AliMFTGeometry::kCapacitorDy=0.02;
-const Double_t AliMFTGeometry::kCapacitorDz=0.1;
-const Double_t AliMFTGeometry::kConnectorLength=0.07; 
+const Double_t AliMFTGeometry::kCapacitorDy=0.1;
+const Double_t AliMFTGeometry::kCapacitorDz=0.05;
+const Double_t AliMFTGeometry::kConnectorLength=0.1; 
 const Double_t AliMFTGeometry::kConnectorWidth=0.025;
-const Double_t AliMFTGeometry::kConnectorThickness=0.020;
+const Double_t AliMFTGeometry::kConnectorHeight=0.1;
+const Double_t AliMFTGeometry::kConnectorThickness=0.01;
 const Double_t AliMFTGeometry::kShiftDDGNDline=0.4; // positionning of the line to separate AVDD/DVDD et AGND/DGND on the FPC
 const Double_t AliMFTGeometry::kShiftline=0.025; // positionning of the line along the FPC side
 const Double_t AliMFTGeometry::kEpsilon=0.0001; // to see the removed volumes produced by TGeoSubtraction
@@ -157,7 +158,7 @@ void AliMFTGeometry::LoadSegmentation() {
 
 UInt_t AliMFTGeometry::GetObjectID(ObjectTypes type, Int_t half, Int_t disk, Int_t ladder, Int_t chip) const{
 
-  UInt_t uniqueID = (type<<13) +  (half<<12) + (disk<<9) + (ladder<<4) + chip;
+  UInt_t uniqueID = (type<<14) +  (half<<13) + (disk<<10) + (ladder<<4) + chip;
 
   return uniqueID;
 }

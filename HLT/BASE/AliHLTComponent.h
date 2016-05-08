@@ -65,6 +65,7 @@
 #include "AliHLTLogging.h"
 #include "AliHLTDataTypes.h"
 #include "AliHLTCommonCDBEntries.h"
+#include "TList.h"
 
 /* Matthias Dec 2006
  * The names have been changed for Aliroot's coding conventions sake
@@ -940,10 +941,15 @@ class AliHLTComponent : public AliHLTLogging {
 
   /** Get the schema map and get/set the use flag
   */
-  const std::map<int,TStreamerInfo*>* GetSchema() const {return &fSchema;}
-  int GetSchemaUpdatesLeft() const {return fSchemaUpdatesLeft;}
-  void SetSchemaUpdatesLeft(int s) {fSchemaUpdatesLeft = s;}
-  int UpdateSchema(const TList* listOfStremaerInfos);
+  TList* GetSchema() {return &fSchema;}
+  Bool_t GetUseSchema() const {return fUseSchema;}
+  void SetUseSchema(Bool_t s=kTRUE) {fUseSchema = s;}
+  int UpdateSchema(const TCollection* listOfStreamerInfos);
+  int UpdateSchema(TCollection* listOfStreamerInfos);
+  /** push back a schema evolution block (only when new streamer infos
+   * are added
+   */
+  int PushBackSchema();
 
   /**
    * Default method for the internal initialization.
@@ -1907,10 +1913,13 @@ class AliHLTComponent : public AliHLTLogging {
   int fEventModulo;                                                //! transient
 
   /// A map of ROOT streamer infos
-  std::map<int,TStreamerInfo*> fSchema;                            //! transient
+  TList fSchema;                                                   //! transient
 
-  /// How many schema updates are left                             //! transient
-  int fSchemaUpdatesLeft;                                          //! transient
+  /// How many schema updates are left
+  Bool_t fUseSchema;                                               //! transient
+
+  /// signal a change in the schema list
+  Bool_t fSchemaUpdated;                                           //! transient
 
   ClassDef(AliHLTComponent, 0)
 };

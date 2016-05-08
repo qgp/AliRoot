@@ -38,6 +38,8 @@ public:
     virtual Bool_t       BeginEvent(Long64_t entry);
     virtual Bool_t       FinishEvent();
 
+    void                 CreateGenerator();
+
     AliMCEvent* MCEvent() const {return fMCEvent;}
     
     void 		 SetGenerator(AliGenerator* generator) { fGenerator = generator; }

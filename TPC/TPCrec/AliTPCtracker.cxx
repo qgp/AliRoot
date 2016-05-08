@@ -1379,6 +1379,12 @@ Int_t  AliTPCtracker::LoadClusters(const TObjArray *arr)
   Int_t lower   = arr->LowerBound();
   Int_t entries = arr->GetEntriesFast();
 
+  AliTPCcalibDB * calibDB = AliTPCcalibDB::Instance();
+  AliTPCTransform *transform = calibDB->GetTransform() ;
+  transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
+  transform->SetCurrentTimeStamp( GetTimeStamp());
+  transform->SetCurrentRun( GetRunNumber() );
+
   AliWarning("Sector Change ins not checked in LoadClusters(const TObjArray *arr)");
 
   for (Int_t i=lower; i<entries; i++) {
@@ -1436,6 +1442,12 @@ Int_t  AliTPCtracker::LoadClusters(const TClonesArray *arr)
   // RS: Check for possible sector change due to the distortions: TODO
   AliWarning("Sector Change ins not checked in LoadClusters(const TClonesArray *arr)");
   //
+
+  AliTPCcalibDB * calibDB = AliTPCcalibDB::Instance();
+  AliTPCTransform *transform = calibDB->GetTransform() ;
+  transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
+  transform->SetCurrentTimeStamp( GetTimeStamp());
+  transform->SetCurrentRun( GetRunNumber() );
   //
   AliTPCclusterMI *clust=0;
   Int_t count[72][96] = { {0} , {0} }; 
@@ -1494,6 +1506,13 @@ Int_t  AliTPCtracker::LoadClusters()
   // load clusters to the memory
   static AliTPCClustersRow *clrow= new AliTPCClustersRow("AliTPCclusterMI");
   //
+
+  AliTPCcalibDB * calibDB = AliTPCcalibDB::Instance();
+  AliTPCTransform *transform = calibDB->GetTransform() ;
+  transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
+  transform->SetCurrentTimeStamp( GetTimeStamp());
+  transform->SetCurrentRun( GetRunNumber() );
+
   //  TTree * tree = fClustersArray.GetTree();
   AliInfo("LoadClusters()\n");
 
@@ -2055,7 +2074,7 @@ void AliTPCtracker::Transform(AliTPCclusterMI * cluster){
     AliFatal("Tranformations not in calibDB");
     return;
   }
-  if (!transform->GetCurrentRecoParam()) transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
+  //  if (!transform->GetCurrentRecoParam()) transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
   Double_t x[3]={static_cast<Double_t>(cluster->GetRow()),static_cast<Double_t>(cluster->GetPad()),static_cast<Double_t>(cluster->GetTimeBin())};
   Int_t idROC = cluster->GetDetector();
   transform->Transform(x,&idROC,0,1);
@@ -2066,8 +2085,11 @@ void AliTPCtracker::Transform(AliTPCclusterMI * cluster){
 			  clCorr[1]-clCorrRef[1],
 			  clCorr[2]-clCorrRef[2]); // memorize distortions (difference to reference one)
   // store the dispersion difference
-  cluster->SetDistortionDispersion(clCorr[3]>clCorrRef[3] ? TMath::Sqrt(clCorr[3]*clCorr[3] - clCorrRef[3]*clCorrRef[3]) : 0);
+  cluster->SetDistortionDispersion(clCorr[3]); // ref error is already subtracted
   //
+  cluster->SetX(x[0]);
+  cluster->SetY(x[1]);
+  cluster->SetZ(x[2]);
   // in debug mode  check the transformation
   //
   if ((AliTPCReconstructor::StreamLevel()&kStreamTransform)>0) { 
@@ -2075,20 +2097,29 @@ void AliTPCtracker::Transform(AliTPCclusterMI * cluster){
     cluster->GetGlobalXYZ(gx);
     Int_t event = (fEvent==NULL)? 0: fEvent->GetEventNumberInFile();
     TTreeSRedirector &cstream = *fDebugStreamer;
+    Int_t timeStamp=transform->GetCurrentTimeStamp();
+    float* nCclCorr = (float*)transform->GetLastMapCorrection();  
+    float* nCclCorrRef = (float*)transform->GetLastMapCorrectionRef();
+    transform->SetDebugStreamer(fDebugStreamer);
+
     cstream<<"Transform"<<  // needed for debugging of the cluster transformation, resp. used for later visualization 
       "event="<<event<<
+      "timeStamp="<<timeStamp<<
       "x0="<<x[0]<<
       "x1="<<x[1]<<
       "x2="<<x[2]<<
       "gx0="<<gx[0]<<
       "gx1="<<gx[1]<<
       "gx2="<<gx[2]<<
+      "dx="<<nCclCorr[0]<<
+      "dy="<<nCclCorr[1]<<
+      "dz="<<nCclCorr[2]<<
+      "dxRef="<<nCclCorrRef[0]<<
+      "dyRef="<<nCclCorrRef[1]<<
+      "dzRef="<<nCclCorrRef[2]<<
       "Cl.="<<cluster<<
       "\n"; 
   }
-  cluster->SetX(x[0]);
-  cluster->SetY(x[1]);
-  cluster->SetZ(x[2]);
   // The old stuff:
   //
   // 
@@ -7992,8 +8023,11 @@ Int_t AliTPCtracker::Clusters2TracksHLT (AliESDEvent *const esd, const AliESDEve
   if (AliTPCReconstructor::GetRecoParam()->GetUseOulierClusterFilter()) FilterOutlierClusters();  
   AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;  
   transform->SetCurrentRecoParam((AliTPCRecoParam*)AliTPCReconstructor::GetRecoParam());
-  transform->SetCurrentTimeStamp( esd->GetTimeStamp());
-  transform->SetCurrentRun(esd->GetRunNumber());
+  transform->SetCurrentTimeStamp( GetTimeStamp());
+  transform->SetCurrentRun( GetRunNumber());
+
+  //transform->SetCurrentTimeStamp( esd->GetTimeStamp());
+  //transform->SetCurrentRun(esd->GetRunNumber());
   //
   if (AliTPCReconstructor::GetExtendedRoads()){
     fClExtraRoadY = AliTPCReconstructor::GetExtendedRoads()[0];
@@ -9705,7 +9739,7 @@ Bool_t AliTPCtracker::DistortX(const AliTPCseed* seed, double& x, int row)
   AliTPCcalibDB * calibDB = AliTPCcalibDB::Instance();
   AliTPCTransform *transform = calibDB->GetTransform();
   if (!transform) AliFatal("Tranformations not in calibDB");
-  x += transform->EvalCorrectionMap(roc,row,xyz,0);
+  x += transform->GetCorrMapComponent(roc,row,xyz,0);
   return kTRUE;
 }
 
@@ -9725,7 +9759,7 @@ Double_t AliTPCtracker::GetDistortionX(double x, double y, double z, int sec, in
   AliTPCcalibDB * calibDB = AliTPCcalibDB::Instance();
   AliTPCTransform *transform = calibDB->GetTransform() ;
   if (!transform) AliFatal("Tranformations not in calibDB");
-  return transform->EvalCorrectionMap(sec,row,xyz,0);
+  return transform->GetCorrMapComponent(sec,row,xyz,0);
 }
 
 Double_t AliTPCtracker::GetYSectEdgeDist(int sec, int row, double y, double z) 
@@ -9745,8 +9779,8 @@ Double_t AliTPCtracker::GetYSectEdgeDist(int sec, int row, double y, double z)
   AliTPCTransform *transform = calibDB->GetTransform();
   if (!transform) AliFatal("Tranformations not in calibDB");
   // change of distance from the edge due to the X shift 
-  double dxtg = transform->EvalCorrectionMap(sec,row,xyz,0)*AliTPCTransform::GetMaxY2X();
-  double dy = transform->EvalCorrectionMap(sec,row,xyz,1);
+  double dxtg = transform->GetCorrMapComponent(sec,row,xyz,0)*AliTPCTransform::GetMaxY2X();
+  double dy = transform->GetCorrMapComponent(sec,row,xyz,1);
   return dy + (y>0?dxtg:-dxtg);
   //
 }

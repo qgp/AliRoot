@@ -13,6 +13,8 @@
 ///  rotated global (tracking) cooridnate frame (sector, lx,ly,lz)
 
 class AliTPCRecoParam;
+class TTreeSRedirector;
+class TGraph;
 #include "AliTPCChebCorr.h"
 #include "AliTransform.h"
 #include <time.h>
@@ -34,12 +36,13 @@ public:
   const AliTPCRecoParam * GetCurrentRecoParam() const {return fCurrentRecoParam;}
   AliTPCRecoParam * GetCurrentRecoParamNonConst() const {return fCurrentRecoParam;}
   UInt_t GetCurrentRunNumber() const { return fCurrentRun;}
-  const AliTPCChebCorr* GetCorrMapCacheRef() const {return fCorrMapCacheRef;}
-  const AliTPCChebCorr* GetCorrMapCache0() const {return fCorrMapCache0;}
-  const AliTPCChebCorr* GetCorrMapCache1() const {return fCorrMapCache1;}
+  AliTPCChebCorr* GetCorrMapCacheRef() const {return fCorrMapCacheRef;}
+  AliTPCChebCorr* GetCorrMapCache0() const {return fCorrMapCache0;}
+  AliTPCChebCorr* GetCorrMapCache1() const {return fCorrMapCache1;}
   //
   TObjArray* LoadCorrectionMaps(Bool_t refMap=kFALSE) const;
-  void LoadReferenceCorrectionMap();
+  void LoadFieldDependendStaticCorrectionMap(Bool_t ref,TObjArray* mapsArrProvided=0);
+  void LoadCorrectionMapsForTimeBin(TObjArray* mapsArrProvided=0);
   // set current values
   //
   void SetCurrentRecoParam(AliTPCRecoParam* param){fCurrentRecoParam=param;}
@@ -53,9 +56,11 @@ public:
   void    ApplyDistortionMap(int roc, double xyzLab[3]);
   void    EvalCorrectionMap(int roc, int row, const double xyz[3], float *res, Bool_t ref=kFALSE);
   Float_t EvalCorrectionMap(int roc, int row, const double xyz[3], int dimOut, Bool_t ref=kFALSE);
+  Float_t GetCorrMapComponent(int roc, int row, const double xyz[3], int dimOut);
   void    EvalDistortionMap(int roc, const double xyzSector[3], float res[3]);
   const   Float_t* GetLastMapCorrection() const {return fLastCorr;}
   const   Float_t* GetLastMapCorrectionRef() const {return fLastCorrRef;}
+  Float_t GetCurrentMapScaling()             const {return fCurrentMapScaling;}
   //
   static void RotateToSectorUp(float *x, int& idROC);
   static void RotateToSectorDown(float *x, int& idROC);
@@ -64,6 +69,9 @@ public:
   static int  SectorUp(int idROC);
   static int  SectorDown(int idROC);
   static double GetMaxY2X() {return fgkMaxY2X;}
+  void SetDebugStreamer(TTreeSRedirector * pcstream){fDebugStreamer=pcstream;}
+  TTreeSRedirector *GetDebugStreemer() const { return fDebugStreamer;}     //!debug streamer
+
   //
 private:
   AliTPCTransform& operator=(const AliTPCTransform&); // not implemented
@@ -73,9 +81,12 @@ private:
   Double_t fSins[18];  ///< cache the transformation
   Double_t fPrimVtx[3];///< position of the primary vertex - needed for TOF correction
   AliTPCRecoParam * fCurrentRecoParam; //!<! current reconstruction parameters
-  const AliTPCChebCorr* fCorrMapCacheRef;    //!<! reference (low-IR) correction map
-  const AliTPCChebCorr* fCorrMapCache0;      //!<! current correction map0 (for 1st time bin if time-dependent)
-  const AliTPCChebCorr* fCorrMapCache1;      //!<! current correction map1 (for 2nd time bin if time-dependent)
+  AliTPCChebCorr* fCorrMapCacheRef;    //!<! reference (low-IR) correction map
+  AliTPCChebCorr* fCorrMapCache0;      //!<! current correction map0 (for 1st time bin if time-dependent)
+  AliTPCChebCorr* fCorrMapCache1;      //!<! current correction map1 (for 2nd time bin if time-dependent)
+  Float_t  fCurrentMapScaling;               //!<! scaling factor for current correction map
+  Float_t  fCorrMapLumiCOG;                  //!<! COG of lumi for current time bin  
+  TGraph*  fLumiGraph;                       //!<! graph for current run luminosity, owned by the class
   Int_t    fCurrentRun;                //!<! current run
   time_t   fCurrentTimeStamp;          //!<! current time stamp
   Bool_t   fTimeDependentUpdated;      //!<! flag successful update of time dependent stuff
@@ -83,8 +94,9 @@ private:
   static const Double_t fgkSin20;       // sin(20)
   static const Double_t fgkCos20;       // sin(20)
   static const Double_t fgkMaxY2X;      // tg(10)
+  TTreeSRedirector *fDebugStreamer;     //!debug streamer
   //
-  ClassDef(AliTPCTransform,3)
+  ClassDef(AliTPCTransform,4)
   /// \endcond
 };
 

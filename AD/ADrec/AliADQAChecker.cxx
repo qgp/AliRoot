@@ -68,6 +68,8 @@ AliADQAChecker::AliADQAChecker() : AliQACheckerBase("AD","AD Quality Assurance D
   fTimeRatioBBZoomMax(210),
   fTimeRatioBGZoomMin(50),
   fTimeRatioBGZoomMax(90),
+  fChargeTrendMin(0),
+  fChargeTrendMax(1000),
   fMaxNoTimeRate(10e-3),
   fMaxNoFlagRate(10e-2),
   fMaxBBVariation(5),
@@ -87,6 +89,8 @@ AliADQAChecker::AliADQAChecker() : AliQACheckerBase("AD","AD Quality Assurance D
   fTimeRatioBBZoomMax =  fQAParam->GetTdcTimeMaxBBFlag();
   fTimeRatioBGZoomMin =  fQAParam->GetTdcTimeMinBGFlag();
   fTimeRatioBGZoomMax =  fQAParam->GetTdcTimeMaxBGFlag();
+  fChargeTrendMin = fQAParam->GetChargeTrendMin();
+  fChargeTrendMax = fQAParam->GetChargeTrendMax();
   fMaxNoTimeRate = fQAParam->GetMaxNoTimeRate();
   fMaxNoFlagRate = fQAParam->GetMaxNoFlagRate();
   fMaxBBVariation = fQAParam->GetMaxBBVariation();
@@ -264,9 +268,7 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
       			TPaveText *QAbox = (TPaveText*)hChargeADA->GetListOfFunctions()->At(i);
       			
 			TString meanChargeADA = " Mean charge ADA = ";
-			Char_t meanValue[6];
-			sprintf(meanValue, "%4.1f", hChargeADA->GetMean());
-			meanChargeADA += meanValue;
+			meanChargeADA += TString::Format("%4.1f ", hChargeADA->GetMean());
 			
 			QAbox->Clear();
 			QAbox->SetFillColor(kWhite);
@@ -288,9 +290,7 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
       			TPaveText *QAbox = (TPaveText*)hChargeADC->GetListOfFunctions()->At(i);
       			
 			TString meanChargeADC = " Mean charge ADC = ";
-			Char_t meanValue[6];
-			sprintf(meanValue, "%4.1f", hChargeADC->GetMean());
-			meanChargeADC += meanValue;
+			meanChargeADC += TString::Format("%4.1f ", hChargeADC->GetMean());
 			
 			QAbox->Clear();
 			QAbox->SetFillColor(kWhite);
@@ -299,11 +299,14 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
     			}
 		}
     	}
+	
+    Int_t nEventsADOR = 0;	
     TH1F *hTriggers = (TH1F*)list->At(AliADQADataMakerRec::kTriggers);
     if (!hTriggers) {
       AliWarning("Triggers histogram is not found");
     }
     else {
+        nEventsADOR = hTriggers->GetBinContent(6);
     	if(hTriggers->GetListOfFunctions()->GetEntries()<1) hTriggers->GetListOfFunctions()->Add(new TPaveText(0.56,0.73,0.72,0.85,"NDC"));
     	for(Int_t i=0; i<hTriggers->GetListOfFunctions()->GetEntries(); i++){
      		TString funcName = hTriggers->GetListOfFunctions()->At(i)->ClassName();
@@ -311,9 +314,7 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
       			TPaveText *QAbox = (TPaveText*)hTriggers->GetListOfFunctions()->At(i);
       			
 			TString nEventsText = " Number of events = ";
-			Char_t eventsValue[10];
-			sprintf(eventsValue, "%.0f", nEvents);
-			nEventsText += eventsValue;
+			nEventsText += TString::Format("%.0f ", nEvents);
 			
 			QAbox->Clear();
 			QAbox->SetFillColor(kWhite);
@@ -511,8 +512,7 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
       				hChargeSlice = hChargeSaturation->ProjectionY("hChargeSlice",i+1,i+1);
 				Double_t saturation;
 				if(hChargeSlice->Integral() != 0) saturation = hChargeSlice->Integral(1000,1025)/hChargeSlice->Integral();
-				sprintf(satValue, "%1.3f", saturation);
-				satText +=satValue; 
+				satText += TString::Format("%1.3f ", saturation);
 				satText +=" "; 
 				if(saturation > fSatMed && saturation < fSatHigh){
 					test = 0.7;
@@ -634,49 +634,55 @@ Double_t AliADQAChecker::CheckRaws(TObjArray * list) const
 			Bool_t notConfgADC = kFALSE;
 			Bool_t notSynchADA = kFALSE;
 			Bool_t notSynchADC = kFALSE;
-
-    			for(Int_t i=0; i<16; i++){
-      				hClockSlice = hBBFlagVsClock_ADOR->ProjectionY("hClockSlice",i+1,i+1);
-				Double_t center = hClockSlice->GetBinContent(11);
-				Double_t flagArray[19];
-				for(Int_t iClock = 1; iClock<20; iClock++)flagArray[iClock] = hClockSlice->GetBinContent(iClock+1);
-				Int_t maxClock = TMath::LocMax(19,flagArray);
-				if(center == 0){
+			if(nEventsADOR<50){
+				QAbox->Clear();
+        			QAbox->SetFillColor(kYellow);
+        			QAbox->AddText("Low statistics");
+				}
+			else{
+    			  for(Int_t i=0; i<16; i++){
+      				  hClockSlice = hBBFlagVsClock_ADOR->ProjectionY("hClockSlice",i+1,i+1);
+				  Double_t center = hClockSlice->GetBinContent(11);
+				  Double_t flagArray[19];
+				  for(Int_t iClock = 1; iClock<20; iClock++)flagArray[iClock-1] = hClockSlice->GetBinContent(iClock+1);
+				  Int_t maxClock = TMath::LocMax(19,flagArray);
+				  if(center == 0){
 					if(i>7)notConfgADA = kTRUE;
 					if(i<8)notConfgADC = kTRUE;
 					continue;
 					} 
-				if(maxClock != 10) {
+				  if(maxClock != 9) {
 					if(i>7)notSynchADA = kTRUE;
 					if(i<8)notSynchADC = kTRUE;
 					}
-				}
-			if(notConfgADA || notConfgADC){
-				QAbox->Clear();
-        			QAbox->SetFillColor(kViolet);
-        			if(notConfgADA)QAbox->AddText("ADA: dead channels!");
-				if(!notConfgADA)QAbox->AddText("ADA ok");
-				if(notConfgADC)QAbox->AddText("ADC: dead channels!");
-				if(!notConfgADC)QAbox->AddText("ADC ok");
-				if(notConfgADA && notConfgADC)QAbox->SetFillColor(kViolet);
-				}
+				  }
+			  if(notConfgADA || notConfgADC){
+				  QAbox->Clear();
+        			  QAbox->SetFillColor(kViolet);
+        			  if(notConfgADA)QAbox->AddText("ADA: dead channels!");
+				  if(!notConfgADA)QAbox->AddText("ADA ok");
+				  if(notConfgADC)QAbox->AddText("ADC: dead channels!");
+				  if(!notConfgADC)QAbox->AddText("ADC ok");
+				  if(notConfgADA && notConfgADC)QAbox->SetFillColor(kViolet);
+				  }
 				
-			else if(notSynchADA || notSynchADC){
-				QAbox->Clear();
-        			QAbox->SetFillColor(kRed);
-        			if(notSynchADA)QAbox->AddText("ADA misconfigured!");
-				if(!notSynchADA)QAbox->AddText("ADA ok");
-				if(notSynchADC)QAbox->AddText("ADC misconfigured!");
-				if(!notSynchADC)QAbox->AddText("ADC ok");
-				if(notSynchADA && notSynchADC)QAbox->SetFillColor(kRed);
-				}
-			else {
-				QAbox->Clear();
-        			QAbox->SetFillColor(kGreen);
-        			QAbox->AddText("ADA ok");
-				QAbox->AddText("ADC ok");
-				}				
-    			}
+			  else if(notSynchADA || notSynchADC){
+				  QAbox->Clear();
+        			  QAbox->SetFillColor(kRed);
+        			  if(notSynchADA)QAbox->AddText("ADA misconfigured!");
+				  if(!notSynchADA)QAbox->AddText("ADA ok");
+				  if(notSynchADC)QAbox->AddText("ADC misconfigured!");
+				  if(!notSynchADC)QAbox->AddText("ADC ok");
+				  if(notSynchADA && notSynchADC)QAbox->SetFillColor(kRed);
+				  }
+			  else {
+				  QAbox->Clear();
+        			  QAbox->SetFillColor(kGreen);
+        			  QAbox->AddText("ADA ok");
+				  QAbox->AddText("ADC ok");
+				  }				
+    			  }
+			}
 		}
     	}     
     TH2F *hPedestalDiffInt0  = (TH2F*)list->At(AliADQADataMakerRec::kPedestalDiffInt0);
@@ -1271,11 +1277,7 @@ void AliADQAChecker::MakeImage( TObjArray ** list, AliQAv1::TASKINDEX_t task, Al
 	pad = pChargeTrend->cd();
 	histoBlue = (TH1*)list[esIndex]->At(AliADQADataMakerRec::kTrend_TriggerChargeQuantileADA);
 	histoRed = (TH1*)list[esIndex]->At(AliADQADataMakerRec::kTrend_TriggerChargeQuantileADC);
-	max[0] = histoBlue->GetBinContent(histoBlue->GetMaximumBin());
-	max[1] = histoRed->GetBinContent(histoRed->GetMaximumBin());
-	min[0] = histoBlue->GetBinContent(histoBlue->GetMinimumBin());
-	min[1] = histoRed->GetBinContent(histoRed->GetMinimumBin());
-	histoBlue->GetYaxis()->SetRangeUser(0.8*TMath::MinElement(2,min),1.2*TMath::MaxElement(2,max));
+	histoBlue->GetYaxis()->SetRangeUser(fChargeTrendMin,fChargeTrendMax);
 	histoBlue->GetYaxis()->SetTitle("Quantile 0.9");
 	histoBlue->GetXaxis()->SetRange(1,histoBlue->GetNbinsX()-1);
 	histoBlue->DrawCopy();
