@@ -35,6 +35,7 @@ const AliHLTComponentDataType AliHLTTPCDefinitions::fgkDDLEncodedEntropyRawDataT
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkPackedRawDataType = AliHLTComponentDataTypeInitializer("RAWPAKED", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkUnpackedRawDataType = AliHLTComponentDataTypeInitializer("RAWUNPAK", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkClustersDataType = AliHLTComponentDataTypeInitializer("CLUSTERS", kAliHLTDataOriginTPC);
+const AliHLTComponentDataType AliHLTTPCDefinitions::fgkClustersXYZDataType = AliHLTComponentDataTypeInitializer("CLUSTXYZ", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRawClustersDataType = AliHLTComponentDataTypeInitializer("CLUSTRAW", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRawClustersDataTypeNotCompressed = AliHLTComponentDataTypeInitializer("CLUSNOTC", kAliHLTDataOriginTPC);
 const AliHLTComponentDataType AliHLTTPCDefinitions::fgkRawClustersDescriptorDataType = AliHLTComponentDataTypeInitializer("CLRAWDSC", kAliHLTDataOriginTPC);
@@ -66,6 +67,10 @@ const AliHLTComponentDataType& AliHLTTPCDefinitions::UnpackedRawDataType() {
 }
 const AliHLTComponentDataType& AliHLTTPCDefinitions::ClustersDataType() {
   static AliHLTComponentDataType dt = AliHLTComponentDataTypeInitializer("CLUSTERS", kAliHLTDataOriginTPC);
+  return dt;
+}
+const AliHLTComponentDataType& AliHLTTPCDefinitions::ClustersXYZDataType() {
+  static AliHLTComponentDataType dt = AliHLTComponentDataTypeInitializer("CLUSTXYZ", kAliHLTDataOriginTPC);
   return dt;
 }
 const AliHLTComponentDataType& AliHLTTPCDefinitions::RawClustersDataType() {
