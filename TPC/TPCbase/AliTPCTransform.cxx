@@ -95,7 +95,8 @@ AliTPCTransform::AliTPCTransform():
   fCorrMapCache1(0),
   fCurrentMapScaling(1.0),
   fCorrMapLumiCOG(0.0),
-  fLumiGraph(0),
+  fLumiGraphRun(0),
+  fLumiGraphMap(0),
   fCurrentRun(0),             //! current run
   fCurrentTimeStamp(0),       //! current time stamp
   fTimeDependentUpdated(kFALSE),
@@ -121,7 +122,8 @@ AliTPCTransform::AliTPCTransform(const AliTPCTransform& transform):
   fCorrMapCacheRef(transform.fCorrMapCacheRef),
   fCorrMapCache0(transform.fCorrMapCache0),
   fCorrMapCache1(transform.fCorrMapCache1),
-  fLumiGraph(fLumiGraph ? new TGraph(*fLumiGraph) : 0),
+  fLumiGraphRun(transform.fLumiGraphRun ? new TGraph(*transform.fLumiGraphRun) : 0),
+  fLumiGraphMap(transform.fLumiGraphMap ? new TGraph(*transform.fLumiGraphMap) : 0),
   fCurrentRun(transform.fCurrentRun),             //! current run
   fCurrentTimeStamp(transform.fCurrentTimeStamp),       //! current time stamp
   fTimeDependentUpdated(transform.fTimeDependentUpdated),
@@ -142,7 +144,8 @@ AliTPCTransform::AliTPCTransform(const AliTPCTransform& transform):
 
 AliTPCTransform::~AliTPCTransform() {
   /// Destructor
-  delete fLumiGraph; // own copy should be attached
+  delete fLumiGraphRun; // own copy should be attached
+  delete fLumiGraphMap; // own copy should be attached
   delete fCorrMapCacheRef;
   delete fCorrMapCache0;
   delete fCorrMapCache1;
@@ -512,7 +515,7 @@ Bool_t AliTPCTransform::UpdateTimeDependentCache()
     return fTimeDependentUpdated;
   }
   while (fCurrentRecoParam->GetUseCorrectionMap()) {
-    if (!fCorrMapCacheRef) LoadFieldDependendStaticCorrectionMap(kTRUE); // need to load the reference correction map
+    if (!fCorrMapCacheRef) fCorrMapCacheRef = LoadFieldDependendStaticCorrectionMap(kTRUE); // need to load the reference correction map
     //
     int mapTimeDepMethod = fCurrentRecoParam->GetCorrMapTimeDepMethod();
     Bool_t needToLoad = timeChanged;
@@ -549,7 +552,7 @@ Bool_t AliTPCTransform::UpdateTimeDependentCache()
       TObjArray* mapsArr = LoadCorrectionMaps(kFALSE);
       // are these time-static maps?
       if (!((AliTPCChebCorr*)mapsArr->UncheckedAt(0))->GetTimeDependent()) {
-	LoadFieldDependendStaticCorrectionMap(kFALSE,mapsArr); // static maps are field-dependent
+	fCorrMapCache0 = LoadFieldDependendStaticCorrectionMap(kFALSE,mapsArr); // static maps are field-dependent
       }
       else {
 	LoadCorrectionMapsForTimeBin(mapsArr); // load maps matching to time stamp
@@ -584,16 +587,28 @@ Bool_t AliTPCTransform::UpdateTimeDependentCache()
       case AliTPCRecoParam::kCorrMapInterpolation :
       case AliTPCRecoParam::kCorrMapNoScaling     : break;
       case AliTPCRecoParam::kCorrMapGlobalScalingLumi: 
-	if (!fLumiGraph) fLumiGraph = AliLumiTools::GetLumiGraph(fCurrentRecoParam->GetUseLumiType()); 
-	if (!fLumiGraph) AliFatalF("Failed to load luminosity graph of type %d",fCurrentRecoParam->GetUseLumiType());
+	// load lumi graph used for map (run may be different from current one if the map is default one)
+	if (!fLumiGraphMap) {
+	  //if (!fLumiGraphMap || fLumiGraphMap->GetUniqueID()!=fCorrMapCache0->GetRun()) {
+	  //if (fLumiGraphMap) delete fLumiGraphMap;
+	  int runMap = fCorrMapCache0->GetRun();
+	  if (runMap<0) AliErrorF("CorrectionMap Lumi scaling requested but run is not set, current %d will be used",fCurrentRun);
+	  fLumiGraphMap = AliLumiTools::GetLumiGraph(fCurrentRecoParam->GetUseLumiType(),runMap);
+	  if (!fLumiGraphMap) AliFatalF("Failed to load CorrectionMapluminosity lumi graph of type %d",fCurrentRecoParam->GetUseLumiType());
+	}
+	// load lumi graph for this run
+	if (!fLumiGraphRun) {
+	  fLumiGraphRun = AliLumiTools::GetLumiGraph(fCurrentRecoParam->GetUseLumiType(),fCurrentRun);
+	  if (!fLumiGraphRun) AliFatalF("Failed to load run lumi graph of type %d",fCurrentRecoParam->GetUseLumiType());
+	}
 	if (needToLoad) {  // calculate average luminosity used for current corr. map
-	  fCorrMapLumiCOG = fCorrMapCache0->GetLuminosityCOG(fLumiGraph); // recalculate lumi for new map
+	  fCorrMapLumiCOG = fCorrMapCache0->GetLuminosityCOG(fLumiGraphMap); // recalculate lumi for new map
 	  if (!fCorrMapLumiCOG) AliError("Correction map rescaling with luminosity cannot be done, will use constant map");
 	}
 	//
 	fCurrentMapScaling = 1.0;
 	if (fCorrMapLumiCOG>0) {
-	  double lumi = fLumiGraph->Eval(fCurrentTimeStamp);
+	  double lumi = fLumiGraphRun->Eval(fCurrentTimeStamp);
 	  fCurrentMapScaling = lumi/fCorrMapLumiCOG;
 	  AliInfoF("Luminosity scaling factor %.3f will be used for time %ld (Lumi: current: %.2e COG:%.2e)",
 		   fCurrentMapScaling,fCurrentTimeStamp,lumi,fCorrMapLumiCOG);
@@ -664,10 +679,11 @@ void AliTPCTransform::LoadCorrectionMapsForTimeBin(TObjArray* mapsArrProvided)
       }
     }
     //
-    AliInfoF("Loaded %d maps for time stamp %ld",fCorrMapCache1?2:1,fCurrentTimeStamp);
-    fCorrMapCache0->Print();
-    if (fCorrMapCache1) fCorrMapCache1->Print();
   }
+  //
+  AliInfoF("Loaded %d maps for time stamp %ld",fCorrMapCache1?2:1,fCurrentTimeStamp);
+  fCorrMapCache0->Print();
+  if (fCorrMapCache1) fCorrMapCache1->Print();
   //
   if (!mapsArrProvided) { // if loaded locally, clean unnecessary stuff
     mapsArr->Remove((TObject*)fCorrMapCache0);
@@ -678,7 +694,7 @@ void AliTPCTransform::LoadCorrectionMapsForTimeBin(TObjArray* mapsArrProvided)
 }
 
 //______________________________________________________
-void AliTPCTransform::LoadFieldDependendStaticCorrectionMap(Bool_t ref, TObjArray* mapsArrProvided)
+AliTPCChebCorr* AliTPCTransform::LoadFieldDependendStaticCorrectionMap(Bool_t ref, TObjArray* mapsArrProvided)
 {
   // loads time-independent correction map for relevan field polarity. If ref is true, then the
   // reference map is loaded
@@ -701,29 +717,27 @@ void AliTPCTransform::LoadFieldDependendStaticCorrectionMap(Bool_t ref, TObjArra
     if (mtp==expectType || mtp==AliTPCChebCorr::kFieldAny) cormap = map;
     if (mtp==expectType) break;
   }
-  if (!cormap) AliFatalF("Did not find %s correction map",ref ? "reference":"");
+  if (!cormap) AliFatalGeneralF("AliTPCTransform","Did not find %s correction map",ref ? "reference":"");
 
-  AliInfoF("Loaded  %s correction map",ref ? "reference":"");
+  AliInfoGeneralF("AliTPCTransform","Loaded  %s correction map",ref ? "reference":"");
   cormap->Print();
   if (cormap->GetFieldType() == AliTPCChebCorr::kFieldAny) {
-    AliWarningF("ATTENTION: no map for field %+.1f was found, placeholder map is used",bzField);
+    AliWarningGeneralF("AliTPCTransform","ATTENTION: no map for field %+.1f was found, placeholder map is used",bzField);
   }
   //
   cormap->SetFirst(); // flag absence of maps before
   cormap->SetLast();  // and after
   //
-  if (ref) fCorrMapCacheRef = cormap;
-  else     fCorrMapCache0 = cormap;
-
   if (!mapsArrProvided) { // if loaded locally, clean unnecessary stuff
     mapsArr->Remove((TObject*)cormap);
     mapsArr->SetOwner(kTRUE);
     delete mapsArr;
   }
+  return cormap;
 }
 
 //______________________________________________________
-TObjArray* AliTPCTransform::LoadCorrectionMaps(Bool_t refMap) const
+TObjArray* AliTPCTransform::LoadCorrectionMaps(Bool_t refMap)
 {
   // TPC fast Chebyshev correction map, loaded on demand, not handler by calibDB
   const char* kNameRef = "TPC/Calib/CorrectionMapsRef";
@@ -750,10 +764,16 @@ void AliTPCTransform::ApplyCorrectionMap(int roc, int row, double xyzSect[3])
   // apply correction from the map to a point at given ROC and row (IROC/OROC convention)
   EvalCorrectionMap(roc, row, xyzSect, fLastCorrRef, kTRUE);
   EvalCorrectionMap(roc, row, xyzSect, fLastCorr, kFALSE);
-  fLastCorr[3] = fLastCorr[3]>fLastCorrRef[3] ? TMath::Sqrt(fLastCorr[3]*fLastCorr[3] - fLastCorrRef[3]*fLastCorrRef[3]) : 0;
-  if (fCurrentMapScaling!=1.0f) {
-    for (int i=3;i--;) fLastCorr[i] = (fLastCorr[i]-fLastCorrRef[i])*fCurrentMapScaling + fLastCorrRef[i];
-    fLastCorr[3] *= fCurrentMapScaling;
+  if (fLastCorr[3]<1e-6) { // run specific map had no parameterization for this region, override by default
+    for (int i=3;i--;) fLastCorr[i] = fLastCorrRef[i];
+    fLastCorr[3] = 0.f;
+  }
+  else {
+    fLastCorr[3] = fLastCorr[3]>fLastCorrRef[3] ? TMath::Sqrt(fLastCorr[3]*fLastCorr[3] - fLastCorrRef[3]*fLastCorrRef[3]) : 0;
+    if (fCurrentMapScaling!=1.0f) {
+      for (int i=3;i--;) fLastCorr[i] = (fLastCorr[i]-fLastCorrRef[i])*fCurrentMapScaling + fLastCorrRef[i];
+      fLastCorr[3] *= fCurrentMapScaling;
+    }
   }
   for (int i=3;i--;) xyzSect[i] += fLastCorr[i];
   //
@@ -769,6 +789,7 @@ Float_t AliTPCTransform::GetCorrMapComponent(int roc, int row, const double xyz[
     float corrRef =  EvalCorrectionMap(roc, row, xyz, dimOut, kTRUE); // ref correction
     if (dimOut<3) corr = (corr-corrRef)*fCurrentMapScaling + corrRef;    // rescale with lumi
   }
+  return corr;
 }
 
 //______________________________________________________
@@ -790,7 +811,7 @@ void AliTPCTransform::EvalCorrectionMap(int roc, int row, const double xyz[3], f
     UInt_t t0 = fCorrMapCache0->GetTimeStampCenter();
     UInt_t t1 = fCorrMapCache1->GetTimeStampCenter();
       // possible division by 0 is checked at upload of maps
-    double dtScale = (t1-fCurrentTimeStamp)/double(t1-t0);
+    double dtScale = (fCurrentTimeStamp-t0)/double(t1-t0);
     for (int i=4;i--;) res[i] += (delta1[i]-res[i])*dtScale;
   }
   //

@@ -17,13 +17,13 @@
 #include <TMath.h>
 
 //___________________________________________________________________
-TGraph* AliLumiTools::GetLumiGraph(Int_t tp)
+TGraph* AliLumiTools::GetLumiGraph(Int_t tp, Int_t run, const char * ocdbPathDef)
 {
   // get lumi graph of requested type, relying on preconfigured CDB
   TGraph* gr = 0;
   switch(tp) {
-  case kLumiCTP: gr = GetLumiFromCTP(); break;
-  case kLumiDIP: gr = GetLumiFromDIP(); break;
+  case kLumiCTP: gr = GetLumiFromCTP(run,ocdbPathDef); break;
+  case kLumiDIP: gr = GetLumiFromDIP(run,ocdbPathDef); break;
   default: AliFatalClassF("Unknown luminosity type %d",tp);
   };
   return gr;
@@ -36,20 +36,17 @@ TGraph* AliLumiTools::GetLumiFromDIP(Int_t run, const char * ocdbPathDef)
   //
   const Int_t kMinDelta=30; // use minimum kMinDelta  seconds difference
   AliCDBManager* man = AliCDBManager::Instance();
-  if (!man->IsDefaultStorageSet()) man->SetDefaultStorage(ocdbPathDef);
-  int runSave = man->GetRun();
-  if (run>-1) {
-    if (runSave!=run) man->SetRun(run);
+  if (!man->IsDefaultStorageSet()) {
+    man->SetDefaultStorage(ocdbPathDef);
+    if (run>=0) man->SetRun(run);
+    else {
+      AliErrorClass("OCDB cannot be configured since run number is not provided"); return 0;
+    }
   }
-  else if (runSave<0) {
-    AliErrorClass("Run number is neither provided nor set in the CDBManager");
-    return 0;
-  }
-  else {
-    run = runSave;
-  }
+  if (run<0) run = man->GetRun();
   //
-  AliLHCData* lhcData = (AliLHCData*)(man->Get(AliCDBPath("GRP/GRP/LHCData"))->GetObject());
+  // use explicit run number since we may query for run other than in CDB cache
+  AliLHCData* lhcData = (AliLHCData*)GetCDBObjectForRun(run,"GRP/GRP/LHCData",ocdbPathDef);
 
   Int_t nRec = lhcData->GetNLumiAliceSBDelivered();
   Double_t vecIntLuminosity[nRec];
@@ -61,7 +58,7 @@ TGraph* AliLumiTools::GetLumiFromDIP(Int_t run, const char * ocdbPathDef)
 
   for (int iRec=0;iRec<nRec;iRec++) {
     AliLHCDipValF *value=lhcData->GetLumiAliceSBDelivered(iRec);
-    if (TMath::Abs(value->GetValue())<1e-7) {
+    if (TMath::Abs(value->GetValue())<1e-9) {
       AliWarningClassF("Skipping empty record %d : ",iRec);
       value->Print();
       continue;
@@ -86,7 +83,7 @@ TGraph* AliLumiTools::GetLumiFromDIP(Int_t run, const char * ocdbPathDef)
     double t = tref + t0 + dt/2;
     if (dt&0x1) t += 0.5;
     vecRateT[nRateAcc] = t;
-    vecRate[nRateAcc] = (rate1-rate0)/dt;
+    vecRate[nRateAcc] = (rate1-rate0)/dt*1e6; // convert from Hz/b to Hz/ub
     //    printf("%lld %lld -> %lld %lld %e\n",t0,t1, tref + t0 + dt/2,dt,rate1);
     t0 = t1;
     rate0 = rate1;
@@ -96,16 +93,15 @@ TGraph* AliLumiTools::GetLumiFromDIP(Int_t run, const char * ocdbPathDef)
   grLumi->SetTitle(Form("Rate estimator Run %d",run));
   grLumi->GetXaxis()->SetTitle("time");
   grLumi->GetXaxis()->SetTimeDisplay(1);
-  grLumi->GetYaxis()->SetTitle("Inst Lumi (Hz/b)");
+  grLumi->GetYaxis()->SetTitle("Inst Lumi (Hz/mb)");
   grLumi->SetMarkerStyle(25);
   grLumi->SetMarkerSize(0.4);
-  if (runSave>-1 && run>-1 && runSave!=run) man->SetRun(runSave); // if needed, restore run
+  grLumi->SetUniqueID(run);
   return grLumi;
 }
 
-
 //___________________________________________________________________
-TGraph* AliLumiTools::GetLumiFromCTP(Int_t run, TString refClassName, Double_t refSigma, const char * ocdbPathDef) 
+TGraph* AliLumiTools::GetLumiFromCTP(Int_t run, const char * ocdbPathDef, TString refClassName, Double_t refSigma) 
 {
   /*
     Get TGraph with luminosity vs time using reference trigger from the CTP scalers
@@ -121,21 +117,18 @@ TGraph* AliLumiTools::GetLumiFromCTP(Int_t run, TString refClassName, Double_t r
    */
   //
   AliCDBManager* man = AliCDBManager::Instance();
-  if (!man->IsDefaultStorageSet()) man->SetDefaultStorage(ocdbPathDef);
-  int runSave = man->GetRun();
-  if (run>-1) {
-    if (runSave!=run) man->SetRun(run);
+  if (!man->IsDefaultStorageSet()) {
+    man->SetDefaultStorage(ocdbPathDef);
+    if (run>=0) man->SetRun(run);
+    else {
+      AliErrorClass("OCDB cannot be configured since run number is not provided"); return 0;
+    }
   }
-  else if (runSave<0) {
-    AliErrorClass("Run number is neither provided nor set in the CDBManager");
-    return 0;
-  }
-  else {
-    run = runSave;
-  }
+  if (run<0) run = man->GetRun();
   //
+  // use explicit run number since we may query for run other than in CDB cache  
   // Get trigger config 
-  AliTriggerConfiguration* cfg = (AliTriggerConfiguration*) man->Get(AliCDBPath("GRP/CTP/Config"))->GetObject();
+  AliTriggerConfiguration* cfg = (AliTriggerConfiguration*)GetCDBObjectForRun(run,"GRP/CTP/Config",ocdbPathDef);
   //
   TString refClassAuto="";
   double refSigmaAuto=-1;
@@ -152,21 +145,34 @@ TGraph* AliLumiTools::GetLumiFromCTP(Int_t run, TString refClassName, Double_t r
     AliErrorClassF("Did not find reference trigger %s",refClassName.Data());
     return 0;
   }
-  AliTriggerBCMask* bcmask = (AliTriggerBCMask*) cl->GetBCMask();
-  Int_t nBCs = bcmask->GetNUnmaskedBCs();
 
+  // use explicit run number since we may query for run other than in CDB cache  
+  AliTriggerRunScalers* scalers = (AliTriggerRunScalers*)GetCDBObjectForRun(run,"GRP/CTP/Scalers",ocdbPathDef);
+  Int_t nEntries = scalers->GetScalersRecords()->GetEntriesFast();
+  UInt_t t1 = scalers->GetScalersRecord(0         )->GetTimeStamp()->GetSeconds();
+  UInt_t t2 = scalers->GetScalersRecord(nEntries-1)->GetTimeStamp()->GetSeconds();
+  double run_duration = double(t2) - double(t1);
+  if (run_duration<1.0) {
+    AliErrorClassF("Run duration from scalers is %f (%d : %d)",run_duration,t1,t2);
+    return 0;
+  }
+  //
+  const Double_t orbitRate = 11245.;
   TString activeDetectorsString = cfg->GetActiveDetectors();
-
-  AliTriggerRunScalers* scalers = (AliTriggerRunScalers*) man->Get("GRP/CTP/Scalers")->GetObject();
   TString refCluster = cl->GetCluster()->GetName();
   Bool_t useLM = activeDetectorsString.Contains("TRD") && (refCluster.EqualTo("CENT") || refCluster.EqualTo("ALL") || refCluster.EqualTo("FAST"));
-
-  Int_t nEntries = scalers->GetScalersRecords()->GetEntriesFast();
-  Double_t orbitRate = 11245.;
   
+  AliTriggerBCMask* bcmask = (AliTriggerBCMask*) cl->GetBCMask();
+  Int_t nBCs = bcmask->GetNUnmaskedBCs();
+  if (nBCs<1) {
+    AliWarningClass("Number of BCs is 0");
+    return 0;
+  }
+    
   Double_t* vtime = new Double_t[nEntries];
   Double_t* vlumi = new Double_t[nEntries-1];
   Double_t* vlumiErr = new Double_t[nEntries-1];
+  int nAcc = 0;
   for (Int_t r=0;r<nEntries-1;r++){
     // Get scaler records
     AliTriggerScalersRecord* record1 = scalers->GetScalersRecord(r);
@@ -177,30 +183,37 @@ TGraph* AliLumiTools::GetLumiFromCTP(Int_t run, TString refClassName, Double_t r
     UInt_t counts1 = useLM ? scaler1->GetLMCB() : scaler1->GetLOCB();
     UInt_t counts2 = useLM ? scaler2->GetLMCB() : scaler2->GetLOCB();
     UInt_t refCounts = (counts2>counts1) ?counts2-counts1 :  counts2+(0xffffffff-counts1)+1;
-    Double_t t1 = record1->GetTimeStamp()->GetSeconds()+1e-6*record1->GetTimeStamp()->GetMicroSecs();
-    Double_t t2 = record2->GetTimeStamp()->GetSeconds()+1e-6*record2->GetTimeStamp()->GetMicroSecs();
-    Double_t duration = t2-t1;
+    UInt_t t1 = record1->GetTimeStamp()->GetSeconds()+1e-6*record1->GetTimeStamp()->GetMicroSecs();
+    UInt_t t2 = record2->GetTimeStamp()->GetSeconds()+1e-6*record2->GetTimeStamp()->GetMicroSecs();
+    Double_t duration = double(t2)-double(t1);
+    if (duration<1e-6) {
+      AliWarningClassF("Time duration between scalers %d %d is %.f, skip",t1,t2,duration);
+      continue;
+    }
     Double_t totalBCs = duration*orbitRate*nBCs;
     Double_t refMu = -TMath::Log(1-Double_t(refCounts)/totalBCs);
     Double_t refRate = refMu*orbitRate*nBCs;
     Double_t refLumi = refRate/refSigma;
     //printf("%f %f\n",t2,refLumi);
-    if (r==0) vtime[0]=Double_t(t1);
-    vtime[r+1]=Double_t(t2);
-    vlumi[r]=refLumi; 
-    vlumiErr[r]=refLumi/TMath::Sqrt(refCounts);
+    if (nAcc==0) vtime[nAcc]=Double_t(t1);
+    vlumi[nAcc]=refLumi; 
+    vlumiErr[nAcc]=refCounts > 0 ? refLumi/TMath::Sqrt(refCounts) : 0.0;   
+    vtime[++nAcc]=Double_t(t2);
   }
   
-  TGraphErrors* grLumi=new TGraphErrors(nEntries-1, vtime,vlumi,0,vlumiErr);
+  TGraphErrors* grLumi=new TGraphErrors(nAcc, vtime,vlumi,0,vlumiErr);
   grLumi->SetName(TString::Format("InstLuminosityEstimator%s",refClassName.Data()).Data());
   grLumi->SetTitle(TString::Format("Inst. luminosity. Run=%d Estimator: %s",run, refClassName.Data()).Data());
-  grLumi->GetYaxis()->SetTitle("Inst lumi (Hz/b)");
+  grLumi->GetYaxis()->SetTitle("Inst lumi (Hz/mb)");
   grLumi->GetXaxis()->SetTitle("time");
   grLumi->GetXaxis()->SetTimeDisplay(1);
   grLumi->SetMarkerStyle(25);
   grLumi->SetMarkerSize(0.4);
   //
-  if (runSave>-1 && run>-1 && runSave!=run) man->SetRun(runSave); // if needed, restore run
+  delete[] vtime;
+  delete[] vlumi;
+  delete[] vlumiErr;
+  grLumi->SetUniqueID(run);
   return grLumi;
 }
 
@@ -284,4 +297,32 @@ Bool_t AliLumiTools::GetLumiCTPRefClass(int run, TString& refClass, double &refS
     return kFALSE;
   }
   return kTRUE;
+}
+
+//______________________________________________________
+TObject* AliLumiTools::GetCDBObjectForRun(int run, const char* path, const char* ocdbPathDef)
+{
+  // returns requested cdb object for requested run, even if cdbManager is already initialized/locked to other run
+  // The cache is not affected and in case the CDB is locked to different run, the requested one should be from the same year
+  AliCDBManager* man = AliCDBManager::Instance();
+  if (!man->IsDefaultStorageSet()) {
+    if (run<0) AliErrorClass("OCDB cannot be configured since run number is not provided"); return 0;
+    man->SetDefaultStorage(ocdbPathDef);
+    man->SetRun(run);
+  }
+  // check if locked and run number is different
+  if (run<0) run = man->GetRun();
+  Bool_t lock = man->GetLock();
+  ULong64_t key = 0;
+  if (run!=man->GetRun() && lock) { // CDB was locked to different run, need to unlock temporarily
+    key = gSystem->Now();
+    ULong64_t mskU=0xffffffff00000000;
+    key = (key&mskU)|ULong64_t(man->GetUniqueID());
+    man->SetLock(kFALSE,key);
+  }
+  TObject* obj = man->Get(AliCDBPath(path),run)->GetObject();
+  //
+  // if needed, lock back
+  if (lock) man->SetLock(kTRUE,key);
+  return obj;
 }

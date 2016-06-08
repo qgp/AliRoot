@@ -40,8 +40,8 @@ public:
   AliTPCChebCorr* GetCorrMapCache0() const {return fCorrMapCache0;}
   AliTPCChebCorr* GetCorrMapCache1() const {return fCorrMapCache1;}
   //
-  TObjArray* LoadCorrectionMaps(Bool_t refMap=kFALSE) const;
-  void LoadFieldDependendStaticCorrectionMap(Bool_t ref,TObjArray* mapsArrProvided=0);
+  static TObjArray* LoadCorrectionMaps(Bool_t refMap=kFALSE);
+  static AliTPCChebCorr* LoadFieldDependendStaticCorrectionMap(Bool_t ref,TObjArray* mapsArrProvided=0);
   void LoadCorrectionMapsForTimeBin(TObjArray* mapsArrProvided=0);
   // set current values
   //
@@ -86,7 +86,8 @@ private:
   AliTPCChebCorr* fCorrMapCache1;      //!<! current correction map1 (for 2nd time bin if time-dependent)
   Float_t  fCurrentMapScaling;               //!<! scaling factor for current correction map
   Float_t  fCorrMapLumiCOG;                  //!<! COG of lumi for current time bin  
-  TGraph*  fLumiGraph;                       //!<! graph for current run luminosity, owned by the class
+  TGraph*  fLumiGraphRun;                    //!<! graph for current run luminosity, owned by the class
+  TGraph*  fLumiGraphMap;                    //!<! graph for current map luminosity (may be different from current run), owned by the class
   Int_t    fCurrentRun;                //!<! current run
   time_t   fCurrentTimeStamp;          //!<! current time stamp
   Bool_t   fTimeDependentUpdated;      //!<! flag successful update of time dependent stuff

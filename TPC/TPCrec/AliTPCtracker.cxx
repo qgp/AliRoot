@@ -1326,22 +1326,18 @@ Bool_t   AliTPCtracker::GetProlongation(Double_t x1, Double_t x2, Double_t x[5],
   //-----------------------------------------------------------------
   
   Double_t dx=x2-x1;
-
-  if (TMath::Abs(x[4]*x1 - x[2]) >= 0.999) {   
-    return kFALSE;
-  }
-
-  Double_t c1=x[4]*x1 - x[2], r1=TMath::Sqrt((1.-c1)*(1.+c1));
-  Double_t c2=x[4]*x2 - x[2], r2=TMath::Sqrt((1.-c2)*(1.+c2));  
+  Double_t c1=x[4]*x1 - x[2];
+  if (TMath::Abs(c1) >= 0.999) return kFALSE;
+  Double_t c2=x[4]*x2 - x[2];
+  if (TMath::Abs(c2) >= 0.999) return kFALSE;
+  Double_t r1=TMath::Sqrt((1.-c1)*(1.+c1)),r2=TMath::Sqrt((1.-c2)*(1.+c2));  
   y = x[0];
   z = x[1];
   
   Double_t dy = dx*(c1+c2)/(r1+r2);
-  Double_t dz = 0;
   //
   Double_t delta = x[4]*dx*(c1+c2)/(c1*r2 + c2*r1);
-  
-  dz = x[3]*asinf(delta)/x[4];
+  Double_t dz = x[3]*asinf(delta)/x[4];
   
   y+=dy;
   z+=dz;
@@ -2975,7 +2971,8 @@ Int_t AliTPCtracker::FollowToNextCluster(AliTPCseed & t, Int_t nr) {
  
   } else {
     if (fIteration==0){
-      if ( t.GetNumberOfClusters()>18 && ( (t.GetSigmaY2()+t.GetSigmaZ2())>0.16 + fExtraClErrYZ2 )) t.SetRemoval(10);      
+      //RS: with distortions related cluster errors the track error may grow, don't use this cut
+      //if ( t.GetNumberOfClusters()>18 && ( (t.GetSigmaY2()+t.GetSigmaZ2())>0.16 + fExtraClErrYZ2 )) t.SetRemoval(10); 
       if ( t.GetNumberOfClusters()>18 && t.GetChi2()/t.GetNumberOfClusters()>6 ) t.SetRemoval(10);      
 
       if (( (t.GetNFoundable()*0.5 > t.GetNumberOfClusters()) || t.GetNoCluster()>15)) t.SetRemoval(10);
@@ -4361,7 +4358,7 @@ void AliTPCtracker::MakeSeeds3(TObjArray * arr, Int_t sec, Int_t i1, Int_t i2,  
        
 	//if (dsec==0) {
 	  FollowProlongation(*track, (i1+i2)/2,1);
-	  Int_t foundable,found,shared;
+	  Int_t foundable,found,shared;	  
 	  GetSeedClusterStatistic(track,(i1+i2)/2,i1, found, foundable, shared, kTRUE); //RS: seeds don't keep their clusters
 	  //RS track->GetClusterStatistic((i1+i2)/2,i1, found, foundable, shared, kTRUE);
 	  if ((found<0.55*foundable)  || shared>0.5*found || (track->GetSigmaY2()+track->GetSigmaZ2())>0.5){
@@ -4689,8 +4686,11 @@ void AliTPCtracker::MakeSeeds3Dist(TObjArray * arr, Int_t sec, Int_t i1, Int_t i
 	//if (dsec==0) {
 	  FollowProlongation(*track, (i1+i2)/2,1);
 	  Int_t foundable,found,shared;
-	  track->GetClusterStatistic((i1+i2)/2,i1, found, foundable, shared, kTRUE);
-	  if ((found<0.55*foundable)  || shared>0.5*found || (track->GetSigmaY2()+track->GetSigmaZ2())>0.5){
+	  GetSeedClusterStatistic(track,(i1+i2)/2,i1, found, foundable, shared, kTRUE); //RS: seeds don't keep their clusters
+	  //RS track->GetClusterStatistic((i1+i2)/2,i1, found, foundable, shared, kTRUE);
+	  if ((found<0.55*foundable)  || shared>0.5*found) {
+	    //RS: with distortions related cluster errors the track error may grow, don't use this cut
+	    //|| (track->GetSigmaY2()+track->GetSigmaZ2())>0.5){
 	    MarkSeedFree(seed); seed = 0;
 	    continue;
 	  }
@@ -5279,7 +5279,9 @@ void AliTPCtracker::MakeSeeds5Dist(TObjArray * arr, Int_t sec, Int_t i1, Int_t i
       nin++;      
       FollowProlongation(*track, i1-7,1);
       if (track->GetNumberOfClusters() < track->GetNFoundable()*0.75 || 
-	  track->GetNShared()>0.6*track->GetNumberOfClusters() || ( track->GetSigmaY2()+ track->GetSigmaZ2())>0.6){
+	  track->GetNShared()>0.6*track->GetNumberOfClusters()) {
+	//RS: with distortions related cluster errors the track error may grow, don't use this cut
+	//|| ( track->GetSigmaY2()+ track->GetSigmaZ2())>0.6){
 	MarkSeedFree( seed ); seed = 0;
 	continue;
       }
@@ -5293,7 +5295,9 @@ void AliTPCtracker::MakeSeeds5Dist(TObjArray * arr, Int_t sec, Int_t i1, Int_t i
       
       if (track->GetNumberOfClusters()<(i1-i2)*0.5 || 
 	  track->GetNumberOfClusters()<track->GetNFoundable()*0.7 || 
-	  track->GetNShared()>2. || track->GetChi2()/track->GetNumberOfClusters()>6 || ( track->GetSigmaY2()+ track->GetSigmaZ2())>0.5 ) {
+	  track->GetNShared()>2. || track->GetChi2()/track->GetNumberOfClusters()>6) {
+	//RS: with distortions related cluster errors the track error may grow, don't use this cut
+	//|| ( track->GetSigmaY2()+ track->GetSigmaZ2())>0.5 ) {
 	MarkSeedFree( seed ); seed = 0;
 	continue;
       }

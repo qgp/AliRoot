@@ -31,8 +31,10 @@
 #include <TNamed.h>
 #include <time.h>
 #include "AliCheb2DStack.h"
+#include "AliLog.h"
 class TGraph;
-class TH1;
+class TH1F;
+class TBits;
 
 class AliTPCChebCorr : public TNamed
 {
@@ -76,7 +78,7 @@ class AliTPCChebCorr : public TNamed
   Int_t    GetNRows()                            const {return fNRows;}
   Float_t  GetDeadZone()                         const {return fDeadZone;}
   //
-  const AliCheb2DStack* GetParam(int id)         const {return (const AliCheb2DStack*) fParams ?  fParams[id] : 0;}
+  const AliCheb2DStack* GetParam(int id)         const;
   const AliCheb2DStack* GetParam(int sector, float y2x, float z) const;
   //
   time_t   GetTimeStampStart()                   const {return fTimeStampStart;}
@@ -90,15 +92,19 @@ class AliTPCChebCorr : public TNamed
   void     Eval(int sector, int row, float tz[2], float *corr)       const;
   Float_t  Eval(int sector, int row, float y2x, float z, int dimOut) const;
   Float_t  Eval(int sector, int row, float tz[2], int dimOut)        const;
+  Bool_t   IsRowMasked(int sector72,int row)                         const;
+  Int_t    GetNMaskedRows(int sector72, TBits* masked=0)             const;
   void     Init();
   Int_t    GetDimOut() const;
   static   float GetMaxY2X()                    {return fgkY2XHSpan;}
   static const float* GetPadRowX()              {return fgkPadRowX;}
   //
-  TH1*     GetTracksRate()                       const {return fTracksRate;}
-  void     SetTracksRate(TH1* hrate)             {fTracksRate = hrate;}
+  TH1F*    GetTracksRate()                       const {return fTracksRate;}
+  void     SetTracksRate(TH1F* hrate)            {fTracksRate = hrate;}
   Double_t GetLuminosityCOG(TGraph* lumi, time_t tmin=-1, time_t tmax=-1) const;
   //
+  Int_t    GetRun()                              const;
+  void     SetRun(int run)                             {fRun = run;}
   virtual  Bool_t   IsCorrection()               const {return kTRUE;}
   virtual  Bool_t   IsDistortion()               const {return kFALSE;}
   //
@@ -107,7 +113,9 @@ class AliTPCChebCorr : public TNamed
   int      GetParID(int iz,int isect,int istack) const {return (iz*kNSectors+isect)*fNStacksSect+istack;}
   //
  protected:
+  Bool_t   fOnFlyInitDone;          //! flag that on-the-fly init was done
   Char_t   fFieldType;              // info about the field type
+  Int_t    fRun;                    // run number used extract this map
   Int_t    fNRows;                  // number of slices along the radius (e.g. rows)
   Int_t    fNStacksSect;            // number of stacks per sector in phi
   Int_t    fNStacksZSect;           // number of stacks per sector (side) in Z 
@@ -127,7 +135,7 @@ class AliTPCChebCorr : public TNamed
   //
   AliCheb2DStack** fParams;         //[fNStacks] set of AliCheb2DStack parameterizations
   //
-  TH1*  fTracksRate;                // used tracks rate
+  TH1F*  fTracksRate;                // used tracks rate
   //
   static const float fgkY2XHSpan;   // half span of sector
   static const float fgkPadRowX[];  // nominal rows
@@ -137,8 +145,16 @@ class AliTPCChebCorr : public TNamed
   AliTPCChebCorr(const AliTPCChebCorr& src);            // dummy
   AliTPCChebCorr& operator=(const AliTPCChebCorr& rhs); // dummy
   //
-  ClassDef(AliTPCChebCorr,5)
+  ClassDef(AliTPCChebCorr,8)
 };
+
+//_________________________________________________________________
+inline const AliCheb2DStack* AliTPCChebCorr::GetParam(int id) const 
+{
+  if (!fParams) return 0;
+  if (!fOnFlyInitDone) AliError("Attention: evalulation may be wrong: the object need to be initialized by Init()");
+  return (const AliCheb2DStack*) fParams[id];
+}
 
 //_________________________________________________________________
 inline const AliCheb2DStack* AliTPCChebCorr::GetParam(int sector, float y2x, float z) const

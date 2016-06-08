@@ -12,13 +12,13 @@ class AliLumiTools : public TObject
   AliLumiTools() {}
   virtual ~AliLumiTools() {}
   //
-  static TGraph* GetLumiFromCTP(Int_t run=-1, TString refClassName="", Double_t refSigma=-1, const char * ocdbPathDef="raw://");
+  static TGraph* GetLumiFromCTP(Int_t run=-1, const char * ocdbPathDef="raw://", TString refClassName="", Double_t refSigma=-1);
   static TGraph* GetLumiFromDIP(Int_t run=-1, const char * ocdbPathDef="raw://");
-  static TGraph* GetLumiGraph(int tp);
+  static TGraph* GetLumiGraph(int tp,Int_t run=-1, const char * ocdbPathDef="raw://");
   //
  protected:
   static Bool_t GetLumiCTPRefClass(int run, TString& refClass, double &refSigma);
-
+  static TObject* GetCDBObjectForRun(int run, const char* path, const char* ocdbPathDef);
  private:
   AliLumiTools(const AliLumiTools& src);
   AliLumiTools& operator=(const AliLumiTools& src) const;

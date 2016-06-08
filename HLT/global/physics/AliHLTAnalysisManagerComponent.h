@@ -154,6 +154,7 @@ private:
   /** UID for merging */
   AliHLTUInt32_t fUID;                        // see above
   bool fQuickEndRun;				//After end of run we should not further process async tasks but stop asap
+  bool fAnalysisInitialized;			//Is the AnalysisManager initialized correctly? If not, we don't process anything
 
   AliHLTAnalysisManager *fAnalysisManager;        // Manger
 
@@ -162,6 +163,7 @@ private:
   //config stuff
   TString fAddTaskMacro;
   Bool_t fWriteAnalysisToFile;
+  Bool_t fInitializeGeometry; //
   Bool_t fEnableDebug; //enable debug output - sysinfo,debug streamer, other files
   Bool_t fResetAfterPush; //reset the AnalysisManager after pushing for merging
   Int_t fPushEventModulo; //Push every n-th event
@@ -174,6 +176,6 @@ private:
   Bool_t fPushRequestOngoing; //Have we already requested a push? If so, wait until push before request again
   AliHLTAsyncMemberProcessor<AliHLTAnalysisManagerComponent> fAsyncProcessor; //Processor for asynchronous processing
 
-  ClassDef(AliHLTAnalysisManagerComponent, 1)
+  ClassDef(AliHLTAnalysisManagerComponent, 2)
 };
 #endif
