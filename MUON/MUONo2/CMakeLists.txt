@@ -50,7 +50,7 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Dependencies
 set(ROOT_DEPENDENCIES Core)
-set(ALIROOT_DEPENDENCIES STEERBase ESD RAWDatabase RAWDatarec MUONraw MUONrec)
+set(ALIROOT_DEPENDENCIES STEERBase ESD RAWDatabase RAWDatarec MUONraw MUONrec MUONgraphics)
 
 # Generate the ROOT map
 # Dependecies
