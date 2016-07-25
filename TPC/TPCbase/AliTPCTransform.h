@@ -16,6 +16,7 @@ class AliTPCRecoParam;
 class TTreeSRedirector;
 class TGraph;
 class AliTPCclusterMI;
+class AliHLTTPCReverseTransformInfoV1;
 #include "AliTPCChebCorr.h"
 #include "AliTransform.h"
 #include <time.h>
@@ -85,6 +86,8 @@ public:
   static double GetMaxY2X() {return fgkMaxY2X;}
   void SetDebugStreamer(TTreeSRedirector * pcstream){fDebugStreamer=pcstream;}
   TTreeSRedirector *GetDebugStreemer() const { return fDebugStreamer;}     //!debug streamer
+  
+  AliHLTTPCReverseTransformInfoV1* GetReverseTransformInfo();
 
   //
 private:
@@ -132,6 +135,8 @@ private:
   static const Double_t fgkCos20;       // sin(20)
   static const Double_t fgkMaxY2X;      // tg(10)
   TTreeSRedirector *fDebugStreamer;     //!debug streamer
+  
+  AliHLTTPCReverseTransformInfoV1* fTmpReverseTransformInfo; //!
   //
   ClassDef(AliTPCTransform,5)
   /// \endcond
