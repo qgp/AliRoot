@@ -75,6 +75,7 @@
 #include "TTreeStream.h"
 #include "AliLumiTools.h"
 #include "AliTPCclusterMI.h"
+#include "../HLT/TPCLib/transform/AliHLTTPCReverseTransformInfoV1.h"
 #include <TGraph.h>
 
 /// \cond CLASSIMP
@@ -101,7 +102,8 @@ AliTPCTransform::AliTPCTransform():
   fCurrentRun(0),             //! current run
   fCurrentTimeStamp(0),       //! current time stamp
   fTimeDependentUpdated(kFALSE),
-  fDebugStreamer(0)
+  fDebugStreamer(0),
+  fTmpReverseTransformInfo(NULL)
 {
   //
   // Speed it up a bit!
@@ -128,7 +130,8 @@ AliTPCTransform::AliTPCTransform(const AliTPCTransform& transform):
   fCurrentRun(transform.fCurrentRun),             //! current run
   fCurrentTimeStamp(transform.fCurrentTimeStamp),       //! current time stamp
   fTimeDependentUpdated(transform.fTimeDependentUpdated),
-  fDebugStreamer(0)
+  fDebugStreamer(0),
+  fTmpReverseTransformInfo(NULL)
 {
   /// Speed it up a bit!
 
@@ -320,8 +323,9 @@ void AliTPCTransform::Local2RotatedGlobal(Int_t sector, Double_t *x) const {
   static Double_t time0corrTime=0;
   static Double_t deltaZcorrTime=0;
   static time_t    lastStampT=-1;
+  static Int_t lastSide = -1;
 
-  if (!x) {
+  if (!x && fTmpReverseTransformInfo == NULL) {
     AliInfo("Reseting cache");
     lastStamp=-1;
     lastCorr = 1;
@@ -355,25 +359,29 @@ void AliTPCTransform::Local2RotatedGlobal(Int_t sector, Double_t *x) const {
   }
   //
   //
-  Bool_t isChange=(lastStampT!=(Int_t)fCurrentTimeStamp)||lastStamp<0;
-  if (lastStampT!=(Int_t)fCurrentTimeStamp){
+  
+  Int_t side = (Int_t) sector%36>=18;
+  
+  Bool_t isChange=(lastStampT!=(Int_t)fCurrentTimeStamp)||side!=lastSide||lastStamp<0;
+  if (lastStampT!=(Int_t)fCurrentTimeStamp||side!=lastSide){
     lastStampT=fCurrentTimeStamp;
+    lastSide=side;
     if(fCurrentRecoParam->GetUseDriftCorrectionTime()>0) {
       vdcorrectionTime = (1+AliTPCcalibDB::Instance()->
 			  GetVDriftCorrectionTime(fCurrentTimeStamp,
 						  fCurrentRun,
-						  sector%36>=18,
+						  side,
 						  fCurrentRecoParam->GetUseDriftCorrectionTime()));
       time0corrTime= AliTPCcalibDB::Instance()->
 	GetTime0CorrectionTime(fCurrentTimeStamp,
 			       fCurrentRun,
-			       sector%36>=18,
+			       side,
 			       fCurrentRecoParam->GetUseDriftCorrectionTime());
       //
       deltaZcorrTime= AliTPCcalibDB::Instance()->
 	GetVDriftCorrectionDeltaZ(fCurrentTimeStamp,
 			       fCurrentRun,
-			       sector%36>=18,
+			       side,
 			       0);
 
     }
@@ -383,17 +391,42 @@ void AliTPCTransform::Local2RotatedGlobal(Int_t sector, Double_t *x) const {
       Double_t corrGy= AliTPCcalibDB::Instance()->
 			GetVDriftCorrectionGy(fCurrentTimeStamp,
 					      AliTPCcalibDB::Instance()->GetRun(),
-					      sector%36>=18,
+					      side,
 					      fCurrentRecoParam->GetUseDriftCorrectionGY());
       vdcorrectionTimeGY = corrGy;
     }
   }
-
-
+  
   if (!param){
     AliFatal("Parameters missing");
     return; // make coverity happy
   }
+
+  if (fTmpReverseTransformInfo) {
+    fTmpReverseTransformInfo->fNTBinsL1 = param->GetNTBinsL1();
+    fTmpReverseTransformInfo->fZWidth = param->GetZWidth();
+    fTmpReverseTransformInfo->fZSigma = param->GetZSigma();
+    fTmpReverseTransformInfo->fDriftCorr = driftCorr;
+    if (side == 0) {
+      fTmpReverseTransformInfo->fTime0corrTimeA = time0corrTime;
+      fTmpReverseTransformInfo->fDeltaZcorrTimeA = deltaZcorrTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeA = vdcorrectionTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeGYA = vdcorrectionTimeGY;
+      fTmpReverseTransformInfo->fZLengthA = param->GetZLength(sector);
+    } else {
+      fTmpReverseTransformInfo->fTime0corrTimeC = time0corrTime;
+      fTmpReverseTransformInfo->fDeltaZcorrTimeC = deltaZcorrTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeC = vdcorrectionTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeGYC = vdcorrectionTimeGY;
+      fTmpReverseTransformInfo->fZLengthC = param->GetZLength(sector);
+    }
+    if (!AliTPCRecoParam::GetUseTimeCalibration()) {
+      fTmpReverseTransformInfo->fVdcorrectionTimeA = fTmpReverseTransformInfo->fVdcorrectionTimeC = 1.f;
+      fTmpReverseTransformInfo->fVdcorrectionTimeGYA = fTmpReverseTransformInfo->fVdcorrectionTimeGYC = 0.f;
+    }
+    return;
+  }
+
   Int_t row=TMath::Nint(x[0]);
   //  Int_t pad=TMath::Nint(x[1]);
   //
@@ -1113,4 +1146,14 @@ void AliTPCTransform::ResetCache()
   SetCurrentTimeStamp(-1);
   Local2RotatedGlobal(-1,0); // this will reset the cached values for VDrift
   //
+}
+
+AliHLTTPCReverseTransformInfoV1* AliTPCTransform::GetReverseTransformInfo()
+{
+    AliHLTTPCReverseTransformInfoV1* info = new AliHLTTPCReverseTransformInfoV1;
+    fTmpReverseTransformInfo = info;
+    Local2RotatedGlobal(0, NULL);
+    Local2RotatedGlobal(18, NULL);
+    fTmpReverseTransformInfo = NULL;
+    return(info);
 }
