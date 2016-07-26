@@ -8,6 +8,8 @@ void trainCorr(int row, float* tzLoc, float* corrLoc);
 
 const char* AliTPCDcalibRes::kVoxName[AliTPCDcalibRes::kVoxHDim] = {"z2x","y2x","x","N"};
 const char* AliTPCDcalibRes::kResName[AliTPCDcalibRes::kResDim] = {"dX","dY","dZ","Disp"};
+const float  AliTPCDcalibRes::kMaxResid=10.0;   
+const float  AliTPCDcalibRes::kMaxTgSlp=2.0;
 
 const float AliTPCDcalibRes::kSecDPhi = 20.f*TMath::DegToRad();
 const float AliTPCDcalibRes::kMaxQ2Pt = 3.0f;
@@ -16,7 +18,7 @@ const float AliTPCDcalibRes::kMaxQ2Pt = 3.0f;
 const float AliTPCDcalibRes::kMinX = 85.0f;
 const float AliTPCDcalibRes::kMaxX = 246.0f;
 const float AliTPCDcalibRes::kMaxZ2X = 1.0f;
-const float AliTPCDcalibRes::kZLim = 250.0f;
+const float AliTPCDcalibRes::kZLim = 2.49725e2;
 const char* AliTPCDcalibRes::kLocalResFileName  = "tmpDeltaSect";
 const char* AliTPCDcalibRes::kClosureTestFileName  = "closureTestSect";
 const char* AliTPCDcalibRes::kStatOut      = "voxelStat";
@@ -93,7 +95,9 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fMaxRejFrac(0.15)
   ,fFilterOutliers(kTRUE) 
   ,fMaxFitYErr2(1.0)
-  ,fMaxFitXErr2(1.5)
+  ,fMaxFitXErr2(1.2)
+  ,fMaxFitXYCorr(0.95)
+  ,fLTMCut(0.75)
   ,fNY2XBins(15)
   ,fNZ2XBins(10)
   ,fNXBins(-1)
@@ -219,7 +223,8 @@ void AliTPCDcalibRes::Save(const char* name)
   // save itself
   TString names = name;
   if (names.IsNull()) {
-    names = Form("%s_run%d_%lld_%lld.root",IsA()->GetName(),fRun,fTMin,fTMax);
+    //    names = Form("%s_run%d_%lld_%lld.root",IsA()->GetName(),fRun,fTMin,fTMax);
+    names = Form("%s.root",IsA()->GetName());
     names.ToLower();
   }
   TFile* flout = TFile::Open(names.Data(),"recreate");
@@ -598,7 +603,7 @@ void AliTPCDcalibRes::FillCorrectedResiduals()
     fDTC.dzR = fArrDZ[icl];
 
     fDTC.dyC = fArrDY[icl] - (corr[kResY]-corr[kResX]*fArrTgSlp[icl]);
-    fDTC.dzC = fArrDZ[icl] - (corr[kResZ]+corr[kResX]*fTgLam);
+    fDTC.dzC = fArrDZ[icl] - (corr[kResZ]-corr[kResX]*fTgLam); // we evaluate at pad-row
 
     fDTC.q2pt   = fQ2Pt;
     fDTC.tgLam  = fTgLam;
@@ -1058,13 +1063,13 @@ void AliTPCDcalibRes::ProcessSectorResiduals(int is)
 void AliTPCDcalibRes::ProcessVoxelResiduals(int np, float* tg, float *dy, float *dz, bres_t& voxRes)
 {
   // extract X,Y,Z distortions of the voxel
-  const float kDefLTMCut = 0.8;
   if (np<fMinEntriesVoxel) return;
   float a,b,err[3];
   TVectorF zres(7),yres(7);
-  if (!TStatToolkit::LTMUnbinned(np,dz,zres,kDefLTMCut)) return; 
+  voxRes.flags = 0;
+  if (!TStatToolkit::LTMUnbinned(np,dz,zres,fLTMCut)) return; 
   //
-  int *indY =  TStatToolkit::LTMUnbinned(np,dy,yres,kDefLTMCut);
+  int *indY =  TStatToolkit::LTMUnbinned(np,dy,yres,fLTMCut);
   if (!indY) return;
   // rearrange used events in increasing order
   TStatToolkit::Reorder(np,dy,indY);
@@ -1093,7 +1098,8 @@ void AliTPCDcalibRes::ProcessVoxelResiduals(int np, float* tg, float *dy, float 
   offs =  TMath::Nint(yres[5]);
   AliTPCDcalibRes::medFit(npuse, tg+offs, dy+offs, a,b, err);
 
-  if (err[0]>fMaxFitYErr2 || err[2]>fMaxFitXErr2) return;
+  float corrErr = err[0]*err[2];
+  corrErr = corrErr>0 ? err[1]/TMath::Sqrt(corrErr) : -999;
   //printf("N:%3d A:%+e B:%+e / %+e %+e %+e | %+e %+e / %+e %+e\n",np,a,b,err[0],err[1],err[2], zres[1],zres[2], zres[3],zres[4]);
   //
   voxRes.D[kResX] = -b;
@@ -1102,13 +1108,14 @@ void AliTPCDcalibRes::ProcessVoxelResiduals(int np, float* tg, float *dy, float 
   voxRes.E[kResX] = TMath::Sqrt(err[2]);
   voxRes.E[kResY] = TMath::Sqrt(err[0]);
   voxRes.E[kResZ] = zres[4];
+  voxRes.EXYCorr  = corrErr;
   //
   // store the statistics
   ULong64_t binStat = GetBin2Fill(voxRes.bvox,kVoxV);
   voxRes.stat[kVoxV] = fArrNDStat[voxRes.bsec]->At(binStat);
   for (int iv=kVoxDim;iv--;) voxRes.stat[iv] = fArrNDStat[voxRes.bsec]->At(binStat+iv-kVoxV);
   //
-  voxRes.flags |= kDistDone;
+  if (err[0]<fMaxFitYErr2 && err[2]<fMaxFitXErr2 && TMath::Abs(corrErr)<fMaxFitXYCorr) voxRes.flags |= kDistDone;
 }
 
 //_________________________________________________
@@ -2215,7 +2222,9 @@ Int_t AliTPCDcalibRes::Smooth0(int isect)
 	Bool_t res = GetSmoothEstimate(vox->bsec,vox->stat[kVoxX],vox->stat[kVoxF],vox->stat[kVoxZ],
 				       BIT(kResX)|BIT(kResY)|BIT(kResZ), // at this moment we cannot smooth dispersion
 				       vox->DS);
-	if (res) {
+	if (res) { 
+	  vox->D[kResZ]  += vox->stat[kVoxZ]*vox->DS[kResX]; // remove slope*dx contribution from account from DZ
+	  vox->DS[kResZ] += vox->stat[kVoxZ]*vox->DS[kResX];
 	  vox->flags |= kSmoothDone;
 	  cnt++;
 	}

@@ -54,7 +54,6 @@ AliHLTZMQsource::~AliHLTZMQsource()
 {
   //dtor
   zmq_close(fZMQin);
-  zmq_ctx_destroy(fZMQcontext);
 }
 
 //______________________________________________________________________________
@@ -118,7 +117,7 @@ int AliHLTZMQsource::DoInit( int argc, const char** argv )
   int rc = 0;
   //init ZMQ stuff
   fZMQcontext = alizmq_context();
-  HLTMessage(Form("ctx create rc %i errno %i",rc,errno));
+  HLTMessage(Form("ctx create rc %i %p errno %i",rc,fZMQcontext,errno));
 
   //init ZMQ socket
   rc = alizmq_socket_init(fZMQin, fZMQcontext, fZMQinConfig.Data(), 0, 10 ); 
@@ -142,6 +141,7 @@ int AliHLTZMQsource::DoDeinit()
 {
   // overloaded from AliHLTComponent: cleanup
   int retCode=0;
+  retCode = alizmq_socket_close(fZMQin);
   return retCode;
 }
 

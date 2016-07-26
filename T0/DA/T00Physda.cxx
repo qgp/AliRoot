@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
       return -1;
     }
   }
-  status = daqDA_DB_getFile("T0/Calib/Slewing_Walk/Run0_999999999_v0_s0.root","localOCDB/T0/Calib/Slewing_Walk/Run0_999999999_v0_s0.root");
+  status = daqDA_DB_getFile("T0/Calib/Slewing_Walk/Run0,999999999_v0_s0.root","localOCDB/T0/Calib/Slewing_Walk/Run0_999999999_v0_s0.root");
   if (status) {
     printf("Failed to get  file T0/Calib/Slewing_Walk() from DAQdetDB, status=%d\n", status);
     return -1;
@@ -224,13 +224,13 @@ int main(int argc, char **argv) {
       AliT0RawReader *start = new AliT0RawReader(reader, kTRUE);
       // start->SetPrintout(kFALSE);
       // Read raw data
-      Int_t allData[220][5];
-      for(Int_t i0=0;i0<220;i0++)
+      Int_t allData[250][5];
+      for(Int_t i0=0;i0<250;i0++)
       	for(Int_t j0=0;j0<5;j0++)
 	  allData[i0][j0] = 0;
       
       if(start->Next()){
-	for (Int_t i=0; i<211; i++) {
+	for (Int_t i=0; i<226; i++) {
 	  for(Int_t iHit=0;iHit<5;iHit++){
 	    allData[i][iHit]= start->GetData(i,iHit);
 	  }

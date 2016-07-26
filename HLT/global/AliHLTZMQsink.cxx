@@ -62,7 +62,6 @@ AliHLTZMQsink::~AliHLTZMQsink()
 {
   //dtor
   zmq_close(fZMQout);
-  zmq_ctx_destroy(fZMQcontext);
 }
 
 //______________________________________________________________________________
@@ -150,7 +149,9 @@ Int_t AliHLTZMQsink::DoInit( Int_t /*argc*/, const Char_t** /*argv*/ )
 Int_t AliHLTZMQsink::DoDeinit()
 {
   // see header file for class documentation
-  return 0;
+  int retCode = 0;
+  retCode = alizmq_socket_close(fZMQout);
+  return retCode;
 }
 
 //______________________________________________________________________________
@@ -373,7 +374,8 @@ int AliHLTZMQsink::DoProcessing( const AliHLTComponentEventData& evtData,
     //only send the INFO block if there is some data to send
     if (fSendRunNumber && nSelectedBlocks>0)
     {
-      rc = alizmq_msg_add(&message, "INFO", fInfoString);
+      AliHLTDataTopic topic = kAliHLTDataTypeInfo;
+      rc = alizmq_msg_add(&message, &topic, fInfoString);
       if (rc<0) {
         HLTWarning("ZMQ error adding INFO");
       }

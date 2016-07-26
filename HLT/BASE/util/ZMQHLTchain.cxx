@@ -40,6 +40,9 @@
 #include <iostream>
 #include <sys/ioctl.h>
 #include "AliCDBEntry.h"
+#include "TString.h"
+#include "AliGRPObject.h"
+#include "AliGRPManager.h"
 
 using namespace std;
 
@@ -49,7 +52,7 @@ TString fZMQconfigIN  = "PULL";
 TString fZMQsubscriptionIN = "";
 TString fZMQconfigForward  = "PUSH@inproc://source";
 Int_t   fZMQmaxQueueSize = 100;
-Int_t   fZMQtimeout = -1;
+Int_t   fZMQtimeout = 100000;
 
 //ZMQ stuff
 void* fZMQcontext = NULL;    //ze zmq context
@@ -57,19 +60,18 @@ void* fZMQforward = NULL;        //the monitoring socket, here we publish a copy
 void* fZMQin  = NULL;        //the in socket - entry point for the data to be merged.
 
 double fSleep = 1;  // seconds
-const char* fCDBpath = "local://$ALICE_ROOT/OCDB";
+TString fCDBpath = "local://$ALICE_ROOT/OCDB";
 
 string fECSstring;
 string fINFOstring;
 string fConfigMacro;
 
 bool fRequestGRP = false;
-TObject* fGRPobject = NULL;
 
 Bool_t fInterruptOnSOR = kFALSE;
 
 AliHLTUInt32_t fParticipatingDetectors = 0;
-int fRunNumber = 0;
+int fRunNumber = -1;
 bool fMagfieldIsSet = kFALSE;
 
 const char* fUSAGE = 
@@ -81,6 +83,7 @@ const char* fUSAGE =
     " -ZMQmaxQueueSize : max size of the input queue\n"
     " -ExitOnSOR : quit on change of run\n"
     " -requestGRP : request an on-the-fly GRP from upstream\n"
+    " -cdbPath : the path to the default CDB storage\n"
     " -config : ROOT macro defining the HLT chain.\n"
     "           a \"source\" component is provided, use as first parent\n"
     "           a \"sink\" component needs to be defined (last in chain)\n"
@@ -107,7 +110,7 @@ Int_t InitZMQ()
   rc = alizmq_socket_init(fZMQin,  fZMQcontext, fZMQconfigIN.Data(), fZMQtimeout, fZMQmaxQueueSize);
   printf("in:  (%s) %s\n", alizmq_socket_name(rc), fZMQconfigIN.Data());
   rc = alizmq_socket_init(fZMQforward, fZMQcontext, fZMQconfigForward.Data(), fZMQtimeout, fZMQmaxQueueSize);
-  printf("out: (%s) %s\n", alizmq_socket_name(rc), fZMQconfigForward.Data());
+  printf("forward: (%s) %s\n", alizmq_socket_name(rc), fZMQconfigForward.Data());
   return 0;
 }
 
@@ -160,7 +163,8 @@ void DoRequest(void* socket)
 
 int Run()
 {
-  AliCDBManager::Instance()->SetDefaultStorage(fCDBpath);
+  printf("setting CDB to: %s\n", fCDBpath.Data());
+  AliCDBManager::Instance()->SetDefaultStorage(fCDBpath.Data());
 
   //make the source configuration
   AliHLTSystem* system = AliHLTPluginBase::GetInstance();  
@@ -213,6 +217,7 @@ int Run()
             fZMQconfigIN.Data(), fZMQtimeout);
         rc = alizmq_socket_init(fZMQin, fZMQcontext, fZMQconfigIN.Data(), 
             fZMQtimeout, fZMQmaxQueueSize);
+        continue;
       }
     }
 
@@ -226,7 +231,10 @@ int Run()
       //get the incoming data
       alizmq_msg_recv(&message, fZMQin, 0);
 
+      int infoRunNumber = -1;
+      int ecsRunNumber = -1;
       bool isNewRun = false;
+      TObject* grpEntry = NULL;
 
       //extract infromation from message
       for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
@@ -235,7 +243,7 @@ int Run()
           AliHLTDataTopic topic;
           alizmq_msg_iter_topic(i, topic);
           string topicstr = topic.Description();
-          if (fVerbose) printf("in block type: %s\n",topicstr.c_str());
+          //if (fVerbose) printf("in block type: %s\n",topicstr.c_str());
         }
         //get the trigger mask
         if (alizmq_msg_iter_check(i, kAliHLTDataTypeGlobalTrigger)==0)
@@ -243,6 +251,7 @@ int Run()
           TObject* obj = NULL;
           alizmq_msg_iter_data(i, obj);
           if (obj) { trgMask = GetTriggerClasses(obj); }
+          delete obj;
           if (fVerbose) printf("block kAliHLTDataTypeGlobalTrigger found\n");
         }
         //get the ECS param string
@@ -265,40 +274,26 @@ int Run()
           opt += fECSstring;
           system->ScanOptions(opt.Data());
 
-          fRunNumber = atoi(ecsParamMap["RUN_NUMBER"].c_str());
-          if (fVerbose) printf("ECS string RUN_NUMBER: %i\n", fRunNumber);
-
+          ecsRunNumber = atoi(ecsParamMap["RUN_NUMBER"].c_str());
+          if (fVerbose) printf("ECS string RUN_NUMBER: %i\n", ecsRunNumber);
           printf("--set run number in CDB manager\n");
-          AliCDBManager::Instance()->SetRun(fRunNumber);
+          fRunNumber = ecsRunNumber;
         }
         //get the GRP
-        if (alizmq_msg_iter_check(i, kAliHLTDataTypeCDBEntry)==0)
+        else if (alizmq_msg_iter_check(i, kAliHLTDataTypeCDBEntry)==0)
         {
-          alizmq_msg_iter_data(i, fGRPobject);
-          AliCDBEntry* entry = dynamic_cast<AliCDBEntry*>(fGRPobject);
-          if (entry) {
-            printf("--putting the on-the-fly GRP into the CDB manager\n");
-            AliCDBManager::Instance()->PromptCacheEntry("GRP/GRP/Data",entry);
-            printf("--init mag field\n");
-            AliHLTMisc::Instance().InitMagneticField();		
-            fMagfieldIsSet=kTRUE;
-          }
+          alizmq_msg_iter_data(i, grpEntry);
         }
         //get the INFO block
-        else if (alizmq_msg_iter_check(i, kAliHLTDataTypeInfo)==0)
+        else if (alizmq_msg_iter_check(i, "INFO")==0)
         {
-          if (fVerbose) printf("block kAliHLTDataTypeInfo found\n");
           alizmq_msg_iter_data(i, fINFOstring);
           stringMap infoParams = ParseParamString(fINFOstring);
-          int runNumber = atoi(infoParams["run"].c_str());
-          if (runNumber!=fRunNumber && fRunNumber>0)
+          infoRunNumber = atoi(infoParams["run"].c_str());
+          if (fVerbose) printf("block kAliHLTDataTypeInfo found with run=%i\n",infoRunNumber);
+          if (infoRunNumber!=fRunNumber && fRunNumber>0)
           {
-            //if run changes, invalidate all params, new ones will be requested
-            fRunNumber = runNumber;
-            fECSstring.erase();
-            fMagfieldIsSet=kFALSE;
-            if (fVerbose) printf("run changed! old: %i, new: %i\n", fRunNumber, runNumber);
-            isNewRun=true;
+            isNewRun = true;
           }
         }
         //get the event info
@@ -309,26 +304,80 @@ int Run()
           eventType = topic.fSpecification;
           if (fVerbose) printf("block kAliHLTDataTypeEvent found, event type = %i\n",eventType);
         }
+      }//for message::iterator
+
+      //if run number not set from ECS string, set it from the info string
+      if (infoRunNumber>=0 && fRunNumber==-1) {
+        fRunNumber = infoRunNumber;
       }
 
+      //if run changes, invalidate all params, new ones will be requested
       //if we change run number, we skip processing, reset stuff and go back
       //to request new ECS, GRP etc.
-      if (isNewRun) {
+      if (isNewRun)
+      {
+        if (fVerbose) printf("run changed! old: %i, new: %i\n", fRunNumber, infoRunNumber);
+        fRunNumber = infoRunNumber;
+        fECSstring.erase();
+        fMagfieldIsSet=kFALSE;
+        
         alizmq_msg_close(&message);
-        if (fInterruptOnSOR) interrupted=kTRUE;
+        if (fInterruptOnSOR) {
+          printf("exiting on run change! old run: %i, new run: %i\n",fRunNumber,infoRunNumber);
+          interrupted=kTRUE;
+          break;
+        }
         continue;
       }
 
+      //init the OCDB stuff
+      printf("setting run=%i in the CDB manager\n",fRunNumber);
+      AliCDBManager::Instance()->SetRun(fRunNumber);
+      AliGRPObject* grp = NULL;
+      if (grpEntry) {
+        AliCDBEntry* entry = dynamic_cast<AliCDBEntry*>(grpEntry);
+        if (entry) {
+          printf("--putting the on-the-fly GRP into the CDB manager\n");
+          AliCDBManager::Instance()->PromptCacheEntry("GRP/GRP/Data",entry);
+          if (fVerbose) {
+            printf("some info from the GRP entry: %p, object: %p\n",entry,entry->GetObject());
+            grp = dynamic_cast<AliGRPObject*>(entry->GetObject());
+            if (grp) {
+              printf("BeamEnergy %f\n",grp->GetBeamEnergy());
+              printf("BeamType %s\n",grp->GetBeamType().Data());
+              printf("DetectorMask %ui\n",grp->GetDetectorMask());
+              printf("LHCperiod %s\n",grp->GetLHCPeriod().Data());
+              printf("LHCstate %s\n",grp->GetLHCState().Data());
+              Int_t activeDetectors = grp->GetDetectorMask();
+              TString detStr = AliDAQ::ListOfTriggeredDetectors(activeDetectors);
+              printf("DetectorMask: %s\n", detStr.Data());
+              AliGRPObject* clone = dynamic_cast<AliGRPObject*>(grp->Clone());
+              printf("cloned: %p\n",clone);
+            }
+          }
+        }
+      }
+      if (!fMagfieldIsSet) {
+        printf("--init mag field\n");
+        AliGRPManager grpMan;
+        if (grp) {
+          grpMan.SetGRPEntry(grp);
+        } else {
+          AliCDBEntry* entry = dynamic_cast<AliCDBEntry*>(AliCDBManager::Instance()->Get("GRP/GRP/Data"));
+          grp = dynamic_cast<AliGRPObject*>(entry->GetObject());
+          printf("getting GRP %p from the default OCDB\n",grp);
+          grpMan.SetGRPEntry(grp);
+        }
+        grpMan.SetMagField();
+        fMagfieldIsSet=kTRUE;
+      }
+      
       //forward the data to the chain, force non blocking mode
       if (fVerbose) printf("forwarding message to %s\n", fZMQconfigForward.Data());
       int rc = alizmq_msg_send(&message, fZMQforward, ZMQ_DONTWAIT);
       if (fVerbose) printf("...forwarded, rc=%i\n",rc);
       //close the message
       alizmq_msg_close(&message);
-
-      if (!fMagfieldIsSet) {
-        AliHLTMisc::Instance().InitMagneticField();		
-      }
 
       int nEvents = 1;
       int stop = 0;
@@ -338,14 +387,20 @@ int Run()
       }
       AliHLTUInt32_t timestamp = AliHLTUInt32_t( TTimeStamp().AsDouble() );
       system->Run(nEvents, stop, trgMask, timestamp, eventType, fParticipatingDetectors);
+      if (fVerbose) {
+        printf("done running chain\n");
+      }
     }
 
     double endTime = TTimeStamp().AsDouble();
     double timeDiff = endTime - startTime;
-    if (timeDiff < 1.0 and timeDiff < fSleep) {
+    if (timeDiff < 1.0 and timeDiff < fSleep && inType==ZMQ_REQ) {
       gSystem->Sleep(int((fSleep - timeDiff)*1000));
     }
   }
+  system->StopTasks();
+  system->DeinitTasks();
+  printf("done, exiting Run()\n");
   return 0;
 }
 
@@ -388,6 +443,14 @@ Int_t ProcessOptionString(TString arguments)
     {
       fRequestGRP = true;
     }
+    else if (option.EqualTo("cdbPath"))
+    {
+      fCDBpath=value.Data();
+    }
+    else if (option.EqualTo("ExitOnSOR"))
+    {
+      fInterruptOnSOR = (value.Contains("0"))?kFALSE:kTRUE;
+    }
     else
     {
       Printf("unrecognized option |%s|",option.Data());
@@ -426,8 +489,8 @@ int main(Int_t argc, char** argv)
   Run();
 
   //destroy ZMQ sockets
-  zmq_close(fZMQin);
-  zmq_close(fZMQforward);
+  alizmq_socket_close(fZMQin);
+  alizmq_socket_close(fZMQforward);
   zmq_ctx_destroy(fZMQcontext);
   return mainReturnCode;
 }
