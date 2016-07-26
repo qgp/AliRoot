@@ -21,6 +21,19 @@ public :
     kStremInterpolation      =0x00008     // flag: stream (heavy) interpolation information at each pad-row
   };
 
+  // from the results of running over full chunk (364396 tracks) the fastets is selected
+  enum {kQ2PT,kSect,kLocX,kZ2X,kDelt,kNDim}; // order of DOFs    CP time 13.590
+  
+  //  enum {kQ2PT,kSect,kLocX,kDelt,kZ2X,kNDim}; // order of DOFs    CP time 17.290
+  //  enum {kQ2PT,kSect,kZ2X,kLocX,kDelt,kNDim}; // order of DOFs    CP time 13.950
+  //  enum {kQ2PT,kZ2X,kSect,kLocX,kDelt,kNDim}; // order of DOFs    CP time 20.520
+  //  enum {kZ2X,kQ2PT,kSect,kLocX,kDelt,kNDim}; // order of DOFs    CP time 14.200
+
+  //  enum {kSect,kLocX,kQ2PT,kZ2X,kDelt,kNDim}; // order of DOFs    CP time 13.670
+  //  enum {kSect,kLocX,kZ2X,kQ2PT,kDelt,kNDim}; // order of DOFs    CP time 13.860
+  //  enum {kSect,kLocX,kDelt,kQ2PT,kZ2X,kNDim}; // order of DOFs    CP time 16.840
+  //  enum {kSect,kLocX,kDelt,kQ2PT,kZ2X,kNDim}; // order of DOFs    CP time 16.840
+
 public :
   using AliTPCcalibBase::Process;
   AliTPCcalibAlignInterpolation();
@@ -39,7 +52,7 @@ public :
   void   SetSyswatchStep(Int_t step){fSyswatchStep=(step==0)?1:step;} // step with which sys. usage is sampled
   //
   static void MakeEventStatInfo(const char * inputList="cat residual.list", Int_t timeInterval=300, Int_t id=0, Int_t skip=1);
-  static void   FillHistogramsFromChain(const char * residualList, Double_t dy, Double_t dz, Int_t startTime=-1, Int_t stopTime=-1,  Int_t maxStat=1000000, Int_t selHist=-1,const char * residualInfoFile="residualInfo.root");
+  static void   FillHistogramsFromChain(const char * residualList, Double_t dy, Double_t dz, Int_t startTime=-1, Int_t stopTime=-1,  Int_t maxStat=1000000, Int_t selHist=-1,const char * residualInfoFile="residualInfo.root",Bool_t fixAlignmentBug=kTRUE);
   static void    FillHistogramsFromStreamers(const char * residualList, Double_t dy, Double_t dz, Int_t downscale);
   static Bool_t FitDrift(double deltaT=120., double sigmaT=600.,  double time0=0., double time1=0.);
   static void MakeNDFit(const char * inputFile, const char * inputTree, Float_t sector0,  Float_t sector1,  Float_t theta0, Float_t theta1);
@@ -56,6 +69,9 @@ public :
   static void DrawMapEstimatorComparison(TTree * tree, const char* chtree,  Float_t radius, Float_t kZ, const char *figType=0);
   static Bool_t DrawScalingComparison(TTree * tree, const char* chRef, const char *chBin0, const char *chBin1,  Float_t R0, Float_t R1, Float_t kZ, const char *figType);
 protected:
+  static void FixAlignmentBug(int sect, float q2pt, float bz, float& alp, float& x, float &z, float &deltaY, float &deltaZ);
+  static double GetTgPhi(double x, double y2x, double q2p, double b);
+  //
   static Bool_t SortPointArray(AliTrackPointArray *pointarray, Int_t * sortedIndex);
   void   ExtractTPCGasData();
   Bool_t fOnTheFlyFill;    // flag  - histogram filled on the fly?
@@ -76,7 +92,7 @@ private:
   Int_t fTrackCounter;           // processed track counter
   AliTPCcalibAlignInterpolation(const AliTPCcalibAlignInterpolation&); // Not implemented
   AliTPCcalibAlignInterpolation& operator=(const AliTPCcalibAlignInterpolation&); // Not implemented   
-  ClassDef(AliTPCcalibAlignInterpolation,1);
+  ClassDef(AliTPCcalibAlignInterpolation,2);
 };
 
 

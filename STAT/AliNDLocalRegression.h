@@ -30,7 +30,7 @@ class AliNDLocalRegression : public TNamed {
   ~AliNDLocalRegression();
 
   Bool_t MakeFit(TTree * tree , const char *formulaVal, const char * formulaVar, const char*selection, const char * formulaKernel,  const char * dimensionFormula, Double_t weightCut=0.00001, Int_t entries=1000000000, Bool_t useBinNorm=kTRUE);
-
+  Bool_t   CleanCovariance();
   Double_t Eval(Double_t *point);
   Double_t EvalError(Double_t *point);
   Bool_t   Derivative(Double_t *point, Double_t *d);
@@ -69,7 +69,7 @@ class AliNDLocalRegression : public TNamed {
   static Double_t GetCorrNDError(Double_t index, Double_t par0,Double_t par1, Double_t par2, Double_t par3);
   static void SetVerboseLevel(Int_t verbose){ fgVerboseLevel=TMath::Max(verbose,1);}
  public:
-  Bool_t MakeRobustStatistic(TVectorD &values,TVectorD &errors,  TObjArray &pointArray,  TObjArray &kernelArray, Double_t weightCut, Double_t robustFraction);
+  Bool_t MakeRobustStatistic(TVectorD &values,TVectorD &errors,  TObjArray &pointArray,  TObjArray &kernelArrayI2, Double_t weightCut, Double_t robustFraction);
 
 protected:
   THn *fHistPoints;                     //  histogram local point distoribution

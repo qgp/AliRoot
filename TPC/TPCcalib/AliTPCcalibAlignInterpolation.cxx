@@ -59,6 +59,10 @@
 #include "AliTPCreco.h"
 #include "AliTPCcalibAlignInterpolation.h"
 #include "AliPID.h"
+#include "AliCDBManager.h"
+#include "AliMagF.h"
+#include "AliGRPManager.h"
+#include <TGeoGlobalMagField.h>
 #include "TSystem.h"
 #include "TGrid.h"
 #include "TCut.h"
@@ -527,11 +531,11 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
       //trackArrayITS[iPoint].SetUniqueID(0);
       AliTPCclusterMI &cluster=clusterArray[iPoint];
       if (cluster.GetVolumeId()==0) continue;
-      Float_t fxyz[3] = {0};
-      cluster.GetGlobalXYZ(fxyz);
-      Double_t xyz[3]={fxyz[0],fxyz[1],fxyz[2]};
+      double alpSect = ((cluster.GetDetector()%18)+0.5)*20*TMath::DegToRad();
+      double xyz[3] = {cluster.GetX(),cluster.GetY(),cluster.GetZ()}; // sector tracking frame
+      paramITS.Local2GlobalPosition(xyz,alpSect);	
       Double_t alpha = TMath::ATan2(xyz[1],xyz[0]);
-      paramITS.Global2LocalPosition(xyz,alpha);	
+      paramITS.Global2LocalPosition(xyz,alpha);	 // cluster frame
       if (!(itsOK=paramITS.Rotate(alpha))) break;
       // full material correction makes sense only when crossing the boundary of the TPC
       itsOK = (++npUpdITS)==1 ? 
@@ -558,13 +562,13 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
       AliTPCclusterMI &cluster=clusterArray[iPoint];
       //      if (cluster==NULL) continue;
       if (cluster.GetVolumeId()==0) continue;
-      Float_t fxyz[3] = {0};
-      cluster.GetGlobalXYZ(fxyz);
-      Double_t alpha = TMath::ATan2(fxyz[1],fxyz[0]);            
+      double alpSect = ((cluster.GetDetector()%18)+0.5)*20*TMath::DegToRad();
+      double xyz[3] = {cluster.GetX(),cluster.GetY(),cluster.GetZ()}; // sector tracking frame
+      paramTRD.Local2GlobalPosition(xyz,alpSect);	
+      Double_t alpha = TMath::ATan2(xyz[1],xyz[0]);
+      paramTRD.Global2LocalPosition(xyz,alpha); // cluster frame
 
       if (trdOK){
-	Double_t xyz[3]={fxyz[0],fxyz[1],fxyz[2]};
-	paramTRD.Global2LocalPosition(xyz,alpha);	
 	// material correction makes sense only when crossing the boundary of the TPC
 	trdOK = paramTRD.Rotate(alpha) && ((++npUpdTRD)==1 ? 
 					   AliTrackerBase::PropagateTrackToBxByBz(&paramTRD,xyz[0],mass,1,kFALSE) :
@@ -585,8 +589,6 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
 	}
       }
       if (tofOK){
-	Double_t xyz[3]={fxyz[0],fxyz[1],fxyz[2]};
-	paramTOF.Global2LocalPosition(xyz,alpha);	
 	// material correction makes sense only when crossing the boundary of the TPC
 	tofOK = paramTOF.Rotate(alpha) && ((++npUpdTOF)==1 ?
 					   AliTrackerBase::PropagateTrackToBxByBz(&paramTOF,xyz[0],mass,1,kFALSE) :
@@ -744,46 +746,43 @@ void AliTPCcalibAlignInterpolation::CreateResidualHistosInterpolation(Double_t d
   // gx,gy,gz - will be taken from the TPC
   //
   //
-  axisName[0]="qpt";    axisTitle[0]="q/pt (c/GeV)";                         // to fill : track.GetSigned1Pt() 
-  binsTrack[0]=5;        xminTrack[0]=-2.5;        xmaxTrack[0]=2.5; 
-  binsTrackITS[0]=5;     xminTrackITS[0]=-2.5;     xmaxTrackITS[0]=2.5; 
-
+  axisName[kQ2PT]="qpt";     axisTitle[kQ2PT]="q/pt (c/GeV)";                         // to fill : track.GetSigned1Pt() 
+  binsTrack[kQ2PT]=5;        xminTrack[kQ2PT]=-2.5;        xmaxTrack[kQ2PT]=2.5; 
+  binsTrackITS[kQ2PT]=5;     xminTrackITS[kQ2PT]=-2.5;     xmaxTrackITS[kQ2PT]=2.5; 
   //
-  axisName[1]="sector";  axisTitle[1]="Sector Number";              // to fill:   9*atan2(gy,gx)/pi+ if (sector>0) sector+18
-  binsTrack[1]=180;      xminTrack[1]=0;           xmaxTrack[1]=18; 
-  binsTrackITS[1]=180;   xminTrackITS[1]=0;        xmaxTrackITS[1]=18; 
+  axisName[kSect]="sector";  axisTitle[kSect]="Sector Number";              // to fill:   9*atan2(gy,gx)/pi+ if (sector>0) sector+18
+  binsTrack[kSect]=180;      xminTrack[kSect]=0;           xmaxTrack[kSect]=18; 
+  binsTrackITS[kSect]=180;   xminTrackITS[kSect]=0;        xmaxTrackITS[kSect]=18; 
   //
-  axisName[2]="R";       axisTitle[2]="r (cm)";                          // to fill:    gr=sqrt(gy**2+gx**2)
-  binsTrack[2]=53;       xminTrack[2]=85.;         xmaxTrack[2]=245.; 
-  binsTrackITS[2]=53;    xminTrackITS[2]=85.;      xmaxTrackITS[2]=245.; 
+  axisName[kLocX]="R";       axisTitle[kLocX]="r (cm)";                          // to fill:    gr=sqrt(gy**2+gx**2)
+  binsTrack[kLocX]=53;       xminTrack[kLocX]=85.;         xmaxTrack[kLocX]=245.; 
+  binsTrackITS[kLocX]=53;    xminTrackITS[kLocX]=85.;      xmaxTrackITS[kLocX]=245.; 
   //
+  axisName[kZ2X]="kZ";       axisTitle[kZ2X]="z/r";                          // to fill : gz/gr 
+  binsTrack[kZ2X]=20;        xminTrack[kZ2X]=-1.0;         xmaxTrack[kZ2X]=1.0;  // +-1 for ITS+TRD and ITS+TOF 
+  binsTrackITS[kZ2X]=20;     xminTrackITS[kZ2X]=-1.8;      xmaxTrackITS[kZ2X]=1.8;  // +-1.8 for the ITS 
   //
-  axisName[3]="kZ";      axisTitle[3]="z/r";                          // to fill : gz/gr 
-  binsTrack[3]=20;       xminTrack[3]=-1.0;        xmaxTrack[3]=1.0;  // +-1 for ITS+TRD and ITS+TOF 
-  binsTrackITS[3]=20;    xminTrackITS[3]=-1.8;     xmaxTrackITS[3]=1.8;  // +-1.8 for the ITS 
-  //
-  axisName[4]="delta";   axisTitle[4]="#Delta (cm)";                 // to fill    local(clusterY-track.y)
-  binsTrack[4]=100;       xminTrack[4]=-dy;        xmaxTrack[4]=dy; 
-  binsTrackITS[4]=100;    xminTrackITS[4]=-dy;     xmaxTrackITS[4]=dy; 
-
+  axisName[kDelt]="delta";   axisTitle[kDelt]="#Delta (cm)";                 // to fill    local(clusterY-track.y)
+  binsTrack[kDelt]=100;      xminTrack[kDelt]=-dy;        xmaxTrack[kDelt]=dy; 
+  binsTrackITS[kDelt]=100;   xminTrackITS[kDelt]=-dy;     xmaxTrackITS[kDelt]=dy; 
   // 
-  binsTrack[4]=TMath::Min(Int_t(20.+2.*dy/0.05),120); // buffer should be smaller than 1 GBy
-  if (selHis==0 ||selHis<0) fHisITSDRPhi = new THnF("deltaRPhiTPCITS","#Delta_{Y} (cm)", 5, binsTrackITS,xminTrackITS, xmaxTrackITS);
-  if (selHis==1 ||selHis<0) fHisITSTRDDRPhi = new THnF("deltaRPhiTPCITSTRD","#Delta_{Y} (cm) TPC-(ITS+TRD)", 5, binsTrack,xminTrack, xmaxTrack);
-  if (selHis==2 ||selHis<0) fHisITSTOFDRPhi = new THnF("deltaRPhiTPCITSTOF","#Delta_{Y} (cm) TPC-(ITS+TOF)", 5, binsTrack,xminTrack, xmaxTrack);
+  binsTrack[kDelt]=TMath::Min(Int_t(20.+2.*dy/0.05),120); // buffer should be smaller than 1 GBy
+  if (selHis==0 ||selHis<0) fHisITSDRPhi =    new THnF("deltaRPhiTPCITS","#Delta_{Y} (cm)", kNDim, binsTrackITS,xminTrackITS, xmaxTrackITS);
+  if (selHis==1 ||selHis<0) fHisITSTRDDRPhi = new THnF("deltaRPhiTPCITSTRD","#Delta_{Y} (cm) TPC-(ITS+TRD)", kNDim, binsTrack,xminTrack, xmaxTrack);
+  if (selHis==2 ||selHis<0) fHisITSTOFDRPhi = new THnF("deltaRPhiTPCITSTOF","#Delta_{Y} (cm) TPC-(ITS+TOF)", kNDim, binsTrack,xminTrack, xmaxTrack);
   //
-  binsTrack[4]=TMath::Min(Int_t(20.+2.*dz/0.05),120); // buffer should be smaller than 1 GBy
-  xminTrack[4]=-dz;        xmaxTrack[4]=dz; 
-  xminTrackITS[4]=-dz;        xmaxTrackITS[4]=dz; 
-  if (selHis==3 ||selHis<0) fHisITSDZ = new THnF("deltaZTPCITS","#Delta_{Z} (cm)", 5, binsTrackITS,xminTrackITS, xmaxTrackITS);
-  if (selHis==4 ||selHis<0) fHisITSTRDDZ = new THnF("deltaZTPCITSTRD","#Delta_{Z} (cm) TPC-(ITS+TRD)", 5, binsTrack,xminTrack, xmaxTrack);
-  if (selHis==5 ||selHis<0) fHisITSTOFDZ = new THnF("deltaZTPCITSTOF","#Delta_{Z} (cm) TPC-(ITS+TOF)", 5, binsTrack,xminTrack, xmaxTrack);
+  binsTrack[kDelt]=TMath::Min(Int_t(20.+2.*dz/0.05),120); // buffer should be smaller than 1 GBy
+  xminTrack[kDelt]=-dz;        xmaxTrack[kDelt]=dz; 
+  xminTrackITS[kDelt]=-dz;        xmaxTrackITS[kDelt]=dz; 
+  if (selHis==3 ||selHis<0) fHisITSDZ = new THnF("deltaZTPCITS","#Delta_{Z} (cm)", kNDim, binsTrackITS,xminTrackITS, xmaxTrackITS);
+  if (selHis==4 ||selHis<0) fHisITSTRDDZ = new THnF("deltaZTPCITSTRD","#Delta_{Z} (cm) TPC-(ITS+TRD)", kNDim, binsTrack,xminTrack, xmaxTrack);
+  if (selHis==5 ||selHis<0) fHisITSTOFDZ = new THnF("deltaZTPCITSTOF","#Delta_{Z} (cm) TPC-(ITS+TOF)", kNDim, binsTrack,xminTrack, xmaxTrack);
   //
   //
   //
   THn *hisToFill[6]={GetHisITSDRPhi(), GetHisITSTRDDRPhi(), GetHisITSTOFDRPhi(), GetHisITSDZ(), GetHisITSTRDDZ(), GetHisITSTOFDZ()};
   for (Int_t ihis=0; ihis<6; ihis++){
-    if (hisToFill[ihis]) for (Int_t ivar2=0;ivar2<5;ivar2++){ 
+    if (hisToFill[ihis]) for (Int_t ivar2=0;ivar2<kNDim;ivar2++){ 
       hisToFill[ihis]->GetAxis(ivar2)->SetName(axisName[ivar2].Data());
       hisToFill[ihis]->GetAxis(ivar2)->SetTitle(axisName[ivar2].Data());      
     }
@@ -826,7 +825,10 @@ void  AliTPCcalibAlignInterpolation::CreateDistortionMapsFromFile(const char * i
   //
 }
 
-void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * residualList, Double_t dy, Double_t dz, Int_t startTime, Int_t stopTime, Int_t maxStat, Int_t selHis,const char * residualInfoFile ){
+void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * residualList, Double_t dy, Double_t dz, 
+							       Int_t startTime, Int_t stopTime, Int_t maxStat, 
+							       Int_t selHis,const char * residualInfoFile,
+							       Bool_t fixAlignmentBug){
   /**
    * Trees with point-track residuals to residual histogram
    * @param residualList  text file with tree list
@@ -838,11 +840,42 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
   ::Info(" AliTPCcalibAlignInterpolation::FillHistogramsFromChain","Start %s\n", residualList);
   Int_t cacheSize= 200000000;
   if (gSystem->Getenv("treeCacheSize")) cacheSize=TString(gSystem->Getenv("treeCacheSize")).Atoi();
-  const Double_t kernelSigma2[4]={0.25,0.25,0.25,0.25};  // kernel sigma in bin width units
+  const Int_t kNDim1 = kNDim-1;
+  const Double_t kernelSigma2I[4]={1./0.25,1./0.25,1./0.25,1./0.25};  // inverse kernel sigma in bin width units
   const Double_t kFillGap=0.02  ;  // weight for the "non primary distortion info" - 
   //                                used to fill the gap without measurement (PHOS hole)
   const Double_t kFillGapITS=0.01;
   //
+  // gap weight is kFillGap + Exp(-dist): don't calculate exponent if dist is >kMaxExpArg
+  const Double_t kMaxExpArg = -TMath::Log(TMath::Max(kFillGap*0.1, 1e-3)); 
+  //
+  Int_t runNumber=TString(gSystem->Getenv("runNumber")).Atoi();
+  float bz;
+  if (fixAlignmentBug) {
+    ::Info(" AliTPCcalibAlignInterpolation::FillHistogramsFromChain","Alignment bug fix is requested\n");
+    //
+    // this requeres the field and the geometry ...
+    if (runNumber<1) AliFatalClass("FillHistogramsFromChain: Run number is not provided");
+    Bool_t geomOK = AliGeomManager::GetGeometry() != 0;
+    AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
+    if (!geomOK || !fld) { // need to setup ocdb?
+      AliCDBManager* man = AliCDBManager::Instance();
+      if (!man->IsDefaultStorageSet()) man->SetDefaultStorage("raw://");
+      if (man->GetRun()!=runNumber) man->SetRun(runNumber);
+    }
+    if (!geomOK) {
+      AliGeomManager::LoadGeometry();
+      AliGeomManager::ApplyAlignObjsFromCDB("TPC");
+    }
+    if (!fld) {
+      AliGRPManager grpMan;
+      grpMan.ReadGRPEntry();
+      grpMan.SetMagField();
+      fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
+      bz = fld->SolenoidField();
+    }
+  }
+
   // 0.) Load current information file and bookd variables
   // 
   const Int_t nSec=81;         // 72 sector +5 sumarry info+ 4 medians +
@@ -854,7 +887,11 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
 
   TFile *finfo = TFile::Open(residualInfoFile);
   TTree *treeInfo=0;
-  if (finfo) treeInfo=(TTree*)finfo->Get("summaryTime"); 
+  if (finfo) {
+    treeInfo=(TTree*)finfo->Get("summaryTime"); 
+  }else{
+    ::Fatal("AliTPCcalibAlignInterpolation::FillHistogramsFromChain","residualInfoFile %s does not exist",residualInfoFile);
+  }  
   TGraphErrors * nclArray[nSec]={0};
   TGraphErrors * nclArrayUsed[nSec]={0};
   
@@ -866,6 +903,8 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
       treeInfo->SetBranchAddress(TString::Format("grNclUsed%d.",iSec).Data(),&nclArrayUsed[iSec]);
     }
     treeInfo->GetEntry(0);
+  }else{
+    ::Fatal("AliTPCcalibAlignInterpolation::FillHistogramsFromChain","residualInfoFile %s does not contain tree summaryTime",residualInfoFile);
   }
   //
   // 0.a) Load drift velocity calibration in case availbel
@@ -901,6 +940,8 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
   calibInterpolation->CreateResidualHistosInterpolation(dy,dz,selHis);
   TString branches[6]={"its0.","trd0.","tof0.", "its1.","trd1.","tof1."};
   //
+  TVectorF *vecDeltaOther= 0;
+  TVectorF *vecDeltaOtherITS= 0;
   TVectorF *vecDelta= 0;
   TVectorF *vecDeltaITS= 0;
   TVectorF *vecR=0;
@@ -966,15 +1007,48 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
       }
       tree->SetBranchStatus(branches[ihis],kTRUE);
       tree->SetBranchAddress(branches[ihis],&vecDelta);
+      // 
+      // if aligment bug fix is needed, we need also other delta
+      if (fixAlignmentBug) {
+	int ihisOther = ihis<=2 ? ihis+3 : ihis-3;
+	tree->SetBranchStatus(branches[ihisOther],kTRUE);
+	tree->SetBranchAddress(branches[ihisOther],&vecDeltaOther);
+      }
+
       if (ihis<=2 &&ihis!=0){
 	tree->SetBranchStatus(branches[0],kTRUE);
 	tree->SetBranchAddress(branches[0],&vecDeltaITS);
+	if (fixAlignmentBug) {
+	  tree->SetBranchStatus(branches[3],kTRUE);
+	  tree->SetBranchAddress(branches[3],&vecDeltaOtherITS);
+	}
       }
-      if (ihis>2 && ihis!=3){
+      else if (ihis>2 && ihis!=3){
 	tree->SetBranchStatus(branches[3],kTRUE);
 	tree->SetBranchAddress(branches[3],&vecDeltaITS);
+	if (fixAlignmentBug) {
+	  tree->SetBranchStatus(branches[0],kTRUE);
+	  tree->SetBranchAddress(branches[0],&vecDeltaOtherITS);
+	}
       }
-
+      
+      // prepare aux info for histo bin calculation
+      Long64_t nBProd[kNDim] = {0};
+      int nBinDim[kNDim];
+      double bsize[kNDim],bsizeI[kNDim],limMin[kNDim],limMax[kNDim];
+      nBProd[kNDim1] = 1;
+      THn* curHis = hisToFill[ihis];
+      TNDArrayT<float>& arrND = (TNDArrayT<float>&)curHis->GetArray(); // for direct access
+      for (int i=kNDim;i--;) {
+	TAxis* ax = curHis->GetAxis(i);
+	limMin[i] = ax->GetXmin();
+	limMax[i] = ax->GetXmax();
+	nBinDim[i] = ax->GetNbins();
+	bsize[i]  = (limMax[i]-limMin[i])/nBinDim[i];
+	bsizeI[i] = 1./bsize[i];
+	if (i<kNDim1) nBProd[i] = nBProd[i+1]*(nBinDim[i+1]+2); // +2 to account for under/over-flows
+      }
+      //
       Int_t ntracks=tree->GetEntries();
       //
       for (Int_t itrack=0; itrack<ntracks; itrack++){
@@ -991,10 +1065,13 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
 	const Float_t *vZ  = vecZ->GetMatrixArray();
 	const Float_t *vDelta  = vecDelta->GetMatrixArray();
 	const Float_t *vDeltaITS  = (vecDeltaITS!=NULL) ? vecDeltaITS->GetMatrixArray():0;
+	const Float_t *vDeltaOther = vecDeltaOther ? vecDeltaOther->GetMatrixArray():0;
+	const Float_t *vDeltaOtherITS = vecDeltaOtherITS ? vecDeltaOtherITS->GetMatrixArray():0;
 	//
 	currentTrack++;
-	if (timeStamp<minTime) minTime=0;
-	if (timeStamp>maxTime) maxTime=0;
+
+	if (timeStamp<minTime) minTime=timeStamp;
+	if (timeStamp>maxTime) maxTime=timeStamp;
 	meanTime+=timeStamp;
 	if (treeInfo) for (Int_t iSec=0; iSec<nSec; iSec++){
 	  meanNcl[iSec]+=nclArray[iSec]->Eval(timeStamp);
@@ -1002,83 +1079,135 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
 	}
 
 	if (maxStat>0 &&currentTrack>maxStat) break;
+	double xxx[kNDim] = {0.};
 	//for (Int_t ipoint=0; ipoint<knPoints; ipoint++){
 	for (Int_t ipoint=0; ipoint<npValid; ipoint++){
 	  if (vR[ipoint]<=0 || vDelta[ipoint]<-990.) continue;
-	  Double_t sector=9.*vPhi[ipoint]/TMath::Pi();
+	  if (TMath::Abs(vDelta[ipoint])<0.000001) continue; // RS Do we need this?
+	  float phiUse = vPhi[ipoint], rUse = vR[ipoint], zUse = vZ[ipoint];
+	  float deltaITSUse = (vDeltaITS) ? vDeltaITS[ipoint]:0;
+	  float deltaRefUse = vDelta[ipoint];
+	  int rocID = TMath::Nint(vSec[ipoint]);
+
+	  if (fixAlignmentBug) {
+	    float dAux = vDeltaOther[ipoint];
+	    if (ihis<3) FixAlignmentBug(rocID, param->GetParameter()[4], bz, phiUse, rUse, zUse, deltaRefUse, dAux);
+	    else        FixAlignmentBug(rocID, param->GetParameter()[4], bz, phiUse, rUse, zUse, dAux, deltaRefUse);
+	    //
+	    if (vDeltaITS) {
+	      dAux = vDeltaOtherITS[ipoint];
+	      float phiAux = vPhi[ipoint], rAux = vR[ipoint], zAux = vZ[ipoint];
+	      if (ihis<3) FixAlignmentBug(rocID, param->GetParameter()[4], bz, phiAux, rAux, zAux, deltaITSUse, dAux);
+	      else        FixAlignmentBug(rocID, param->GetParameter()[4], bz, phiAux, rAux, zAux, dAux, deltaITSUse);
+	    }
+	    //
+	  }
+	  //
+	  Double_t sector=9.*phiUse/TMath::Pi();
 	  if (sector<0) sector+=18;
-	  Double_t deltaPhi=vPhi[ipoint]-TMath::Pi()*(Int_t(sector)+0.5)/9.;
-	  Double_t localX = TMath::Cos(deltaPhi)*vR[ipoint];
-	  Double_t xxx[5]={ param->GetParameter()[4], sector, localX,   vZ[ipoint]/localX, vDelta[ipoint]};
-	  if (TMath::Abs(xxx[4])<0.000001) continue;
-	  Double_t side=-1.+2.*((TMath::Nint(vSec[ipoint])%36)<18);
-	  if ((vZ[ipoint]*side)<-1) xxx[3]=side*0.001; // do not mix z on A side and C side
+	  Double_t deltaPhi=phiUse-TMath::Pi()*(Int_t(sector)+0.5)/9.;
+	  Double_t localX = TMath::Cos(deltaPhi)*rUse;
+
+	  xxx[kQ2PT] = param->GetParameter()[4];
+	  xxx[kSect] = sector;
+	  xxx[kLocX] = localX;
+	  Double_t side=-1.+2.*((rocID%36)<18);
+	  xxx[kZ2X] = (zUse*side)<-1 ? side*0.001 : zUse/localX; // do not mix z on A side and C side ?? RS
 	  // apply drift velocity calibration if available
-	  Double_t deltaITS=(vDeltaITS) ? vDeltaITS[ipoint]:0;
-	  Double_t deltaRef=vDelta[ipoint];
 	  
 	  if (ihis>2){  // if z residuals and vdrift calibration existing
-	    Double_t drift = (side>0) ? kMaxZ-(*vecZ)[ipoint] : (*vecZ)[ipoint]+kMaxZ;
-	    Double_t gy    = TMath::Sin(vPhi[ipoint])*localX;
+	    Double_t drift = (side>0) ? kMaxZ-zUse : zUse+kMaxZ;
+	    Double_t gy    = TMath::Sin(phiUse)*localX;
 	    Double_t pvecFit[3];
 	    pvecFit[0]= side;             // z shift (cm)
 	    pvecFit[1]= drift*gy/kMaxZ;   // global y gradient
 	    pvecFit[2]= drift;            // drift length
 	    Double_t expected = (vdriftParam!=NULL) ? (*vdriftParam)[0]+(*vdriftParam)[1]*pvecFit[0]+(*vdriftParam)[2]*pvecFit[1]+(*vdriftParam)[3]*pvecFit[2]:0;
-	    deltaRef= side*(vDelta[ipoint]*side-(expected+corrTime*drift));
-	    deltaITS= side*(vDeltaITS[ipoint]*side-(expected+corrTime*drift));
+	    deltaRefUse= side*(deltaRefUse*side-(expected+corrTime*drift));
+	    deltaITSUse= side*(deltaITSUse*side-(expected+corrTime*drift));
 	  }
+	  xxx[kDelt] = deltaRefUse;
 	  clusterCounter++;
+	  //
+	  // calculate axis bins and global bin
+	  Int_t binIndex[kNDim]={0};
+	  //
+	  if (xxx[kNDim1]<limMin[kNDim1]) binIndex[kNDim1] = 0; // underflow
+	  else if (xxx[kNDim1]<limMax[kNDim1]) binIndex[kNDim1] = 1+int((xxx[kNDim1] - limMin[kNDim1])*bsizeI[kNDim1]); // range
+	  else binIndex[kNDim1] = nBinDim[kNDim1]+1; // oveflow
+	  //
+	  ULong64_t binToFill = binIndex[kNDim1]; // global bin
+	  for (int id=kNDim1;id--;) {
+	    if (xxx[id]<limMin[id]) binIndex[id] = 0; // underflow
+	    else if (xxx[id]<limMax[id]) binIndex[id] = 1+int((xxx[id] - limMin[id])*bsizeI[id]); // range
+	    else binIndex[id] = nBinDim[id]+1; // oveflow
+	    binToFill += binIndex[id]*nBProd[id];
+	  }
+	  //
 	  if (vDeltaITS){
-	    xxx[4]=deltaITS;
-	    hisToFill[ihis]->Fill(xxx,kFillGapITS);
+	    xxx[kDelt] = deltaITSUse;
+	    int binDeltITS;
+	    if (deltaITSUse<limMin[kDelt]) binDeltITS = 0; // underflow
+	    else if (deltaITSUse<limMax[kDelt]) binDeltITS = 1+int((deltaITSUse - limMin[kDelt])*bsizeI[kDelt]); // range
+	    else binDeltITS = nBinDim[kDelt]+1; // oveflow
+	    Long64_t binToFillITS = binToFill + (binDeltITS-binIndex[kDelt])*nBProd[kDelt]; // global bin for ITS
+	    arrND.At(binToFillITS) += kFillGapITS;	    // curHis->Fill(xxx,kFillGapITS);
+	    xxx[kDelt] = deltaRefUse;
 	  }
-	  xxx[4]=deltaRef;
-	  hisToFill[ihis]->Fill(xxx,1.);
-	  
-	  Int_t binIndex[5]={0};
-	  Double_t xbin[5], xbinCenter[5];
-	  Double_t  normDelta[5];
-	  Int_t binToFill= hisToFill[ihis]->GetBin(xxx); //	    
-	  hisToFill[ihis]->GetBinContent(binToFill,binIndex);
-	  for (Int_t idim=0; idim<4; idim++) {
-	    xbinCenter[idim]=hisToFill[ihis]->GetAxis(idim)->GetBinCenter(binIndex[idim]);	    
+	  arrND.At(binToFill) += 1.; // curHis->Fill(xxx,1.);
+
+	  Double_t dbinCenter[kNDim];	  
+	  for (Int_t idim=kNDim;idim--;) {
+	    // fractional distance to the center of the bin
+	    // double bincenter = limMin[idim]+bsize[idim]*(binIndex[idim]-0.5); // binindex=0 is underflow!
+	    // dbinCenter[idim] = (xxx[idim]-bincenter)*bsizeI[idim];
+	    dbinCenter[idim] = (xxx[idim]-limMin[idim])*bsize[idim] - (binIndex[idim]-0.5); // binindex=0 is underflow!
 	  }
-	  xbinCenter[4]=xxx[4];
-	  xbin[4]=xxx[4];
-	  for (Int_t ibin0=-1; ibin0<=1; ibin0++){  //qpt
-	    xbin[0]=xbinCenter[0]+ibin0*binWidth[0];
-	    normDelta[0]=(xxx[0]-xbin[0])/binWidth[0];
-	    normDelta[0]*=normDelta[0];
-	    normDelta[0]/=kernelSigma2[0];
-	    for (Int_t ibin1=0; ibin1<=0; ibin1++){  //sector - (Not defined yet if we should make bin respone functio and unfold later) 
-	      xbin[1]=xbinCenter[1]+ibin1*binWidth[1];
-	      normDelta[1]=(xxx[1]-xbin[1])/binWidth[1];
-	      normDelta[1]*=normDelta[1];
-	      normDelta[1]/=kernelSigma2[1];
-	      for (Int_t ibin2=0; ibin2<=0; ibin2++){   //local X
-		xbin[2]=xbinCenter[2]+ibin2*binWidth[2];
-		normDelta[2]=(xxx[2]-xbin[2])/binWidth[2];
-		normDelta[2]*=normDelta[2];
-		normDelta[2]/=kernelSigma2[2];
-		for (Int_t ibin3=-2; ibin3<=2; ibin3++){
-		  xbin[3]=xbinCenter[3]+ibin3*binWidth[3];
-		  if (xbin[3]*xbinCenter[3]<0) continue;  // do not mix a and C side
-		  normDelta[3]=(xxx[3]-xbin[3])/binWidth[3];
-		  normDelta[3]*=normDelta[3];
-		  normDelta[3]/=kernelSigma2[3];
-		  Double_t weightAll= -(normDelta[0]+normDelta[1]+normDelta[2]+normDelta[3]);
-		  weightAll=kFillGap+TMath::Exp(weightAll/0.5);
-		  hisToFill[ihis]->Fill(xbin,weightAll);
-		  if (fillCounter==0) {
-		    printf("Start to Fill");
-		  }
-		  fillCounter++;
-		} // bin3 fill loop
-	      }   // bin2 fill loop	      
-	    }     // bin1 fill loop 
-	  }       // bin0 fill loop
-	
+	  // dbinCenter[kDelt] = 0;
+	  //
+	  for (Int_t iqpt=-1; iqpt<=1; iqpt++){  //qpt
+	    int qptBin = binIndex[kQ2PT]+iqpt;
+	    if (qptBin<0||qptBin>nBinDim[kQ2PT]) continue;
+	    double dqpt = dbinCenter[kQ2PT] + iqpt;
+	    dqpt *= dqpt*kernelSigma2I[kQ2PT];
+	    binToFill += iqpt*nBProd[kQ2PT];
+	    //for (Int_t isec=0; isec<=0; isec++){  //sector - (Not defined yet if we should make bin respone functio and unfold later) 
+	    //  int secBin = binIndex[kSect]+isec;
+	    //  if (secBin<0||secBin>nBinDim[kSect]) continue;
+	    //  double dsec = dbinCenter[kSect] + isec;
+	    //  dsec *= dsec*kernelSigma2I[kSect];
+	    //  binToFill += isec*nBProd[kSect];
+	    //  for (Int_t ilocx=0; ilocx<=0; ilocx++){   //local X
+	    //    int locxBin = binIndex[kLocX]+ilocx;
+	    //    if (locxBin<0||locxBin>nBinDim[kLocX]) continue;
+	    //    double dlocx = dbinCenter[kLocX] + ilocx;
+	    //    dlocx *= dlocx*kernelSigma2I[kLocX];
+	    //    binToFill += ilocx*nBProd[kLocX];
+	    for (Int_t iz2x=-2; iz2x<=2; iz2x++){ // Z/x
+	      if ( xxx[kZ2X]*(xxx[kZ2X]+bsize[kZ2X]*iz2x) < 0 ) continue; // do not mix a and C side
+	      int z2xBin = binIndex[kZ2X]+iz2x;
+	      if (z2xBin<0||z2xBin>nBinDim[kZ2X]) continue; 
+	      double dz2x = dbinCenter[kZ2X] + iz2x;
+	      dz2x *= dz2x*kernelSigma2I[kZ2X];
+	      binToFill += iz2x*nBProd[kZ2X];
+	      //
+	      {
+		// Looping is over, fill histo
+		Double_t weightAll= 2.*(dz2x+dqpt); // 2.*(dz2x+dqpt+dsec+dlocx);
+		weightAll = weightAll>kMaxExpArg ? kFillGap : kFillGap+TMath::Exp(-weightAll);
+		arrND.At(binToFill) += weightAll; // curHis->Fill(...)
+		if (fillCounter==0) printf("Start to Fill\n");
+		fillCounter++;
+	      }
+	      //
+	      binToFill -= iz2x*nBProd[kZ2X];
+	    } // z2x fill loop
+	    //   binToFill -= ilocx*nBProd[kLocX];
+	    // }   // xloc fill loop	      
+	    //    binToFill -= isec*nBProd[kSect];
+	    //  }     // sector fill loop 
+	    binToFill -= iqpt*nBProd[kQ2PT]; // restore
+	  } // qpt fill loop
 	}
       }
       timerFile.Print();
@@ -1094,6 +1223,7 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
   timerAll.Print();
   printf("StatInfo.fillCounter:\t%lld\n",fillCounter);
   printf("StatInfo.clusterCounter:\t%lld\n",clusterCounter);
+  printf("StatInfo.trackCounter:\t%d\n",currentTrack);
   //
   // 2.) Fill metadata information
   //
@@ -1104,7 +1234,6 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
       meanNclUsed[iSec]/=currentTrack;
     }
   }
-  Int_t runNumber=TString(gSystem->Getenv("runNumber")).Atoi();
   (*fout)<<"metaData"<<
     "runNumber="<<runNumber<<        // runNumber
     "selHis="<<selHis<<              // selected histogram type
@@ -1169,8 +1298,9 @@ void     AliTPCcalibAlignInterpolation::FillHistogramsFromStreamers(const char *
       tree->GetEntry(iCl);
       if (iCl%100000==0) printf("%d\n",iCl);
       currentCl++;
-      Float_t xyz[3]={0};
-      cl->GetGlobalXYZ(xyz);
+      double alpSect = ((cl->GetDetector()%18)+0.5)*20*TMath::DegToRad();
+      double xyz[3] = {cl->GetX(),cl->GetY(),cl->GetZ()}; // sector tracking frame
+      param->Local2GlobalPosition(xyz,alpSect);	
       Double_t phi = TMath::ATan2(xyz[1],xyz[0]);
       Double_t radius=TMath::Sqrt(xyz[1]*xyz[1]+xyz[0]*xyz[0]);
       param->Rotate(phi);
@@ -1300,11 +1430,12 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   chainInfo->SetCacheSize(cacheSize);
   chainTracks->SetCacheSize(cacheSize);
   //
+  Int_t gidRounding=128;                        // git has to be rounded
+  chainInfo->SetEstimate(-1);
+  chainInfo->Draw("timeStamp:gid/128","timeStamp>0","goff");          
+  //
   Int_t neventsAll=chainInfo->GetEntries();     // total amount of events
   Int_t ntracksAll=chainTracks->GetEntries();   // total amount of tracks
-  Int_t gidRounding=128;                        // git has to be rounded
-  chainInfo->SetEstimate(neventsAll);
-  chainInfo->Draw("timeStamp:gid/128","timeStamp>0","goff");          
   //
   Long64_t minTime=0,maxTime=0;
   double minGID=0,maxGID=0,meanGID=0,meanTime=0;
@@ -1511,7 +1642,7 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
   //
   //
   if (deltaT<=0 || sigmaT<=0){
-    ::Error("AliTPCcalibAlignInterpolation::FitDrift FAILED ","Invalid parameter value for the deltaT %d and sigmaT", deltaT, sigmaT);
+    ::Error("AliTPCcalibAlignInterpolation::FitDrift FAILED ","Invalid parameter value for the deltaT %.1f and sigmaT %.1f", deltaT, sigmaT);
     return kFALSE;
   }
  
@@ -1522,10 +1653,10 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
     return kFALSE;
   }
   maxEntries=TMath::Min(maxEntries, entriesAll);
-  TTreeSRedirector *pcstream = new TTreeSRedirector("fitDrift.root","update");
+  TTreeSRedirector *pcstream = new TTreeSRedirector("fitDrift.root","recreate");
   if (time0==time1){
     TChain * chainInfo=  AliXRDPROOFtoolkit::MakeChain("residual.list","eventInfo",0,-1);
-    chainInfo->SetEstimate(chainInfo->GetEntries());
+    chainInfo->SetEstimate(-1);
     Int_t entries = chainInfo->Draw("timeStamp","","goff",maxEntries);
     if (entries) TStatToolkit::GetMinMax(chainInfo->GetV1(),entries,time0,time1);
   }
@@ -1741,12 +1872,14 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
 	  TString::Format("grDeltaZ%d.=",ihis).Data()<<grDeltaZ[ihis]<<     // residual histogram drift fit - mean 
 	  TString::Format("grRMSZ%d.=",ihis).Data()<<grDeltaZ[ihis]<<       //  residual histogram drift fit - rms
 	  TString::Format("fitDeltaZ%d.=",ihis).Data()<<fitDeltaZ[ihis];     //  residual histogram drift fit - linear fit
-	delete grDeltaZ[ihis];
-	delete grRMSZ[ihis];
-	delete fitDeltaZ[ihis];
       }
       (*pcstream)<<"robustFit"<<	
 	"\n";    
+      for (Int_t ihis=0; ihis<12; ihis++){
+	delete grDeltaZ[ihis];
+	delete grRMSZ[ihis];
+	delete fitDeltaZ[ihis];	
+      }
     }
     // delete pcstream;  
     //pcstream = new TTreeSRedirector("fitDrift.root","update");
@@ -2014,7 +2147,7 @@ void  AliTPCcalibAlignInterpolation::MakeNDFit(const char * inputFile, const cha
   const Double_t pxmin=8.48499984741210938e+01; //param.GetPadRowRadii(0,0)-param.GetPadPitchLength(0,0)/2
   const Double_t pxmax=2.46600006103515625e+02; //2.46600006103515625e+02param.GetPadRowRadii(36,param.GetNRow(36)-1)+param.GetPadPitchLength(36,param.GetNRow(36)-1)/2.
   Int_t     ndim=4;
-  Int_t     nbins[4]= {30,  (Int_t)((sector1-sector0-0.1)*15),        abs(theta1-theta0)*10,        3};  // {radius, phi bin, }
+  Int_t     nbins[4]= {30,  (Int_t)((sector1-sector0-0.1)*15),     int(abs(theta1-theta0)*10),        3};  // {radius, phi bin, }
   Double_t  xmin[4] = {pxmin,  sector0+0.05,   theta0,                            -2.0};
   Double_t  xmax[4] = {pxmax, sector1-0.05,   theta1,               2.0};
   //
@@ -2124,8 +2257,13 @@ void  AliTPCcalibAlignInterpolation::MakeNDFit(const char * inputFile, const cha
   TFile * fout = pcstream->GetFile();
   pcstream->GetFile()->cd();
   for (Int_t iter=0; iter<5; iter++){
+    if (TString(gSystem->Getenv("AliTPCcalibAlignInterpolation_MakeNDFit_KeepCovariance")).Atoi()==0){
+      if (iter!=0) fitCorrs[iter]->CleanCovariance();
+    }
     fitCorrs[iter]->Write();
-    fitCorrs[iter]->DumpToTree(4, (*pcstreamFit)<<TString::Format("tree%s", fitCorrs[iter]->GetName()).Data());
+    if (TString(gSystem->Getenv("AliTPCcalibAlignInterpolation_MakeNDFit_DumpFitTree")).Atoi()>0){
+      fitCorrs[iter]->DumpToTree(4, (*pcstreamFit)<<TString::Format("tree%s", fitCorrs[iter]->GetName()).Data());
+    }
   }
   //
   // 4.) Make standard QA plot   
@@ -2360,8 +2498,8 @@ Bool_t  AliTPCcalibAlignInterpolation::LoadNDLocalFit(TTree * tree, const char *
       Int_t hashIndex=reg->GetVisualCorrectionIndex();
       reg->AddVisualCorrection(reg, hashIndex);      
       tree->SetAlias(aliasName, TString::Format("AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+0)",hashIndex).Data());
-      tree->SetAlias(aliasName+"L", TString::Format("AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+0)-(AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter-2)+AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+2))*0.5",hashIndex).Data());
-      tree->SetAlias(aliasName+"M", TString::Format("(AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter-2)+AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+2))*0.5",hashIndex).Data());
+      tree->SetAlias(aliasName+"L", TString::Format("AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+0)-(AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter-2)+AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+2))*0.5",hashIndex,hashIndex,hashIndex).Data());
+      tree->SetAlias(aliasName+"M", TString::Format("(AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter-2)+AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+2))*0.5",hashIndex, hashIndex).Data());
     }
   }
   return kTRUE;
@@ -2402,32 +2540,36 @@ void  AliTPCcalibAlignInterpolation::DrawMapEstimatorComparison(TTree * tree, co
 
   TCanvas * canvasC = new TCanvas("canvasC","canvasC",1400,1000);
   TPad * pad=0;
-  TPad *pad3 = new TPad("pad1","This is pad1",0.00,0.0,  1,0.33);
-  TPad *pad2 = new TPad("pad2","This is pad2",0.00,0.33, 1,0.66);
-  TPad *pad1 = new TPad("pad3","This is pad3",0.00,0.66, 1,1);
-  pad1->SetBottomMargin(0);
-  pad2->SetBottomMargin(0);
-  pad3->SetBottomMargin(0.15);
-  pad2->SetTopMargin(0);
-  pad3->SetTopMargin(0);
-  pad1->Draw();
-  pad2->Draw();
-  pad3->Draw();
-  pad1->SetGrid(1,1);
-  pad2->SetGrid(1,1);
-  pad3->SetGrid(1,1);
+  TPad *pads[4]={0};
+  for (Int_t ipad=0; ipad<4; ipad++){
+    pads[ipad] = new TPad("pad1","This is pad1",0.00,ipad/4.,  1,(ipad+1.)/4.);
+    pads[ipad]->SetBottomMargin(0);
+    pads[ipad]->SetTopMargin(0);
+  }
+  pads[0]->SetBottomMargin(0.15);
+  pads[3]->SetTopMargin(0.05);
+  for (Int_t ipad=0; ipad<4; ipad++){
+    pads[ipad]->Draw();
+    pads[ipad]->SetGrid(1,1);
+  }
+
   if (chtree){
-    pad1->cd();
+    pads[3]->cd();
     tree->Draw(TString::Format("%s.binMedian:sectorCenter:RCenter",chtree).Data(),TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&%s.rms>0",kZ,radius,chtree).Data(),"colz");
-    pad2->cd();
+    pads[2]->cd();
     tree->Draw(TString::Format("%s.vecLTM.fElements[1]:sectorCenter:RCenter",chtree).Data(),TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&%s.rms>0",kZ,radius,chtree).Data(),"colz");
-    pad3->cd();
+    pads[1]->cd();
+    tree->Draw(TString::Format("%s.meanG:sectorCenter:RCenter",chtree).Data(),TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&%s.rms>0&&abs(%s.meanG-%s.binMedian)<1",kZ,radius,chtree,chtree,chtree).Data(),"colz");
+    pads[0]->cd();
     tree->Draw(TString::Format("%s.vecLTM.fElements[1]-%s.binMedian:sectorCenter:RCenter",chtree,chtree).Data(),TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&%s.rms>0",kZ,radius,chtree).Data(),"colz");
   }else{
+    pads[3]->cd();
     tree->Draw("binMedian:sectorCenter:RCenter",TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&rms>0",kZ,radius).Data(),"colz");
-    pad2->cd();
+    pads[2]->cd();
     tree->Draw("vecLTM.fElements[1]:sectorCenter:RCenter",TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&rms>0",kZ,radius).Data(),"colz");
-    pad3->cd();
+    pads[1]->cd();
+    tree->Draw("meanG:sectorCenter:RCenter",TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&rms>0&&abs(meanG-binMedian)<1",kZ,radius).Data(),"colz");
+    pads[0]->cd();
     tree->Draw("binMedian-vecLTM.fElements[1]:sectorCenter:RCenter",TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&rms>0",kZ,radius).Data(),"colz");
   }
 
@@ -2536,5 +2678,81 @@ Bool_t  AliTPCcalibAlignInterpolation::DrawScalingComparison(TTree * tree, const
 
 
 
+//_______________________________________________
+double AliTPCcalibAlignInterpolation::GetTgPhi(double x, double y2x, double q2p, double b)
+{
+  // calculate tangent of primary track at any frame at given x,y
+  double y = y2x*x;
+  double c = q2p*b*(-0.299792458e-3);
+  if (TMath::Abs(c)<1e-9) return y2x;
+  double r2 = y*y+x*x;
+  double det = 4./r2 - c*c;
+  double snp;
+  if (det<0) {
+    snp = TMath::Sign(-0.8,c);
+    //printf("track of q2p=%f cannot reach x:%f y:%f, define snp as %f \n",q2p,x,y,snp);
+  }
+  else {
+    snp = 0.5*(y*TMath::Sqrt(det)-c*x); // snp at vertex
+    snp += x*c;  // snp at x,y
+  }
+  return snp/TMath::Sqrt((1-snp)*(1+snp));
+}
+
+//______________________________________________
+void AliTPCcalibAlignInterpolation::FixAlignmentBug(int sect, float q2pt, float bz,
+						    float& alp, float& x, float &z, float &deltaY, float &deltaZ)
+{
+  // fix alignment bug: https://alice.its.cern.ch/jira/browse/ATO-339?focusedCommentId=170850&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-170850
+  //
+  static TGeoHMatrix *mCache[72] = {0};
+  if (sect<0||sect>=72) {
+    AliErrorClassF("Invalid sector %d",sect);
+    return;
+  }
+  int lr = sect/36 ? (AliGeomManager::kTPC2) : (AliGeomManager::kTPC1);
+  TGeoHMatrix* mgt = mCache[sect];
+  if (!mgt) {
+    int volID = AliGeomManager::LayerToVolUIDSafe(lr,sect%36);
+    mgt = new TGeoHMatrix(*AliGeomManager::GetTracking2LocalMatrix(volID));
+    mgt->MultiplyLeft(AliGeomManager::GetMatrix(volID));
+    mCache[sect] = mgt;
+    printf("Caching matrix for sector %d\n",sect);
+  }  
+  double alpSect = ((sect%18)+0.5)*20.*TMath::DegToRad();
+
+  // cluster in its proper alpha frame with alignment bug, Z trackITS is used !!! 
+  double xyzClUse[3] = {x,0,z}; // this is what we read from the residual tree, ITS Z only is stored
+  double xyzTrUse[3] = {x, deltaY, z}; // track in bad cluster frame
+  //
+  // recover cluster Z position by adding deltaZ, this is approximate, since ITS track Z was used...
+  xyzClUse[2] -= deltaZ;
+  static AliExternalTrackParam trDummy;
+  trDummy.Local2GlobalPosition(xyzClUse,alp); // misaligned cluster in global frame
+  double xyz0[3]={xyzClUse[0],xyzClUse[1],xyzClUse[2]};
+  mgt->MasterToLocal(xyz0,xyzClUse);
+  // we got ideal cluster in the sector tracking frame, 
+  //
+  // go to ideal cluster frame
+  trDummy.Local2GlobalPosition(xyzClUse,alpSect); // ideal global
+  double alpFix = TMath::ATan2(xyzClUse[1],xyzClUse[0]);    // fixed cluster phi
+  trDummy.Global2LocalPosition(xyzClUse,alpFix);     // fixed cluster in in its frame
+  //
+  trDummy.Local2GlobalPosition(xyzTrUse,alp); // track in global frame
+  trDummy.Global2LocalPosition(xyzTrUse,alpFix); // track in cluster frame
+  alp = alpFix;
+  //
+  double dx = xyzTrUse[0] - xyzClUse[0]; // x might not be the same after alignment fix
+  // deduce track slopes assuming it comes from the vertex
+  double tgphi = GetTgPhi(xyzClUse[0],xyzTrUse[1]/xyzClUse[0],q2pt,bz);
+  xyzTrUse[1] -= dx*tgphi;
+  xyzTrUse[2] -= dx*xyzClUse[2]/xyzClUse[0]; // z2x
+  //
+  x = xyzClUse[0];
+  z = xyzTrUse[2]; // we still use track Z as a reference ...
+  deltaY = xyzTrUse[1]-xyzClUse[1];
+  deltaZ = xyzTrUse[2]-xyzClUse[2];
+  //
+}
 
 

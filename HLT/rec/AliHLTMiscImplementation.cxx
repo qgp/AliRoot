@@ -37,6 +37,7 @@
 #include "AliESDHLTDecision.h"
 #include "TGeoGlobalMagField.h"
 #include "AliHLTGlobalTriggerDecision.h"
+#include "TSystem.h"
 #include "TClass.h"
 #include "TStreamerInfo.h"
 #include "TObjArray.h"
@@ -54,7 +55,7 @@ AliHLTMiscImplementation::~AliHLTMiscImplementation()
   // see header file for function documentation
 }
 
-int AliHLTMiscImplementation::InitCDB(const char* cdbpath)
+int AliHLTMiscImplementation::InitCDB(const char* cdbpath, const char* cdbsnapshot)
 {
   // see header file for function documentation
   int iResult=0;
@@ -79,6 +80,12 @@ int AliHLTMiscImplementation::InitCDB(const char* cdbpath)
       pCDB->SetRun(0);
       log.Logging(kHLTLogInfo, "InitCDB", "CDB handling", "set default URI: %s", cdbUri);
     }
+  }
+  if (cdbsnapshot != NULL) {
+    gSystem->Load("libGeom");
+    gSystem->Load("libGeomBuilder");
+    log.Logging(kHLTLogInfo, "InitCDB", "CDB Snapshot", "Running in snapshot mode: %s", cdbsnapshot);
+    pCDB->SetSnapshotMode(cdbsnapshot);
   }
   return iResult;
 }

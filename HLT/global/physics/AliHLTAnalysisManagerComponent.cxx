@@ -82,6 +82,7 @@ AliHLTAnalysisManagerComponent::AliHLTAnalysisManagerComponent() :
   AliHLTProcessor(),
   fUID(0),
   fQuickEndRun(false),
+  fAnalysisInitialized(false),
   fAnalysisManager(NULL),
   fInputHandler(NULL),
   fAddTaskMacro(""),
@@ -212,10 +213,13 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerInit(void*)
   if (fAddTaskMacro.Length()>0) 
   {
     HLTInfo("Executing the macro: %s\n",fAddTaskMacro.Data());
-    gROOT->Macro(fAddTaskMacro);
+    gROOT->Macro(fAddTaskMacro + "\\;");
   }
 
-  fAnalysisManager->InitAnalysis();
+  if (fAnalysisManager->InitAnalysis() == kFALSE)
+  {
+    return((void*) -1);
+  }
   return(NULL);
 }
 
@@ -238,7 +242,10 @@ Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*a
   HLTInfo("AliHLTAnalysisManagerComponent::DoInit (with QueueDepth %d)", fQueueDepth);
   if (fAsyncProcessor.Initialize(fQueueDepth, fAsyncProcess > 0, fAsyncProcess)) return(1);
 
-  fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerInit, NULL);
+  if (fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerInit, NULL) == NULL)
+  {
+    fAnalysisInitialized = kTRUE;
+  }
 
   return 0;
 }
@@ -325,10 +332,15 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent(void* tmpEventData)
   if (retVal && fQueueDepth)
   {
     //If we are an async process, we cannot access the pushback-period of the parent process, so we use this flag
-    if (!(fAsyncProcess ? requestPush : CheckPushbackPeriod())) return(NULL); 
-
-    retVal = fAsyncProcessor.SerializeIntoBuffer((TObject*) retVal, this);
-    if (fResetAfterPush) {fAnalysisManager->ResetOutputData();}
+    if (!(fAsyncProcess ? requestPush : CheckPushbackPeriod()))
+    {
+      retVal = NULL; 
+    }
+    else
+    {
+      retVal = fAsyncProcessor.SerializeIntoBuffer((TObject*) retVal, this);
+      if (fResetAfterPush) {fAnalysisManager->ResetOutputData();}
+    }
   }
 
   if (fQueueDepth)
@@ -344,6 +356,8 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent(void* tmpEventData)
 Int_t AliHLTAnalysisManagerComponent::DoEvent(const AliHLTComponentEventData& evtData,
     AliHLTComponentTriggerData& /*trigData*/) {
   // see header file for class documentation
+  
+  if (!fAnalysisInitialized) return(0);
 
   TStopwatch stopwatch;
   stopwatch.Start();
