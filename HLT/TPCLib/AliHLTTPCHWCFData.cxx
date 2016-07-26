@@ -246,6 +246,20 @@ Int_t    AliHLTTPCHWCFData::GetQMax(int i)    const
   return -1;
 }
 
+Bool_t    AliHLTTPCHWCFData::IsDeconvoluted(int i)    const
+{
+  // get IsDeconvoluted flag
+  if (fVersion>=0 && CheckBounds(i)) {
+    switch (fVersion) {
+    case 0: return reinterpret_cast<const AliHLTTPCHWClusterV0*>(Get(i))->IsDeconvoluted();
+    case 1: return reinterpret_cast<const AliHLTTPCHWClusterV1*>(Get(i))->IsDeconvoluted();
+    default:
+      ALIHLTERRORGUARD(1, "invalid format version %d", fVersion);
+    }
+  }
+  return -1;
+}
+
 void AliHLTTPCHWCFData::Print(const char* option)
 {
   // print info
@@ -267,6 +281,7 @@ void AliHLTTPCHWCFData::Print(const char* option)
       cout << /* setw(8) <<*/ " " << GetSigmaZ2(i);
       cout << /* setw(8) <<*/ " " << GetCharge(i);
       cout << /* setw(8) <<*/ " " << GetQMax(i);
+      cout << /* setw(8) <<*/ " " << IsDeconvoluted(i);
       cout << endl;
     }
   }
@@ -343,13 +358,21 @@ Int_t    AliHLTTPCHWCFData::AliHLTTPCHWClusterV1::GetPadRow()  const
 
 Int_t    AliHLTTPCHWCFData::AliHLTTPCHWClusterV1::GetCharge()  const
 {
-  // 32 bit fixed point number with 12 bits after the point
-  return AliHLTTPCHWCFEmulator::ReadBigEndian(fCharge)>>12;
+  // 30 bit fixed point number with 12 bits after the point
+  AliHLTUInt32_t word1=AliHLTTPCHWCFEmulator::ReadBigEndian(fCharge);
+  return (word1 & 0x3FFFFFFF)>>12;
 }
 
 Int_t    AliHLTTPCHWCFData::AliHLTTPCHWClusterV1::GetQMax()    const
 {
-  // 24 bit fixed point number with 12 bits after the point
+  // 23 bit fixed point number with 12 bits after the point
   AliHLTUInt32_t header=AliHLTTPCHWCFEmulator::ReadBigEndian(fHeader);
-  return (header & 0xFFFFFF )>>12;
+  return (header & 0x7FFFFF )>>12;
+}
+
+Bool_t    AliHLTTPCHWCFData::AliHLTTPCHWClusterV1::IsDeconvoluted()    const
+{
+  // bit 23 of word 0
+  AliHLTUInt32_t word0=AliHLTTPCHWCFEmulator::ReadBigEndian(fHeader);
+  return (word0 >> 23) & 0x1;
 }

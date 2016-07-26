@@ -24,7 +24,8 @@
 #pragma link C++ namespace TStatToolkit;
 #pragma link C++ function  TStatToolkit::LTMHisto(TH1 * , TVectorF &, Float_t);
 #pragma link C++ function  TStatToolkit::LTMHisto(TH1 * , TVectorD &, Float_t);
-
+#pragma link C++ function  TStatToolkit::LTMUnbinned(int, const float*, TVectorF & , Float_t);
+#pragma link C++ function  TStatToolkit::LTMUnbinned(int, const double*, TVectorD & , Float_t);
 /*
 // RS At the moment is not recognized by the CINT...
 #pragma link C++ function TStatToolkit::GetMinMax(const Double_t*, Long64_t, double &, double &);
@@ -43,6 +44,13 @@
 
 #pragma link C++ function TStatToolkit::LTM(TH1*,TVectorF*,Float_t,Bool_t);
 #pragma link C++ function TStatToolkit::LTM(TH1*,TVectorD*,Float_t,Bool_t);
+
+#pragma link C++ function TStatToolkit::Reorder(int , float *, const int *);
+#pragma link C++ function TStatToolkit::Reorder(int , double *, const int *);
+#pragma link C++ function TStatToolkit::Reorder(int , int *, const int *);
+#pragma link C++ function TStatToolkit::Reorder(int , short *, const int *);
+#pragma link C++ function TStatToolkit::Reorder(int , char *, const int *);
+
 
 #pragma link C++ function TStatToolkit::FitGaus(TH1*,TVectorF*,TMatrixF*,Float_t,Float_t,Bool_t);
 #pragma link C++ function TStatToolkit::FitGaus(TH1*,TVectorD*,TMatrixD*,Float_t,Float_t,Bool_t);

@@ -32,7 +32,7 @@
 
 AliHLTTPCHWCFDivisionUnit::AliHLTTPCHWCFDivisionUnit()
   : 
-  fSinglePadSuppression(1), fClusterLowerLimit(0), fkInput(0),fOutput(), fDebug(0)
+  fSinglePadSuppression(1), fClusterLowerLimit(0), fTagDeconvolutedClusters(0), fkInput(0),fOutput(), fDebug(0)
 {
   //constructor 
 }
@@ -45,7 +45,7 @@ AliHLTTPCHWCFDivisionUnit::~AliHLTTPCHWCFDivisionUnit()
 
 AliHLTTPCHWCFDivisionUnit::AliHLTTPCHWCFDivisionUnit(const AliHLTTPCHWCFDivisionUnit&)
   : 
-  fSinglePadSuppression(1),fClusterLowerLimit(0),fkInput(0),fOutput(), fDebug(0)
+  fSinglePadSuppression(1),fClusterLowerLimit(0),fTagDeconvolutedClusters(0), fkInput(0),fOutput(), fDebug(0)
 {
 }
 
@@ -111,8 +111,16 @@ const AliHLTTPCHWCFCluster *AliHLTTPCHWCFDivisionUnit::OutputStream()
   AliHLTFloat32_t q = fkInput->fQ;
   
   fOutput.fFlag = 1;
-  fOutput.fRowQ = (((AliHLTUInt32_t) 0x3)<<30) + ((fkInput->fRow &0x3f)<<24) + ((fkInput->fQmax)&0xFFFFFF);
-  fOutput.fQ = fkInput->fQ;
+
+  // bit 23 is 0, bits 30,31 are 1
+  fOutput.fRowQ = (((AliHLTUInt32_t) 0x3)<<30) + ((fkInput->fRow &0x3f)<<24) + ((fkInput->fQmax)&0x7FFFFF);
+
+  // set is_deconvoluted flag at bit 23
+
+  if( fTagDeconvolutedClusters && fkInput->fIsDeconvoluted ) fOutput.fRowQ += (0x1) << 23;
+
+  // bits 30,31 are 0
+  fOutput.fQ = fkInput->fQ & 0x3FFFFFFF;
   *((AliHLTFloat32_t*)&fOutput.fP) = (float)fkInput->fP/q;
   *((AliHLTFloat32_t*)&fOutput.fT) = (float)fkInput->fT/q;
   *((AliHLTFloat32_t*)&fOutput.fP2) = (float)fkInput->fP2/q;
