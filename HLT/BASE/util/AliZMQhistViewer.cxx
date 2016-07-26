@@ -188,7 +188,7 @@ int AliZMQhistViewer::GetData(void* socket)
   //process message, deserialize objects, puth them in the container 
   for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
   {
-    if (alizmq_msg_iter_check(i, "INFO")==0)
+    if (alizmq_msg_iter_check_id(i, "INFO")==0)
     {
       //check if we have a runnumber in the string
       string info;
@@ -218,7 +218,7 @@ int AliZMQhistViewer::GetData(void* socket)
       }
       continue;
     }
-    if (alizmq_msg_iter_check(i,kAliHLTDataTypeStreamerInfo)==0)
+    if (alizmq_msg_iter_check_id(i,kAliHLTDataTypeStreamerInfo)==0)
     {
       if (fVerbose) printf("extracting schema\n");
       alizmq_msg_iter_init_streamer_infos(i);
@@ -274,7 +274,7 @@ int AliZMQhistViewer::GetObjects(AliAnalysisDataContainer* kont, std::vector<TOb
   const char* analName = kont->GetName();
   TObject* analData = kont->GetData();
   std::string name = analName;
-  std::string namePrefix = "[" + name + "] ";
+  std::string namePrefix = name + "/";
   TCollection* collection = dynamic_cast<TCollection*>(analData);
   if (collection) {
     if (fVerbose) Printf("  have a collection %p",collection);

@@ -458,7 +458,11 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
   static int evCnt=0;
   Bool_t backupUseComposedCorrection = transform->GetCurrentRecoParamNonConst()->GetUseComposedCorrection();
   transform->GetCurrentRecoParamNonConst()->SetUseComposedCorrection(kFALSE);
-  
+  Bool_t backupUseCorrectionMaps = transform->GetCurrentRecoParamNonConst()->GetUseCorrectionMap();
+  transform->GetCurrentRecoParamNonConst()->SetUseCorrectionMap(kFALSE);
+  Bool_t backupAccountDistortions = transform->GetCurrentRecoParamNonConst()->GetAccountDistortions();
+  transform->GetCurrentRecoParamNonConst()->SetAccountDistortions(kFALSE);
+
   for (Int_t iTrack=0;iTrack<nTracks;iTrack++){ // Track loop
     // 0.) For each track in each event, get the AliESDfriendTrack
     AliESDtrack *esdTrack = esdEvent->GetTrack(iTrack);
@@ -734,6 +738,9 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
     ip->SetBit(kAlignmentBugFixedBit,saveBit);
   }
   transform->GetCurrentRecoParamNonConst()->SetUseComposedCorrection( backupUseComposedCorrection);
+  transform->GetCurrentRecoParamNonConst()->SetUseCorrectionMap(backupUseCorrectionMaps);
+  transform->GetCurrentRecoParamNonConst()->SetAccountDistortions(backupAccountDistortions);
+
   //
  // end of track loop
 }
@@ -1709,7 +1716,8 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
   const Double_t kDumpSample=0.01;
   const Double_t kBCcutMin=-5;
   const Double_t kBCcutMax=20;
-  const Double_t robFraction=0.99; 
+  const Double_t robFraction=0.95;
+  //const Double_t regRobust=0.0000000001;
   
   Int_t maxEntries=1000000;
   Int_t maxPointsRobust=4000000;
@@ -1798,8 +1806,8 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
   float bz = fixAlignmentBugForFile ? InitForAlignmentBugFix(runNumber) : 0;
 
   // check if TOF was present
-  const float tofBCMin = -5.f;
-  const float tofBCMax = 20.f;
+  const float tofBCMin = -25.f;
+  const float tofBCMax = 50.f;
   //
   if (tofBCValidation) {
     AliCDBManager* man = AliCDBManager::Instance();
@@ -1825,7 +1833,17 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
   //
   Int_t entriesFit0 = chainDelta->Draw(toRead.Data(),cutEv.Data(),"goffpara",maxEntries); 
   chainDelta->PrintCacheStats();
-  Int_t entriesFit=entriesFit0/10;
+  AliInfoClassF("Selected %d points from first %d entries",entriesFit0,maxEntries);
+  
+  float lossFactorOK = 0.5f; // allowed loss factor
+  float lossFactor = entriesFit0*5./160./maxEntries;
+  int prescaling = 10;
+  if (lossFactor < lossFactorOK) {
+    prescaling = TMath::Max(lossFactor/lossFactorOK,2.0f);
+  }
+  Int_t entriesFit=entriesFit0/prescaling;
+  AliInfoClassF("Selection loss factor: %f -> random prescaling: %d -> entriesFit: %d",lossFactor,prescaling,entriesFit);
+
   AliSysInfo::AddStamp("FitDrift.EndCache",3,1,0);
 
   AliSysInfo::AddStamp("FitDrift.BeginFill",4,1,0);
@@ -1973,10 +1991,11 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
 	  }
 
 	  if (gRandom->Rndm()<kDumpSample){
-
+	    Double_t cTime = (*vecTime)[ipoint];
 	    (*pcstream)<<"dumpSample"<<
 	      "iter="<<iter<<
 	      "run="<<runNumber<<
+	      "ctime="<<cTime<<
 	      "sector="<<sector<<
 	      "side="<<side<<
 	      "drift="<<drift<<
@@ -1999,6 +2018,7 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
 	delete pcstream;
 	return kFALSE;
       }
+      //fitterRobust->EvalRobust(robFraction, regRobust);   // ROOT has to be patched to use regularization
       fitterRobust->EvalRobust(robFraction);
       //fitterRobust->Eval(); // EvalRobust sometimes failed - looks like related to the random selection of subset of data - can be only one side 
       fitterRobust->GetParameters(paramRobust);
@@ -2017,6 +2037,12 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
       if (nTOF>kMinEntries*0.1){	fitterTOF->EvalRobust(robFraction);	   fitterTOF->GetParameters(paramTOF);}
       if (nTRDBC>kMinEntries*0.1){	fitterTRDBC->EvalRobust(robFraction);	   fitterTRDBC->GetParameters(paramTRDBC);}
       if (nTOFBC>kMinEntries*0.1){	fitterTOFBC->EvalRobust(robFraction);	   fitterTOFBC->GetParameters(paramTOFBC); }
+
+   //    if (nRobustBC>kMinEntries*0.1){	fitterRobustBC->EvalRobust(robFraction, regRobust);  fitterRobustBC->GetParameters(paramRobustBC);}
+//       if (nTRD>kMinEntries*0.1){	fitterTRD->EvalRobust(robFraction, regRobust);	   fitterTRD->GetParameters(paramTRD);}
+//       if (nTOF>kMinEntries*0.1){	fitterTOF->EvalRobust(robFraction, regRobust);	   fitterTOF->GetParameters(paramTOF);}
+//       if (nTRDBC>kMinEntries*0.1){	fitterTRDBC->EvalRobust(robFraction, regRobust);	   fitterTRDBC->GetParameters(paramTRDBC);}
+//       if (nTOFBC>kMinEntries*0.1){	fitterTOFBC->EvalRobust(robFraction, regRobust);	   fitterTOFBC->GetParameters(paramTOFBC); }
       //
       TGraphErrors * grDeltaZ[12] = {0};
       TGraphErrors * grRMSZ[12] = {0};
@@ -2134,7 +2160,7 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
       //
       Double_t dZTOF=(*deltaZTOF)[ipoint];
       if (dZTOF>kInvalidRes) {
-	if (TMath::Abs(dZTOF-expected)<kMaxDist1) {
+	if (TMath::Abs(dZTOF*side-expected)<kMaxDist1) {
 	  dZTOF *= side;
 	  //      fitterTOF->AddPoint(pvecFit,dZTOF,1);
 	  hisTOF.Fill(time,(dZTOF-expected)/drift,drift/maxZ); 
@@ -2142,7 +2168,8 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
       }
       Double_t dZTRD=(*deltaZTRD)[ipoint];
       if ( dZTRD>kInvalidRes) {
-	if (TMath::Abs(dZTRD-expected)<kMaxDist1) {
+	if (TMath::Abs(dZTRD*side-expected)<kMaxDist1) {
+	  dZTRD*=side;
 	  //fitterTOF->AddPoint(pvecFit,dZTRD,1);	
 	  hisTRD.Fill(time,(dZTRD-expected)/drift,drift/maxZ); 
 	}

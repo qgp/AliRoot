@@ -179,6 +179,7 @@ TGaxis *axis = new TGaxis(xmax,ymin,xmax,ymax,ymin,ymax,50510,"+L");
 #include "AliTPCcalibLaser.h"
 #include "AliDCSSensorArray.h"
 #include "AliDCSSensor.h"
+#include "AliTPCTransform.h"
 
 ClassImp(AliTPCcalibTimeGain)
 
@@ -323,6 +324,11 @@ void AliTPCcalibTimeGain::Process(AliVEvent *event) {
    return;
   }
   if (friendEvent->TestSkipBit()) return;
+
+  // CookdEdxAnalytical requires the time stamp in AliTPCTransform to be set
+  AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+  transform->SetCurrentRun(fRun);
+  transform->SetCurrentTimeStamp((UInt_t)fTime);
 
   if (fIsCosmic) { // this should be removed at some point based on trigger mask !?
     ProcessCosmicEvent(event);

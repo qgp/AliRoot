@@ -392,7 +392,11 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
       // start and end BCs for charge integration
       const Int_t start = TMath::Max( 0, imax - GetRecoParam()->GetNPreClocks());
       const Int_t end   = TMath::Min(20, imax + GetRecoParam()->GetNPostClocks());
-      
+
+      // start and end BCs for tail charge integration
+      const Int_t tailBegin = GetRecoParam()->GetTailBegin();
+      const Int_t tailEnd   = GetRecoParam()->GetTailEnd();
+
       // integrated charge without saturation correction
       adc[pmNumber] = 0.0f;
       for (Int_t iClock=start; iClock<=end; ++iClock)
@@ -411,7 +415,8 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
 	for (Int_t bc=13; bc<kADNClocks-1 && !isPileUp; ++bc)
 	  isPileUp |= (adcPedSub[bc+1] > adcPedSub[bc] + threshold);
     
-	for (Int_t iClock=14; iClock<kADNClocks; ++iClock)
+	 
+	for (Int_t iClock=tailBegin; iClock<=tailEnd; ++iClock)
 	  tail[pmNumber] += adcPedSub[iClock];
 
 	adcTrigger[pmNumber] = adcPedSub[10];
@@ -436,9 +441,10 @@ void AliADReconstructor::FillESD(TTree* digitsTree, TTree* /*clustersTree*/,AliE
 								 : f_Int0->At(iClock))
 				       : NULL);
 	  correctedForSaturation  |= doExtrapolation[iClock];
-	  if (doExtrapolation[iClock] && tail[pmNumber] > extrapolationThresholds[iClock]) {
-	    AliDebug(3, Form("extrapolation[%2d] clock=%2d adcBefore=%.1f adcAfter=%.1f",
-			     pmNumber, iClock, adcPedSub[iClock], fExtrapolation->Eval(tail[pmNumber])));
+	  if (doExtrapolation[iClock]) {
+	    AliDebug(3, Form("Ch%02d bc%02d %d tail=%6.1f thr=%6.1f adc=%6.1f adcCorr=%7.1f",
+			     pmNumber, iClock, doExtrapolation[iClock], tail[pmNumber], extrapolationThresholds[iClock],
+			     adcPedSub[iClock], fExtrapolation->Eval(tail[pmNumber])));
 	  }
 
 	  adc[pmNumber] += chargeEqualizationFactor*((doExtrapolation[iClock] && tail[pmNumber] > extrapolationThresholds[iClock])

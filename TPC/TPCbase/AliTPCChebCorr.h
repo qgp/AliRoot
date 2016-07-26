@@ -33,7 +33,8 @@
 #include "AliCheb2DStack.h"
 #include "AliLog.h"
 class TGraph;
-class TH1;
+class TH1F;
+class TBits;
 
 class AliTPCChebCorr : public TNamed
 {
@@ -91,13 +92,15 @@ class AliTPCChebCorr : public TNamed
   void     Eval(int sector, int row, float tz[2], float *corr)       const;
   Float_t  Eval(int sector, int row, float y2x, float z, int dimOut) const;
   Float_t  Eval(int sector, int row, float tz[2], int dimOut)        const;
+  Bool_t   IsRowMasked(int sector72,int row)                         const;
+  Int_t    GetNMaskedRows(int sector72, TBits* masked=0)             const;
   void     Init();
   Int_t    GetDimOut() const;
   static   float GetMaxY2X()                    {return fgkY2XHSpan;}
   static const float* GetPadRowX()              {return fgkPadRowX;}
   //
-  TH1*     GetTracksRate()                       const {return fTracksRate;}
-  void     SetTracksRate(TH1* hrate)             {fTracksRate = hrate;}
+  TH1F*    GetTracksRate()                       const {return fTracksRate;}
+  void     SetTracksRate(TH1F* hrate)            {fTracksRate = hrate;}
   Double_t GetLuminosityCOG(TGraph* lumi, time_t tmin=-1, time_t tmax=-1) const;
   //
   Int_t    GetRun()                              const;
@@ -132,7 +135,7 @@ class AliTPCChebCorr : public TNamed
   //
   AliCheb2DStack** fParams;         //[fNStacks] set of AliCheb2DStack parameterizations
   //
-  TH1*  fTracksRate;                // used tracks rate
+  TH1F*  fTracksRate;                // used tracks rate
   //
   static const float fgkY2XHSpan;   // half span of sector
   static const float fgkPadRowX[];  // nominal rows
@@ -142,7 +145,7 @@ class AliTPCChebCorr : public TNamed
   AliTPCChebCorr(const AliTPCChebCorr& src);            // dummy
   AliTPCChebCorr& operator=(const AliTPCChebCorr& rhs); // dummy
   //
-  ClassDef(AliTPCChebCorr,7)
+  ClassDef(AliTPCChebCorr,8)
 };
 
 //_________________________________________________________________

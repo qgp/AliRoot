@@ -1615,6 +1615,9 @@ Float_t AliTPCcalibDB::GetDCSSensorValue(AliDCSSensorArray *arr, Int_t timeStamp
   Float_t val=0;
   const TString sensorNameString(sensorName);
   AliDCSSensor *sensor = arr->GetSensor(sensorNameString);
+  const Int_t startTime = Int_t(sensor->GetStartTime());
+  const Int_t endTime   = Int_t(sensor->GetEndTime());
+
   if (!sensor) return val;
   //use the dcs graph if possible
   TGraph *gr=sensor->GetGraph();
@@ -1622,30 +1625,32 @@ Float_t AliTPCcalibDB::GetDCSSensorValue(AliDCSSensorArray *arr, Int_t timeStamp
     for (Int_t ipoint=0;ipoint<gr->GetN();++ipoint){
       Double_t x,y;
       gr->GetPoint(ipoint,x,y);
-      Int_t time=TMath::Nint(sensor->GetStartTime()+x*3600); //time in graph is hours
-      if (time<timeStamp) continue;
-      val=y;
+      const Int_t time=TMath::Nint(startTime+x*3600.); //time in graph is hours
+      if (time<=timeStamp && timeStamp<=endTime) {
+        val=y;
+        continue;
+      }
       break;
     }
-    //if val is still 0, test if if the requested time if within 5min of the first/last
-    //data point. If this is the case return the firs/last entry
+    //if val is still 0, test if if the requested time is within 5min of the first/last
+    //data point or start/end time of the sensor. If this is the case return the firs/last entry
     //the timestamps might not be syncronised for all calibration types, sometimes a 'pre'
     //and 'pos' period is requested. Especially to the HV this is not the case!
     //first point
     if (val==0 ){
       Double_t x,y;
       gr->GetPoint(0,x,y);
-      const Int_t time=TMath::Nint(sensor->GetStartTime()+x*3600); //time in graph is hours
+      const Int_t time=TMath::Min(TMath::Nint(startTime+x*3600.), startTime); //time in graph is hours
       const Int_t dtime=time-timeStamp;
-      if ( (dtime>0) && (dtime<5*60) ) val=y;
+      if ( (dtime>=0) && (dtime<5*60) ) val=y;
     }
     //last point
     if (val==0 ){
       Double_t x,y;
       gr->GetPoint(gr->GetN()-1,x,y);
-      const Int_t time=TMath::Nint(sensor->GetStartTime()+x*3600); //time in graph is hours
+      const Int_t time=TMath::Max(TMath::Nint(startTime+x*3600.), endTime); //time in graph is hours
       const Int_t dtime=timeStamp-time;
-      if ( (dtime>0) && (dtime<5*60) ) val=y;
+      if ( (dtime>=0) && (dtime<5*60) ) val=y;
     }
   } else {
     val=sensor->GetValue(timeStamp);
@@ -2694,10 +2699,12 @@ Double_t AliTPCcalibDB::GetGainCorrectionHVandPT(Int_t timeStamp, Int_t run, Int
     for (Int_t isec=0; isec<72; isec++){
       Double_t HV= GetChamberHighVoltage(run,isec, timeStamp);
       if (HV<=0){ // check if the HV was available
-	AliDCSSensor* sensor = GetChamberHVSensor(isec);
-	if (sensor && sensor->GetGraph()==NULL &&  sensor->GetFit()==NULL){
-	  HV=fParam->GetNominalVoltage(isec);
-	}     
+        HV=GetChamberCurrentNominalHighVoltage(isec);
+        AliWarningF("Could not get proper HV for run,sec,time (%d, %2d, %d), using current nominal voltage: %.2f", run, isec, timeStamp, HV);
+//         AliDCSSensor* sensor = GetChamberHVSensor(isec);
+//         if (sensor && sensor->GetGraph()==NULL &&  sensor->GetFit()==NULL){
+//           HV=fParam->GetNominalVoltage(isec);
+//         }
       }
       Double_t deltaHV= HV - fParam->GetNominalVoltage(isec);
       Double_t deltaGHV=0;

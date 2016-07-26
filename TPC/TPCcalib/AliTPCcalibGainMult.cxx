@@ -345,6 +345,11 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
     return;
   }
 
+  // CookdEdxAnalytical requires the time stamp in AliTPCTransform to be set
+  AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
+  transform->SetCurrentRun(fRun);
+  transform->SetCurrentTimeStamp((UInt_t)fTime);
+
   const Int_t row0 = param->GetNRowLow();
   const Int_t row1 = row0+param->GetNRowUp1();
   const Int_t row2 = row1+param->GetNRowUp2();
@@ -2095,7 +2100,8 @@ TGraphErrors* AliTPCcalibGainMult::GetGainPerChamberRobust(Int_t padRegion/*=1*/
   if (padRegion>0) fHistGainSector->GetAxis(1)->SetRangeUser(36.,71.);
   //
   TH2D * histGainSec = fHistGainSector->Projection(0,1);
-  TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, 0.6,4,markers[padRegion],colors[padRegion]);
+//   TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, 0.6,4,markers[padRegion],colors[padRegion]);
+  TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, 0.9,6,markers[padRegion],colors[padRegion]);
   const char* names[3]={"SHORT","MEDIUM","LONG"};
   const Double_t median = TMath::Median(gr->GetN(),gr->GetY());
 
