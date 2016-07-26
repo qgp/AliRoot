@@ -101,6 +101,18 @@ AliHLTGlobalPromptRecoQAComponent::AliHLTGlobalPromptRecoQAComponent()
   , frawSizeVZERO(0.)
   , frawSizeEMCAL(0.)
   , frawSizeZDC(0.)
+  , frawSizeFMD(0.)
+  , frawSizeTZERO(0.)
+  , frawSizeACORDE(0.)
+  , frawSizeCTP(0.)
+  , frawSizeAD(0.)
+  , frawSizeTOF(0.)
+  , frawSizePHOS(0.)
+  , frawSizeCPV(0.)
+  , frawSizeHMPID(0.)
+  , frawSizePMD(0.)
+  , frawSizeMUTK(0.)
+  , frawSizeMUTG(0.)
   , fnClustersTPC(0.)
   , frawSizeTPC(0.)
   , fhwcfSizeTPC(0.)
@@ -273,6 +285,20 @@ void AliHLTGlobalPromptRecoQAComponent::GetInputDataTypes(AliHLTComponentDataTyp
   list.push_back(kAliHLTDataTypeFlatESD|kAliHLTDataOriginOut);
   list.push_back(kAliHLTDataTypeFlatESDFriend|kAliHLTDataOriginOut);
 
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD);
+
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginFMD); //All the other detectors where we do not have reco yet
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginT0);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginACORDE);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRG);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginAD);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTOF);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginPHOS);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginCPV);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginHMPID);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginPMD);
+  list.push_back(kAliHLTDataTypeDDLRaw | kAliHLTDataOriginMUON);
+
   //All this is TPC Data compression
   list.push_back(AliHLTTPCDefinitions::DataCompressionDescriptorDataType());
   list.push_back(AliHLTTPCDefinitions::RawClustersDataTypeNotCompressed());
@@ -285,16 +311,7 @@ void AliHLTGlobalPromptRecoQAComponent::GetInputDataTypes(AliHLTComponentDataTyp
 AliHLTComponentDataType AliHLTGlobalPromptRecoQAComponent::GetOutputDataType()
 {
   // see header file for class documentation
-  return kAliHLTMultipleDataType;
-}
-
-int AliHLTGlobalPromptRecoQAComponent::GetOutputDataTypes(AliHLTComponentDataTypeList& tgtList){ 
-// see header file for class documentation
-
-  tgtList.clear();
-  tgtList.push_back( kAliHLTDataTypeHistogram|kAliHLTDataOriginOut );
-  tgtList.push_back( kAliHLTDataTypeTObject|kAliHLTDataOriginOut );
-  return tgtList.size();
+  return kAliHLTDataTypeHistogram|kAliHLTDataOriginOut;
 }
 
 void AliHLTGlobalPromptRecoQAComponent::GetOutputDataSize(unsigned long& constBase, double& inputMultiplier)
@@ -668,7 +685,21 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
   AliHLTUInt32_t rawSizeVZERO = 0;
   AliHLTUInt32_t rawSizeEMCAL = 0;
   AliHLTUInt32_t rawSizeZDC = 0;
-  
+  AliHLTUInt32_t rawSizeTRD = 0;
+
+  AliHLTUInt32_t rawSizeFMD = 0;
+  AliHLTUInt32_t rawSizeTZERO = 0;
+  AliHLTUInt32_t rawSizeACORDE = 0;
+  AliHLTUInt32_t rawSizeCTP = 0;
+  AliHLTUInt32_t rawSizeAD = 0;
+  AliHLTUInt32_t rawSizeTOF = 0;
+  AliHLTUInt32_t rawSizePHOS = 0;
+  AliHLTUInt32_t rawSizeCPV = 0;
+  AliHLTUInt32_t rawSizeHMPID = 0;
+  AliHLTUInt32_t rawSizePMD = 0;
+  AliHLTUInt32_t rawSizeMUTK = 0;
+  AliHLTUInt32_t rawSizeMUTG = 0;
+
   AliHLTUInt32_t nClustersTPC = 0;
   AliHLTUInt32_t rawSizeTPC = 0;
   AliHLTUInt32_t hwcfSizeTPC = 0;
@@ -898,6 +929,62 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
       nFlatESDFriendSize += iter->fSize;
     }
 
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRD))
+    {
+      rawSizeTRD += iter->fSize;
+    }
+
+    //other detector sizes
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginFMD))
+    {
+      rawSizeFMD += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginT0))
+    {
+      rawSizeTZERO += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginACORDE))
+    {
+      rawSizeACORDE += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTRG))
+    {
+      rawSizeCTP += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginAD))
+    {
+      rawSizeAD += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginTOF))
+    {
+      rawSizeTOF += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginPHOS))
+    {
+      rawSizePHOS += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginCPV))
+    {
+      rawSizeCPV += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginHMPID))
+    {
+      rawSizeHMPID += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginPMD))
+    {
+      rawSizePMD += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginMUON) && iter->fSpecification < (1 << 20))
+    {
+      rawSizeMUTK += iter->fSize;
+    }
+    if (iter->fDataType == (kAliHLTDataTypeDDLRaw | kAliHLTDataOriginMUON) && iter->fSpecification >= (1 << 20))
+    {
+      rawSizeMUTG += iter->fSize;
+    }
+
+
     //numbers of tracks
     if (iter->fDataType == AliHLTTPCCADefinitions::fgkTrackletsDataType) //HLT-TPC CA-trackets (before TPC global merger)
     {
@@ -964,6 +1051,19 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
   fzdcZNA = zdcZNA;
   fzdcZNAC = zdcZNA+zdcZNC;
   fzdcRecoSize = zdcRecoSize;
+  frawSizeTRD = rawSizeTRD;
+  frawSizeFMD = rawSizeFMD;
+  frawSizeTZERO = rawSizeTZERO;
+  frawSizeACORDE = rawSizeACORDE;
+  frawSizeCTP = rawSizeCTP;
+  frawSizeAD = rawSizeAD;
+  frawSizeTOF = rawSizeTOF;
+  frawSizePHOS = rawSizePHOS;
+  frawSizeCPV = rawSizeCPV;
+  frawSizeHMPID = rawSizeHMPID;
+  frawSizePMD = rawSizePMD;
+  frawSizeMUTK = rawSizeMUTK;
+  frawSizeMUTG = rawSizeMUTG;
   femcalRecoSize = emcalRecoSize;
   femcalTRU = emcalTRU;
   femcalSTU = emcalSTU;
@@ -981,12 +1081,13 @@ int AliHLTGlobalPromptRecoQAComponent::DoEvent( const AliHLTComponentEventData& 
   int pushed_something = FillHistograms();
 
   static int nPrinted = 0;
-  if (fPrintStats && (fPrintStats == 2 || pushed_something) && nPrinted++ % fPrintDownscale == 0) //Don't print this for every event if we use a pushback period
+  if (fPrintStats && (fPrintStats == 2 || (pushed_something && nPrinted++ % fPrintDownscale == 0))) //Don't print this for every event if we use a pushback period
   {
     HLTImportant("Events %d Blocks %4d: HLT Reco QA Stats: HLTInOut %'d / %'d / %4.1f%%, SPD-Cl %d (%d), SDD-Cl %d (%d), SSD-Cl %d (%d) TPC-Cl %'d (%'d / %'d / %'d / %'d), TPC-Comp %5.3fx / %5.3fx (%'d)"
-      ", ITSSAP-Tr %d, TPC-Tr %'d / %'d, ITS-Tr %d / %d, SPD-Ver %d, V0 %6.2f (%d), EMCAL %d (%d / %d / %d), ZDC %d (%d), ESD %'d / %'d (%'d / %'d)",
+      ", ITSSAP-Tr %d, TPC-Tr %'d / %'d, ITS-Tr %d / %d, SPD-Ver %d, V0 %6.2f (%d), EMCAL %d (%d / %d / %d), ZDC %d (%d), ESD %'d / %'d (%'d / %'d)   -   (TRD %'d, FMD %'d, T0 %'d, ACO %'d, CTP %'d, AD %'d, TOF %'d, PHO %'d, CPV %'d, HMP %'d, PMD %'d, MTK %'d, MTG %'d)",
       nEvents, nBlocks, nHLTInSize, nHLTOutSize, hltRatio * 100, nClustersSPD, rawSizeSPD, nClustersSDD, rawSizeSDD, nClustersSSD, rawSizeSSD, nClustersTPC, rawSizeTPC, hwcfSizeTPC, clusterSizeTPC, clusterSizeTPCtransformed, compressionRatio, compressionRatioFull, compressedSizeTPC,
-      nITSSAPtracks, nTPCtracklets, nTPCtracks, nITSTracks, nITSOutTracks, (int) bITSSPDVertex, vZEROMultiplicity, rawSizeVZERO, emcalRecoSize, emcalTRU, emcalSTU, rawSizeEMCAL, zdcRecoSize, rawSizeZDC, nESDSize, nFlatESDSize, nESDFriendSize, nFlatESDFriendSize);
+      nITSSAPtracks, nTPCtracklets, nTPCtracks, nITSTracks, nITSOutTracks, (int) bITSSPDVertex, vZEROMultiplicity, rawSizeVZERO, emcalRecoSize, emcalTRU, emcalSTU, rawSizeEMCAL, zdcRecoSize, rawSizeZDC, nESDSize, nFlatESDSize, nESDFriendSize, nFlatESDFriendSize,
+      rawSizeTRD, rawSizeFMD, rawSizeTZERO, rawSizeACORDE, rawSizeCTP, rawSizeAD, rawSizeTOF, rawSizePHOS, rawSizeCPV, rawSizeHMPID, rawSizePMD, rawSizeMUTK, rawSizeMUTG);
   }
 
   return iResult;

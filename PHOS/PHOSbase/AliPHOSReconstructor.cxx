@@ -403,7 +403,8 @@ void AliPHOSReconstructor::FillESD(TTree* digitsTree, TTree* clustersTree,
     }
     else{ //Story empty list
       TArrayI arrayTrackMatched(0);
-      ec->AddTracksMatched(arrayTrackMatched);       
+      ec->AddTracksMatched(arrayTrackMatched);      
+      esd->AddCaloCluster(ec);
     }
  
     delete ec;   
@@ -632,10 +633,11 @@ void  AliPHOSReconstructor::ConvertDigitsCPV(AliRawReader* rawReader, TClonesArr
   // Converts CPV raw data to PHOS CPV digits
   // Works on a single-event basis
   AliPHOSCpvRawDigiProducer rdp(rawReader);
+  rdp.SetCalibData(fgCalibData);
   rdp.SetCpvMinAmp(GetRecoParam()->GetCPVMinE());
   rdp.SetTurbo(kTRUE);
   rdp.MakeDigits(digits);
-
+    
 }
 //==================================================================================
 Float_t AliPHOSReconstructor::Calibrate(Float_t amp, Int_t absId)const{
@@ -650,7 +652,7 @@ Float_t AliPHOSReconstructor::Calibrate(Float_t amp, Int_t absId)const{
   Int_t row   =relId[2];
   Int_t column=relId[3];
   if(relId[1]){ //CPV
-    Float_t calibration = fgCalibData->GetADCchannelCpv(module,column,row);
+    Float_t calibration = fgCalibData->GetADCchannelCpv(module,row,column);//corrected by sevdokim
     return amp*calibration ;
   }
   else{ //EMC

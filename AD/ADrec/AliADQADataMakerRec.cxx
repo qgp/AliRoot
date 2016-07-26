@@ -191,20 +191,21 @@ void AliADQADataMakerRec::EndOfDetectorCycle(AliQAv1::TASKINDEX_t task, TObjArra
     
     Double_t xq[1] = {0.9};
     Double_t yq[1];
-
-    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->SetBins(fCurrentCycle,0,fCurrentCycle);
+    UInt_t currentBins = ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->GetNbinsX();
+    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->SetBins(currentBins+1,0,currentBins+1);
     ((TH1F*)GetRawsData(kChargeADA_PC))->GetQuantiles(1,yq,xq);
    
-    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->SetBinContent(fCurrentCycle,yq[0]);
+    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->SetBinContent(currentBins,yq[0]);
     ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->GetXaxis()->LabelsOption("v");
-    if (fCurrentCycle%10 == 0)((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->GetXaxis()->SetBinLabel(fCurrentCycle,Form("%d:%d:%d",currentTime.GetHour(),currentTime.GetMinute(),currentTime.GetSecond())); 
+    if (currentBins%10 == 1)((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADA))->GetXaxis()->SetBinLabel(fCurrentCycle,Form("%d:%d:%d",currentTime.GetHour(),currentTime.GetMinute(),currentTime.GetSecond()));
+  
     ((TH1F*)GetRawsData(kChargeADA_PC))->Reset("ICES");
     
-    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADC))->SetBins(fCurrentCycle,0,fCurrentCycle);
+    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADC))->SetBins(currentBins+1,0,currentBins+1);
     ((TH1F*)GetRawsData(kChargeADC_PC))->GetQuantiles(1,yq,xq);
-    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADC))->SetBinContent(fCurrentCycle,yq[0]);
+    ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADC))->SetBinContent(currentBins,yq[0]);
     ((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADC))->GetXaxis()->LabelsOption("v");
-    if (fCurrentCycle%10 == 0)((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADC))->GetXaxis()->SetBinLabel(fCurrentCycle,Form("%d:%d:%d",currentTime.GetHour(),currentTime.GetMinute(),currentTime.GetSecond()));
+    if (currentBins%10 == 1)((TH1F*)GetRawsData(kTrend_TriggerChargeQuantileADC))->GetXaxis()->SetBinLabel(fCurrentCycle,Form("%d:%d:%d",currentTime.GetHour(),currentTime.GetMinute(),currentTime.GetSecond()));
     ((TH1F*)GetRawsData(kChargeADC_PC))->Reset("ICES");
     
     Int_t nCorrelation = 0;
@@ -674,11 +675,11 @@ void AliADQADataMakerRec::InitRaws()
   Add2RawsList(h2d,kMeanTimeSumDiff, expert, !image, !saveCorr);   iHisto++;
  
   //Slewing histograms
-  h2d = new TH2F("H2D_TimeSlewingOff", "Time Vs Charge (no slewing correction);Leading Time[ns];Charge [ADC counts]", kNTdcTimeBins, kTdcTimeMin, kTdcTimeMax, kNChargeCorrBins, kChargeCorrMin, kChargeCorrMax) ;  
-  Add2RawsList(h2d,kTimeSlewingOff, expert, !image, !saveCorr);   iHisto++;
+  h2d = new TH2F("H2D_TimeSlewingADA", "Time Vs Charge ADA;Log10(1/Charge) [ADC counts]; Leading Time[ns]", 200,-4,0, kNTdcTimeBins, kTdcTimeMin, kTdcTimeMax);  
+  Add2RawsList(h2d,kTimeSlewingADA, expert, !image, !saveCorr);   iHisto++;
   
-  h2d = new TH2F("H2D_TimeSlewingOn", "Time Vs Charge (after slewing correction);Leading Time[ns];Charge [ADC counts]", kNTdcTimeBins, kTdcTimeMin, kTdcTimeMax, kNChargeCorrBins, kChargeCorrMin, kChargeCorrMax) ;  
-  Add2RawsList(h2d,kTimeSlewingOn, expert, !image, !saveCorr);   iHisto++;
+  h2d = new TH2F("H2D_TimeSlewingADC", "Time Vs Charge ADC;Log10(1/Charge) [ADC counts]; Leading Time[ns]", 200,-4,0, kNTdcTimeBins, kTdcTimeMin, kTdcTimeMax) ;  
+  Add2RawsList(h2d,kTimeSlewingADC, expert, !image, !saveCorr);   iHisto++;
   
   h2d = new TH2F("H2D_WidthSlewing", "Width Vs Charge ;Time Width [ns];Charge [ADC counts]", kNTdcWidthBins, kTdcWidthMin, kTdcWidthMax, kNChargeCorrBins, kChargeCorrMin, kChargeCorrMax) ;  
   Add2RawsList(h2d,kWidthSlewing, expert, !image, !saveCorr);   iHisto++;
@@ -984,18 +985,21 @@ void AliADQADataMakerRec::MakeRaws(AliRawReader* rawReader)
       timeCorr[offlineCh] = CorrectLeadingTime(offlineCh,time[offlineCh],adc[offlineCh]);
    
       if(time[offlineCh] > 1.e-6){
+        FillRawsData(kWidthSlewing,width[offlineCh],adc[offlineCh]);
 	Float_t timeErr = 1;
 	if (adc[offlineCh]>1) timeErr = 1/adc[offlineCh];
 
 	if (offlineCh<8) {
 	    itimeADC++;
 	    timeADC += time[offlineCh]/(timeErr*timeErr);
-	    weightADC += 1./(timeErr*timeErr);
+	    weightADC += 1./(timeErr*timeErr); 
+      	    if (adc[offlineCh]>1) FillRawsData(kTimeSlewingADC,TMath::Log10(1.0/adc[offlineCh]),time[offlineCh]);
 	  }
 	else{
 	    itimeADA++;
 	    timeADA += time[offlineCh]/(timeErr*timeErr);
 	    weightADA += 1./(timeErr*timeErr);
+	    if (adc[offlineCh]>1) FillRawsData(kTimeSlewingADA,TMath::Log10(1.0/adc[offlineCh]),time[offlineCh]);
 	  }
 	
       }
@@ -1026,10 +1030,6 @@ void AliADQADataMakerRec::MakeRaws(AliRawReader* rawReader)
       
       if((flagBB[offlineCh] || flagBG[offlineCh]) && time[offlineCh]<1e-6)FillRawsData(kFlagNoTime,offlineCh);
       if((!flagBB[offlineCh] && !flagBG[offlineCh]) && time[offlineCh]>1e-6)FillRawsData(kTimeNoFlag,offlineCh);
-      
-      FillRawsData(kTimeSlewingOff,time[offlineCh],adc[offlineCh]);
-      FillRawsData(kTimeSlewingOn,timeCorr[offlineCh],adc[offlineCh]);
-      FillRawsData(kWidthSlewing,width[offlineCh],adc[offlineCh]);
       
       FillRawsData(kHPTDCTime,offlineCh,time[offlineCh]);
       FillRawsData(kHPTDCTimeRebin,offlineCh,time[offlineCh]);

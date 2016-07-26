@@ -35,7 +35,8 @@ AliPHOSCpvRawDigiProducer::AliPHOSCpvRawDigiProducer():
   fCpvMinE(10.),
   fRawStream(0),
   fhErrors(0),
-  fPedFilesRLoaded(kFALSE)
+  fPedFilesRLoaded(kFALSE),
+  fCalibData(0x0)
 {
   fGeom=AliPHOSGeometry::GetInstance() ;
   if(!fGeom) fGeom = AliPHOSGeometry::GetInstance("IHEP");
@@ -60,7 +61,8 @@ AliPHOSCpvRawDigiProducer::AliPHOSCpvRawDigiProducer(AliRawReader * rawReader):
   fCpvMinE(10.),
   fRawStream(0),
   fhErrors(0),
-  fPedFilesRLoaded(kFALSE)
+  fPedFilesRLoaded(kFALSE),
+  fCalibData(0x0)
 {
   fGeom=AliPHOSGeometry::GetInstance() ;
   if(!fGeom) fGeom = AliPHOSGeometry::GetInstance("IHEP");
@@ -99,7 +101,8 @@ void AliPHOSCpvRawDigiProducer::SetPermanentBadMap(TH2I* badMap,int iDDL=0){
     if(iDDL>=0&&iDDL<2*AliPHOSCpvParam::kNDDL){
       fPermanentBadMap[iDDL] = (TH2I*)badMap->Clone();
     }
-    else cout<<"DDL number "<<iDDL<<" is not valid"<<endl;
+    else
+      AliError(Form("DDL number %d is not valid",iDDL));
   }
 
 }
@@ -120,17 +123,13 @@ Bool_t AliPHOSCpvRawDigiProducer::LoadPedFiles() {
 	Int_t abs = AliPHOSCpvParam::Abs(iDDL,iCC,i3g,iPad);
 	if(iPad<48&&i3g<10){
 	  if(AliPHOSCpvParam::A2DDL(abs)!=iDDL)
-	    cout<<"AliPHOSCpvRawDigiProducer::LoadPedFiles(): wrong connection table! abs = "
-		<<abs<<", DDL = "<<iDDL<<", A2DDL = "<<AliPHOSCpvParam::A2DDL(abs)<<endl;
+	    AliError(Form("wrong connection table! abs = %d, DDL = %d, A2DDL",abs,iDDL,AliPHOSCpvParam::A2DDL(abs)));
 	  if(AliPHOSCpvParam::A2CC(abs)!=iCC)
-	    cout<<"AliPHOSCpvRawDigiProducer::LoadPedFiles(): wrong connection table! abs = "
-		<<abs<<", CC = "<< iCC <<", A2CC = "<<AliPHOSCpvParam::A2CC(abs)<<endl;
+	    AliError(Form("wrong connection table! abs = %d, CC = %d, A2CC = %d",abs,iCC,AliPHOSCpvParam::A2CC(abs)));
 	  if(AliPHOSCpvParam::A23G(abs)!=i3g)
-	    cout<<"AliPHOSCpvRawDigiProducer::LoadPedFiles(): wrong connection table! abs = "
-		<<abs<<", 3G = "<< i3g <<", A23G = "<<AliPHOSCpvParam::A23G(abs)<<endl;
+	    AliError(Form("wrong connection table! abs = %d, 3G = %d, A23G = %d",abs,i3g,AliPHOSCpvParam::A23G(abs)));
 	  if(AliPHOSCpvParam::A2Pad(abs)!=iPad)
-	    cout<<"AliPHOSCpvRawDigiProducer::LoadPedFiles(): wrong connection table! abs = "
-		<<abs<<", Pad = "<< iPad <<", A2Pad = "<<AliPHOSCpvParam::A2Pad(abs)<<endl;
+	    AliError(Form("wrong connection table! abs = %d, pad = %d, A2Pad = %d",abs,iPad,AliPHOSCpvParam::A2Pad(abs)));
 	}
 	Int_t thr;
 	fscanf(pedFile,"%x",&thr);
@@ -141,8 +140,7 @@ Bool_t AliPHOSCpvRawDigiProducer::LoadPedFiles() {
 	  fPed[1][iDDL][AliPHOSCpvParam::A2X(abs)][AliPHOSCpvParam::A2Y(abs)] = s;
 	  int testAbs = AliPHOSCpvParam::XY2A(iDDL,AliPHOSCpvParam::A2X(abs),AliPHOSCpvParam::A2Y(abs));
 	  if(abs!=testAbs)
-	    cout<<"AliPHOSCpvRawDigiProducer::LoadPedFiles(): wrong connection table! abs = "
-		<<abs<<", testAbs = "<<testAbs<<endl;
+	    AliError(Form("wrong connection table! abs = %d, testAbs = %d",abs,testAbs));
 	}
 	iPad++;
 	if(iPad == 64) {iPad = 0; i3g++;}
@@ -194,8 +192,8 @@ void AliPHOSCpvRawDigiProducer::MakeDigits(TClonesArray * digits) const
 
       relId[0] = AliPHOSCpvParam::DDL2Mod(iddl) ; // counts from 1 to 5
       relId[1] = -1;      // -1=CPV
-      relId[3] = ix + 1; // counts from 1 to 128
-      relId[2] = iy + 1; // counts from 1 to 60
+      relId[2] = ix + 1; // counts from 1 to 128
+      relId[3] = iy + 1; // counts from 1 to 60
       fGeom->RelToAbsNumbering(relId, absId);
 
       AliDebug(2,Form("CPV digit: pad=%d, (x,z)=(%3d,%2d), DDL=%d, charge=%.0f",
@@ -207,7 +205,13 @@ void AliPHOSCpvRawDigiProducer::MakeDigits(TClonesArray * digits) const
 	else 
 	  charge  = 0;
       }
-      if(charge < fCpvMinE) charge = 0;
+      if(fCalibData) {
+	if(fCalibData->IsBadChannelCpv(relId[0],relId[2],relId[3]))
+	  charge=0;
+	Float_t pedestal = fCalibData->GetADCpedestalCpv(relId[0],relId[2],relId[3]);
+	charge -= pedestal;
+      }
+      if (charge < fCpvMinE) charge = 0;
       if (charge>0) new((*digits)[iDigit++]) AliPHOSDigit(-1,absId,charge,0.);
       
     }

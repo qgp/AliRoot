@@ -48,6 +48,7 @@ set(SRCS
     AliHLTFilePublisher.cxx
     AliHLTFileWriter.cxx
     AliHLTFXSFileWriter.cxx
+    AliHLTFXSWriterComponent.cxx
     AliHLTGlobalBarrelTrack.cxx
     AliHLTJets.cxx
     AliHLTLoaderPublisherComponent.cxx
@@ -105,8 +106,8 @@ if(ZEROMQ_FOUND)
                       ${ZEROMQ_INCLUDE_DIR}
                       )
 
-  add_executable(ZMQfileSink ZMQfileSink.cxx)
-  target_link_libraries(ZMQfileSink HLTbase AliHLTHOMER AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
+  add_executable(ZMQfileProxy ZMQfileProxy.cxx)
+  target_link_libraries(ZMQfileProxy HLTbase AliHLTHOMER AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
   add_executable(ZMQDIMlumiregServer ZMQDIMlumiregServer.cxx)
   target_link_libraries(ZMQDIMlumiregServer HLTbase AliHLTHOMER AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
   add_executable(ZMQHOMERproxy ZMQHOMERproxy.cxx)
@@ -121,6 +122,6 @@ if(ZEROMQ_FOUND)
   target_link_libraries(ZMQproxy HLTbase AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
   
   # Installation of 
-  install(TARGETS ZMQfileSink ZMQHOMERproxy ZMQROOTmerger ZMQhistSource ZMQhistViewer ZMQproxy ZMQDIMlumiregServer RUNTIME DESTINATION bin)
+  install(TARGETS ZMQfileProxy ZMQHOMERproxy ZMQROOTmerger ZMQhistSource ZMQhistViewer ZMQproxy ZMQDIMlumiregServer RUNTIME DESTINATION bin)
   install(PROGRAMS ZMQmonitor.py DESTINATION bin)
 endif(ZEROMQ_FOUND)

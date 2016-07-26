@@ -1,5 +1,4 @@
 //-*- Mode: C++ -*-
-// $Id$
 #ifndef ALIHLTDATAINFLATERHUFFMAN_H
 #define ALIHLTDATAINFLATERHUFFMAN_H
 //* This file is property of and copyright by the ALICE HLT Project        * 
@@ -58,6 +57,15 @@ public:
    * buffer and forwards to the base class method if the buffer is empty.
    */
   bool InputBit( AliHLTUInt8_t & value );
+
+  /**
+   * Pad read pointer to next 8 bit boundary
+   * This overload first clears the internal register and rewinds the read
+   * pointer appropriately, then calls Pad8Bits of the base class
+   */
+  void Pad8Bits();
+
+  void RewindCache();
 
   /// Print info
   void Print(Option_t* option = "") const;
