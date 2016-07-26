@@ -17,8 +17,10 @@ class AliESDfriend;
 class TTree;
 struct AliHLTTracksData;
 class AliTPCclusterMI;
-class TH2I;
+class TH1F;
 class TH2F;
+class TH1D;
+class TH2D;
 class AliHLTTPCHWCFData;
 
 /**
@@ -108,6 +110,8 @@ class AliHLTGlobalPromptRecoQAComponent : public AliHLTProcessor, public AliOpti
   void NewAxis(string name, int bins, float low, float high);
   void NewHistogram(string trigName, string histName, string histTitle, string xname, string yname, string config="" );
   void NewHistogram(std::string histConfig);
+  void CreateFixedHistograms();
+  void DeleteFixedHistograms();
   int FillHistograms();
 
 protected:
@@ -157,6 +161,8 @@ protected:
   double fclusterSizeTPCtransformed; 
   double fclusterSizeTPC; 
   double fcompressedSizeTPC; 
+  double fTPCSplitRatioPad;
+  double fTPCSplitRatioTime;
 
   double fnITSSAPtracks; 
   double fnTPCtracklets; 
@@ -189,6 +195,11 @@ protected:
   double fnHLTInSize; 
   double fnHLTOutSize; 
   double fhltRatio;
+  
+  //Fixed histograms with track / cluster properties.
+  //These are not created dynamically because that would require quite some CPU resources.
+  TH1D* fHistClusterChargeTot;
+  TH1D* fHistTPCTrackPt;
 
   ClassDef(AliHLTGlobalPromptRecoQAComponent, 0)
 };

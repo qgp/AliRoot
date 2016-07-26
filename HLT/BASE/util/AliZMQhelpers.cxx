@@ -115,6 +115,15 @@ int alizmq_attach (void *self, const char *endpoints, bool serverish)
 }
 
 //_______________________________________________________________________________________
+int alizmq_socket_state(void* socket)
+{
+  int events=0;
+  size_t len = sizeof(events);
+  zmq_getsockopt(socket, ZMQ_EVENTS, &events, &len);
+  return events;
+}
+
+//_______________________________________________________________________________________
 int alizmq_socket_type(void* socket)
 {
   //get the type of the socket
@@ -168,9 +177,8 @@ const char* alizmq_socket_name(int socketType)
 }
 
 //_______________________________________________________________________________________
-int alizmq_socket_close(void*& socket)
+int alizmq_socket_close(void*& socket, int linger)
 {
-  int linger=0;
   zmq_setsockopt(socket, ZMQ_LINGER, &linger, sizeof(linger));
   int rc = zmq_close(socket);
   if (rc>=0) socket = NULL;
@@ -189,7 +197,11 @@ int alizmq_socket_init(void*& socket, void* context, std::string config, int tim
   if (configStartPos!=std::string::npos && configEndPos!=std::string::npos)
   { config = config.substr(configStartPos,configEndPos-configStartPos+1); }
 
-  if (config.empty()) return 0;
+  if (config.empty()) {
+    alizmq_socket_close(socket);
+    socket = NULL;
+    return 999999;
+  }
 
   std::size_t found = config.find_first_of("@>-+");
   if (found == 0)
@@ -208,7 +220,7 @@ int alizmq_socket_init(void*& socket, void* context, std::string config, int tim
   if (socket)
   {
     newSocket=false;
-    int lingerValue = 0;
+    int lingerValue = 10;
     rc = zmq_setsockopt(socket, ZMQ_LINGER, &lingerValue, sizeof(lingerValue));
     if (rc!=0) 
     {
@@ -604,6 +616,7 @@ int alizmq_msg_send(const AliHLTDataTopic& topic, TObject* object, void* socket,
   rc = zmq_send( socket, &topic, sizeof(topic), ZMQ_SNDMORE );
   if (rc<0) 
   {
+    zmq_msg_close(&dataMsg);
     //printf("unable to send topic: %s %s\n", topic.Description().c_str(), zmq_strerror(errno));
     return rc;
   }
@@ -683,6 +696,15 @@ int alizmq_msg_iter_check(aliZMQmsg::iterator it, const AliHLTDataTopic& topic)
   AliHLTDataTopic actualTopic;
   alizmq_msg_iter_topic(it, actualTopic);
   if (actualTopic == topic) return 0;
+  return 1;
+}
+
+//_______________________________________________________________________________________
+int alizmq_msg_iter_check_id(aliZMQmsg::iterator it, const AliHLTDataTopic& topic)
+{
+  AliHLTDataTopic actualTopic;
+  alizmq_msg_iter_topic(it, actualTopic);
+  if (actualTopic.GetID() == topic.GetID()) return 0;
   return 1;
 }
 

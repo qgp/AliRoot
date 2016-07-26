@@ -1,6 +1,7 @@
 #include "TGFrame.h"
 #include <string>
 #include "TCanvas.h"
+#include "TRootCanvas.h"
 
 class TThread;
 class TH1F;
@@ -21,12 +22,17 @@ typedef struct {
    AliZMQhistViewer* viewer;
 } ThreadArgs_t;
 
-class AliZMQMTviewerGUIview : public TCanvas {
+class AliZMQMTviewerGUIview {
   public:
   AliZMQMTviewerGUIview(const char* name, const char* title, Int_t a, Int_t b, Int_t c, Int_t d)
-    : TCanvas(name,title,a,b,c,d), fDrawnObjects() {}
+    : fCanvas(name,title,a,b,c,d), fDrawnObjects() {
+      TRootCanvas *canvas = (TRootCanvas *)fCanvas.GetCanvasImp();
+      canvas->Connect("CloseWindow()","AliZMQMTviewerGUIview",this,"CleanUp()");
+    }
+  TCanvas fCanvas;
   TList fDrawnObjects;
   void CleanUp();
+  virtual ~AliZMQMTviewerGUIview() {}
   ClassDef(AliZMQMTviewerGUIview, 0)
 };
 

@@ -141,9 +141,7 @@ int AliZMQhistViewer::Run(void* arg)
     {
       GetData(fZMQin);
       if (fUpdateCanvas) {
-        UpdateCanvas(fCanvas);
-        fCanvas->Update();
-        gSystem->ProcessEvents();
+        UpdateCanvas(fCanvas,fSelectionRegexp, fUnSelectionRegexp);
       }
     }
     else if (sockets[1].revents & ZMQ_POLLIN) //ZMQconfig
@@ -263,7 +261,6 @@ int AliZMQhistViewer::UpdateCanvas(TCanvas* canvas,
 
   if (forceClearCanvas && fContent) {
     canvas->Clear();
-    //canvas->Update();
     fTrashQueue.push_back(fContent);
     fContent = NULL;
   }
@@ -309,12 +306,15 @@ int AliZMQhistViewer::UpdateCanvas(TCanvas* canvas,
     {
       if (strcmp(safename(incoming), safename(current))==0)
       {
-        if (fVerbose) printf("  updating %s\n",safename(incoming));
+        if (fVerbose) printf("  updating %s %s\n",safename(incoming), safetitle(incoming));
         found = true;
         if (!(incoming->object)) { printf("WARNING: null pointer in input data"); }
-        else { 
-          current->SwapObject(*incoming);
-          if (verbose) printf("  swapping plot %s\n", safename(incoming));
+        else {
+          if (current->SwapObject(*incoming)) {
+            if (verbose) printf("  swapped plot %s %s\n", safename(incoming),safetitle(incoming));
+          } else {
+            printf("duplicate histogram in incoming message! skipping %s\n", safename(incoming));
+          }
         }
         break;
       }
@@ -323,9 +323,18 @@ int AliZMQhistViewer::UpdateCanvas(TCanvas* canvas,
     {
       if (fVerbose) printf("  new object %s\n",safename(incoming));
       ZMQviewerObject tmp(*incoming); incoming->object=NULL;
+      tmp.options = drawOptions;
       fContent->push_back(tmp); //completely new one
       nNewPlots++;
     }
+  }
+
+  //MUST reset isnew after updating
+  for (vector<ZMQviewerObject>::iterator current=fContent->begin();
+      current!=fContent->end();
+      ++current)
+  {
+    current->isnew = false;
   }
 
   //re-sort the new list if we have new plots
@@ -383,13 +392,14 @@ int AliZMQhistViewer::UpdateCanvas(TCanvas* canvas,
         if (verbose) printf("  removing previous %s at %p\n", safename(current), current->previous);
         pad->SetName(safename(current));
         pad->RecursiveRemove(current->previous);
-        pad->GetListOfPrimitives()->Add(current->object,drawOptions);
-        pad->Modified();
+        pad->GetListOfPrimitives()->Add(current->object,current->options.c_str());
+        pad->Modified(kTRUE);
       }
       else { if (verbose) printf("  missing object\n"); }
     }
   }
   canvas->SetTitle(info.c_str());
+  canvas->Update();
   
   fTrashQueue.push_back(incomingObjects);
   //garbage collect
@@ -436,6 +446,7 @@ int AliZMQhistViewer::ProcessOption(TString option, TString value)
     GetZMQconfig(&valuestr);
     fZMQsocketModeIN = alizmq_socket_init(fZMQin, fZMQcontext, value.Data(), -1, 2);
     if (fZMQsocketModeIN < 0) return -1;
+    if (fZMQsocketModeIN == ZMQ_REQ && fPollInterval==0) fPollInterval=60000;
   }
   else if (option.EqualTo("Verbose"))
   {

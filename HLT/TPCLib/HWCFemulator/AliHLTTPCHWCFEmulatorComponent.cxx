@@ -65,6 +65,7 @@ AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent()
   fUseTimeFollow(0),
   fChargeFluctuation(0),
   fTagDeconvolutedClusters(0),
+  fProcessingRCU2Data(0),
   fDebug(0),
   fCFSupport(),
   fCFEmulator(),
@@ -94,6 +95,7 @@ AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent(const AliHLTTPCHW
   fUseTimeFollow(0),
   fChargeFluctuation(0),
   fTagDeconvolutedClusters(0),
+  fProcessingRCU2Data(0),
   fDebug(0),
   fCFSupport(),
   fCFEmulator(),
@@ -226,6 +228,7 @@ void AliHLTTPCHWCFEmulatorComponent::SetDefaultConfiguration()
   fUseTimeFollow = 1;
   fChargeFluctuation = 0;
   fTagDeconvolutedClusters = 0;
+  fProcessingRCU2Data = 0;
   fDebug = 0;
   fBenchmark.Reset();
   fBenchmark.SetTimer(0,"total");
@@ -360,7 +363,14 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
       HLTInfo( "Tag Deconvoluted Clusters is set to: %d", fTagDeconvolutedClusters );
       continue;
     }
-    
+ 
+    if ( argument.CompareTo( "-rcu2-data" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fProcessingRCU2Data  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Processing RCU2 data flag is set to: %d", fTagDeconvolutedClusters );
+      continue;
+    }
+   
     HLTError( "Unknown option \"%s\"", argument.Data() );
     iResult = -EINVAL;
   }
@@ -437,6 +447,9 @@ int AliHLTTPCHWCFEmulatorComponent::Configure( const char* cdbEntry, const char*
   
   if( fDebug>1 ) fCFEmulator.SetDebugLevel( fDebug );
   else fCFEmulator.SetDebugLevel(0);
+
+  fCFSupport.UnloadMapping();
+  fCFSupport.SetProcessingRCU2Data( fProcessingRCU2Data );
 
   return iResult1 ? iResult1 : ( iResult2 ? iResult2 : iResult3 );
 }
@@ -552,6 +565,7 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
 	( fCFSupport.GetMapping(slice,patch), configWord1, configWord2 );
 
       fCFEmulator.SetTagDeconvolutedClusters( fTagDeconvolutedClusters );
+      fCFEmulator.SetProcessingRCU2Data( fProcessingRCU2Data );
 
       int err = fCFEmulator.FindClusters( rawEvent, rawEventSize32, 
 					  outClusters, clustersSize32, 

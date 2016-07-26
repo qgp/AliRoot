@@ -1,4 +1,7 @@
 #include "AliTPCDcalibRes.h"
+#include "AliCDBPath.h"
+#include "AliCDBEntry.h"
+#include "AliGRPObject.h"
 
 using std::swap;
 
@@ -18,7 +21,7 @@ const float AliTPCDcalibRes::kMaxQ2Pt = 3.0f;
 const float AliTPCDcalibRes::kMinX = 85.0f;
 const float AliTPCDcalibRes::kMaxX = 246.0f;
 const float AliTPCDcalibRes::kMaxZ2X = 1.0f;
-const float AliTPCDcalibRes::kZLim = 2.49725e2;
+const float AliTPCDcalibRes::kZLim[2] = {2.49725e+02,2.49698e+02};
 const char* AliTPCDcalibRes::kLocalResFileName  = "tmpDeltaSect";
 const char* AliTPCDcalibRes::kClosureTestFileName  = "closureTestSect";
 const char* AliTPCDcalibRes::kStatOut      = "voxelStat";
@@ -75,6 +78,8 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fRun(run)
   ,fTMin(tmin)
   ,fTMax(tmax)
+  ,fTMinGRP(0)
+  ,fTMaxGRP(0)
   ,fMaxTracks(9999999)
   ,fCacheInp(100)
   ,fLearnSize(1)
@@ -120,7 +125,7 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fNTrSelTotWO(0)
   ,fNReadCallTot(0)
   ,fNBytesReadTot(0)
-
+  ,fTracksRate(0)
   ,fVDriftParam(0)
   ,fVDriftGraph(0)
   ,fCorrTime(0)
@@ -181,6 +186,7 @@ AliTPCDcalibRes::~AliTPCDcalibRes()
     delete fSectGVoxRes[i];
     delete fStatHist[i];
   }
+  delete fTracksRate;
 }
 
 //________________________________________
@@ -247,6 +253,23 @@ void AliTPCDcalibRes::Init()
     if (run<1) AliFatal("Run number is neither set nor provided via runNumber env.var");
     SetRun(run);
   }
+  //
+  AliCDBManager* man = AliCDBManager::Instance();
+  if (fOCDBPath.IsNull()) fOCDBPath = "raw://";
+  if (!man->IsDefaultStorageSet()) man->SetDefaultStorage(fOCDBPath);
+  if (man->GetRun()!=fRun) man->SetRun(fRun); 
+  //
+  // memorize GRP time
+  AliGRPObject* grp = (AliGRPObject*)man->Get(AliCDBPath("GRP/GRP/Data"))->GetObject();
+  fTMinGRP = grp->GetTimeStart();
+  fTMaxGRP = grp->GetTimeEnd();
+  //
+  // init histo for track rate
+  Long64_t tmn = fTMinGRP-fTMin>1000 ? fTMinGRP-100 : fTMin;
+  Long64_t tmx = fTMax-fTMaxGRP>1000 ? fTMaxGRP+100 : fTMax;
+  fTracksRate = new TH1F("TracksRate","TracksRate", 1+tmx-tmn, -0.5+tmn,0.5+tmx);
+  fTracksRate->SetDirectory(0);
+  //
   InitGeom();
   SetName(Form("run%d_%lld_%lld",fRun,fTMin,fTMax));
   SetTitle(IsA()->GetName());
@@ -265,8 +288,6 @@ void AliTPCDcalibRes::Init()
   for (int i=kVoxDim-1;i--;) {
     fNBProdSectG[i] = fNBProdSectG[i+1]*fNBins[i+1];
   }
-  
-
   //
   AliSysInfo::AddStamp("Init",0,0,0,0);
   //
@@ -448,7 +469,7 @@ void AliTPCDcalibRes::CollectData(int mode)
       int nc0 = fNCl; 
       fNCl = 0;
       for (int ip=0;ip<nc0;ip++) {
-	
+	int side = ((fArrSectID[ip] /kNSect)&0x1);
 	float sna = TMath::Sin(fArrPhi[ip]-(0.5f +fArrSectID[ip]%kNSect)*kSecDPhi);
 	float csa = TMath::Sqrt((1.f-sna)*(1.f+sna));
 	//
@@ -486,7 +507,7 @@ void AliTPCDcalibRes::CollectData(int mode)
 	if (TMath::Abs(fArrDZ[fNCl])>kMaxResid-kEps) continue;
 	//
 	if (fArrX[fNCl]<kMinX || fArrX[fNCl]>kMaxX) continue;
-	if (TMath::Abs(fArrZCl[fNCl])>kZLim) continue;;
+	if (TMath::Abs(fArrZCl[fNCl])>kZLim[side]) continue;;
 	//
 	// End of manipulations to go to the sector frame
 	//
@@ -577,6 +598,9 @@ void AliTPCDcalibRes::FillLocalResidualsTrees()
     }
     //
   } // loop over clusters
+  //
+  if (fTracksRate) fTracksRate->Fill(fTimeStamp); // register track time
+  //
 }
 
 //________________________________________________
@@ -1377,8 +1401,7 @@ void AliTPCDcalibRes::FixAlignmentBug(int sect, float q2pt, float bz, float& alp
 {
   // fix alignment bug: https://alice.its.cern.ch/jira/browse/ATO-339?focusedCommentId=170850&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-170850
   //
-  // alp, x, z correspond to 
-  //
+  // NOTE: deltaZ in the buggy code is calculated as Ztrack_with_bug - Zcluster_w/o_bug
   static TGeoHMatrix *mCache[72] = {0};
   if (sect<0||sect>=72) {
     AliErrorF("Invalid sector %d",sect);
@@ -1395,18 +1418,20 @@ void AliTPCDcalibRes::FixAlignmentBug(int sect, float q2pt, float bz, float& alp
   }  
   double alpSect = ((sect%18)+0.5)*20.*TMath::DegToRad();
 
-  // cluster in its proper alpha frame with alignment bug, Z trackITS is used !!! 
-  double xyzClUse[3] = {x,0,z}; // this is what we read from the residual tree, ITS Z only is stored
+  // cluster in its proper alpha frame with alignment bug
+  double xyzClUse[3] = {x,0,z}; // this is what we read from the residual tree
   double xyzTrUse[3] = {x, deltaY, z}; // track in bad cluster frame
   //
-  // recover cluster Z position by adding deltaZ, this is approximate, since ITS track Z was used...
-  xyzClUse[2] -= deltaZ;
+  // recover cluster Z position by adding deltaZ
+  double zClSave = xyzClUse[2] -= deltaZ;  // here the cluster is not affected by Z alignment component of the bug!
   static AliExternalTrackParam trDummy;
   trDummy.Local2GlobalPosition(xyzClUse,alp); // misaligned cluster in global frame
   double xyz0[3]={xyzClUse[0],xyzClUse[1],xyzClUse[2]};
   mgt->MasterToLocal(xyz0,xyzClUse);
-  // we got ideal cluster in the sector tracking frame, 
+  // we got ideal cluster in the sector tracking frame, but now the Z is wrong, since it was not affected by the bug!!!
   //
+  xyzClUse[2] = zClSave;
+
   // go to ideal cluster frame
   trDummy.Local2GlobalPosition(xyzClUse,alpSect); // ideal global
   double alpFix = TMath::ATan2(xyzClUse[1],xyzClUse[0]);    // fixed cluster phi
@@ -1980,11 +2005,11 @@ float AliTPCDcalibRes::GetDriftCorrection(float z, float x, float phi, int rocID
 {
   // apply vdrift correction
   int side = ((rocID/kNSect)&0x1) ? -1:1; // C:A
-  float drift = side>0 ? kZLim-z : z+kZLim;
+  float drift = side>0 ? kZLim[0]-z : z+kZLim[1];
   float gy    = TMath::Sin(phi)*x;
   Double_t pvecFit[3];
   pvecFit[0]= side;             // z shift (cm)
-  pvecFit[1]= drift*gy/kZLim;   // global y gradient
+  pvecFit[1]= drift*gy/kZLim[side<0];   // global y gradient
   pvecFit[2]= drift;            // drift length
   float expected = (fVDriftParam==NULL) ? 0:
     (*fVDriftParam)[0]+
@@ -2684,7 +2709,35 @@ void AliTPCDcalibRes::CreateCorrectionObject()
   SetUsedInstance(this);
   fChebCorr->Parameterize(trainCorr,kResDim,fNPCheb,fChebPrecD);
   //
+  // register tracks rate for lumi weighting
+  fChebCorr->SetTracksRate(ExtractTrackRate());
+  //
   AliSysInfo::AddStamp("CreateCorrectionObject",1,0,0,0);
+}
+
+//________________________________________________________________
+TH1* AliTPCDcalibRes::ExtractTrackRate() const
+{
+  // create histo with used tracks per timestamp
+  TH1* hTr = 0;
+  if (fTracksRate) { 
+    const float *tarr = fTracksRate->GetArray();
+    int nb = fTracksRate->GetNbinsX();
+    int bin0=1,bin1=nb;
+    while(tarr[bin0]<0.5 && bin0<=nb) bin0++; // find first significant time bin 
+    while(tarr[bin1]<0.5 && bin1>=bin0) bin1--; // find last significant time bin
+    nb = bin1 - bin0 + 1;
+    Long64_t tmn = (Long64_t)fTracksRate->GetBinCenter(bin0);
+    Long64_t tmx = (Long64_t)fTracksRate->GetBinCenter(bin1);
+    hTr = new TH1F(Form("TrackRate%lld_%lld",tmn,tmx),"TracksRate",nb,
+		   fTracksRate->GetBinLowEdge(bin0),fTracksRate->GetBinLowEdge(bin1+1));
+    for (int ib=0;ib<nb;ib++) {
+      int ibh = ib+bin0;
+      hTr->SetBinContent(ib+1,tarr[ibh]);
+    }
+  }
+  else AliError("TracksRate accumulation histo was not initialized");
+  return hTr;
 }
 
 //________________________________________________________________

@@ -29,7 +29,8 @@ typedef std::vector<TVirtualStreamerInfo*> aliZMQrootStreamerInfo;
 //  SUB>tcp://localhost:123123,@tcp://*:454545
 //  timeout is in ms, -1 is wait forever
 int alizmq_socket_init(void*& socket, void* context, std::string config, int timeout=-1, int highWaterMark=10);
-int alizmq_socket_close(void*& socket);
+int alizmq_socket_close(void*& socket, int linger=0);
+int alizmq_socket_state(void* socket);
 
 //get the global context
 void* alizmq_context();
@@ -68,6 +69,7 @@ void alizmq_update_streamerlist(aliZMQrootStreamerInfo* streamers, const TObjArr
 
 //checking identity of the frame via iterator
 int alizmq_msg_iter_check(aliZMQmsg::iterator it, const AliHLTDataTopic& topic);
+int alizmq_msg_iter_check_id(aliZMQmsg::iterator it, const AliHLTDataTopic& topic);
 int alizmq_msg_iter_check(aliZMQmsg::iterator it, const std::string& topic);
 //helpers for accessing data via iterators
 int alizmq_msg_iter_topic(aliZMQmsg::iterator it, std::string& topic);

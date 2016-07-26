@@ -31,6 +31,8 @@
 #include <TNamed.h>
 #include <time.h>
 #include "AliCheb2DStack.h"
+class TGraph;
+class TH1;
 
 class AliTPCChebCorr : public TNamed
 {
@@ -86,6 +88,10 @@ class AliTPCChebCorr : public TNamed
   static   float GetMaxY2X()                    {return fgkY2XHSpan;}
   static const float* GetPadRowX()              {return fgkPadRowX;}
   //
+  TH1*     GetTracksRate()                       const {return fTracksRate;}
+  void     SetTracksRate(TH1* hrate)             {fTracksRate = hrate;}
+  Double_t GetLuminosityCOG(TGraph* lumi, time_t tmin=-1, time_t tmax=-1) const;
+  //
   virtual  Bool_t   IsCorrection()               const {return kTRUE;}
   virtual  Bool_t   IsDistortion()               const {return kFALSE;}
   //
@@ -114,6 +120,8 @@ class AliTPCChebCorr : public TNamed
   //
   AliCheb2DStack** fParams;         //[fNStacks] set of AliCheb2DStack parameterizations
   //
+  TH1*  fTracksRate;                // used tracks rate
+  //
   static const float fgkY2XHSpan;   // half span of sector
   static const float fgkPadRowX[];  // nominal rows
   static const char* fgkFieldTypeName[]; // names of field types
@@ -122,7 +130,7 @@ class AliTPCChebCorr : public TNamed
   AliTPCChebCorr(const AliTPCChebCorr& src);            // dummy
   AliTPCChebCorr& operator=(const AliTPCChebCorr& rhs); // dummy
   //
-  ClassDef(AliTPCChebCorr,4)
+  ClassDef(AliTPCChebCorr,5)
 };
 
 //_________________________________________________________________

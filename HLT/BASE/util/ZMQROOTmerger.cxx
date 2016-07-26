@@ -41,6 +41,7 @@ Int_t DoControl(aliZMQmsg::iterator block, void* socket);
 
 //merger private functions
 int ResetOutputData(Bool_t force=kFALSE);
+int ClearOutputData();
 Int_t Merge(TObject* object, TCollection* list);
 int AddNewObject(TObject* object);
 int RemoveEntry(TObject* object);
@@ -51,6 +52,7 @@ TString fZMQconfigIN  = "PULL";
 TString fZMQsubscriptionIN = "";
 TString fZMQconfigOUT  = "PUSH";
 TString fZMQconfigMON  = "REP";
+TString fZMQconfigSYNC  = "";
 Int_t   fZMQmaxQueueSize = 10;
 Int_t   fZMQtimeout = -1;
 
@@ -61,6 +63,7 @@ Bool_t  fAllowGlobalReset=kTRUE;
 Bool_t  fAllowControlSequences=kTRUE;
 Bool_t  fAllowResetOnRequest=kTRUE;
 Bool_t  fAllowResetAtSOR=kTRUE;
+Bool_t  fAllowClearAtSOR=kFALSE;
 
 TPRegexp* fSendSelection = NULL;
 TPRegexp* fUnSendSelection = NULL;
@@ -89,6 +92,7 @@ void* fZMQcontext = NULL;    //ze zmq context
 void* fZMQmon = NULL;        //the request-reply socket, here we request the merged data
 void* fZMQout = NULL;        //the monitoring socket, here we publish a copy of the data
 void* fZMQin  = NULL;        //the in socket - entry point for the data to be merged.
+void* fZMQsync = NULL;
 
 const char* fUSAGE = 
     "ZMQROOTmerger options: Merge() all ROOT mergeables in the message.\n"
@@ -96,6 +100,7 @@ const char* fUSAGE =
     " -in : data in, zmq config string, e.g. PUSH>tcp://localhost:123123\n"
     " -out : data out\n"
     " -mon : monitoring socket\n"
+    " -sync : sync socket, will send the INFO block on run change, has to be PUB or SUB\n"
     " -Verbose : print some info\n"
     " -pushback-period : push the merged data once every n seconds\n"
     " -ResetOnSend : always reset after send\n"
@@ -103,6 +108,7 @@ const char* fUSAGE =
     " -AllowGlobalReset :  allow a global \'reset\' on request\n"
     " -AllowResetOnRequest : allow reset on request\n"
     " -AllowResetAtSOR : allow reset at change of run\n"
+    " -AllowClearAtSOR : clear the histograms at change of run, works only if AllowResetAtSOR=0\n"
     " -AllowControlSequences : allow control seqs (CONFIG messages)\n"
     " -MaxObjects : merge after this many objects are in (default 1)\n"
     " -reset : reset NOW\n"
@@ -128,11 +134,12 @@ Int_t Run()
   //main loop
   while(1)
   {
-    Int_t nSockets=3;
+    Int_t nSockets=4;
     zmq_pollitem_t sockets[] = { 
       { fZMQin, 0, ZMQ_POLLIN, 0 },
       { fZMQout, 0, ZMQ_POLLIN, 0 },
       { fZMQmon, 0, ZMQ_POLLIN, 0 },
+      { fZMQsync, 0, ZMQ_POLLIN, 0 },
     };
 
     Int_t rc = 0;
@@ -141,6 +148,7 @@ Int_t Run()
     Int_t inType=alizmq_socket_type(fZMQin);
     Int_t outType=alizmq_socket_type(fZMQout);
     Int_t monType=alizmq_socket_type(fZMQmon);
+    Int_t syncType=alizmq_socket_type(fZMQsync);
     
     //request first
     if (inType==ZMQ_REQ) DoRequest(fZMQin);
@@ -207,7 +215,7 @@ Int_t Run()
       alizmq_msg_close(&message);
     }//socket 1
     
-    //data present socket 1 - mon
+    //data present socket 2 - mon
     if (sockets[2].revents & ZMQ_POLLIN)
     {
       aliZMQmsg message;
@@ -220,8 +228,19 @@ Int_t Run()
         { HandleDataIn(i, fZMQmon); }
       }
       alizmq_msg_close(&message);
-    }//socket 1
+    }//socket 2
     
+    //data present socket 3 - mon
+    if (sockets[3].revents & ZMQ_POLLIN)
+    {
+      aliZMQmsg message;
+      alizmq_msg_recv(&message, fZMQsync, 0);
+      for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
+      {
+        HandleDataIn(i, fZMQsync);
+      }
+      alizmq_msg_close(&message);
+    }//socket 3
   }//main loop
 
   return 0;
@@ -269,6 +288,17 @@ Int_t DoControl(aliZMQmsg::iterator block, void* socket)
         if (fVerbose) printf("Run changed, merger reset!\n");
       }
     }
+    else if (runnumber!=fRunNumber && fAllowClearAtSOR)
+    {
+      if (ClearOutputData()>0)
+      {
+        if (fVerbose) printf("Run changed, objects cleared!\n");
+      }
+    }
+    if (runnumber != fRunNumber && fZMQsync)
+    {
+      alizmq_msg_send(kAliHLTDataTypeInfo, fInfo, fZMQsync, ZMQ_DONTWAIT);
+    }
    fRunNumber = runnumber; 
 
     return 1;
@@ -294,6 +324,7 @@ Int_t HandleDataIn(aliZMQmsg::iterator block, void* socket)
 //_____________________________________________________________________
 Int_t DoReply(aliZMQmsg::iterator block, void* socket)
 {
+  if (fVerbose) printf("replying!\n");
   int rc = DoSend(socket);
 
   //reset the "one shot" options to default values
@@ -408,6 +439,7 @@ Int_t DoReceive(aliZMQmsg::iterator block, void* socket)
     TTimeStamp time;
     if ((time.GetSec()-fLastPushBackTime.GetSec())>=fPushbackPeriod)
     {
+      if (fVerbose) printf("pushback!\n");
       DoSend(socket);
       fLastPushBackTime.Set();
     }
@@ -492,9 +524,30 @@ int ResetOutputData(Bool_t force)
   {
       if (fVerbose) Printf("Resetting the merger");
       fMergeObjectMap.DeleteAll();
+      fMergeListMap.DeleteAll();
       return 1;
   }
   return 0;
+}
+
+//______________________________________________________________________________
+int ClearOutputData()
+{
+  TObject* object = NULL;
+  TObject* key = NULL;
+  
+  TIter mapIter(&fMergeObjectMap);
+  while ((key = mapIter.Next()))
+  {
+    //the data
+    object = fMergeObjectMap.GetValue(key);
+    TH1* hist = dynamic_cast<TH1*>(object);
+    if (!hist) continue;
+    if (fVerbose) printf("clearing %s\n",hist->GetName());
+    hist->Reset();
+  }
+  fMergeListMap.DeleteAll();
+  return 1;
 }
 
 //_______________________________________________________________________________________
@@ -508,6 +561,8 @@ Int_t InitZMQ()
   printf("out: (%s) %s\n", alizmq_socket_name(rc), fZMQconfigOUT.Data());
   rc = alizmq_socket_init(fZMQmon, fZMQcontext, fZMQconfigMON.Data(), fZMQtimeout, fZMQmaxQueueSize);
   printf("mon: (%s) %s\n", alizmq_socket_name(rc) , fZMQconfigMON.Data());
+  rc = alizmq_socket_init(fZMQsync, fZMQcontext, fZMQconfigSYNC.Data(), fZMQtimeout, fZMQmaxQueueSize);
+  printf("sync: (%s) %s\n", alizmq_socket_name(rc) , fZMQconfigSYNC.Data());
   return 0;
 }
 
@@ -586,6 +641,16 @@ Int_t ProcessOptionString(TString arguments)
     {
       fZMQconfigMON = value;
     }
+    else if (option.EqualTo("ZMQconfigSYNC") || option.EqualTo("sync"))
+    {
+      int type = alizmq_socket_type(value.Data());
+      if (type==ZMQ_PUB || type==ZMQ_SUB) {
+        fZMQconfigSYNC = value;
+      } else {
+        printf("sync socket has to be PUB or SUB!\n");
+        return -1;
+      }
+    }
     else if (option.EqualTo("Verbose"))
     {
       fVerbose=kTRUE;
@@ -637,6 +702,10 @@ Int_t ProcessOptionString(TString arguments)
     else if (option.EqualTo("AllowResetAtSOR"))
     {
       fAllowResetAtSOR = (value.Contains("0")||value.Contains("no"))?kFALSE:kTRUE;
+    }
+    else if (option.EqualTo("AllowClearAtSOR"))
+    {
+      fAllowClearAtSOR = (value.Contains("0")||value.Contains("no"))?kFALSE:kTRUE;
     }
     else if (option.EqualTo("schema"))
     {
@@ -692,7 +761,8 @@ int main(Int_t argc, char** argv)
   //destroy ZMQ sockets
   zmq_close(fZMQmon);
   zmq_close(fZMQin);
-  //zmq_close(fZMQout);
+  zmq_close(fZMQout);
+  zmq_close(fZMQsync);
   zmq_ctx_destroy(fZMQcontext);
   return mainReturnCode;
 }
