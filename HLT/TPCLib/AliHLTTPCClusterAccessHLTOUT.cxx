@@ -259,19 +259,20 @@ int AliHLTTPCClusterAccessHLTOUT::ProcessClusters(const char* params)
     if (pHLTOUT->GetDataBlockDescription(desc.fDataType, desc.fSpecification)<0) {
       continue;
     }
-    if (desc.fDataType==AliHLTTPCDefinitions::DataCompressionDescriptorDataType()) {
-      // header      
-      if ((iResult=decoder.AddCompressionDescriptor(&desc))<0) {
-	return iResult;
-      }
-      bHavePartitionCompressedData = kTRUE;
-    }
     if (desc.fDataType==AliHLTTPCDefinitions::RawClustersDescriptorDataType()) {
       // header      
       if ((iResult=decoder.AddRawClustersDescriptor(&desc))<0) {
 	return iResult;
       }
       bHavePartitionRawData = kTRUE;
+    }
+    //CompressionDescriptor should have priority over rawcluster descriptor in case both are present, because this describes the actual compressed data.
+    if (desc.fDataType==AliHLTTPCDefinitions::DataCompressionDescriptorDataType()) {
+      // header      
+      if ((iResult=decoder.AddCompressionDescriptor(&desc))<0) {
+	return iResult;
+      }
+      bHavePartitionCompressedData = kTRUE;
     }
     if (desc.fDataType==AliHLTTPCDefinitions::AliHLTDataTypeClusterMCInfo()) {
       // add mc information
@@ -283,6 +284,12 @@ int AliHLTTPCClusterAccessHLTOUT::ProcessClusters(const char* params)
 	desc.fDataType==AliHLTTPCDefinitions::ClusterIdTracksDataType()) {
       // add cluster ids
       if ((iResult=decoder.AddClusterIds(&desc))<0) {
+	return iResult;
+      }
+    }
+    if (desc.fDataType==AliHLTTPCDefinitions::ClustersFlagsDataType()) {
+      // add mc information
+      if ((iResult=decoder.AddClusterFlags(&desc))<0) {
 	return iResult;
       }
     }
@@ -537,6 +544,11 @@ int AliHLTTPCClusterAccessHLTOUT::AliRawClusterContainer::FillSectorArray(TClone
     pCluster->SetSigmaZ2(map[i].fCluster.GetSigmaTime2());
     pCluster->SetQ(map[i].fCluster.GetCharge());
     pCluster->SetMax(map[i].fCluster.GetQMax());
+    /*pCluster->SetType(
+      map[i].fCluster.GetFlagSplitAny() ?
+      (map[i].fCluster.GetFlagSplitPad() || map[i].fCluster.GetFlagSplitTime() ? 100 : 101) :
+      0 //Not split, golden cluster
+    );*/
 
     for (int k=0; k<3; k++) {
       // TODO: sort the labels according to the weight in order to assign the most likely mc label

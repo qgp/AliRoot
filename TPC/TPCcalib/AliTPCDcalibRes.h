@@ -82,6 +82,7 @@ class AliTPCDcalibRes: public TNamed
     Float_t DS[kResDim];     // smoothed residual
     Float_t DC[kResDim];     // Cheb parameterized residual
     Float_t EXYCorr;         // correlation between extracted X and Y
+    Float_t dYSigMAD;        // MAD estimator of dY sigma (dispersion after slope removal)
     Float_t stat[kVoxHDim];  // statistics: averages of each voxel dimension + entries
     UChar_t bvox[kVoxDim];   // voxel identifier, here the bvox[0] shows number of Q bins used for Y
     UChar_t bsec;            // sector ID (0-35)
@@ -199,7 +200,7 @@ class AliTPCDcalibRes: public TNamed
   void     SetNXBins(int n=kNPadRows)            {fNXBins = n;}
   void     SetNY2XBins(int n=15)                 {fNY2XBins = n;}
   void     SetNZ2XBins(int n=10)                 {fNZ2XBins = n;}
-  void     SetMaxTracks(int n=10000000)          {fMaxTracks = n;}
+  void     SetMaxTracks(int n=4000000)           {fMaxTracks = n;}
   void     SetFixAligmentBug(Bool_t v=kTRUE)     {fFixAlignmentBug = v;}
   void     SetCacheLearnSize(int n=1)            {fLearnSize = n;}
   void     SetCacheInput(Int_t v=100)            {fCacheInp = v;}
@@ -224,7 +225,14 @@ class AliTPCDcalibRes: public TNamed
   void     SetMaxFitXErr2(float v=1.2)           {fMaxFitXErr2 = v;}
   void     SetMaxFitXYCorr(float v=0.95)         {fMaxFitXYCorr = v;}
   void     SetLTMCut(float v=0.75)               {fLTMCut = v;}
-
+  //
+  Bool_t   GetUseTOFBC()                   const {return fUseTOFBC;}
+  Float_t  GetTOFBCMin()                   const {return fTOFBCMin;}
+  Float_t  GetTOFBCMax()                   const {return fTOFBCMax;}
+  void     SetUseTOFBC(Bool_t v)                 {fUseTOFBC = v;}
+  void     SetTOFBCMin(Float_t v=-5.f)           {fTOFBCMin = v;}
+  void     SetTOFBCMax(Float_t v=25.f)           {fTOFBCMax = v;}
+  //
   Float_t  GetMaxFitYErr2()                 const {return fMaxFitYErr2;}
   Float_t  GetMaxFitXErr2()                 const {return fMaxFitXErr2;}
   Float_t  GetMaxFitXYCorr()                const {return fMaxFitXYCorr;}
@@ -284,7 +292,7 @@ protected:
   AliTPCChebCorr* fChebCorr;                        // final Chebyshev object
 
   // -------------------------------Task defintion
-  Int_t    fRun;     // run numbet 
+  Int_t    fRun;     // run number 
   Long64_t fTMin;    // time start for timebin
   Long64_t fTMax;    // time stop for timebin
   Long64_t fTMinGRP;    // time start from GRP
@@ -308,8 +316,10 @@ protected:
   Float_t  fMaxStdDevMA;             // max cluster N std.dev (Y^2+Z^2) wrt moving av. to accept
   Float_t  fMaxRMSLong;              // max RMS of cleaned residuals wrt its fNVoisinMALong moving average
   Float_t  fMaxRejFrac;              // max outlier clusters tagged to accept the track
+  Float_t  fTOFBCMin;                // min dTOF cut in ns if validation requested
+  Float_t  fTOFBCMax;                // max dTOF cut in ns if validation requested
+  Bool_t   fUseTOFBC;                // require TOF BC validation
   Bool_t   fFilterOutliers;          // reject outliers
-
   Float_t  fMaxFitYErr2;             // cut on median fit Y err^2
   Float_t  fMaxFitXErr2;             // cut on median fit X err^2
   Float_t  fMaxFitXYCorr;            // cut on max correlation of X,Y errors in median fit
@@ -421,7 +431,7 @@ protected:
   static const Float_t kTPCRowX[]; // X of the pad-row
   static const Float_t kTPCRowDX[]; // pitch in X
 
-  ClassDef(AliTPCDcalibRes,3);
+  ClassDef(AliTPCDcalibRes,4);
 };
 
 //________________________________________________________________

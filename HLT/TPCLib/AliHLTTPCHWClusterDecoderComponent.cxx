@@ -150,7 +150,7 @@ int AliHLTTPCHWClusterDecoderComponent::DoInit( int argc, const char** argv )
   fAlreadyMerged = 0;
   fProcessingRCU2Data = 0;
 
-  if (iResult>=0) iResult = ConfigureFromCDBTObjString(fgkOCDBEntry);
+  if (iResult>=0) iResult = ConfigureFromCDBTObjString(fgkOCDBEntry, NULL, true);
 
   if (iResult>=0 && argc>0) iResult = ConfigureFromArgumentString(argc, argv);
 
@@ -176,7 +176,7 @@ int AliHLTTPCHWClusterDecoderComponent::Reconfigure(const char* /*cdbEntry*/, co
   fAlreadyMerged = 0;
   fProcessingRCU2Data = 0;
   int iResult = 0;
-  iResult = ConfigureFromCDBTObjString(fgkOCDBEntry);
+  iResult = ConfigureFromCDBTObjString( fgkOCDBEntry, NULL, true );
   if ( iResult>=0 ) iResult = InitClusterMerger();  
   return iResult;
 }
@@ -250,8 +250,7 @@ void AliHLTTPCHWClusterDecoderComponent::GetOCDBObjectDescription( TMap* const t
   if (!targetMap) return;
   
   // OCDB entries for component arguments
-
-  targetMap->Add(new TObjString(fgkOCDBEntry), new TObjString("component argument for HW cluster decoder"));  
+  //targetMap->Add(new TObjString(fgkOCDBEntry), new TObjString("component argument for HW cluster decoder"));  //We do not require this, we fall back to config string "" if non-existing
 }
 
 
@@ -281,7 +280,8 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
   static int nCluTotal = 0;
   static int nCluDeconvolutedTime = 0;
   static int nCluDeconvolutedPad = 0;
-  static int nCluDeconvolutedPadTime = 0;
+  static int nCluDeconvolutedPadAndTime = 0;
+  static int nCluDeconvolutedPadOrTime = 0;
 
   for( unsigned long ndx=0; ndx<evtData.fBlockCnt; ndx++ ){
      
@@ -364,20 +364,23 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
 	  c.SetSigmaTime2(cl.GetSigmaZ2());
 	  c.SetQMax(cl.GetQMax());	  
 	  outputRaw->fCount++;
-	  nCluTotal ++;
-	  
-	  c.ClearFlags();
-	  if( cl.IsDeconvolutedPad() )
+	  //if( cl.GetSigmaY2()>0 && cl.GetSigmaZ2()>0 )
 	  {
-	    nCluDeconvolutedPad++;
-	    c.SetFlagSplitPad();
+	    nCluTotal ++;
+	    c.ClearFlags();
+	    if( cl.IsDeconvolutedPad() )
+	    {
+	      nCluDeconvolutedPad++;
+	      c.SetFlagSplitPad();
+	    }
+	    if( cl.IsDeconvolutedTime() )
+	    {
+	      nCluDeconvolutedTime++;
+	      c.SetFlagSplitTime();
+	    }
+	    if( cl.IsDeconvolutedPad() && cl.IsDeconvolutedTime() ) nCluDeconvolutedPadAndTime++;
+	    if( cl.IsDeconvolutedPad() || cl.IsDeconvolutedTime() ) nCluDeconvolutedPadOrTime++;
 	  }
-	  if( cl.IsDeconvolutedTime() )
-	  {
-	    nCluDeconvolutedTime++;
-	    c.SetFlagSplitTime();
-	  }
-	  if( cl.IsDeconvolutedPad() && cl.IsDeconvolutedTime() ) nCluDeconvolutedPadTime++;
 	}	
       }
       // fill into HLT output data
@@ -397,8 +400,8 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
 
   double tmp = nCluTotal>0 ?100./nCluTotal :0;
 
-  HLTInfo(" decoded clusters total %d, deconvoluted pad %f\%, time %f\%, both %f\%",
-	  nCluTotal,(nCluDeconvolutedPad*tmp), (nCluDeconvolutedTime*tmp), (nCluDeconvolutedPadTime*tmp) );
+  HLTInfo(" decoded clusters total %d, deconvoluted pad %f\%, time %f\%, pd&&tm %f\%, pd||tm %f\%",
+	  nCluTotal,(nCluDeconvolutedPad*tmp), (nCluDeconvolutedTime*tmp), (nCluDeconvolutedPadAndTime*tmp), (nCluDeconvolutedPadOrTime*tmp) );
 
   if( fDoMerge && fpClusterMerger ){
     fpClusterMerger->Clear();

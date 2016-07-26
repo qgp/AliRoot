@@ -32,7 +32,8 @@ class AliMultiplicity : public AliVMultiplicity {
   //
   // methods supported on AliVMultiplicity level >>>
   //
-  virtual  Int_t    GetNumberOfTracklets() const {return fNtracks;}
+  virtual  Int_t    GetNumberOfTracklets() const {if (fNtracks==0 && fNtracksOnline>0) { return fNtracksOnline; } return fNtracks;}
+  virtual  void     SetNumberOfTracklets( Int_t tr) { fNtracksOnline = tr; } //used online (HLT)
   virtual  Double_t GetTheta(Int_t i)      const { 
     if(i>=0 && i<fNtracks) return fTh[i];
     Error("GetTheta","Invalid track number %d",i); return -9999.;
@@ -113,6 +114,7 @@ class AliMultiplicity : public AliVMultiplicity {
 
   UInt_t GetNumberOfITSClusters(Int_t layer) const { return layer<6 ? fITSClusters[layer] : 0; }
   UInt_t GetNumberOfITSClusters(Int_t layMin, Int_t layMax) const ;
+  UInt_t GetNumberOfSPDClusters() const {return GetNumberOfITSClusters(0) + GetNumberOfITSClusters(1);}
   virtual void SetITSClusters(Int_t layer, UInt_t clusters) { fITSClusters[layer] = clusters; }
   //
   virtual Short_t GetNumberOfFiredChips(Int_t layer) const { return fFiredChips[layer]; }
@@ -189,6 +191,7 @@ class AliMultiplicity : public AliVMultiplicity {
   UInt_t fITSClusters[6];    // Number of ITS cluster per layer
   TBits fFastOrFiredChips;   // Map of FastOr fired chips
   TBits fClusterFiredChips;  // Map of fired chips (= at least one cluster)
+  Int_t fNtracksOnline;      //!Number of SPD tracklets set on the fly in online processing (HLT)
 
   ClassDef(AliMultiplicity,20);
 };

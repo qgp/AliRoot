@@ -77,11 +77,13 @@ class AliHLTTPCHWCFEmulator
 
   /** set tagging of deconvoluted clusters
    **/
-  void SetTagDeconvolutedClusters( bool b ){ fDivisionUnit.SetTagDeconvolutedClusters( b ); }
+  void SetTagDeconvolutedClusters( AliHLTUInt32_t option ){ fDivisionUnit.SetTagDeconvolutedClusters( option ); }
 
   /** set RCU2 flag (data is not split in two branches)
    **/
   void SetProcessingRCU2Data( bool b ){ fChannelExtractor.SetRCU2Flag( b ); }
+  
+  void SetNoiseSuppression(int ns) {fPeakFinderUnit.SetNoiseSuppression(ns);}
 
  private: 
 

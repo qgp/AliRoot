@@ -75,6 +75,9 @@
 #include "AliCDBId.h"
 #include "AliTPCParam.h"
 #include "AliTPCClusterParam.h"
+#include "AliDAQ.h"
+#include "AliGRPObject.h"
+
 const Int_t AliTPCcalibAlignInterpolation_kMaxPoints=500;
 
 ClassImp(AliTPCcalibAlignInterpolation)
@@ -1663,7 +1666,7 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
 
 
 
-Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, double time0, double_t time1,Bool_t fixAlignmentBug){
+Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, double time0, double_t time1,Bool_t fixAlignmentBug, Bool_t tofBCValidation){
   //
   //  Fit time dependence of the drift velocity for ITS-TRD and ITS-TOF scenario
   /*  Intput:
@@ -1794,12 +1797,33 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
 
   float bz = fixAlignmentBugForFile ? InitForAlignmentBugFix(runNumber) : 0;
 
+  // check if TOF was present
+  const float tofBCMin = -5.f;
+  const float tofBCMax = 20.f;
+  //
+  if (tofBCValidation) {
+    AliCDBManager* man = AliCDBManager::Instance();
+    if (!man->IsDefaultStorageSet()) man->SetDefaultStorage("raw://");
+    if (man->GetRun()<0) man->SetRun(runNumber);  
+    AliGRPObject* grp = (AliGRPObject*)man->Get(AliCDBPath("GRP/GRP/Data"))->GetObject();
+    Int_t activeDetectors = grp->GetDetectorMask();
+    if (!(activeDetectors&AliDAQ::DetectorPattern("TOF"))) {
+      AliWarningClass("Disabling TOF BC validation since TOF is not in the GRP");
+      tofBCValidation = kFALSE;
+    }
+    else {
+      AliInfoClassF("TOF BC validation is enabled with window %.2f : %.2f ns",tofBCMin,tofBCMax);
+    }
+  }
+  //
   chainDelta->SetEstimate(maxEntries*160/5.);
   TString toRead = "tof1.fElements:trd1.fElements:vecZ.fElements:vecR.fElements:vecSec.fElements:vecPhi.fElements:timeStamp:tofBC:its1.fElements";
+  TString cutEv = "Entry$%5==0 && vecR.fElements>10";
+  if (tofBCValidation) cutEv += Form(" && tofOK && !(tofBC<%.3f || tofBC>%.3f)",tofBCMin,tofBCMax);
   //
   if (fixAlignmentBugForFile) toRead += ":tof0.fElements:trd0.fElements:track.fP[4]"; // needed only in case we need to fix alignment bug
   //
-  Int_t entriesFit0 = chainDelta->Draw(toRead.Data(),"Entry$%5==0 && vecR.fElements>10","goffpara",maxEntries); 
+  Int_t entriesFit0 = chainDelta->Draw(toRead.Data(),cutEv.Data(),"goffpara",maxEntries); 
   chainDelta->PrintCacheStats();
   Int_t entriesFit=entriesFit0/10;
   AliSysInfo::AddStamp("FitDrift.EndCache",3,1,0);
@@ -1949,19 +1973,18 @@ Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, dou
 	  }
 
 	  if (gRandom->Rndm()<kDumpSample){
-	    Float_t zcorr=  z+expected*side; // corrected z
-	    Float_t zcorrB= z-expected*side;
+
 	    (*pcstream)<<"dumpSample"<<
 	      "iter="<<iter<<
 	      "run="<<runNumber<<
 	      "sector="<<sector<<
 	      "side="<<side<<
 	      "drift="<<drift<<
-	      "tofBC"<<tofBC<<
+	      "radius="<<radius<<
+	      "phi="<<phi<<
+	      "tofBC="<<tofBC<<
 	      "gy="<<gy<<
 	      "z="<<z<<
-	      "zcorr="<<zcorr<<
-	      "zcorrB="<<zcorrB<<
 	      "expected="<<expected<<
 	      "paramRobust.="<<&paramRobust<<      //  drift fit using all tracks
 	      "dZTOF="<<dZTOF<<
@@ -2948,7 +2971,6 @@ void  AliTPCcalibAlignInterpolation::MakeVDriftOCDB(const char *inputFile, Int_t
   ///
   /* 
      char * inputFile= "fitDrift.root"
-     char * inputFile= "/hera/alice/miranov/alice-tpc-notes/SpaceChargeDistortion/data/ATO-108/alice/data/2015/LHC15o.1502/000244918/fitDrift.root";
      char * testDiffCDB="/cvmfs/alice.cern.ch/calibration/data/2015/OCDB/TPC/Calib/TimeDrift/Run244918_244918_v3_s0.root";
      Int_t  run=244918;
 

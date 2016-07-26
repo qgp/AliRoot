@@ -39,7 +39,7 @@
 
 
 #include "AliTPCRecoParam.h"
-
+#include "AliLumiTools.h"
 
 /// \cond CLASSIMP
 ClassImp(AliTPCRecoParam)
@@ -112,6 +112,8 @@ AliTPCRecoParam::AliTPCRecoParam():
   fSkipTimeBins(5),              // number of time bins to be skiiped (corrupted signal druing gating opening)
   fUseTOFCorrection(kTRUE),
   fUseCorrectionMap(kFALSE),
+  fCorrMapTimeDepMethod(kCorrMapInterpolation),
+  fUseLumiType(AliLumiTools::kLumiCTP),
   fSystErrClInnerRegZ(0),
   fSystErrClInnerRegZSigInv(0),
   fUseSystematicCorrelation(kTRUE)

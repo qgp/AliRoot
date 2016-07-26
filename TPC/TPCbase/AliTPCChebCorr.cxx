@@ -45,7 +45,9 @@ const float AliTPCChebCorr::fgkPadRowX[AliTPCChebCorr::kNRows] = {
 //____________________________________________________________________
 AliTPCChebCorr::AliTPCChebCorr()
   : TNamed()
+  ,fOnFlyInitDone(kFALSE)
   ,fFieldType(kFieldAny)
+  ,fRun(-1)
   ,fNRows(0)
   ,fNStacksSect(0)
   ,fNStacksZSect(0)
@@ -68,7 +70,9 @@ AliTPCChebCorr::AliTPCChebCorr()
 AliTPCChebCorr::AliTPCChebCorr(const char* name, const char* title, 
 			       int nps, int nzs, float zmaxAbs, float deadZone, const float *xrow)
   : TNamed(name,title)
+  ,fOnFlyInitDone(kFALSE)
   ,fFieldType(kFieldAny)
+  ,fRun(-1)
   ,fNRows(kNRows)
   ,fNStacksSect(0)
   ,fNStacksZSect(0)
@@ -134,17 +138,11 @@ void AliTPCChebCorr::Parameterize(stFun_t fun,int dimOut,const int np[2],const f
       fun(isc72,0,0);
       for (int isl=0;isl<fNStacksSect;isl++) {
 	float dead[2] = {0.,0.};
-	float *deadP = 0;
-	float *xinv = 0;
 	if (fDeadZone>0 && isl==0) { // assign dead zone
 	  dead[0] = fDeadZone;
-	  deadP = dead;
-	  xinv = fRowXI;
 	}
 	if (fDeadZone>0 && isl==fNStacksSect-1) { // assign dead zone
 	  dead[1] = fDeadZone;
-	  deadP = dead;
-	  xinv = fRowXI;
 	}
 	//
 	bmn[0] = -y2xMax+isl/fY2XScaleI; // boundaries in phi
@@ -152,12 +150,13 @@ void AliTPCChebCorr::Parameterize(stFun_t fun,int dimOut,const int np[2],const f
 	int id = GetParID(iz,isc,isl);
 	AliInfoF("Doing param #%03d Iz:%d Sect:%02d Slice:%d | %+.1f<Z<%+.1f %+.3f<y2x<%+.3f",
 		 id,iz,isc,isl,bmn[1],bmx[1],bmn[0],bmx[0]);
-	if (useS) fParams[id] = new  AliCheb2DStackS(fun,fNRows,dimOut,bmn,bmx,np,dead,xinv,prec);
-	else      fParams[id] = new  AliCheb2DStackF(fun,fNRows,dimOut,bmn,bmx,np,dead,xinv,prec);
+	if (useS) fParams[id] = new  AliCheb2DStackS(fun,fNRows,dimOut,bmn,bmx,np,dead,fRowXI,prec);
+	else      fParams[id] = new  AliCheb2DStackF(fun,fNRows,dimOut,bmn,bmx,np,dead,fRowXI,prec);
       }
     }
   }
   //
+  fOnFlyInitDone = kTRUE;
   SetBit(kParamDone);
   //
 }
@@ -189,17 +188,11 @@ void AliTPCChebCorr::Parameterize(stFun_t fun,int dimOut,const int np[][2],const
       //
       for (int isl=0;isl<fNStacksSect;isl++) {
 	float dead[2] = {0.,0.};
-	float *deadP = 0;
-	float *xinv = 0;
 	if (fDeadZone>0 && isl==0) { // assign dead zone
 	  dead[0] = fDeadZone;
-	  deadP = dead;
-	  xinv = fRowXI;
 	}
 	if (fDeadZone>0 && isl==fNStacksSect-1) { // assign dead zone
 	  dead[1] = fDeadZone;
-	  deadP = dead;
-	  xinv = fRowXI;
 	}
 	//
 	bmn[0] = -y2xMax+isl/fY2XScaleI; // boundaries in phi
@@ -207,12 +200,13 @@ void AliTPCChebCorr::Parameterize(stFun_t fun,int dimOut,const int np[][2],const
 	int id = GetParID(iz,isc,isl);
 	AliInfoF("Doing param #%03d Iz:%d Sect:%02d Slice:%d | %+.1f<Z<%+.1f %+.3f<y2x<%+.3f",
 		 id,iz,isc,isl,bmn[1],bmx[1],bmn[0],bmx[0]);
-	if (useS) fParams[id] = new  AliCheb2DStackS(fun,fNRows,dimOut,bmn,bmx,np,dead,xinv,prec);
-	else      fParams[id] = new  AliCheb2DStackF(fun,fNRows,dimOut,bmn,bmx,np,dead,xinv,prec);
+	if (useS) fParams[id] = new  AliCheb2DStackS(fun,fNRows,dimOut,bmn,bmx,np,dead,fRowXI,prec);
+	else      fParams[id] = new  AliCheb2DStackF(fun,fNRows,dimOut,bmn,bmx,np,dead,fRowXI,prec);
       }
     }
   }
   //
+  fOnFlyInitDone = kTRUE;
   SetBit(kParamDone);
   //
 }
@@ -224,8 +218,8 @@ void AliTPCChebCorr::Print(const Option_t* opt) const
   printf("%s:%s Cheb2D[%c] Param: %d slices in %+.1f<%s<%+.1f %d per sector. DeadZone: %.1fcm\n",
 	 GetName(),GetTitle(),GetUseFloatPrec()?'F':'S',
 	 fNStacksZ,-fZMaxAbs,GetUseZ2R() ? "Z/R":"Z",fZMaxAbs,fNStacksSect,fDeadZone);
-  printf("Time span: %ld:%ld TimeDependent flag: %s Field type: %s\n",fTimeStampStart,fTimeStampEnd,
-	 GetTimeDependent() ? "ON ":"OFF", fgkFieldTypeName[fFieldType]);
+  printf("Run used: %d Time span: %ld:%ld TimeDependent flag: %s Field type: %s\n",
+	 GetRun(),fTimeStampStart,fTimeStampEnd,GetTimeDependent() ? "ON ":"OFF", fgkFieldTypeName[fFieldType]);
   TString opts = opt; opts.ToLower();
   if (opts.Contains("p") && TestBit(kParamDone)) {
     for (int iz=0;iz<fNStacksZ;iz++) {
@@ -261,11 +255,14 @@ void AliTPCChebCorr::SetBinning(int nps,int nzs, float zmxAbs)
 void AliTPCChebCorr::Init()
 {
   // make necessary initializations
-  if (fRowXI) {
+  if (fOnFlyInitDone) return;
+  AliInfo("Doing on-the-fly initialization");
+  if (fRowXI && fParams) {
     for (int i=fNStacks;i--;) {
       if (fParams[i] && !fParams[i]->GetXRowInv()) fParams[i]->SetXRowInv(fRowXI);
     }
   }
+  fOnFlyInitDone = kTRUE;
 }
 
 //____________________________________________________________________
@@ -301,3 +298,16 @@ Double_t AliTPCChebCorr::GetLuminosityCOG(TGraph* lumi, time_t tmin, time_t tmax
   return lumiCOG;
 }
 
+//__________________________________________
+Int_t AliTPCChebCorr::GetRun() const
+{
+  // get run number used for this map
+  if (fRun>=0) return fRun;
+  // try to extract from name
+  TString runstr = "";
+  const char* nm = GetName();
+  while (*nm && !isdigit(*nm)) nm++;
+  while (*nm && isdigit(*nm)){ runstr += *nm;nm++;}
+  if (!runstr.IsDigit()) return -1;
+  return runstr.Atoi();
+}

@@ -36,6 +36,7 @@ class AliESDkink;
 class AliESDv0;
 class AliESDVertex;
 class AliESDVZERO;
+class AliMultiplicity;
 class AliVTrack;
 class AliVAD;
 
@@ -147,6 +148,7 @@ public:
   virtual UShort_t  GetBunchCrossNumber() const = 0;
   virtual UInt_t    GetEventType()  const = 0;
   virtual ULong64_t GetTriggerMask() const = 0;
+  virtual ULong64_t GetTriggerMaskNext50() const {return 0;}
   virtual UChar_t   GetTriggerCluster() const = 0;
   virtual TString   GetFiredTriggerClasses() const = 0;
   virtual Bool_t    IsTriggerClassFired(const char* /*name*/) const {return 0;}
@@ -233,6 +235,7 @@ public:
   virtual Int_t            GetNumberOfKinks() const { return 0; }
  
   virtual Int_t GetVZEROData( AliESDVZERO & ) const {return -1;}
+  virtual Int_t GetMultiplicity( AliMultiplicity & ) const {return -1;}
 
   // Primary vertex
   virtual const AliVVertex   *GetPrimaryVertex() const {return 0x0;}

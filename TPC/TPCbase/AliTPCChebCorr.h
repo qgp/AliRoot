@@ -31,6 +31,7 @@
 #include <TNamed.h>
 #include <time.h>
 #include "AliCheb2DStack.h"
+#include "AliLog.h"
 class TGraph;
 class TH1;
 
@@ -39,10 +40,12 @@ class AliTPCChebCorr : public TNamed
  public:
   enum {kFieldAny, kFieldPos, kFieldNeg, kFieldZero};
   enum {kNSectors=18,kNSectorsIROC=2*kNSectors,kNRows=159,kNRowsIROC=63,kMaxIROCSector=kNSectorsIROC-1};
-  enum {kParamDone=BIT(14), // parameterization done
-	kUseParF=BIT(15),   // if ON - internal FLOAT representation, otherwise - SHORT
-	kUseZ2R=BIT(16),    // 2nd dimension parameterizes Z/R
-	kTimeDependent=BIT(17) // flag to signal time-dependent objects to follow
+  enum {kParamDone=BIT(14) // parameterization done
+	,kUseParF=BIT(15)   // if ON - internal FLOAT representation, otherwise - SHORT
+	,kUseZ2R=BIT(16)    // 2nd dimension parameterizes Z/R
+	,kTimeDependent=BIT(17) // flag to signal time-dependent objects to follow
+	,kFirst=BIT(18) // first map in the array (marked on fly)
+	,kLast=BIT(19) // last map in the array (marked on fly)	
   };
   //
  public:
@@ -62,6 +65,11 @@ class AliTPCChebCorr : public TNamed
   void     SetUseZ2R(Bool_t v=kTRUE)                   {SetBit(kUseZ2R,v);}
   Bool_t   GetTimeDependent()                    const {return TestBit(kTimeDependent);}
   void     SetTimeDependent(Bool_t v=kTRUE)            {SetBit(kTimeDependent,v);}
+  Bool_t   IsFirst()                             const {return TestBit(kFirst);}
+  void     SetFirst(Bool_t v=kTRUE)                    {SetBit(kFirst,v);}
+  Bool_t   IsLast()                              const {return TestBit(kLast);}
+  void     SetLast(Bool_t v=kTRUE)                     {SetBit(kLast,v);}
+
   Float_t  GetZMin()                             const {return -fZMaxAbs;}
   Float_t  GetZMax()                             const {return fZMaxAbs;}
   Int_t    GetNStacksZ()                         const {return fNStacksZ;}
@@ -69,7 +77,7 @@ class AliTPCChebCorr : public TNamed
   Int_t    GetNRows()                            const {return fNRows;}
   Float_t  GetDeadZone()                         const {return fDeadZone;}
   //
-  const AliCheb2DStack* GetParam(int id)         const {return (const AliCheb2DStack*) fParams ?  fParams[id] : 0;}
+  const AliCheb2DStack* GetParam(int id)         const;
   const AliCheb2DStack* GetParam(int sector, float y2x, float z) const;
   //
   time_t   GetTimeStampStart()                   const {return fTimeStampStart;}
@@ -92,6 +100,8 @@ class AliTPCChebCorr : public TNamed
   void     SetTracksRate(TH1* hrate)             {fTracksRate = hrate;}
   Double_t GetLuminosityCOG(TGraph* lumi, time_t tmin=-1, time_t tmax=-1) const;
   //
+  Int_t    GetRun()                              const;
+  void     SetRun(int run)                             {fRun = run;}
   virtual  Bool_t   IsCorrection()               const {return kTRUE;}
   virtual  Bool_t   IsDistortion()               const {return kFALSE;}
   //
@@ -100,7 +110,9 @@ class AliTPCChebCorr : public TNamed
   int      GetParID(int iz,int isect,int istack) const {return (iz*kNSectors+isect)*fNStacksSect+istack;}
   //
  protected:
+  Bool_t   fOnFlyInitDone;          //! flag that on-the-fly init was done
   Char_t   fFieldType;              // info about the field type
+  Int_t    fRun;                    // run number used extract this map
   Int_t    fNRows;                  // number of slices along the radius (e.g. rows)
   Int_t    fNStacksSect;            // number of stacks per sector in phi
   Int_t    fNStacksZSect;           // number of stacks per sector (side) in Z 
@@ -130,8 +142,16 @@ class AliTPCChebCorr : public TNamed
   AliTPCChebCorr(const AliTPCChebCorr& src);            // dummy
   AliTPCChebCorr& operator=(const AliTPCChebCorr& rhs); // dummy
   //
-  ClassDef(AliTPCChebCorr,5)
+  ClassDef(AliTPCChebCorr,7)
 };
+
+//_________________________________________________________________
+inline const AliCheb2DStack* AliTPCChebCorr::GetParam(int id) const 
+{
+  if (!fParams) return 0;
+  if (!fOnFlyInitDone) AliError("Attention: evalulation may be wrong: the object need to be initialized by Init()");
+  return (const AliCheb2DStack*) fParams[id];
+}
 
 //_________________________________________________________________
 inline const AliCheb2DStack* AliTPCChebCorr::GetParam(int sector, float y2x, float z) const

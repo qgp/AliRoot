@@ -2,6 +2,7 @@
 #include "AliCDBPath.h"
 #include "AliCDBEntry.h"
 #include "AliGRPObject.h"
+#include "AliDAQ.h"
 
 using std::swap;
 
@@ -80,7 +81,7 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fTMax(tmax)
   ,fTMinGRP(0)
   ,fTMaxGRP(0)
-  ,fMaxTracks(9999999)
+  ,fMaxTracks(4000000)
   ,fCacheInp(100)
   ,fLearnSize(1)
   ,fBz(0)
@@ -98,6 +99,9 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fMaxStdDevMA(25.0)
   ,fMaxRMSLong(0.8)
   ,fMaxRejFrac(0.15)
+  ,fTOFBCMin(-5.0)
+  ,fTOFBCMax(25.0)
+  ,fUseTOFBC(kFALSE)
   ,fFilterOutliers(kTRUE) 
   ,fMaxFitYErr2(1.0)
   ,fMaxFitXErr2(1.2)
@@ -264,6 +268,18 @@ void AliTPCDcalibRes::Init()
   fTMinGRP = grp->GetTimeStart();
   fTMaxGRP = grp->GetTimeEnd();
   //
+  if (fUseTOFBC) { // check if TOF is present
+    Int_t activeDetectors = grp->GetDetectorMask();
+    if (!(activeDetectors&AliDAQ::DetectorPattern("TOF"))) {
+      AliWarning("Disabling TOF BC validation since TOF is not in the GRP");
+      fUseTOFBC = kFALSE;
+    }
+    if (fTOFBCMin>=fTOFBCMax) {
+      AliWarningF("Disabling TOF BC validation: inconsistent cuts %.3f:%.3f",fTOFBCMin,fTOFBCMax);
+      fUseTOFBC = kFALSE;      
+    }
+  }
+
   // init histo for track rate
   Long64_t tmn = fTMinGRP-fTMin>1000 ? fTMinGRP-100 : fTMin;
   Long64_t tmx = fTMax-fTMaxGRP>1000 ? fTMaxGRP+100 : fTMax;
@@ -305,7 +321,8 @@ void AliTPCDcalibRes::CollectData(int mode)
   TVectorF *vecDY=0,*vecDZ=0,*vecZ=0,*vecR=0,*vecSec=0,*vecPhi=0, *vecDYITS=0,*vecDZITS=0;
   UShort_t npValid = 0;
   Int_t nPrimTracks = 0;
-  Char_t trdOK=0;
+  Char_t trdOK=0,tofOK=0;
+  Double_t tofBC = 0.0;
   AliExternalTrackParam* param = 0;
   //
   TStopwatch swTot;
@@ -317,6 +334,8 @@ void AliTPCDcalibRes::CollectData(int mode)
   //
   CreateLocalResidualsTrees(mode);
   //
+  // if cheb object is present, do on-the-fly init to attach internal structures
+  if (fChebCorr) fChebCorr->Init();
   // prepare input tree
   TString  chunkList = gSystem->GetFromPipe(TString::Format("cat %s",fResidualList.Data()).Data());
   TObjArray *chunkArray= chunkList.Tokenize("\n");  
@@ -369,10 +388,23 @@ void AliTPCDcalibRes::CollectData(int mode)
     tree->SetBranchAddress("its0.",&vecDYITS);
     tree->SetBranchAddress("its1.",&vecDZITS);
     //
+    if (fUseTOFBC) {
+      tree->SetBranchStatus("tofOK",kTRUE);
+      tree->SetBranchStatus("tofBC",kTRUE);
+      tree->SetBranchAddress("tofOK",&tofOK);
+      tree->SetBranchAddress("tofBC",&tofBC);
+    }
+    //
+
     tree->GetEntry(0);
 
     TBranch* brTime = tree->GetBranch("timeStamp");
     TBranch* brTRDOK = tree->GetBranch("trdOK");
+    TBranch* brTOFOK=0, *brTOFBC=0;
+    if (fUseTOFBC) {
+      brTOFOK = tree->GetBranch("tofOK");
+      brTOFBC = tree->GetBranch("tofBC");
+    }
     //
     int nTracks = tree->GetEntries();
     AliInfoF("Processing %d tracks of %s",nTracks,fileNameString.Data());
@@ -394,6 +426,9 @@ void AliTPCDcalibRes::CollectData(int mode)
       //
       brTRDOK->GetEntry(itr);
       if (!trdOK) continue;
+      //
+      if (brTOFOK && brTOFOK->GetEntry(itr) && !tofOK) continue;
+      if (brTOFBC && brTOFBC->GetEntry(itr) && (tofBC<fTOFBCMin || tofBC>fTOFBCMax)) continue;      
       //
       if (!lastReadMatched && fSwitchCache) { // reset the cache before switching to event reading mode
 	tree->SetCacheSize(0);
@@ -1133,6 +1168,7 @@ void AliTPCDcalibRes::ProcessVoxelResiduals(int np, float* tg, float *dy, float 
   voxRes.E[kResY] = TMath::Sqrt(err[0]);
   voxRes.E[kResZ] = zres[4];
   voxRes.EXYCorr  = corrErr;
+  voxRes.dYSigMAD = sigMAD;
   //
   // store the statistics
   ULong64_t binStat = GetBin2Fill(voxRes.bvox,kVoxV);
@@ -2087,7 +2123,7 @@ void AliTPCDcalibRes::WriteResTree()
   bres_t voxRes, *voxResP=&voxRes;
 
   AliSysInfo::AddStamp("ResTree",0,0,0,0);
-
+  if (fChebCorr) fChebCorr->Init();
   TFile* flOut = new TFile(Form("%sTree.root",kResOut),"recreate");
   TTree* resTree = new TTree("voxRes","final distortions, see GetListOfAliases");
   resTree->Branch("res", &voxRes);
@@ -2098,8 +2134,14 @@ void AliTPCDcalibRes::WriteResTree()
   resTree->SetAlias(Form("%sAV",kVoxName[kVoxV]),Form("stat[%d]",kVoxV));
   for (int i=0;i<kResDim;i++) {
     resTree->SetAlias(kResName[i],Form("D[%d]",i));
+    resTree->SetAlias(Form("%sS",kResName[i]),Form("DS[%d]",i));
+    resTree->SetAlias(Form("%sC",kResName[i]),Form("DC[%d]",i));
     resTree->SetAlias(Form("%sE",kResName[i]),Form("E[%d]",i));
   }
+  //
+  resTree->SetAlias("fitOK",Form("(flags&0x%x)==0x%x",kDistDone,kDistDone));
+  resTree->SetAlias("dispOK",Form("(flags&0x%x)==0x%x",kDispDone,kDispDone));
+  resTree->SetAlias("smtOK",Form("(flags&0x%x)==0x%x",kSmoothDone,kSmoothDone));
   //
   for (int is=0;is<kNSect2;is++) { 
 
@@ -2701,11 +2743,17 @@ void AliTPCDcalibRes::CreateCorrectionObject()
   fChebCorr = new AliTPCChebCorr(name.Data(),name.Data(),
 				 fChebPhiSlicePerSector,fChebZSlicePerSide,1.0f);
   fChebCorr->SetUseFloatPrec(kFALSE);
+  fChebCorr->SetRun(fRun);
   fChebCorr->SetTimeStampStart(fTMin);
   fChebCorr->SetTimeStampEnd(fTMax);
   fChebCorr->SetTimeDependent(kFALSE);
   fChebCorr->SetUseZ2R(kTRUE);
   //
+  if      (fBz> 0.01) fChebCorr->SetFieldType(AliTPCChebCorr::kFieldPos);
+  else if (fBz<-0.01) fChebCorr->SetFieldType(AliTPCChebCorr::kFieldNeg);
+  else                fChebCorr->SetFieldType(AliTPCChebCorr::kFieldZero);
+  // Note: to create universal map, set manually SetFieldType(AliTPCChebCorr::kFieldAny)
+
   SetUsedInstance(this);
   fChebCorr->Parameterize(trainCorr,kResDim,fNPCheb,fChebPrecD);
   //
