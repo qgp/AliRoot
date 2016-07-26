@@ -345,10 +345,12 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
   //printf(" iskL0set %d  tdcSignalCode[15] %d \n",iskL0set, tdcSignalCode[15]);
   
   Bool_t isScalerOn=kFALSE;
-  Int_t jsc=0, itdc=0, iprevtdc=-1, ihittdc=0;
+  Int_t jsc=0, itdc=0, ihittdc=0;
+  Int_t iprevtdc[32];
   UInt_t scalerData[32]={0,};
   Int_t tdcData[32][4];	
   for(Int_t k=0; k<32; k++){
+    iprevtdc[k]=-1;
     for(Int_t i=0; i<4; i++) tdcData[k][i]=0;
   }
   
@@ -454,13 +456,10 @@ void AliZDCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTr
        else if(tdcSignalCode[itdc]==kZPAD && tdcCabling[5]<0)  tdcCabling[5] = itdc;
        else if(tdcSignalCode[itdc]==kL0 && tdcCabling[6]<0)    tdcCabling[6] = itdc;
        //
-       if(itdc==iprevtdc) ihittdc++;
-       else ihittdc=0;
-       if(ihittdc<4) tdcData[itdc][ihittdc] = rawData.GetZDCTDCDatum();
-       iprevtdc=itdc;
+       iprevtdc[itdc]++;
+       if(iprevtdc[itdc]<4) tdcData[itdc][iprevtdc[itdc]] = rawData.GetZDCTDCDatum();
        // Ch. debug
-       //if(ihittdc==0) printf("   TDC%d %f ns  ",itdc, 0.025*tdcData[itdc][ihittdc]);
-       //printf("   TDCch.%d signal %d \n",itdc, rawData.GetCabledSignal());
+       //printf("   TDCch.%d hit %d signal %d value %d\n",itdc, iprevtdc[itdc], rawData.GetCabledSignal(),rawData.GetZDCTDCDatum());
    }// ZDC TDC DATA
    // ***************************** Reading PU
    else if(rawData.GetADCModule()==kPUGeo){
@@ -1403,6 +1402,13 @@ void AliZDCReconstructor::FillZDCintoESD(TTree *clustersTree, AliESDEvent* esd) 
   // Ch. debug
   //printf("\n  FillZDCintoESD: TDC channels  ZEM1 %d  ZEM2 %d ZNC %d ZPC %d ZNA %d ZPA %d L0 %d\n\n",  tdcCabling[0],tdcCabling[1],tdcCabling[2],tdcCabling[3],tdcCabling[4],tdcCabling[5],tdcCabling[6]);
   
+  fESDZDC->SetZEM1TDChit(kFALSE);
+  fESDZDC->SetZEM2TDChit(kFALSE);
+  fESDZDC->SetZNCTDChit(kFALSE);
+  fESDZDC->SetZPCTDChit(kFALSE);
+  fESDZDC->SetZNATDChit(kFALSE);
+  fESDZDC->SetZPATDChit(kFALSE);
+  
   Int_t tdcValues[32][4] = {{0,}}; 
   Float_t tdcCorrected[32][4] = {{999.,}};
   for(Int_t jk=0; jk<32; jk++){
@@ -1419,6 +1425,7 @@ void AliZDCReconstructor::FillZDCintoESD(TTree *clustersTree, AliESDEvent* esd) 
       else if(tdcCabling[5]>0. && jk==tdcCabling[5] && TMath::Abs(tdcValues[jk][lk])>1e-09) fESDZDC->SetZPATDChit(kTRUE);
     }
   }
+  //printf("\n  FillZDCintoESD: hit TDC         ZEM1 %d  ZEM2 %d ZNC %d ZPC %d ZNA %d ZPA %d \n",  fESDZDC->IsZEM1hit(),fESDZDC->IsZEM2hit(),fESDZDC->IsZNChit(),fESDZDC->IsZPChit(),fESDZDC->IsZNAhit(),fESDZDC->IsZPAhit());
   
   // Writing TDC data into ZDC ESDs
   // 4/2/2011 -> Subtracting L0 (tdcValues[15]) instead of ADC gate 

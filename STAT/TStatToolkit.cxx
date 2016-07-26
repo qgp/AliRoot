@@ -41,6 +41,8 @@
 #include "TLatex.h"
 #include "TCut.h"
 #include "THashList.h"
+#include "TFitResultPtr.h"
+#include "TFitResult.h"
 //
 // includes neccessary for test functions
 //
@@ -51,7 +53,7 @@
 #include "AliSysInfo.h"
 #include "TStopwatch.h"
 #include "TStatToolkit.h"
-
+#include <limits>
 
 using std::cout;
 using std::cerr;
@@ -2457,7 +2459,7 @@ void TStatToolkit::MakeDistortionMap(Int_t iter, THnBase * histo, TTreeSRedirect
   //
 }
 
-void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcstream, TMatrixD &projectionInfo,Int_t verbose)
+void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcstream, TMatrixD &projectionInfo,Int_t verbose, Double_t fractionCut)
 {
   //
   // Function to calculate Distortion maps from the residual histograms
@@ -2474,7 +2476,7 @@ void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcst
   //   pcstream - file with output distortion tree
   //    1.) distortion characteristic: mean, rms, gaussian fit parameters, meang, rmsG chi2 ... at speciefied bin 
   //    2.) specidfied bins (tree branches) are defined by the name of the histogram axis in input histograms
-  //  
+  //    3.) in debug mode - controlled by env variable "gDumpHistoFraction" fractio of histogram + fits dumped to the file 
   //    
   //   Example projection info
   /*
@@ -2494,7 +2496,8 @@ void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcst
     delete pcstream;
   */
   //
-  const Double_t kMinEntries=50, kUseLLFrom=20;
+  const Double_t kMinEntries=30, kUseLLFrom=20;
+  const Float_t  kDumpHistoFraction = TString(gSystem->Getenv("gDumpHistoFraction")).Atof();  // in debug mode - controlled by env variable "gDumpHistoFraction" fractio of histogram + fits dumped to the file 
   char tname[100];
   char aname[100];
   char bname[100];
@@ -2543,6 +2546,7 @@ void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcst
   sw.Start();
   int dimVar=1, dimVarID = axOrd[dimVar];
   //
+  TVectorD  vecLTM(9);
   while(1) {
     //
     double dimVarCen = histo->GetAxis(dimVarID)->GetBinCenter(idx[dimVarID]); // center of currently varied bin
@@ -2607,7 +2611,7 @@ void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcst
     if (verbose>0) {for (int i=0;i<ndim;i++) printf("%d ",idx[i]); printf(" | central bin fit\n");}
     // 
     // >> ------------- do fit
-    double mean=0,mom2=0,rms=0,nrm=0,meanG=0,rmsG=0,chi2G=0,maxVal=0;
+    double mean=0,mom2=0,rms=0,m3=0, m4=0, nrm=0,meanG=0,rmsG=0,chi2G=0,maxVal=0,entriesG=0,mean0=0, rms0=0, curt0=0;
     hfit->Reset();
     for (int ip=tgtNb;ip--;) {
       //grafFit.SetPoint(ip,binX[ip],binY[ip]);
@@ -2623,28 +2627,106 @@ void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcst
       rms = mom2 - mean*mean;
       rms = rms>0 ? TMath::Sqrt(rms):0;
     }
-    if (nrm>=kMinEntries && rms>0) {
-      fgaus.SetParameters(nrm/(rms*2.5),mean,rms);
+    mean0=mean;
+    rms0=rms;
+    
+
+    Int_t nbins1D=hfit->GetNbinsX();
+    Double_t binMedian=0;
+    Double_t limits[2]={hfit->GetBinCenter(1), hfit->GetBinCenter(nbins1D)};
+    if (nrm>5) {
+      TStatToolkit::LTMHisto(hfit, vecLTM, 0.8); 
+      Double_t* integral=hfit->GetIntegral();      
+      for (Int_t i=1; i<nbins1D-1; i++){
+	if (integral[i-1]<0.5 && integral[i]>=0.5){
+	  if (hfit->GetBinContent(i-1)+hfit->GetBinContent(i)>0){
+	    binMedian=hfit->GetBinCenter(i);
+	    Double_t dIdx=-(integral[i-1]-integral[i]);
+	    Double_t dx=(0.5+(0.5-integral[i])/dIdx)*hfit->GetBinWidth(i);
+	    binMedian+=dx;
+	  }
+	}
+	if (integral[i-1]<fractionCut && integral[i]>=fractionCut){
+	  limits[0]=hfit->GetBinCenter(i-1)-hfit->GetBinWidth(i);
+	}
+	if (integral[i]<1-fractionCut && integral[i+1]>=1-fractionCut){
+	  limits[1]=hfit->GetBinCenter(i+1)+hfit->GetBinWidth(i);
+	}
+      }
+    }
+    if (nrm>5&&fractionCut>0 &&rms>0) {
+      hfit->GetXaxis()->SetRangeUser(limits[0], limits[1]);
+      mean=hfit->GetMean();
+      rms=hfit->GetRMS();
+      if (nrm>0 && rms>0) {
+	m3=hfit->GetSkewness();
+	m4=hfit->GetKurtosis();
+      }
+      fgaus.SetRange(limits[0]-rms, limits[1]+rms);
+    }else{
+      fgaus.SetRange(xax->GetXmin(),xax->GetXmax());
+    }
+
+
+    Bool_t isFitValid=kFALSE; 
+    if (nrm>=kMinEntries && rms>0) {      
+      fgaus.SetParameters(nrm/(rms/hfit->GetBinWidth(nbins1D)),mean,rms);
       //grafFit.Fit(&fgaus,/*maxVal<kUseLLFrom ? "qnrl":*/"qnr");
-      hfit->Fit(&fgaus,maxVal<kUseLLFrom ? "qnrl":"qnr");
+      TFitResultPtr fitPtr= hfit->Fit(&fgaus,maxVal<kUseLLFrom ? "qnrlS":"qnrS");
+      entriesG = fgaus.GetParameter(0);
       meanG = fgaus.GetParameter(1);
       rmsG  = fgaus.GetParameter(2);
       chi2G = fgaus.GetChisquare()/fgaus.GetNumberFreeParameters();
+      TFitResult * result = fitPtr.Get();
+      if (result!=NULL){
+	isFitValid = result->IsValid();
+      }
       //
     }
+    TH1 * hDump=0;
+    if (nrm>=kMinEntries&& kDumpHistoFraction>0 && (gRandom->Rndm()<kDumpHistoFraction ||  isFitValid!=kTRUE)){
+      hDump=hfit;
+    }
+    if (hDump){
+      (*pcstream)<<TString::Format("%sDump", tname).Data()<<
+	"entries="<<nrm<<     // number of entries
+	"isFitValid="<<isFitValid<< // true if the gaus fit converged
+	"hDump.="<<hDump<<    // histogram  - by default not filled
+	"mean0="<<mean0<<       // mean value of the last dimension - without fraction cut
+	"rms0="<<rms0<<         // rms value of the last dimension - without fraction cut
+	"mean="<<mean<<       // mean value of the last dimension
+	"rms="<<rms<<         // rms value of the last dimension
+	"m3="<<m3<<            // m3 (skewnes) of the last dimension
+	"m4="<<m4<<            // m4 (kurtosis) of the last dimension
+	"binMedian="<<binMedian<< //binned median value of 1D histogram
+	"entriesG="<<entriesG<< 
+	"meanG="<<meanG<<     // mean of the gaus fit
+	"rmsG="<<rmsG<<       // rms of the gaus fit
+	"vecLTM.="<<&vecLTM<<   // LTM  frac% statistic
+	"chi2G="<<chi2G;      // chi2 of the gaus fit
+    }
+
     (*pcstream)<<tname<<
       "entries="<<nrm<<     // number of entries
+      "isFitValid="<<isFitValid<< // true if the gaus fit converged
+      "mean0="<<mean0<<       // mean value of the last dimension - without fraction cut
+      "rms0="<<rms0<<         // rms value of the last dimension - without fraction cut
       "mean="<<mean<<       // mean value of the last dimension
       "rms="<<rms<<         // rms value of the last dimension
+      "m3="<<m3<<            // m3 (skewnes) of the last dimension
+      "m4="<<m4<<            // m4 (kurtosis) of the last dimension
+      "binMedian="<<binMedian<< //binned median value of 1D histogram
+      "entriesG="<<entriesG<<   // 
       "meanG="<<meanG<<     // mean of the gaus fit
       "rmsG="<<rmsG<<       // rms of the gaus fit
+      "vecLTM.="<<&vecLTM<<   // LTM  frac% statistic
       "chi2G="<<chi2G;      // chi2 of the gaus fit
     //
     meanVector[tgtDim] = mean; // what's a point of this?
     for (Int_t idim=0; idim<ndim; idim++){
       snprintf(aname, 100, "%sMean=",histo->GetAxis(idim)->GetName());
       (*pcstream)<<tname<<
-      aname<<meanVector[idim];      // current bin means
+	aname<<meanVector[idim];      // current bin means
     }
     //
     for (Int_t iIter=0; iIter<ndim; iIter++){
@@ -2654,10 +2736,16 @@ void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcst
       snprintf(bname, 100, "%sBin=",histo->GetAxis(idim)->GetName());
       snprintf(cname, 100, "%sCenter=",histo->GetAxis(idim)->GetName());
       (*pcstream)<<tname<<
-      bname<<binVector[idim]<<      // current bin values
-      cname<<centerVector[idim];    // current bin centers
+	bname<<binVector[idim]<<      // current bin values
+	cname<<centerVector[idim];    // current bin centers
+      if (hDump){
+	(*pcstream)<<TString::Format("%sDump", tname).Data()<<
+	  bname<<binVector[idim]<<      // current bin values
+	  cname<<centerVector[idim];    // current bin centers
+       }      
     }
     (*pcstream)<<tname<<"\n";
+    if (hDump)	(*pcstream)<<TString::Format("%sDump", tname).Data()<<"\n";
     // << ------------- do fit
     //
     if (((++fitCount)%fitProgress)==0) {
@@ -2684,4 +2772,33 @@ void TStatToolkit::MakeDistortionMapFast(THnBase * histo, TTreeSRedirector *pcst
     if (i && (i%prc)==0) printf("Done %d%%\n",int(float(100*i)/prc));
   }
   */
+}
+
+//___________________________________________________________
+void TStatToolkit::GetMinMax(const double* arr, int n, double &minVal, double &maxVal)
+{
+  // find min, max entries in the array in a single loop
+  minVal =  DBL_MAX;
+  maxVal = -DBL_MAX;
+  for (int i=n;i--;) {
+    double val = arr[i];
+    if (val<minVal) minVal = val;
+    if (val>maxVal) maxVal = val;
+  }
+}
+
+//___________________________________________________________
+void TStatToolkit::GetMinMaxMean(const double* arr, int n, double &minVal, double &maxVal, double &meanVal)
+{
+  // find min, max entries in the array in a single loop
+  minVal =  DBL_MAX;
+  maxVal = -DBL_MAX;
+  meanVal = 0;
+  for (int i=n;i--;) {
+    double val = arr[i];
+    if (val<minVal) minVal = val;
+    if (val>maxVal) maxVal = val;
+    meanVal += val;
+  }
+  if (n) meanVal /= n;
 }

@@ -39,6 +39,7 @@
 #include "AliTrackerBase.h"
 #include "AliGeomManager.h"
 #include "TVectorF.h"
+#include "TVectorD.h"
 #include "TStopwatch.h"
 #include "TProfile.h"
 #include "TGraphErrors.h"
@@ -59,6 +60,12 @@
 #include "AliTPCcalibAlignInterpolation.h"
 #include "AliPID.h"
 #include "TSystem.h"
+#include "TGrid.h"
+#include "TCut.h"
+#include "AliNDLocalRegression.h"
+#include "AliMathBase.h"
+#include "TStyle.h"
+#include "TCanvas.h"
 
 const Int_t AliTPCcalibAlignInterpolation_kMaxPoints=500;
 
@@ -404,7 +411,7 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
     vecNClTPC[isec]=esdFriend->GetNclustersTPC(isec);
     vecNClTPCused[isec]=esdFriend->GetNclustersTPCused(isec);
   }
-  Long64_t gid = esdEvent->GetHeader()->GetEventIdAsLong(); 
+  ULong64_t gid = esdEvent->GetHeader()->GetEventIdAsLong(); 
   Int_t timeStamp= esdEvent->GetTimeStamp();
   (*fStreamer)<<"eventInfo"<< // store event info - used to calculate per sector currents
     "gid="<<gid<<
@@ -511,7 +518,6 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
       clusterArray[iPoint].SetY(x[1]);
       clusterArray[iPoint].SetZ(x[2]);
     }
-    transform->GetCurrentRecoParamNonConst()->SetUseComposedCorrection(backupUseComposedCorrection);
     //
     // 4.) Propagate  ITS tracks outward
     // 
@@ -686,6 +692,7 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
       "nPrimTracks="<<nPrimTracks<<       // number of tracks pointed to primary vertes of selected event
       "timeStamp="<<timeStamp<<           // time stamp
       "itrack="<<fTrackCounter<<          // total track #
+      "gid="<<gid<<                       // global ID of the event
       "itsNCl="<<itsNCl<<
       "trdNCl="<<trdNCl<<
       "tofNCl="<<tofNCl<<
@@ -766,6 +773,8 @@ void AliTPCcalibAlignInterpolation::CreateResidualHistosInterpolation(Double_t d
   if (selHis==2 ||selHis<0) fHisITSTOFDRPhi = new THnF("deltaRPhiTPCITSTOF","#Delta_{Y} (cm) TPC-(ITS+TOF)", 5, binsTrack,xminTrack, xmaxTrack);
   //
   binsTrack[4]=TMath::Min(Int_t(20.+2.*dz/0.05),120); // buffer should be smaller than 1 GBy
+  xminTrack[4]=-dz;        xmaxTrack[4]=dz; 
+  xminTrackITS[4]=-dz;        xmaxTrackITS[4]=dz; 
   if (selHis==3 ||selHis<0) fHisITSDZ = new THnF("deltaZTPCITS","#Delta_{Z} (cm)", 5, binsTrackITS,xminTrackITS, xmaxTrackITS);
   if (selHis==4 ||selHis<0) fHisITSTRDDZ = new THnF("deltaZTPCITSTRD","#Delta_{Z} (cm) TPC-(ITS+TRD)", 5, binsTrack,xminTrack, xmaxTrack);
   if (selHis==5 ||selHis<0) fHisITSTOFDZ = new THnF("deltaZTPCITSTOF","#Delta_{Z} (cm) TPC-(ITS+TOF)", 5, binsTrack,xminTrack, xmaxTrack);
@@ -827,10 +836,17 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
   //
   // 
   ::Info(" AliTPCcalibAlignInterpolation::FillHistogramsFromChain","Start %s\n", residualList);
+  Int_t cacheSize= 200000000;
+  if (gSystem->Getenv("treeCacheSize")) cacheSize=TString(gSystem->Getenv("treeCacheSize")).Atoi();
+  const Double_t kernelSigma2[4]={0.25,0.25,0.25,0.25};  // kernel sigma in bin width units
+  const Double_t kFillGap=0.02  ;  // weight for the "non primary distortion info" - 
+  //                                used to fill the gap without measurement (PHOS hole)
+  const Double_t kFillGapITS=0.01;
   //
   // 0.) Load current information file and bookd variables
   // 
   const Int_t nSec=81;         // 72 sector +5 sumarry info+ 4 medians +
+  const Double_t kMaxZ=250;
   TVectorF meanNcl(nSec);      // mean current estator ncl per sector
   TVectorF meanNclUsed(nSec);  // mean current estator ncl per sector
   Double_t meanTime=0, maxTime=startTime, minTime=stopTime;
@@ -838,7 +854,7 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
 
   TFile *finfo = TFile::Open(residualInfoFile);
   TTree *treeInfo=0;
-  if (finfo) treeInfo=(TTree*)finfo->Get("sumaryTime"); 
+  if (finfo) treeInfo=(TTree*)finfo->Get("summaryTime"); 
   TGraphErrors * nclArray[nSec]={0};
   TGraphErrors * nclArrayUsed[nSec]={0};
   
@@ -852,6 +868,32 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
     treeInfo->GetEntry(0);
   }
   //
+  // 0.a) Load drift velocity calibration in case availbel
+  //
+  TVectorD     *vdriftParam=0;
+  TGraphErrors *vdriftGraph=0;  
+  TFile *fdrift = TFile::Open("fitDrift.root");
+  if (fdrift){
+    TTree * tree = (TTree*)fdrift->Get("fitTimeStat");
+    if (tree==NULL){
+      ::Error("LoadDriftCalibration FAILED", "tree fitTimeStat not avaliable in file fitDrift.root");
+    }else{      
+      tree->SetBranchAddress("grTRDReg.",&vdriftGraph);
+      tree->SetBranchAddress("paramRobust.",&vdriftParam);
+      tree->GetEntry(0);
+      if (vdriftGraph==NULL || vdriftGraph->GetN()<=0){
+	::Info("LoadDriftCalibration FAILED", "ITS/TRD drift calibration not availalble. Trying ITS/TOF");
+	tree->SetBranchAddress("grTOFReg.",&vdriftGraph);
+	tree->GetEntry(0);
+      }else{
+	::Info("LoadDriftCalibration", "tree fitTimeStat not avaliable in file fitDrift.root");
+      }
+    }
+    
+  }else{
+    ::Error("LoadDriftCalibration FAILED", "fitDrift.root not present");
+  }
+  //
   // 1.) Fill histograms and mean informations
   //
   const Int_t knPoints=kMaxRow;
@@ -860,6 +902,7 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
   TString branches[6]={"its0.","trd0.","tof0.", "its1.","trd1.","tof1."};
   //
   TVectorF *vecDelta= 0;
+  TVectorF *vecDeltaITS= 0;
   TVectorF *vecR=0;
   TVectorF *vecSec=0;
   TVectorF *vecPhi=0;
@@ -885,13 +928,21 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
   if (startTime>0) hisTime=new TH1F("hisTrackTime","hisTrackTime",(stopTime-startTime)/20,startTime,stopTime);
   TStopwatch timerAll;
   UShort_t npValid=knPoints;
+  Long64_t fillCounter=0;
+  Long64_t clusterCounter=0;
+
   for (Int_t ihis=0; ihis<6; ihis++){    
     if (selHis>=0 && ihis!=selHis) continue;
+    Double_t binWidth[4]={0};
+    for (Int_t idim=0; idim<4; idim++) binWidth[idim]=hisToFill[ihis]->GetAxis(idim)->GetBinWidth(1);
     for (Int_t iesd=0; iesd<nesd; iesd++){
       TStopwatch timerFile;
-      TFile *esdFile = TFile::Open(esdArray->At(iesd)->GetName(),"read");
+      TString fileNameString(esdArray->At(iesd)->GetName());
+      if (fileNameString.Contains("alien://") && (!gGrid || (gGrid && !gGrid->IsConnected()))) TGrid::Connect("alien://");
+      TFile *esdFile = TFile::Open(fileNameString.Data(),"read");
       if (!esdFile) continue;
       TTree *tree = (TTree*)esdFile->Get("delta");
+      tree->SetCacheSize(cacheSize);
       tree->SetBranchStatus("*",kFALSE);
       if (!tree) continue;
       ::Info(" AliTPCcalibAlignInterpolation::FillHistogramsFromChain", "Processing file \t %s\n",esdArray->At(iesd)->GetName());
@@ -902,7 +953,7 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
       tree->SetBranchStatus("vecSec.",kTRUE);
       tree->SetBranchStatus("vecPhi.",kTRUE);
       tree->SetBranchStatus("vecZ.",kTRUE);
-      tree->SetBranchStatus("track.",kTRUE);      
+      tree->SetBranchStatus("track.*",kTRUE);      
       tree->SetBranchAddress("vecR.",&vecR);
       tree->SetBranchAddress("vecSec.",&vecSec);
       tree->SetBranchAddress("vecPhi.",&vecPhi);
@@ -915,7 +966,15 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
       }
       tree->SetBranchStatus(branches[ihis],kTRUE);
       tree->SetBranchAddress(branches[ihis],&vecDelta);
-      
+      if (ihis<=2 &&ihis!=0){
+	tree->SetBranchStatus(branches[0],kTRUE);
+	tree->SetBranchAddress(branches[0],&vecDeltaITS);
+      }
+      if (ihis>2 && ihis!=3){
+	tree->SetBranchStatus(branches[3],kTRUE);
+	tree->SetBranchAddress(branches[3],&vecDeltaITS);
+      }
+
       Int_t ntracks=tree->GetEntries();
       //
       for (Int_t itrack=0; itrack<ntracks; itrack++){
@@ -925,11 +984,13 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
 	  hisTime->Fill(timeStamp);
 	}
 	tree->GetEntry(itrack);
+	Double_t corrTime = (vdriftGraph!=NULL) ? vdriftGraph->Eval(timeStamp):0;
 	const Float_t *vSec= vecSec->GetMatrixArray();
 	const Float_t *vPhi= vecPhi->GetMatrixArray();
 	const Float_t *vR  = vecR->GetMatrixArray();
 	const Float_t *vZ  = vecZ->GetMatrixArray();
 	const Float_t *vDelta  = vecDelta->GetMatrixArray();
+	const Float_t *vDeltaITS  = (vecDeltaITS!=NULL) ? vecDeltaITS->GetMatrixArray():0;
 	//
 	currentTrack++;
 	if (timeStamp<minTime) minTime=0;
@@ -946,13 +1007,78 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
 	  if (vR[ipoint]<=0 || vDelta[ipoint]<-990.) continue;
 	  Double_t sector=9.*vPhi[ipoint]/TMath::Pi();
 	  if (sector<0) sector+=18;
-	  Double_t deltaPhi=vPhi[ipoint]-TMath::Pi()*(sector+0.5)/9.;
+	  Double_t deltaPhi=vPhi[ipoint]-TMath::Pi()*(Int_t(sector)+0.5)/9.;
 	  Double_t localX = TMath::Cos(deltaPhi)*vR[ipoint];
 	  Double_t xxx[5]={ param->GetParameter()[4], sector, localX,   vZ[ipoint]/localX, vDelta[ipoint]};
-	  if (xxx[4]==0) continue;
+	  if (TMath::Abs(xxx[4])<0.000001) continue;
 	  Double_t side=-1.+2.*((TMath::Nint(vSec[ipoint])%36)<18);
-	  if ((vZ[ipoint]*side)<-1) xxx[3]=side*0.001; // do not mix z on A side and C side 	  
-	  hisToFill[ihis]->Fill(xxx);	  
+	  if ((vZ[ipoint]*side)<-1) xxx[3]=side*0.001; // do not mix z on A side and C side
+	  // apply drift velocity calibration if available
+	  Double_t deltaITS=(vDeltaITS) ? vDeltaITS[ipoint]:0;
+	  Double_t deltaRef=vDelta[ipoint];
+	  
+	  if (ihis>2){  // if z residuals and vdrift calibration existing
+	    Double_t drift = (side>0) ? kMaxZ-(*vecZ)[ipoint] : (*vecZ)[ipoint]+kMaxZ;
+	    Double_t gy    = TMath::Sin(vPhi[ipoint])*localX;
+	    Double_t pvecFit[3];
+	    pvecFit[0]= side;             // z shift (cm)
+	    pvecFit[1]= drift*gy/kMaxZ;   // global y gradient
+	    pvecFit[2]= drift;            // drift length
+	    Double_t expected = (vdriftParam!=NULL) ? (*vdriftParam)[0]+(*vdriftParam)[1]*pvecFit[0]+(*vdriftParam)[2]*pvecFit[1]+(*vdriftParam)[3]*pvecFit[2]:0;
+	    deltaRef= side*(vDelta[ipoint]*side-(expected+corrTime*drift));
+	    deltaITS= side*(vDeltaITS[ipoint]*side-(expected+corrTime*drift));
+	  }
+	  clusterCounter++;
+	  if (vDeltaITS){
+	    xxx[4]=deltaITS;
+	    hisToFill[ihis]->Fill(xxx,kFillGapITS);
+	  }
+	  xxx[4]=deltaRef;
+	  hisToFill[ihis]->Fill(xxx,1.);
+	  
+	  Int_t binIndex[5]={0};
+	  Double_t xbin[5], xbinCenter[5];
+	  Double_t  normDelta[5];
+	  Int_t binToFill= hisToFill[ihis]->GetBin(xxx); //	    
+	  hisToFill[ihis]->GetBinContent(binToFill,binIndex);
+	  for (Int_t idim=0; idim<4; idim++) {
+	    xbinCenter[idim]=hisToFill[ihis]->GetAxis(idim)->GetBinCenter(binIndex[idim]);	    
+	  }
+	  xbinCenter[4]=xxx[4];
+	  xbin[4]=xxx[4];
+	  for (Int_t ibin0=-1; ibin0<=1; ibin0++){  //qpt
+	    xbin[0]=xbinCenter[0]+ibin0*binWidth[0];
+	    normDelta[0]=(xxx[0]-xbin[0])/binWidth[0];
+	    normDelta[0]*=normDelta[0];
+	    normDelta[0]/=kernelSigma2[0];
+	    for (Int_t ibin1=0; ibin1<=0; ibin1++){  //sector - (Not defined yet if we should make bin respone functio and unfold later) 
+	      xbin[1]=xbinCenter[1]+ibin1*binWidth[1];
+	      normDelta[1]=(xxx[1]-xbin[1])/binWidth[1];
+	      normDelta[1]*=normDelta[1];
+	      normDelta[1]/=kernelSigma2[1];
+	      for (Int_t ibin2=0; ibin2<=0; ibin2++){   //local X
+		xbin[2]=xbinCenter[2]+ibin2*binWidth[2];
+		normDelta[2]=(xxx[2]-xbin[2])/binWidth[2];
+		normDelta[2]*=normDelta[2];
+		normDelta[2]/=kernelSigma2[2];
+		for (Int_t ibin3=-2; ibin3<=2; ibin3++){
+		  xbin[3]=xbinCenter[3]+ibin3*binWidth[3];
+		  if (xbin[3]*xbinCenter[3]<0) continue;  // do not mix a and C side
+		  normDelta[3]=(xxx[3]-xbin[3])/binWidth[3];
+		  normDelta[3]*=normDelta[3];
+		  normDelta[3]/=kernelSigma2[3];
+		  Double_t weightAll= -(normDelta[0]+normDelta[1]+normDelta[2]+normDelta[3]);
+		  weightAll=kFillGap+TMath::Exp(weightAll/0.5);
+		  hisToFill[ihis]->Fill(xbin,weightAll);
+		  if (fillCounter==0) {
+		    printf("Start to Fill");
+		  }
+		  fillCounter++;
+		} // bin3 fill loop
+	      }   // bin2 fill loop	      
+	    }     // bin1 fill loop 
+	  }       // bin0 fill loop
+	
 	}
       }
       timerFile.Print();
@@ -966,6 +1092,8 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
   if (hisTime) hisTime->Write();
   ::Info(" AliTPCcalibAlignInterpolation::FillHistogramsFromChain","End of processing\n");
   timerAll.Print();
+  printf("StatInfo.fillCounter:\t%lld\n",fillCounter);
+  printf("StatInfo.clusterCounter:\t%lld\n",clusterCounter);
   //
   // 2.) Fill metadata information
   //
@@ -976,7 +1104,12 @@ void    AliTPCcalibAlignInterpolation::FillHistogramsFromChain(const char * resi
       meanNclUsed[iSec]/=currentTrack;
     }
   }
+  Int_t runNumber=TString(gSystem->Getenv("runNumber")).Atoi();
   (*fout)<<"metaData"<<
+    "runNumber="<<runNumber<<        // runNumber
+    "selHis="<<selHis<<              // selected histogram type
+    "fillCounter="<<fillCounter<<    // number of histogram fills
+    "clusterCounter="<<clusterCounter<<    // number of clusters used for fill
     "startTime="<<startTime<<        // start time  as requested
     "stopTime="<<stopTime<<          // stop time as requested
     "meanTime="<<meanTime<<          // mean time 
@@ -1022,7 +1155,9 @@ void     AliTPCcalibAlignInterpolation::FillHistogramsFromStreamers(const char *
   Int_t iter=0;
   Int_t currentCl=0;
   for (Int_t iesd=0; iesd<nesd; iesd++){
-    TFile *esdFile = TFile::Open(esdArray->At(iesd)->GetName(),"read");
+    TString fileNameString(esdArray->At(iesd)->GetName());
+    if (fileNameString.Contains("alien://") && (!gGrid || (gGrid && !gGrid->IsConnected()))) TGrid::Connect("alien://");
+    TFile *esdFile = TFile::Open(fileNameString.Data(),"read");
     if (!esdFile) continue;
     TTree *tree = (TTree*)esdFile->Get("ErrParam"); 
     if (!tree) continue;
@@ -1072,13 +1207,13 @@ TTree*  AliTPCcalibAlignInterpolation::AddFriendDistortionTree(TTree * tree, con
   //
   TFile * fin = TFile::Open(fname);
   if (fin==NULL) {
-    ::Error("AliTPCcalibAlignInterpolation::AddFriendDistotionTree",TString::Format("file %s not readable", fname).Data());
+    ::Error("AliTPCcalibAlignInterpolation::AddFriendDistortionTree", "file %s not readable", fname);
     return 0;
   }
   TTree * treeFriend = (TTree*) fin->Get(treeName);
   
   if (treeFriend==NULL){
-    ::Error("AliTPCcalibAlignInterpolation::AddFriendDistotionTree",TString::Format("file %s not readable", fname).Data());
+    ::Error("AliTPCcalibAlignInterpolation::AddFriendDistortionTree", "file %s not readable", fname);
     return 0;
   }
   if (tree==NULL) {
@@ -1149,7 +1284,7 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   TObjArray *array = TString(gSystem->GetFromPipe(TString::Format("%s",inputList).Data())).Tokenize("\n");
   Int_t nFiles=array->GetEntries();
   if (nFiles<=0) {
-    ::Error("GetResidualStatInfo. Wrong input list",inputList);
+    ::Error("GetResidualStatInfo", "Wrong input list %s", inputList);
     return;
   }
   TStopwatch timer;
@@ -1158,29 +1293,42 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   //
   TStopwatch timer1;
   TTreeSRedirector * pcstream = new TTreeSRedirector("residualInfo.root", "recreate");
-  for (Int_t iFile=0; iFile<nFiles; iFile+=skip){
-    timer.Start();
-    printf("%d\t%s\n",iFile,array->At(iFile)->GetName());
-    TFile * f = TFile::Open(array->At(iFile)->GetName());
-    if (f==NULL) continue;
-    TTree * treeInfo = (TTree*)f->Get("eventInfo");
-    if (treeInfo==NULL) continue;
-    Int_t entriesInfo=treeInfo->GetEntries();
-    Int_t entries=treeInfo->Draw("B1","1","goff");
-    Double_t maxTime=TMath::MaxElement(entries,treeInfo->GetV1());
-    Double_t minTime=TMath::MinElement(entries,treeInfo->GetV1());
-    Double_t meanTime=TMath::Mean(entries,treeInfo->GetV1());
-    TObjString fname(array->At(iFile)->GetName());
-    (*pcstream)<<"summary1"<<
-      "iFile="<<iFile<<
-      "fname.="<<&fname<<
-      "events="<<entriesInfo<<
-      "minTime="<<minTime<<
-      "maxTime="<<maxTime<<
-      "meanTime="<<meanTime<<
-      "\n";
-    timer.Print();
+  const Int_t cacheSize=100000000; // 100 MBy cache  
+  TChain * chainInfo  = AliXRDPROOFtoolkit::MakeChain("residual.list","eventInfo",0,-1);
+  chainInfo->SetCacheSize(cacheSize);
+  TChain * chainTracks  = AliXRDPROOFtoolkit::MakeChain("residual.list","delta",0,-1);
+  chainInfo->SetCacheSize(cacheSize);
+  chainTracks->SetCacheSize(cacheSize);
+  //
+  Int_t neventsAll=chainInfo->GetEntries();     // total amount of events
+  Int_t ntracksAll=chainTracks->GetEntries();   // total amount of tracks
+  Int_t gidRounding=128;                        // git has to be rounded
+  chainInfo->SetEstimate(neventsAll);
+  chainInfo->Draw("timeStamp:gid/128","timeStamp>0","goff");          
+  //
+  Long64_t minTime=0,maxTime=0;
+  double minGID=0,maxGID=0,meanGID=0,meanTime=0;
+  if (neventsAll) {
+    double minTimeD=0,maxTimeD=0;
+    TStatToolkit::GetMinMaxMean(chainInfo->GetV1(),neventsAll,minTimeD,maxTimeD, meanTime);
+    minTime = minTimeD;
+    maxTime = maxTimeD;
+    TStatToolkit::GetMinMaxMean(chainInfo->GetV2(),neventsAll,minGID,maxGID, meanGID);
+    minGID*=128;
+    maxGID*=128;
+    meanGID*=128;
   }
+  (*pcstream)<<"summary1"<<
+    "id="<<id<<                // chain id - usually should be run number
+    "nevents="<<neventsAll<<   // total number of events
+    "ntracks="<<ntracksAll<<   // total number of tracks
+    "minTime="<<minTime<<      // minimal time stamp in sample
+    "maxTime="<<maxTime<<      // max time stamp in sample
+    "meanTime="<<meanTime<<    // mean time
+    "minGID="<<minGID<<        // minimal event gid in sample (rounded to 128)
+    "maxGID="<<maxGID<<        // max  event gid in sample (rounded to 128)
+    "meanGID="<<meanGID<<      // mean event gid in sample (rounded to 128)
+    "\n";
   delete pcstream;
   ::Info("GetResidualStatInfo","Total time");
   timer1.Print();
@@ -1189,17 +1337,14 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   //
   TStopwatch timer2;
   pcstream = new TTreeSRedirector("residualInfo.root", "update");
-  TTree * treeSummary1=(TTree*)(pcstream->GetFile()->Get("summary1"));
-  Int_t entries = treeSummary1->Draw("minTime","1","goff");
-  Long64_t minTime = TMath::MinElement(entries, treeSummary1->GetV1());
-  entries = treeSummary1->Draw("maxTime","1","goff");
-  Long64_t maxTime = TMath::MaxElement(entries, treeSummary1->GetV1());
-  minTime=timeInterval*(minTime/timeInterval);
-  maxTime=timeInterval*(1+(maxTime/timeInterval));
-  Int_t nIntervals=(maxTime-minTime)/timeInterval;
-  Int_t nIntervalsQA=(maxTime-minTime)/15;
+  //  Int_t entries = neventsAll;
+
+  Long64_t minTimeQA = timeInterval*(minTime/timeInterval);
+  Long64_t maxTimeQA = timeInterval*(1+(maxTime/timeInterval));
+  Int_t nIntervals=(maxTimeQA-minTimeQA)/timeInterval;
+  Int_t nIntervalsQA=(maxTimeQA-minTimeQA)/15;
   //
-  TH1F  * hisEvent= new TH1F("hisEvent","hisEvent",nIntervalsQA,minTime,maxTime);
+  TH1F  * hisEvent= new TH1F("hisEvent","hisEvent",nIntervalsQA,minTimeQA,maxTimeQA);
   const Int_t nSec=81; // 72 sector +5 sumarry info+ 4 medians
   TProfile * profArrayNcl[nSec]={0};
   TProfile * profArrayNclUsed[nSec]={0};
@@ -1209,11 +1354,11 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   TGraphErrors * grArrayITSNcl[3]={0};
   
   for (Int_t isec=0; isec<nSec; isec++){
-    profArrayNcl[isec]=new TProfile(TString::Format("TPCnclSec%d",isec).Data(), TString::Format("TPCnclSec%d",isec).Data(), nIntervalsQA,minTime,maxTime);
-    profArrayNclUsed[isec]=new TProfile(TString::Format("TPCnclUsedSec%d",isec).Data(), TString::Format("TPCnclUsedSec%d",isec).Data(), nIntervalsQA,minTime,maxTime);
+    profArrayNcl[isec]=new TProfile(TString::Format("TPCnclSec%d",isec).Data(), TString::Format("TPCnclSec%d",isec).Data(), nIntervalsQA,minTimeQA,maxTimeQA);
+    profArrayNclUsed[isec]=new TProfile(TString::Format("TPCnclUsedSec%d",isec).Data(), TString::Format("TPCnclUsedSec%d",isec).Data(), nIntervalsQA,minTimeQA,maxTimeQA);
   }
    for (Int_t iits=0; iits<3; iits++){
-    profArrayITSNcl[iits]=new TProfile(TString::Format("ITSnclSec%d",iits).Data(), TString::Format("ITSnclSec%d",iits).Data(), nIntervalsQA,minTime,maxTime);    
+    profArrayITSNcl[iits]=new TProfile(TString::Format("ITSnclSec%d",iits).Data(), TString::Format("ITSnclSec%d",iits).Data(), nIntervalsQA,minTimeQA,maxTimeQA);    
   }
 
   TVectorF *vecNClTPC=0;
@@ -1222,8 +1367,10 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   Int_t timeStamp=0;
   for (Int_t iFile=0; iFile<nFiles; iFile+=skip){
     timer.Start();
-    printf("%d\t%s\n",iFile,array->At(iFile)->GetName());    
-    TFile * f = TFile::Open(array->At(iFile)->GetName());
+    TString fileName = array->At(iFile)->GetName();
+    if (fileName.Contains("alien://") && (!gGrid || (gGrid && !gGrid->IsConnected()))) TGrid::Connect("alien://");
+    printf("%d\t%s\n",iFile,fileName.Data());    
+    TFile * f = TFile::Open(fileName.Data());
     if (f==NULL) continue;
     TTree * treeInfo = (TTree*)f->Get("eventInfo"); 
     if (treeInfo==NULL) continue;
@@ -1273,24 +1420,24 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   }
   timer2.Print();
   TGraphErrors grEvent(hisEvent);
-  (*pcstream)<<"sumaryTime"<<
+  (*pcstream)<<"summaryTime"<<
     "id="<<id<<
     "grEvent.="<<&grEvent;
   for (Int_t isec=0; isec<nSec; isec++){
     grArrayNcl[isec] = new TGraphErrors((profArrayNcl[isec]));
     grArrayNclUsed[isec] = new TGraphErrors((profArrayNclUsed[isec]));
-    (*pcstream)<<"sumaryTime"<<
+    (*pcstream)<<"summaryTime"<<
       TString::Format("grNcl%d.=",isec).Data()<<grArrayNcl[isec]<<
       TString::Format("grNclUsed%d.=",isec).Data()<<grArrayNclUsed[isec];
   }
   for (Int_t iits=0; iits<3; iits++){
     grArrayITSNcl[iits] = new TGraphErrors((profArrayITSNcl[iits]));
-    (*pcstream)<<"sumaryTime"<<
+    (*pcstream)<<"summaryTime"<<
       TString::Format("grITSNcl%d.=",iits).Data()<<grArrayITSNcl[iits];
   }
   
   
-  (*pcstream)<<"sumaryTime"<<"\n";
+  (*pcstream)<<"summaryTime"<<"\n";
   for (Int_t isec=0; isec<nSec; isec++){
     delete 	profArrayNcl[isec];
     delete 	profArrayNclUsed[isec];
@@ -1300,7 +1447,1094 @@ void AliTPCcalibAlignInterpolation::MakeEventStatInfo(const char * inputList, In
   delete hisEvent;
   delete pcstream;
 
-  printf("StatInfo.minTime\t%d\n",minTime);
-  printf("StatInfo.maxTime\t%d\n",maxTime);
+  printf("StatInfo.minTime\t%lld\n",minTime); //this formatting does not work on my Debian why it was changed ?
+  printf("StatInfo.maxTime\t%lld\n",maxTime);
+  //printf("StatInfo.minTime\t%f\n",Double_t(minTime)); //this formatting does not work on my Debian why it was changed ?
+  //printf("StatInfo.maxTime\t%f\n",Double_t(maxTime));
+
+  
   delete array;
 }
+
+
+
+Bool_t AliTPCcalibAlignInterpolation::FitDrift(double deltaT, double sigmaT, double time0, double_t time1){
+  //
+  //  Fit time dependence of the drift velocity for ITS-TRD and ITS-TOF scenario
+  /*  Intput:
+        "residual.list"   - ascii file with files assumed to be in working directory
+        double deltaT     - time binning for drift velocity
+        double sigmaT     - kernel width for time smoothing
+        double time0      - starting time for drift velocity calculation
+        double time1      - stop time for drift velocty calculation
+        * in case time0 and time1 not specified - full time range in the selected sample used (time0=minTime, time1=maxTime)
+      Output:
+        "fitDrift.root"   - small file with the drift velocity calibration created  
+         robustFit tree   - drift vlocity, time0, z shift and gy gradiend calibration using TLinearFitter::EvalRobust estimator
+                          -   20 statistically independent values to QA procedure
+                          -   resulting values choosen using robust median estimator
+         fitTime          - set of graphs drift velocity as function of time
+                          - n different graph values 
+                          - resulting time dependent graph used as an logal regression with kernel sigmaT  per interval 
+         fitTimeStat      - comparing median and local regression statistic 
+  */  
+  /*
+    To do:
+       - 1.) make version:
+       - 1.a) with- without bunch 0 crossing 
+       - 1.b) disentagle fit for the TRD and for the TOF
+       - 2.) use time bin sigma estimate for the outlier rejection in the AliNDLocalFit fit 
+
+   */
+ 
+  /*
+    fileList="residual.list"
+    time0=0; time1=0;
+    deltaT=60; sigmaT=600
+    fitDrift(60,00,0);
+  */  
+  const Double_t kMinEntries=1000;
+  const Double_t kMaxDist0=20;
+  const Double_t kMaxDist1=5;
+  const Double_t kDumpSample=0.01;
+  const Double_t kBCcutMin=-5;
+  const Double_t kBCcutMax=20;
+  const Double_t robFraction=0.99; 
+
+  Int_t maxEntries=1000000;
+  Int_t maxPointsRobust=4000000;
+  //
+  const Double_t kMaxZ=250;
+  TCut  selection="";
+  Int_t entriesAll=0;
+  Int_t runNumber=TString(gSystem->Getenv("runNumber")).Atoi();
+  //
+  //
+  if (deltaT<=0 || sigmaT<=0){
+    ::Error("AliTPCcalibAlignInterpolation::FitDrift FAILED ","Invalid parameter value for the deltaT %d and sigmaT", deltaT, sigmaT);
+    return kFALSE;
+  }
+ 
+  TChain * chainDelta = AliXRDPROOFtoolkit::MakeChain("residual.list","delta",0,-1);
+  entriesAll = chainDelta->GetEntries();
+  if (entriesAll<kMinEntries) {
+    ::Error("fitDrift FAILED","Not enough tracks in the chain.  Ntracks=%d",entriesAll); 
+    return kFALSE;
+  }
+  maxEntries=TMath::Min(maxEntries, entriesAll);
+  TTreeSRedirector *pcstream = new TTreeSRedirector("fitDrift.root","update");
+  if (time0==time1){
+    TChain * chainInfo=  AliXRDPROOFtoolkit::MakeChain("residual.list","eventInfo",0,-1);
+    chainInfo->SetEstimate(chainInfo->GetEntries());
+    Int_t entries = chainInfo->Draw("timeStamp","","goff",maxEntries);
+    if (entries) TStatToolkit::GetMinMax(chainInfo->GetV1(),entries,time0,time1);
+  }
+  // 0.) Cache variables:  to be done using loop
+  //     Variables to cache:
+  //       tof1.fElements
+  //       trd1.fElements
+  //       vecZ.fElements
+  //       vecR.fElements
+  //       vecSec.fElements
+  //       vecPhi.fElements
+  //       timeStamp
+  //       npValid
+  //
+  AliSysInfo::AddStamp("StartCache",1,0,0);
+  chainDelta->SetEstimate(maxEntries*160/5.);
+  Int_t entriesFit0 = chainDelta->Draw("tof1.fElements:trd1.fElements:vecZ.fElements:vecR.fElements:vecSec.fElements:vecPhi.fElements:timeStamp:tofBC","Entry$%5==0","goffpara",maxEntries);
+  Int_t entriesFit=entriesFit0/10;
+  AliSysInfo::AddStamp("EndCache",1,1,0);
+
+  AliSysInfo::AddStamp("BeginFill",1,1,0);
+
+  TVectorD * deltaTOF  = new TVectorD(entriesFit); //
+  TVectorD * deltaTRD  = new TVectorD(entriesFit); //
+  TVectorD * vecZ      = new TVectorD(entriesFit); //
+  TVectorD * vecR      = new TVectorD(entriesFit); //
+  TVectorD * vecSec    = new TVectorD(entriesFit); //
+  TVectorD * vecPhi    = new TVectorD(entriesFit); //
+  TVectorD * vecTime   = new TVectorD(entriesFit); //
+  TVectorD * vecTOFBC   = new TVectorD(entriesFit); //
+  for (Int_t i=0; i<entriesFit; i++){
+    Int_t index=gRandom->Rndm()*entriesFit0;
+    (*deltaTOF)[i]= chainDelta->GetVal(0)[index];
+    (*deltaTRD)[i]= chainDelta->GetVal(1)[index];
+    (*vecZ)[i]= chainDelta->GetVal(2)[index];
+    (*vecR)[i]= chainDelta->GetVal(3)[index];
+    (*vecSec)[i]= chainDelta->GetVal(4)[index];
+    (*vecPhi)[i]= chainDelta->GetVal(5)[index];
+    (*vecTime)[i]= chainDelta->GetVal(6)[index];    
+    (*vecTOFBC)[i]= chainDelta->GetVal(7)[index];    
+  }
+  AliSysInfo::AddStamp("EndFill",1,1,0);
+
+
+  //
+  // 1.) Make robust first estimate
+  //
+  TVectorD paramRobust(5);  
+  TVectorD paramTRD(5);  
+  TVectorD paramTOF(5);  
+  TVectorD paramRobustBC(5);  
+  TVectorD paramTRDBC(5);  
+  TVectorD paramTOFBC(5);
+  //  
+  AliSysInfo::AddStamp("StartRobust",2,0,0);
+  TF1 * fpol1 = new TF1("f1","[0]+[1]*x",0,250);
+  //
+  if (pcstream->GetFile()->Get("robustFit")==0){
+    for (Int_t iter=0; iter<20; iter++){
+      AliSysInfo::AddStamp("Robustiter",3,iter,0);
+      TLinearFitter *fitterRobust= new TLinearFitter(4,TString::Format("hyp%d",3).Data());
+      TLinearFitter *fitterTRD= new TLinearFitter(4,TString::Format("hyp%d",3).Data());
+      TLinearFitter *fitterTOF= new TLinearFitter(4,TString::Format("hyp%d",3).Data());
+      TLinearFitter *fitterRobustBC= new TLinearFitter(4,TString::Format("hyp%d",3).Data());
+      TLinearFitter *fitterTRDBC= new TLinearFitter(4,TString::Format("hyp%d",3).Data());
+      TLinearFitter *fitterTOFBC= new TLinearFitter(4,TString::Format("hyp%d",3).Data());
+      TH2F * hisDeltaZ[12];
+      for (Int_t ihis=0; ihis<12; ihis++) {
+	hisDeltaZ[ihis] = new TH2F("hisZ","hisZ",21,40,250,100,-5,5);
+      }
+
+      Int_t maxPoints= TMath::Min(maxPointsRobust,entriesFit); 
+      for (Int_t ipoint=0; ipoint<maxPoints; ipoint++){
+	Double_t pvecFit[10]={0};
+	if (gRandom->Rndm()>0.1) continue;
+	Int_t sector   = TMath::Nint((*vecSec)[ipoint]);
+	Double_t side  = -1.+((sector%36)<18)*2.;
+	Double_t z= (*vecZ)[ipoint];
+	Double_t drift = (side>0) ? kMaxZ-(*vecZ)[ipoint] : (*vecZ)[ipoint]+kMaxZ;
+	if (drift>kMaxZ) continue;
+	Double_t phi   = (*vecPhi)[ipoint];
+	Double_t  radius= (*vecR)[ipoint];
+	Double_t gy    = TMath::Sin(phi)*radius;
+	Float_t tofBC=(*vecTOFBC)[ipoint];
+	pvecFit[0]= side;             // z shift (cm)
+	pvecFit[1]= drift*gy/kMaxZ;   // global y gradient
+	pvecFit[2]= drift;            // drift length
+	Double_t dTOF=(*deltaTOF)[ipoint];
+	Double_t dTRD=(*deltaTRD)[ipoint];
+	Int_t hisIndex=(((1-side)/2)*6);
+
+	if (iter==0){
+	  if ( dTOF!=0. &&TMath::Abs(dTOF)<kMaxDist0) fitterRobust->AddPoint(pvecFit,dTOF*side,1);
+	  if ( dTRD!=0. &&TMath::Abs(dTRD)<kMaxDist0) fitterRobust->AddPoint(pvecFit,dTRD*side,1);
+	}else{
+	  Double_t expected = paramRobust[0]+paramRobust[1]*pvecFit[0]+paramRobust[2]*pvecFit[1]+paramRobust[3]*pvecFit[2];
+	  if ( dTRD!=0. &&TMath::Abs(dTRD*side-expected)<kMaxDist1) {
+	    fitterRobust->AddPoint(pvecFit,dTRD*side,1);	
+	    fitterTRD->AddPoint(pvecFit,dTRD*side,1);	
+	    hisDeltaZ[hisIndex+0]->Fill(drift, dTRD*side-expected);
+	    hisDeltaZ[hisIndex+1]->Fill(drift, dTRD*side-expected);
+	    if (tofBC>kBCcutMin&&tofBC<kBCcutMax){
+	      fitterRobustBC->AddPoint(pvecFit,dTRD*side,1);	
+	      fitterTRDBC->AddPoint(pvecFit,dTRD*side,1);	
+	      hisDeltaZ[hisIndex+3]->Fill(drift, dTRD*side-expected);
+	      hisDeltaZ[hisIndex+4]->Fill(drift, dTRD*side-expected);
+	    }
+	  }
+	  if ( dTOF!=0. &&TMath::Abs(dTOF*side-expected)<kMaxDist1) {
+	    hisDeltaZ[hisIndex+0]->Fill(drift, dTOF*side-expected);
+	    hisDeltaZ[hisIndex+2]->Fill(drift, dTOF*side-expected);
+	    fitterRobust->AddPoint(pvecFit,dTOF*side,1);
+	    fitterTOF->AddPoint(pvecFit,dTOF*side,1);
+	    if (tofBC>kBCcutMin&&tofBC<kBCcutMax){
+	      fitterRobustBC->AddPoint(pvecFit,dTOF*side,1);
+	      fitterTOFBC->AddPoint(pvecFit,dTOF*side,1);
+	      hisDeltaZ[hisIndex+3]->Fill(drift, dTOF*side-expected);
+	      hisDeltaZ[hisIndex+5]->Fill(drift, dTOF*side-expected);
+	    }
+	  }
+
+	  if (gRandom->Rndm()<kDumpSample){
+	    Float_t zcorr=  z+expected*side; // corrected z
+	    Float_t zcorrB= z-expected*side;
+	    (*pcstream)<<"dumpSample"<<
+	      "iter="<<iter<<
+	      "run="<<runNumber<<
+	      "sector="<<sector<<
+	      "side="<<side<<
+	      "drift="<<drift<<
+	      "tofBC"<<tofBC<<
+	      "gy="<<gy<<
+	      "z="<<z<<
+	      "zcorr="<<zcorr<<
+	      "zcorrB="<<zcorrB<<
+	      "expected="<<expected<<
+	      "paramRobust.="<<&paramRobust<<      //  drift fit using all tracks
+	      "dTOF="<<dTOF<<
+	      "dTRD="<<dTRD<<
+	      "\n";
+	  }
+	}
+      }
+      printf("iter=%d\n",iter);
+      if (fitterRobust->GetNpoints()<kMinEntries*0.1){ 	
+	::Error("fitDrift FAILED","Not enough points in the chain. Iter=%d\tN=%d" , iter, fitterRobust->GetNpoints());
+	delete pcstream;
+	return kFALSE;
+      }
+      fitterRobust->EvalRobust(robFraction);
+      //fitterRobust->Eval(); // EvalRobust sometimes failed - looks like related to the random selection of subset of data - can be only one side 
+      fitterRobust->GetParameters(paramRobust);
+      Double_t npoints= fitterRobust->GetNpoints();
+      Double_t chi2= TMath::Sqrt(fitterRobust->GetChisquare()/npoints);
+      paramRobust.Print();
+
+      Int_t nTRD = fitterTRD->GetNpoints();
+      Int_t nTOF = fitterTOF->GetNpoints();
+      Int_t nRobustBC = fitterRobustBC->GetNpoints();
+      Int_t nTRDBC = fitterTRDBC->GetNpoints();
+      Int_t nTOFBC = fitterTOFBC->GetNpoints();
+
+      if (nRobustBC>kMinEntries*0.1){	fitterRobustBC->EvalRobust(robFraction);  fitterRobustBC->GetParameters(paramRobustBC);}
+      if (nTRD>kMinEntries*0.1){	fitterTRD->EvalRobust(robFraction);	   fitterTRD->GetParameters(paramTRD);}
+      if (nTOF>kMinEntries*0.1){	fitterTOF->EvalRobust(robFraction);	   fitterTOF->GetParameters(paramTOF);}
+      if (nTRDBC>kMinEntries*0.1){	fitterTRDBC->EvalRobust(robFraction);	   fitterTRDBC->GetParameters(paramTRDBC);}
+      if (nTOFBC>kMinEntries*0.1){	fitterTOFBC->EvalRobust(robFraction);	   fitterTOFBC->GetParameters(paramTOFBC); }
+      //
+      TGraphErrors * grDeltaZ[12] = {0};
+      TGraphErrors * grRMSZ[12] = {0};
+      TVectorD * fitDeltaZ[12] = {0};
+      TObjArray fitArray(3);
+      for (Int_t ihis=0; ihis<12; ihis++){
+	hisDeltaZ[ihis]->FitSlicesY(0,0,-1,0,"QNR",&fitArray);
+	grDeltaZ[ihis] = new TGraphErrors(((TH1D*)fitArray.At(1)));
+	grRMSZ[ihis]   = new TGraphErrors(((TH1D*)fitArray.At(2)));
+	fitDeltaZ[ihis] = new TVectorD(2);
+	grDeltaZ[ihis]->Fit(fpol1,"q","q");
+	fpol1->GetParameters(fitDeltaZ[ihis]->GetMatrixArray());
+	fitArray.Delete();
+	delete hisDeltaZ[ihis];
+	hisDeltaZ[ihis] = 0;
+      }
+
+      delete fitterRobust;    
+      delete fitterTRD;    
+      delete fitterTOF;    
+      delete fitterRobustBC;    
+      delete fitterTRDBC;    
+      delete fitterTOFBC;    
+
+      (*pcstream)<<"robustFit"<<
+	"iter="<<iter<<
+	"time0="<<time0<<
+	"time1="<<time1<<
+	"run="<<runNumber<<
+	"npoints="<<npoints<<
+	"chi2="<<chi2<<                   
+	"nTRD="<<nTRD<<                      // number of TRD points
+	"nTOF="<<nTOF<<                      // number of TRD points
+	"nTRDBC="<<nTRDBC<<                  // number of TRD points BC
+	"nTOFBC="<<nTOFBC<<                  // number of TRD points BC
+	//
+	"paramRobust.="<<&paramRobust<<      //  drift fit using all tracks
+	"paramTRD.="<<&paramTRD<<            //  drift fit using TRD tracks
+	"paramTOF.="<<&paramTOF<<	     //  drift fit using TOF tracks
+	"paramRobustBC.="<<&paramRobustBC<<  //  drift fit using all tracks with BC
+	"paramTRDBC.="<<&paramTRDBC<<        //  drift fit using TRD tracks with BC
+	"paramTOFBC.="<<&paramTOFBC;         //  drift fit using TOF tracks with BC
+      
+      for (Int_t ihis=0; ihis<12; ihis++){
+	(*pcstream)<<"robustFit"<<
+	  TString::Format("grDeltaZ%d.=",ihis).Data()<<grDeltaZ[ihis]<<     // residual histogram drift fit - mean 
+	  TString::Format("grRMSZ%d.=",ihis).Data()<<grDeltaZ[ihis]<<       //  residual histogram drift fit - rms
+	  TString::Format("fitDeltaZ%d.=",ihis).Data()<<fitDeltaZ[ihis];     //  residual histogram drift fit - linear fit
+	delete grDeltaZ[ihis];
+	delete grRMSZ[ihis];
+	delete fitDeltaZ[ihis];
+      }
+      (*pcstream)<<"robustFit"<<	
+	"\n";    
+    }
+    // delete pcstream;  
+    //pcstream = new TTreeSRedirector("fitDrift.root","update");
+  }
+  delete fpol1;
+  //
+  TTree * treeRobust= (TTree*)(pcstream->GetFile()->Get("robustFit"));  
+  Int_t entriesR= treeRobust->Draw("paramRobust.fElements[0]:paramRobust.fElements[1]:paramRobust.fElements[2]:paramRobust.fElements[3]","","goffPara");
+  for (Int_t ipar=0; ipar<4; ipar++) {paramRobust[ipar]=TMath::Median(entriesR-5, &(treeRobust->GetVal(ipar)[5]));}
+  //
+  treeRobust->Draw("paramRobustBC.fElements[0]:paramRobustBC.fElements[1]:paramRobustBC.fElements[2]:paramRobustBC.fElements[3]","","goffPara");
+  for (Int_t ipar=0; ipar<4; ipar++) {paramRobustBC[ipar]=TMath::Median(entriesR-5, &(treeRobust->GetVal(ipar)[5]));}
+  treeRobust->Draw("paramTRD.fElements[0]:paramTRD.fElements[1]:paramTRD.fElements[2]:paramTRD.fElements[3]","","goffPara");
+  for (Int_t ipar=0; ipar<4; ipar++) {paramTRD[ipar]=TMath::Median(entriesR-5, &(treeRobust->GetVal(ipar)[5]));}
+  treeRobust->Draw("paramTOF.fElements[0]:paramTOF.fElements[1]:paramTOF.fElements[2]:paramTOF.fElements[3]","","goffPara");
+  for (Int_t ipar=0; ipar<4; ipar++) {paramTOF[ipar]=TMath::Median(entriesR-5, &(treeRobust->GetVal(ipar)[5]));}
+  treeRobust->Draw("paramTRDBC.fElements[0]:paramTRDBC.fElements[1]:paramTRDBC.fElements[2]:paramTRDBC.fElements[3]","","goffPara");
+  for (Int_t ipar=0; ipar<4; ipar++) {paramTRDBC[ipar]=TMath::Median(entriesR-5, &(treeRobust->GetVal(ipar)[5]));}
+  treeRobust->Draw("paramTOFBC.fElements[0]:paramTOFBC.fElements[1]:paramTOFBC.fElements[2]:paramTOFBC.fElements[3]","","goffPara");
+  for (Int_t ipar=0; ipar<4; ipar++) {paramTOFBC[ipar]=TMath::Median(entriesR-5, &(treeRobust->GetVal(ipar)[5]));}
+  paramRobust.Print();
+  //
+  //
+  // 3.) Make drift fit per time interval
+  //
+  Int_t nTimeBins= Int_t((time1-time0)/deltaT)+1;
+  Int_t nParam   = nTimeBins+1;
+  TVectorD vecFit(nParam);
+  Double_t *pvecFit=vecFit.GetMatrixArray();
+  //TLinearFitter *fitterTRD= new TLinearFitter(nParam,TString::Format("hyp%d",nParam+1).Data());
+  //TLinearFitter *fitterTOF= new TLinearFitter(nParam,TString::Format("hyp%d",nParam+1).Data());
+  //
+  TObjArray arrayFit(3);
+  TH2F hisTRD("hisTRD","hisTRD",nTimeBins,time0,time1,100,-0.02,0.02);
+  TH2F hisTOF("hisTOF","hisTOF",nTimeBins,time0,time1,100,-0.02,0.02);
+
+  for (Int_t iter=0; iter<10; iter++){
+    hisTRD.Reset();
+    hisTOF.Reset();
+    for (Int_t ipoint=0; ipoint<entriesFit; ipoint++){
+      if (ipoint%10!=iter) continue;  // points correlated - can be skipped
+      Int_t sector   = TMath::Nint((*vecSec)[ipoint]);
+      Double_t side  = -1.+((sector%36)<18)*2.;
+      Double_t z= (*vecZ)[ipoint];
+      Double_t drift = (side>0) ? kMaxZ-(*vecZ)[ipoint] : (*vecZ)[ipoint]+kMaxZ;
+      if (drift>kMaxZ) continue;
+      Double_t phi   = (*vecPhi)[ipoint];
+      Double_t  radius= (*vecR)[ipoint];
+      Double_t gy    = TMath::Sin(phi)*radius;
+      pvecFit[0]= side;             // z shift (cm)
+      pvecFit[1]= drift*gy/kMaxZ;   // global y gradient
+      pvecFit[2]= drift;            // drift length
+      Double_t dTOF=(*deltaTOF)[ipoint]*side;
+      Double_t dTRD=(*deltaTRD)[ipoint]*side;
+      Double_t expected = paramRobust[0]+paramRobust[1]*pvecFit[0]+paramRobust[2]*pvecFit[1]+paramRobust[3]*pvecFit[2];
+      Int_t time=(*vecTime)[ipoint];
+      //
+      if ( dTOF!=0. &&TMath::Abs(dTOF-expected)<kMaxDist1) {
+	//      fitterTOF->AddPoint(pvecFit,dTOF,1);
+	hisTOF.Fill(time,(dTOF-expected)/drift,drift/kMaxZ); 
+      }
+      if ( dTRD!=0. &&TMath::Abs(dTRD-expected)<kMaxDist1) {
+	//fitterTOF->AddPoint(pvecFit,dTRD,1);	
+	hisTRD.Fill(time,(dTRD-expected)/drift,drift/kMaxZ); 
+      }    
+    }
+    printf("iter=%d\n",iter);
+    TGraphErrors *grTRD=NULL, *grTOF=NULL;
+    TGraphErrors *grTRD2=NULL, *grTOF2=NULL;
+    Int_t nclTRD=hisTRD.GetEntries();
+    Int_t nclTOF=hisTOF.GetEntries();
+    if (nclTRD>kMinEntries){
+      hisTRD.FitSlicesY(0,0,-1,0,"QNR",&arrayFit);
+      grTRD = new TGraphErrors((TH1D*)arrayFit.At(1));
+      grTRD2 = new TGraphErrors((TH1D*)arrayFit.At(2));
+      arrayFit.Delete();
+    }
+    if (nclTOF>kMinEntries){
+      hisTOF.FitSlicesY(0,0,-1,0,"QNR",&arrayFit);
+      grTOF  = new TGraphErrors((TH1D*)arrayFit.At(1));
+      grTOF2 = new TGraphErrors((TH1D*)arrayFit.At(2));
+      arrayFit.Delete();
+    }
+    if (grTRD==NULL) {
+      grTRD=grTOF; // we should have at minimum one of the histograms not empty
+      grTRD2=grTOF2;
+    }
+    if (grTOF==NULL) {
+      grTOF=grTRD;
+      grTOF2=grTRD2;
+    }
+    (*pcstream)<<"fitTime"<<
+      "iter="<<iter<<      
+      "nclTRD="<<nclTRD<<             // 
+      "nclTOF="<<nclTOF<<             // 
+      "grTRD.="<<grTRD<<              // time dependent drift correction TRD - mean in time bin
+      "grTOF.="<<grTOF<<	      // time dependent drift correction TOF - mean in time bin
+      "grTRD2.="<<grTRD2<<            // time dependent drift correction TRD - sigma in time bin
+      "grTOF2.="<<grTOF2<<	      // time dependent drift correction TOF - sigma in time bin
+      "time0="<<time0<<
+      "time1="<<time1<<
+      "run="<<runNumber<<
+      "paramRobust.="<<&paramRobust<< // time independent parameters
+      "paramTRD.="<<&paramTRD<<            //  drift fit using TRD tracks
+      "paramTOF.="<<&paramTOF<<	     //  drift fit using TOF tracks
+      "paramRobustBC.="<<&paramRobustBC<<  //  drift fit using all tracks with BC
+      "paramTRDBC.="<<&paramTRDBC<<        //  drift fit using TRD tracks with BC
+      "paramTOFBC.="<<&paramTOFBC<<	     //  drift fit using TOF tracks with BC      
+      "\n";
+  }
+  delete pcstream;
+  pcstream = new TTreeSRedirector("fitDrift.root","update"); 
+  //
+  // 3.) Make local regression and median fit
+  //
+  TTree * treeFit= (TTree*)(pcstream->GetFile()->Get("fitTime"));  
+  Int_t entriesGr = treeFit->Draw("grTRD.fY:grTOF.fY:grTRD.fX:Iteration$","1","goffpara");
+  Int_t nbins = TMath::MaxElement(entriesGr, treeFit->GetV4())+1;  
+
+  Double_t dtime0=0,dtime1=0;
+  if (entriesGr) TStatToolkit::GetMinMax(treeFit->GetV3(),entriesGr,dtime0,dtime1);
+  Int_t ngraphs =entriesGr/nbins;
+  //
+  // 3.a) local regression fit
+  //
+  treeFit->Draw("grTRD.fY-grTRD.fY[Iteration$+1]:grTRD.fX","1","goff");
+  Double_t deltaRMS,deltaMean;
+  AliMathBase::EvaluateUni(entriesGr,treeFit->GetV1(),deltaMean, deltaRMS,entriesGr*0.8);
+  TCut cutTRD=TString::Format("abs(grTRD.fY-grTOF.fY)<0.01&&abs(grTRD.fY-grTRD.fY[Iteration$+1]-%f)<%f",deltaMean, 3*deltaRMS).Data();
+  TCut cutTOF=TString::Format("abs(grTRD.fY-grTOF.fY)<0.01&&abs(grTOF.fY-grTOF.fY[Iteration$+1]-%f)<%f",deltaMean, 3*deltaRMS).Data();
+
+  THnD *hN = new THnD("hN","hN", 1, &nbins, &dtime0, &dtime1);
+  AliNDLocalRegression * pfitTRD = new  AliNDLocalRegression("pfitTRD","pfitTRD");
+  AliNDLocalRegression * pfitTOF = new  AliNDLocalRegression("pfitTOF","pfitTOF");
+  pfitTRD->SetHistogram((THn*)(hN->Clone()));
+  pfitTOF->SetHistogram((THn*)(hN->Clone()));
+  pfitTRD->MakeFit(treeFit, "grTRD.fY:grTRD.fEY+0.01", "grTRD.fX",cutTRD, TString::Format("(grTRD.fX/grTRD.fX)+%f",sigmaT),"2:2",0.0001);
+  pfitTOF->MakeFit(treeFit, "grTOF.fY:grTOF.fEY+0.01", "grTOF.fX",cutTOF, TString::Format("(grTRD.fX/grTRD.fX)+%f",sigmaT),"2:2",0.0001);
+  AliNDLocalRegression::AddVisualCorrection(pfitTRD,104);
+  AliNDLocalRegression::AddVisualCorrection(pfitTOF,204);  
+  //
+  //
+  TVectorD medianTRD(nbins);
+  TVectorD medianTOF(nbins);
+  TVectorD medianQA(nbins);
+  TVectorD regTRD(nbins);
+  TVectorD regTOF(nbins);
+  TVectorD regQA(nbins);
+  //
+  TVectorD rmsTRD(nbins);
+  TVectorD rmsTOF(nbins);
+  TVectorD rmsQA(nbins);
+  TVectorD vecTimeg(nbins);
+  TVectorD vecWorking(entriesGr);
+  treeFit->Draw("grTRD.fY:grTOF.fY:grTRD.fX:Iteration$","1","goffpara");
+  for (Int_t itype=0; itype<2; itype++){
+    for (Int_t itime=0; itime<nbins; itime++){
+      for (Int_t igr=0; igr<ngraphs; igr++){
+	Int_t index=igr*nbins+itime;
+	vecWorking[igr]=treeFit->GetVal(itype)[index];
+      }
+      Double_t grtime = treeFit->GetVal(2)[itime];
+      vecTimeg[itime]=treeFit->GetVal(2)[itime];
+      if (itype==0) {
+	medianTRD[itime]=TMath::Median(ngraphs,vecWorking.GetMatrixArray()); 
+	regTRD[itime]= pfitTRD->Eval(&grtime);
+	rmsTRD[itime]=TMath::RMS(ngraphs,vecWorking.GetMatrixArray())/TMath::Sqrt(ngraphs); 
+      }
+      if (itype==1) {
+	medianTOF[itime]=TMath::Median(ngraphs,vecWorking.GetMatrixArray());       
+	regTOF[itime]= pfitTOF->Eval(&grtime);
+	rmsTOF[itime]=TMath::RMS(ngraphs,vecWorking.GetMatrixArray())/TMath::Sqrt(ngraphs);       
+      }
+    }
+  }
+  for (Int_t itime=0; itime<nbins; itime++){  
+    medianQA[itime]= medianTRD[itime]-medianTOF[itime];
+    regQA[itime]= regTRD[itime]-regTOF[itime];
+    rmsQA[itime]=TMath::Sqrt(rmsTRD[itime]*rmsTRD[itime]+rmsTOF[itime]*rmsTOF[itime]);
+  }
+  TGraphErrors *grmedTRD = new TGraphErrors(nbins, vecTimeg.GetMatrixArray(), medianTRD.GetMatrixArray(),0, rmsTRD.GetMatrixArray());
+  TGraphErrors *grmedTOF =  new TGraphErrors(nbins, vecTimeg.GetMatrixArray(), medianTOF.GetMatrixArray(),0, rmsTOF.GetMatrixArray());
+  TGraphErrors *grmedQA =  new TGraphErrors(nbins, vecTimeg.GetMatrixArray(), medianQA.GetMatrixArray(),0, rmsQA.GetMatrixArray());
+  TGraphErrors *grregTRD = new TGraphErrors(nbins, vecTimeg.GetMatrixArray(), regTRD.GetMatrixArray(),0, rmsTRD.GetMatrixArray());
+  TGraphErrors *grregTOF =  new TGraphErrors(nbins, vecTimeg.GetMatrixArray(), regTOF.GetMatrixArray(),0, rmsTOF.GetMatrixArray());
+  TGraphErrors *grregQA =  new TGraphErrors(nbins, vecTimeg.GetMatrixArray(), regQA.GetMatrixArray(),0, rmsQA.GetMatrixArray());
+  //
+  (*pcstream)<<"fitTimeStat"<<
+    "grTRDReg.="<<grregTRD<<      // time dependent drift correction TRD - regression estimator
+    "grTOFReg.="<<grregTOF<<      // time dependent drift correction TOF - regression estimator
+    "grQAReg.="<<grregQA<<        // time dependent drift correction TOF - regression estimator
+    "grTRDMed.="<<grmedTRD<<      // time dependent drift correction TRD - median estimator
+    "grTOFMed.="<<grmedTOF<<      // time dependent drift correction TOF - median estimator
+    "grQAMed.="<<grmedQA<<        // time dependent drift correction TOF - median estimator
+    "time0="<<time0<<             
+    "time1="<<time1<<
+    "run="<<runNumber<<
+    "paramRobust.="<<&paramRobust<< // time independent parameters
+    "\n";
+  delete grmedTRD;
+  delete grmedTOF;
+  delete grmedQA;
+  delete grregTRD;
+  delete grregTOF;
+  delete grregQA;
+  
+  delete deltaTOF;
+  delete deltaTRD;
+  delete vecZ;
+  delete vecR;
+  delete vecSec;
+  delete vecPhi;
+  delete vecTime;
+  delete vecTOFBC;
+
+  delete pcstream;   
+  return kTRUE;
+}
+
+
+
+void  AliTPCcalibAlignInterpolation::MakeNDFit(const char * inputFile, const char * inputTree, Float_t sector0,  Float_t sector1,  Float_t theta0, Float_t theta1){
+  //
+  /// 
+  /// Make ND local regression, QA  for later usage
+  /// Parameters:
+
+  // Algorithm:
+  //  1.) Make NDLocal regression fits
+  //  2.) Make regularization (smoothing)
+  //  3.) Make QA trending variable
+  //  4.) Make QA plots
+  //  5.) Export QA trending variables into trending tree
+  //
+  /*
+    Example usage:
+    const char * inputFile="ResidualMapFull_1.root"
+    const char * inputTree="deltaRPhiTPCITSTRDDist"
+    Float_t sector0=3, sector1 =5;
+    Float_t theta0=0, theta1=1;
+    AliTPCcalibAlignInterpolation::MakeNDFit(inputFile,inputTree, sector0,sector1, theta0,theta1);
+  */
+
+  TTreeSRedirector * pcstream = new TTreeSRedirector(TString::Format("%sFit_sec%d_%d_theta%d_%d.root",inputTree,Int_t(sector0),Int_t(sector1),Int_t(theta0),Int_t(theta1)).Data(),"recreate");
+  TTreeSRedirector * pcstreamFit = new TTreeSRedirector(TString::Format("fitTree_%sFit_sec%d_%d_theta%d_%d.root",inputTree,Int_t(sector0),Int_t(sector1),Int_t(theta0),Int_t(theta1)).Data(),"recreate");
+  Int_t runNumber=TString(gSystem->Getenv("runNumber")).Atoi();
+  TFile * fdist = TFile::Open(inputFile);
+  if (!fdist){
+    ::Error("MakeNDFit","Intput file %s not accessible\n",inputFile);
+    return;
+  }
+  TTree *treeDist = (TTree*)fdist->Get(inputTree);
+  if (!treeDist){
+    ::Error("MakeNDFit","Intput tree %s not accessible\n",inputTree);
+    return;    
+  }
+  TTree *treeMeta = (TTree*)fdist->Get("metaData");
+  pcstream->GetFile()->cd();
+  TTree *treeMetaCopy =  treeMeta->CopyTree("1");
+  treeMetaCopy->Write("metaData");
+  delete treeMetaCopy;
+  //
+  // 1.) Make NDLocal regression fits
+  //
+  const Double_t pxmin=8.48499984741210938e+01; //param.GetPadRowRadii(0,0)-param.GetPadPitchLength(0,0)/2
+  const Double_t pxmax=2.46600006103515625e+02; //2.46600006103515625e+02param.GetPadRowRadii(36,param.GetNRow(36)-1)+param.GetPadPitchLength(36,param.GetNRow(36)-1)/2.
+  Int_t     ndim=4;
+  Int_t     nbins[4]= {30,  (Int_t)((sector1-sector0-0.1)*15),        abs(theta1-theta0)*10,        3};  // {radius, phi bin, }
+  Double_t  xmin[4] = {pxmin,  sector0+0.05,   theta0,                            -2.0};
+  Double_t  xmax[4] = {pxmax, sector1-0.05,   theta1,               2.0};
+  //
+
+  THnF* hN= new THnF("exampleFit","exampleFit", ndim, nbins, xmin,xmax);
+  treeDist->SetAlias("isOK","rms>0&&vecLTM.fElements[1]*binMedian>0");
+  treeDist->SetAlias("delta","vecLTM.fElements[1]");
+  TCut cutFit="isOK";
+  TCut cutAcceptFit=TString::Format("sectorCenter>%f&&sectorCenter<%f&&kZCenter>%f&&kZCenter<%f", sector0-0.5,sector1+0.5,theta0,theta1).Data();
+  TCut cutAcceptDraw=TString::Format("sectorCenter>%f&&sectorCenter<%f&&kZCenter>%f&&kZCenter<%f", sector0,sector1,theta0,theta1).Data();
+  
+  AliNDLocalRegression *fitCorrs[6]={0};
+  for (Int_t icorr=0; icorr<1; icorr++){
+    fitCorrs[icorr]= new  AliNDLocalRegression();
+    fitCorrs[icorr]->SetName(TString::Format("%sFit%d_sec%d_%d_theta%d_%d",inputTree,icorr, Int_t(sector0),Int_t(sector1),Int_t(theta0),Int_t(theta1)).Data());  
+    Int_t hashIndex=fitCorrs[icorr]->GetVisualCorrectionIndex();
+    fitCorrs[icorr]->SetHistogram((THn*)(hN->Clone()));  
+    TStopwatch timer;
+    fitCorrs[0]->SetStreamer(pcstream);
+    if (icorr==0) fitCorrs[icorr]->MakeFit(treeDist,"delta:1", "RCenter:sectorCenter:kZCenter:qptCenter",cutFit+cutAcceptFit,"3:0.05:0.1:1","2:2:2:2",0.0001);
+    timer.Print();
+    AliNDLocalRegression::AddVisualCorrection(fitCorrs[icorr]);
+    treeDist->SetAlias(TString::Format("delta_Fit%d",icorr).Data(),TString::Format("AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+0)",hashIndex).Data());
+  }
+  //
+  // 2.) Make regularization (smoothing)
+  //    
+  Int_t nDims=4;
+  Int_t indexes[4]={0,1,2,3};
+  Double_t relWeight0[12]={1,4,16,   1,4,16, 1,4,16, 1,4,16};
+  Double_t relWeightC[12]={0.5,4,16,   0.5,4,16, 0.5,4,16, 0.5,4,16};
+  fitCorrs[1]=(AliNDLocalRegression *)fitCorrs[0]->Clone();
+  fitCorrs[1]->AddWeekConstrainsAtBoundaries(nDims, indexes,relWeight0, 0);
+  fitCorrs[2]=(AliNDLocalRegression *)fitCorrs[1]->Clone();
+  fitCorrs[2]->AddWeekConstrainsAtBoundaries(nDims, indexes,relWeight0, 0);
+  fitCorrs[3]=(AliNDLocalRegression *)fitCorrs[1]->Clone();
+  fitCorrs[4]=(AliNDLocalRegression *)fitCorrs[2]->Clone();
+  fitCorrs[3]->AddWeekConstrainsAtBoundaries(nDims, indexes,relWeightC, 0, kTRUE);
+  fitCorrs[4]->AddWeekConstrainsAtBoundaries(nDims, indexes,relWeightC, 0, kTRUE);
+  //
+  fitCorrs[1]->SetName(TString::Format("%s_Smooth1",fitCorrs[0]->GetName()).Data());
+  fitCorrs[2]->SetName(TString::Format("%s_Smooth2",fitCorrs[1]->GetName()).Data());
+  fitCorrs[3]->SetName(TString::Format("%s_SmoothConst1",fitCorrs[0]->GetName()).Data());
+  fitCorrs[4]->SetName(TString::Format("%s_SmoothConst2",fitCorrs[1]->GetName()).Data()); 
+  for (Int_t icorr=1; icorr<5; icorr++){
+    Int_t hashIndex=fitCorrs[icorr]->GetVisualCorrectionIndex();
+    AliNDLocalRegression::AddVisualCorrection(fitCorrs[icorr]);
+    treeDist->SetAlias(TString::Format("delta_Fit%d",icorr).Data(),TString::Format("AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+0)",hashIndex).Data());
+  }  
+  //
+  // 3.) Make QA variables and store fits
+  //
+  gStyle->SetOptFit(1);
+  treeDist->Draw(">>drawlist3",cutFit+cutAcceptDraw,"entrylist");
+  TEntryList *elist = (TEntryList*)gDirectory->Get("drawlist3");
+  treeDist->SetEntryList(elist);
+
+  Double_t quantiles[10]={0.001,0.01,0.05,0.1,0.2, 0.8,0.9,0.99,0.999};
+  Double_t deltas[10]={0};  
+  const char * pchVar[9]={"delta-delta_Fit0",
+			   "delta-delta_Fit1",
+			   "delta-delta_Fit2",
+			   "delta-delta_Fit3",
+			   "delta-delta_Fit4",
+			   "delta_Fit0-delta_Fit1",
+			   "delta_Fit0-delta_Fit2",
+			   "delta_Fit0-delta_Fit3",
+			   "delta_Fit0-delta_Fit4"};
+  const char * pchTittle[9]={"map-fit_{0} (cm)",
+			      "map-fit_{0Reg1} (cm)",
+			      "map-fit_{0Reg2} (cm)",
+			      "map-fit_{0Reg1Const} (cm)",
+			      "map-fit_{0Reg2Const} (cm)",
+			      "fit_{O}-fit_{0Reg1} (cm)",
+			      "fit_{0}-fit_{0Reg2} (cm)",
+			      "fit_{0}-fit_{0Reg1Const} (cm)",
+			      "fit_{0}-fit_{0Reg2Const} (cm)"};
+  TGraph *    grQuantiles[18]={0};  
+  TVectorD    vecRMS1(18);
+  for (Int_t idiff=0; idiff<18; idiff++){
+    Int_t chEntries=0;
+    if (idiff<9){
+      chEntries=treeDist->Draw(pchVar[idiff%9],"1","goff");
+    }
+    if (idiff>=9){
+      chEntries=treeDist->Draw(TString::Format("(%s)/(rms/sqrt(entries))",pchVar[idiff%9]).Data(),"1","goff");
+    }
+    for (Int_t iq=0; iq<10; iq++){
+      deltas[iq]=TMath::KOrdStat(chEntries,treeDist->GetV1(), Int_t(chEntries*quantiles[iq]));
+    }
+    grQuantiles[idiff]=new TGraph(10,quantiles,deltas);
+    grQuantiles[idiff]->SetTitle(pchTittle[idiff%9]);
+    Double_t mean, rms=0;
+    AliMathBase::EvaluateUni(chEntries,treeDist->GetV1(),mean, rms,0.80*chEntries);
+    vecRMS1[idiff]=rms;
+  }
+  vecRMS1.Print();
+  TH1* his=0;
+  TVectorD slopePols1(5);
+  for (Int_t i=0; i<5; i++){
+    treeDist->Draw(TString::Format("delta:delta_Fit%d>>hisQA2D%d",i,i).Data(),cutFit+cutAcceptDraw,"colzgoff"); 
+    his=treeDist->GetHistogram();
+    his->Fit("pol1");
+    slopePols1[i]= his->GetFunction("pol1")->GetParameter(1);
+  }
+
+  TFile * fout = pcstream->GetFile();
+  pcstream->GetFile()->cd();
+  for (Int_t iter=0; iter<5; iter++){
+    fitCorrs[iter]->Write();
+    fitCorrs[iter]->DumpToTree(4, (*pcstreamFit)<<TString::Format("tree%s", fitCorrs[iter]->GetName()).Data());
+  }
+  //
+  // 4.) Make standard QA plot   
+  //
+  gStyle->SetLabelSize(0.06,"XYZ");
+  gStyle->SetTitleSize(0.06,"XYZ");
+  TCanvas *canvasQA = new TCanvas("canvasQA","canvasQA",1200,1000);
+  canvasQA->Divide(1,3);
+  //
+  // 4.1) delta:fit correaltion
+  canvasQA->cd(1)->SetLogz();
+  treeDist->Draw("delta:delta_Fit0>>hisQA2D",cutFit+cutAcceptDraw,"colzgoff");
+  his=treeDist->GetHistogram();
+  his->GetXaxis()->SetTitle("#Delta_{fit} (cm)");
+  his->GetYaxis()->SetTitle("#Delta_{map} (cm)");
+  his->Fit("pol1");
+  Double_t slopePol1= his->GetFunction("pol1")->GetParameter(1);
+  his->Write("hisQA2D");
+  his->Draw("colz");
+  // 
+  // 4.2) delta-fitReg0 and fitReg0-fitReg1
+  canvasQA->cd(2)->SetLogy();
+  treeDist->SetLineColor(1); treeDist->SetMarkerColor(1);
+  treeDist->Draw("delta-delta_Fit0>>hisQA1D(300)",cutFit+cutAcceptDraw,"goff");
+  his=treeDist->GetHistogram();  
+  his->GetXaxis()->SetTitle("#Delta_{map}-#Delta_{fit} (cm)");
+  his->Fit("gaus");
+  Double_t mean=his->GetMean();
+  Double_t rms=his->GetRMS();
+  Double_t rmsG= his->GetFunction("gaus")->GetParameter(2);
+  //
+  treeDist->GetHistogram()->Write("hisQA1D");
+  treeDist->SetLineColor(2); treeDist->SetMarkerColor(2);
+  treeDist->Draw("delta_Fit0-delta_Fit1>>hisQA1DifFit(300)",cutFit+cutAcceptDraw,"same");
+  his=treeDist->GetHistogram();
+  Double_t meanDiffFit=his->GetMean();
+  Double_t rmsDiffFit=his->GetRMS();
+  treeDist->GetHistogram()->Write("hisQA1DifFit");
+  //
+  // 4.3) (delta-fitReg0) "pull" 
+  treeDist->SetLineColor(1); treeDist->SetMarkerColor(1);
+  canvasQA->cd(3)->SetLogy();
+  treeDist->Draw("(delta_Fit0-delta)/(rms/sqrt(entries))>>hisQAPull",cutFit+cutAcceptDraw,"goff");
+  his=treeDist->GetHistogram();
+  his->Fit("gaus");
+  Double_t meanPull=his->GetMean();
+  Double_t rmsPull=his->GetRMS();
+  Double_t rmsPullG= his->GetFunction("gaus")->GetParameter(2);
+  treeDist->GetHistogram()->Write("hisQAPull");
+  treeDist->SetLineColor(2); treeDist->SetMarkerColor(2);
+  treeDist->Draw("(delta_Fit0-delta_Fit1)/(rms/sqrt(entries))>>hisQAPullDifFit",cutFit+cutAcceptDraw,"same");
+  his=treeDist->GetHistogram();
+  Double_t meanPullDiffFit=his->GetMean();
+  Double_t rmsPullDiffFit=his->GetRMS();
+  treeDist->GetHistogram()->Write("hisQAPullDiffFit");
+
+  canvasQA->SaveAs((TString::Format("%sFit_sec%d_%d_theta%d_%dQA.png",inputTree,Int_t(sector0),Int_t(sector1),Int_t(theta0),Int_t(theta1)).Data()));
+
+  TCanvas *canvasQAFit = new TCanvas("canvasQAFit","canvasQAFit",1200,1000); 
+  canvasQAFit->SetRightMargin(0.01);
+  canvasQAFit->Divide(1,5,0,0); 
+  treeDist->SetMarkerStyle(25);
+  treeDist->SetMarkerSize(0.5);
+  //
+  {
+    canvasQAFit->cd(1)->SetRightMargin(0.1);
+    treeDist->Draw("delta:sectorCenter:RCenter","qptCenter==0&&abs(abs(kZCenter)-0.1)<0.06","colz");
+    canvasQAFit->cd(2)->SetRightMargin(0.1);
+    treeDist->Draw("delta-delta_Fit0:sectorCenter:RCenter","qptCenter==0&&abs(abs(kZCenter)-0.1)<0.06","colz");
+    canvasQAFit->cd(3)->SetRightMargin(0.1);
+    treeDist->Draw("delta-delta_Fit1:sectorCenter:RCenter","qptCenter==0&&abs(abs(kZCenter)-0.1)<0.06","colz");
+    canvasQAFit->cd(4)->SetRightMargin(0.1);
+    treeDist->Draw("delta-delta_Fit2:sectorCenter:RCenter","qptCenter==0&&abs(abs(kZCenter)-0.1)<0.06","colz");
+    canvasQAFit->cd(5)->SetRightMargin(0.1);
+    treeDist->Draw("delta_Fit0-delta_Fit2:sectorCenter:RCenter","qptCenter==0&&abs(abs(kZCenter)-0.1)<0.06","colz");
+  }
+  canvasQAFit->SaveAs((TString::Format("%sFit_sec%d_%d_theta%d_%dQAFit.png",inputTree,Int_t(sector0),Int_t(sector1),Int_t(theta0),Int_t(theta1)).Data()));
+  TObjString input=inputTree;
+  //
+  // 5.) Export trending variables - used for validation of the fit
+  //
+  treeMeta->Draw("runNumber:selHis:fillCounter:clusterCounter:meanTime:ntracksUsed:startTime:stopTime","1","goffpara");
+  (*pcstream)<<"NDFitTrending"<<               // cp of subset of info from meta data (rest accessible in the metadata tree also avaialble in file)
+    "run="<<treeMeta->GetVal(0)[0]<<      
+    "selHis="<<treeMeta->GetVal(1)[0]<<
+    "fillCounter="<<treeMeta->GetVal(2)[0]<<
+    "clusterCounter="<<treeMeta->GetVal(3)[0]<<
+    "meanTime="<<treeMeta->GetVal(4)[0]<<
+    "ntracksUsed="<<treeMeta->GetVal(5)[0]<<
+    "startTime="<<treeMeta->GetVal(6)[0]<<
+    "stopTime="<<treeMeta->GetVal(7)[0];
+  Int_t entriesCl= treeMeta->Draw("grNcl72.fY:grNcl73.fY:grNcl74.fY:grNcl75.fY","(grNcl72.fX>startTime&&grNcl72.fX<stopTime&&grNcl72.fY!=0)","goffpara");
+  TVectorF vecNcl(8);
+  if (entriesCl>0) {
+    for (Int_t icl=0; icl<4; icl++){
+      vecNcl[icl]=TMath::Median(entriesCl, treeMeta->GetVal(icl));
+    }
+    entriesCl= treeMeta->Draw("grNclUsed72.fY:grNclUsed73.fY:grNclUsed74.fY:grNclUsed75.fY","(grNcl72.fX>startTime&&grNcl72.fX<stopTime&&grNcl72.fY!=0)","goffpara");
+    for (Int_t icl=0; icl<4; icl++){
+      vecNcl[icl+4]=TMath::Median(entriesCl, treeMeta->GetVal(icl));
+    }
+  }
+  (*pcstream)<<"NDFitTrending"<<               // cp of subset of info from meta data (rest accessible in the metadata tree also avaialble in file)
+    "vecNclCounter.="<<&vecNcl;
+  //
+  (*pcstream)<<"NDFitTrending"<<
+    "input.="<<&input<<                // name of the input file
+    "inputTree="<<inputTree<<          // name of the input tree
+    "runNumber="<<runNumber<<          // run number ID
+    "sec0="<<sector0<<                 // range: sector0 
+    "sec1="<<sector1<<                 // range: sector1
+    "theta0="<<theta0<<                // range: theta0
+    "theta1="<<theta1<<                // range: theta1 
+    //                                 // QA plots statistical info
+    "slopePols1.="<<&slopePols1<<      // data:fit - pol1 fit for differnt Regularization
+    "slopePol1="<<slopePol1<<
+    //
+    "mean="<<mean<<                    // mean <value-fitND0>
+    "rms="<<rms<<                      // rms  (value-fitND0>
+    "rmsG="<<rmsG<<                    // gaus fit rms  (value-fitND0>
+    "meanPull="<<meanPull<<            // normalized mean <value-fitND0>
+    "rmsPull="<<rmsPull<<              // normalized error<value-fitND0>
+    "rmsPullG="<<rmsPull<<             // gaus fit normalized error<value-fitND0>
+    "meanDiffFit="<<meanDiffFit<<      //  
+    "rmsDiffFit="<<rmsDiffFit<<
+    "meanPullDiffFit="<<meanPullDiffFit<<
+    "rmsPullDiffFit="<<rmsPullDiffFit<<
+    "vecRMS1.="<<&vecRMS1;  // rms of the diffs of different estimators (Kernles, Regularization)
+  for (Int_t iq=0; iq<18; iq++){
+    (*pcstream)<<"NDFitTrending"<<
+      TString::Format("grQuantiles%d.=",iq).Data()<<grQuantiles[iq];
+  }
+  (*pcstream)<<"NDFitTrending"<<"\n";
+  delete treeMeta;
+  delete pcstream;
+  delete pcstreamFit;  
+}
+
+
+TTree* AliTPCcalibAlignInterpolation::LoadDistortionTrees(const char * maplist, Int_t cacheSize, Int_t markerStyle, Float_t markerSize){
+  //
+  // Load distortion trees specified in the maplist 
+  // Loading distortion maps as a friend trees used for
+  //    - correction for reference distortions (e.g map at low IR)
+  //    - distortion maps correlation studies
+  //    - distortion maps scaling fitting
+  // 
+  // To obtain run number and TimeBin ID we assume naming convention as used in the calibration procedure. 
+  // This naming convention is hardwired in the code. 
+  //
+  TTree * treeReturn=0;
+  TTree * tree=0;
+  TObjArray* array = TString(gSystem->GetFromPipe(TString::Format("cat %s",maplist).Data())).Tokenize("\n");  
+  TObjArray*arrayOK=new TObjArray(array->GetEntries());
+  for (Int_t i=0; i<array->GetEntries(); i++){
+    printf("%s\n",array->At(i)->GetName());
+    TString fname(array->At(i)->GetName());
+    Int_t index=fname.Index("/000");
+    TString runName(&(fname[index+1]),9);
+    index=fname.Index("/Time");
+    TString timeString(&(fname[index+9]),4);    
+    if (TString(array->At(i)->GetName()).Contains("_0.root")){
+      tree = AliTPCcalibAlignInterpolation::AddFriendDistortionTree(treeReturn,array->At(i)->GetName(),"deltaRPhiTPCITSDist",runName+"_"+timeString+"ITSY");
+    }
+    if (TString(array->At(i)->GetName()).Contains("_1.root")){
+      tree = AliTPCcalibAlignInterpolation::AddFriendDistortionTree(treeReturn,array->At(i)->GetName(),"deltaRPhiTPCITSTRDDist",runName+"_"+timeString+"TRDY");
+    }
+    if (TString(array->At(i)->GetName()).Contains("_2.root")){
+      tree = AliTPCcalibAlignInterpolation::AddFriendDistortionTree(treeReturn,array->At(i)->GetName(),"deltaRPhiTPCITSTOFDist",runName+"_"+timeString+"TOFY");
+    }
+    if (TString(array->At(i)->GetName()).Contains("_3.root")){
+      tree = AliTPCcalibAlignInterpolation::AddFriendDistortionTree(treeReturn,array->At(i)->GetName(),"deltaZTPCITSDist",runName+"_"+timeString+"ITSZ");
+    }
+    if (TString(array->At(i)->GetName()).Contains("_4.root")){
+      tree = AliTPCcalibAlignInterpolation::AddFriendDistortionTree(treeReturn,array->At(i)->GetName(),"deltaZTPCITSTRDDist",runName+"_"+timeString+"TRDZ");
+    }
+    if (TString(array->At(i)->GetName()).Contains("_5.root")){
+      tree = AliTPCcalibAlignInterpolation::AddFriendDistortionTree(treeReturn,array->At(i)->GetName(),"deltaZTPCITSTOFDist",runName+"_"+timeString+"TOFZ");
+    }
+    if (tree) {
+      arrayOK->AddLast(array->At(i));
+      treeReturn=tree;
+    }    
+  } 
+  treeReturn->SetCacheSize(cacheSize);
+  treeReturn->SetMarkerStyle(markerStyle); 
+  treeReturn->SetMarkerSize(markerSize);
+  return treeReturn;
+}
+
+
+Bool_t  AliTPCcalibAlignInterpolation::LoadNDLocalFit(TTree * tree, const char *chTree){
+  ///
+  ///  Load ND local fits. We assume data are organized in particular directory structure, in directories together with input maps
+  ///  
+  ///   
+  /// Input:    
+  ///   \param TTree * tree        - input tree with distortion maps and "friend trees" per time bins
+  ///   \param const char *chTree  - name of the "distortion branch"
+
+  if ( tree->GetListOfFriends()->FindObject(chTree)==NULL){
+    ::Error("AliTPCcalibAlignInterpolation::LoadNDLocal","Tree %s does not exist",chTree);
+    return kFALSE;
+  }
+  TString floc = tree->GetListOfFriends()->FindObject(chTree)->GetTitle();
+  TString fdir = gSystem->DirName(floc);
+  //
+  TObjArray *ndFileList = ( gSystem->GetFromPipe(TString::Format("ls %s/delta*root",fdir.Data()).Data())).Tokenize("\n");
+  
+  if (ndFileList->GetEntries()==0){
+    ::Error(" AliTPCcalibAlignInterpolation::LoadNDLocal","File with NDLocal %s",chTree);
+    return kFALSE;
+  }
+  for (Int_t ind=0; ind<ndFileList->GetEntries(); ind++){
+    //
+    TString  fname=ndFileList->At(ind)->GetName();
+    TFile * f = TFile::Open(fname.Data());
+    TList * arrKey = f->GetListOfKeys();
+    for (Int_t ikey=0; ikey<arrKey->GetEntries(); ikey++){
+      TString keyName=arrKey->At(ikey)->GetName();
+      if (keyName.Contains("delta")==0) continue;
+      TObject * o = f->Get(keyName);
+      AliNDLocalRegression * reg  = dynamic_cast<AliNDLocalRegression*>(o);
+      if (reg==NULL){
+	delete o;
+	continue;
+      }
+      TString aliasName = TString::Format("%s.%s",chTree,reg->GetName());
+      aliasName.ReplaceAll("-","Min");
+      ::Info("AliTPCcalibAlignInterpolation::LoadNDLocal","Loaded ND local regression %s/%s as alias %s", fname.Data(), reg->GetName(),aliasName.Data());
+      reg->SetName(aliasName);
+      Int_t hashIndex=reg->GetVisualCorrectionIndex();
+      reg->AddVisualCorrection(reg, hashIndex);      
+      tree->SetAlias(aliasName, TString::Format("AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+0)",hashIndex).Data());
+      tree->SetAlias(aliasName+"L", TString::Format("AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+0)-(AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter-2)+AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+2))*0.5",hashIndex).Data());
+      tree->SetAlias(aliasName+"M", TString::Format("(AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter-2)+AliNDLocalRegression::GetCorrND(%d,RCenter,sectorCenter,kZCenter,qptCenter+2))*0.5",hashIndex).Data());
+    }
+  }
+  return kTRUE;
+
+}
+
+
+void  AliTPCcalibAlignInterpolation::DrawMapEstimatorComparison(TTree * tree, const char* chtree,  Float_t radius, Float_t kZ, const char *figType){
+  // Predefined plot: 
+  //    Draw distortion map comparison
+  //    Compare median and LTM estimator of the mean value of distortion in the bin
+  //
+  
+  // Example usage:
+  /* 
+     const char* chtree="000244918_his1TRDY";    // Low IR one polarity
+     const char* chtree="000246391_his1TRDY";    // Low IR another polarity
+     Float_t radius=100;
+     Float_t kZ=0.1;
+     figType="png"; 
+     AliTPCcalibAlignInterpolation::DrawMapEstimatorComparison(tree, chtree, radius,kZ,figType);
+  */
+  if (!tree) {
+    ::Error("DrawEstimatorComparison","Tree not available");
+    return;
+  }
+  if (chtree && tree->GetListOfFriends()->FindObject(chtree)==NULL){
+    ::Error("DrawEstimatorComparison","Ttree %s not available",chtree);
+    return;
+  }
+  gStyle->SetLabelSize(0.07,"XYZ");
+  gStyle->SetTitleSize(0.06,"XYZ");
+  gStyle->SetTitleOffset(1.0,"X");
+  gStyle->SetTitleOffset(0.6,"Y");
+  gStyle->SetTitleOffset(0.4,"Z");
+  gStyle->SetOptTitle(1);
+
+
+  TCanvas * canvasC = new TCanvas("canvasC","canvasC",1400,1000);
+  TPad * pad=0;
+  TPad *pad3 = new TPad("pad1","This is pad1",0.00,0.0,  1,0.33);
+  TPad *pad2 = new TPad("pad2","This is pad2",0.00,0.33, 1,0.66);
+  TPad *pad1 = new TPad("pad3","This is pad3",0.00,0.66, 1,1);
+  pad1->SetBottomMargin(0);
+  pad2->SetBottomMargin(0);
+  pad3->SetBottomMargin(0.15);
+  pad2->SetTopMargin(0);
+  pad3->SetTopMargin(0);
+  pad1->Draw();
+  pad2->Draw();
+  pad3->Draw();
+  pad1->SetGrid(1,1);
+  pad2->SetGrid(1,1);
+  pad3->SetGrid(1,1);
+  if (chtree){
+    pad1->cd();
+    tree->Draw(TString::Format("%s.binMedian:sectorCenter:RCenter",chtree).Data(),TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&%s.rms>0",kZ,radius,chtree).Data(),"colz");
+    pad2->cd();
+    tree->Draw(TString::Format("%s.vecLTM.fElements[1]:sectorCenter:RCenter",chtree).Data(),TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&%s.rms>0",kZ,radius,chtree).Data(),"colz");
+    pad3->cd();
+    tree->Draw(TString::Format("%s.vecLTM.fElements[1]-%s.binMedian:sectorCenter:RCenter",chtree,chtree).Data(),TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&%s.rms>0",kZ,radius,chtree).Data(),"colz");
+  }else{
+    tree->Draw("binMedian:sectorCenter:RCenter",TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&rms>0",kZ,radius).Data(),"colz");
+    pad2->cd();
+    tree->Draw("vecLTM.fElements[1]:sectorCenter:RCenter",TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&rms>0",kZ,radius).Data(),"colz");
+    pad3->cd();
+    tree->Draw("binMedian-vecLTM.fElements[1]:sectorCenter:RCenter",TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&abs(RCenter-%2.2f)<20&&rms>0",kZ,radius).Data(),"colz");
+  }
+
+  if (figType) canvasC->SaveAs(TString::Format("distortionMap_%s_R%2.0f_kZ%2.2f.%s",chtree,radius,kZ,figType).Data());
+}
+
+
+
+Bool_t  AliTPCcalibAlignInterpolation::DrawScalingComparison(TTree * tree, const char* chRef, const char *chBin0, const char *chBin1,  Float_t R0, Float_t R1, Float_t kZ, const char *figType){
+  ///
+  /// Make predefined plot: 
+  ///    Draw distortion maps comparison and save figure (figType) in current working directory.
+  ///       Fig 1.): Map run/timeBin chBin0 corrected for reference map (chRef)offset 
+  ///       Fig 2.): Map run/timeBin chBin1 corrected for reference map (chRef)offset  
+  ///       Fig 3.): Map (chBin1-chRef)-scale*(chBin0-chRef)
+  /// 
+  /// Input:    
+  ///   \param TTree * tree - input tree with distortion maps and "friend trees" per time bins
+  ///   \param chRef        - reference distortion map
+  ///   \param chBin0       - run or time bin shown in firs row
+  ///   \param chBin1       - run or time bin 
+  /// \return kTRUE if comparison of distortion map possible and figure saved
+  ///    TString::Format("distortionMapScaling_%s_%s_%s_R0%2.0f_R1%2.0f_kZ%2.2f.%s",chBin0,chBin1,chRef,R0,R1,kZ,figType).Data();
+  /// Example usage:
+  /// To be used for systematic studies of TPC distortion. 
+  /// E.g:   
+  /*
+    TTree * tree = AliTPCcalibAlignInterpolation::LoadDistortionTrees("map.list");
+    const char* chRef="000246391_his1TRDY";       // Low IR refernce run for given B-field polarity
+    const char* chBin0="000246980_his1TRDY";      // time bin at the beginnig of the fill
+    const char* chBin1="000246994_his1TRDY";      // time bin at the end of the fill
+    AliTPCcalibAlignInterpolation::DrawScalingComparison(tree, chRef, chBin0, chBin1, 85, 130, 0.1, "png");
+  */
+  //
+  // 0.) Check variables
+  //
+  if (tree==NULL) {
+    ::Error("AliTPCcalibAlignInterpolation::DrawScalingComparison","Tree not set");
+    return kFALSE;
+  }
+  Int_t tentries[3]={0};
+  const char *vars[3]={chRef, chBin0, chBin1};
+  for (Int_t i=0; i<3;i++){
+    tentries[i]=tree->Draw(TString::Format("%s.binMedian",vars[i]),"qptCenter==0","goff", 10000);
+    if (tentries[i]<=0){
+      ::Error("AliTPCcalibAlignInterpolation::DrawScalingComparison","Expression %s  or tree %s not valid ", vars[i], tree->GetName());
+      return kFALSE;
+    }
+  }
+  //
+  // 1.) get scaling factor using A side scaling (OROC scaling on C side more problematic)
+  //
+  Int_t entries = tree->Draw(TString::Format("%s.binMedian-%s.binMedian:%s.binMedian-%s.binMedian", chBin0,chRef, chBin1,chRef).Data(),"qptCenter==0&&kZCenter>0","goff");
+  TGraph * gr0 = new TGraph(entries,tree->GetV1(),tree->GetV2());
+  TGraph * gr1 = new TGraph(entries,tree->GetV2(),tree->GetV1());
+  gr0->Fit("pol1");
+  gr1->Fit("pol1");
+  Double_t slope=(gr0->GetFunction("pol1")->GetParameter(1)+ 1/gr1->GetFunction("pol1")->GetParameter(1))*0.5;  
+  tree->SetAlias("norm0",TString::Format("%f*(%s.binMedian-%s.binMedian)",slope,chBin0,chRef).Data());
+  //
+  // 2. Make plots 
+  //
+  gStyle->SetLabelSize(0.07,"XYZ");
+  gStyle->SetLabelSize(0.03,"Y");
+  gStyle->SetTitleSize(0.06,"XYZ");
+  gStyle->SetTitleSize(0.04,"Y");
+  gStyle->SetTitleOffset(1.0,"X");
+  gStyle->SetTitleOffset(0.5,"Y");
+  gStyle->SetTitleOffset(0.4,"Z");
+  gStyle->SetOptTitle(1);
+  //
+  TCanvas * canvasC = new TCanvas("canvasC","canvasC",1400,1000);
+  TPad * pad=0;
+  TPad *pad3 = new TPad("pad1","This is pad1",0.00,0.0,  1,0.33);
+  TPad *pad2 = new TPad("pad2","This is pad2",0.00,0.33, 1,0.66);
+  TPad *pad1 = new TPad("pad3","This is pad3",0.00,0.66, 1,1);
+  pad1->SetBottomMargin(0);
+  pad2->SetBottomMargin(0);
+  pad3->SetBottomMargin(0.15);
+  pad2->SetTopMargin(0);
+  pad3->SetTopMargin(0);
+  pad1->Draw();
+  pad2->Draw();
+  pad3->Draw();
+  pad1->SetGrid(1,1);
+  pad2->SetGrid(1,1);
+  pad3->SetGrid(1,1);
+  TCut cutAccept=TString::Format("abs(qptCenter)==0&&abs(kZCenter+(%2.2f))<0.06&&RCenter>%2.0f&&RCenter<%2.0f&&%s.rms>0",kZ,R0,R1,chRef).Data();
+  Int_t isOK=0;
+  const Int_t kMinEntries=100;
+  {
+    pad1->cd();
+    isOK+=tree->Draw(TString::Format("(%s.binMedian-%s.binMedian):sectorCenter:RCenter", chBin0,chRef),cutAccept,"colz")>kMinEntries;
+    pad2->cd();
+    isOK+=tree->Draw(TString::Format("(%s.binMedian-%s.binMedian):sectorCenter:RCenter", chBin1,chRef),cutAccept,"colz")>kMinEntries;
+    pad3->cd();
+    isOK+=tree->Draw(TString::Format("(%s.binMedian-%s.binMedian)-norm0:sectorCenter:RCenter", chBin1,chRef),cutAccept,"colz")>kMinEntries;
+  }
+  if (isOK<3){
+    ::Error("AliTPCcalibAlignInterpolation::DrawScalingComparison","Not enough points in selected region R<%2.0f,%2.0f>", R0,R1);
+    return kFALSE;
+  }
+  if (figType) canvasC->SaveAs(TString::Format("distortionMapScaling_%s_%s_%s_R0%2.0f_R1%2.0f_kZ%2.2f.%s",chBin0,chBin1,chRef,R0,R1,kZ,figType).Data());
+  return kTRUE;
+}
+
+
+
+
+

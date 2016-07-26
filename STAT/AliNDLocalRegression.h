@@ -33,7 +33,10 @@ class AliNDLocalRegression : public TNamed {
 
   Double_t Eval(Double_t *point);
   Double_t EvalError(Double_t *point);
+  Bool_t   Derivative(Double_t *point, Double_t *d);
+  Bool_t   EvalAndDerivative(Double_t *point, Double_t &val, Double_t *d);
   const THn *GetHistogram() {return fHistPoints;}
+  const TObjArray *   GetFitParam(){ return fLocalFitParam;}
   void SetCuts(Double_t nSigma=6, Double_t robustFraction=0.95, Int_t estimator=1);
   void SetHistogram(THn* histo );
   void SetTree(TTree * tree) {fInputTree = tree;}
@@ -41,6 +44,12 @@ class AliNDLocalRegression : public TNamed {
   void SetStreamer( TTreeSRedirector *streamer){ fStreamer=streamer;}
   Bool_t AddWeekConstrainsAtBoundaries(Int_t nDims, Int_t *indexes, Double_t *relWeight, TTreeSRedirector* pcstream, Bool_t useCommon=kFALSE);
   void DumpToTree(Int_t div, TTreeStream & stream);
+  //
+  const TObjArray *GetLocalFitParam()   const { return fLocalFitParam;   }
+  const TObjArray *GetLocalFitQuality() const { return fLocalFitQuality; }
+  const TObjArray *GetLocalFitCovar()   const { return fLocalFitCovar;   }
+  //
+  const TMatrixD  *GetLocalRobustStat() const { return fLocalRobustStat; }
   //
   // function to access the Local Regression from the TFormula
   static void AddVisualCorrection(AliNDLocalRegression* corr, Int_t position=0);
