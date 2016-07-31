@@ -106,6 +106,9 @@ set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")
 # System dependent: Modify the way the library is build
 if(${CMAKE_SYSTEM} MATCHES Darwin)
     set_target_properties(${MODULE} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    include_directories(/usr/X11R6/include)
+    SET(CMAKE_EXE_LINKER_FLAGS 
+      "${CMAKE_EXE_LINKER_FLAGS} -L/usr/X11R6/lib")
 endif(${CMAKE_SYSTEM} MATCHES Darwin)
 
 # Installation
@@ -128,11 +131,11 @@ if(ZEROMQ_FOUND)
   add_executable(ZMQHOMERproxy ZMQHOMERproxy.cxx)
   target_link_libraries(ZMQHOMERproxy HLTbase AliHLTHOMER AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
   add_executable(ZMQROOTmerger ZMQROOTmerger.cxx)
-  target_link_libraries(ZMQROOTmerger HLTbase AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
+  target_link_libraries(ZMQROOTmerger HLTbase AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core pthread)
   add_executable(ZMQhistSource ZMQhistSource.cxx)
   target_link_libraries(ZMQhistSource HLTbase AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
   add_executable(ZMQhistViewer ZMQhistViewer.cxx)
-  target_link_libraries(ZMQhistViewer HLTbase AliHLTGlobal AliHLTUtil RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core Hist Rint)
+  target_link_libraries(ZMQhistViewer HLTbase AliHLTGlobal AliHLTUtil RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core Hist Rint X11)
   add_executable(ZMQproxy ZMQproxy.cxx)
   target_link_libraries(ZMQproxy HLTbase AliHLTGlobal RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core)
   add_executable(ZMQHLTchain ZMQHLTchain.cxx)

@@ -74,6 +74,8 @@
 #include "AliCDBEntry.h"
 #include "TTreeStream.h"
 #include "AliLumiTools.h"
+#include "AliTPCclusterMI.h"
+#include "../HLT/TPCLib/transform/AliHLTTPCReverseTransformInfoV1.h"
 #include <TGraph.h>
 
 /// \cond CLASSIMP
@@ -100,7 +102,8 @@ AliTPCTransform::AliTPCTransform():
   fCurrentRun(0),             //! current run
   fCurrentTimeStamp(0),       //! current time stamp
   fTimeDependentUpdated(kFALSE),
-  fDebugStreamer(0)
+  fDebugStreamer(0),
+  fTmpReverseTransformInfo(NULL)
 {
   //
   // Speed it up a bit!
@@ -127,7 +130,8 @@ AliTPCTransform::AliTPCTransform(const AliTPCTransform& transform):
   fCurrentRun(transform.fCurrentRun),             //! current run
   fCurrentTimeStamp(transform.fCurrentTimeStamp),       //! current time stamp
   fTimeDependentUpdated(transform.fTimeDependentUpdated),
-  fDebugStreamer(0)
+  fDebugStreamer(0),
+  fTmpReverseTransformInfo(NULL)
 {
   /// Speed it up a bit!
 
@@ -309,11 +313,32 @@ void AliTPCTransform::Local2RotatedGlobal(Int_t sector, Double_t *x) const {
   /// Drift Velocity
   /// Current implementation - common drift velocity - for full chamber
   /// TODO: use a map or parametrisation!
+  /// 
+  /// If called with NULL x pointer, just reset the cache
+  static time_t lastStamp=-1;  //cached values
+  static Double_t lastCorr = 1;
+  // simple caching non thread save
+  static Double_t vdcorrectionTime=1;
+  static Double_t vdcorrectionTimeGY=0;
+  static Double_t time0corrTime=0;
+  static Double_t deltaZcorrTime=0;
+  static time_t    lastStampT=-1;
+  static Int_t lastSide = -1;
+
+  if (!x && fTmpReverseTransformInfo == NULL) {
+    AliInfo("Reseting cache");
+    lastStamp=-1;
+    lastCorr = 1;
+    vdcorrectionTime=1;
+    vdcorrectionTimeGY=0;
+    time0corrTime=0;
+    deltaZcorrTime=0;
+    lastStampT=-1;
+    return;
+  }
 
   if (!fCurrentRecoParam) return;
   const  Int_t kMax =60;  // cache for 60 seconds
-  static time_t lastStamp=-1;  //cached values
-  static Double_t lastCorr = 1;
   //
   AliTPCcalibDB*  calib=AliTPCcalibDB::Instance();
   AliTPCParam  * param    = calib->GetParameters();
@@ -333,32 +358,30 @@ void AliTPCTransform::Local2RotatedGlobal(Int_t sector, Double_t *x) const {
     }
   }
   //
-  // simple caching non thread save
-  static Double_t vdcorrectionTime=1;
-  static Double_t vdcorrectionTimeGY=0;
-  static Double_t time0corrTime=0;
-  static Double_t deltaZcorrTime=0;
-  static time_t    lastStampT=-1;
   //
-  Bool_t isChange=(lastStampT!=(Int_t)fCurrentTimeStamp)||lastStamp<0;
-  if (lastStampT!=(Int_t)fCurrentTimeStamp){
+  
+  Int_t side = (Int_t) sector%36>=18;
+  
+  Bool_t isChange=(lastStampT!=(Int_t)fCurrentTimeStamp)||side!=lastSide||lastStamp<0;
+  if (lastStampT!=(Int_t)fCurrentTimeStamp||side!=lastSide){
     lastStampT=fCurrentTimeStamp;
+    lastSide=side;
     if(fCurrentRecoParam->GetUseDriftCorrectionTime()>0) {
       vdcorrectionTime = (1+AliTPCcalibDB::Instance()->
 			  GetVDriftCorrectionTime(fCurrentTimeStamp,
 						  fCurrentRun,
-						  sector%36>=18,
+						  side,
 						  fCurrentRecoParam->GetUseDriftCorrectionTime()));
       time0corrTime= AliTPCcalibDB::Instance()->
 	GetTime0CorrectionTime(fCurrentTimeStamp,
 			       fCurrentRun,
-			       sector%36>=18,
+			       side,
 			       fCurrentRecoParam->GetUseDriftCorrectionTime());
       //
       deltaZcorrTime= AliTPCcalibDB::Instance()->
 	GetVDriftCorrectionDeltaZ(fCurrentTimeStamp,
 			       fCurrentRun,
-			       sector%36>=18,
+			       side,
 			       0);
 
     }
@@ -368,17 +391,42 @@ void AliTPCTransform::Local2RotatedGlobal(Int_t sector, Double_t *x) const {
       Double_t corrGy= AliTPCcalibDB::Instance()->
 			GetVDriftCorrectionGy(fCurrentTimeStamp,
 					      AliTPCcalibDB::Instance()->GetRun(),
-					      sector%36>=18,
+					      side,
 					      fCurrentRecoParam->GetUseDriftCorrectionGY());
       vdcorrectionTimeGY = corrGy;
     }
   }
-
-
+  
   if (!param){
     AliFatal("Parameters missing");
     return; // make coverity happy
   }
+
+  if (fTmpReverseTransformInfo) {
+    fTmpReverseTransformInfo->fNTBinsL1 = param->GetNTBinsL1();
+    fTmpReverseTransformInfo->fZWidth = param->GetZWidth();
+    fTmpReverseTransformInfo->fZSigma = param->GetZSigma();
+    fTmpReverseTransformInfo->fDriftCorr = driftCorr;
+    if (side == 0) {
+      fTmpReverseTransformInfo->fTime0corrTimeA = time0corrTime;
+      fTmpReverseTransformInfo->fDeltaZcorrTimeA = deltaZcorrTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeA = vdcorrectionTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeGYA = vdcorrectionTimeGY;
+      fTmpReverseTransformInfo->fZLengthA = param->GetZLength(sector);
+    } else {
+      fTmpReverseTransformInfo->fTime0corrTimeC = time0corrTime;
+      fTmpReverseTransformInfo->fDeltaZcorrTimeC = deltaZcorrTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeC = vdcorrectionTime;
+      fTmpReverseTransformInfo->fVdcorrectionTimeGYC = vdcorrectionTimeGY;
+      fTmpReverseTransformInfo->fZLengthC = param->GetZLength(sector);
+    }
+    if (!AliTPCRecoParam::GetUseTimeCalibration()) {
+      fTmpReverseTransformInfo->fVdcorrectionTimeA = fTmpReverseTransformInfo->fVdcorrectionTimeC = 1.f;
+      fTmpReverseTransformInfo->fVdcorrectionTimeGYA = fTmpReverseTransformInfo->fVdcorrectionTimeGYC = 0.f;
+    }
+    return;
+  }
+
   Int_t row=TMath::Nint(x[0]);
   //  Int_t pad=TMath::Nint(x[1]);
   //
@@ -511,7 +559,8 @@ Bool_t AliTPCTransform::UpdateTimeDependentCache()
   //
   Bool_t timeChanged = lastTimeStamp!=fCurrentTimeStamp;
   if (!fCurrentRecoParam) {
-    AliWarning("RecoParam is not set, do nothing");
+    AliWarning("RecoParam is not set, reseting last timestamp");
+    lastTimeStamp = -1;
     return fTimeDependentUpdated;
   }
   while (fCurrentRecoParam->GetUseCorrectionMap()) {
@@ -594,21 +643,23 @@ Bool_t AliTPCTransform::UpdateTimeDependentCache()
 	  int runMap = fCorrMapCache0->GetRun();
 	  if (runMap<0) AliErrorF("CorrectionMap Lumi scaling requested but run is not set, current %d will be used",fCurrentRun);
 	  fLumiGraphMap = AliLumiTools::GetLumiGraph(fCurrentRecoParam->GetUseLumiType(),runMap);
-	  if (!fLumiGraphMap) AliFatalF("Failed to load CorrectionMapluminosity lumi graph of type %d",fCurrentRecoParam->GetUseLumiType());
+	  // if (!fLumiGraphMap) AliErrorF("Failed to load map lumi graph of type %d, will use constant map",
+	  //				fCurrentRecoParam->GetUseLumiType());
 	}
 	// load lumi graph for this run
 	if (!fLumiGraphRun) {
 	  fLumiGraphRun = AliLumiTools::GetLumiGraph(fCurrentRecoParam->GetUseLumiType(),fCurrentRun);
-	  if (!fLumiGraphRun) AliFatalF("Failed to load run lumi graph of type %d",fCurrentRecoParam->GetUseLumiType());
+	  if (!fLumiGraphRun) AliErrorF("Failed to load run lumi graph of type %d, will use reference correction only",
+					fCurrentRecoParam->GetUseLumiType());
 	}
 	if (needToLoad) {  // calculate average luminosity used for current corr. map
-	  fCorrMapLumiCOG = fCorrMapCache0->GetLuminosityCOG(fLumiGraphMap); // recalculate lumi for new map
+	  fCorrMapLumiCOG = fLumiGraphMap ? fCorrMapCache0->GetLuminosityCOG(fLumiGraphMap) : 0.0; // recalculate lumi for new map
 	  if (!fCorrMapLumiCOG) AliError("Correction map rescaling with luminosity cannot be done, will use constant map");
 	}
 	//
-	fCurrentMapScaling = 1.0;
+	fCurrentMapScaling = fLumiGraphRun ? 1.0 : 0.0;
 	if (fCorrMapLumiCOG>0) {
-	  double lumi = fLumiGraphRun->Eval(fCurrentTimeStamp);
+	  double lumi = fLumiGraphRun ? fLumiGraphRun->Eval(fCurrentTimeStamp) : 0.0;
 	  fCurrentMapScaling = lumi/fCorrMapLumiCOG;
 	  AliInfoF("Luminosity scaling factor %.3f will be used for time %ld (Lumi: current: %.2e COG:%.2e)",
 		   fCurrentMapScaling,fCurrentTimeStamp,lumi,fCorrMapLumiCOG);
@@ -762,6 +813,7 @@ TObjArray* AliTPCTransform::LoadCorrectionMaps(Bool_t refMap)
 void AliTPCTransform::ApplyCorrectionMap(int roc, int row, double xyzSect[3])
 {
   // apply correction from the map to a point at given ROC and row (IROC/OROC convention)
+  const float kDistDispThresh = 300e-4; // assume fluctuation dispersion if D[3]>Dref[3]+threshold
   EvalCorrectionMap(roc, row, xyzSect, fLastCorrRef, kTRUE);
   EvalCorrectionMap(roc, row, xyzSect, fLastCorr, kFALSE);
   if (fLastCorr[3]<1e-6) { // run specific map had no parameterization for this region, override by default
@@ -769,7 +821,7 @@ void AliTPCTransform::ApplyCorrectionMap(int roc, int row, double xyzSect[3])
     fLastCorr[3] = 0.f;
   }
   else {
-    fLastCorr[3] = fLastCorr[3]>fLastCorrRef[3] ? TMath::Sqrt(fLastCorr[3]*fLastCorr[3] - fLastCorrRef[3]*fLastCorrRef[3]) : 0;
+    fLastCorr[3] = fLastCorr[3]>(fLastCorrRef[3]+kDistDispThresh) ? TMath::Sqrt(fLastCorr[3]*fLastCorr[3] - fLastCorrRef[3]*fLastCorrRef[3]) : 0;
     if (fCurrentMapScaling!=1.0f) {
       for (int i=3;i--;) fLastCorr[i] = (fLastCorr[i]-fLastCorrRef[i])*fCurrentMapScaling + fLastCorrRef[i];
       fLastCorr[3] *= fCurrentMapScaling;
@@ -876,4 +928,232 @@ void AliTPCTransform::ApplyDistortionMap(int roc, double xyzLab[3])
   for (int i=3;i--;) xyzLab[i] += res[i];
   RotatedGlobal2Global(roc,xyzLab);
   //
+}
+
+//_____________________________________________________________________________________
+void AliTPCTransform::ErrY2Z2Syst(const AliTPCclusterMI * cl, const double tgPhi, const double tgLam,
+				  double &serry2, double &serrz2)
+{
+  // static function to calculate systematic errorY^2 on the cluster with current reco param
+  // Must be static to be used also by external routines
+  // tgPhi is the ab.tg(inclination wrt padrow), tgLam is tg of dip angle 
+  const float kEpsZBoundary = 1.e-6; // to disentangle A,C and A+C-common regions
+  const float kMaxExpArg = 9.; // limit r-dumped error to this exp. argument
+  const float kMaxExpArgZ = TMath::Sqrt(2.*kMaxExpArg);
+  serry2 = serrz2 = 0;
+  double sysErrY = 0, sysErrZ = 0;
+  //
+  // error on particular TPC subvolume (charging up)
+  const Double_t *errInner = fCurrentRecoParam->GetSystematicErrorClusterInner();
+  if (errInner[0]>0) {
+    //
+    double dr = TMath::Abs(cl->GetX()-85.);
+    float argExp = dr/errInner[1];     // is the Z-range limited ?
+    if (argExp<kMaxExpArg) {
+      const TVectorF* zranges = fCurrentRecoParam->GetSystErrClInnerRegZ(); // is the Z-range of dumped error defined?
+      int nz;
+      if (zranges && (nz=zranges->GetNoElements())) {
+	Bool_t sideC = (cl->GetDetector()/18)&0x1; // is this C-side cluster
+	const TVectorF* zrangesSigI = fCurrentRecoParam->GetSystErrClInnerRegZSigInv();
+	float zcl = cl->GetZ(); // chose the closest range within 3 sigma
+	const float* zr = zranges->GetMatrixArray();
+	const float* zsi= zrangesSigI->GetMatrixArray();
+	float dzarg = 999.;
+	for (int i=nz;i--;) { // find closest region
+	  if      (zr[i]<-kEpsZBoundary && !sideC) continue; // don't apply to A-side clusters if the Z-boundary is for C-region
+	  else if (zr[i]>kEpsZBoundary  &&  sideC) continue; // don't apply to C-side clusters if the Z-boundary is for A-region
+	  float dz = TMath::Abs( (zr[i]-zcl)*zsi[i] );
+	  if (dz<dzarg) dzarg = dz;
+	}
+	if (dzarg<kMaxExpArgZ) { // is it small enough to call exp?
+	  argExp += 0.5*dzarg*dzarg;
+	  if (argExp<kMaxExpArg) sysErrY = sysErrZ = errInner[0]*TMath::Exp(-argExp);
+	}	
+      }
+      else sysErrY = sysErrZ = errInner[0]*TMath::Exp(-argExp); // no condition on Z
+    }
+
+  }
+  serry2 += sysErrY*sysErrY;
+  serrz2 += sysErrZ*sysErrZ;
+  //
+  sysErrY = fCurrentRecoParam->GetSystematicErrorClusterCustom() ?  
+    fCurrentRecoParam->GetSystematicErrorClusterCustom()[0] : fCurrentRecoParam->GetSystematicErrorCluster()[0];
+  sysErrZ = fCurrentRecoParam->GetSystematicErrorClusterCustom() ?  
+    fCurrentRecoParam->GetSystematicErrorClusterCustom()[1] : fCurrentRecoParam->GetSystematicErrorCluster()[1];
+  if (sysErrY) serry2 += sysErrY*sysErrY;  // common syst error
+  if (sysErrZ) serrz2 += sysErrZ*sysErrZ;  // common syst error
+  //
+  double useDistY = fCurrentRecoParam->GetUseDistortionFractionAsErrorY();
+  if (useDistY>0) {
+    float dstY = cl->GetDistortionY()*useDistY;
+    float dstX = cl->GetDistortionX()*useDistY*tgPhi;
+    serry2 += dstY*dstY + dstX*dstX;
+  }
+  double useDispY = fCurrentRecoParam->GetUseDistDispFractionAsErrorY();
+  if (useDispY>0) {
+    useDispY *= cl->GetDistortionDispersion();
+    serry2 += useDispY*useDispY;
+  }
+  //
+  double useDistZ = fCurrentRecoParam->GetUseDistortionFractionAsErrorZ();
+  if (useDistZ>0) {
+    float dstZ = cl->GetDistortionZ()*useDistZ;
+    float dstX = cl->GetDistortionX()*useDistZ*tgLam;
+    serrz2 += dstZ*dstZ + dstX*dstX;
+  }
+  double useDispZ = fCurrentRecoParam->GetUseDistDispFractionAsErrorZ();
+  if (useDispZ>0) {
+    useDispZ *= cl->GetDistortionDispersion();
+    serrz2 += useDispZ*useDispZ;
+  }
+  //
+}
+
+//_____________________________________________________________________________________
+Double_t AliTPCTransform::ErrY2Syst(const AliTPCclusterMI * cl, const double tgAng)
+{
+  // static function to calculate systematic errorY^2 on the cluster with current reco param
+  // Must be static to be used also by external routines
+  // tgAng is the ab.tg(inclination wrt padrow)
+  const float kEpsZBoundary = 1.e-6; // to disentangle A,C and A+C-common regions
+  const float kMaxExpArg = 9.; // limit r-dumped error to this exp. argument
+  const float kMaxExpArgZ = TMath::Sqrt(2.*kMaxExpArg);
+  double sysErr2 = 0., sysErr = 0.;
+  //
+  // error on particular TPC subvolume (charging up)
+  const Double_t *errInner = fCurrentRecoParam->GetSystematicErrorClusterInner();
+  if (errInner[0]>0) {
+    //
+    double dr = TMath::Abs(cl->GetX()-85.);
+    float argExp = dr/errInner[1];     // is the Z-range limited ?
+    if (argExp<kMaxExpArg) {
+      const TVectorF* zranges = fCurrentRecoParam->GetSystErrClInnerRegZ(); // is the Z-range of dumped error defined?
+      int nz;
+      if (zranges && (nz=zranges->GetNoElements())) {
+	Bool_t sideC = (cl->GetDetector()/18)&0x1; // is this C-side cluster
+	const TVectorF* zrangesSigI = fCurrentRecoParam->GetSystErrClInnerRegZSigInv();
+	float zcl = cl->GetZ(); // chose the closest range within 3 sigma
+	const float* zr = zranges->GetMatrixArray();
+	const float* zsi= zrangesSigI->GetMatrixArray();
+	float dzarg = 999.;
+	for (int i=nz;i--;) { // find closest region
+	  if      (zr[i]<-kEpsZBoundary && !sideC) continue; // don't apply to A-side clusters if the Z-boundary is for C-region
+	  else if (zr[i]>kEpsZBoundary  &&  sideC) continue; // don't apply to C-side clusters if the Z-boundary is for A-region
+	  float dz = TMath::Abs( (zr[i]-zcl)*zsi[i] );
+	  if (dz<dzarg) dzarg = dz;
+	}
+	if (dzarg<kMaxExpArgZ) { // is it small enough to call exp?
+	  argExp += 0.5*dzarg*dzarg;
+	  if (argExp<kMaxExpArg) sysErr = errInner[0]*TMath::Exp(-argExp);
+	}	
+      }
+      else sysErr = errInner[0]*TMath::Exp(-argExp); // no condition on Z
+    }
+
+  }
+  sysErr2 += sysErr*sysErr;
+  //
+  sysErr = fCurrentRecoParam->GetSystematicErrorClusterCustom() ?  
+    fCurrentRecoParam->GetSystematicErrorClusterCustom()[0] : fCurrentRecoParam->GetSystematicErrorCluster()[0];
+  if (sysErr) sysErr2 += sysErr*sysErr;  // common syst error
+  //
+  double useDist = fCurrentRecoParam->GetUseDistortionFractionAsErrorY();
+  if (useDist>0) {
+    float dstY = cl->GetDistortionY()*useDist;
+    float dstX = cl->GetDistortionX()*useDist*tgAng;
+    sysErr2 += dstY*dstY + dstX*dstX;
+  }
+  double useDisp = fCurrentRecoParam->GetUseDistDispFractionAsErrorY();
+  if (useDisp>0) {
+    useDisp *= cl->GetDistortionDispersion();
+    sysErr2 += useDisp*useDisp;
+  }
+  return sysErr2;
+}
+
+//_____________________________________________________________________________________
+Double_t AliTPCTransform::ErrZ2Syst(const AliTPCclusterMI * cl, const double tgAng)
+{
+  // static function to calculate systematic errorY^2 on the cluster with current reco param
+  // Must be static to be used also by external routines
+  // tgAng is the ab.tg(lambda)
+  const float kEpsZBoundary = 1.e-6; // to disentangle A,C and A+C-common regions
+  const float kMaxExpArg = 9.; // limit r-dumped error to this exp. argument
+  const float kMaxExpArgZ = TMath::Sqrt(2.*kMaxExpArg);
+  double sysErr2 = 0., sysErr = 0.;
+  //
+  // error on particular TPC subvolume (charging up)
+  const Double_t *errInner = fCurrentRecoParam->GetSystematicErrorClusterInner();
+  if (errInner[0]>0) {
+    //
+    double dr = TMath::Abs(cl->GetX()-85.);
+    float argExp = dr/errInner[1];     // is the Z-range limited ?
+    if (argExp<kMaxExpArg) {
+      const TVectorF* zranges = fCurrentRecoParam->GetSystErrClInnerRegZ(); // is the Z-range of dumped error defined?
+      int nz;
+      if (zranges && (nz=zranges->GetNoElements())) {
+	Bool_t sideC = (cl->GetDetector()/18)&0x1; // is this C-side cluster
+	const TVectorF* zrangesSigI = fCurrentRecoParam->GetSystErrClInnerRegZSigInv();
+	float zcl = cl->GetZ(); // chose the closest range within 3 sigma
+	const float* zr = zranges->GetMatrixArray();
+	const float* zsi= zrangesSigI->GetMatrixArray();
+	float dzarg = 999.;
+	for (int i=nz;i--;) { // find closest region
+	  if      (zr[i]<-kEpsZBoundary && !sideC) continue; // don't apply to A-side clusters if the Z-boundary is for C-region
+	  else if (zr[i]>kEpsZBoundary  &&  sideC) continue; // don't apply to C-side clusters if the Z-boundary is for A-region
+	  float dz = TMath::Abs( (zr[i]-zcl)*zsi[i] );
+	  if (dz<dzarg) dzarg = dz;
+	}
+	if (dzarg<kMaxExpArgZ) { // is it small enough to call exp?
+	  argExp += 0.5*dzarg*dzarg;
+	  if (argExp<kMaxExpArg) sysErr = errInner[0]*TMath::Exp(-argExp);
+	}	
+      }
+      else sysErr = errInner[0]*TMath::Exp(-argExp); // no condition on Z
+    }
+
+  }
+  sysErr2 += sysErr*sysErr;
+  //
+  sysErr = fCurrentRecoParam->GetSystematicErrorClusterCustom() ?  
+    fCurrentRecoParam->GetSystematicErrorClusterCustom()[1] : fCurrentRecoParam->GetSystematicErrorCluster()[1];
+  if (sysErr) sysErr2 += sysErr*sysErr;  // common syst error
+  //
+  double useDist = fCurrentRecoParam->GetUseDistortionFractionAsErrorZ();
+  if (useDist>0) {
+    float dstZ = cl->GetDistortionZ()*useDist;
+    float dstX = cl->GetDistortionX()*useDist*tgAng;
+    sysErr2 += dstZ*dstZ + dstX*dstX;
+  }
+  double useDisp = fCurrentRecoParam->GetUseDistDispFractionAsErrorZ();
+  if (useDisp>0) {
+    useDisp *= cl->GetDistortionDispersion();
+    sysErr2 += useDisp*useDisp;
+  }
+  return sysErr2;
+}
+
+//_________________________________
+void AliTPCTransform::ResetCache()
+{
+  // reset cached values for last time bin, consider as tmp measure. Preferable to use data members
+  // instead of static vars.
+  //
+  AliInfo("Reseting Transform in view of possible RecoParam modification");
+  fCurrentRecoParam = 0;
+  fCurrentMapScaling = 1.0;
+  SetCurrentTimeStamp(-1);
+  Local2RotatedGlobal(-1,0); // this will reset the cached values for VDrift
+  //
+}
+
+AliHLTTPCReverseTransformInfoV1* AliTPCTransform::GetReverseTransformInfo()
+{
+    AliHLTTPCReverseTransformInfoV1* info = new AliHLTTPCReverseTransformInfoV1;
+    fTmpReverseTransformInfo = info;
+    Local2RotatedGlobal(0, NULL);
+    Local2RotatedGlobal(18, NULL);
+    fTmpReverseTransformInfo = NULL;
+    return(info);
 }

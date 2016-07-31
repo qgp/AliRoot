@@ -1,10 +1,14 @@
 #include "AliTPCDcalibRes.h"
 #include "AliCDBPath.h"
 #include "AliCDBEntry.h"
+#include "AliCDBStorage.h"
 #include "AliGRPObject.h"
 #include "AliTriggerRunScalers.h"
 #include "AliTriggerScalersRecord.h"
 #include "AliDAQ.h"
+#include "AliTPCcalibDB.h"
+#include "AliTPCParam.h"
+#include "AliLumiTools.h"
 #include <TKey.h>
 #include <TF2.h>
 
@@ -12,8 +16,11 @@ using std::swap;
 
 // this must be standalone f-n, since the signature is important for Chebyshev training
 void trainCorr(int row, float* tzLoc, float* corrLoc);
+void trainDist(int row, float* tzLoc, float* distLoc);
 
 // make sure these branches are always connected in InitDeltaFile
+const char* AliTPCDcalibRes::kModeName[kNCollectModes] = {"VDrift calibration","Distortions extraction","Closure test"};
+const char* AliTPCDcalibRes::kExtDetName[kNExtDetComb] = {"TRDonly","TOFonly","ITSonly","TRD|TOF"};
 const char* AliTPCDcalibRes::kControlBr[kCtrNbr] = {"itsOK","trdOK","tofOK","tofBC","nPrimTracks"}; 
 const char* AliTPCDcalibRes::kVoxName[AliTPCDcalibRes::kVoxHDim] = {"z2x","y2x","x","N"};
 const char* AliTPCDcalibRes::kResName[AliTPCDcalibRes::kResDim] = {"dX","dY","dZ","Disp"};
@@ -65,7 +72,8 @@ const Float_t AliTPCDcalibRes::kTPCRowDX[AliTPCDcalibRes::kNPadRows] = { // pad-
 };
 
 
-AliTPCDcalibRes* AliTPCDcalibRes::fgUsedInstance = 0;
+AliTPCDcalibRes* AliTPCDcalibRes::fgUsedInstance    = 0;
+AliTPCDcalibRes* AliTPCDcalibRes::fgUsedInstanceExt = 0;
 
 
 ClassImp(AliTPCDcalibRes)
@@ -81,6 +89,7 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fChebZSlicePerSide(1)
   ,fChebPhiSlicePerSector(1)
   ,fChebCorr(0)
+  ,fChebDist(0)
 
   ,fRun(run)
   ,fExtDet(kUseTRDonly)
@@ -93,6 +102,8 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fDeltaTVD(120)
   ,fSigmaTVD(600)
   ,fMaxTracks(4000000)
+  ,fNominalTimeBin(2400)
+  ,fNominalTimeBinPrec(0.3)
   ,fCacheInp(100)
   ,fLearnSize(1)
   ,fBz(0)
@@ -102,6 +113,7 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   ,fOCDBPath()
 
   ,fMinTracksToUse(600000)
+  ,fMinTracksPerVDBin(3000)
   ,fMinEntriesVoxel(15)
   ,fNPrimTracksCut(400)
   ,fMinNCl(30)
@@ -124,7 +136,7 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
   //
   ,fMaxSigY(1.1)
   ,fMaxSigZ(0.7)
-  ,fMinValidVoxFracDrift(0.65)
+  ,fMinValidVoxFracDrift(0.7)
   ,fMaxBadXBinsToCover(4)
   ,fMinGoodXBinsToCover(3)
   ,fMaxBadRowsPerSector(0.4)
@@ -145,15 +157,20 @@ AliTPCDcalibRes::AliTPCDcalibRes(int run,Long64_t tmin,Long64_t tmax,const char*
 
   ,fKernelType(kGaussianKernel)
 
+  ,fNEvTot(0)
   ,fNTrSelTot(0)
   ,fNTrSelTotWO(0)
   ,fNReadCallTot(0)
   ,fNBytesReadTot(0)
   ,fNTestTracks(0)
+  ,fEstTracksPerEvent(0)
+  ,fEvRateH(0)
   ,fTracksRate(0)
   ,fTOFBCTestH(0)
   ,fHVDTimeInt(0)
   ,fHVDTimeCorr(0)
+  ,fLumiCOG(0)
+  ,fLumiCTPGraph(0)
   ,fVDriftParam(0)
   ,fVDriftGraph(0)
   ,fCorrTime(0)
@@ -208,6 +225,7 @@ AliTPCDcalibRes::~AliTPCDcalibRes()
 {
   // d-tor
   delete fChebCorr;
+  delete fChebDist;
   delete[] fMaxY2X;
   delete[] fDY2X;
   delete[] fDY2XI;
@@ -242,56 +260,105 @@ void AliTPCDcalibRes::CalibrateVDrift()
   // Parameters  time fDeltaTVD (binning) and  fSigmaTVD (smoothing) can be changed from their
   // default values by their setters
   TStopwatch sw;
-  const float kSafeMargin = 0.25f;
+  const float kSafeMargin = 0.2f;
+  const float kTofEffLow = 0.25f; // if fraction of TOFbc validated to otherwise useful tracks is below this, abandon TOF
   if (!fInitDone) Init();
-  Long64_t tmn = fTMinCTP-fTMin>kLargeTimeDiff ? fTMinCTP : fTMin;
-  Long64_t tmx = fTMax-fTMaxCTP>kLargeTimeDiff ? fTMaxCTP : fTMax;
-  Int_t duration = tmx - tmn;
-  int nTBins = duration/fDeltaTVD+1;
-  //
   // check available statistics
-  if (!EstimateStatistics()) AliFatal("Cannot process further");
+  if (!EstimateChunkStatistics() || !CollectDataStatistics()) AliFatal("Cannot process further");
+  //
+  int nChunks = fInputChunks->GetEntriesFast();
+  float ev2Chunk = fNEvTot/nChunks;
   float fracMult = fTestStat[kCtrNtr][kCtrNtr];
   Bool_t useTOFBC = fUseTOFBC;
-  float statEst = 0;
-  if (useTOFBC) {
-    if      (fExtDet==kUseTRDonly) statEst = fTestStat[kCtrBC0][kCtrTRD];
-    else if (fExtDet==kUseTOFonly) statEst = fTestStat[kCtrBC0][kCtrTOF];
-    else if (fExtDet==kUseITSonly) statEst = fTestStat[kCtrBC0][kCtrITS];
-    else if (fExtDet==kUseTRDorTOF) statEst = fTestStat[kCtrBC0][kCtrTOF]; // contribution of TRD is negligable
-  }
-  else {
-    if      (fExtDet==kUseTRDonly) statEst = fTestStat[kCtrTRD][kCtrTRD];
-    else if (fExtDet==kUseTOFonly) statEst = fTestStat[kCtrTOF][kCtrTOF];
-    else if (fExtDet==kUseITSonly) statEst = fTestStat[kCtrITS][kCtrITS];
-    else if (fExtDet==kUseTRDorTOF) statEst = fTestStat[kCtrTRD][kCtrTRD]+
-				      fTestStat[kCtrTOF][kCtrTOF]-fTestStat[kCtrTRD][kCtrTOF];
-  }
-  statEst *= fTestStat[kCtrNtr][kCtrNtr]; // loss due to the mult selection
-  statEst *= fNTestTracks*fInputChunks->GetEntriesFast()*(1.-kSafeMargin); // safety margin for losses (outliers etc)
+  float statEstBCon=0,statEstBCoff=0;
+  // estimate with TOF BC selection
+  if      (fExtDet==kUseTRDonly) statEstBCon = fTestStat[kCtrBC0][kCtrTRD];
+  else if (fExtDet==kUseTOFonly) statEstBCon = fTestStat[kCtrBC0][kCtrTOF];
+  else if (fExtDet==kUseITSonly) statEstBCon = fTestStat[kCtrBC0][kCtrITS];
+  else if (fExtDet==kUseTRDorTOF) statEstBCon = fTestStat[kCtrBC0][kCtrTOF]; // contribution of TRD is negligable
   //
-  statEst *= TMath::Min(1.f,float(duration)/(fTMaxCTP-fTMinCTP));
-  float statEstTBin = statEst/nTBins;
+  if      (fExtDet==kUseTRDonly) statEstBCoff = fTestStat[kCtrTRD][kCtrTRD];
+  else if (fExtDet==kUseTOFonly) statEstBCoff = fTestStat[kCtrTOF][kCtrTOF];
+  else if (fExtDet==kUseITSonly) statEstBCoff = fTestStat[kCtrITS][kCtrITS];
+  else if (fExtDet==kUseTRDorTOF) statEstBCoff = fTestStat[kCtrTRD][kCtrTRD]+
+				      fTestStat[kCtrTOF][kCtrTOF]-fTestStat[kCtrTRD][kCtrTOF];
+  //
+  Long64_t tmn = fTMin;
+  Long64_t tmx = fTMax;
+  double duration = tmx - tmn;
+  //
+  statEstBCon *= fTestStat[kCtrNtr][kCtrNtr]; // loss due to the mult selection
+  statEstBCon *= fNTestTracks*nChunks*(1.-kSafeMargin); // safety margin for losses (outliers etc)
+  //
+  statEstBCoff *= fTestStat[kCtrNtr][kCtrNtr]; // loss due to the mult selection
+  statEstBCoff *= fNTestTracks*nChunks*(1.-kSafeMargin); // safety margin for losses (outliers etc)
+  //
+  float tofOK=0.f,tofTot=0.f;
+  if (fTOFBCTestH && fTOFBCMin<fTOFBCMax) {
+    tofOK  = fTOFBCTestH->Integral(fTOFBCTestH->FindBin(fTOFBCMin),fTOFBCTestH->FindBin(fTOFBCMax));
+    tofTot = fTOFBCTestH->Integral(1,fTOFBCTestH->GetNbinsX());
+    if (tofTot>0) tofOK /= tofTot;
+  }
+  AliInfoF("Fraction of TOFBC tracks in %.1f:%.1f window: %.2f (%.2f loss assumed)",
+	   fTOFBCMin,fTOFBCMax,tofOK,kSafeMargin);
+  //
+  AliInfoF("Estimated tracks stat.for %.1f min: with(w/o) TOF BC selection %d (%d)",
+	   duration/60.,int(statEstBCon),int(statEstBCoff));
+  //
+  if (statEstBCoff<10) AliFatal("No reasonable data found");
+
+  float tofEff = statEstBCon/statEstBCoff;
+  if (tofEff<kTofEffLow) {
+    AliWarningF("TOFBC selection eff. %.3f is below the threshold %.3f",tofEff,kTofEffLow);
+    useTOFBC = kFALSE;
+  }
+  int ntr2BinBCon=0,ntr2BinBCoff=0,nTimeBins=0;
+  float tbinDuration = fNominalTimeBin;
+  // define time bins
+  int nWantedTracks = (fMaxTracks+fMinTracksToUse)/2;
+  AliInfoF("Nominal requested Ntracks/bin: %d (min:%d max:%d)",nWantedTracks,fMinTracksToUse,fMaxTracks);
+  nTimeBins = 1+int(duration/fNominalTimeBin);
+  tbinDuration = duration/nTimeBins;
+  if (tbinDuration/fNominalTimeBin<(1.-fNominalTimeBinPrec))  {
+    nTimeBins = TMath::Max(1,nTimeBins-1);
+    tbinDuration = duration/nTimeBins;
+  }
+  AliInfoF("Suggest %d time bins of %d s durations",nTimeBins,int(tbinDuration));
+  ntr2BinBCon  = tbinDuration/duration*statEstBCon;
+  ntr2BinBCoff = tbinDuration/duration*statEstBCoff;
+  AliInfoF("Estimated Ntracks per time bin: with(w/o) TOF BC: %d(%d)",ntr2BinBCon,ntr2BinBCoff);
+  //  if ( ntr2BinBCon<(nWantedTracks+fMinTracksToUse)/2 ) useTOFBC = kFALSE; // try to keep stat. high
+  if ( ntr2BinBCon<nWantedTracks ) useTOFBC = kFALSE; // try to keep stat. high
+  //
+  if (!useTOFBC && fUseTOFBC) {
+    AliWarning("Switching OFF requested TOF BC validation due to statistics");
+    fUseTOFBC = kFALSE;
+  }
+  fEstTracksPerEvent =  (fUseTOFBC ? statEstBCon:statEstBCoff)/fNEvTot;
+  //
+  printf("StatInfo.NTBin\t%d\n",nTimeBins);
+  printf("StatInfo.TBinDuration\t%d\n",int(tbinDuration));
+  printf("StatInfo.TOFBCsel\t%d\n",fUseTOFBC);
   // select tracks matching to time window and write compact local trees
   //
   CollectData(kVDriftCalibMode);
   //
-  FitDrift(tmn,tmx,nTBins);
-
+  FitDrift();
   sw.Stop();
   AliInfoF("timing: real: %.3f cpu: %.3f",sw.RealTime(), sw.CpuTime());
   //
 }
 
 //________________________________________
-void AliTPCDcalibRes::FitDrift(Int_t tmin,Int_t tmax, Int_t ntbins)
+void AliTPCDcalibRes::FitDrift()
 {
   // fit v.drift params
   const int kUsePoints0 = 1000000; // nominal number of points for 1st estimate
-  const int kUsePoints1 = 3000000; // nominal number of points for time integrated estimate
-  const int kNXBins = 150, kNYBins = 150, kNTCorrBins=100;
+  const int kUsePoints1 = 10000000; // nominal number of points for time integrated estimate
+  const int kNXBins = 200, kNYBins = 100, kNTCorrBins=100;
+  const int kMinEntriesBin = 100;
   const float kMaxTCorr = 0.02; // max time correction for vdrift
-  const float kDiscardDriftEdge = 10.; // discard min and max drift values with this margin
+  const float kDiscardDriftEdge = 5.; // discard min and max drift values with this margin
   TStopwatch sw;  sw.Start();
   AliSysInfo::AddStamp("FitDrift",0,0,0,0);
   //
@@ -320,7 +387,7 @@ void AliTPCDcalibRes::FitDrift(Int_t tmin,Int_t tmax, Int_t ntbins)
   for (int i=0;i<entries;i++) {
     if (gRandom->Rndm()>prescale) continue;
     zresTree->GetEntry(i);
-    if (fDTV.drift<kDiscardDriftEdge || fDTV.drift>dmaxCut) continue;
+    if (/*fDTV.drift<kDiscardDriftEdge ||*/ fDTV.drift>dmaxCut) continue;
     xArr[nAcc] = fDTV.drift;
     zArr[nAcc] = fDTV.side>0 ? fDTV.dz : -fDTV.dz;
     nAcc++;
@@ -337,8 +404,8 @@ void AliTPCDcalibRes::FitDrift(Int_t tmin,Int_t tmax, Int_t ntbins)
   delete fHVDTimeInt;
   fHVDTimeInt = new TProfile2D("driftTInt","",kNXBins,-dmaxCut,dmaxCut,kNYBins,-kMaxX,kMaxX);
   fHVDTimeInt->SetXTitle("side*drift");
-  fHVDTimeInt->SetYTitle("ylab*side*drift/zmax");  
-  fHVDTimeInt->SetZTitle("#deltaz*side");  
+  fHVDTimeInt->SetYTitle("ylab");  
+  fHVDTimeInt->SetZTitle("#deltaz");  
   fHVDTimeInt->SetDirectory(0);
   prescale = kUsePoints1/float(entries);
   npUse = entries*prescale;
@@ -346,13 +413,19 @@ void AliTPCDcalibRes::FitDrift(Int_t tmin,Int_t tmax, Int_t ntbins)
   for (int i=0;i<entries;i++) {
     if (gRandom->Rndm()>prescale) continue;
     zresTree->GetEntry(i);
-    if (fDTV.drift<kDiscardDriftEdge || fDTV.drift>dmaxCut) continue;
-    float dz = fDTV.side>0 ? fDTV.dz : -fDTV.dz;
-    if (TMath::Abs(dz - (res[0]+res[1]*fDTV.drift)) > outlCut) continue;
+    if (/*fDTV.drift<kDiscardDriftEdge ||*/ fDTV.drift>dmaxCut) continue;
+    float dz = fDTV.dz;
+    float sdz = fDTV.side>0 ? dz : -dz;
+    if (TMath::Abs(sdz - (res[0]+res[1]*fDTV.drift)) > outlCut) continue;
     float sdrift = fDTV.side>0 ? fDTV.drift : -fDTV.drift;
-    fHVDTimeInt->Fill(sdrift, fDTV.ylab*sdrift/kZLim[fDTV.side<0], dz);
+    //    float d2z = fDTV.drift/kZLim[fDTV.side<0];
+    float wgh = 1;//160./fDTV.r; // use weight as inverse^2 of radius to increase the ITS contribution
+    fHVDTimeInt->Fill(sdrift, fDTV.ylab, dz, wgh);
+    //fHVDTimeInt->Fill(sdrift, fDTV.ylab*sdrift/kZLim[fDTV.side<0], sdz); // old way
   }
-  TF2* ftd = new TF2("ftd","[0]+[1]*sign(x)+[2]*sign(x)*y + [3]*sign(x)*x",-250,250,-250,250);
+  float zlim = (kZLim[0]+kZLim[1])/2.f;
+  TF2* ftd = new TF2("ftd",Form("[0]*sign(x)+[1]+([2]*y/%.2f+[3])*x",zlim),-250,250,-250,250);
+  //TF2* ftd = new TF2("ftd","[0]+[1]*sign(x)+[2]*sign(x)*y + [3]*sign(x)*x",-250,250,-250,250); // old fun
   ftd->SetParameters(res[0],0.,0.,res[1]); // initial values from unbinned fit
   AliInfoF("Fitting time-integrated vdrift params by %s",ftd->GetTitle());
   TFitResultPtr rf = fHVDTimeInt->Fit(ftd,"0S");
@@ -365,22 +438,82 @@ void AliTPCDcalibRes::FitDrift(Int_t tmin,Int_t tmax, Int_t ntbins)
   //
   // time correction
   delete fHVDTimeCorr;
-  fHVDTimeCorr = new TH2F("driftTCorr","drift time correction",ntbins,tmin,tmax,kNTCorrBins,-kMaxTCorr,kMaxTCorr);
+  int ntbins = double(fTMax-fTMin)/fDeltaTVD+1;
+  fHVDTimeCorr = new TH2F("driftTCorr","drift time correction",ntbins,fTMin,fTMax+1,kNTCorrBins,-kMaxTCorr,kMaxTCorr);
+  fHVDTimeCorr->SetDirectory(0);
   fHVDTimeCorr->SetXTitle("time");
-  fHVDTimeCorr->SetYTitle("time");  
+  fHVDTimeCorr->SetYTitle("delta");  
   //
   double *vpar = fVDriftParam->GetMatrixArray();
   for (int i=0;i<entries;i++) {
     zresTree->GetEntry(i);
-    if (fDTV.drift<kDiscardDriftEdge || fDTV.drift>dmaxCut) continue;
+    if (/*fDTV.drift<kDiscardDriftEdge ||*/ fDTV.drift>dmaxCut) continue;
     float dz = fDTV.side>0 ? fDTV.dz : -fDTV.dz;
     float sdrift = fDTV.side>0 ? fDTV.drift : -fDTV.drift;
     float d2z = fDTV.drift/kZLim[fDTV.side<0];
     Double_t expected = vpar[0]+vpar[1]*fDTV.side + vpar[2]*fDTV.ylab*d2z + vpar[3]*fDTV.drift;
     dz -= expected;
     if (TMath::Abs(dz) > outlCut) continue;
-    fHVDTimeCorr->Fill(fDTV.t,  dz/fDTV.drift, d2z); // ?? why this weight 
+    float wgh = 1;//160./fDTV.r; // use weight as inverse^2 of radius to increase the ITS contribution
+    fHVDTimeCorr->Fill(fDTV.t,  dz/fDTV.drift, d2z*wgh); // ?? why this weight 
   }
+  //
+  // check results
+  //
+  // extract values
+  TF1* gs = new TF1("gs","gaus",-kMaxTCorr,kMaxTCorr);
+  TObjArray arrH;
+  arrH.SetOwner(kTRUE);
+  fHVDTimeCorr->FitSlicesY(gs,0,-1,0,"QNR",&arrH);
+  TH1* hEnt = fHVDTimeCorr->ProjectionX("hEnt",1,ntbins);
+  TH1* hmean = (TH1*)arrH[1];
+  double tArr[ntbins],dArr[ntbins],deArr[ntbins];
+  nAcc = 0;
+  for (int i=0;i<ntbins;i++) {
+    if (hEnt->GetBinContent(i+1)<kMinEntriesBin) continue;
+    deArr[nAcc] = hmean->GetBinError(i+1);
+    if (deArr[nAcc]<1e-16) continue;
+    tArr[nAcc] = hmean->GetBinCenter(i+1);
+    dArr[nAcc] = hmean->GetBinContent(i+1);
+    nAcc++;
+  }
+  //
+  delete fVDriftGraph;
+  fVDriftGraph = new TGraphErrors(ntbins);
+  double resve[2];
+  const Bool_t usePol2 = kFALSE;
+  int ngAcc = 0, npMin = 3+usePol2;
+  if (nAcc<npMin) { // not enough points for smoothing
+    AliWarningF("Cannot do smoothing with %d points only, min %d needed",nAcc,npMin);
+    int nAccP = ntbins<nAcc ? ntbins : nAcc;
+    for (int i=0;i<nAccP;i++) {
+      fVDriftGraph->SetPoint(ngAcc,tArr[i],dArr[i]);
+      fVDriftGraph->SetPointError(ngAcc,0.5,deArr[i]);      
+      ngAcc++;
+    }
+  }
+  else {
+    for (int i=0;i<ntbins;i++) {
+      double tQuery = hEnt->GetBinCenter(i);
+      if (!GetSmooth1D(tQuery,resve,nAcc,tArr,dArr,deArr,fSigmaTVD,kGaussianKernel,usePol2,kTRUE)) {
+	AliWarningF("Failed to smooth at point %d out of %d (T=%d)",i,ntbins,int(tQuery));
+	continue;
+      }
+      fVDriftGraph->SetPoint(ngAcc,tQuery,resve[0]);
+      fVDriftGraph->SetPointError(ngAcc,0.5,resve[1]);
+      ngAcc++;
+    }
+  }
+  for (int i=ntbins-1;i>=ngAcc; i--) fVDriftGraph->RemovePoint(i); // eliminate empty points
+  //
+  // flag if TOFBC was used for VDrift extraction
+  if (fUseTOFBC) fVDriftGraph->SetBit(kVDWithTOFBC);
+  else           fVDriftGraph->SetBit(kVDWithoutTOFBC);
+  //
+  delete hEnt;
+  arrH.Delete();
+  //
+  SaveFitDrift();
   //
   sw.Stop(); 
   AliInfoF("timing: real: %.3f cpu: %.3f",sw.RealTime(), sw.CpuTime());
@@ -393,7 +526,7 @@ void AliTPCDcalibRes::ProcessFromDeltaTrees()
   // process from residual trees
   TStopwatch sw;
   // select tracks matching to time window and write compact local trees
-  EstimateStatistics();
+  EstimateChunkStatistics();
   //
   CollectData(kDistExtractMode);
   //
@@ -440,10 +573,11 @@ void AliTPCDcalibRes::ReProcessFromResVoxTree(const char* resTreeFile, Bool_t ba
   // reprocess starting from the raw data filled from existing resVox tree
   TStopwatch sw;
   sw.Start();
-  if (!LoadResTree(resTreeFile)) return;
+  if (!LoadDataFromResTree(resTreeFile)) return;
   ReProcessResiduals();
   //
-  if (fChebCorr) delete fChebCorr; fChebCorr = 0;
+  //  delete fChebCorr; fChebCorr = 0;
+  //  delete fChebDist; fChebDist = 0;
   //
   CreateCorrectionObject();
   //
@@ -466,8 +600,13 @@ void AliTPCDcalibRes::ReProcessFromResVoxTree(const char* resTreeFile, Bool_t ba
 AliTPCDcalibRes* AliTPCDcalibRes::Load(const char* fname)
 {
   // load AliTPCDcalibRes object from input file
-  TFile* fl = TFile::Open(fname);
-  if (!fl) {AliErrorClassF("Failed to open %s",fname); return 0;}
+  TString fnames = fname;
+  if (!fnames.EndsWith(".root")) {
+    if (!fnames.EndsWith("/")) fnames += "/";
+    fnames += "alitpcdcalibres.root";
+  }
+  TFile* fl = TFile::Open(fnames.Data());
+  if (!fl) {AliErrorClassF("Failed to open %s",fnames.Data()); return 0;}
   TList* lstk = fl->GetListOfKeys();
   TIter next(lstk);
   TKey* key = 0;
@@ -476,7 +615,36 @@ AliTPCDcalibRes* AliTPCDcalibRes::Load(const char* fname)
     TString keyt = key->GetTitle();
     if (keyt == "AliTPCDcalibRes") {res = (AliTPCDcalibRes*)fl->Get(key->GetName()); break;}
   }
-  if (!res) AliErrorClassF("Did not find AliTPCDcalibRes object in %s",fname);
+  if (!res) AliErrorClassF("Did not find AliTPCDcalibRes object in %s",fnames.Data());
+  return res;
+  //
+}
+
+//________________________________________
+TTree* AliTPCDcalibRes::LoadTree(const char* fname, int markerStyle,int color)
+{
+  // load voxResTee from input file
+  TString fnames = fname;
+  if (!fnames.EndsWith(".root")) {
+    if (!fnames.EndsWith("/")) fnames += "/";
+    fnames += "voxelResTree.root";
+  }
+  TFile* fl = TFile::Open(fnames.Data());
+  if (!fl) {AliErrorClassF("Failed to open %s",fnames.Data()); return 0;}
+  TList* lstk = fl->GetListOfKeys();
+  TIter next(lstk);
+  TKey* key = 0;
+  TTree* res = 0;
+  while (key=(TKey*)next()) {
+    TString keyt = key->GetName();
+    if (keyt == "voxRes") {res = (TTree*)fl->Get(key->GetName()); break;}
+  }
+  if (!res) AliErrorClassF("Did not find voxRes tree in %s",fnames.Data());
+  else {
+    res->SetMarkerStyle(markerStyle);
+    res->SetMarkerColor(color);
+    res->SetLineColor(color);    
+  }
   return res;
   //
 }
@@ -497,6 +665,21 @@ void AliTPCDcalibRes::Save(const char* name)
   delete flout;
   AliInfoF("Saved itself to %s",names.Data());
   //
+}
+
+//________________________________________
+void AliTPCDcalibRes::SaveFitDrift()
+{
+  // save drift parameters in old fitDrift.root format for old way of loading the drift parameters
+  TTreeSRedirector *pcstream = new TTreeSRedirector(Form("%s.root",kDriftFileName),"recreate");
+  (*pcstream)<<"fitTimeStat"<<
+    "grTRDReg.="<<fVDriftGraph<<      // time dependent drift correction TRD - regression estimator
+    "paramRobust.="<<fVDriftParam<< // time independent parameters
+    "time0="<<fTMin<<             
+    "time1="<<fTMax<<
+    "run="<<fRun<<
+    "\n";
+  delete pcstream;
 }
 
 //==================================================================================
@@ -539,11 +722,12 @@ void AliTPCDcalibRes::Init()
   fTMinCTP = scalers->GetScalersRecord(0         )->GetTimeStamp()->GetSeconds();
   fTMaxCTP = scalers->GetScalersRecord(nEntries-1)->GetTimeStamp()->GetSeconds();
   //
-  // init histo for track rate
-  fTracksRate = new TH1F("TracksRate","TracksRate", 1+fTMaxCTP-fTMinCTP, -0.5+fTMinCTP,0.5+fTMaxCTP);
-  fTracksRate->SetDirectory(0);
+  if (fTMin<fTMinGRP) fTMin = fTMinGRP;
+  if (fTMax>fTMaxGRP) fTMax = fTMaxGRP;
   //
-  InitGeom();
+  AliInfoF("Run time: GRP:%lld:%lld |CTP:%lld:%lld |User:%lld:%lld",fTMinGRP,fTMaxGRP,fTMinCTP,fTMaxCTP,fTMin,fTMax);
+  //
+  InitFieldGeom();
   SetName(Form("run%d_%lld_%lld",fRun,fTMin,fTMax));
   SetTitle(IsA()->GetName());
   //
@@ -568,7 +752,7 @@ void AliTPCDcalibRes::Init()
 }
 
 //_____________________________________________________
-void AliTPCDcalibRes::CloseDeltaFile(TTree* dtree)
+void AliTPCDcalibRes::CloseTreeFile(TTree* dtree)
 {
   // close input delta chunk
   TFile* fl = 0;
@@ -658,6 +842,52 @@ TTree* AliTPCDcalibRes::InitDeltaFile(const char* name, Bool_t connect, const ch
 }
 
 //_____________________________________________________
+Bool_t AliTPCDcalibRes::CollectDataStatistics()
+{
+  // scan even trees to get time coverage
+  int nChunks = (!fInputChunks) ? ParseInputList() : fInputChunks->GetEntriesFast();
+  AliInfoF("Collecting event rate from %d chunks",nChunks);
+  if (!fInitDone) Init();
+  int nPrimTrack,timeStamp,tmin=0x7fffffff,tmax=0;
+  int nb = int((fTMaxCTP-fTMinCTP)/10.);
+  fEvRateH = new TH1F("EvRate","EventRate",1+fTMaxGRP-fTMinGRP,fTMinGRP,fTMaxGRP+1);
+  fEvRateH->SetDirectory(0);
+  fEvRateH->GetXaxis()->SetTimeFormat();
+  fNEvTot = 0;
+  for (int ichunk=0;ichunk<nChunks;ichunk++) {
+    TTree *tree = InitDeltaFile(fInputChunks->At(ichunk)->GetName(),kFALSE,"eventInfo");
+    if (!tree) continue;
+    TBranch* brt = tree->GetBranch("timeStamp");
+    TBranch* brn = tree->GetBranch("nPrimTrack");
+    if (!brt || !brn) {
+      AliError("Did not find branch timeStamp or nPromTrack in event info tree");
+      CloseTreeFile(tree);
+      return kFALSE;
+    }
+    brt->SetAddress(&timeStamp);
+    brn->SetAddress(&nPrimTrack);
+    int nent = tree->GetEntries();
+    for (int i=0;i<nent;i++) {
+      brt->GetEntry(i);
+      brn->GetEntry(i);
+      if (fNPrimTracksCut>0 && nPrimTrack>fNPrimTracksCut) continue;
+      fEvRateH->Fill(timeStamp);
+      if (tmin>timeStamp) tmin = timeStamp;
+      if (tmax<timeStamp) tmax = timeStamp;
+    }
+    fNEvTot += nent;
+    CloseTreeFile(tree);
+  }
+  //
+  if (fTMin<tmin) fTMin = tmin;
+  if (fTMax>tmax) fTMax = tmax;  
+  AliInfoF("%d selected events in %d chunks covering %d<T<%d",fNEvTot,nChunks,tmin,tmax);
+  printf("StatInfo.minTime\t%lld\n",fTMin);
+  printf("StatInfo.maxTime\t%lld\n",fTMax);
+  return kTRUE;
+}
+
+//_____________________________________________________
 Int_t AliTPCDcalibRes::ParseInputList()
 {
   // convert text file to array of file names
@@ -672,12 +902,12 @@ Int_t AliTPCDcalibRes::ParseInputList()
 }
 
 //_____________________________________________________
-Bool_t AliTPCDcalibRes::EstimateStatistics()
+Bool_t AliTPCDcalibRes::EstimateChunkStatistics()
 {
   // make rough estimate of statistics with different options
   AliInfo("Performing rough statistics check");
   if (!fInitDone) Init();
-  if (!AliGeomManager::GetGeometry()) InitGeom(); // in case started from saved object
+  if (!AliGeomManager::GetGeometry()) InitFieldGeom(); // in case started from saved object
   // 
   // pick 1st chunk
   int nChunks = (!fInputChunks) ? ParseInputList() : fInputChunks->GetEntriesFast();
@@ -724,7 +954,7 @@ Bool_t AliTPCDcalibRes::EstimateStatistics()
     printf("\n");
   }
   //
-  CloseDeltaFile(tree);
+  CloseTreeFile(tree);
   return kTRUE;
 }
 
@@ -734,7 +964,7 @@ void AliTPCDcalibRes::CollectData(const int mode)
   const float kEps = 1e-6;
   const float q2ptIniTolerance = 1.5;
   if (!fInitDone) Init();
-  if (!AliGeomManager::GetGeometry()) InitGeom(); // in case started from saved object
+  if (!AliGeomManager::GetGeometry()) InitFieldGeom(); // in case started from saved object
   //
   TStopwatch swTot;
   swTot.Start();
@@ -742,6 +972,21 @@ void AliTPCDcalibRes::CollectData(const int mode)
   fNTrSelTotWO = 0;
   fNReadCallTot = 0;
   fNBytesReadTot = 0;
+  //
+  AliInfo( "***");
+  AliInfoF("***   Collecting data in mode: %s",kModeName[mode]);
+  AliInfoF("***   Ext.Det.used: %s, TOFBC validation: %s",kExtDetName[fExtDet],fUseTOFBC?"ON":"OFF");
+  AliInfo( "***");
+  //
+  delete fTracksRate;
+  // init histo for track rate
+  fTracksRate = new TH1F("TracksRate","TracksRate", 1+fTMax-fTMin, fTMin,fTMax+1);
+  fTracksRate->SetDirectory(0);
+  //
+  delete fTracksRate;
+  // init histo for track rate
+  fTracksRate = new TH1F("TracksRate","TracksRate", 1+fTMax-fTMin, fTMin,fTMax+1);
+  fTracksRate->SetDirectory(0);
   //
   float maxAbsResid = kMaxResid - kEps; // discard residuals exceeding this
   Bool_t correctVDrift = kTRUE;
@@ -756,7 +1001,17 @@ void AliTPCDcalibRes::CollectData(const int mode)
 		mode,fVDriftGraph,fVDriftParam);
       if (fFatalOnMissingDrift) AliFatal("Aborting...");
     }
+    // make sure TOF usage is consistent with that in VDrift extraction
+    Bool_t vdtofUsed1 = fVDriftGraph->TestBit(kVDWithTOFBC);
+    Bool_t vdtofUsed0 = fVDriftGraph->TestBit(kVDWithoutTOFBC);
+    if (vdtofUsed1 || vdtofUsed0) { // override to what was used in vdrift extraction
+      AliInfoF("VDrift has TOFBC flag %s, imposing in distortion map extraction",vdtofUsed1 ? "ON":"OFF");
+      if (vdtofUsed1) fUseTOFBC = kTRUE;
+      else            fUseTOFBC = kFALSE;
+    }
+    else AliInfoF("VDrift has TOFBC flags set, using user provided setting %s",fUseTOFBC ? "ON":"OFF");
   }
+  AliInfoF("TOFBC usage in window %.1f:%.1f is %s",fTOFBCMin,fTOFBCMax,fUseTOFBC ? "ON":"OFF");
   CreateLocalResidualsTrees(mode);
   //
   // if cheb object is present, do on-the-fly init to attach internal structures
@@ -801,6 +1056,7 @@ void AliTPCDcalibRes::CollectData(const int mode)
 	}
 	continue;	
       }
+      if (mode==kVDriftCalibMode && EnoughStatForVDrift(fTimeStamp)) continue; // matching but is it needed?
       //
       brITSOK->GetEntry(itr);
       brTRDOK->GetEntry(itr);
@@ -868,8 +1124,8 @@ void AliTPCDcalibRes::CollectData(const int mode)
 	}
 	if (fArrPhi[fNCl]<0) fArrPhi[fNCl] += 2.*TMath::Pi();
 	//
-	// correct for drift velocity calibration if needed
-	if (correctVDrift) fArrDZ[fNCl] += GetDriftCorrection(fArrZTr[fNCl],fArrR[fNCl],fArrPhi[fNCl],rocID);
+	// correct for drift velocity calibration if needed, using Zcluster for correction evaluation (as in raw data)
+	if (correctVDrift) fArrDZ[fNCl] += GetDriftCorrection(fArrZTr[fNCl]-fArrDZ[fNCl],fArrR[fNCl],fArrPhi[fNCl],rocID);
 	//
 	fArrSectID[fNCl] = rocID%kNSect2; // 0-36 for sectors from A0 to C17
 	//
@@ -964,11 +1220,15 @@ void AliTPCDcalibRes::CollectData(const int mode)
     fNReadCallTot += nReadCallsChunk;
     fNBytesReadTot += nBytesReadChunk;
     //
-    CloseDeltaFile(tree);
+    CloseTreeFile(tree);
     AliSysInfo::AddStamp("ProjTreeLoc", ichunk ,fNTrSelTot,fNTrSelTot,fNReadCallTot );
     //
     if (fNTrSelTot > fMaxTracks) {
       AliInfo("Max number of tracks exceeded");
+      break;
+    }
+    if (mode==kVDriftCalibMode && EnoughStatForVDrift()) {
+      AliInfo("Sifficient statistics for VDrift calibration collected");
       break;
     }
     //
@@ -988,6 +1248,70 @@ void AliTPCDcalibRes::CollectData(const int mode)
 }
 
 //________________________________________________
+Bool_t AliTPCDcalibRes::EnoughStatForVDrift(int tstamp, float maxHolesFrac) 
+{
+  // check if collected stat. is enough for VDrift calibration
+  // when called with positive timestamp, check just the occupancy of the bin it belong to
+  static Bool_t *binStat = 0;
+  static int    nBinStat = 0;
+  if (!binStat) {
+    nBinStat = (fTMax-fTMin)/fDeltaTVD+1;
+    binStat = new Bool_t[nBinStat];
+    memset(binStat,0,nBinStat*sizeof(Bool_t));
+  }
+  //
+  int binv = (tstamp-fTMin)/fDeltaTVD; // time stamp provided: query for specific time bin
+  if (tstamp>0) {
+    if (binv>=0 && binv<nBinStat) return binStat[binv];
+    return kTRUE; // this should not happen normally
+  }
+  //   
+  // query for the whole run
+  int nHoles = 0, nChecked = 0;
+  int nbinsT = fTracksRate->GetNbinsX();
+  int nbinsE = fEvRateH->GetNbinsX();
+  int ntrCumul[nbinsT+2], sumNtr=0;
+  int nevCumul[nbinsE+2], sumNev=0;
+  ntrCumul[0] = nevCumul[0] = 0;
+  for (int ib=1;ib<=nbinsT;ib++) ntrCumul[ib] = (sumNtr += fTracksRate->GetBinContent(ib));
+  for (int ib=1;ib<=nbinsE;ib++) nevCumul[ib] = (sumNev += fEvRateH->GetBinContent(ib));
+  ntrCumul[nbinsT+1] = sumNtr;
+  nevCumul[nbinsE+1] = sumNev;
+  //
+  // mean number of tracks expected per tested bin in full stat
+  float nexpTracksAv = fEstTracksPerEvent*fNEvTot*fDeltaTVD/(fTMax-fTMin);
+  int longestEmpty=0,prevEmpty=0;
+  for (int ts=fTMin;ts<fTMax-fDeltaTVD;ts+=fDeltaTVD) {
+    int bminT = fTracksRate->FindBin(ts);
+    int bmaxT = fTracksRate->FindBin(ts+fDeltaTVD);
+    int bminE = fEvRateH->FindBin(ts);
+    int bmaxE = fEvRateH->FindBin(ts+fDeltaTVD);
+    int ntr = ntrCumul[bmaxT]-ntrCumul[bminT];
+    int binv = (ts+1-fTMin)/fDeltaTVD;
+    nChecked++;
+    if (ntr>fMinTracksPerVDBin) {
+      binStat[binv] = kTRUE; // flag complete bin
+      if (prevEmpty>longestEmpty) longestEmpty = prevEmpty;
+      prevEmpty = 0; // reset empty segment counter
+      continue;
+    }
+    // do we expect enough tracks in this time period?
+    int nexpTracks = (nevCumul[bmaxE]-nevCumul[bminE])*fEstTracksPerEvent;
+    // declare stat insufficient only if we expect enough tracks there
+    if (nexpTracks>fMinTracksPerVDBin && nexpTracks>nexpTracksAv/2 && ntr<fMinTracksPerVDBin/2) {
+      nHoles++;
+      prevEmpty += fDeltaTVD;
+    }
+    else binStat[binv] = kTRUE; // flag complete bin, since this bin is depleted on event level
+  }
+  if (prevEmpty>longestEmpty) longestEmpty = prevEmpty;
+  AliInfoF("%d bins out %d checked got enough stat., longest empty segment: %ds",
+	   nChecked-nHoles,nChecked,longestEmpty);
+  if (nChecked && nHoles<maxHolesFrac*nChecked && longestEmpty<fSigmaTVD*0.75) return kTRUE;
+  return kFALSE;
+}
+
+//________________________________________________
 void AliTPCDcalibRes::FillDriftResidualsTrees()
 {
   // fill local trees for vdrift calibration
@@ -999,6 +1323,7 @@ void AliTPCDcalibRes::FillDriftResidualsTrees()
     fDTV.dz    = fArrDZ[icl];
     fDTV.drift = kZLim[isCside] - fDTV.side*fArrZCl[icl];
     fDTV.ylab  = fArrR[icl]*TMath::Sin(fArrPhi[icl]);
+    fDTV.r     = fArrR[icl];
     // 
     fTmpTree[0]->Fill();
   }
@@ -1852,30 +2177,29 @@ Bool_t AliTPCDcalibRes::GetTruncNormMuSig(double a, double b, double &mean, doub
 }
 
 //_________________________________________________
-void AliTPCDcalibRes::InitGeom()
+void AliTPCDcalibRes::InitFieldGeom(Bool_t field,Bool_t geom)
 {
   // init geometry and field
   // this requires the field and the geometry ...
   if (fRun<1) AliFatal("Run number is not provided");
+  AliCDBManager* man = AliCDBManager::Instance();
+  if (fOCDBPath.IsNull()) fOCDBPath = "raw://";
+  if (!man->IsDefaultStorageSet()) man->SetDefaultStorage(fOCDBPath);
+  if (man->GetRun()!=fRun) man->SetRun(fRun);
+  //
   Bool_t geomOK = AliGeomManager::GetGeometry() != 0;
-  AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
-  if (!geomOK || !fld) { // need to setup ocdb?
-    AliCDBManager* man = AliCDBManager::Instance();
-    if (fOCDBPath.IsNull()) fOCDBPath = "raw://";
-    if (!man->IsDefaultStorageSet()) man->SetDefaultStorage(fOCDBPath);
-    if (man->GetRun()!=fRun) man->SetRun(fRun);
-  }
-  if (!geomOK) {
+  if (geom && !geomOK) {
     AliGeomManager::LoadGeometry();
     AliGeomManager::ApplyAlignObjsFromCDB("TPC");
   }
-  if (!fld) {
+  AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
+  if (!fld && field) {
     AliGRPManager grpMan;
     grpMan.ReadGRPEntry();
     grpMan.SetMagField();
     fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
   }
-  fBz = fld->SolenoidField();
+  if (fld) fBz = fld->SolenoidField();
 }
 
 
@@ -2508,6 +2832,86 @@ Float_t AliTPCDcalibRes::SelKthMin(int k, int np, float* arr)
 
 //===============================================================
 
+//_________________________________________
+void AliTPCDcalibRes::MakeVDriftOCDB(TString targetOCDBstorage)
+{
+  // write OCDB object for VDrift (simplified copy/paste of AliTPCcalibAlignInterpolation::MakeVDriftOCDB)
+  TObjArray * driftArray = new TObjArray();
+  //
+  AliMagF* fld = (AliMagF*)TGeoGlobalMagField::Instance()->GetField();
+  if (!fld) InitFieldGeom(kTRUE,kFALSE);
+  Double_t atime[2]={0,0};
+  Double_t deltaZ[2]={0,0};
+  Double_t t0[2]={0,0};
+  Double_t vdgy[2]={0,0};
+  //
+  atime[0] = fVDriftGraph->GetX()[0];
+  atime[1] = fVDriftGraph->GetX()[fVDriftGraph->GetN()-1];
+  //
+  AliTPCParam* param = AliTPCcalibDB::Instance()->GetParameters(); // just to get Vdrift
+  //
+  for (Int_t ipoint=0; ipoint<=1; ipoint++){
+    deltaZ[ipoint]=-(*fVDriftParam)[1];  // unit OK  
+    vdgy[ipoint]=-(*fVDriftParam)[2];   // units OK
+    t0[ipoint]=-(*fVDriftParam)[0]/(1+(*fVDriftParam)[3]);       // t0 to be normalized to the ms
+    t0[ipoint]/=(param->GetDriftV()/1000000.); 
+  }
+  Double_t vdrifCorrRun=1./(1.+(*fVDriftParam)[3]);
+  //
+  TGraphErrors   *graphDELTAZ=0;
+  TGraphErrors   *graphT0=0;
+  TGraphErrors   *graphVDGY=0;
+  TGraphErrors   *graphDRIFTVD=0;
+  TGraphErrors   *graph=0;
+  //
+  TString grPrefix="ALIGN_ITSB_TPC_";
+  //
+  graphDELTAZ=new TGraphErrors(2, atime, deltaZ);
+  graphDELTAZ->SetName(grPrefix+"DELTAZ");
+  driftArray->AddLast(graphDELTAZ);
+  graphT0=new TGraphErrors(2, atime, t0);
+  graphT0->SetName(grPrefix+"T0");
+  driftArray->AddLast(graphT0);
+  graphVDGY=new TGraphErrors(2, atime, vdgy);
+  graphVDGY->SetName(grPrefix+"VDGY");
+  driftArray->AddLast(graphVDGY);
+  //
+  // drift velocity
+  graph = new TGraphErrors(*fVDriftGraph);
+  graph->SetName(grPrefix+"DRIFTVD");
+  Int_t npoints = graph->GetN();
+  for (Int_t ipoint=0; ipoint<npoints; ipoint++) {
+    graph->GetY()[ipoint]  = (vdrifCorrRun*(1-graph->GetY()[ipoint]))-1.;
+    graph->GetEY()[ipoint] = vdrifCorrRun*graph->GetEY()[ipoint];
+  }
+  driftArray->AddLast(graph);
+  //
+  AliCDBStorage* targetStorage = 0x0;
+  if (targetOCDBstorage.Length()==0) {
+    targetOCDBstorage+="local://"+gSystem->GetFromPipe("pwd")+"/OCDB";
+    targetStorage = AliCDBManager::Instance()->GetStorage(targetOCDBstorage.Data());
+  }
+  else if (targetOCDBstorage.CompareTo("same",TString::kIgnoreCase) == 0 ){
+    targetStorage = AliCDBManager::Instance()->GetDefaultStorage();
+  }
+  else {
+    targetStorage = AliCDBManager::Instance()->GetStorage(targetOCDBstorage.Data());
+  }
+
+  AliCDBMetaData* metaData = new AliCDBMetaData;
+  metaData->SetObjectClassName("TObjArray");
+  metaData->SetResponsible("Marian Ivanov");
+  metaData->SetBeamPeriod(1);
+  metaData->SetAliRootVersion(">v5-07-20"); //AliRoot version
+  metaData->SetComment("AliTPCcalibAlignInterpolation Calibration of the time dependence of the drift velocity using Residual trees");
+  AliCDBId id1("TPC/Calib/TimeDrift", fRun, fRun);
+  
+  //now the entry owns the metadata, but NOT the data
+  AliCDBEntry *driftCDBentry=new AliCDBEntry(driftArray,id1,metaData,kFALSE);
+  targetStorage->Put(driftCDBentry); 
+  //
+  delete driftCDBentry;
+}
 
 //_________________________________________
 void AliTPCDcalibRes::LoadVDrift()
@@ -2629,6 +3033,7 @@ void AliTPCDcalibRes::WriteResTree()
   TFile* flOut = new TFile(GetVoxResFileName(),"recreate");
   TTree* resTree = new TTree("voxRes","final distortions, see GetListOfAliases");
   resTree->Branch("res", &voxRes);
+  resTree->Branch("L",&fLumiCOG);
   for (int i=0;i<kVoxDim;i++) {
     resTree->SetAlias(kVoxName[i],Form("bvox[%d]",i));
     resTree->SetAlias(Form("%sAV",kVoxName[i]),Form("stat[%d]",i));
@@ -2674,9 +3079,24 @@ void AliTPCDcalibRes::WriteResTree()
     //
   } // end of sector loop
   //
+  //
+  // write small trees with luminosity and vdrift info
+  //
+  TTree* infoTree = new TTree("runInfo","run information");
+  if (fLumiCTPGraph) infoTree->Branch("lumiCTP", &fLumiCTPGraph);
+  if (fVDriftGraph)  infoTree->Branch("driftGraph", &fVDriftGraph);
+  if (fVDriftParam)  infoTree->Branch("driftParam", &fVDriftParam);
+  infoTree->Branch("tminCTPrun",&fTMinCTP);
+  infoTree->Branch("tmaxCTPrun",&fTMaxCTP);
+  infoTree->Branch("tminTBin",&fTMin);
+  infoTree->Branch("tmaxTBin",&fTMax);
+  infoTree->Fill();
+  //
   flOut->cd();
   resTree->Write("", TObject::kOverwrite);
+  infoTree->Write("", TObject::kOverwrite);
   delete resTree;
+  delete infoTree;
   //
   if (fChebCorr) {
     fChebCorr->Write();
@@ -2692,17 +3112,15 @@ void AliTPCDcalibRes::WriteResTree()
 }
 
 //___________________________________________________________________
-Bool_t AliTPCDcalibRes::LoadResTree(const char* resTreeFile)
+Bool_t AliTPCDcalibRes::LoadDataFromResTree(const char* resTreeFile)
 {
   // Fill voxels info from existing resVox tree for reprocessing
   TStopwatch sw;
   sw.Start();
   bres_t voxRes, *voxResP=&voxRes;
   //
-  TFile* flIn = new TFile(resTreeFile);
-  if (!flIn) {AliErrorF("Failed to open %s",resTreeFile); return kFALSE;}
-  TTree* resTree = (TTree*) flIn->Get("voxRes");
-  if (!resTree) {AliErrorF("Failed to extract resTree from %s",resTreeFile); delete flIn; return kFALSE;}
+  TTree* resTree = LoadTree(resTreeFile);
+  if (!resTree) {AliErrorF("Failed to extract resTree from %s",resTreeFile); return kFALSE;}
   resTree->SetBranchAddress("res", &voxResP);
   //
   int nent = resTree->GetEntries();
@@ -2727,9 +3145,7 @@ Bool_t AliTPCDcalibRes::LoadResTree(const char* resTreeFile)
     for (int ir=kResDim;ir--;) voxel->DS[ir]=voxel->DC[ir]=0.f;
   } // end of sector loop
   //
-  delete resTree;
-  flIn->Close();
-  delete flIn;
+  CloseTreeFile(resTree);
   //
   sw.Stop();
   AliInfoF("timing: real: %.3f cpu: %.3f",sw.RealTime(), sw.CpuTime());
@@ -2770,7 +3186,7 @@ Bool_t AliTPCDcalibRes::FitPoly2(const float* x,const float* y, const float* w, 
   double det  = sumW[0]*min00
     -           sumW[1]*min01
     +           sumW[2]*min02;
-  if (TMath::Abs(det)<1e-12) return kFALSE;
+  if (TMath::Abs(det)<1e-64) return kFALSE;
   double detI = 1./det;
   double det0 = sumY[0]*min00
     -           sumW[1]*(sumY[1]*sumW[4]-sumW[3]*sumY[2]) 
@@ -2785,12 +3201,14 @@ Bool_t AliTPCDcalibRes::FitPoly2(const float* x,const float* y, const float* w, 
   res[1] = det1*detI;
   res[2] = det2*detI;
   //
-  err[0] = min00*detI; // e00
-  err[1] =-min01*detI; // e10
-  err[2] = min11*detI; // e11
-  err[3] = min02*detI; // e20
-  err[4] =-min12*detI; // e21
-  err[5] = min22*detI; // e21
+  if (err) {
+    err[0] = min00*detI; // e00
+    err[1] =-min01*detI; // e10
+    err[2] = min11*detI; // e11
+    err[3] = min02*detI; // e20
+    err[4] =-min12*detI; // e21
+    err[5] = min22*detI; // e21
+  }
   //
   return kTRUE;
 }
@@ -2817,9 +3235,11 @@ Bool_t AliTPCDcalibRes::FitPoly1(const float* x,const float* y, const float* w, 
   res[0] = det0*detI;
   res[1] = det1*detI;
   //
-  err[0] = sumW[2]*detI; // e00
-  err[1] =-sumW[1]*detI; // e10
-  err[2] = sumW[0]*detI; // e11
+  if (err) {
+    err[0] = sumW[2]*detI; // e00
+    err[1] =-sumW[1]*detI; // e10
+    err[2] = sumW[0]*detI; // e11
+  }
   //
   return kTRUE;
 }
@@ -3111,7 +3531,7 @@ Bool_t AliTPCDcalibRes::GetSmoothEstimate(int isect, float x, float p, float z, 
 	  u2Vec[0] = dxw*dxw;
 	  u2Vec[1] = dfw*dfw;
 	  u2Vec[2] = dzw*dzw;
-	  double kernW = GetKernelWeight(u2Vec,3);
+	  double kernW = GetKernelWeight(u2Vec,3, fKernelType);
 	  if (kernW<kZeroK) continue; 
 	  // new point is validated	  
 	  nOccX[ix-ixMn]++;
@@ -3261,24 +3681,100 @@ Bool_t AliTPCDcalibRes::GetSmoothEstimate(int isect, float x, float p, float z, 
 
 }
 
+//_____________________________________________________________________
+Bool_t AliTPCDcalibRes::GetSmooth1D
+(double xQuery,                                            // query X
+ double valerr[2],                                          // output array for value and its error
+ int np, const double* x, const double* y, const double* err, // points x,y, optional error 
+ double w, int kType,Bool_t usePol2,                       // kernel width and type, do we use pol1 or pol2 interpolation
+ Bool_t xIncreasing,                                       // are points increasing in X
+ float  maxD2Range                                         // may increase kernel width up to maxD2Range*dataRange
+ )
+{
+  // get kernel (width w) smoothed value at xQuery for (opionally ordered in x-increasing) array x,y (optionally err)
+  int minPoints = 3+usePol2;
+  // don't abuse stack
+  float *ySelHeap=0,ySelStack[np<kMaxOnStack ? np:1],*ySel=np<kMaxOnStack ? &ySelStack[0] : (ySelHeap=new float[np]);
+  float *xSelHeap=0,xSelStack[np<kMaxOnStack ? np:1],*xSel=np<kMaxOnStack ? &xSelStack[0] : (xSelHeap=new float[np]);
+  float *wSelHeap=0,wSelStack[np<kMaxOnStack ? np:1],*wSel=np<kMaxOnStack ? &wSelStack[0] : (wSelHeap=new float[np]);
+  //
+  // select only points which have chance to contribute
+  double ws = w;
+  double xmax = x[np-1], xmin = x[0];
+  if (!xIncreasing) {
+    for (int i=np;i--;) {
+      if (xmax>x[i]) xmax = x[i];
+      if (xmin<x[i]) xmin = x[i];
+    }
+  }
+  double maxD,w2Sum=0.,range = (xmax - xmin)*maxD2Range;
+  //
+  const float kEps = 1e-16;
+  int npUse=0;
+  do {
+    maxD = ws*(kType==kGaussianKernel ? kMaxGaussStdDev : 1.0f);
+    double ws2 = 1./(ws*ws);
+    npUse = 0;
+    w2Sum = 0.;
+    for (int ip=0;ip<np;ip++) {
+      double df = x[ip]-xQuery;
+      if (df>maxD) {
+	if (xIncreasing) break; // with sorted arrays no point in checking further
+	continue;
+      }
+      if (df<-maxD) continue;
+      xSel[npUse] = df;  // we fit wrt queried point!
+      ySel[npUse] = y[ip];
+      df *= df*ws2;
+      wSel[npUse] = GetKernelWeight(&df,1,kType);
+      w2Sum += wSel[npUse];
+      if (wSel[npUse]<kEps) continue; 
+      if (err && err[ip]>0) wSel[npUse] /= err[ip]*err[ip];
+      npUse++;
+    }
+    //
+    if (npUse>=minPoints) break;
+    ws *= 1.5; // expand kernel
+  }
+  while (maxD<range);
+  //
+  Bool_t res = kFALSE;
+  if (npUse<minPoints) {
+    valerr[0] = valerr[1] = 0.f;
+    AliErrorClassF("Xquery=%+.4e: X0:%+.4e X%d: %+.4e: found only %d points, %d required",
+		   xQuery, x[0], np, x[np-1],npUse,minPoints);
+  }
+  else {
+    float resVal[3],resErr[6];
+    if ((res=usePol2 ? FitPoly2(xSel,ySel,wSel,npUse,resVal,resErr) : FitPoly1(xSel,ySel,wSel,npUse,resVal,resErr))) {
+      valerr[0] = resVal[0];
+      valerr[1] = TMath::Sqrt(resErr[0]/w2Sum);
+    }
+  }
+  delete[] ySelHeap;
+  delete[] xSelHeap;
+  delete[] wSelHeap;
+  //
+  return res;
+}
 
 //_____________________________________
-Double_t AliTPCDcalibRes::GetKernelWeight(double* u2vec,int np) const
+Double_t AliTPCDcalibRes::GetKernelWeight(double* u2vec,int np, int kernelType)
 {
   double w = 1;
-  if (fKernelType == kEpanechnikovKernel) {
+  if (kernelType == kEpanechnikovKernel) {
     for (int i=np;i--;) {
       if (u2vec[i]>1) return 0.;
       w *= 3./4.*(1.-u2vec[i]);
     }
   }
-  else if (fKernelType == kGaussianKernel) {
+  else if (kernelType == kGaussianKernel) {
     double u2 = 0;
     for (int i=np;i--;) u2 += u2vec[i];
     w = u2<kMaxGaussStdDev*kMaxGaussStdDev*np ? TMath::Exp(-u2)/TMath::Sqrt(2.*TMath::Pi()) : 0;
   }
   else {
-    AliFatalF("Kernel type %d is not defined",fKernelType);
+    AliFatalClassF("Kernel type %d is not defined",kernelType);
   }
   return w;
 }
@@ -3339,6 +3835,7 @@ void AliTPCDcalibRes::CreateCorrectionObject()
     return;
   }
   //
+  delete fChebCorr; fChebCorr = 0;
   TString name = Form("run%d_%lld_%lld",fRun,fTMin,fTMax);
   fChebCorr = new AliTPCChebCorr(name.Data(),name.Data(),
 				 fChebPhiSlicePerSector,fChebZSlicePerSide,1.0f);
@@ -3375,8 +3872,14 @@ void AliTPCDcalibRes::CreateCorrectionObject()
   // register tracks rate for lumi weighting
   fChebCorr->SetTracksRate(ExtractTrackRate());
   //
+  // calculate weighted lumi
+  fLumiCTPGraph = AliLumiTools::GetLumiFromCTP(fRun);
+  fLumiCOG = fChebCorr->GetLuminosityCOG(fLumiCTPGraph);
+  //
   AliSysInfo::AddStamp("CreateCorrectionObject",1,0,0,0);
 }
+
+
 
 //________________________________________________________________
 TH1F* AliTPCDcalibRes::ExtractTrackRate() const
@@ -3394,6 +3897,7 @@ TH1F* AliTPCDcalibRes::ExtractTrackRate() const
     Long64_t tmx = (Long64_t)fTracksRate->GetBinCenter(bin1);
     hTr = new TH1F(Form("TrackRate%lld_%lld",tmn,tmx),"TracksRate",nb,
 		   fTracksRate->GetBinLowEdge(bin0),fTracksRate->GetBinLowEdge(bin1+1));
+    hTr->SetDirectory(0);
     for (int ib=0;ib<nb;ib++) {
       int ibh = ib+bin0;
       hTr->SetBinContent(ib+1,tarr[ibh]);
@@ -3537,6 +4041,221 @@ Bool_t AliTPCDcalibRes::FindVoxelBin(int sectID, float x, float y, float z, UCha
   return kTRUE;
 }
 
+
+
+//_____________________________________________________
+Bool_t AliTPCDcalibRes::GradValSmooth(int sect36, float x, float y, float z, 
+				      float val[AliTPCDcalibRes::kResDim],
+				      float grad[AliTPCDcalibRes::kResDimG][AliTPCDcalibRes::kResDim], Bool_t bringToBoundary)
+{
+  // calculate the gradient of distortion+dispersion vs x,y,z at point x,y,z of sector sectID
+  // and the correction value
+  //
+  float xyz[3] = {x,y,z};
+  if (bringToBoundary) BringToActiveBoundary(sect36,xyz);
+  float der[12]={0};
+  if (!GetSmoothEstimate(sect36,xyz[0],xyz[1]/xyz[0],xyz[2]/xyz[0],(0x1<<4)-1,val,der)) return kFALSE;
+  // 
+  for (int id=0;id<4;id++) {
+    for (int idd=0;idd<3;idd++) {
+      grad[idd][id] = der[id*3+idd];
+      if (idd>0) grad[idd][id] /= xyz[0]; // d/d(y/x) and  d/d(z/x) -> d/dy and d/dz
+    }
+  }
+  //
+  return kTRUE;
+}
+
+//_____________________________________________________
+Bool_t AliTPCDcalibRes::GradCorrCheb(const AliTPCChebCorr* cheb, int sect36, float x, float y, float z, 
+				     float val[AliTPCDcalibRes::kResDim],
+				     float grad[AliTPCDcalibRes::kResDimG][AliTPCDcalibRes::kResDim])
+{
+  // calculate the gradient of distortion+dispersion vs x,y,z at point x,y,z of sector sectID
+  // and the corrected value
+  //
+  const Bool_t kUsePol2=kFALSE;
+  val[kResX] = x;
+  val[kResY] = y;
+  val[kResZ] = z;
+  val[kResD] = 0.f;
+  memset(grad,0,kResDimG*kResDim*sizeof(float));
+  if (x<50) return kFALSE; // protection
+
+  // 1) go to ROC sector/row convention, find rows above and below
+  int row159 = GetRowID(x);
+  if (row159<0) {
+    if    (row159==-1) row159 = 0; // below min R
+    else if (row159==-2) row159 = kNPadRows-1; // above max R
+    else row159 = x>(kTPCRowX[kNRowIROC]+kTPCRowX[kNRowIROC-1])*0.5 ? kNRowIROC : kNRowIROC-1;
+  }
+  float xRow = kTPCRowX[row159];
+  int rowB[2],rocB[2]; // bounding rows
+  if (x<xRow) {
+    rowB[1] = row159;
+    rowB[0] = row159 ? row159-1:0;    
+  }
+  else {
+    rowB[0] = row159;
+    rowB[1] = row159<kNPadRows-1 ? row159+1:row159;
+  }
+  int rowB159[2] = {rowB[0],rowB[1]}; // save 0-158 convention rows
+  // weight for extrapolation between rows
+  float wx = rowB[0]==rowB[1] ? 0.f : (x-kTPCRowX[rowB[0]])/(kTPCRowX[rowB[1]]-kTPCRowX[rowB[0]]);
+  //
+  int roc = sect36;
+  //
+  rocB[0] = rocB[1] = roc;
+  for (int i=0;i<2;i++) if (rowB[i]>=kNRowIROC) {rocB[i] += kNSect2; rowB[i] -= kNRowIROC;} 
+  //
+  float grTmp[2][kResDim], point[2] = {y/x,z/x};
+  const int kNRowMargin = 2, kNTestPnt=kNRowMargin*2+2;    
+  //
+  // 2) easy part: calculate Cheb. derivatives in Y,Z directly from 
+  for (int id=0;id<2;id++) { // d/d(y/x) and  d/d(z/x) -> d/dy and d/dz
+    cheb->EvalDeriv(rocB[0], rowB[0],id, point, grTmp[0]); 
+    cheb->EvalDeriv(rocB[1], rowB[1],id, point, grTmp[1]); 
+    // scale by x since we need derivatives over y,z coordinates
+    for (int i=kResDim;i--;) grad[id+1][i] = (grTmp[0][i]+(grTmp[1][i]-grTmp[0][i])*wx)/x;
+  }
+  //
+  // 3) gradient in X: expand boundaries down and up by 2 padrows
+  int rowMin = rowB159[0]-kNRowMargin, rowMax = rowB159[1]+kNRowMargin;
+  if (rowMin<0)            {rowMin = 0; rowMax = rowMin+kNTestPnt-1;}
+  if (rowMax>=kNPadRows-1) {rowMax = kNPadRows-1; rowMin = rowMax-(kNTestPnt-1);}
+  //
+  int cntR=0;
+  double valTmp[kResDim][kNTestPnt],xPnt[kNTestPnt];
+  for (int irow=rowMin;irow<=rowMax;irow++) {
+    int row=irow, roc=sect36;
+    if (row>=kNRowIROC) {row-=kNRowIROC; roc += kNSect2;}
+    xPnt[cntR] = kTPCRowX[irow];
+    cheb->Eval(roc, row, y/xPnt[cntR], z/xPnt[cntR] , grTmp[0]);    
+    for (int i=kResDim;i--;) valTmp[i][cntR] = grTmp[0][i];
+    cntR++;
+  }
+  // 
+  // calculate 4-points Richardson derivative over X for each dimension
+  const double kXStep=0.4;
+  double wKernel = 2.*(xPnt[kNTestPnt-1]-xPnt[0])/(kNTestPnt-1);
+  double valerr[2], richVal[4];
+  for (int id=kResDim;id--;) {
+    // calculate value
+    GetSmooth1D(x,valerr,kNTestPnt,xPnt,valTmp[id],0, wKernel,kGaussianKernel,kUsePol2,kTRUE,3.0);
+    val[id] += valerr[0]; // correction + "measured value"
+    //
+    float dx = kXStep;
+    for (int ih=0;ih<2;ih++) {
+      GetSmooth1D(x+dx,valerr,kNTestPnt,xPnt,valTmp[id],0, wKernel,kGaussianKernel,kUsePol2,kTRUE,3.0);
+      richVal[2*ih  ] = valerr[0];
+      GetSmooth1D(x-dx,valerr,kNTestPnt,xPnt,valTmp[id],0, wKernel,kGaussianKernel,kUsePol2,kTRUE,3.0);
+      richVal[2*ih+1] = valerr[0];
+      dx *= 0.5;
+    }
+    double d1 = (richVal[0]-richVal[1])/(2.*kXStep);
+    double d2 = (richVal[2]-richVal[3])/kXStep;
+    grad[0][id] = (4.*d2-d1)/3.;
+  }
+
+  return kTRUE;
+}
+
+//_____________________________________________________
+Bool_t AliTPCDcalibRes::InvertCorrection(int sect36,const float vecIn[AliTPCDcalibRes::kResDimG], 
+					 float vecOut[AliTPCDcalibRes::kResDim],
+					 int maxIt, float minDelta)
+{
+  // apply distortion (inverse of the correction map cheb) to point vecIn, producing vecOut
+  //
+  // Do Newton-Raphson inversion: original Cheb.correction Corr implements
+  // \vec[r_corr] = \vec[r_meas] + Corr(\vec[r_meas]), where \vec[r_corr] is corrected coordinat
+  // of ionization point and \vec[r_meas] is its distorted image in the chamber.
+  //
+  // Hence we need to find an inverse vector f-n F^-1 of \vec[r_corr] of the vector f-n 
+  // F = \vec[r_meas]-\vec[r_corr] + Corr(\vec[r_meas]) = 0 of \vec[r_meas]
+  // We do this with Newton-Raphson iterations
+  //
+  // D(F(\vec[r_meas](n)))/D(\vec[r_meas](n)) . {\vec[r_meas](n+1) - \vec[r_meas](n)}= - F(\vec[r_meas](n))
+  // 
+  // Abandon iterations above maxIt or with total change < minDelta
+  //
+  float grad[kResDimG][kResDim], fun[kResDim]={0.}, delta0[kResDim] = {0.}, delta0R2 = 0;
+  const float kEps = 1e-16;
+  //
+  for (int id=kResDimG;id--;) vecOut[id] = vecIn[id]; // initial approximation
+  vecOut[kResD] = 0.f; // dispersion
+  //
+  float minDelta2 = minDelta*minDelta, deltaR2Tot=0, deltaR2=0, deltaR2Prev=0;
+  float deltaCorr0 = 0;
+  int it = 0;
+
+  do {
+    //
+    // calculate corrected value and gradient of correction
+    GradValSmooth(sect36, vecOut[kResX],vecOut[kResY],vecOut[kResZ], fun, grad); 
+    if (it==0) {
+      for (int id=3;id--;) {
+	deltaCorr0 += fun[id]*fun[id];
+	delta0[id] = fun[id];
+      }
+      delta0[kResD] = fun[kResD];
+    }
+    for (int id=3;id--;) {
+      fun[id] -= vecIn[id] - vecOut[id];  // value of F = vec_meas + vec_corrections - vec_correct
+      grad[id][id] += 1.0f; // convert gradient of correction to gradient of F vs current estimate of vec_meas
+    }
+    // solve linear system grad . delta = -F
+    
+    double det =  grad[0][0]*(grad[1][1]*grad[2][2] - grad[1][2]*grad[2][1])
+      -           grad[0][1]*(grad[1][0]*grad[2][2] - grad[1][2]*grad[2][0])
+      +           grad[0][2]*(grad[1][0]*grad[2][1] - grad[1][1]*grad[2][0]);
+    if (TMath::Abs(det)<kEps) break;
+    det = -1./det;
+    float delta[3];
+    delta[kResX]= det*
+      (fun[0]    *(grad[1][1]*grad[2][2] - grad[1][2]*grad[2][1]) -
+       grad[0][1]*(    fun[1]*grad[2][2] - grad[1][2]*fun[2]    ) +
+       grad[0][2]*(    fun[1]*grad[2][1] - grad[1][1]*fun[2]    ));
+    
+    delta[kResY]= det* 
+      (grad[0][0]*(    fun[1]*grad[2][2] - grad[1][2]*grad[2][1]) -
+       fun[0]*    (grad[1][0]*grad[2][2] - grad[1][2]*grad[2][0]) +
+       grad[0][2]*(grad[1][0]*fun[2]     - fun[1]    *grad[2][0]));
+    
+    delta[kResZ]= det*
+      (grad[0][0]*(grad[1][1]*fun[2]     - fun[1]    *grad[2][1]) -
+       grad[0][1]*(grad[1][0]*fun[2]     - fun[1]    *grad[2][0]) +
+       fun[0]    *(grad[1][0]*grad[2][1] - grad[1][1]*grad[2][0]));
+    //
+    deltaR2 = 0.f;
+    deltaR2Tot = 0.f;
+    for (int id=3;id--;) {
+      deltaR2 += delta[id]*delta[id];
+      vecOut[id] += delta[id];    
+      float dtot = vecOut[id]-vecIn[id];
+      deltaR2Tot += dtot*dtot;
+    }
+    //
+    if (it>1 && deltaR2Tot>deltaCorr0*2 && deltaR2>deltaR2Prev+3*deltaCorr0) {
+      AliErrorF("Runaway @ iter%d for S%2d {%.3f %.3f %.3f}? deltaR2Tot=%e deltaR2=%e > deltaR2Prev=%e + deltaCorr0=%e | Grad:",it,
+		sect36, vecIn[0],vecIn[1],vecIn[2],deltaR2Tot,deltaR2,deltaR2Prev,deltaCorr0);
+      for (int i=0;i<3;i++) {
+	for (int j=0;j<3;j++) printf(" %+e ",grad[i][j] - ((i==j)?1.:0.)); printf("\n");	
+      }
+      
+      for (int id=3;id--;) { vecOut[id] = vecIn[id] - delta0[id];}
+      fun[kResD] = delta0[kResD];
+      break;
+    }
+    deltaR2Prev = deltaR2;
+  } while(++it<maxIt && deltaR2>minDelta2);
+
+  vecOut[kResD] = fun[kResD]; // dispersion at last queried point
+  //
+  return kTRUE;
+}
+
+
 //=====================================================================
 ///////////////////////////////////////////////////
 //
@@ -3553,11 +4272,12 @@ void trainCorr(int row, float* tzLoc, float* corrLoc)
   static int sector=0;
   if (!tzLoc || !corrLoc) {
     sector = row%AliTPCDcalibRes::kNSect2; 
-    printf("training Sector%d\n",sector);
+    printf("training corrections in Sector%d\n",sector);
     return;
   }
   //
-  AliTPCDcalibRes* calib = AliTPCDcalibRes::GetUsedInstance();
+  AliTPCDcalibRes *calib = AliTPCDcalibRes::GetUsedInstance(), 
+    *calibExt = AliTPCDcalibRes::GetUsedInstanceExt();
 
   float x = AliTPCDcalibRes::GetTPCRowX(row);
   float dist[AliTPCDcalibRes::kResDim] = {0};
@@ -3568,44 +4288,199 @@ void trainCorr(int row, float* tzLoc, float* corrLoc)
   //
   Bool_t res = calib->GetSmoothEstimate(sector, x, y2x, z2x, 0xff, dist);
   if (!res) { printf("Failed to evaluate smooth distortion\n"); exit(1); }
-
-  /*
-  // Marian stored Z track coordinate instead of cluster one, need to correct for this
-  if (fApplyZt2Zc) {
-    float deriv[AliTPCDcalibRes::kResDim*3];
-    const double inversionEps = 20e-4; // when inverting, stop Newton-Raphson iterations at this eps
-    const int    inversionMaxIt = 3; // when inverting, stop Newton-Raphson after some numbers of iterations
-    double change = 0, xInv = 1./x;
-    float zc = z2x*x;
-    float zt = zc + dist[kResZ]; // 1st guess on true zt at measured zc
-    //
-    // use Newton-Raphson method for NDLocal inversion to get zt = F(zc) from 
-    // dz == zt - zc = NDLoc(zt)   ->  zc - [zt - NDLoc(zt)]=0 
-    // ->  zt_{i+1} = zt_i - (zc - [zt - NDLoct(zt_i)])/(-d[zt_i-NDLoc(zt_i)]/dz)
-    //
-    int it = 0;
-    do {
-      z2x = zt*xInv;
-      res = GetSmoothEstimate(sector, x, y2x, z2x, dist, deriv);
-      if (!res) {printf("Failed to evaluate smooth distortion\n");exit(1);}
-      double bot = 1. - deriv[kResZ*3+2]*xInv;  // dF(zt_i)/dz
-      if (TMath::Abs(bot)<1e-6) break;
-      double top = zc - (zt - dist[kResZ]); // zc - F(zt_i) 
-      double change = top/bot;
-      //  printf("It %d Eps:%+e, Zc:%+e, Zt:%+e Ztn:%+e DZ:%+e | dztmp: :%+e DD:%+e\n",
-      //     it,change,zc,zt,zt+change,dz,dztmp,deriv[kndZ2R]*xInv);
-      zt += change;
-      it++;
-    } while(it<inversionMaxIt && TMath::Abs(change)>inversionEps);
-    //
-    // now query at fixed Z2X
-    z2x = zt*xInv;
-    res = GetSmoothEstimate(sector, x, y2x, z2x, dist);
-    if (!res) {printf("Failed to evaluate smooth distortion\n");exit(1);}
+  //
+  //check if extra instance was not set, in this case, average over 2
+  if (calibExt) {
+    float distExt[AliTPCDcalibRes::kResDim] = {0};
+    res = calibExt->GetSmoothEstimate(sector, x, y2x, z2x, 0xff, distExt);
+    if (!res) { printf("Failed to evaluate smooth distortion for Extra param\n"); exit(1); }
+    for (int i=AliTPCDcalibRes::kResDim;i--;) dist[i] = 0.5*(dist[i]+distExt[i]);
   }
-  */
-
+  //
   for (int i=0;i<AliTPCDcalibRes::kResDim;i++) corrLoc[i] = dist[i];
   //
 }
 //======================================================================================
+///////////////////////////////////////////////////
+//
+// This is a special non-meber f-n for cheb. inverse learning
+//
+static const AliTPCChebCorr* fgCorrForInv=0;
+static const AliTPCChebDist* fgDistDest=0;
+void SetCorrForInv(const AliTPCChebCorr* corr) {fgCorrForInv = corr;}
+void SetDistDest(const AliTPCChebDist* dist) {fgDistDest = dist;}
+
+void trainDist(int xslice, float* tzLoc, float distLoc[AliTPCDcalibRes::kResDim])
+{
+  // Distortion Cheb. object training f-n: compute distortion as inverse of cheb. correction.
+  //
+  // The chebyshev correction should be set beforehand using static SetCorrForInv(corr)
+  // xslice - slice in the stack
+  // tzLoc: y/x, z/x of primary ionization
+  // distLoc: x, y, z distortion + dispersion, in sector frame
+  // when called with distLoc or tzLoc pointer at 0, xslice sets the sector ID in 0-36 format
+
+  if (!fgDistDest) {
+    printf("The target distortion object must be set using SetDistDest(chebDist)\n");
+    exit(1);
+  }
+  static int sector=0;
+  if (!distLoc || !tzLoc) {
+    sector = xslice%AliTPCDcalibRes::kNSect2;
+    printf("training distorions in Sector%d\n",sector);
+    return;
+  }
+  //
+  float xyzPrim[AliTPCDcalibRes::kResDimG], xyzCl[AliTPCDcalibRes::kResDim];
+  xyzPrim[AliTPCDcalibRes::kResX] = fgDistDest->Slice2X(xslice);
+  xyzPrim[AliTPCDcalibRes::kResY] = tzLoc[0]*xyzPrim[AliTPCDcalibRes::kResX];
+  xyzPrim[AliTPCDcalibRes::kResZ] = tzLoc[1]*xyzPrim[AliTPCDcalibRes::kResX];
+  //
+  AliTPCDcalibRes *calib = AliTPCDcalibRes::GetUsedInstance();
+  calib->InvertCorrection(sector, xyzPrim, xyzCl); // calculate inverse distortion
+  for (int j=AliTPCDcalibRes::kResDimG;j--;) distLoc[j] = xyzCl[j]-xyzPrim[j];
+  distLoc[AliTPCDcalibRes::kResD] = xyzCl[AliTPCDcalibRes::kResD];
+  //
+}
+//======================================================================================
+
+//_____________________________________________________
+void AliTPCDcalibRes::CreateDistortionObject()
+{
+  // create distortion object for given time slice
+  AliSysInfo::AddStamp("CreateDistortionObject",0,0,0,0);
+  // check if there are failures
+  Bool_t create = kTRUE;
+  for (int i=0;i<kNSect2;i++) {
+    if (fNSmoothingFailedBins[i]>0) {
+      AliErrorF("%d failed voxels in sector %d",fNSmoothingFailedBins[i],i); 
+      create = kFALSE;
+    }
+  }
+  //
+  if (!create) {
+    AliError("ATTENTION: MAP WILL NOT BE CREATED");
+    return;
+  }
+  TString name = Form("run%d_%lld_%lld_InvDist",fRun,fTMin,fTMax);
+  delete fChebDist; fChebDist = 0;
+  fChebDist = new AliTPCChebDist(name.Data(),name.Data(),fChebPhiSlicePerSector,fChebZSlicePerSide,1.0f);
+  fChebDist->SetUseFloatPrec(kFALSE);
+  fChebDist->SetRun(fRun);
+  fChebDist->SetTimeStampStart(fTMin);
+  fChebDist->SetTimeStampEnd(fTMax);
+  fChebDist->SetTimeDependent(kFALSE);
+  fChebDist->SetUseZ2R(kTRUE);
+  SetDistDest(fChebDist);
+  //
+  if      (fBz> 0.01) fChebDist->SetFieldType(AliTPCChebCorr::kFieldPos);
+  else if (fBz<-0.01) fChebDist->SetFieldType(AliTPCChebCorr::kFieldNeg);
+  else                fChebDist->SetFieldType(AliTPCChebCorr::kFieldZero);
+  // Note: to create universal map, set manually SetFieldType(AliTPCChebCorr::kFieldAny)
+
+  SetUsedInstance(this);
+  int npCheb[kResDim][2];
+  for (int i=0;i<kResDim;i++) { // do we need to determine N nodes automatically?
+    int nbFauto = TMath::Max(int(fNY2XBins*1.2),fNY2XBins+3);
+    int nbZauto = TMath::Max(int(fNZ2XBins*1.2),fNZ2XBins+3);
+    npCheb[i][0] = fNPCheb[i][0];
+    npCheb[i][1] = fNPCheb[i][1];
+    if (npCheb[i][0]<1) {
+      npCheb[i][0] = nbFauto; // 1st dimension: sector coordinate y/x
+      AliInfoF("Nnodes for Cheb.%4s segmentation in %4s is set to %2d",kResName[i],kVoxName[kVoxF],nbFauto);
+    }
+    if (npCheb[i][1]<1) {
+      npCheb[i][1] = nbZauto; // 2nd dimension: z/x
+      AliInfoF("Nnodes for Cheb.%4s segmentation in %4s is set to %2d",kResName[i],kVoxName[kVoxZ],nbZauto);
+    }
+  }
+  fChebDist->Parameterize(trainDist,kResDim,npCheb,fChebPrecD);
+  //
+  // register tracks rate for lumi weighting
+  fChebDist->SetTracksRate(ExtractTrackRate());
+  //
+  AliSysInfo::AddStamp("CreateDistortionObject",1,0,0,0);
+}
+
+
+//__________________________________________________________
+void AliTPCDcalibRes::BringToActiveBoundary(int sect36, float xyz[3]) const
+{
+  // bring the point in sector frame to its active zone boundary (if outside)
+  const float kMaxY2X = TMath::Tan(0.5f*kSecDPhi);
+  //
+  if      (xyz[kResX]<kMinX) xyz[kResX] = kMinX;
+  else if (xyz[kResX]>kMaxX) xyz[kResX] = kMaxX;
+  //
+  float maxY = kMaxY2X*xyz[kResX] - kDeadZone;
+  if      (xyz[kResY]> maxY) xyz[kResY] = maxY;
+  else if (xyz[kResY]<-maxY) xyz[kResY] =-maxY;
+  //
+  float maxZ = kMaxZ2X*xyz[kResX];
+  int side = sect36<kNSect ? 1:-1;
+  if (xyz[kResZ]*side>maxZ) xyz[kResZ] = maxZ*side;
+  if (xyz[kResZ]*side<0)    xyz[kResZ] = 0;
+  //
+}
+
+//____________________________________________
+void AliTPCDcalibRes::WriteDistCorTestTree(int nx, int nphi2sect,int nzside)
+{
+  // write test tree with distortions and corrections
+  const float kMaxY2X = TMath::Tan(0.5f*kSecDPhi);
+  //
+  dcTst_t dc, *dcp=&dc;
+  //
+  if (!fChebDist) {
+    AliError("Cheb distortion is not ready yet");
+    return;
+  }
+  fChebDist->Init();
+  //
+  TFile* flOut = new TFile("DistCorrTest.root","recreate");
+  TTree* resTree = new TTree("dc","DistCorr test");
+  resTree->Branch("dc", &dcp);
+  //
+  float dz2x = 1./nzside;
+  float dy2x = 2.*kMaxY2X/nphi2sect;
+  float dx = (kMaxX-kMinX)/nx;
+  float dist[4],corr[4];
+  for (int is=0;is<kNSect2;is++) { 
+    dc.bsec = is;
+    for (int ix=0;ix<nx;ix++) {
+      float x = kMinX + dx*(ix+0.5);
+      dc.bvox[kVoxX] = ix;
+      dc.xyz[kResX] = x;
+      //
+      for (int ip=0;ip<nphi2sect;ip++) {
+	float y2x = -kMaxY2X + dy2x*(0.5+ip);
+	dc.bvox[kVoxF] = ip;
+	dc.xyz[kResY] = y2x*x;
+	//
+	for (int iz=0;iz<nzside;iz++) {
+	  float z2x = dz2x*(0.5+iz);
+	  dc.bvox[kVoxZ] = iz;
+	  if (is>=kNSect) z2x = -z2x;
+	  dc.xyz[kResZ] = z2x*x;
+	  //
+	  fChebDist->Eval(is,x,y2x,z2x,dist);
+	  float xd = x + dist[kResX];
+	  float yd = y2x*x+dist[kResY];
+	  float zd = z2x*x+dist[kResZ];
+	  GetSmoothEstimate(is,xd,yd/xd,zd/xd,(0x1<<4)-1,corr); 
+	  for (int v=kResDim;v--;) {
+	    dc.dxyz[v] = dist[v];
+	    dc.cxyz[v] = corr[v];
+	  }
+	  //
+	  resTree->Fill();
+	}
+	//
+      }
+    }
+  }
+  resTree->Write("", TObject::kOverwrite);
+  delete resTree;
+  flOut->Close();
+  delete flOut;
+}

@@ -58,6 +58,8 @@
 #include "AliADSDigit.h"
 #include "AliADTriggerSimulator.h"
 #include "AliLog.h"
+#include "AliHeader.h"
+#include "AliGenEventHeader.h"
 
 ClassImp(AliADDigitizer)
 
@@ -245,6 +247,7 @@ void AliADDigitizer::Digitize(Option_t* /*option*/)
       return;
     }
     AliRunLoader* runLoader = AliRunLoader::Instance();
+   
     for (Int_t iEvent = 0; iEvent < runLoader->GetNumberOfEvents(); ++iEvent) {
       runLoader->GetEvent(iEvent);
       if (fTask == kHits2Digits) {

@@ -111,7 +111,7 @@ public:
 
    DigiTask_t fTask;                 //! The task (to be) executed by the digitizer
    AliAD  *fAD;                //! Pointer to AliDetector object
-   ClassDef(AliADDigitizer,3)     // digitizer for AD
+   ClassDef(AliADDigitizer,5)     // digitizer for AD
 
 };
 

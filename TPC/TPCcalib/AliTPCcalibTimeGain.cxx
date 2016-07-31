@@ -197,6 +197,7 @@ AliTPCcalibTimeGain::AliTPCcalibTimeGain()
    fCutRequireITSrefit(0),
    fCutMaxDcaXY(0),
    fCutMaxDcaZ(0),
+   fMinTPCsignalN(60),
    fMinMomentumMIP(0),
    fMaxMomentumMIP(0),
    fAlephParameters(),
@@ -229,6 +230,7 @@ AliTPCcalibTimeGain::AliTPCcalibTimeGain(const Text_t *name, const Text_t *title
    fCutRequireITSrefit(0),
    fCutMaxDcaXY(0),
    fCutMaxDcaZ(0),
+   fMinTPCsignalN(60),
    fMinMomentumMIP(0),
    fMaxMomentumMIP(0),
    fAlephParameters(),
@@ -321,7 +323,7 @@ void AliTPCcalibTimeGain::Process(AliVEvent *event) {
   }
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
-   return;
+      return;
   }
   if (friendEvent->TestSkipBit()) return;
 
@@ -379,7 +381,10 @@ void AliTPCcalibTimeGain::ProcessCosmicEvent(AliVEvent *event) {
     Int_t nclsDeDx = track->GetTPCNcls();
 
     // exclude tracks which do not look like primaries or are simply too short or on wrong sectors
-    if (nclsDeDx < 60) continue;     
+    if (nclsDeDx < 60) continue;
+    //
+    if (track->GetTPCsignalN()<fMinTPCsignalN) continue;
+    //
     if (TMath::Abs(trackIn->GetTgl()) > 1) continue;
     if (TMath::Abs(trackIn->GetSnp()) > 0.6) continue;
     
@@ -453,6 +458,8 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
     UInt_t status = track->GetStatus();
     if ((status&AliVTrack::kTPCrefit)==0) continue;
     if ((status&AliVTrack::kITSrefit)==0 && fCutRequireITSrefit) continue; // ITS cluster
+    //
+    if (track->GetTPCsignalN()<fMinTPCsignalN) continue;
     //
     Float_t dca[2], cov[3];
     track->GetImpactParameters(dca,cov);
@@ -546,7 +553,7 @@ void AliTPCcalibTimeGain::ProcessBeamEvent(AliVEvent *event) {
 	Double_t tpcSignal = GetTPCdEdx(seed);
 	//dE/dx, time, type (1-muon cosmic,2-pion beam data), momenta
 	Double_t vec[6] = {tpcSignal,static_cast<Double_t>(time),1,meanDrift,meanP,static_cast<Double_t>(runNumber)};
-	fHistGainTime->Fill(vec);
+    fHistGainTime->Fill(vec);
       }
     }
     

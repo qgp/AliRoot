@@ -54,11 +54,13 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 # Build type for coverage builds
 set(CMAKE_CXX_FLAGS_COVERAGE "-g -O2 -fprofile-arcs -ftest-coverage")
 set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_CXX_FLAGS_COVERAGE}")
-set(CMAKE_LINK_FLAGS_COVERAGE "-fprofile-arcs -fPIC")
+set(CMAKE_Fortran_FLAGS_COVERAGE "-g -O2 -fprofile-arcs -ftest-coverage")
+set(CMAKE_LINK_FLAGS_COVERAGE "--coverage -fprofile-arcs  -fPIC")
 
 MARK_AS_ADVANCED(
     CMAKE_CXX_FLAGS_COVERAGE
     CMAKE_C_FLAGS_COVERAGE
+    CMAKE_Fortran_FLAGS_COVERAGE
     CMAKE_LINK_FLAGS_COVERAGE)
 
 # You can change the build type using
@@ -66,11 +68,12 @@ MARK_AS_ADVANCED(
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
 endif(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_ALLOWED_BUILD_TYPES DEBUG RELEASE RELWITHDEBINFO)
+string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
+set(CMAKE_ALLOWED_BUILD_TYPES DEBUG RELEASE RELWITHDEBINFO COVERAGE)
 list(FIND CMAKE_ALLOWED_BUILD_TYPES "${CMAKE_BUILD_TYPE}" VALID_BUILD_TYPE)
 if(${VALID_BUILD_TYPE} EQUAL -1)
   string(REPLACE ";" ", " CMAKE_ALLOWED_BUILD_TYPES_FLAT "${CMAKE_ALLOWED_BUILD_TYPES}")
-  message(FATAL_ERROR "Invalid build type ${CMAKE_BUILD_TYPE}. Use one of: ${CMAKE_ALLOWED_BUILD_TYPES_FLAT}. Build type is case-sensitive.")
+  message(FATAL_ERROR "Invalid build type ${CMAKE_BUILD_TYPE}. Use one of: ${CMAKE_ALLOWED_BUILD_TYPES_FLAT}.")
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE} (${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}})")
 
@@ -128,7 +131,7 @@ else()
   # Standard CMake inclusions and checks if we are actually building AliRoot,
   # i.e. not only the documentation
 
-  # Checking first for DIM, DATE, AMORE and daqDA 
+  # Checking first for DIM, DATE, AMORE and daqDA
   # in case ROOT Extra static library needs to be enabled
 
   # DATE
@@ -189,7 +192,7 @@ else()
 
     if(NOT DATE_FOUND)
       set(DA FALSE)
-      message(FATAL_ERROR "DAs enabled but no DATE support found. Please point to your date installation using \"DATE_CONFIG\" variable")
+      message(FATAL_ERROR "DAs enabled but no DATE support found. Please point to your date installation using \"DATE_CONFIG\" and \"DATE_ENV\" variables")
     endif()
 
     if(NOT daqDA_FOUND)
@@ -201,7 +204,7 @@ else()
       set(DA FALSE)
       message(FATAL_ERROR "DAs enabled but no AMORE support found. Please point to your AMORE installation using \"AMORE_CONFIG\" variable")
     endif()
-      
+
     # Enable static libraries
     set(ALIROOT_STATIC TRUE)
     message(STATUS "DAs enabled")
@@ -310,8 +313,9 @@ else()
   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
   set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
-  # List of modules for which PARfiles are enabled -- use the cache as global scope and clean it
+  # Use CMake cache as pseudo-"global" scope for those variables (list of PARfiles, list of DA RPMs)
   set(ALIPARFILES "" CACHE INTERNAL "ALIPARFILES" FORCE)
+  set(ALIDARPMS "" CACHE INTERNAL "ALIDARPMS" FORCE)
 
   # AliRoot base modules
   add_subdirectory(STEER)
@@ -329,7 +333,7 @@ else()
 
   # AliRoot modules
   set(ALIROOT_MODULES
-      ACORDE AD BCM EMCAL EPOS EVE EVGEN FASTSIM FIT FMD HLT HMPID ITS ITSMFT
+      ACORDE AD BCM EMCAL EVE EVGEN FASTSIM FIT FMD HLT HMPID ITS ITSMFT
       MONITOR MUON PHOS PMD STARLIGHT STAT STRUCT T0 TEvtGen TOF TPC TRD TRIGGER
       TTherminator VZERO ZDC ALIGN data GRP OCDB QAref)
 
@@ -403,6 +407,14 @@ else()
   string(REPLACE ";" " " ALIPARFILES_FLAT "${ALIPARFILES}")
   message(STATUS "PARfile target enabled for the following modules: ${ALIPARFILES_FLAT}")
 
+  # List enabled DAs
+  if (NOT "${ALIDARPMS}" STREQUAL "" AND DARPM)
+    string(REPLACE ";" " " ALIDARPMS_FLAT "${ALIDARPMS}")
+    message(STATUS "The following DA RPMs can be created individually with 'make <name>da.rpm' or altogether with 'make daqDA-all-rpm': ${ALIDARPMS_FLAT}")
+    add_custom_target("daqDA-all-rpm" COMMENT "Creating all RPMs")
+    add_dependencies("daqDA-all-rpm" ${ALIDARPMS})
+  endif()
+
   # Install Find macros for common packages to be further used by AliPhysics
   install(FILES
     cmake/CMakeALICE.cmake
@@ -412,5 +424,8 @@ else()
     cmake/GetGitRevisionDescription.cmake
     cmake/GetGitRevisionDescription.cmake.in
     DESTINATION cmake)
+
+  # Install test directory
+  install(DIRECTORY test/ DESTINATION test USE_SOURCE_PERMISSIONS)
 
 endif(DEFINED DOXYGEN_ONLY AND DOXYGEN_ONLY)

@@ -219,7 +219,7 @@ void  AliTPCcalibV0::DumpToTree(AliVEvent *ev){
     AliVTrack * track0 = fVevent->GetVTrack(v0->GetIndex(0)); // negative track
     AliVTrack * track1 = fVevent->GetVTrack(v0->GetIndex(1)); // positive track
     if (track0->GetTPCNcls()<kMinCluster) continue;
-    if (track0->GetKinkIndex(0)>0) continue;    
+    if (track0->GetKinkIndex(0)>0) continue;
     if (track1->GetTPCNcls()<kMinCluster) continue;
     if (track1->GetKinkIndex(0)>0) continue;
     if (v0->GetOnFlyStatus()==kFALSE) continue;
@@ -894,7 +894,7 @@ void AliTPCcalibV0::BinLogX(TH2F *h) {
 
 
 
-void AliTPCcalibV0::FilterV0s(AliVEvent* event){
+void AliTPCcalibV0::FilterV0s(AliVEvent *event){
   //
   // 
   TDatabasePDG pdg;  
@@ -903,7 +903,7 @@ void AliTPCcalibV0::FilterV0s(AliVEvent* event){
   const Double_t ptCut=0.2;
   const Int_t kMinNcl=110;
   //
-  Int_t nv0 = event->GetNumberOfV0s(); 
+  Int_t nv0 = event->GetNumberOfV0s();
   //AliESDVertex *vertex= (AliESDVertex *)event->GetPrimaryVertex();
   AliESDVertex vtx;
   event->GetPrimaryVertex(vtx);

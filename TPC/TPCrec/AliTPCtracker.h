@@ -116,6 +116,7 @@ public:
    
    Int_t FollowProlongation(AliTPCseed& t, Int_t rf=0, Int_t step=1, Bool_t fromSeeds=0);
    Bool_t GetTrackPoint(Int_t index, AliTrackPoint &p ) const; 
+   void   AddSystCovariance(AliTPCseed* t);
 
    Int_t FollowBackProlongation(AliTPCseed& t, Int_t rf, Bool_t fromSeeds=0);
    Int_t FollowToNext(AliTPCseed& t, Int_t nr);
@@ -130,8 +131,9 @@ public:
 
    void SortTracks(TObjArray * arr, Int_t mode) const;
   
-   virtual Double_t ErrY2(AliTPCseed* seed, const AliTPCclusterMI * cl = 0);
-   virtual Double_t ErrZ2(AliTPCseed* seed, const AliTPCclusterMI * cl = 0);   
+   void    ErrY2Z2(AliTPCseed* seed, const AliTPCclusterMI *cl, double &erry2, double &errz2);
+   virtual Double_t ErrY2(AliTPCseed* seed, const AliTPCclusterMI * cl);
+   virtual Double_t ErrZ2(AliTPCseed* seed, const AliTPCclusterMI * cl);   
 
    Double_t F1(Double_t x1,Double_t y1, Double_t x2,Double_t y2, Double_t x3,Double_t y3) const; 
    Double_t F1old(Double_t x1,Double_t y1, Double_t x2,Double_t y2, Double_t x3,Double_t y3) const; 

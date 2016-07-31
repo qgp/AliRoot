@@ -1,8 +1,8 @@
 #!/bin/bash
 SOURCE=/cvmfs/alice-ocdb.cern.ch/calibration/data/2016/OCDB
-TARGET=/home/drohr/HLT/HCDB_new3
+TARGET=/opt/HLT/data/HCDB_new_2016-07-26
 FUTURE_RUN=500000
-SOURCE_RUN=255283
+SOURCE_RUN=258307
 
 #Download default CDB entries for future run
 aliroot -l -b -q $ALICE_SOURCE/HLT/programs/downloadCDB.C"($FUTURE_RUN,\"local://$SOURCE\",\"local://$TARGET/tmp\",\"*/*/*\")"
@@ -17,11 +17,15 @@ rm -Rf $TARGET/tmp
 rm -Rf $TARGET/TPC/Calib/CorrectionMaps*
 
 #Create HLT HCDB configuration objects that differ from OCDB
+aliroot -l -q -b $ALICE_SOURCE/HLT/exa/makeComponentConfigurationObject.C"(\"HLT/ConfigHLT/OnlineMode\", \"HLT Online Mode\", \"local://$TARGET\")"
 aliroot -l -q -b $ALICE_SOURCE/HLT/exa/makeComponentConfigurationObject.C"(\"HLT/ConfigTPC/TPCHWClusterDecoder\", \"\", \"local://$TARGET\")"
-aliroot -l -q -b $ALICE_SOURCE/HLT/exa/makeComponentConfigurationObject.C"(\"HLT/ConfigTPC/TPCHWClusterFinder\",
-    \"-debug-level 0 -do-mc 0 -deconvolute-time 1 -deconvolute-pad 1 -flow-control 0 -single-pad-suppression 0 -bypass-merger 0 -cluster-lower-limit 10 -single-sequence-limit 0 -use-timebin-window 1 -merger-distance 4 -charge-fluctuation 0 -rcu2-data 1\",
+aliroot -l -q -b $ALICE_SOURCE/HLT/exa/makeComponentConfigurationObject.C"(\"HLT/ConfigTPC/TPCHWClusterFinder\", \
+    \"-debug-level 0 -do-mc 0 -deconvolute-time 1 -deconvolute-pad 1 -flow-control 0 -single-pad-suppression 0 -bypass-merger 0 -cluster-lower-limit 10 -single-sequence-limit 0 -use-timebin-window 1 -merger-distance 4 -charge-fluctuation 0 -rcu2-data 1\", \
     \"local://$TARGET\")"
 #ATTENTION: the -rcu2-data flag is NOT set for the HCDB!!!!!! This is set by the chain configuration not by the HCDB!!!!!! Thus, the setting is not applied running aliroot!!!!!!
+
+#Create Global Trigger Configuration
+aliroot -l -q -b $ALICE_SOURCE/HLT/programs/create-globaltrigger-HM-TPC-comp.C"(\"local://$TARGET\")"
 
 #Update TPC CalibDB
 aliroot -b << EOF
@@ -67,3 +71,14 @@ aliroot -l -q -b $ALICE_SOURCE/HLT/TPCLib/macros/makeTPCFastTransformOCDBObject.
 SRCFILE=`ls $ALICE_SOURCE/OCDB/HLT/ConfigTPC/TPCFastTransform | tail -n 1`
 aliroot -l -q -b $ALICE_SOURCE/HLT/programs/adjustOCDBObject.C"(\"$ALICE_SOURCE/OCDB/HLT/ConfigTPC/TPCFastTransform/$SRCFILE\", \"local://$TARGET\", 0)"
 rm -f $ALICE_SOURCE/OCDB/HLT/ConfigTPC/TPCFastTransform/*
+
+rm -f $TARGET/HLT/ConfigTPC/TPCDataCompressor/*
+rm -f $TARGET/HLT/ConfigTPC/TPCDataCompressorHuffmanTables/*
+cp $SOURCE//HLT/ConfigTPC/TPCDataCompressor/* $TARGET/HLT/ConfigTPC/TPCDataCompressor
+cp $SOURCE//HLT/ConfigTPC/TPCDataCompressorHuffmanTables/* $TARGET/HLT/ConfigTPC/TPCDataCompressorHuffmanTables
+
+#Create a default huffman table with diffential compression to match HLT settings in data replay
+aliroot -l -q -b $ALICE_SOURCE/HLT/programs/adjustOCDBObject.C"(\"$TARGET/HLT/ConfigTPC/TPCDataCompressorHuffmanTables/Run252209_999999999_v2_s0.root\", \"local://$TARGET\", 0, -1, 1)"
+
+#copy old GRP entries
+cp -n $ALIHLT_HCDBDIR/GRP/GRP/Data/* $TARGET/GRP/GRP/Data

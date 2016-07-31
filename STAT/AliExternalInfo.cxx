@@ -17,6 +17,7 @@
 #include "TFile.h"
 #include "TChain.h"
 #include "TMath.h"
+#include "TStatToolkit.h"
 
 ClassImp(AliExternalInfo)
 
@@ -33,6 +34,10 @@ AliExternalInfo::AliExternalInfo(TString localStorageDirectory, TString configLo
                                 fChainMap(),
                                 fMaxCacheSize(-1)
 {
+  // use default cache path from Env variable if specified 
+  if (gSystem->Getenv("AliExternalInfoCache")!=NULL){
+    if (localStorageDirectory.Length()<2)   fLocalStorageDirectory=gSystem->Getenv("AliExternalInfoCache");
+  }
   ReadConfig();
 }
 
@@ -93,7 +98,7 @@ void AliExternalInfo::PrintConfig(){
 
 /// Sets up all variables according to period, pass and type. Extracts information from the config file
 void AliExternalInfo::SetupVariables(TString& internalFilename, TString& internalLocation, Bool_t& resourceIsTree, TString& pathStructure, \
-                                     TString& detector, TString& rootFileName, TString& treeName, const TString& type, const TString& period, const TString& pass){
+                                     TString& detector, TString& rootFileName, TString& treeName, const TString& type, const TString& period, const TString& pass, TString & indexName){
   // Check if resource is a tree in a root file or not
   pathStructure = CreatePath(type, period, pass);
 
@@ -112,7 +117,8 @@ void AliExternalInfo::SetupVariables(TString& internalFilename, TString& interna
 
   rootFileName = fLocationTimeOutMap[type + ".filename"];
   treeName     = fLocationTimeOutMap[type + ".treename"];
-
+  indexName= fLocationTimeOutMap[type + ".indexname"];
+  if (indexName.Length()<=0) indexName="run";
   // Create the local path where to store the information of the resource
   internalLocation += pathStructure;
   AliInfo(TString::Format("Information will be stored/retrieved in/from %s", internalLocation.Data()));
@@ -148,12 +154,14 @@ Bool_t AliExternalInfo::Cache(TString type, TString period, TString pass){
   TString rootFileName = "";
   TString treeName = "";
   TString pathStructure = "";
+  TString indexName=""; 
+  TString oldIndexName= fLocationTimeOutMap[type + ".indexname"];  // rename index branch to avoid incositencies (bug in ROOT - the same index branch name requeired) 
 
   // initialization of external variables
   externalLocation = fLocationTimeOutMap[type + ".location"];
 
   // Setting up all the local variables
-  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass);
+  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass,indexName);
 
   // Checking if resource needs to be downloaded
   const Bool_t downloadNeeded = IsDownloadNeeded(internalFilename, type);
@@ -197,11 +205,17 @@ Bool_t AliExternalInfo::Cache(TString type, TString period, TString pass){
 
       std::cout << command << std::endl;
       gSystem->Exec(command.Data());
-
+      if (oldIndexName.Length()==0){
+	gSystem->Exec(TString::Format("cat %s | sed -l 1 s/raw_run/run/ |  sed -l 1 s/RunNo/run/ > %s",mifFilePath.Data(),  (mifFilePath+"RunFix").Data())); // use standrd run number IDS
+      }else{
+	gSystem->Exec(TString::Format("cat %s | sed -l 1 s/%s/%s/  > %s",mifFilePath.Data(), oldIndexName.Data(), indexName.Data(),  (mifFilePath+"RunFix").Data())); // use standrd run number IDS
+      }
       // Store it in a tree inside a root file
+      TFile tempfile(internalFilename, "RECREATE");
+      tempfile.cd();
       TTree tree(treeName, treeName);
 
-      if ( (tree.ReadFile(mifFilePath, "", '\"')) > 0) {
+      if ( (tree.ReadFile(mifFilePath+"RunFix", "", '\"')) > 0) {
         AliInfo("-- Successfully read in tree");
       }
       else {
@@ -209,8 +223,6 @@ Bool_t AliExternalInfo::Cache(TString type, TString period, TString pass){
         return kFALSE;
       }
 
-      TFile tempfile(internalFilename, "RECREATE");
-      tempfile.cd();
       tree.Write();
       tempfile.Close();
       AliInfo(TString::Format("Write tree to file: %s", internalFilename.Data()));
@@ -236,11 +248,12 @@ TTree* AliExternalInfo::GetTree(TString type, TString period, TString pass){
   TString rootFileName = "";
   TString treeName = "";
   TString pathStructure = "";
+  TString indexName=""; 
 
   TTree* tree = 0x0;
 
   // Setting up all the local variables
-  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass);
+  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass,indexName);
 
   std::cout << "internalFilename: " << internalFilename << " rootFileName: " << rootFileName << std::endl;
 
@@ -284,6 +297,61 @@ TTree* AliExternalInfo::GetTree(TString type, TString period, TString pass){
 }
 
 /// \param type Type of the resource as described in the config file, e.g. QA.TPC, MonALISA.RCT
+/// \param period Period, e.g. 'LHC15f'
+/// \param pass E.g. 'pass2' or 'passMC'
+/// \param friendList - semicolomn separated array of "friend" trees attached to the tree
+/// Returns the tree with the information from the corresponding resource - trees from the friendList are added as friend trees
+/// see example usage
+/// \return TTree* with corresponding resource
+
+TTree*  AliExternalInfo::GetTree(TString type, TString period, TString pass, TString friendList){
+  //  
+  /*
+    Example usage:
+     treerawTPC = info.GetTree("QA.rawTPC","LHC16f","cpass1_pass1","Logbook;Logbook.detector;QA.TPC;QA.TRD;QA.TOF;QA.ITS;MonALISA.RCT");
+     treerawTPC->Draw("QA.TPC.meanMIP:gainMIP","abs(QA.TPC.meanMIP-50)<2&&gainMIP>1","")
+     treerawTPC->Draw("QA.TPC.run!=run","QA.TPC.run==QA.TRD.run","");  //consistency check
+   */
+  TTree * tree = GetTree(type, period,pass);  
+  if (tree==NULL) tree=  GetTree(type, period,"");
+  if (tree==NULL) tree=  GetTree(type, "","");
+  if (tree==NULL){
+    ::Error("AliExternalInfo::GetTree","Friend tree %s not valid or empty",type.Data()); 
+    return 0;
+  }
+  TString indexName= fLocationTimeOutMap[type + ".indexname"];
+  TString oldIndexName= fLocationTimeOutMap[type + ".oldindexname"];
+  if (oldIndexName.Length()>0 && tree->FindBranch(oldIndexName.Data())){
+    tree->FindBranch(oldIndexName.Data())->SetName(indexName.Data());
+  }
+  if (indexName.Length()<=0) indexName="run";
+  Int_t entries = tree->Draw(indexName.Data(),"","goff");
+  if (entries<=0){
+    ::Error("AliExternalInfo::GetTree","Friend tree %s not valid or empty",type.Data()); 
+    return 0;
+  }
+
+  TObjArray * arrFriendList= friendList.Tokenize(";");
+  for (Int_t ilist=0; ilist<arrFriendList->GetEntriesFast(); ilist++){
+    TString fname=arrFriendList->At(ilist)->GetName();
+    TTree *ftree= GetTree(fname.Data(), period,pass);
+    if (ftree==NULL) ftree=  GetTree(fname.Data(), period,"");
+    if (ftree==NULL) ftree=  GetTree(fname.Data(), "","");
+    if (ftree==NULL || ftree->GetEntries()<=0){
+      ::Error("AliExternalInfo::GetTree","Friend tree %s not valid or empty",fname.Data()); 
+      continue;
+    }
+    tree->AddFriend(ftree, fname.Data());
+    ftree->AddFriend(tree, type.Data());
+    Int_t fentries = tree->Draw(indexName.Data(),"","goff");
+    ::Info("AliExternalInfo::GetTree","AddFriend %s+%s - entries=%d", type.Data(),  fname.Data(),fentries);
+  }
+  return tree;
+}
+
+
+
+/// \param type Type of the resource as described in the config file, e.g. QA.TPC, MonALISA.RCT
 /// \param period Period, e.g. 'LHC15f'. Here you can use wildcards like in 'ls', e.g. 'LHC15*'
 /// \param pass E.g. 'pass2' or 'passMC'. Here you can use wildcards like in 'ls', e.g. 'pass*'
 /// Returns a chain with the information from the corresponding resources.
@@ -298,9 +366,11 @@ TChain* AliExternalInfo::GetChain(TString type, TString period, TString pass){
   TString rootFileName = "";
   TString treeName = "";
   TString pathStructure = "";
+  TString indexName=""; 
+ 
 
   // Setting up all the local variables
-  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass);
+  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass,indexName);
 
   TString cmd = TString::Format("/bin/ls %s", internalFilename.Data());
   // std::cout << "==== cmd: " << cmd << std::endl;
@@ -311,10 +381,21 @@ TChain* AliExternalInfo::GetChain(TString type, TString period, TString pass){
 
   //function to get tree namee based on type
   chain=new TChain(treeName.Data());
-  for (Int_t ifile=0; ifile<arrFiles->GetEntriesFast(); ++ifile) {
-    chain->AddFile(arrFiles->At(ifile)->GetName());
-  }
+   // ---| loop over possible tree names |---
+  TObjArray *arrTreeName = treeName.Tokenize(",");
 
+  for (Int_t ifile=0; ifile<arrFiles->GetEntriesFast(); ++ifile) {
+    for (Int_t itree=0; itree<arrTreeName->GetEntriesFast(); itree++){
+      TFile *ftemp=TFile::Open(arrFiles->At(ifile)->GetName());
+      if (ftemp==NULL) continue;
+      if (ftemp->GetListOfKeys()->FindObject(arrTreeName->At(itree)->GetName())){
+	chain->AddFile(arrFiles->At(ifile)->GetName(),0, arrTreeName->At(itree)->GetName());
+	
+      }
+      delete ftemp;
+    }
+  }
+  
   const TString cacheSize=fLocationTimeOutMap[type + ".CacheSize"];
   Long64_t cache=cacheSize.Atoll();
   if (fMaxCacheSize>0) {
@@ -328,6 +409,7 @@ TChain* AliExternalInfo::GetChain(TString type, TString period, TString pass){
 
   AddChain(type, period, pass);
   delete arrFiles;
+  delete arrTreeName;
   return chain;
 };
 
@@ -336,8 +418,30 @@ TChain* AliExternalInfo::GetChain(TString type, TString period, TString pass){
 /// @TODO Add 'return false' when adding to the friends tree was not successful
 /// \return kTRUE
 Bool_t AliExternalInfo::AddTree(TTree* tree, TString type){
+  //
+  //
+  //
+  TString indexName= fLocationTimeOutMap[type + ".indexname"];
+  TString oldIndexName= fLocationTimeOutMap[type + ".oldindexname"];
+  //
+  if (oldIndexName.Length()>0){  // rename branch  with index if specified in configuration file
+    if (tree->GetBranch(oldIndexName.Data())) {
+      tree->GetBranch(oldIndexName.Data())->SetName(indexName.Data());
+    }
+  }
+  if (indexName.Length()<=0) { // set default index name
+    if (tree->GetListOfBranches()->FindObject("run"))  indexName="run";    
+  }
+  if (indexName.Length()<=0) {
+    ::Error("AliExternalInfo::AddTree","Index %s not avaible for type %s", indexName.Data(), type.Data());
+  }  
+  if (TString(tree->GetBranch(indexName.Data())->GetTitle()).Contains("/C")){
+    BuildHashIndex(tree,indexName.Data(),"hashIndex");
+  }else{
+    tree->BuildIndex(indexName.Data());
+  }
+  TStatToolkit::AddMetadata(tree,"TTree.indexName",indexName.Data());
 
-  if (tree->BuildIndex("run") < 0) tree->BuildIndex("raw_run");
   TString name = "";
 
   if(type.Contains("QA")){ // use TPC instead of QA.TPC
@@ -371,9 +475,10 @@ Bool_t AliExternalInfo::AddChain(TString type, TString period, TString pass){
   TString rootFileName = "";
   TString treeName = "";
   TString pathStructure = "";
+  TString indexName=""; 
 
   // Setting up all the local variables
-  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass);
+  SetupVariables(internalFilename, internalLocation, resourceIsTree, pathStructure, detector, rootFileName, treeName, type, period, pass,indexName);
   AliInfo(TString::Format("Add to internal Chain: %s", internalFilename.Data()));
   AliInfo(TString::Format("with tree name: %s",        treeName.Data()));
   fChain->AddFile(internalFilename.Data(), TChain::kBigNumber, treeName);
@@ -482,3 +587,69 @@ const TString AliExternalInfo::Wget(TString& mifFilePath, const TString& interna
                                      mifFilePath.Data(), externalLocation.Data());
   return command;
 }
+
+
+/// \param period  LHC period
+/// \param pass    calibratio pass
+
+TTree * AliExternalInfo::GetCPassTree(const char * period, const  char *pass){
+  //
+  // Try to find production information about pass OCDB export
+  // To find the production description field of the overlal production table is queried
+  //
+  // Warnig:
+  //    In some cases mif format internaly used not stable 
+  //    Unit consistency test should be part of procedure
+  //
+  TTree * treeProdArray=0, *treeProd=0;
+  AliExternalInfo info;
+  treeProdArray = info.GetTreeCPass();
+  treeProdArray->Scan("ID:Description:Tag",TString::Format("strstr(Tag,\"%s\")&&strstr(Tag,\"%s\")&& strstr(Description,\"merging\")",period,pass).Data(),"col=10:100:100");
+  // check all candidata production and select one which exports OCDB
+  Int_t entries= treeProdArray->Draw("ID:Description",TString::Format("strstr(Description,\"%s\")&&strstr(Description,\"%s\")&& strstr(Description,\"merging\")",period,pass).Data(),"goff");  
+  for (Int_t ientry=0; ientry<entries; ientry++){
+    TTree * treeProd0 = info.GetTreeProdCycleByID(TString::Format("%.0f",treeProdArray->GetV1()[ientry]).Data());
+    Int_t status = treeProd0->Draw("1","strstr(outputdir,\"OCDB\")==1","goff");       // check presence of the OCDB 
+    if (status==0) {
+      delete treeProd0;
+      continue;
+    }
+    treeProd=treeProd0;
+  }
+  return treeProd;
+}
+
+/// Add branch index branch with name chindexName calculated from input string branch chbranchName
+/// and make thi branch as a primary index 
+/// used in order to qury FreindTrees with string keyname (impossible with standard ROOT)
+/// 
+/// \param tree            - input tree
+/// \param chbranchName    - branch name with index
+/// \param chindexName     - name if the index branch
+void AliExternalInfo::BuildHashIndex(TTree* tree, const char *chbranchName,  const char *chindexName){
+  //
+  //
+  Int_t indexName=0;
+  char  pbranchName[100];
+  TBranch *brIndexMC = tree->Branch(chindexName,&indexName,TString::Format("%s/I",chindexName).Data()); // branch to fill
+  TBranch *branch=tree->GetBranch(chbranchName); // branhc to get string
+  if (branch!=NULL){
+    branch->SetAddress(&pbranchName);
+  }else{
+    //;
+  }
+  Int_t entries= tree->GetEntries();
+  for (Int_t ientry=0; ientry<entries; ientry++){
+    branch->GetEntry(ientry);
+    indexName=TMath::Hash(pbranchName);
+    brIndexMC->Fill();
+  }
+  tree->BuildIndex(chindexName);
+  brIndexMC->SetAddress(0);  // reset pointers to the branches to 0
+  branch->SetAddress(0);     // reset pointers to the branches to 0
+}
+
+
+
+
+

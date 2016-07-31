@@ -26,6 +26,8 @@
 #include "signal.h"
 #include <unistd.h>
 #include <pthread.h>
+#include "TMethodCall.h"
+#include "TMethod.h"
 
 //this is meant to become a class, hence the structure with global vars etc.
 //Also the code is rather flat - it is a bit of a playground to test ideas.
@@ -46,8 +48,9 @@ Int_t DoSend(void* socket);
 Int_t DoReply(aliZMQmsg::iterator block, void* socket);
 Int_t DoRequest(void*& socket, TString* config=NULL);
 Int_t DoControl(aliZMQmsg::iterator block, void* socket);
-Int_t GetObjects(AliAnalysisDataContainer* kont, std::vector<TObject*>* list, const char* prefix="");
-Int_t GetObjects(TCollection* collection, std::vector<TObject*>* list, const char* prefix="");
+Int_t GetObjects(AliAnalysisDataContainer* kont, std::vector<TObject*>* list, std::string prefix="");
+Int_t GetObjects(TCollection* collection, std::vector<TObject*>* list, std::string prefix="");
+TCollection* UnpackToCollection(TObject*, std::string);
 Int_t ReadFromFile(std::string file);
 Int_t DumpToFile(std::string file);
 
@@ -68,6 +71,7 @@ TString fZMQsubscriptionIN = "";
 TString fZMQconfigOUT  = "PUSH";
 TString fZMQconfigMON  = "REP";
 TString fZMQconfigSYNC  = "";
+TString fOnResetSendTo = "";
 Int_t   fZMQmaxQueueSize = 10;
 Int_t   fZMQtimeout = -1;
 std::string fInitFile = "";
@@ -75,7 +79,7 @@ std::string fInitFile = "";
 Bool_t  fResetOnSend = kFALSE;      //reset on each send (also on scheduled pushing)
 Bool_t  fResetOnRequest = kFALSE;   //reset once after a single request
 Bool_t  fRequestResetOnRequest = kFALSE; //when requesting from another merger, request also a reset
-Bool_t fClearOnReset = kFALSE;
+Bool_t  fClearOnReset = kFALSE;
 
 Bool_t  fAllowGlobalReset=kTRUE;
 Bool_t  fAllowControlSequences=kTRUE;
@@ -85,11 +89,16 @@ Bool_t  fAllowClearAtSOR=kFALSE;
 
 Bool_t  fUnpackCollections = kFALSE;
 Bool_t  fUnpackContainers = kFALSE;
+std::string fCustomUnpackMethodName = "GetListOfDrawableObjects";
+Bool_t  fCustomUnpackMethod = kFALSE;
 
 TPRegexp* fSendSelection = NULL;
 TPRegexp* fUnSendSelection = NULL;
 std::string fNameList = "";
 TString fTitleAnnotation = "";
+TString fNameAnnotation = "";
+Bool_t fTitleAnnotationWithContainerName = kFALSE;
+Bool_t fIgnoreDefaultNamesWhenUnpacking = kFALSE;
 
 AliHLTDataTopic fInfoTopic = kAliHLTDataTypeInfo;
 
@@ -103,6 +112,8 @@ Int_t fMaxObjects = 1;        //trigger merge after this many messages
 std::vector<TObject*> fListOfObjects;
 
 long fPushbackPeriod = -1;        //in seconds, -1 means never
+long fRequestPeriod = -1;        //in seconds, -1 means never
+long fRequestTimeout = 10000;    //default 10s
 Bool_t fCacheOnly = kFALSE;
 aliZMQrootStreamerInfo* fSchema = NULL;
 bool fSchemaOnRequest = false;
@@ -111,7 +122,13 @@ int fCompression = 1;
 bool fgTerminationSignaled=false;
 
 unsigned long long fLastPushBackTime = 0;
+unsigned long long fLastRequestTime = 0;
 struct timeval fCurrentTimeStruct;
+
+unsigned long fBytesIN = 0;
+unsigned long fBytesOUT = 0;
+unsigned long fSecondsStart = 0;
+unsigned long fSecondsStop = 0;
 
 //ZMQ stuff
 void* fZMQcontext = NULL;    //ze zmq context
@@ -120,14 +137,15 @@ void* fZMQmon = NULL;        //the request-reply socket, here we request the mer
 void* fZMQout = NULL;        //the monitoring socket, here we publish a copy of the data
 void* fZMQin  = NULL;        //the in socket - entry point for the data to be merged.
 void* fZMQsync = NULL;
+void* fZMQresetBroadcast = NULL;
 
 //request trigger
 void* fZMQtrig = NULL; //dummy socket to trigger requests at constant time interval
 std::string fZMQconfigTRIG = "PAIR@inproc://trigger";
-pthread_t fTRIGthread = NULL;
+pthread_t fTRIGthread;
 void* runTRIGthread(void*);
 
-const char* fUSAGE = 
+const char* fUSAGE =
     "ZMQROOTmerger options: Merge() all ROOT mergeables in the message.\n"
     "merge based on what GetName() returns, the merged data can be retrieved at any time.\n"
     " -in : data in, zmq config string, e.g. PUSH>tcp://localhost:123123\n"
@@ -136,8 +154,11 @@ const char* fUSAGE =
     " -sync : sync socket, will send the INFO block on run change, has to be PUB or SUB\n"
     " -Verbose : print some info\n"
     " -pushback-period : push the merged data once every n milliseconds (if updated)\n"
+    " -request-period : request period [ms] - limited by request-timeout\n"
+    " -request-timeout : timeout for REQ socket [ms] after which socket is reinitialized\n"
     " -ResetOnSend : always reset after send\n"
     " -ResetOnRequest : reset once after reply\n"
+    " -OnResetBroadcastTo : push (a copy) before resetting to socket [in|out|mon]\n"
     " -RequestResetOnRequest : if requesting form another merger, request a ResetOnRequest\n"
     " -ClearOnReset : instead of destroying data - clear it by calling TH1::Reset() on all histograms\n"
     " -AllowGlobalReset :  allow a global \'reset\' on request\n"
@@ -147,19 +168,23 @@ const char* fUSAGE =
     " -AllowControlSequences : allow control seqs (CONFIG messages)\n"
     " -MaxObjects : merge after this many objects are in (default 1)\n"
     " -reset : reset NOW\n"
-    " -select : set the selection regex for sending out objects,\n" 
+    " -select : set the selection regex for sending out objects,\n"
     "           valid for one reply if used in a request,\n"
     " -unselect : as above, only inverted\n"
-    " -list : a list of (fulll) names to send (arb. delimiter)\n"
+    " -list : a list of (full) names to send (arb. delimiter)\n"
     " -cache : don't merge, only cache (i.e. replace)\n"
     " -annotateTitle : prepend string to title (if applicable)\n"
+    " -annotateTitleWithContainerName : prepend the container name to title\n"
+    " -annotateName : prepend string to the name\n"
     " -ZMQtimeout: when to timeout the sockets (milliseconds)\n"
-    " -sleep : socket timeout (milliseconds) - same as ZMQtimeout\n"
     " -schema : include the ROOT streamer infos in the messages containing ROOT objects\n"
     " -SchemaOnRequest : include streamers ONCE (after a request)\n"
     " -SchemaOnSend : include streamers ALWAYS in each sent message\n"
     " -UnpackCollections : cache/merge the contents of the collections instead of the collection itself\n"
     " -UnpackContainers : unpack the contents of AliAnalysisDataContainers\n"
+    " -UnpackCustom : use a custom method to unpack the objects (must return TCollection* AND must be in a collection)\n"
+    " -CustomUnpackMethodName : name of the custom method to call to get a pointer to unpacked objects\n"
+    " -IgnoreDefaultContainerNames : don't prefix default container names (TList,TObjArray)\n"
     " -statefile : save/restore state on exit/start\n"
     ;
 //_______________________________________________________________________________________
@@ -175,11 +200,15 @@ Int_t Run()
 {
   fMergeListMap.SetOwnerKeyValue(kTRUE,kTRUE);
 
+  //start time (sec)
+  gettimeofday(&fCurrentTimeStruct, NULL);
+  fSecondsStart = fCurrentTimeStruct.tv_sec;
+
   //main loop
   while(!fgTerminationSignaled)
   {
     Int_t nSockets=5;
-    zmq_pollitem_t sockets[] = { 
+    zmq_pollitem_t sockets[] = {
       { fZMQin, 0, ZMQ_POLLIN, 0 },
       { fZMQout, 0, ZMQ_POLLIN, 0 },
       { fZMQmon, 0, ZMQ_POLLIN, 0 },
@@ -199,7 +228,7 @@ Int_t Run()
     //poll sockets - we want to take action on one of two conditions:
     //  1 - request comes in - then we merge whatever is not yet merged and send
     //  2 - data comes in - then we add it to the merging list
-    rc = zmq_poll(sockets, nSockets, -1); //poll sockets
+    rc = zmq_poll(sockets, nSockets, fZMQtimeout); //poll sockets
     if (rc==-1 && errno==ETERM)
     {
       //this can only happen it the context was terminated, one of the sockets are
@@ -213,16 +242,16 @@ Int_t Run()
     {
       int pushBack = 0;
       aliZMQmsg message;
-      alizmq_msg_recv(&message, fZMQin, 0);
+      fBytesIN += alizmq_msg_recv(&message, fZMQin, 0);
       for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
       {
-        if (alizmq_socket_type(fZMQin)==ZMQ_REP) 
+        if (alizmq_socket_type(fZMQin)==ZMQ_REP)
         { HandleRequest(i, fZMQin); }
         else
         { pushBack += HandleDataIn(i, fZMQout); }
       }
       alizmq_msg_close(&message);
-      
+
       if (pushBack>0)
       {
         if (fVerbose) printf("pushback!\n");
@@ -236,10 +265,10 @@ Int_t Run()
     {
       int pushBack = 0;
       aliZMQmsg message;
-      alizmq_msg_recv(&message, fZMQout, 0);
+      fBytesIN += alizmq_msg_recv(&message, fZMQout, 0);
       for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
       {
-        if (alizmq_socket_type(fZMQout)==ZMQ_REP) 
+        if (alizmq_socket_type(fZMQout)==ZMQ_REP)
         { HandleRequest(i, fZMQout); }
         else
         { pushBack += HandleDataIn(i, fZMQin); }
@@ -252,16 +281,16 @@ Int_t Run()
         SetLastPushBackTime();
       }
     }//socket 1
-    
+
     //data present socket 2 - mon
     if (sockets[2].revents & ZMQ_POLLIN)
     {
       int pushBack = 0;
       aliZMQmsg message;
-      alizmq_msg_recv(&message, fZMQmon, 0);
+      fBytesIN += alizmq_msg_recv(&message, fZMQmon, 0);
       for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
       {
-        if (alizmq_socket_type(fZMQmon)==ZMQ_REP) 
+        if (alizmq_socket_type(fZMQmon)==ZMQ_REP)
         { HandleRequest(i, fZMQmon); }
         else
         { pushBack += HandleDataIn(i, fZMQmon); }
@@ -274,19 +303,19 @@ Int_t Run()
         SetLastPushBackTime();
       }
     }//socket 2
-    
+
     //data present socket 3 - sync
     if (sockets[3].revents & ZMQ_POLLIN)
     {
       aliZMQmsg message;
-      alizmq_msg_recv(&message, fZMQsync, 0);
+      fBytesIN += alizmq_msg_recv(&message, fZMQsync, 0);
       for (aliZMQmsg::iterator i=message.begin(); i!=message.end(); ++i)
       {
         HandleDataIn(i, fZMQsync);
       }
       alizmq_msg_close(&message);
     }//socket 3
-    
+
     //data present socket 4 - trig
     if (sockets[4].revents & ZMQ_POLLIN)
     {
@@ -297,9 +326,23 @@ Int_t Run()
       if (outType==ZMQ_REQ) DoRequest(fZMQout, &fZMQconfigOUT);
       if (monType==ZMQ_REQ) DoRequest(fZMQmon, &fZMQconfigMON);
 
+      //this might trigger internal cleanup
+      alizmq_socket_state(fZMQin);
+      alizmq_socket_state(fZMQout);
+      alizmq_socket_state(fZMQmon);
+      alizmq_socket_state(fZMQsync);
     }//socket 3
 
   }//main loop
+
+  //stop time (sec)
+  gettimeofday(&fCurrentTimeStruct, NULL);
+  fSecondsStop = fCurrentTimeStruct.tv_sec;
+
+  {
+    printf("in  %.2f MB, %.2f MB/s\n", (double)(fBytesIN/1024./1024.),  (float)(fBytesIN/(fSecondsStop-fSecondsStart)/1024./1024.));
+    printf("out %.2f MB, %.2f MB/s\n", (double)(fBytesOUT/1024./1024.), (float)(fBytesOUT/(fSecondsStop-fSecondsStart)/1024./1024.));
+  }
 
   return 0;
 }
@@ -341,7 +384,7 @@ Int_t DoControl(aliZMQmsg::iterator block, void* socket)
     //on run change
     if (runnumber != fRunNumber)
     {
-      if (fAllowResetAtSOR) 
+      if (fAllowResetAtSOR)
       {
         if (ResetOutputData(fAllowResetAtSOR)>0)
         {
@@ -357,15 +400,15 @@ Int_t DoControl(aliZMQmsg::iterator block, void* socket)
       }
       if (fZMQsync)
       {
-        alizmq_msg_send(fInfoTopic, fInfo, fZMQsync, ZMQ_DONTWAIT);
+        fBytesOUT += alizmq_msg_send(fInfoTopic, fInfo, fZMQsync, ZMQ_DONTWAIT);
       }
-      fRunNumber = runnumber; 
+      fRunNumber = runnumber;
       DoSend(socket);
     }//on run change
 
     return 1;
   }
-  
+
   return 0;
 }
 
@@ -393,10 +436,10 @@ Int_t DoReply(aliZMQmsg::iterator block, void* socket)
   fResetOnRequest = kFALSE;
   fSchemaOnRequest = false;
   fNameList.clear();
-  if (fVerbose && (fSendSelection || fUnSendSelection)) 
+  if (fVerbose && (fSendSelection || fUnSendSelection))
   {
     Printf("unsetting include=%s, exclude=%s",
-        (fSendSelection)?fSendSelection->GetPattern().Data():"", 
+        (fSendSelection)?fSendSelection->GetPattern().Data():"",
         (fUnSendSelection)?fUnSendSelection->GetPattern().Data():"");
   }
   delete fSendSelection; fSendSelection=NULL;
@@ -412,10 +455,19 @@ int AddNewObject(const char* name, TObject* object, TMap* map)
   {
     TNamed* named = dynamic_cast<TNamed*>(object);
     if (!named) return 0;
-    
+
     TString title = named->GetTitle();
     title = fTitleAnnotation + " " + title;
     named->SetTitle(title);
+  }
+  if (!fNameAnnotation.IsNull())
+  {
+    TNamed* named = dynamic_cast<TNamed*>(object);
+    if (!named) return 0;
+
+    TString name = named->GetName();
+    name = fNameAnnotation + " " + name;
+    named->SetName(name);
   }
   return 0;
 }
@@ -449,7 +501,7 @@ Int_t AddObject(TObject* object)
     if (fVerbose) Printf("adding %s to fMergeObjectMap as first instance", name);
     AddNewObject(name, object, &fMergeObjectMap);
   }
-  else if (!mergingList && !fCacheOnly) 
+  else if (!mergingList && !fCacheOnly)
   {
     if (fVerbose) Printf("adding a new list %s to fMergeListMap", name);
     mergingList = new TList();
@@ -510,17 +562,17 @@ Int_t DoReceive(aliZMQmsg::iterator block, void* socket)
       if (container) {
         //unpack an analysis data container
         if (fVerbose) printf("unpacking analysis container %s %p\n", container->GetName(), container);
-        GetObjects(container, &fListOfObjects);      
+        GetObjects(container, &fListOfObjects);
         delete container;
         break;
-      } 
+      }
     }
 
     if (TCollection* collection = dynamic_cast<TCollection*>(object)) {
       //unpack a collection
       if (fUnpackCollections) {
         if (fVerbose) printf("unpacking collection %s %p\n", collection->GetName(), collection);
-        GetObjects(collection, &fListOfObjects);      
+        GetObjects(collection, &fListOfObjects);
         delete collection;
         break;
       } else {
@@ -545,8 +597,9 @@ Int_t DoReceive(aliZMQmsg::iterator block, void* socket)
   {
     gettimeofday(&fCurrentTimeStruct, NULL);
     unsigned long long currentTime = 1000*fCurrentTimeStruct.tv_sec+fCurrentTimeStruct.tv_usec/1000;
-    
-    if (currentTime-fLastPushBackTime >= fPushbackPeriod)
+
+    unsigned long timeInterval = currentTime - fLastPushBackTime;
+    if (timeInterval >= fPushbackPeriod)
     {
       return 1; //signal we will want to send after message is done
     }
@@ -559,15 +612,28 @@ Int_t DoReceive(aliZMQmsg::iterator block, void* socket)
 //______________________________________________________________________________
 Int_t DoRequest(void*& socket, TString* config)
 {
-
   //if we cannot send it means we were waiting for a reply.
-  //reinit the socket because probably the server died...
+  //after enough time passed we assume server died and reinit the socket
+  gettimeofday(&fCurrentTimeStruct, NULL);
+  unsigned long long currentTime = 1000*fCurrentTimeStruct.tv_sec +
+                                        fCurrentTimeStruct.tv_usec/1000;
+  unsigned long long sinceLastRequest = currentTime - fLastRequestTime;
+
   if ((alizmq_socket_state(socket)&ZMQ_POLLOUT)==0) {
-    if (fVerbose) printf("no reply from %s in %i ms, server died? - reinit socket\n", config->Data(), fZMQtimeout);
+
+    //if we are still waiting, do nothing
+    if (fLastRequestTime>0 && sinceLastRequest < fRequestTimeout) {
+      if (fVerbose) printf("still waiting for a reply....\n");
+      return -1;
+    }
+
+    //if we are not still waiting and socket is in wrong state, we have to reinit the socket
+    if (fVerbose) printf("no reply from %s in %li ms, server died? - reinit socket\n",
+        config->Data(), fRequestTimeout);
     alizmq_socket_init(socket, fZMQcontext, config->Data(), fZMQtimeout, fZMQmaxQueueSize);
   }
 
-  //just send an empty request
+  //request
   if (fRequestResetOnRequest) {
     if (fVerbose) Printf("sending an ResetOnRequest request");
     alizmq_msg_send(kAliHLTDataTypeConfig, "ResetOnRequest",socket,0);
@@ -575,6 +641,8 @@ Int_t DoRequest(void*& socket, TString* config)
     if (fVerbose) Printf("sending an empty request");
     alizmq_msg_send("", "", socket, 0);
   }
+
+  fLastRequestTime = currentTime;
   return 0;
 }
 
@@ -583,7 +651,7 @@ Int_t DoSend(void* socket)
 {
   //only send if we actually CAN send
   if ( !(alizmq_socket_state(socket) & ZMQ_POLLOUT) ) {
-    if (fVerbose) printf("cannot send, socket in wrong state\n");
+    if (fVerbose) printf("cannot send to %s, socket in wrong state\n", alizmq_socket_name(alizmq_socket_type(socket)));
     return 0;
   }
 
@@ -592,10 +660,11 @@ Int_t DoSend(void* socket)
   aliZMQmsg message;
   //forward the (run-)info string
   alizmq_msg_add(&message, &fInfoTopic, fInfo);
+  Bool_t reset = kFALSE;
   Int_t rc = 0;
   TObject* object = NULL;
   TObject* key = NULL;
-  
+
   TIter mapIter(&fMergeObjectMap);
   while ((key = mapIter.Next()))
   {
@@ -609,19 +678,20 @@ Int_t DoSend(void* socket)
     Bool_t unselected = kFALSE;
     if (fSendSelection) selected = fSendSelection->Match(objectName);
     if (fUnSendSelection) unselected = fUnSendSelection->Match(objectName);
-    if (!fNameList.empty()) unselected = unselected || 
+    if (!fNameList.empty()) unselected = unselected ||
                                          (fNameList.find(objectName)==std::string::npos);
     if (!selected || unselected)
     {
-      if (fVerbose) Printf("     object %s did NOT make the selection [%s] && ![%s]", 
+      if (fVerbose) Printf("     object %s did NOT make the selection [%s] && ![%s]",
                            objectName, (fSendSelection)?fSendSelection->GetPattern().Data():"",
                            (fUnSendSelection)?fUnSendSelection->GetPattern().Data():"");
       continue;
     }
 
     rc = alizmq_msg_add(&message, &topic, object, fCompression, fSchema);
-    if (fResetOnSend || ( fResetOnRequest && fAllowResetOnRequest )) 
+    if (fResetOnSend || ( fResetOnRequest && fAllowResetOnRequest ))
     {
+      reset = kTRUE;
       if (fClearOnReset) {
         if (fVerbose) {printf("resetting %s\n",objectName);}
         TH1* hist = dynamic_cast<TH1*>(object);
@@ -640,10 +710,23 @@ Int_t DoSend(void* socket)
     alizmq_msg_prepend_streamer_infos(&message, fSchema);
   }
 
+  int sentBytes = 0;
+  //send a copy to the broadcast socket if requested on reset
+  if (reset && fZMQresetBroadcast && fZMQresetBroadcast!=socket) {
+    aliZMQmsg messageCopy;
+    alizmq_msg_copy(&messageCopy, &message);
+    sentBytes += alizmq_msg_send(&messageCopy, fZMQresetBroadcast, 0);
+    if (fVerbose) printf("a copy was broadcasted, %i bytes\n", sentBytes);
+    alizmq_msg_close(&messageCopy);
+  }
+
   //send
-  int sentBytes = alizmq_msg_send(&message, socket, 0);
+  sentBytes += alizmq_msg_send(&message, socket, 0);
+  fBytesOUT += sentBytes;
   if (fVerbose) Printf("merger sent %i bytes", sentBytes);
   alizmq_msg_close(&message);
+
+  SetLastPushBackTime();
 
   return sentBytes;
 }
@@ -654,7 +737,7 @@ void SetLastPushBackTime()
   gettimeofday(&fCurrentTimeStruct, NULL);
   fLastPushBackTime = 1000*fCurrentTimeStruct.tv_sec+fCurrentTimeStruct.tv_usec/1000;
 }
-    
+
 //______________________________________________________________________________
 void ClearMergeListMap()
 {
@@ -669,13 +752,17 @@ void ClearMergeListMap()
 //______________________________________________________________________________
 int ResetOutputData(Bool_t force)
 {
-  if (fAllowGlobalReset || force) 
+  if (fAllowGlobalReset || force)
   {
     if (fClearOnReset) {
       if (fVerbose) Printf("Clearing the merger by calling Reset() on all data");
       return ClearOutputData();
     } else {
       if (fVerbose) Printf("Resetting the merger");
+      if (fZMQresetBroadcast) {
+        if (fVerbose) Printf("broadcasting data on reset");
+        DoSend(fZMQresetBroadcast);
+      }
       fMergeObjectMap.DeleteAll();
       ClearMergeListMap();
       return 1;
@@ -689,7 +776,12 @@ int ClearOutputData()
 {
   TObject* object = NULL;
   TObject* key = NULL;
-  
+
+  if (fZMQresetBroadcast) {
+    if (fVerbose) Printf("broadcasting data on reset");
+    DoSend(fZMQresetBroadcast);
+  }
+
   TIter mapIter(&fMergeObjectMap);
   while ((key = mapIter.Next()))
   {
@@ -765,11 +857,12 @@ Int_t ProcessOptionString(TString arguments)
   //process passed options
   Int_t nOptions=0;
   aliStringVec* options = AliOptionParser::TokenizeOptionString(arguments);
+  bool reconfigureZMQ = false;
   for (aliStringVec::iterator i=options->begin(); i!=options->end(); ++i)
   {
-    const TString& option = i->first; 
+    const TString& option = i->first;
     const TString& value = i->second;
-    if (option.EqualTo("reset")) 
+    if (option.EqualTo("reset"))
     {
       ResetOutputData();
     }
@@ -789,6 +882,15 @@ Int_t ProcessOptionString(TString arguments)
     {
       fClearOnReset = value.Contains("0")?kFALSE:kTRUE;
     }
+    else if (option.EqualTo("OnResetBroadcastTo"))
+    {
+      if (value.EqualTo("in")||value.EqualTo("out")||value.EqualTo("mon")) {
+        fOnResetSendTo = value;
+      } else {
+        printf("OnResetBroadcastTo must be [in|out|mon]\n");
+        return -1;
+      }
+    }
     else if (option.EqualTo("MaxObjects"))
     {
       fMaxObjects = value.Atoi();
@@ -796,14 +898,17 @@ Int_t ProcessOptionString(TString arguments)
     else if (option.EqualTo("ZMQconfigIN") || option.EqualTo("in"))
     {
       fZMQconfigIN = value;
+      reconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQconfigOUT") || option.EqualTo("out"))
     {
       fZMQconfigOUT = value;
+      reconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQconfigMON") || option.EqualTo("mon"))
     {
       fZMQconfigMON = value;
+      reconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQconfigSYNC") || option.EqualTo("sync"))
     {
@@ -814,6 +919,7 @@ Int_t ProcessOptionString(TString arguments)
         printf("sync socket has to be PUB or SUB!\n");
         return -1;
       }
+      reconfigureZMQ = true;
     }
     else if (option.EqualTo("Verbose"))
     {
@@ -826,14 +932,20 @@ Int_t ProcessOptionString(TString arguments)
     else if (option.EqualTo("ZMQmaxQueueSize"))
     {
       fZMQmaxQueueSize=value.Atoi();
+      reconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQtimeout"))
     {
       fZMQtimeout=value.Atoi();
+      reconfigureZMQ = true;
     }
-    else if (option.EqualTo("sleep"))
+    else if (option.EqualTo("request-period"))
     {
-      fZMQtimeout=value.Atoi();
+      fRequestPeriod=value.Atoi();
+    }
+    else if (option.EqualTo("request-timeout"))
+    {
+      fRequestTimeout=value.Atoi();
     }
     else if (option.EqualTo("select"))
     {
@@ -859,6 +971,14 @@ Int_t ProcessOptionString(TString arguments)
     else if (option.EqualTo("annotateTitle"))
     {
       fTitleAnnotation = value;
+    }
+    else if (option.EqualTo("annotateName"))
+    {
+      fNameAnnotation = value;
+    }
+    else if (option.EqualTo("annotateTitleWithContainerName"))
+    {
+      fTitleAnnotationWithContainerName = value.Contains("0")?kFALSE:kTRUE;
     }
     else if (option.EqualTo("AllowGlobalReset"))
     {
@@ -902,6 +1022,18 @@ Int_t ProcessOptionString(TString arguments)
     {
       fUnpackContainers = (value.Contains("0") || value.Contains("no"))?kFALSE:kTRUE;
     }
+    else if (option.EqualTo("CustomUnpackMethodName"))
+    {
+      fCustomUnpackMethodName = value.Data();
+    }
+    else if (option.EqualTo("UnpackCustom"))
+    {
+      fCustomUnpackMethod = value.Contains("0")?kFALSE:kTRUE;
+    }
+    else if (option.EqualTo("IgnoreDefaultContainerNames"))
+    {
+      fIgnoreDefaultNamesWhenUnpacking = (value.Contains("0"))?kFALSE:kTRUE;
+    }
     else if (option.EqualTo("statefile"))
     {
       fInitFile = value.Data();
@@ -915,9 +1047,23 @@ Int_t ProcessOptionString(TString arguments)
     nOptions++;
   }
 
+  if (reconfigureZMQ && (InitZMQ()<0)) {
+    Printf("failed ZMQ init");
+    return -1;
+  }
+
+  if (fRequestTimeout<100) printf("WARNING: setting the socket timeout to %lu ms can be dagerous,\n"
+      "         choose something more realistic or leave the default as it is\n", fRequestTimeout);
+
+  if (fOnResetSendTo.IsNull()) fZMQresetBroadcast = NULL;
+  else if (fOnResetSendTo.EqualTo("in")) fZMQresetBroadcast = fZMQin;
+  else if (fOnResetSendTo.EqualTo("mon")) fZMQresetBroadcast = fZMQmon;
+  else if (fOnResetSendTo.EqualTo("out")) fZMQresetBroadcast = fZMQout;
+  if (fVerbose) printf("configured to bradcast on %s, socket %p\n", fOnResetSendTo.Data(), fZMQresetBroadcast);
+
   delete options; //tidy up
 
-  return nOptions; 
+  return nOptions;
 }
 
 //_______________________________________________________________________________________
@@ -933,7 +1079,14 @@ int main(Int_t argc, char** argv)
   if (signal(SIGQUIT, sig_handler) == SIG_ERR)
   printf("\ncan't catch SIGQUIT\n");
   if (signal(SIGTERM, sig_handler) == SIG_ERR)
-  printf("\ncan't catch SIGTERM\n");  
+  printf("\ncan't catch SIGTERM\n");
+
+  //the context
+  fZMQcontext = alizmq_context();
+  if (!fZMQcontext) {
+    printf("could not init the ZMQ context\n");
+    return 1;
+  }
 
   //process args
   TString argString = AliOptionParser::GetFullArgString(argc,argv);
@@ -948,19 +1101,12 @@ int main(Int_t argc, char** argv)
     AliLog::SetGlobalLogLevel(AliLog::kWarning);
   }
 
-  //the context
-  fZMQcontext = alizmq_context();
-
-  //init stuff
-  if (InitZMQ()<0) {
-    Printf("failed init");
-    return 1;
+  if (fRequestPeriod>=0) {
+    pthread_create(&fTRIGthread, NULL, runTRIGthread, NULL);
   }
 
-  pthread_create(&fTRIGthread, NULL, runTRIGthread, NULL);
-
   //init other stuff
-  fListOfObjects.reserve(100);
+  fListOfObjects.reserve(1000);
 
   ReadFromFile(fInitFile);
 
@@ -979,32 +1125,40 @@ int main(Int_t argc, char** argv)
 }
 
 //______________________________________________________________________________
-Int_t GetObjects(AliAnalysisDataContainer* kont, std::vector<TObject*>* list, const char* prefix)
+Int_t GetObjects(AliAnalysisDataContainer* kont, std::vector<TObject*>* list, std::string prefix)
 {
-  const char* analName = kont->GetName();
+  std::string kontName = kont->GetName();
+  if (fIgnoreDefaultNamesWhenUnpacking && ( kontName=="" )) {
+    kontName = "";
+  } else {
+    kontName+="/";
+  }
+  std::string kontPrefix = prefix + kontName;
+
   TObject* analData = kont->GetData();
-  std::string name = analName;
-  std::string namePrefix = name + "/";
-  TCollection* collection = dynamic_cast<TCollection*>(analData);
-  if (collection) {
+  if (TCollection* collection = dynamic_cast<TCollection*>(analData)) {
+    //a collection
     if (fVerbose) Printf("  have a collection %p",collection);
-    const char* collName = collection->GetName();
-    GetObjects(collection, list, namePrefix.c_str());
+    GetObjects(collection, list, kontPrefix);
     if (fVerbose) printf("  destroying collection %p\n",collection);
     delete collection;
     kont->SetDataOwned(kFALSE);
-  } else { //if (collection)
+
+  } else {
+    //just an object
     TNamed* named = dynamic_cast<TNamed*>(analData);
-    name = namePrefix + analData->GetName();
-    std::string title = namePrefix + analData->GetTitle();
     if (named) {
+      std::string name = kontPrefix + analData->GetName();
       named->SetName(name.c_str());
-      named->SetTitle(title.c_str());
+      if (fTitleAnnotationWithContainerName) {
+        std::string title = kontPrefix + analData->GetTitle();
+        named->SetTitle(title.c_str());
+      }
+      if (fVerbose) Printf("--in (from analysis container): %s (%s), %p",
+          named->GetName(),
+          named->ClassName(),
+          named );
     }
-    if (fVerbose) Printf("--in (from analysis container): %s (%s), %p",
-                         named->GetName(),
-                         named->ClassName(),
-                         named );
     kont->SetDataOwned(kFALSE);
     list->push_back(analData);
   }
@@ -1012,36 +1166,96 @@ Int_t GetObjects(AliAnalysisDataContainer* kont, std::vector<TObject*>* list, co
 }
 
 //______________________________________________________________________________
-Int_t GetObjects(TCollection* collection, std::vector<TObject*>* list, const char* prefix)
+Int_t GetObjects(TCollection* collection, std::vector<TObject*>* list, std::string prefix)
 {
+  std::string collName = collection->GetName();
+  if (fIgnoreDefaultNamesWhenUnpacking && ( collName=="TObjArray" || collName=="TList" )) {
+    collName = "";
+  } else {
+    collName+="/";
+  }
+  std::string collPrefix = prefix +collName;
   TIter next(collection);
   while (TObject* tmp = next()) {
     collection->Remove(tmp);
-    std::string name = tmp->GetName();
-    name = prefix + name;
-    if (fVerbose) Printf("--in (from a TCollection): %s (%s), %p",
-                         tmp->GetName(), tmp->ClassName(), tmp);
-    AliAnalysisDataContainer* analKont = dynamic_cast<AliAnalysisDataContainer*>(tmp);
+
+    AliAnalysisDataContainer* analKont = NULL;
+    TCollection* unpackedList = NULL;
+    TCollection* subcollection = NULL;
+
+    if (fUnpackContainers) {
+      analKont = dynamic_cast<AliAnalysisDataContainer*>(tmp);
+    }
+
+    if (!analKont) {
+      subcollection = dynamic_cast<TCollection*>(tmp);
+    }
+
+    if (fCustomUnpackMethod && !analKont && !subcollection) {
+      unpackedList = UnpackToCollection(tmp, fCustomUnpackMethodName);
+    }
+
     if (analKont) {
+      //analysis container
       if (fVerbose) Printf("  have an analysis container %p",analKont);
-      GetObjects(analKont,list,name.c_str());
+      GetObjects(analKont,list,collPrefix);
       if (fVerbose) printf("  destroying anal container %p\n",analKont);
       delete analKont;
+
+    } else if (subcollection) {
+      //embedded collection
+      if (fVerbose) Printf("  have a collection %p",analKont);
+      GetObjects(subcollection, list, collPrefix);
+      if (fVerbose) Printf("  destroying a collection %p",analKont);
+
+    } else if (unpackedList) {
+        //something implementing a custom method to unpack into a list
+        if (fVerbose) Printf("  using the custom unpacked list %p",analKont);
+        GetObjects(unpackedList, list, collPrefix);
+        if (fVerbose) Printf("  destroying the custom unpacked list %p",analKont);
+        delete unpackedList;
+
     } else {
+      //..or just an object
       TNamed* named = dynamic_cast<TNamed*>(tmp);
       if (named) {
-        name = named->GetName();
-        name = prefix + name;
-        std::string title = named->GetTitle();
-        title = prefix + title;
+        std::string name = collPrefix + named->GetName();
         named->SetName(name.c_str());
-        named->SetTitle(title.c_str());
+        if (fTitleAnnotationWithContainerName) {
+          std::string title = collPrefix + named->GetTitle();
+          named->SetTitle(title.c_str());
+        }
+        if (fVerbose) Printf("--in: %s (%s), %p",
+                             named->GetName(),
+                             named->ClassName(),
+                             named );
       }
       list->push_back(tmp);
     }
     collection->SetOwner(kTRUE);
   } //while
   return 0;
+}
+
+//______________________________________________________________________________
+TCollection* UnpackToCollection(TObject* object, std::string method)
+{
+  //this will call method (which MUST return a pointer to TCollection*
+  //and take no arguments
+  TMethod* tmethod = object->IsA()->GetMethodWithPrototype(fCustomUnpackMethodName.c_str(), "");
+  if (!tmethod) return NULL;
+  std::string returnType = tmethod->GetReturnTypeName();
+  size_t starpos = returnType.rfind('*');
+  if (starpos == std::string::npos) return NULL;
+  returnType.erase(starpos,1);
+  TClass* returnClass = TClass::GetClass(returnType.c_str());
+  if (!returnClass) return NULL;
+  if (!returnClass->InheritsFrom("TCollection")) return NULL;
+  TMethodCall *mc = new TMethodCall(object->IsA(),method.c_str(),"");
+  char* ret = NULL;
+  mc->Execute(object,&ret);
+  TCollection* collection = reinterpret_cast<TCollection*>(ret);
+  return collection;
 }
 
 //______________________________________________________________________________
@@ -1079,10 +1293,13 @@ Int_t ReadFromFile(std::string file)
     {
       if (fVerbose) Printf("file (%s): attaching %s",file.c_str(),objectName.c_str());
       //prevent annotations to be added on top of the old ones
-      TString oldAnn = fTitleAnnotation;
+      TString oldTitleAnn = fTitleAnnotation;
+      TString oldNameAnn = fNameAnnotation;
       fTitleAnnotation="";
+      fNameAnnotation="";
       AddObject(object);
-      fTitleAnnotation=oldAnn;
+      fTitleAnnotation=oldTitleAnn;
+      fNameAnnotation=oldNameAnn;
     }
   }
   f.Close();
@@ -1119,24 +1336,25 @@ Int_t DumpToFile(std::string file)
 void* runTRIGthread(void*)
 {
   if (fVerbose) printf("starting trigger thread\n");
-  int delay = fZMQtimeout;
+  int delay = fRequestPeriod;
   void* trig = NULL;
   alizmq_socket_init(trig, alizmq_context(), "PAIR+inproc://trigger");
   while (true) {
-    if (delay <= 0) break;
+    if (delay < 0) break;
 
+    zmq_send(trig,0,0,0);
+
+    //poll to handle the delay and exit condition
     zmq_pollitem_t sockets[] = { { trig, 0, ZMQ_POLLIN, 0 } };
     int rc = zmq_poll(sockets, 1, delay);
     if (rc==-1 && errno==ETERM)
     {
       break;
     }
-
     if (sockets[0].revents & ZMQ_POLLIN) {
       zmq_recv(trig,&delay,sizeof(delay),0);
     }
-    
-    zmq_send(trig,0,0,0);
+
   }
   alizmq_socket_close(trig, 0);
   if (fVerbose) printf("stopping trigger thread\n");

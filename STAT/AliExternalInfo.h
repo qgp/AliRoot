@@ -67,9 +67,11 @@ public:
   Bool_t CacheLogbook(TString period)                                   {return Cache("Logbook", period, "");}
   Bool_t CacheTriggerClasses(TString period)                            {return Cache("TriggerClasses", period, "");}
   Bool_t CacheProdCycle()                                               {return Cache("MonALISA.ProductionCycle", "", "");}
+  Bool_t CacheCPass()                                                   {return Cache("MonALISA.ProductionCPass", "", "");}
   Bool_t CacheProdCycleByID(TString ID)                                 {return Cache("MonALISA.ProductionCycleID", ID, "");}
 
   TTree* GetTree(TString type, TString period, TString pass);
+  TTree* GetTree(TString type, TString period, TString pass, TString friendList);
   TTree* GetTreeMC()                                                    {return GetTree("MonALISA.MC", "", "");}
   // TTree* GetTreeMC(TString period = "", TString anchorYear = "", TString productionTag = "") {return GetTree("MonALISA.MC", "", "");} // deprecated; not supported anymore
   TTree* GetTreeRCT(TString period, TString pass)                       {return GetTree("MonALISA.RCT", period, pass);}
@@ -77,7 +79,9 @@ public:
   TTree* GetTreeLogbook(TString period)                                 {return GetTree("Logbook", period, "");}
   TTree* GetTreeTriggerClasses(TString period)                          {return GetTree("TriggerClasses", period, "");}
   TTree* GetTreeProdCycle()                                             {return GetTree("MonALISA.ProductionCycle", "", "");}
+  TTree* GetTreeCPass()                                                 {return GetTree("MonALISA.ProductionCPass", "", "");}
   TTree* GetTreeProdCycleByID(TString ID)                               {return GetTree("MonALISA.ProductionCycleID", ID, "");}
+  TTree*  GetCPassTree(const char * period, const  char *pass); 
 
   TChain* GetChain(TString type, TString period, TString pass);
   TChain* GetChainMC()                                                  {return GetChain("MonALISA.MC", "", "");}
@@ -95,12 +99,12 @@ public:
   Long64_t GetMaxCacheSize() const        { return fMaxCacheSize; }
 
   static const TString& GetDefaultConfig() { return fgkDefaultConfig; }
-
+  static void BuildHashIndex(TTree* tree, const char *chbranchName,  const char *chindexName);
 private:
   Bool_t AddTree(TTree* tree, TString type);
   Bool_t AddChain(TString type, TString period, TString pass);
   void SetupVariables(TString& internalFilename, TString& internalLocation, Bool_t& resourceIsTree, TString& pathStructure, \
-                      TString& detector, TString& rootFileName, TString& treeName, const TString& type, const TString& period, const TString& pass);
+                      TString& detector, TString& rootFileName, TString& treeName, const TString& type, const TString& period, const TString& pass, TString &indexName);
   const TString GetYearFromPeriod(const TString& period);
   const TString Wget(TString& mifFilePath, const TString& internalLocation, TString rootFileName, const TString& externalLocation);
   const TString CreatePath(TString type, TString period, TString pass);

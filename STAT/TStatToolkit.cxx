@@ -25,6 +25,7 @@
 #include "TStopwatch.h"
 #include "TStatToolkit.h"
 #include "TTreeFormula.h"
+#include "TLegend.h"
 
 using std::cout;
 using std::cerr;
@@ -408,6 +409,7 @@ TGraphErrors * TStatToolkit::MakeStat1D(TH2 * his, Int_t deltaBin, Double_t frac
   //        4 - Gaus fit mean  - on LTM range
   //        5 - Gaus fit sigma - on LTM  range
   //        6 - Robust bin median
+  //        7 - Gaus fit around maxium of the distribution, fraction is +- relative range of full y scale
   // 
   TAxis * xaxis  = his->GetXaxis();
   Int_t   nbinx  = xaxis->GetNbins();
@@ -457,6 +459,14 @@ TGraphErrors * TStatToolkit::MakeStat1D(TH2 * his, Int_t deltaBin, Double_t frac
     }
     else if (returnType==6) {
       stat=RobustBinMedian(projection,fraction);
+    }
+    else if (returnType==7) {
+      const Int_t    maxBin = projection->GetMaximumBin();
+      const Double_t max    = projection->GetXaxis()->GetBinCenter(maxBin);
+      const Double_t range  = fraction*(projection->GetXaxis()->GetXmax()-projection->GetXaxis()->GetXmin());
+      projection->Fit(&f1,"QN","QN", max-range, max+range);
+      stat= f1.GetParameter(1);
+      err=f1.GetParError(1);
     }
 
     vecX[icount]=xcenter;
@@ -1220,6 +1230,135 @@ TGraph * TStatToolkit::MakeGraphSparse(TTree * tree, const char * expr, const ch
 }
 
 
+TMultiGraph * TStatToolkit::MakeMultGraph(TTree * tree, const char *groupName, const char* expr, const char * cut, const char * markers, const char *colors, Bool_t drawSparse, Float_t msize, Float_t sigmaRange, TLegend * legend){
+  //
+  // Make multigraph.
+  //  TTree * tree  - input tree
+  //  groupName     - name of the output graph
+  //  expr          - string <variablearray>:<tagID>:<variablearrayError>
+  //                  <variablearray>="var0; ...; varN  
+  //                  <variablearrayError>="err0; ...;errN"
+  //  markers       - "marker0:...; markerN"
+  //  colors        - "color0:...; colorN"
+  //  drawSparse    - swith use sparse drawing
+  //
+  /* 
+     Example usage of the TSTatToolkit::MakeMultGraph for T0 QA     :
+
+     legend=new TLegend(0.1,0.1,0.3,0.3,"T0 <Q> per sector");
+     legend->SetNColumns(2);
+     TMultiGraph * mGraph=TStatToolkit::MakeMultGraph(tree, "T0 <Q>","amplPMT1;amplPMT2;amplPMT3;amplPMT4;amplPMT5;amplPMT6:tagID:0.02;0.02;0.02;0.02;0.02;0.02","","21;22;25;26;27;28","1;2;4;3;856;616",kTRUE,0.9,10, legend);
+     mGraph->Draw();
+     legend->Draw();
+  */  
+  TMultiGraph *multiGraph=new TMultiGraph(groupName,groupName);
+  TObjArray * exprVars=TString(expr).Tokenize(":");
+  if (exprVars->GetEntries()<2) {
+    ::Error("MakeMultGraph","NotValid expression %s",expr);
+    delete exprVars;
+    return 0;
+  }
+  TObjArray*exprVarArray = TString(exprVars->At(0)->GetName()).Tokenize(";");
+  TObjArray*exprVarErrArray=(exprVars->GetEntries()>2)?  TString(exprVars->At(2)->GetName()).Tokenize(";"):0;
+  TObjArray*exprColors= TString(colors).Tokenize(";");
+  TObjArray*exprMarkers= TString(markers).Tokenize(";");
+  Int_t notOK=exprVarArray->GetEntries()<1;
+  notOK+=2*(exprVarArray->GetEntriesFast()>exprColors->GetEntriesFast());
+  notOK+=4*(exprVarArray->GetEntriesFast()>exprMarkers->GetEntriesFast());
+  if (exprVarErrArray) notOK+=8*(exprVarArray->GetEntriesFast()!=exprVarErrArray->GetEntriesFast());
+  if (notOK>0){
+    ::Error("MakeMultGraph","Not compatible arrays of variables:color:markers Problem %d", notOK);
+    exprVarArray->Print();
+    exprColors->Print();
+    exprMarkers->Print();
+    if (exprVarErrArray) exprVarErrArray->Print();
+    delete  exprVars;
+    return 0;
+  }
+
+  Int_t ngraphs = exprVarArray->GetEntries();
+  Double_t minValue=1;
+  Double_t maxValue=-1;
+  TVectorF vecMean(ngraphs);
+  for (Int_t igraph=0; igraph<ngraphs; igraph++){
+    Int_t color=TString(exprColors->At(igraph)->GetName()).Atoi();
+    Int_t marker=TString(exprMarkers->At(igraph)->GetName()).Atoi();
+    TGraph * gr = 0;
+    if (drawSparse){
+      if (exprVarErrArray==NULL){
+	gr=TStatToolkit::MakeGraphSparse(tree, TString::Format("%s:%s",exprVarArray->At(igraph)->GetName(),exprVars->At(1)->GetName()).Data(),cut, marker,color,msize);
+      }else{
+	gr=TStatToolkit::MakeGraphSparse(tree, TString::Format("%s:%s:%s",exprVarArray->At(igraph)->GetName(),exprVars->At(1)->GetName(),exprVarErrArray->At(igraph)->GetName()).Data(),cut, marker,color,msize);
+      }
+    }else{
+      if (exprVarErrArray==NULL){
+	gr=TStatToolkit::MakeGraphErrors(tree, TString::Format("%s:%s",exprVarArray->At(igraph)->GetName(),exprVars->At(1)->GetName()).Data(),cut, marker,color,msize);
+      }else{
+	gr=TStatToolkit::MakeGraphErrors(tree, TString::Format("%s:%s:%s",exprVarArray->At(igraph)->GetName(),exprVars->At(1)->GetName(),exprVarErrArray->At(igraph)->GetName()).Data(),cut, marker,color,msize);
+      }
+    }
+    if (gr) {
+      if (marker<=0) 	{  // explictly speify draw options - try to avoid bug in TMultiGraph draw in xaxis definition
+	multiGraph->Add(gr);
+      }else{      
+	if (igraph==0){
+	  multiGraph->Add(gr,"ap");
+	}else{
+	  multiGraph->Add(gr,"p");
+	}
+      }
+    }
+    if (igraph==0){
+      //      multiGraph->GetXaxis()->Copy(*(gr->GetXaxis()));
+    }
+    Double_t meanT,rmsT=0;
+    if (gr==NULL){
+      ::Error("MakeMultGraph","Not valid sub-expression %s",exprVarArray->At(igraph)->GetName());
+      continue;
+    }
+    if (gr->GetN()>2){
+      TStatToolkit::EvaluateUni(gr->GetN(),gr->GetY(), meanT,rmsT, TMath::Max(0.75*gr->GetN(),1.));
+    }else{
+      meanT=TMath::Median(gr->GetN(), gr->GetY());
+      rmsT=TMath::RMS(gr->GetN(), gr->GetY());
+    }
+    if (maxValue<minValue){
+      maxValue=meanT+sigmaRange*rmsT;
+      minValue=meanT-sigmaRange*rmsT;
+    }
+    vecMean[igraph]=meanT;
+    if (minValue>meanT-sigmaRange*rmsT) minValue=meanT-sigmaRange*rmsT;
+    if (maxValue<meanT+sigmaRange*rmsT) maxValue=meanT+sigmaRange*rmsT;
+  }
+  Double_t rmsGraphs = TMath::RMS(ngraphs,  vecMean.GetMatrixArray());
+  minValue-=sigmaRange*rmsGraphs;
+  maxValue+=sigmaRange*rmsGraphs;
+  //
+  for (Int_t igr=0; igr<ngraphs; igr++){
+    TGraph * gr = (TGraph*)(multiGraph->GetListOfGraphs()->At(igr));
+    if (gr==NULL) continue;
+    gr->SetMinimum(minValue);
+    gr->SetMaximum(maxValue);
+    if (legend){
+      TNamed*named = TStatToolkit::GetMetadata(tree,TString::Format("%s.Legend",exprVarArray->At(igr)->GetName()).Data());
+      if (named){
+	legend->AddEntry(gr,named->GetTitle(),"p");
+      }else{
+	legend->AddEntry(gr,gr->GetTitle(),"p");
+      }
+    }
+  }
+  multiGraph->SetMinimum(minValue);
+  multiGraph->SetMaximum(maxValue);
+  delete exprVarArray;
+  delete exprVarErrArray;
+  delete exprColors;
+  delete exprMarkers;
+  return multiGraph;
+}
+
+
+
 
 //
 // functions used for the trending
@@ -1648,11 +1787,17 @@ void   TStatToolkit::MakeSummaryTree(TTree* treeIn, TTreeSRedirector *pcstream, 
   //    sumID     - ID as will be used in output tree
   //    selection - selection criteria define the set of entries used to evaluat statistic 
   //
+  // Curently only predefined statistic used to fill summary information
+  // Future plans an option user defined statistic descriptor instead of the defualt (if exist)
+  // 
+  //      e.g 
+  //          default.Branches=median:mean90:rms90:mean60:rms60
+  //          interactionRate.Branches   mean90:median:rms90:mean95:rms95:mean60:rms60
+  //
   TObjArray * brArray = treeIn->GetListOfBranches();
   Int_t tEntries= treeIn->GetEntries();
   Int_t nBranches=brArray->GetEntries();
   TString treeName = treeIn->GetName();
-  treeName+="Summary";
 
   (*pcstream)<<treeName.Data()<<"entries="<<tEntries;
   (*pcstream)<<treeName.Data()<<"ID.="<<&sumID;
@@ -1660,7 +1805,7 @@ void   TStatToolkit::MakeSummaryTree(TTree* treeIn, TTreeSRedirector *pcstream, 
   TMatrixD valBranch(nBranches,7);
   for (Int_t iBr=0; iBr<nBranches; iBr++){    
     TString brName= brArray->At(iBr)->GetName();
-    Int_t entries=treeIn->Draw(brArray->At(iBr)->GetName(),selection);
+    Int_t entries=treeIn->Draw(TString::Format("%s>>dummy(10,0,1)",brArray->At(iBr)->GetName()).Data(),selection,"goff");
     if (entries==0) continue;
     Double_t median, mean, rms, mean60,rms60, mean90, rms90;
     mean  = TMath::Mean(entries,treeIn->GetV1());
@@ -1676,7 +1821,8 @@ void   TStatToolkit::MakeSummaryTree(TTree* treeIn, TTreeSRedirector *pcstream, 
     valBranch(iBr,5)=mean90; 
     valBranch(iBr,6)=rms90; 
     (*pcstream)<<treeName.Data()<<
-      brName+"_Mean="<<valBranch(iBr,0)<<
+      brName+"="<<valBranch(iBr,1)<<           // use as an default median estimator
+      brName+"_Mean="<<valBranch(iBr,0)<< 
       brName+"_Median="<<valBranch(iBr,1)<<
       brName+"_RMS="<<valBranch(iBr,2)<<
       brName+"_Mean60="<<valBranch(iBr,3)<<

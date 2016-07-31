@@ -2951,6 +2951,32 @@ Int_t AliGenMUONlib::IpOmega(TRandom *)
 
 
 //
+//                        omega
+//
+//
+//    pt-distribution (by scaling of pion distribution)
+//____________________________________________________________
+Double_t AliGenMUONlib::PtRho( const Double_t *px, const Double_t */*dummy*/)
+{
+// Rho pT
+  return PtScal(*px,5);
+}
+//    y-distribution
+Double_t AliGenMUONlib::YRho( const Double_t *px, const Double_t */*dummy*/)
+{
+// Rho y
+    Double_t *dum=0;
+    return YJpsi(px,dum);
+}
+//                 particle composition
+//
+Int_t AliGenMUONlib::IpRho(TRandom *)
+{
+// Rho composition
+    return 113;
+}
+
+//
 //                        Eta
 //
 //
@@ -4194,6 +4220,9 @@ GenFunc AliGenMUONlib::GetPt(Int_t param,  const char* tname) const
     case kChic:
 	func=PtChic;
 	break;
+    case kRho:
+      func=PtRho;
+      break;
     default:
         func=0;
         printf("<AliGenMUONlib::GetPt> unknown parametrisation\n");
@@ -4529,6 +4558,9 @@ GenFunc AliGenMUONlib::GetY(Int_t param, const char* tname) const
     case kChic:
 	func=YChic;
 	break;
+    case kRho:
+      func=YRho;
+      break;
     default:
         func=0;
         printf("<AliGenMUONlib::GetY> unknown parametrisation\n");
@@ -4756,6 +4788,9 @@ GenFuncIp AliGenMUONlib::GetIp(Int_t param,  const char* tname) const
 	break;
     case kChic:
         func=IpChic;
+        break;
+    case kRho:
+        func=IpRho;
         break;
     default:
         func=0;

@@ -23,7 +23,7 @@ ClassImp(AliTPCChebDist)
 
 Float_t AliTPCChebDist::fgRMinTPC = 83.65; //RS Make sure these are correct radii to use
 Float_t AliTPCChebDist::fgRMaxTPC = 247.7;
-Int_t   AliTPCChebDist::fgNSlices = AliTPCChebCorr::kNRows+10; // check
+Int_t   AliTPCChebDist::fgNSlices = AliTPCChebCorr::kNRows*2+2; // check
 
 //____________________________________________________________________
 AliTPCChebDist::AliTPCChebDist()
@@ -39,7 +39,7 @@ AliTPCChebDist::AliTPCChebDist()
 //____________________________________________________________________
 AliTPCChebDist::AliTPCChebDist(const char* name, const char* title, 
 			       int nps, int nzs, float zmaxAbs)
-  :AliTPCChebCorr(name,title,nps,nzs,zmaxAbs)
+  :AliTPCChebCorr(name,title,nps,nzs,zmaxAbs,0,0)
   ,fXMin(fgRMinTPC)
   ,fXMax(fgRMaxTPC)
 {

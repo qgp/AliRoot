@@ -71,6 +71,7 @@ Send comments etc. to: A.Kalweit@gsi.de, marian.ivanov@cern.ch
 #include "AliTPCROC.h"
 #include "AliTPCreco.h"
 #include "TStatToolkit.h"
+#include "AliTPCPreprocessorOffline.h"
 
 ClassImp(AliTPCcalibGainMult)
 
@@ -87,6 +88,7 @@ AliTPCcalibGainMult::AliTPCcalibGainMult()
    fCutRequireITSrefit(0),
    fCutMaxDcaXY(0),
    fCutMaxDcaZ(0),
+   fMinTPCsignalN(60),
    fMinMomentumMIP(0),
    fMaxMomentumMIP(0),
    fAlephParameters(),
@@ -122,6 +124,7 @@ AliTPCcalibGainMult::AliTPCcalibGainMult(const Text_t *name, const Text_t *title
    fCutRequireITSrefit(0),
    fCutMaxDcaXY(0),
    fCutMaxDcaZ(0),
+   fMinTPCsignalN(60),
    fMinMomentumMIP(0),
    fMaxMomentumMIP(0),
    fAlephParameters(),
@@ -324,7 +327,7 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
   }  
   fCurrentEvent=event;
   fMagF = event->GetMagneticField();
-  Int_t ntracks=event->GetNumberOfTracks();
+  Int_t ntracks=event->GetNumberOfTracks();  
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
     //Printf("ERROR: eventFriend not available");
@@ -395,7 +398,9 @@ void AliTPCcalibGainMult::Process(AliVEvent *event) {
     UInt_t status = track->GetStatus();
     if ((status&AliVTrack::kTPCrefit)==0) continue;
     if ((status&AliVTrack::kITSrefit)==0 && fCutRequireITSrefit) continue; // ITS cluster
-
+    //
+    if (track->GetTPCsignalN()<fMinTPCsignalN) continue;
+    //
     Float_t dca[2], cov[3];
     track->GetImpactParameters(dca,cov);
     Float_t primVtxDCA = TMath::Sqrt(dca[0]*dca[0]);
@@ -1306,7 +1311,7 @@ void AliTPCcalibGainMult::ProcessV0s(AliVEvent *event){
   // Select the K0s and gamma  - and sign daughter products 
   //  
   TTreeSRedirector * pcstream =  GetDebugStreamer();
-  AliKFParticle::SetField(event->GetMagneticField());
+  AliKFParticle::SetField(event->GetMagneticField()); 
   AliVfriendEvent *friendEvent=event->FindFriend();
   if (!friendEvent) {
     //Printf("ERROR: friendEvent not available");
@@ -1573,8 +1578,8 @@ void AliTPCcalibGainMult::ProcessCosmic(const AliVEvent *event) {
 	  "t1.="<<track1<<              //track1
 	  "ft0.="<<friendTrack0<<       //track0
 	  "ft1.="<<friendTrack1<<       //track1
-	  "s0.="<<seed0<<               //track0
-	  "s1.="<<seed1<<               //track1
+ 	  "s0.="<<seed0<<               //track0
+ 	  "s1.="<<seed1<<               //track1
 	  "\n";      
       }
 
@@ -1660,7 +1665,7 @@ void AliTPCcalibGainMult::ProcessKinks(const AliVEvent *event){
   const Double_t kMaxR=230;
   const Int_t    kMinNcl=110;
   //
-  Int_t nkinks = event->GetNumberOfKinks();
+  Int_t nkinks = event->GetNumberOfKinks(); 
 
   //AliESDVertex vtx;
   //event->GetPrimaryVertex(vtx);
@@ -1825,7 +1830,7 @@ void AliTPCcalibGainMult::DumpHPT(const AliVEvent *event){
     AliESDVertex dummyvtx;
     event->GetPrimaryVertex(dummyvtx);
     AliESDVertex *vtx=&dummyvtx;
-  
+
     if (!tpcInnerC->PropagateToDCA(vtx, event->GetMagneticField(), 3, dz, cov)) continue;
     Double_t covar[6]; vtx->GetCovMatrix(covar);
     Double_t p[2]={tpcInnerC->GetParameter()[0]-dz[0],tpcInnerC->GetParameter()[1]-dz[1]};
@@ -2101,7 +2106,12 @@ TGraphErrors* AliTPCcalibGainMult::GetGainPerChamberRobust(Int_t padRegion/*=1*/
   //
   TH2D * histGainSec = fHistGainSector->Projection(0,1);
 //   TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, 0.6,4,markers[padRegion],colors[padRegion]);
-  TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, 0.9,6,markers[padRegion],colors[padRegion]);
+  Double_t fraction=0.9;
+  Int_t    type    =6;
+//   printf("================== %.2f, %d \n", fraction, type);
+//   AliTPCPreprocessorffline::GetStatType(histGainSec, fraction, type);
+
+  TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, fraction, type, markers[padRegion],colors[padRegion]);
   const char* names[3]={"SHORT","MEDIUM","LONG"};
   const Double_t median = TMath::Median(gr->GetN(),gr->GetY());
 
