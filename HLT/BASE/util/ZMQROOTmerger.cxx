@@ -1109,6 +1109,8 @@ int main(Int_t argc, char** argv)
   fListOfObjects.reserve(1000);
 
   ReadFromFile(fInitFile);
+  
+  gSystem->Load("libPWGPP.so");
 
   Run();
 

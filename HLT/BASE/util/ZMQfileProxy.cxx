@@ -351,6 +351,8 @@ int main(int argc, char** argv)
     printf("%s",fUSAGE);
     return 1;
   }
+  
+  gSystem->Load("libPWGPP.so");
 
   //reading FROM file
   if (fConfigIN.BeginsWith("file://") && !fConfigOUT.BeginsWith("file://"))
