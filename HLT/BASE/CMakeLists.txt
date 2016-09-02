@@ -132,6 +132,8 @@ set(SRCS
     AliHLTTriggerMenuItem.cxx
     AliHLTTriggerMenuSymbol.cxx
     AliHLTTTreeProcessor.cxx
+    AliHLTObjArray.cxx
+    AliHLTList.cxx
    )
 
 # Headers from sources

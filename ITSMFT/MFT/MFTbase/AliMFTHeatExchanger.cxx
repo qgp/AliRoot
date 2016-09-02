@@ -45,8 +45,9 @@ ClassImp(AliMFTHeatExchanger);
 AliMFTHeatExchanger::AliMFTHeatExchanger() : TNamed() {
   fRWater = 0.1/2.;
   fDRPipe = 0.005;
-  fHeatExchangerThickness = 1.4;
-  fCarbonThickness = (0.028)/2.;
+  //fHeatExchangerThickness = 1.618; // to get a 13.4 mm thickness for the rohacell... don't implement this value yet! overlapping issue!
+  fHeatExchangerThickness = 1.4; // initial value
+  fCarbonThickness = (0.0290)/2.;  // total thickness of the carbon plate
   InitParameters();
 }
 
@@ -99,7 +100,9 @@ void AliMFTHeatExchanger::CreateHalfDisk0(Int_t half) {
   else if (half == kBottom) printf("Creating MFT heat exchanger for disk0 bottom\n");
   else     printf("No valid option for MFT heat exchanger on disk0\n");
   
-  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  //TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_CarbonFiber$");
+
   TGeoMedium *water    = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium *rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   TGeoMedium *pipe     = gGeoManager->GetMedium("MFT_Polyimide");
@@ -268,7 +271,7 @@ void AliMFTHeatExchanger::CreateHalfDisk0(Int_t half) {
   TGeoSubtraction    *carbonhole0 = new TGeoSubtraction(carbonBase0, holeCarbon0, t01, t02);
   TGeoCompositeShape *ch0 = new TGeoCompositeShape(Form("Carbon0_D0_H%d",half), carbonhole0);
   TGeoVolume *carbonBaseWithHole0 = new TGeoVolume(Form("carbonBaseWithHole_D0_H%d", half), ch0, carbon);
-
+  
 
   carbonBaseWithHole0->SetLineColor(kGray+3);
   rotation = new TGeoRotation ("rotation", 0., 0., 0.);
@@ -351,7 +354,7 @@ void AliMFTHeatExchanger::CreateHalfDisk0(Int_t half) {
 
 
     // **************************************** Manyfolds right and left, fm  ****************************************
-    
+    /*
     Double_t deltay = 0.2;     // ecart par rapport au plan median du MFT
     Double_t mfX = 2.2; // largeur
     Double_t mfY = 6.8; // hauteur
@@ -381,7 +384,7 @@ void AliMFTHeatExchanger::CreateHalfDisk0(Int_t half) {
     transformation2 = new TGeoCombiTrans(fSupportXDimensions[disk][0]/2+mfZ/2, -mfY/2-deltay, fZPlan[disk], rotation);
 
     fHalfDisk->AddNode(MF2, 1, transformation2);
-    
+    */
     // ********************************************************************************************************
  
 }
@@ -396,7 +399,10 @@ void AliMFTHeatExchanger::CreateHalfDisk1(Int_t half) {
   else if (half == kBottom) printf("Creating MFT heat exchanger for disk1 bottom\n");
   else     printf("No valid option for MFT heat exchanger on disk1\n");
   
-  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  //TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_CarbonFiber$");
+
+
   TGeoMedium *water    = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium *rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   TGeoMedium *pipe     = gGeoManager->GetMedium("MFT_Polyimide");
@@ -547,7 +553,7 @@ void AliMFTHeatExchanger::CreateHalfDisk1(Int_t half) {
   
   // **************************************** Carbon Plates ****************************************
   
- 
+   
 
   TGeoVolumeAssembly *carbonPlate = new TGeoVolumeAssembly(Form("carbonPlate_D1_H%d",half));
   
@@ -559,7 +565,7 @@ void AliMFTHeatExchanger::CreateHalfDisk1(Int_t half) {
   TGeoTranslation *t12= new TGeoTranslation ("t12",0., - fHalfDiskGap , 0.);
   t12-> RegisterYourself();
   
-
+  
   ////TGeoCompositeShape *cs1 = new TGeoCompositeShape(Form("Carbon1_D1_H%d",half), Form("(carbonBase1_D1_H%d:t11)-(holeCarbon1_D1_H%d:t12)",half,half));
   TGeoSubtraction    *carbonhole1 = new TGeoSubtraction(carbonBase1, holeCarbon1, t11, t12);
   TGeoCompositeShape *ch1 = new TGeoCompositeShape(Form("Carbon1_D1_H%d",half), carbonhole1);
@@ -660,7 +666,11 @@ void AliMFTHeatExchanger::CreateHalfDisk2(Int_t half) {
   else     printf("No valid option for MFT heat exchanger on disk2\n");
   
   
-  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  //TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_CarbonFiber$");
+
+
+
   TGeoMedium *water    = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium *rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   TGeoMedium *pipe     = gGeoManager->GetMedium("MFT_Polyimide");
@@ -820,7 +830,8 @@ void AliMFTHeatExchanger::CreateHalfDisk2(Int_t half) {
   TGeoTubeSeg *holeCarbon2 = new TGeoTubeSeg(Form("holeCarbon2_D2_H%d",half), 0., fRMin[disk], fCarbonThickness + 0.000001, 0, 180.);
   TGeoTranslation *t22= new TGeoTranslation ("t22",0., - fHalfDiskGap , 0.);
   t22-> RegisterYourself();
-  
+ 
+
   ////TGeoCompositeShape *cs2 = new TGeoCompositeShape(Form("carbon2_D2_H%d",half),Form("(carbonBase2_D2_H%d:t21)-(holeCarbon2_D2_H%d:t22)",half,half));
   TGeoSubtraction    *carbonhole2 = new TGeoSubtraction(carbonBase2, holeCarbon2, t21, t22);
   TGeoCompositeShape *cs2 = new TGeoCompositeShape(Form("Carbon2_D2_H%d",half), carbonhole2);
@@ -856,7 +867,8 @@ void AliMFTHeatExchanger::CreateHalfDisk2(Int_t half) {
     transformation = new TGeoCombiTrans(0., 0., -deltaz/2., rotation);
     fHalfDisk->AddNode(carbonPlate, 4, transformation);
 //  }
-  
+
+
   // **************************************** Rohacell Plate ****************************************
   
   TGeoVolumeAssembly *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D2_H%d",half));
@@ -916,7 +928,10 @@ void AliMFTHeatExchanger::CreateHalfDisk3(Int_t half)  {
   else if (half == kBottom) printf("Creating MFT heat exchanger for disk3 bottom\n");
   else     printf("No valid option for MFT heat exchanger on disk3\n");
   
-  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  //TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_CarbonFiber$");
+
+
   TGeoMedium *water    = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium *rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   TGeoMedium *pipe     = gGeoManager->GetMedium("MFT_Polyimide");
@@ -1243,6 +1258,7 @@ void AliMFTHeatExchanger::CreateHalfDisk3(Int_t half)  {
   TGeoTranslation *t32= new TGeoTranslation ("t32",0., - fHalfDiskGap , 0.);
   t32-> RegisterYourself();
   
+
   ///TGeoCompositeShape *cs3 = new TGeoCompositeShape(Form("Carbon3_D3_H%d",half),Form("(carbonBase3_D3_H%d:t31)-(holeCarbon3_D3_H%d:t32)",half,half) );
   TGeoSubtraction    *carbonhole3 = new TGeoSubtraction(carbonBase3, holeCarbon3, t31, t32);
   TGeoCompositeShape *cs3 = new TGeoCompositeShape(Form("Carbon3_D3_H%d",half), carbonhole3);
@@ -1281,6 +1297,7 @@ void AliMFTHeatExchanger::CreateHalfDisk3(Int_t half)  {
     fHalfDisk->AddNode(carbonPlate, 4, transformation);
 //  }
 	
+
   // **************************************** Rohacell Plate ****************************************
   
   TGeoVolumeAssembly *rohacellPlate = new TGeoVolumeAssembly(Form("rohacellPlate_D3_H%d",half));
@@ -1341,7 +1358,10 @@ void AliMFTHeatExchanger::CreateHalfDisk4(Int_t half) {
   else     printf("No valid option for MFT heat exchanger on disk4\n");
   
   
-  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  //TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_Carbon$");
+  TGeoMedium *carbon   = gGeoManager->GetMedium("MFT_CarbonFiber$");
+
+
   TGeoMedium *water    = gGeoManager->GetMedium("MFT_Water$");
   TGeoMedium *rohacell = gGeoManager->GetMedium("MFT_Rohacell");
   TGeoMedium *pipe     = gGeoManager->GetMedium("MFT_Polyimide");
@@ -1711,6 +1731,7 @@ void AliMFTHeatExchanger::CreateHalfDisk4(Int_t half) {
   TGeoTranslation *t42= new TGeoTranslation ("t42",0., - fHalfDiskGap , 0.);
   t42-> RegisterYourself();
   
+  
   ///TGeoCompositeShape *cs4 = new TGeoCompositeShape(Form("Carbon4_D4_H%d",half),Form("(carbonBase4_D4_H%d:t41)-(holeCarbon4_D4_H%d:t42)",half,half));
   TGeoSubtraction    *carbonhole4 = new TGeoSubtraction(carbonBase4, holeCarbon4, t41, t42);
   TGeoCompositeShape *cs4 = new TGeoCompositeShape(Form("Carbon4_D4_H%d",half), carbonhole4);
@@ -1747,6 +1768,7 @@ void AliMFTHeatExchanger::CreateHalfDisk4(Int_t half) {
     transformation = new TGeoCombiTrans(0., 0., -deltaz/2., rotation);
     fHalfDisk->AddNode(carbonPlate, 4, transformation);
 //  }
+
 	
   // **************************************** Rohacell Plate ****************************************
   
@@ -1810,6 +1832,7 @@ void AliMFTHeatExchanger::InitParameters() {
   }
   
   fRohacellThickness = fHeatExchangerThickness/2. - 2.*fCarbonThickness - 2*(fRWater + fDRPipe);//thickness of Rohacell plate over 2
+  printf("Rohacell thickness %f \n",fRohacellThickness);
   
   fHalfDiskGap = 0.2;
   

@@ -16,7 +16,8 @@
 #include <sys/time.h>
 #include <string>
 #include <map>
-#include "AliZMQhelpers.h"
+#include "AliHLTZMQhelpers.h"
+#include "AliOptionParser.h"
 #include "TCollection.h"
 #include "AliLog.h"
 #include "AliAnalysisDataContainer.h"
@@ -36,8 +37,10 @@
 //zmq payloads, maybe a AliZMQmessage class which would by default be multipart and provide
 //easy access to payloads based on topic or so (a la HLT GetFirstInputObject() etc...)
 
+using namespace AliZMQhelpers;
+
 //methods
-Int_t ProcessOptionString(TString arguments);
+Int_t ProcessOptionString(TString arguments, Bool_t verbose=kFALSE);
 Int_t InitZMQ();
 Int_t Run();
 
@@ -93,6 +96,7 @@ Bool_t  fUnpackContainers = kFALSE;
 std::string fCustomUnpackMethodName = "GetListOfDrawableObjects";
 Bool_t  fCustomUnpackMethod = kFALSE;
 Bool_t  fFullyDestroyAnalysisDataContainer = kFALSE;
+std::string fLoadLibs;
 
 TPRegexp* fSendSelection = NULL;
 TPRegexp* fUnSendSelection = NULL;
@@ -142,6 +146,7 @@ void* fZMQout = NULL;        //the monitoring socket, here we publish a copy of 
 void* fZMQin  = NULL;        //the in socket - entry point for the data to be merged.
 void* fZMQsync = NULL;
 void* fZMQresetBroadcast = NULL;
+bool fReconfigureZMQ = true;
 
 //request trigger
 void* fZMQtrig = NULL; //dummy socket to trigger requests at constant time interval
@@ -191,6 +196,7 @@ const char* fUSAGE =
     " -CustomUnpackMethodName : name of the custom method to call to get a pointer to unpacked objects\n"
     " -IgnoreDefaultContainerNames : don't prefix default container names (TList,TObjArray)\n"
     " -FullyDestroyAnalysisDataContainer : explicitly delete consumers and producer members in the container to work around a memory leak\n"
+    " -loadlibs : load ROOT libs, comma separated list\n"
     " -statefile : save/restore state on exit/start\n"
     ;
 //_______________________________________________________________________________________
@@ -567,8 +573,9 @@ Int_t DoReceive(aliZMQmsg::iterator block, void* socket)
       AliAnalysisDataContainer* container = dynamic_cast<AliAnalysisDataContainer*>(object);
       if (container) {
         //unpack an analysis data container
-        if (fVerbose) printf("unpacking analysis container %s %p\n", container->GetName(), container);
+        if (fVerbose) printf("unpacking analysis container with name %s %p\n", container->GetName(), container);
         GetObjects(container, &fListOfObjects);
+        if (fVerbose) printf("deleting analysis container with name %s %p\n", container->GetName(), container);
         delete container;
         break;
       }
@@ -577,8 +584,9 @@ Int_t DoReceive(aliZMQmsg::iterator block, void* socket)
     if (TCollection* collection = dynamic_cast<TCollection*>(object)) {
       //unpack a collection
       if (fUnpackCollections) {
-        if (fVerbose) printf("unpacking collection %s %p\n", collection->GetName(), collection);
+        if (fVerbose) printf("unpacking collection with name %s %p\n", collection->GetName(), collection);
         GetObjects(collection, &fListOfObjects);
+        if (fVerbose) printf("deleting collection with name %s %p\n", collection->GetName(), collection);
         delete collection;
         break;
       } else {
@@ -858,12 +866,11 @@ Int_t Merge(TObject* object, TCollection* mergeList)
 }
 
 //______________________________________________________________________________
-Int_t ProcessOptionString(TString arguments)
+Int_t ProcessOptionString(TString arguments, Bool_t verbose)
 {
   //process passed options
   Int_t nOptions=0;
   aliStringVec* options = AliOptionParser::TokenizeOptionString(arguments);
-  bool reconfigureZMQ = false;
   for (aliStringVec::iterator i=options->begin(); i!=options->end(); ++i)
   {
     const TString& option = i->first;
@@ -904,17 +911,17 @@ Int_t ProcessOptionString(TString arguments)
     else if (option.EqualTo("ZMQconfigIN") || option.EqualTo("in"))
     {
       fZMQconfigIN = value;
-      reconfigureZMQ = true;
+      fReconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQconfigOUT") || option.EqualTo("out"))
     {
       fZMQconfigOUT = value;
-      reconfigureZMQ = true;
+      fReconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQconfigMON") || option.EqualTo("mon"))
     {
       fZMQconfigMON = value;
-      reconfigureZMQ = true;
+      fReconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQconfigSYNC") || option.EqualTo("sync"))
     {
@@ -925,7 +932,7 @@ Int_t ProcessOptionString(TString arguments)
         printf("sync socket has to be PUB or SUB!\n");
         return -1;
       }
-      reconfigureZMQ = true;
+      fReconfigureZMQ = true;
     }
     else if (option.EqualTo("Verbose"))
     {
@@ -938,12 +945,12 @@ Int_t ProcessOptionString(TString arguments)
     else if (option.EqualTo("ZMQmaxQueueSize"))
     {
       fZMQmaxQueueSize=value.Atoi();
-      reconfigureZMQ = true;
+      fReconfigureZMQ = true;
     }
     else if (option.EqualTo("ZMQtimeout"))
     {
       fZMQtimeout=value.Atoi();
-      reconfigureZMQ = true;
+      fReconfigureZMQ = true;
     }
     else if (option.EqualTo("request-period"))
     {
@@ -1052,6 +1059,10 @@ Int_t ProcessOptionString(TString arguments)
     {
       fID = value.Data();
     }
+    else if (option.EqualTo("loadlibs"))
+    {
+      fLoadLibs = value.Data();
+    }
     else
     {
       Printf("unrecognized option |%s|",option.Data());
@@ -1061,22 +1072,39 @@ Int_t ProcessOptionString(TString arguments)
     nOptions++;
   }
 
-  if (reconfigureZMQ && (InitZMQ()<0)) {
+  if (nOptions<1) fReconfigureZMQ=false;
+  if (fReconfigureZMQ && (InitZMQ()<0)) {
     Printf("failed ZMQ init");
     return -1;
   }
+  fReconfigureZMQ=false;
 
-  if (fRequestTimeout<100) printf("WARNING: setting the socket timeout to %lu ms can be dagerous,\n"
-      "         choose something more realistic or leave the default as it is\n", fRequestTimeout);
+  if (!fLoadLibs.empty()) {
+    if (LoadROOTlibs(fLoadLibs,verbose)<0) {
+      Printf("problem loading libraries %s",fLoadLibs.c_str());
+      nOptions=-1;
+    }
+  }
 
   if (fOnResetSendTo.IsNull()) fZMQresetBroadcast = NULL;
   else if (fOnResetSendTo.EqualTo("in")) fZMQresetBroadcast = fZMQin;
   else if (fOnResetSendTo.EqualTo("mon")) fZMQresetBroadcast = fZMQmon;
   else if (fOnResetSendTo.EqualTo("out")) fZMQresetBroadcast = fZMQout;
-  if (fZMQresetBroadcast) printf("configured to bradcast resets on %s, socket %p\n", fOnResetSendTo.Data(), fZMQresetBroadcast);
-  if (fFullyDestroyAnalysisDataContainer) printf("configured to delete the fProducer/fConsumers of AliAnalysisDataContainer\n");
 
   delete options; //tidy up
+
+  if (verbose)
+  {
+    if (fRequestTimeout<100) printf("WARNING: setting the socket timeout to %lu ms can be dagerous,\n"
+        "         choose something more realistic or leave the default as it is\n", fRequestTimeout);
+
+    if (fZMQresetBroadcast) printf("configured to bradcast resets on %s, socket %p\n", fOnResetSendTo.Data(), fZMQresetBroadcast);
+    if (fFullyDestroyAnalysisDataContainer) printf("configured to delete the fProducer/fConsumers of AliAnalysisDataContainer\n");
+    if (fIgnoreDefaultNamesWhenUnpacking) printf("ignoring default cont names\n");
+    if (fUnpackContainers) printf("unpacking containers\n");
+    if (fUnpackCollections) printf("unpacking collections\n");
+    if (fCustomUnpackMethod) printf("using a custom unpacking method: %s\n", fCustomUnpackMethodName.c_str());
+  }
 
   return nOptions;
 }
@@ -1105,7 +1133,7 @@ int main(Int_t argc, char** argv)
 
   //process args
   TString argString = AliOptionParser::GetFullArgString(argc,argv);
-  if (ProcessOptionString(argString)<=0)
+  if (ProcessOptionString(argString, kTRUE)<=0)
   {
     printf("%s",fUSAGE);
     return 1;
@@ -1124,8 +1152,6 @@ int main(Int_t argc, char** argv)
   fListOfObjects.reserve(1000);
 
   ReadFromFile(fInitFile);
-  
-  gSystem->Load("libPWGPP.so");
 
   Run();
 
@@ -1173,9 +1199,9 @@ Int_t GetObjects(AliAnalysisDataContainer* kont, std::vector<TObject*>* list, st
 
   if (TCollection* collection = dynamic_cast<TCollection*>(analData)) {
     //a collection
-    if (fVerbose) Printf("  have a collection %p",collection);
+    if (fVerbose) Printf("  have a collection %s %p",collection->GetName(),collection);
     GetObjects(collection, list, kontPrefix);
-    if (fVerbose) printf("  destroying collection %p\n",collection);
+    if (fVerbose) printf("  destroying collection %s %p\n",collection->GetName(),collection);
     delete collection;
     kont->SetDataOwned(kFALSE);
 
@@ -1232,16 +1258,17 @@ Int_t GetObjects(TCollection* collection, std::vector<TObject*>* list, std::stri
 
     if (analKont) {
       //analysis container
-      if (fVerbose) Printf("  have an analysis container %p",analKont);
+      if (fVerbose) Printf("  have an analysis container %s %p",analKont->GetName(), analKont);
       GetObjects(analKont,list,collPrefix);
-      if (fVerbose) printf("  destroying anal container %p\n",analKont);
+      if (fVerbose) printf("  destroying anal container %s %p\n",analKont->GetName(), analKont);
       delete analKont;
 
     } else if (subcollection) {
       //embedded collection
-      if (fVerbose) Printf("  have a collection %p",subcollection);
+      if (fVerbose) Printf("  have a subcollection %s %p",subcollection->GetName(), subcollection);
       GetObjects(subcollection, list, collPrefix);
-      if (fVerbose) Printf("  destroying a collection %p",subcollection);
+      if (fVerbose) Printf("  destroying a subcollection %s %p",subcollection->GetName(), subcollection);
+      delete subcollection;
 
     } else if (unpackedList) {
         //something implementing a custom method to unpack into a list
@@ -1249,6 +1276,7 @@ Int_t GetObjects(TCollection* collection, std::vector<TObject*>* list, std::stri
         GetObjects(unpackedList, list, collPrefix);
         if (fVerbose) Printf("  destroying the custom unpacked list %p",unpackedList);
         delete unpackedList;
+        delete tmp; //after unpacking we destroy the object
 
     } else {
       //..or just an object
@@ -1277,6 +1305,9 @@ TCollection* UnpackToCollection(TObject* object, std::string method)
 {
   //this will call method (which MUST return a pointer to TCollection*
   //and take no arguments
+  if (fVerbose) {
+    printf("custom unpacking of %s(%s) at %p\n",object->GetName(),object->ClassName(), object);
+  }
   TMethod* tmethod = object->IsA()->GetMethodWithPrototype(fCustomUnpackMethodName.c_str(), "");
   if (!tmethod) return NULL;
   std::string returnType = tmethod->GetReturnTypeName();
@@ -1290,6 +1321,7 @@ TCollection* UnpackToCollection(TObject* object, std::string method)
   char* ret = NULL;
   mc->Execute(object,&ret);
   TCollection* collection = reinterpret_cast<TCollection*>(ret);
+  delete mc;
   return collection;
 }
 

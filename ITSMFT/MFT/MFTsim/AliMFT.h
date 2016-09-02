@@ -35,6 +35,7 @@
 #include "TString.h"
 #include "TObjArray.h"
 #include "AliMFTConstants.h"
+#include "AliMFTGeomTGeo.h"
 
 //====================================================================================================================================================
 
@@ -83,7 +84,7 @@ public:
   
   AliMFTSegmentation* GetSegmentation() const { return fSegmentation; }
   
-  enum EMedia{kZero,kAir, kVacuum, kSi, kReadout, kSupport, kCarbon, kBe, kAlu, kWater, kSiO2, kInox, kKapton, kEpoxy, kCarbonFiber, kCarbonEpoxy, kRohacell, kPolyimide, kPEEK, kFR4, kCu, kX7R, kX7Rw};  // media IDs used in CreateMaterials
+  enum EMedia{kZero,kAir, kVacuum, kSi, kReadout, kSupport, kCarbon, kBe, kAlu, kWater, kSiO2, kInox, kKapton, kEpoxy, kCarbonFiber, kCarbonEpoxy, kRohacell, kPolyimide, kPEEK, kFR4, kCu, kX7R, kX7Rw, kCarbonFleece, kSE4445};  // media IDs used in CreateMaterials
   
   // Geometry/segmentation creation part
   void AddAlignableVolumes() const { /* not needed */ return; }
@@ -112,6 +113,9 @@ public:
   Short_t GetUnderlyingEventID() { return fUnderlyingEventID; }
   Short_t GetPileUpEventID(Short_t i) { if (i>=0 && i<AliMFTConstants::fNMaxPileUpEvents) return fPileUpEventsIDs[i]; else return -1; }
   
+  AliMFTGeomTGeo* GetGeomTGeo() const {return fGeomTGeo;}
+  virtual void Init();
+
 protected:
   
   static const Int_t fNMaxPlanes = AliMFTConstants::fNMaxPlanes;        // max number of MFT planes
@@ -138,12 +142,14 @@ protected:
   TString fFileNameForUnderyingEvent, fFileNameForPileUpEvents;
   Short_t fNPileUpEvents, fUnderlyingEventID, fPileUpEventsIDs[AliMFTConstants::fNMaxPileUpEvents];
   
+  AliMFTGeomTGeo*      fGeomTGeo;       //  access to geometry details
+
 private:
   
   AliMFT (const AliMFT& mft);             // dummy copy constructor
   AliMFT &operator=(const AliMFT& mft);   // dummy assignment operator
   
-  ClassDef(AliMFT,2)
+  ClassDef(AliMFT,3)
   
 };
 

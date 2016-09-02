@@ -410,7 +410,7 @@ void AliTOFQADataMakerRec::InitRaws()
 
   //add lines for DQM shifter
   fLineExpTimeMin = new TLine(150., 0., 150., 0.);
-  fLineExpTimeMax = new TLine(250., 0., 250., 0.);
+  fLineExpTimeMax = new TLine(225., 0., 225., 0.);
   fLineExpTotMin = new TLine(10., 0., 10., 0.);
   fLineExpTotMax = new TLine(15., 0., 15., 0.);
 
