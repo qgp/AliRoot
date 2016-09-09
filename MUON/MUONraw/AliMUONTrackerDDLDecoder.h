@@ -110,7 +110,9 @@ public:
 		fAutoDetectTrailer(true), fCheckForTrailer(true),
 		fMaxBlocks(2), fMaxDSPs(5), fMaxBusPatches(5), fHandler()
 	{}
-	
+
+    int CosmicRemap(int) const;
+
 	/// Constant method to return the event handler instance.
 	const EventHandler& GetHandler() const { return fHandler; }
 	
@@ -863,7 +865,10 @@ bool AliMUONTrackerDDLDecoder<EventHandler>::DecodeDSPData(
 				continue; // Try the next bus patch at 'current'.
 			if (result == kRecoverFailed) return false;
 		}
-		
+
+        
+        const_cast<AliMUONBusPatchHeaderStruct*>(busPatchHeader)->fBusPatchId = CosmicRemap(busPatchHeader->fBusPatchId);
+
 		// At this point we certainly have a valid bus patch header, so
 		// we need to check if we have more bus patches than we expected.
 		// If not then we can indicate we have another bus patch and
@@ -1238,6 +1243,37 @@ bool AliMUONTrackerDDLDecoder<EventHandler>::ParityIsOk(UInt_t data)
 	data &= 0xf;
 	data = ((0x6996 >> data) & 1);
 	return data == 0;
+}
+
+template <class EventHandler>
+int AliMUONTrackerDDLDecoder<EventHandler>::CosmicRemap(int cosmicBusPatchId) const
+{
+    /// Remapping from the Orsay Cosmic Test bench to regular mapping
+    /// Very dump implementation, but that should suffice ;-)
+    //
+    int busPatchId = cosmicBusPatchId;
+
+    
+    if ( busPatchId == 101 ) return 101;
+    if ( busPatchId == 102 ) return 102;
+    if ( busPatchId == 103 ) return 103;
+    if ( busPatchId == 104 ) return 104;
+    if ( busPatchId == 105 ) return 105;
+    if ( busPatchId == 106 ) return 106;
+    if ( busPatchId == 107 ) return 107;
+    if ( busPatchId == 108 ) return 108;
+    if ( busPatchId == 109 ) return 109;
+    if ( busPatchId == 110 ) return 110;
+
+    if ( busPatchId == 132 ) return 1902;
+    if ( busPatchId == 133 ) return 1901;
+    if ( busPatchId == 134 ) return 1502;
+    if ( busPatchId == 135 ) return 1501;
+    
+    if ( busPatchId == 137 ) return 915;
+    if ( busPatchId == 138 ) return 914;
+
+    return -1;
 }
 
 #endif // ALIMUONTRACKERDDLDECODER_H
