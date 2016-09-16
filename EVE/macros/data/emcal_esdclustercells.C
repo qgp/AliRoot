@@ -211,8 +211,9 @@ void emcal_esdclustercells()
     // in case the first event did not have them in the ESD
     // Do it once.
     // Get first EMCal/DCal SM matrix in geometry if non null skip.  
-    if ( !fGeomEM->GetMatrixForSuperModuleFromArray(0) || 
-         !fGeomEM->GetMatrixForSuperModuleFromArray(12) ) 
+    if (  !fGeomEM->GetMatrixForSuperModuleFromArray(0) || 
+         ( fGeomEM->GetNumberOfSuperModules() > 12 && // Check DCal matrices only for Run2
+          !fGeomEM->GetMatrixForSuperModuleFromArray(12)) ) 
     {
       Bool_t ok = kFALSE;
 
@@ -872,10 +873,7 @@ void SetUpEMCALGeometry(AliESDEvent * esd)
         fGeomEM  = AliEMCALGeometry::GetInstance();
     
     if (!fGeomEM)
-    {
-        printf("xxx Set EMCal default geo as Run2 xxx\n");
-        fGeomEM  = AliEMCALGeometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM");
-    }
+        fGeomEM  = AliEMCALGeometry::GetInstanceFromRunNumber(esd->GetRunNumber());
     
     Bool_t ok = kFALSE;
     SetEMCALMatrices(esd,ok); // Do it outside also if we could not set them here.
@@ -992,7 +990,6 @@ void SetEMCALMatrices(AliESDEvent * esd, Bool_t & ok)
   for(Int_t mod = 0; mod < fGeomEM->GetNumberOfSuperModules(); mod++) 
     printf("Matrix in geometry: imod %d, %p\n",mod,fGeomEM->GetMatrixForSuperModuleFromArray(mod));
 
-  
 }
 
 //______________________________________________________________________________
