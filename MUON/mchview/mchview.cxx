@@ -55,6 +55,7 @@ Int_t Usage()
   cout << "  --de detElemId : start by displaying the given detection element instead of the default view (which is all the chambers)" << endl;
   cout << "  --chamber chamberId (from 1 to 10) : start by displaying the given chamber instead of the default view (which is all the chambers)" << endl;
   cout << "  --ocdb ocdbPath : read the mapping from the given OCDB" << endl;
+  cout << "  --matrix name : name of the startup matrix (main screen organisation)" << endl;
   return -1;
 }
 
@@ -80,6 +81,7 @@ int main(int argc, char** argv)
   Int_t gox(0),goy(0);
   Bool_t ASCIImapping(kFALSE);
   TString defaultOCDB("raw://");
+  TString defaultStartupMatrix("CosmicBench");
 
   {
     Long_t id, size, flags, modtime;
@@ -146,6 +148,13 @@ int main(int argc, char** argv)
       nok += 2;
       ++i;
     }
+    else if ( a == "--matrix" )
+    {
+        defaultStartupMatrix = static_cast<TObjString*>(args.At(i+1))->String();
+        cout << "Using default startup mtrix = " << defaultStartupMatrix.Data() << endl;
+        nok += 2;
+        ++i;
+    }
     else
     {
       return Usage();
@@ -197,11 +206,11 @@ int main(int argc, char** argv)
 
   if ( isGeometryFixed )
   {
-    theApp = new AliMUONMchViewApplication("mchview", &argc, argv,gix,giy,gox,goy);
+    theApp = new AliMUONMchViewApplication("mchview", &argc, argv,gix,giy,gox,goy,defaultStartupMatrix.Data());
   }
   else
   {
-    theApp = new AliMUONMchViewApplication("mchview",&argc,argv);
+    theApp = new AliMUONMchViewApplication("mchview",&argc,argv,0,0,0,0,defaultStartupMatrix.Data());
   }
 
   TIter next(&filesToOpen);

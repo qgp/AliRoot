@@ -26,13 +26,14 @@ class AliMUONMchViewApplication : public TRint
 {
 public:
   AliMUONMchViewApplication(const char* name, int* argc, char** argv,
-                            UInt_t w=0, UInt_t h=0, UInt_t ox=0, UInt_t oy=0);
+                            UInt_t w=0, UInt_t h=0, UInt_t ox=0, UInt_t oy=0,
+                            const char* mainMatrix="Tracker");
   virtual ~AliMUONMchViewApplication();
 
   void HandleMenu(Int_t i);
 
   /// Return the version number of the mchview application
-  static const char* Version() { return "1.21"; }
+  static const char* Version() { return "1.22"; }
 
   /// Return the SVN revision  and version number of the mchview application
   static const char* FullVersion() { return Form("mchview Version %s ($Id$)",Version()); }
@@ -54,7 +55,10 @@ private:
   void PrintAs();
   void ReleaseNotes();
   void ReadDir(TDirectory& dir);
-	AliMUONPainterMatrix* GenerateStartupMatrix();
+
+    AliMUONPainterMatrix* GenerateStartupMatrix(const char* matrix="Tracker");
+    AliMUONPainterMatrix* GenerateDefaultStartupMatrix();
+    AliMUONPainterMatrix* GenerateCosmicBenchStartupMatrix();
 
 private:
   TGMainFrame* fMainFrame; ///< pointer to our mainframe

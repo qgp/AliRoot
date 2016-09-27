@@ -80,7 +80,8 @@ const char* AliMUONMchViewApplication::fgkFileTypes[] = {
 AliMUONMchViewApplication::AliMUONMchViewApplication(const char* name,
                                                      int* argc, char** argv,
                                                      UInt_t w, UInt_t h,
-                                                     UInt_t ox, UInt_t oy)
+                                                     UInt_t ox, UInt_t oy,
+                                                     const char* mainMatrix)
 : TRint(name,argc,argv),
   fMainFrame(0x0),
   fPainterMasterFrameList(new TList),
@@ -111,9 +112,9 @@ AliMUONMchViewApplication::AliMUONMchViewApplication(const char* name,
 
   fPainterMasterFrameList->SetOwner(kTRUE);
 
-
-  AliMUONPainterMasterFrame* pmf = new AliMUONPainterMasterFrame(t,t->GetWidth()-kbs*2,t->GetHeight()-kbs*2,
-                                                                 GenerateStartupMatrix());
+  GenerateStartupMatrix(); // build the default startup matrix in all cases
+  
+  AliMUONPainterMasterFrame* pmf = new AliMUONPainterMasterFrame(t,t->GetWidth()-kbs*2,t->GetHeight()-kbs*2,                                                                GenerateStartupMatrix(mainMatrix));
 
   fPainterMasterFrameList->Add(pmf);
 
@@ -205,7 +206,6 @@ AliMUONMchViewApplication::AliMUONMchViewApplication(const char* name,
 
     pmf->Update();
   }
-
 }
 
 //______________________________________________________________________________
@@ -215,9 +215,33 @@ AliMUONMchViewApplication::~AliMUONMchViewApplication()
   delete fPainterMasterFrameList;
 }
 
+
 //_____________________________________________________________________________
 AliMUONPainterMatrix*
-AliMUONMchViewApplication::GenerateStartupMatrix()
+AliMUONMchViewApplication::GenerateStartupMatrix(const char* mainMatrix)
+{
+    AliMUONPainterMatrix* matrix = AliMUONPainterRegistry::Instance()->PainterMatrix(mainMatrix);
+
+    if (matrix) return matrix;
+
+    if ( TString(mainMatrix).Contains("cosmicbench",TString::kIgnoreCase) )
+    {
+        return GenerateCosmicBenchStartupMatrix();
+    }
+
+    if ( TString(mainMatrix).Contains("Tracker",TString::kIgnoreCase) )
+    {
+        return GenerateDefaultStartupMatrix();
+    }
+
+    std::cerr << "Don't know how the generate matrix named " << mainMatrix << std::endl;
+
+    return 0x0;
+}
+
+//_____________________________________________________________________________
+AliMUONPainterMatrix*
+AliMUONMchViewApplication::GenerateDefaultStartupMatrix()
 {
   /// Kind of bootstrap method to trigger the generation of all contours
 
@@ -249,6 +273,44 @@ AliMUONMchViewApplication::GenerateStartupMatrix()
     matrix->Adopt(painter);
   }
   AliMUONPainterRegistry::Instance()->Register(matrix);
+  AliMUONPainterRegistry::Instance()->AddToHistory(matrix);
+  return matrix;
+}
+
+//_____________________________________________________________________________
+AliMUONPainterMatrix*
+AliMUONMchViewApplication::GenerateCosmicBenchStartupMatrix()
+{
+    /// Make a matrix with only the detection elements that
+    /// are used in the Orsay Cosmic Bench
+
+  AliMUONAttPainter att;
+
+  att.SetViewPoint(kTRUE,kFALSE);
+  att.SetCathode(kFALSE,kFALSE);
+  att.SetPlane(kTRUE,kFALSE);
+
+  AliMUONPainterMatrix* matrix = new AliMUONPainterMatrix("CosmicBench",2,2);
+
+  const Int_t detectionElements[] = { 100, 1006, 806, 604 };
+
+  for ( Int_t i = 0; i < 4; ++i )
+  {
+    AliMUONVPainter* painter = new AliMUONDEPainter(att,detectionElements[i]);
+
+    painter->SetResponder("BusPatch");
+    painter->SetOutlined("*",kFALSE);
+    painter->SetOutlined("MANU",kTRUE);
+
+    for ( Int_t j = 0; j < 3; ++j )
+    {
+      painter->SetLine(j,1,4-j);
+    }
+    matrix->Adopt(painter);
+  }
+
+  AliMUONPainterRegistry::Instance()->Register(matrix);
+  AliMUONPainterRegistry::Instance()->AddToHistory(matrix);
   return matrix;
 }
 
@@ -496,6 +558,11 @@ AliMUONMchViewApplication::ReleaseNotes()
   TGTransientFrame* t = new TGTransientFrame(gClient->GetRoot(),gClient->GetRoot(),width,height);
 
   TGTextView* rn = new TGTextView(t);
+
+  rn->AddLine("1.22");
+  rn->AddLine("");
+  rn->AddLine("Added the --matrix option");
+  rn->AddLine("");
 
   rn->AddLine("1.21");
   rn->AddLine("");
