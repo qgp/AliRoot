@@ -82,10 +82,12 @@ void makeTPCFastTransformOCDBObject( const Char_t* cdbUri=NULL,
   }
     
   Double_t bz = AliTracker::GetBz();
+  unsigned int timestamp = grpObj->GetTimeStart();
 
-  cout<<"\n\nBz field is set to "<<bz<<", time stamp is set to "<<grpObj->GetTimeEnd()<<endl<<endl;
+  cout<<"\n\nBz field is set to "<<bz<<", time stamp is set to "<<timestamp<<endl<<endl;
 
-  calib->SetExBField(bz);  
+  const AliMagF * field = (AliMagF*) TGeoGlobalMagField::Instance()->GetField();
+  calib->SetExBField(field);
   calib->SetRun( runMin );
   calib->UpdateRunInformations( runMin );
 
@@ -93,8 +95,7 @@ void makeTPCFastTransformOCDBObject( const Char_t* cdbUri=NULL,
   
   TStopwatch timer;
   timer.Start();
-  //int err = hltTransform.Init( GetBz(), GetTimeStamp() );
-  int err = hltTransform.Init( bz, grpObj->GetTimeEnd() );
+  int err = hltTransform.Init( bz, timestamp );
   timer.Stop();
   cout<<"\n\n Initialisation: "<<timer.CpuTime()<<" / "<<timer.RealTime()<<" sec.\n\n"<<endl;
   if( err!=0 ){

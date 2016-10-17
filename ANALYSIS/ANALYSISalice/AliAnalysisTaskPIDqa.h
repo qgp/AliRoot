@@ -29,6 +29,7 @@ class AliAnalysisTaskPIDqa : public AliAnalysisTaskSE {
   
   
 public:
+  enum ETPCHistOffset { kTrackPIDBasic=0, kTrackPIDMC, kTrackPIDV0, kMaxHistOffset };
   AliAnalysisTaskPIDqa();
   AliAnalysisTaskPIDqa(const char *name);
   virtual ~AliAnalysisTaskPIDqa();
@@ -57,9 +58,15 @@ private:
 //  TList                 *fListQAtpcHybrid;  //! Sub-list with TPC QA histograms - the "hybrid" scenario -> not used and commented for now
 //  TList                 *fListQAtpcOROChigh;//! Sub-list with TPC QA histograms - the "OROChigh" scenario -> not used and commented for now
   TList                 *fListQAtpcV0;      //! Sub-list with TPC QA histograms - V0s
-  TList                 *fListQAtrd;        //! List with TRD QA histograms
-  TList                 *fListQAtrdNsig;    //! List with TRD QA histograms for Nsigma approach
-  TList                 *fListQAtrdNsigTPCTOF; //! List with TRD QA histograms for Nsigma approach after TPC and TOF selection
+  TList                 *fListQAtrd;        //! List with TRD QA histograms 
+  TList                 *fListQAtrdBasic;        //! List with TRD QA histograms - basic
+  TList                 *fListQAtrdLikelihood;     //! List with TRD QA histograms - likelihood
+  TList                 *fListQAtrdTruncatedMean;  //! List with TRD QA histograms - truncated mean
+  TList                 *fListQAtrdMCtruth; //! List with TRD QA histograms - mc truth
+  TList                 *fListQAtrdV0;      //! List with TRD QA histograms - V0s
+  TList                 *fListQAtrdBasicV0;        //! List with TRD QA histograms - basic
+  TList                 *fListQAtrdLikelihoodV0;     //! List with TRD QA histograms - likelihood
+  TList                 *fListQAtrdTruncatedMeanV0;  //! List with TRD QA histograms - truncated mean
   TList                 *fListQAtof;        //! List with TOF QA histograms
   TList                 *fListQAt0;         //! List with T0 QA histograms
   TList                 *fListQAemcal;      //! List with EMCAL QA histograms
@@ -69,13 +76,15 @@ private:
   TList                 *fListQAV0;         //! List with V0 kine cuts QA histograms
   TList                 *fListQAinfo;       //! List with information about loaded splines etc.
 
+  TArrayI                fTPChistogramOffsets; //! Histogram offsets for different histogram groups
+
   
   void ExecNewRun();
 
   //qa object initialisation
   void SetupITSqa();
   void SetupTPCqa(Bool_t fillMC, Bool_t fill11h, Bool_t fillV0);
-  void SetupTRDqa();
+  void SetupTRDqa(Bool_t fillMC, Bool_t fillBasic, Bool_t fillV0);
   void SetupTOFqa();
   void SetupT0qa();
   void SetupEMCALqa();
@@ -108,6 +117,19 @@ private:
   void FillTPCHistogramsSignal(TList *sublist, Int_t scenario, AliVTrack *track, Int_t nTracks);
   void FillTPCHistogramsNsigma(TList *sublist, Int_t scenario, AliVTrack *track, Int_t nTracks);
 
+  // Adding TRD Histograms - called in SetupTRDqa
+  void AddTRDHistogramsBasic(TList *sublistTRD, const char *scenario, Int_t scnumber);
+  void AddTRDHistogramsLikelihood(TList *sublistTRD, const char *scenario, Int_t scnumber);
+  void AddTRDHistogramsNsigma(TList *sublistTRD, const char *scenario, Int_t scnumber);
+  void AddTRDHistogramsSignal(TList *sublistTRD, const char *scenario, Int_t scnumber);
+
+  // Fill TRD Histograms - called in FillTRDqa
+  void FillTRDHistogramsBasic(TList *sublistTRD, Int_t scenario, AliVTrack *track);
+  void FillTRDHistogramsLikelihood(TList *sublistTRD, Int_t scenario, AliVTrack *track, Int_t centrality);
+  void FillTRDHistogramsNsigma(TList *sublistTRD, Int_t scenario, AliVTrack *track, Int_t centrality);
+  void FillTRDHistogramsSignal(TList *sublistTRD, Int_t scenario, AliVTrack *track);
+
+
   //
   void SetRecoInfo();
   
@@ -120,6 +142,6 @@ private:
   AliAnalysisTaskPIDqa(const AliAnalysisTaskPIDqa &other);
   AliAnalysisTaskPIDqa& operator=(const AliAnalysisTaskPIDqa &other);
   
-  ClassDef(AliAnalysisTaskPIDqa,2)  // Task to properly set the PID response functions of all detectors
+  ClassDef(AliAnalysisTaskPIDqa,3)  // Task to properly set the PID response functions of all detectors
 };
 #endif

@@ -39,6 +39,8 @@
 #include "AliHLTControlTask.h"
 #include "AliHLTDataBuffer.h"
 #include "AliHLTMisc.h"
+//#include "AliGRPManager.h"
+//#include "AliGRPObject.h"
 #include <TObjArray.h>
 #include <TObjString.h>
 #include <TStopwatch.h>
@@ -434,7 +436,7 @@ int AliHLTSystem::InitTasks()
     lnk = lnk->Next();
   }
   if (iResult<0) {
-    HLTError("can not initialize task list, error %d", iResult);
+    HLTFatal("can not initialize task list, error %d", iResult);
   }
 
   return iResult;
@@ -705,10 +707,29 @@ int AliHLTSystem::SendControlEvent(AliHLTComponentDataType dt)
     if (obj) {
       AliHLTTask* pTask=(AliHLTTask*)obj;
       AliHLTUInt32_t eventType=gkAliEventTypeUnknown;
-      if (dt==kAliHLTDataTypeSOR) eventType=gkAliEventTypeStartOfRun;
-      else if (dt==kAliHLTDataTypeEOR) eventType=gkAliEventTypeEndOfRun;
+      AliHLTUInt32_t timestamp = 0;
+      static bool grpInitialized = false;
+      //static const AliGRPObject *grpObj = NULL;
+      if (grpInitialized == false)
+      {
+        /*static AliGRPManager grp;
+        grp.ReadGRPEntry();
+        const AliGRPObject *grpObjTmp = grp.GetGRPData();
+        grpObj = grpObjTmp;*/
+        grpInitialized = true;
+      }
+      if (dt==kAliHLTDataTypeSOR)
+      {
+        eventType=gkAliEventTypeStartOfRun;
+        //if (grpObj) timestamp = grpObj->GetTimeStart();
+      }
+      else if (dt==kAliHLTDataTypeEOR)
+      {
+        eventType=gkAliEventTypeEndOfRun;
+        //if (grpObj) timestamp = grpObj->GetTimeEnd();
+      }
       else HLTWarning("unknown control event %s", AliHLTComponent::DataType2Text(dt).c_str());
-      iResult=pTask->ProcessTask(-1, eventType, 0, 0);
+      iResult=pTask->ProcessTask(-1, eventType, 0, timestamp);
     } else {
     }
     lnk = lnk->Next();

@@ -17,6 +17,7 @@ class AliTPCExB;
 #include "AliTPCCalPad.h"
 #include "TString.h"
 #include "AliSplineFit.h"
+#include "AliRecoParam.h"
 #include "TMap.h"
 
 class TGraphErrors;
@@ -42,7 +43,9 @@ class AliTPCChebCorr;
 
 class AliTPCcalibDB : public TObject
 {
- public: 
+ public:
+  enum EDcsGasSensor { kNeon=0, kArgon, kCO2, kN2, kH2O, kNGasSensor };
+
   static AliTPCcalibDB* Instance();
   AliTPCcalibDB();
   virtual ~AliTPCcalibDB();
@@ -120,6 +123,12 @@ class AliTPCcalibDB : public TObject
   //QA object
   AliTPCdataQA*   GetDataQA() const {return fDataQA;}
   //
+  // Gas sensor data
+  //
+  AliDCSSensorArray* GetGasSensors() const { return fGasSensorArray; }
+  Float_t GetGasSensorValue(EDcsGasSensor type, Int_t timeStamp=-1, Int_t sigDigits=-1);
+
+  //
   AliTPCSensorTempArray* GetTemperature() const {return fTemperature;}
   AliTPCParam*  GetParameters() const {return fParam;}
   AliTPCAltroMapping ** GetMapping() const{ return fMapping;}
@@ -128,6 +137,8 @@ class AliTPCcalibDB : public TObject
   //
   //Reco param getter
   AliTPCRecoParam *GetRecoParam(Int_t i) const;
+  AliTPCRecoParam *GetRecoParamFromGRP() const;
+  AliRecoParam::EventSpecie_t GetEventSpecieFromGRP() const {return fRunEventSpecie;}
   //GRP information
   static AliGRPObject * GetGRP(Int_t run);
   static TMap *  GetGRPMap(Int_t run);
@@ -186,6 +197,10 @@ class AliTPCcalibDB : public TObject
   static void MakeTree(const char * fileName, TObjArray * array, const char * mapFileName = 0, AliTPCCalPad* outlierPad = 0, Float_t ltmFraction = 0.9);
   static void RegisterExB(Int_t index, Float_t bz, Bool_t bdelete);
   //
+  // Dead channel map functions
+  //
+  Int_t GetMaskedChannelsFromCorrectionMaps(TBits maskedPads[72]);
+  //
   //
   //
   AliTPCCalPad* MakeDeadMap(Double_t notInMap=1, const char *nameMappingFile="$ALICE_ROOT/TPC/Calib/tpcMapping.root" );
@@ -227,6 +242,12 @@ protected:
   TObjArray *fPulserData;         ///< Calibration Pulser data
   TObjArray *fCEData;             ///< CE data
   //
+  // Gas sensor data
+  //
+  static const char* fgkGasSensorNames[kNGasSensor]; ///< DCS gas sensor names
+  AliDCSSensorArray* fGasSensorArray;                ///< Gas sensors
+
+  //
   // Defived ALTRO information
   //
   Int_t fMaxTimeBinAllPads;       ///< Maximum Time bin in whole TPC extracted from AltroConfig
@@ -246,6 +267,7 @@ protected:
   AliTPCAltroMapping **fMapping;   ///< Altro mapping
   //
   //
+  AliRecoParam::EventSpecie_t fRunEventSpecie;    ///< Event specie suggested for the run according to GRP
   AliTPCParam * fParam;                ///< TPC parameters
   AliTPCClusterParam * fClusterParam;  ///< TPC cluster error, shape and Q parameterization
   TObjArray * fRecoParamList;          ///< List of TPC reco param objects
@@ -278,7 +300,7 @@ protected:
    AliTPCcalibDB& operator= (const AliTPCcalibDB& );
   
    /// \cond CLASSIMP
-   ClassDef(AliTPCcalibDB, 2)
+   ClassDef(AliTPCcalibDB, 3)
    /// \endcond
 };
 

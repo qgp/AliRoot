@@ -69,7 +69,8 @@ fDensitySupportOverSi(0.036),
 fFileNameForUnderyingEvent(0),
 fFileNameForPileUpEvents(0),
 fNPileUpEvents(0),
-fUnderlyingEventID(-1)
+fUnderlyingEventID(-1),
+fGeomTGeo(0)
 {
   
   // default constructor
@@ -98,7 +99,8 @@ fDensitySupportOverSi(0.036),
 fFileNameForUnderyingEvent(0),
 fFileNameForPileUpEvents(0),
 fNPileUpEvents(0),
-fUnderlyingEventID(-1)
+fUnderlyingEventID(-1),
+fGeomTGeo(0)
 {
   
   for (Int_t iPileUp=0; iPileUp<AliMFTConstants::fNMaxPileUpEvents; iPileUp++) fPileUpEventsIDs[iPileUp] = -1;
@@ -106,8 +108,6 @@ fUnderlyingEventID(-1)
   fNameGeomFile = "AliMFTGeometry.root";
   
   SetGeometry();
-  
-  Init();
   
 }
 
@@ -139,8 +139,6 @@ fUnderlyingEventID(-1)
   
   SetGeometry();
   
-  Init();
-  
 }
 
 //====================================================================================================================================================
@@ -150,9 +148,19 @@ AliMFT::~AliMFT() {
   if (fSDigitsPerPlane)   { fSDigitsPerPlane->Delete();    delete fSDigitsPerPlane;   }
   if (fDigitsPerPlane)    { fDigitsPerPlane->Delete();     delete fDigitsPerPlane;    }
   if (fRecPointsPerPlane) { fRecPointsPerPlane->Delete();  delete fRecPointsPerPlane; }
-  
+
+  delete fGeomTGeo;  
+
 }
 
+//====================================================================================================================================================
+
+void AliMFT::Init() {
+
+  fGeomTGeo = new AliMFTGeomTGeo();
+
+}
+  
 //====================================================================================================================================================
 
 void AliMFT::CreateMaterials() {
@@ -201,20 +209,27 @@ void AliMFT::CreateMaterials() {
   Float_t aEpoxy[3] = {15.9994, 1.00794, 12.0107} ;
   Float_t zEpoxy[3] = {     8.,      1.,      6.} ;
   Float_t wEpoxy[3] = {     3.,     19.,     18.} ;
-  Float_t dEpoxy = 1.8 ;
+  Float_t dEpoxy = 1.23; //  1.8 very high value from ITS! ou 1.23 from eccobond 45 lv datasheet
+
+  //--- Silicone SE4445 Dow Corning  
+  // Si, Al, O, C, H
+  Float_t aSE4445[5] = {28.0855, 26.981538, 15.9994, 12.0107, 1.00794} ;
+  Float_t zSE4445[5] = {    14.,       13.,      8.,      6.,      1.} ;
+  Float_t wSE4445[5] = {  5.531,    45.222,  43.351,   4.717,   1.172} ;
+  Float_t dSE4445 = 2.36; //from LBNL file, priv. comm.
   
   //--- CARBON FIBER CM55J --- from ITS AliITSv11.cxx
   Float_t aCM55J[4]={12.0107,14.0067,15.9994,1.00794};
   Float_t zCM55J[4]={6.,7.,8.,1.};
   Float_t wCM55J[4]={0.908508078,0.010387573,0.055957585,0.025146765};
-  Float_t dCM55J = 1.8;  // 1.63 from AliITSv11Geometry.cxx !?
+  Float_t dCM55J = 1.33; // new value for MFT, from J.M. Buhour infos
 
   // Rohacell mixture
   const Int_t nRohacell = 3;
   Float_t aRohacell[nRohacell] = {1.00794, 12.0107, 15.9994};
   Float_t zRohacell[nRohacell] = {1., 6., 8.};
   Float_t wRohacell[nRohacell] = {0.0858, 0.5964, 0.3178};
-  Float_t dRohacell = 0.075;
+  Float_t dRohacell = 0.032;  // 0.032 g/cm3 rohacell 31, 0.075 g/cm3 rohacell 71;
   
   // Polyimide pipe mixture
   const Int_t nPolyimide = 4;
@@ -223,13 +238,13 @@ void AliMFT::CreateMaterials() {
   Float_t wPolyimide[nPolyimide] = {0.00942, 0.56089, 0.13082, 0.29887};
   Float_t dPolyimide = 1.4;   
 
-	// PEEK mixture (Polyether Ether Ketone)
-	const Int_t nPEEK = 3;
-	Float_t   aPEEK[nPEEK] = {1.00794, 12.0107, 15.9994} ;
-	Float_t   zPEEK[nPEEK] = {1,       6,        8} ;
-	Float_t   wPEEK[nPEEK] = {0.06713, 0.40001,  0.53285} ;
-	Float_t   dPEEK = 1.32;
-
+  // PEEK mixture (Polyether Ether Ketone)
+  const Int_t nPEEK = 3;
+  Float_t   aPEEK[nPEEK] = {1.00794, 12.0107, 15.9994} ;
+  Float_t   zPEEK[nPEEK] = {1,       6,        8} ;
+  Float_t   wPEEK[nPEEK] = {0.06713, 0.40001,  0.53285} ;
+  Float_t   dPEEK = 1.32;
+  
   // (Printed Circuit Board), material type FR4
   const Int_t nFR4 = 5;
   Float_t   aFR4[nFR4] = {1.00794,    12.0107, 15.9994, 28.0855,   79.904} ;
@@ -237,6 +252,25 @@ void AliMFT::CreateMaterials() {
   Float_t   wFR4[nFR4] = {0.0684428,  0.278042,0.405633, 0.180774,    0.0671091} ;
   Float_t   dFR4 = 1.7; //Density FR4= 1.7 Cu=8.96
 
+
+  //======================== From ITS code ===================================
+  //X7R capacitors - updated from F.Tosello's web page - M.S. 18 Oct 10
+  // 58.6928 --> innner electrodes (mainly Ni)
+  // 63.5460 --> terminaisons (Cu) 
+  // 118.710 --> terminaisons (Sn)
+  // 137.327 Ba, 47.867 Ti, 15.9994 O  (mainly BaTiO3)
+  Float_t aX7R[6]={137.327,47.867,15.9994,58.6928,63.5460,118.710};
+  Float_t zX7R[6]={56.,22.,8.,28.,29.,50.};
+  Float_t wX7R[6]={0.524732,0.176736,0.179282,0.079750,0.019750,0.019750};
+  Float_t dX7R = 6.07914;
+  
+  //X7R weld, i.e. Sn 60% Pb 40% (from F.Tosello's web page - M.S. 15 Oct 10)
+  
+  Float_t aX7Rweld[2]={118.71 , 207.20};
+  Float_t zX7Rweld[2]={ 50.   ,  82.  };
+  Float_t wX7Rweld[2]={  0.60 ,   0.40};
+  Float_t dX7Rweld   = 8.52358;
+  //==========================================================================
   
   Int_t   matId  = 0;                        // tmp material id number
   Int_t   unsens = 0, sens=1;                // sensitive or unsensitive medium
@@ -318,7 +352,10 @@ void AliMFT::CreateMaterials() {
   AliMixture(++matId, "Epoxy$", aEpoxy, zEpoxy, dEpoxy, -3, wEpoxy);
   AliMedium(kEpoxy,"Epoxy$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliMixture(++matId,"C (M55J)$",aCM55J,zCM55J,dCM55J,4,wCM55J);
+  AliMixture(++matId, "SE4445$", aSE4445, zSE4445, dSE4445, -5, wSE4445);
+  AliMedium(kSE4445,"SE4445$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  
+  AliMixture(++matId,"CarbonFiber$",aCM55J,zCM55J,dCM55J,4,wCM55J);
   AliMedium(kCarbonEpoxy,"CarbonFiber$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
   AliMixture(++matId,  "Rohacell", aRohacell, zRohacell, dRohacell, nRohacell, wRohacell);
@@ -327,14 +364,25 @@ void AliMFT::CreateMaterials() {
   AliMixture(++matId,  "Polyimide", aPolyimide, zPolyimide, dPolyimide, nPolyimide, wPolyimide);
   AliMedium(kPolyimide, "Polyimide", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 	
-	AliMixture(++matId, "PEEK$", aPEEK, zPEEK, dPEEK, nPEEK, wPEEK);
-	AliMedium(kPEEK,    "PEEK$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  AliMixture(++matId, "PEEK$", aPEEK, zPEEK, dPEEK, nPEEK, wPEEK);
+  AliMedium(kPEEK,    "PEEK$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
   AliMixture(++matId, "FR4$", aFR4, zFR4, dFR4, nFR4, wFR4);
   AliMedium(kFR4,    "FR4$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
   AliMaterial(++matId, "Cu$", aCu, zCu, dCu, radCu, absCu);
   AliMedium(kCu,       "Cu$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+ 
+  AliMixture(++matId, "X7Rcapacitors$",aX7R,zX7R,dX7R,6,wX7R);
+  AliMedium(kX7R,     "X7Rcapacitors$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+
+  AliMixture(++matId, "X7Rweld$",aX7Rweld,zX7Rweld,dX7Rweld,2,wX7Rweld);
+  AliMedium(kX7Rw,    "X7Rweld$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+
+ // Carbon fleece from AliITSSUv2.cxx
+  AliMaterial(++matId,"CarbonFleece$",12.0107,6,0.4,radCarb,absCarb);          // 999,999);  why 999???
+  AliMedium(kCarbonFleece,  "CarbonFleece$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+
 
   AliDebug(1,"End MFT materials");
   
@@ -354,6 +402,8 @@ void AliMFT::CreateGeometry() {
   
   if (fNStepForChargeDispersion) fSingleStepForChargeDispersion = fChargeDispersion/Double_t(fNStepForChargeDispersion);
   
+  Init();
+
 }
 
 //====================================================================================================================================================
@@ -384,7 +434,7 @@ void AliMFT::StepManager() {
   AliMFTSegmentation * seg = mftGeo->GetSegmentation();
   if (!seg) AliFatal("No segmentation available");
 
-  TVirtualMC* mc = TVirtualMC::GetMC();
+  TVirtualMC* mc = fMC;
   
   Double_t absQ = TMath::Abs(mc->TrackCharge());
   if (absQ <= 0) return;

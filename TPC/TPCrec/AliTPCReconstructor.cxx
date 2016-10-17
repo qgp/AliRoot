@@ -124,6 +124,7 @@ AliTPCReconstructor::~AliTPCReconstructor()
 void AliTPCReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) const {
   // single event local reconstruction
   // of TPC data
+  fClusterer->SetTimeStamp(GetTimeStamp());
   fClusterer->SetInput(digitsTree);
   fClusterer->SetOutput(clustersTree);
   fClusterer->Digits2Clusters();
@@ -133,7 +134,7 @@ void AliTPCReconstructor::Reconstruct(TTree* digitsTree, TTree* clustersTree) co
 void AliTPCReconstructor::Reconstruct(AliRawReader* rawReader, TTree* clustersTree) const {
   // single event local reconstruction
   // of TPC data starting from raw data
-
+  fClusterer->SetTimeStamp(GetTimeStamp());
   fClusterer->SetOutput(clustersTree);
   fClusterer->Digits2Clusters(rawReader);
 }
@@ -298,10 +299,13 @@ void AliTPCReconstructor::GetPidSettings(AliESDpid *esdPID)
     AliTPCParam* param = AliTPCcalibDB::Instance()->GetParameters();
     if (param) {
       TVectorD *paramBB=param->GetBetheBlochParameters();
+      const Float_t maxnSigmaRange = param->GetSigmaRangePIDinTracking();
       if (paramBB){
         esdPID->GetTPCResponse().SetBetheBlochParameters((*paramBB)(0),(*paramBB)(1),(*paramBB)(2),(*paramBB)(3),(*paramBB)(4));
         AliInfo(Form("Setting BB parameters from OCDB (AliTPCParam): %.2g, %.2g, %.2g, %.2g, %.2g",
                      (*paramBB)(0),(*paramBB)(1),(*paramBB)(2),(*paramBB)(3),(*paramBB)(4)));
+        AliInfoF("Setting max sigma PID range to %.2f", maxnSigmaRange);
+        esdPID->SetProbabilityRangeNsigma(maxnSigmaRange);
       } else {
         AliError("Couldn't get BB parameters from OCDB, the old default values will be used instead");
       }
@@ -370,4 +374,20 @@ void AliTPCReconstructor::ParseOptions( AliTPCtracker* tracker ) const
   tracker->SetUseHLTClusters(useHLTClusters);
 
   return;
+}
+
+//_____________________________________________________________________________
+void AliTPCReconstructor::SetSystematicErrorCluster( TVectorD *vec ) 
+{ 
+  // set clusters syst.errors which will override persistent data member from AliTPCRecoParam::fSystematicErrors
+  fSystematicErrorClusters=vec;
+  AliTPCRecoParam::SetSystematicErrorClusterCustom(vec);
+}
+
+//_____________________________________________________________________________
+void AliTPCReconstructor::SetPrimaryDCACut( TVectorD *dcacut ) 
+{ 
+  // set clusters syst.errors which will override persistent data member from AliTPCRecoParam::fSystematicErrors
+  fgPrimaryDCACut=dcacut;
+  AliTPCRecoParam::SetPrimaryDCACut(dcacut);
 }

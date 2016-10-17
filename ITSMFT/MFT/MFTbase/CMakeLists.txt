@@ -26,6 +26,8 @@ include_directories(${AliRoot_SOURCE_DIR}/MUON/MUONbase
                     ${AliRoot_SOURCE_DIR}/STEER/AOD
                     ${AliRoot_SOURCE_DIR}/STEER/STEER
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
+  	            ${AliRoot_SOURCE_DIR}/ITSMFT/COMMONITSMFT
+  	            ${AliRoot_SOURCE_DIR}/ITSMFT/COMMONITSMFT/COMMONITSMFTBase
                    )
 
 # Sources in alphabetical order
@@ -50,6 +52,7 @@ set(SRCS
     AliMFTSegmentation.cxx
     AliMFTSupport.cxx
     AliMFTVSegmentation.cxx
+    AliMFTGeomTGeo.cxx
    )
 
 # Headers from sources
@@ -62,7 +65,7 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Dependencies
 set(ROOT_DEPENDENCIES Core EG Gpad Graf Hist Matrix Physics RIO Tree)
-set(ALIROOT_DEPENDENCIES STEERBase STEER AOD MUONbase MUONrec)
+set(ALIROOT_DEPENDENCIES COMMONITSMFTBase STEERBase STEER AOD MUONbase MUONrec)
 
 # Generate the ROOT map
 # Dependecies
@@ -70,7 +73,7 @@ set(LIBDEPS ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # Add a library to the project using the specified source files
-add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
+add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
 
 # Additional compilation flags
 set_target_properties(${MODULE} PROPERTIES COMPILE_FLAGS "")

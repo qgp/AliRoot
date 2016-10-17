@@ -168,9 +168,12 @@ set(HDRS ${HDRS}
     AliHLTTPCLog.h
     AliHLTTPCLogging.h
     AliHLTTPCSpacePointData.h
+    AliHLTTPCRawCluster.h
+    AliHLTTPCRawClustersDescriptor.h
     AliHLTTPCDigitData.h
     AliHLTTPCClusterDataFormat.h
     AliHLTTPCClusterMCData.h
+    AliHLTTPCClusterFlagsData.h
     HWCFemulator/AliHLTTPCHWCFDataTypes.h
     tracking-ca/AliHLTTPCCADef.h
     tracking-ca/AliHLTTPCCAMath.h
@@ -190,7 +193,7 @@ generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}
 set(LIBDEPS ${LIBDEPS} Vc)
 
 # Add a library to the project using the specified source files
-add_library(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
+add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
 target_link_libraries(${MODULE} ${LIBDEPS})
 
 # Additional compilation flags

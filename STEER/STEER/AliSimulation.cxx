@@ -140,6 +140,7 @@
 #include "AliDAQ.h"
 #include "AliDigitizer.h"
 #include "AliESDEvent.h"
+#include "AliFileUtilities.h"
 #include "AliGRPObject.h"
 #include "AliGenEventHeader.h"
 #include "AliGenerator.h"
@@ -163,6 +164,8 @@
 #include "AliSimulation.h"
 #include "AliSysInfo.h"
 #include "AliVertexGenFile.h"
+#include "AliLumiTools.h"
+#include <TGraph.h>
 #include <fstream>
 
 using std::ofstream;
@@ -219,10 +222,10 @@ AliSimulation::AliSimulation(const char* configFileName,
   fUseMagFieldFromGRP(0),
   fGRPWriteLocation(Form("local://%s", gSystem->pwd())),
   fUseDetectorsFromGRP(kTRUE),
-  fUseTimeStampFromCDB(0),
+  fUseTimeStampFromCDB(kFALSE),
   fTimeStart(0),
   fTimeEnd(0),
-  fLumiDecayH(10.),
+  fLumiDecayH(-1.), // by default, use lumi from CTP
   fOrderedTimeStamps(),
   fQADetectors("ALL"),                  
   fQATasks("ALL"),	
@@ -1158,17 +1161,30 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
     time_t deltaT = fTimeEnd - fTimeStart;
     if (deltaT>0) {
       fOrderedTimeStamps.resize(fNEvents);
-      double tau = fLumiDecayH*3600.;
-      double wt = 1.-TMath::Exp(-double(deltaT)/tau);
-      for (int i=0;i<fNEvents;i++) {
-	double w = wt*gRandom->Rndm();
-	time_t t =  fTimeStart - tau*TMath::Log(1-w);
-	fOrderedTimeStamps[i] = t;
+      if (fLumiDecayH>0) {
+	double tau = fLumiDecayH*3600.;
+	double wt = 1.-TMath::Exp(-double(deltaT)/tau);
+	for (int i=0;i<fNEvents;i++) {
+	  double w = wt*gRandom->Rndm();
+	  time_t t =  fTimeStart - tau*TMath::Log(1-w);
+	  fOrderedTimeStamps[i] = t;
+	}
+	AliInfoF("Ordered %d TimeStamps will be generated between %ld:%ld with decay tau=%.2f h",
+		 fNEvents,fTimeStart,fTimeEnd,fLumiDecayH);
+      }
+      else { // generate according to real lumi
+	TGraph* lumi = AliLumiTools::GetLumiFromCTP();
+	if (!lumi) AliFatal("Failed to get lumi graph");
+	int nb = 1+deltaT/60.;
+	TH1F hlumi("hlumi","",nb,fTimeStart,fTimeEnd);
+	for (int ib=1;ib<=nb;ib++) hlumi.SetBinContent(ib,lumi->Eval(hlumi.GetBinCenter(ib)));
+	delete lumi;
+	for (int i=0;i<fNEvents;i++) fOrderedTimeStamps[i] = time_t(hlumi.GetRandom());
+	AliInfoF("Ordered %d TimeStamps will be generated between %ld:%ld according to CTP Lumi profile",
+		 fNEvents,fTimeStart,fTimeEnd);
       }
       std::sort(fOrderedTimeStamps.begin(), fOrderedTimeStamps.end());
       //
-      AliInfoF("Ordered %d TimeStamps will be generated between %ld:%ld with decay tau=%.2f h",
-	       fNEvents,fTimeStart,fTimeEnd,fLumiDecayH);
     }
     else AliInfoF("Random TimeStamps will be generated between %ld:%ld",fTimeStart,fTimeEnd);
   }
@@ -1334,6 +1350,15 @@ Bool_t AliSimulation::RunSimulation(Int_t nEvents)
 Bool_t AliSimulation::RunGeneratorOnly()
 {
   // Execute Config.C
+  InitCDB();
+  InitRunNumber();  
+  if (fUseMagFieldFromGRP) {
+    AliGRPManager grpM;
+    grpM.ReadGRPEntry();
+    grpM.SetMagField();
+    AliInfo("Field is locked now. It cannot be changed in Config.C");
+  }
+
   TInterpreter::EErrorCode interpreterError=TInterpreter::kNoError;
   gROOT->LoadMacro(fConfigFileName.Data());
   Long_t interpreterResult=gInterpreter->ProcessLine(gAlice->GetConfigFunction(), &interpreterError);
@@ -1624,13 +1649,15 @@ Bool_t AliSimulation::WriteRawData(const char* detectors,
     }
     AliSysInfo::AddStamp("ConvertRawFilesToDate");
     if (deleteIntermediateFiles) {
-      AliRunLoader* runLoader = LoadRun("READ");
-      if (runLoader) for (Int_t iEvent = 0; 
-			  iEvent < runLoader->GetNumberOfEvents(); iEvent++) {
-	char command[256];
-	snprintf(command, 256, "rm -r raw%d", iEvent);
-	gSystem->Exec(command);
-      }
+      AliRunLoader *runLoader = LoadRun("READ");
+      if (runLoader)
+        for (Int_t iEvent = 0; iEvent < runLoader->GetNumberOfEvents();
+             iEvent++) {
+          char dir[256];
+          snprintf(dir, 256, "raw%d", iEvent);
+          //gSystem->Exec(command);
+          AliFileUtilities::Remove_All(dir);
+        }
       delete runLoader;
     }
 
@@ -1917,21 +1944,31 @@ Bool_t AliSimulation::ConvertDateToRoot(const char* dateFileName,
   if (gSystem->Getenv("ALIMDC_TAGDB")) 
     tagDBFS = gSystem->Getenv("ALIMDC_TAGDB");
 
-  gSystem->Exec(Form("rm -rf %s",rawDBFS[0]));
-  gSystem->Exec(Form("rm -rf %s",rawDBFS[1]));
-  gSystem->Exec(Form("rm -rf %s",tagDBFS));
 
-  gSystem->Exec(Form("mkdir %s",rawDBFS[0]));
-  gSystem->Exec(Form("mkdir %s",rawDBFS[1]));
-  gSystem->Exec(Form("mkdir %s",tagDBFS));
+  //gSystem->Exec(Form("rm -rf %s",rawDBFS[0]));
+  //gSystem->Exec(Form("rm -rf %s",rawDBFS[1]));
+  //gSystem->Exec(Form("rm -rf %s",tagDBFS));
+  AliFileUtilities::Remove_All(rawDBFS[0]);
+  AliFileUtilities::Remove_All(rawDBFS[1]);
+  AliFileUtilities::Remove_All(tagDBFS);
+
+  //gSystem->Exec(Form("mkdir %s",rawDBFS[0]));
+  //gSystem->Exec(Form("mkdir %s",rawDBFS[1]));
+  //gSystem->Exec(Form("mkdir %s",tagDBFS));
+  gSystem->MakeDirectory(rawDBFS[0]);
+  gSystem->MakeDirectory(rawDBFS[1]);
+  gSystem->MakeDirectory(tagDBFS);
 
   Int_t result = gSystem->Exec(Form("alimdc %d %d %d %d %s", 
 				    kDBSize, kTagDBSize, kFilter, kCompression, dateFileName));
   gSystem->Exec(Form("mv %s/*.root %s", rawDBFS[0], rootFileName));
 
-  gSystem->Exec(Form("rm -rf %s",rawDBFS[0]));
-  gSystem->Exec(Form("rm -rf %s",rawDBFS[1]));
-  gSystem->Exec(Form("rm -rf %s",tagDBFS));
+//  gSystem->Exec(Form("rm -rf %s",rawDBFS[0]));
+//  gSystem->Exec(Form("rm -rf %s",rawDBFS[1]));
+//  gSystem->Exec(Form("rm -rf %s",tagDBFS));
+  AliFileUtilities::Remove_All(rawDBFS[0]);
+  AliFileUtilities::Remove_All(rawDBFS[1]);
+  AliFileUtilities::Remove_All(tagDBFS);
 
   return (result == 0);
 }
@@ -2719,32 +2756,12 @@ void AliSimulation::StoreUsedCDBMaps() const
     return;
   }
   //
-  const TMap *cdbMap = AliCDBManager::Instance()->GetStorageMap();	 
-  const TList *cdbList = AliCDBManager::Instance()->GetRetrievedIds();	 
-  //
-  TMap *cdbMapCopy = new TMap(cdbMap->GetEntries());	 
-  cdbMapCopy->SetOwner(1);	 
-  //  cdbMapCopy->SetName("cdbMap");	 
-  TIter iter(cdbMap->GetTable());	 
-  //	 
-  TPair* pair = 0;	 
-  while((pair = dynamic_cast<TPair*> (iter.Next()))){	 
-    TObjString* keyStr = dynamic_cast<TObjString*> (pair->Key());	 
-    TObjString* valStr = dynamic_cast<TObjString*> (pair->Value());
-    if (keyStr && valStr)
-      cdbMapCopy->Add(new TObjString(keyStr->GetName()), new TObjString(valStr->GetName()));	 
-  }	 
-  //	 
-  TList *cdbListCopy = new TList();	 
-  cdbListCopy->SetOwner(1);	 
-  //  cdbListCopy->SetName("cdbList");	 
-  //
-  TIter iter2(cdbList);	 
-  
-  AliCDBId* id=0;
-  while((id = dynamic_cast<AliCDBId*> (iter2.Next()))){	 
-    cdbListCopy->Add(new TObjString(id->ToString().Data()));	 
-  }	 
+  TMap *cdbMapCopy = new TMap();
+  cdbMapCopy->SetName("cdbMap");
+  TList *cdbListCopy = new TList();
+  cdbListCopy->SetName("cdbList");
+  // create map/list accounting for eventual snapshot
+  AliCDBManager::Instance()->CreateMapListCopy(*cdbMapCopy,*cdbListCopy);
   //
   AliRunLoader::Instance()->CdGAFile();
   gDirectory->WriteObject(cdbMapCopy,"cdbMap","kSingleKey");
@@ -2781,7 +2798,7 @@ void AliSimulation::DeactivateDetectorsAbsentInGRP(TObjArray* detArr)
 void AliSimulation::UseTimeStampFromCDB(Double_t decayTimeHours)
 {
   // Request event time stamp generated within GRP start/end
-  // If nOrdered>0, requested number of ordered timestamps will be generated
+  // If decayTimeHours>0, then exponential decay is generated, otherwhise, generated according to lumi from CTP
   fUseTimeStampFromCDB = kTRUE;
-  if (decayTimeHours>0.1) fLumiDecayH = decayTimeHours;
+  fLumiDecayH = decayTimeHours;
 }

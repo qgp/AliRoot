@@ -87,6 +87,11 @@
 #include "AliTPCRawStreamV3.h"
 #include "AliTPCTransform.h"
 #include "TTreeStream.h"
+#include "AliGRPObject.h"
+#include "AliSimulation.h"
+
+// for fast TMatrix operator()
+#include "AliFastContainerAccess.h"
 
 ClassImp(AliTPC) 
 //_____________________________________________________________________________
@@ -186,16 +191,26 @@ AliTPC::AliTPC(const char *name, const char *title)
   //  Set TPC parameters
   //
 
-
-  if (!strcmp(title,"Ne-CO2") || !strcmp(title,"Ne-CO2-N") || !strcmp(title,"Default") ) {       
-      fTPCParam = AliTPCcalibDB::Instance()->GetParameters();
+  if (!strcmp(title,"Ne-CO2") || !strcmp(title,"Ne-CO2-N") || !strcmp(title,"Default") ) {
+    fTPCParam = AliTPCcalibDB::Instance()->GetParameters();
   } else {
       
     AliWarning("In Config.C you must set non-default parameters.");
     fTPCParam=0;    
   }
 
+  AliTPCcalibDB* const calib=AliTPCcalibDB::Instance();
+  AliTPCRecoParam *tpcrecoparam = calib->GetRecoParamFromGRP(); // RS event specie will be selected according to GRP
+  if (tpcrecoparam && tpcrecoparam->GetUseCorrectionMap()) { // make sure collision time is properly generated 
+    AliSimulation* sim = AliSimulation::Instance();
+    if (!sim->GetUseTimeStampFromCDB()) {
+      sim->UseTimeStampFromCDB();
+      AliInfo("Time-dependent distortions requested: enforce generation of timeStamp according to CDB");
+    }
+  }
+
 }
+
 void AliTPC::CreateDebugStremer(){
   //
   // Create Debug streamer to check simulation
@@ -247,7 +262,7 @@ void AliTPC::CreateMaterials()
   // Origin: Marek Kowalski  IFJ, Krakow, Marek.Kowalski@ifj.edu.pl
   //-----------------------------------------------------------------
 
-   Int_t iSXFLD=((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
+  Int_t iSXFLD=((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Integ();
   Float_t sXMGMX=((AliMagF*)TGeoGlobalMagField::Instance()->GetField())->Max();
 
   Float_t amat[7]; // atomic numbers
@@ -255,7 +270,37 @@ void AliTPC::CreateMaterials()
   Float_t wmat[7]; // proportions
 
   Float_t density;
- 
+  //
+  // get ststuff from the OCDB for gases
+  //
+  AliTPCcalibDB *calibDB=AliTPCcalibDB::Instance();
+  const Int_t run=calibDB->GetRun();
+
+  const AliGRPObject *grp=calibDB->GetGRP(run);
+  const Int_t startTimeGRP = grp?grp->GetTimeStart():0.;
+  const Int_t stopTimeGRP  = grp?grp->GetTimeEnd():0.;
+  const Int_t time=startTimeGRP + (stopTimeGRP-startTimeGRP)/2; // middel of the run
+  const Double_t temperature = calibDB->GetTemperature(time, run, 0) + 273.15; // in K
+  const Double_t pressure    = calibDB->GetPressure(time, run); // im mbar
+
+
+  //
+  // densities were taken for these values
+  //
+  const Double_t t1 = 293.15; // 20 deg C in absolute scale
+  const Double_t p1 = 1013.25; // 1 atm in mbars
+
+  //
+  // sanity check - temperature between 10 and 30 deg, pressure between 800 and 1200 mbar
+  //
+  Double_t ptcorr=1.;
+  if(TMath::Abs(temperature-293.15)>10. || TMath::Abs(pressure-1000.)>200.){
+    ptcorr = 1.;
+  }
+  else{
+    ptcorr = (pressure*t1)/(p1*temperature);
+  }
+  AliInfoF("Setting gas density correction to: %.2f", ptcorr);
 
 
   //***************** Gases *************************
@@ -279,7 +324,7 @@ void AliTPC::CreateMaterials()
   density=1.842e-3;
 
 
-  AliMixture(10,"CO2",amat,zmat,density,2,wmat);
+  AliMixture(10,"CO2",amat,zmat,density*ptcorr,2,wmat);
   //
   // Air
   //
@@ -294,7 +339,7 @@ void AliTPC::CreateMaterials()
   //
   density=0.001205;
 
-  AliMixture(11,"Air",amat,zmat,density,2,wmat);
+  AliMixture(11,"Air",amat,zmat,density*ptcorr,2,wmat);
   
   //----------------------------------------------------------------
   // drift gases 5 mixtures, 5 materials
@@ -311,6 +356,52 @@ void AliTPC::CreateMaterials()
   TString names[6]={"Ne","Ar","CO2","N","CF4","CH4"};
   TString gname;
   Float_t *comp = fTPCParam->GetComposition();
+
+  // ===| Gas composition fom gas chromatograph |===============================
+  Float_t compSensors[6]={0.,0.,0.,0.,0.,0.};
+
+  // ---| average gas values for this run |-------------------------------------
+  //      values are given in %, default
+  //      values are given as fraction
+  compSensors[0] = calibDB->GetGasSensorValue(AliTPCcalibDB::kNeon)/100.;
+  compSensors[1] = calibDB->GetGasSensorValue(AliTPCcalibDB::kArgon)/100.;
+  compSensors[2] = calibDB->GetGasSensorValue(AliTPCcalibDB::kCO2)/100.;
+  compSensors[3] = calibDB->GetGasSensorValue(AliTPCcalibDB::kN2)/100.;
+
+  // ---| Sanity check and overwriting of default value from Params |-----------
+  Float_t sumSensors=0.;
+  Float_t maxDeviation=0.;
+
+  for (Int_t i=0; i<6; ++i) {
+    sumSensors   += compSensors[i];
+    Float_t deviation = TMath::Abs(compSensors[i]-comp[i]);
+    maxDeviation = TMath::Max(maxDeviation, deviation);
+  }
+
+  Bool_t useGC=kTRUE;
+
+  // --- tolerate max 0.2% deviation (assume as rounding error from DCS export)
+  if (TMath::Abs(sumSensors-1.) > 0.002) {
+    useGC=kFALSE;
+    AliErrorF("GC values don't sum up to 1 (Neon, Argon, CO2, N2): %.2f + %.2f + %.2f + %.2f = %.2f",
+              compSensors[0], compSensors[1], compSensors[2], compSensors[3], sumSensors);
+  }
+
+  // --- tolerate at max 5% absolute deviation from default values
+  if (useGC && (maxDeviation > 0.05)) {
+    useGC=kFALSE;
+    AliErrorF("Absolut deviation from default gas composition is larger than 0.05: %.3f", maxDeviation);
+  }
+
+  if (useGC) {
+    comp=compSensors;
+    AliInfoF("Using the gas composition from the GC (Neon, Argon, CO2, N2): %.3f, %.3f, %.3f, %.3f",
+             comp[0], comp[1], comp[2], comp[3]);
+  } else {
+    AliInfoF("Using the default gas composition from AliTPCParam (Neon, Argon, CO2, N2): %.3f, %.3f, %.3f, %.3f",
+             comp[0], comp[1], comp[2], comp[3]);
+  }
+
   // indices:
   // 0-Ne, 1-Ar, 2-CO2, 3-N, 4-CF4, 5-CH4
   //
@@ -395,9 +486,9 @@ gname3 = gname + "-3";
  }
    
 //
-AliMixture(12,gname1.Data(),amat1,zmat1,density,cnt,wmat1); // nonsensitive
-AliMixture(13,gname2.Data(),amat1,zmat1,density,cnt,wmat1); // sensitive
-AliMixture(40,gname3.Data(),amat1,zmat1,density,cnt,wmat1); //sensitive Kr
+AliMixture(12,gname1.Data(),amat1,zmat1,density*ptcorr,cnt,wmat1); // nonsensitive
+AliMixture(13,gname2.Data(),amat1,zmat1,density*ptcorr,cnt,wmat1); // sensitive
+AliMixture(40,gname3.Data(),amat1,zmat1,density*ptcorr,cnt,wmat1); //sensitive Kr
 
 
 
@@ -865,15 +956,6 @@ void AliTPC::GenerNoise(Int_t tablesize, Bool_t normType)
   }
 }
 
-Float_t AliTPC::GetNoise()
-{
-  // get noise from table
-  //  if ((fCurrentNoise%10)==0) 
-  //  fCurrentNoise= gRandom->Rndm()*fNoiseDepth;
-  if (fCurrentNoise>=fNoiseDepth) fCurrentNoise=0;
-  return fNoiseTable[fCurrentNoise++];
-  //gRandom->Gaus(0, fTPCParam->GetNoise()*fTPCParam->GetNoiseNormFac()); 
-}
 
 
 Bool_t  AliTPC::IsSectorActive(Int_t sec) const
@@ -1533,11 +1615,17 @@ void AliTPC::Hits2Digits(Int_t eventnumber)
   fLoader->TreeD()->GetUserInfo()->Add(new TParameter<float>("lhcphase0",lhcph));
   //
   AliTPCcalibDB* const calib=AliTPCcalibDB::Instance();
-  AliTPCRecoParam *tpcrecoparam = calib->GetRecoParam(0); //FIXME: event specie should not be set by hand, However the parameters read here are the same for al species
+  AliTPCRecoParam *tpcrecoparam = calib->GetRecoParamFromGRP(); // RS event specie will be selected according to GRP
+  //  AliTPCRecoParam *tpcrecoparam = calib->GetRecoParam(0); //FIXME: event specie should not be set by hand, However the parameters read here are the same for al species
+  //
   if (tpcrecoparam->GetUseCorrectionMap()) {
     AliTPCTransform* transform = (AliTPCTransform*) calib->GetTransform();
     transform->SetCurrentRecoParam(tpcrecoparam);
+    transform->SetCorrectionMapMode(kFALSE); // set distortion mode
     transform->SetCurrentTimeStamp(fLoader->GetRunLoader()->GetHeader()->GetTimeStamp()); // force to upload time dependent maps
+    float strFluct = tpcrecoparam->GetDistortionFluctMCAmp() *gRandom->Gaus(); // RSTMP
+    AliInfoF("Impose %+.2f fluctuation for distortion map in event %d",strFluct,eventnumber);
+    transform->SetCurrentMapFluctStrenght(strFluct);
   }
   //
   for(Int_t isec=0;isec<fTPCParam->GetNSector();isec++) 
@@ -1801,7 +1889,7 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
 
   Int_t lp;
   Int_t i1;   
-  for(lp=0;lp<nofDigits;lp++)pList[lp]=0; // set all pointers to NULL
+  memset(pList,0,nofDigits*sizeof(Float_t*)); // set all pointers to NULL
   //
   //calculate signal 
   //
@@ -1822,14 +1910,12 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
   }
          
   Int_t tracks[3];
-
   AliDigits *dig = fDigitsArray->GetRow(isec,irow);
-  Int_t gi=-1;
   Float_t fzerosup = zerosup+0.5;
-  for(Int_t it=0;it<nofTbins;it++){
-    for(Int_t ip=0;ip<nofPads;ip++){
-      gi++;
-      Float_t q=total(ip,it);      
+  for(Int_t ip=0;ip<nofPads;ip++){
+    for(Int_t it=0;it<nofTbins;it++){
+      // calling our fast "operator(int,int)" of TMatrix
+      Float_t q=AliFastContainerAccess::TMatrixFastAt<Float_t>(total, ip, it);
       if(fDigitsSwitch == 0){	
 	Float_t gain = gainROC->GetValue(irow,ip);  // get gain for given - pad-row pad	
 	Float_t noisePad = noiseROC->GetValue(irow,ip);	
@@ -1857,7 +1943,7 @@ void AliTPC::DigitizeRow(Int_t irow,Int_t isec,TObjArray **rows)
       //
       //  "real" signal or electronic noise (list = -1)?
       //    
-
+      Int_t gi = it * nofPads + ip;
       for(Int_t j1=0;j1<3;j1++){
 	tracks[j1] = (pList[gi]) ?(Int_t)(*(pList[gi]+j1)) : -2;
       }
@@ -1956,25 +2042,34 @@ Float_t AliTPC::GetSignal(TObjArray *p1, Int_t ntr,
     Int_t *index = fTPCParam->GetResBin(0);  
     Float_t *weight = & (fTPCParam->GetResWeight(0));
 
-    if (n>0) for (Int_t i =0; i<n; i++){       
-      Int_t pad=index[1]+centralPad;  //in digit coordinates central pad has coordinate 0
+    if (n > 0)
+      for (Int_t i = 0; i < n; i++) {
+        Int_t pad = index[1] + centralPad; // in digit coordinates central pad
+                                           // has coordinate 0
 
-      if (pad>=0){
-	Int_t time=index[2];	 
-	Float_t qweight = *(weight)*eltoadcfac;
-	
-	if (m1!=0) signal(pad,time)+=qweight;
-	total(pad,time)+=qweight;
-	if (indexRange[0]>pad) indexRange[0]=pad;
-	if (indexRange[1]<pad) indexRange[1]=pad;
-	if (indexRange[2]>time) indexRange[2]=time;
-	if (indexRange[3]<time) indexRange[3]=time;
-	
-	index+=3;
-	weight++;	
+        if (pad >= 0) {
+          Int_t time = index[2];
+          Float_t qweight = *(weight) * eltoadcfac;
 
-      }	 
-    }
+          if (m1 != 0){
+            //signal(pad, time) += qweight;
+            AliFastContainerAccess::TMatrixFastAtRef<Float_t>(signal, pad, time) += qweight;
+          }
+          //total(pad, time) += qweight;
+          AliFastContainerAccess::TMatrixFastAtRef<Float_t>(total, pad, time) += qweight;
+          if (indexRange[0] > pad)
+            indexRange[0] = pad;
+          if (indexRange[1] < pad)
+            indexRange[1] = pad;
+          if (indexRange[2] > time)
+            indexRange[2] = time;
+          if (indexRange[3] < time)
+            indexRange[3] = time;
+
+          index += 3;
+          weight++;
+        }
+      }
   } // end of loop over electrons
   
   return label; // returns track label when finished
@@ -1990,6 +2085,7 @@ void AliTPC::GetList(Float_t label,Int_t np,TMatrixF *m,
 
   //-----------------------------------------------------------------
   // Origin: Marek Kowalski  IFJ, Krakow, Marek.Kowalski@ifj.edu.pl
+  // cached access to signal(ip,it)), sandro.wenzel@cern.ch
   //-----------------------------------------------------------------
 
   TMatrixF &signal = *m;
@@ -1999,10 +2095,13 @@ void AliTPC::GetList(Float_t label,Int_t np,TMatrixF *m,
   for(Int_t it=indexRange[2];it<indexRange[3]+1;it++){
     for(Int_t ip=indexRange[0];ip<indexRange[1]+1;ip++){
 
+      // fast read from signal matrix and cache result for later queries
+      // TODO: the loop order seems to be wrong for cache-efficient access to this structure
+      Float_t sig = AliFastContainerAccess::TMatrixFastAt<Float_t>(signal,ip,it);
 
       // accept only the contribution larger than 500 electrons (1/2 s_noise)
 
-      if(signal(ip,it)<0.5) continue; 
+      if(sig<0.5) continue;
 
       Int_t globalIndex = it*np+ip; // globalIndex starts from 0!
         
@@ -2024,7 +2123,7 @@ void AliTPC::GetList(Float_t label,Int_t np,TMatrixF *m,
 	*(pList[globalIndex]+5) = -1.;
 
 	*pList[globalIndex] = label;
-	*(pList[globalIndex]+3) = signal(ip,it);
+    *(pList[globalIndex]+3) = sig;
       }
       else {
 
@@ -2038,28 +2137,28 @@ void AliTPC::GetList(Float_t label,Int_t np,TMatrixF *m,
 	//  compare the new signal with already existing list
 	//
 	
-	if(signal(ip,it)<lowest) continue; // neglect this track
+    if(sig<lowest) continue; // neglect this track
 
 	//
 
-	if (signal(ip,it)>highest){
+    if (sig>highest){
 	  *(pList[globalIndex]+5) = middle;
 	  *(pList[globalIndex]+4) = highest;
-	  *(pList[globalIndex]+3) = signal(ip,it);
+      *(pList[globalIndex]+3) = sig;
 	  
 	  *(pList[globalIndex]+2) = *(pList[globalIndex]+1);
 	  *(pList[globalIndex]+1) = *pList[globalIndex];
 	  *pList[globalIndex] = label;
 	}
-	else if (signal(ip,it)>middle){
+    else if (sig>middle){
 	  *(pList[globalIndex]+5) = middle;
-	  *(pList[globalIndex]+4) = signal(ip,it);
+      *(pList[globalIndex]+4) = sig;
 	  
 	  *(pList[globalIndex]+2) = *(pList[globalIndex]+1);
 	  *(pList[globalIndex]+1) = label;
 	}
 	else{
-	  *(pList[globalIndex]+5) = signal(ip,it);
+      *(pList[globalIndex]+5) = sig;
 	  *(pList[globalIndex]+2) = label;
 	}
       }
@@ -2114,7 +2213,8 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 
   AliTPCCorrection * correctionDist = calib->GetTPCComposedCorrection();  
 
-  AliTPCRecoParam *tpcrecoparam = calib->GetRecoParam(0); //FIXME: event specie should not be set by hand, However the parameters read here are the same for al species
+  AliTPCRecoParam *tpcrecoparam = calib->GetRecoParamFromGRP(); // RS event specie will be selected according to GRP
+  //  AliTPCRecoParam *tpcrecoparam = calib->GetRecoParam(0); //FIXME: event specie should not be set by hand, However the parameters read here are the same for al species
 
   AliTPCTransform* transform = 0;
 
@@ -2190,6 +2290,8 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
   Int_t previousTrack,currentTrack;
   previousTrack = -1; // nothing to store so far!
 
+  double maxDrift = fTPCParam->GetZLength(isec);
+
   for(Int_t track=0;track<ntracks;track++){
     Bool_t isInSector=kTRUE;
     ResetHits();
@@ -2257,70 +2359,76 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
       //---------------------------------------------------
 
 
-      Float_t time = 1.e6*(fTPCParam->GetZLength(isec)-TMath::Abs(tpcHit->Z()))
-	/fTPCParam->GetDriftV(); 
-      // in microseconds!	
-      Float_t attProb = fTPCParam->GetAttCoef()*
-	fTPCParam->GetOxyCont()*time; //  fraction! 
+      Float_t time = 1.e6*(fTPCParam->GetZLength(isec)-TMath::Abs(tpcHit->Z()))/fTPCParam->GetDriftV();  // in microseconds!	
+      Float_t attProb = fTPCParam->GetAttCoef()*fTPCParam->GetOxyCont()*time; //  fraction! 
    
+      if (qI==1 && (gRandom->Rndm(0)<attProb)) {  // the only electron is lost!
+	tpcHit = (AliTPChit*)NextHit();
+	continue;
+      }
+
+      //RS: all electrons share the same deterministic transformations (of the same hit), up to diffusion
+
+      Int_t indexHit[3]={0},index[3];
+      indexHit[1]=isec;
+      float xyzHit[3] = {tpcHit->X(),tpcHit->Y(),tpcHit->Z()};
+
+      double yLab = xyzHit[1]; // for eventual P-gradient accounting
+      if (tpcrecoparam->GetUseCorrectionMap()) {
+	double xyzD[3] = {xyzHit[0],xyzHit[1],xyzHit[2]};
+	transform->ApplyDistortionMap(isec,xyzD);
+	for (int idim=3;idim--;) xyzHit[idim] = xyzD[idim];
+      }
+      else {
+	// ExB effect - distort hig if specifiend in the RecoParam
+	//
+	if (tpcrecoparam->GetUseExBCorrection()) {
+	  Double_t dxyz0[3]={xyzHit[0],xyzHit[1],xyzHit[2]},dxyz1[3];
+	  if (calib->GetExB()) {
+	    calib->GetExB()->CorrectInverse(dxyz0,dxyz1);
+	  }else{
+	    AliError("Not valid ExB calibration");
+	    for (int idim=3;idim--;) dxyz1[idim] = xyzHit[idim];
+	  }
+	  for (int idim=3;idim--;) xyzHit[idim] = dxyz1[idim];
+	} 
+	else if (tpcrecoparam->GetUseComposedCorrection()) {
+	  //      Use combined correction/distortion  class AliTPCCorrection
+	  if (correctionDist){
+	    Float_t distPoint[3] = {xyzHit[0],xyzHit[1],xyzHit[2]};
+	    correctionDist->DistortPoint(distPoint, isec);
+	    for (int idim=3;idim--;) xyzHit[idim] = distPoint[idim];
+	  }      
+	}     
+      }
+      indexHit[0]=1;
+
+      // RS: there is a mess in the application of the aligmnent: in the old code it is applied
+      // here unconditionally, while in the reco it is subject of GetUseSectorAlignment. And for some
+      // reason it is ON in our RecoParams tailored for MC.
+      // For consistency, use the same condition here, although with the CorrectionMaps the alignment will
+      // be switched OFF
+      Bool_t sideC = ((isec/18)&0x1);
+      if ( tpcrecoparam->GetUseSectorAlignment() ) fTPCParam->Transform1to2(xyzHit,indexHit);
+      else {
+	fTPCParam->Transform1to2Ideal(xyzHit,indexHit);  // rotate to sector coordinates
+	// account for A/C sides max drift L deficit to nominal 250 cm
+	xyzHit[2] -=  sideC ? 0.302 : 0.275; // C : A
+      }
+      //
       //-----------------------------------------------
       //  Loop over electrons
       //-----------------------------------------------
-      Int_t index[3];
-      index[1]=isec;
-      for(Int_t nel=0;nel<qI;nel++){
+      for(Int_t nel=0;nel<qI;nel++) {
 	// skip if electron lost due to the attachment
-	if((gRandom->Rndm(0)) < attProb) continue; // electron lost!
-	// use default hit position
-	xyz[0]=tpcHit->X();
-	xyz[1]=tpcHit->Y();
-	xyz[2]=tpcHit->Z(); 
+	// RS: check only case of multiple electrons, case of 1 is already checked
+	if(qI>1 && (gRandom->Rndm(0)) < attProb) continue; // electron lost!
+	// start from primary electron in vicinity of the readout, simulate diffusion
+	for (int idim=3;idim--;) {xyz[idim] = xyzHit[idim]; index[idim] = indexHit[idim];}
 	//
-	if (tpcrecoparam->GetUseCorrectionMap()) {
-	  double xyzD[3] = {xyz[0],xyz[1],xyz[2]};
-	  transform->ApplyDistortionMap(isec,xyzD);
-	  for (int idim=3;idim--;) xyz[idim] = xyzD[idim];
-	}
-	else {
-	  // ExB effect - distort hig if specifiend in the RecoParam
-	  //
-	  if (tpcrecoparam->GetUseExBCorrection()) {
-	    Double_t dxyz0[3],dxyz1[3];
-	    dxyz0[0]=tpcHit->X();
-	    dxyz0[1]=tpcHit->Y();
-	    dxyz0[2]=tpcHit->Z(); 	
-	    if (calib->GetExB()){
-	      calib->GetExB()->CorrectInverse(dxyz0,dxyz1);
-	    }else{
-	      AliError("Not valid ExB calibration");
-	      dxyz1[0]=tpcHit->X();
-	      dxyz1[1]=tpcHit->Y();
-	      dxyz1[2]=tpcHit->Z(); 	
-	    }
-	    xyz[0]=dxyz1[0];
-	    xyz[1]=dxyz1[1];
-	    xyz[2]=dxyz1[2]; 	
-	  } else if (tpcrecoparam->GetUseComposedCorrection()) {
-	    //      Use combined correction/distortion  class AliTPCCorrection
-	    if (correctionDist){
-	      Float_t distPoint[3]={tpcHit->X(),tpcHit->Y(), tpcHit->Z()};
-	      correctionDist->DistortPoint(distPoint, isec);
-	      xyz[0]=distPoint[0];
-            xyz[1]=distPoint[1];
-            xyz[2]=distPoint[2];
-	    }      
-	  }
-	  //
-	}
-	//
-	//
-	// protection for the nonphysical avalanche size (10**6 maximum)
-	//
-	Double_t rn=TMath::Max(gRandom->Rndm(0),1.93e-22);
-
-        index[0]=1;
 	TransportElectron(xyz,index);    
 	Int_t rowNumber;
+	double driftEl = xyz[2];  // GetPadRow converts Z to timebin in a way incmpatible with real calib, save drift distance
 	Int_t padrow = fTPCParam->GetPadRow(xyz,index); 
 
         // get pad region
@@ -2331,7 +2439,11 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
             padRegion=2;
           }
         }
-
+	
+	// protection for the nonphysical avalanche size (10**6 maximum)
+	//
+	Double_t rn=TMath::Max(gRandom->Rndm(0),1.93e-22);
+	
         //         xyz[3]= (Float_t) (-gasgain*TMath::Log(rn));
         // JW: take into account different gain in the pad regions
         xyz[3]= (Float_t) (-gasGainRegions[padRegion]*TMath::Log(rn));
@@ -2367,24 +2479,32 @@ void AliTPC::MakeSector(Int_t isec,Int_t nrows,TTree *TH,
 	    }
 	  }
         }
-        if (AliTPCcalibDB::Instance()->IsTrgL0()){  
-          // Modification 14.03
-          // distinguish between the L0 and L1 trigger as it is done in the reconstruction
-          // by defualt we assume L1 trigger is used - make a correction in case of  L0
-          AliCTPTimeParams* ctp = AliTPCcalibDB::Instance()->GetCTPTimeParams();
-          if (ctp){
-            //for TPC standalone runs no ctp info
+	if (!transform) { //RS old way of getting the time bin (not timestamp aware!)
+	  if (AliTPCcalibDB::Instance()->IsTrgL0()){  
+	    // Modification 14.03
+	    // distinguish between the L0 and L1 trigger as it is done in the reconstruction
+	    // by defualt we assume L1 trigger is used - make a correction in case of  L0
+	    AliCTPTimeParams* ctp = AliTPCcalibDB::Instance()->GetCTPTimeParams();
+	    if (ctp){
+	      //for TPC standalone runs no ctp info
             Double_t delay = ctp->GetDelayL1L0()*0.000000025;
             xyz[2]+=delay/fTPCParam->GetTSample();  // adding the delay (in the AliTPCTramsform opposite sign)
-          }
-        }
-	if (tpcrecoparam->GetUseExBCorrection()) xyz[2]+=correction; // In Correction there is already a corretion for the time 0 offset so not needed
-	xyz[2]+=fTPCParam->GetNTBinsL1();    // adding Level 1 time bin offset
-	//
-	// Electron track time (for pileup simulation)
-	xyz[2]+=tpcHit->Time()/fTPCParam->GetTSample(); // adding time of flight
-	xyz[4] =0;
+	    }
+	  }
+	  if (tpcrecoparam->GetUseExBCorrection()) xyz[2]+=correction; // In Correction there is already a corretion for the time 0 offset so not needed
+	  xyz[2]+=fTPCParam->GetNTBinsL1();    // adding Level 1 time bin offset
+	  //
+	  // Electron track time (for pileup simulation)
+	  xyz[2]+=tpcHit->Time()/fTPCParam->GetTSample(); // adding time of flight
+	}
+	else { // use Transform for time-aware Z -> Tbin conversion
+	  // go back from L drift to Z
+	  double z = maxDrift - driftEl;
+	  if (sideC) z = -z;
+	  xyz[2] = transform->Z2TimeBin(z,isec, yLab);
+	}
 
+	xyz[4] =0;	  
 	//
 	// row 0 - cross talk from the innermost row
 	// row fNRow+1 cross talk from the outermost row
@@ -2511,7 +2631,8 @@ void AliTPC::TransportElectron(Float_t *xyz, Int_t *index)
   // xyz and index must be already transformed to system 1
   //
 
-  fTPCParam->Transform1to2(xyz,index);  // mis-alignment applied in this step
+  // RS Ideal transformation to sector frame is already done in MakeSector
+  if (index[0]==1) fTPCParam->Transform1to2(xyz,index);  // mis-alignment applied in this step
   
   //add diffusion
   Float_t driftl=xyz[2];

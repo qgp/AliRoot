@@ -29,6 +29,7 @@ class AliCDBEntry;
 class TGraph;
 class TGraphErrors;
 class AliSplineFit;
+class TH2;
 
 class AliTPCPreprocessorOffline:public TNamed { 
 public:
@@ -60,6 +61,11 @@ public:
   //
   // Gain part
   //
+  void   SetIgnoreTimeGainIDcombinedCalib(Bool_t ignore=kTRUE)       { fIgnoreTimeGainIDcombinedCalib=ignore; }
+  Bool_t GetIgnoreTimeGainIDcombinedCalib()                    const { return fIgnoreTimeGainIDcombinedCalib; }
+  void   SetForceTimeGainStorage(Bool_t force=kTRUE)                 { fForceTimeGainStorage=force;           }
+  Bool_t GetForceTimeGainStorage()                             const { return fForceTimeGainStorage;          }
+
   void CalibTimeGain(const Char_t* fileName, Int_t startRunNumber, Int_t endRunNumber,  AliCDBStorage* fullStorage, AliCDBStorage* residualStorage=0x0);
   void ReadGainGlobal(const Char_t* fileName="CalibObjectsTrain1.root");
   void MakeQAPlot(Float_t  FPtoMIPratio);
@@ -72,6 +78,7 @@ public:
   void SetTimeGainRange(Double_t minGain=2.0, Double_t maxGain = 3.0) 
        {fMinGain = minGain; fMaxGain = maxGain;};
   Bool_t ValidateTimeGain();
+  void SetdEdxRangeDipAngle(Double_t min, Double_t max) { fdEdxMinDipAngle=min; fdEdxMaxDipAngle=max; }
 
   void SetGainCalibrationType(EGainCalibType type) { fGainCalibrationType=type;}
   static EGainCalibType GetGainCalibrationTypeFromString(const TString& type);
@@ -127,6 +134,8 @@ public:
   void SwitchOnValidation(Bool_t val = kTRUE) {fSwitchOnValidation = val;} 
   Bool_t IsSwitchOnValidation() { return fSwitchOnValidation; } 
 
+  static void GetStatType(const TH2* h, Double_t& fraction, Int_t& type, const Int_t minStat=500);
+
   //
   Int_t GetStatus();
   enum ECalibStatusBit { kCalibFailedTimeDrift =0x0001,
@@ -136,6 +145,8 @@ public:
 
 private:
   Bool_t fNormaliseQA;                     // normalise the QA histograms in the same way as the derived graphs
+  Bool_t fIgnoreTimeGainIDcombinedCalib;   // if to ignore the specific object used for producing the residual calibration when performing combined calibration
+  Bool_t fForceTimeGainStorage;            // if the storage used for the TimeGain object should be force for combined calibration
   EGainCalibType fGainCalibrationType;     // gain calibration type
   Int_t fMinEntries;                       // minimal number of entries for fit
   Int_t fStartRun;                         // start Run - used to make fast selection in THnSparse
@@ -162,6 +173,8 @@ private:
   Bool_t fSwitchOnValidation;  // flag to switch on validation of OCDB parameters
   Float_t fMinGain;   	       // min gain
   Float_t fMaxGain;            // max gain
+  Float_t fdEdxMinDipAngle;    // minimum dE/dx for dip angle extraction, defines fit range
+  Float_t fdEdxMaxDipAngle;    // maximum dE/dx for dip angle extraction, defines fit range
   Float_t fMaxVdriftCorr;      // max v-drift correction
   Int_t fNtracksVdrift;           // n tracks used for v drift determination
   Int_t fMinTracksVdrift;         // minimum numner of tracks for v drift determination
@@ -176,10 +189,11 @@ private:
   Bool_t NormaliseYToMean(TGraphErrors *graph);
   Bool_t NormaliseYToWeightedMeandEdx(TGraphErrors *graph);
   Bool_t NormaliseYToTruncateddEdx(TGraphErrors *graph);
+
 private:
   AliTPCPreprocessorOffline& operator=(const AliTPCPreprocessorOffline&); // not implemented
   AliTPCPreprocessorOffline(const AliTPCPreprocessorOffline&); // not implemented
-  ClassDef(AliTPCPreprocessorOffline,3)
+  ClassDef(AliTPCPreprocessorOffline,4)
 };
 
 #endif

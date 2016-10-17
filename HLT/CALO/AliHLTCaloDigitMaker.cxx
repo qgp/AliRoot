@@ -136,7 +136,11 @@ AliHLTCaloDigitMaker::MakeDigits(AliHLTCaloChannelDataHeaderStruct* channelDataH
     fMapperPtr->FixCoordinate(coord);
 
     //      fMapperPtr->GetLocalCoord(currentchannel->fChannelID, locCoord);
-    if(UseDigit(coord, currentchannel))
+    if(coord.fX >= fCaloConstants->GetNXCOLUMNSMOD() || coord.fZ >= fCaloConstants->GetNZROWSMOD())
+    {
+      HLTError("Digit maker error: Position x[%d, max %d] and z[%d, max %d] outside the detector - digit will not be used", coord.fX, fCaloConstants->GetNXCOLUMNSMOD()-1, coord.fZ, fCaloConstants->GetNZROWSMOD()-1);
+    }
+    else if(UseDigit(coord, currentchannel))
     {
       AddDigit(currentchannel, coord);
       //	j++;

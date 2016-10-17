@@ -12,6 +12,7 @@
 #include "THn.h"
 #include "TMatrixD.h"
 #include "TVectorD.h"
+#include "TString.h"
 class TH1F;
 class TList;
 class AliESDEvent;
@@ -57,6 +58,10 @@ public:
   TGraphErrors* GetGainPerChamber(Int_t padRegion=1, Bool_t plotQA=kFALSE);
   TGraphErrors* GetGainPerChamberRobust(Int_t padRegion=1, Bool_t plotQA=kFALSE, TObjArray *arrQA=0x0, Bool_t normQA=kTRUE);
   //
+  const TString&   GetTimeGainID()      const { return fTimeGainID;      }
+  const TString&   GetTimeGainStorage() const { return fTimeGainStorage; }
+  const TObjArray* GetTimeGainObjects() const { return fTimeGainObjects; }
+  //
   void SetMIPvalue(Float_t mip){fMIP = mip;};
   void SetLowerTrunc(Float_t lowerTrunc){fLowerTrunc = lowerTrunc;};
   void SetUpperTrunc(Float_t upperTrunc){fUpperTrunc = upperTrunc;};
@@ -65,8 +70,11 @@ public:
   void SetCutMinCrossRows(Int_t crossRows){fCutCrossRows = crossRows;};
   void SetCutMaxEta(Float_t maxEta){fCutEtaWindow = maxEta;};
   void SetCutRequireITSrefit(Bool_t requireItsRefit = kFALSE){fCutRequireITSrefit = requireItsRefit;};
-  void SetCutMaxDcaXY(Float_t maxXY){fCutMaxDcaXY = maxXY;}; 
-  void SetCutMaxDcaZ(Float_t maxZ){fCutMaxDcaZ = maxZ;}; 
+  void SetCutMaxDcaXY(Float_t maxXY){fCutMaxDcaXY = maxXY;};
+  void SetCutMaxDcaZ(Float_t maxZ){fCutMaxDcaZ = maxZ;};
+  //
+  void    SetMinTPCsignalN(Float_t minSignalN) { fMinTPCsignalN=minSignalN; }
+  Float_t GetMinTPCsignalN() const             { return fMinTPCsignalN;     }
   //
   void SetMinMomentumMIP(Float_t minMom = 0.4){fMinMomentumMIP = minMom;};
   void SetMaxMomentumMIP(Float_t maxMom = 0.6){fMaxMomentumMIP = maxMom;};
@@ -104,12 +112,19 @@ private:
   Bool_t  fCutRequireITSrefit;          // if ITSrefit should be required (dangerous in cpass0)
   Float_t fCutMaxDcaXY;                 // max dca_xy (only TPConly resolution is guaranteed!)
   Float_t fCutMaxDcaZ;                  // max dca_z  (dangerous if vDrift is not calibrated)
+  Float_t fMinTPCsignalN;               // minimum number of PID clusters
   //
   // definition of MIP window
   //
   Float_t fMinMomentumMIP;              // minimum momentum of MIP region, e.g. 400 MeV
   Float_t fMaxMomentumMIP;              // maximum momentum of MIP region, e.g. 600 MeV
   Float_t fAlephParameters[5];          // parameters for equalization in MIP window, parameter set should be =1 at MIP
+  //
+  // Store timeGain calibration that was used to create this object
+  //
+  TString fTimeGainID;            // ID of timeGain object that was used to create this calibration
+  TString fTimeGainStorage;       // Storage of time gain object
+  TObjArray* fTimeGainObjects;     // Time gain calibration objects used
   //
   // histograms
   //
@@ -133,7 +148,7 @@ private:
   AliTPCcalibGainMult(const AliTPCcalibGainMult&); 
   AliTPCcalibGainMult& operator=(const AliTPCcalibGainMult&); 
 
-  ClassDef(AliTPCcalibGainMult, 4); 
+  ClassDef(AliTPCcalibGainMult, 6);
 };
 
 #endif

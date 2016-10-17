@@ -48,6 +48,7 @@ set(SRCS
     AliEventTag.cxx
     AliExternalTrackParam.cxx
     AliFileTag.cxx
+    AliFileUtilities.cxx
     AliGenCocktailEventHeader.cxx
     AliGenDPMjetEventHeader.cxx
     AliGenEpos3EventHeader.cxx
@@ -144,6 +145,10 @@ set(SRCS
 # Headers from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
 
+set(HDRS ${HDRS} 
+    AliSharedPtr.h
+    )
+
 # Generate the dictionary
 # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
 get_directory_property(incdirs INCLUDE_DIRECTORIES)
@@ -197,3 +202,9 @@ if(ALIROOT_STATIC)
             ARCHIVE DESTINATION lib
             LIBRARY DESTINATION lib)
 endif(ALIROOT_STATIC)
+
+
+
+#TEST programs
+add_executable(TestAliFileUtilities TestAliFileUtilities.cxx)
+target_link_libraries(TestAliFileUtilities STEERBase ${ROOT_LIBRARIES})

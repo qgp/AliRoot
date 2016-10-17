@@ -31,6 +31,8 @@
 #include "AliHLTConfigurationHandler.h"
 #include "AliHLTComponent.h"
 #include "AliHLTComponentHandler.h"
+//#include "AliGRPManager.h"
+//#include "AliGRPObject.h"
 #include "TList.h"
 #include "AliHLTErrorGuard.h"
 
@@ -123,6 +125,18 @@ int AliHLTTask::CreateComponent(AliHLTConfiguration* pConfiguration, AliHLTCompo
 	// currently just set to NULL.
 	iResult=pCH->CreateComponent(pConf->GetComponentID(), pComponent);
 	if (pComponent && iResult>=0) {
+	  static bool grpInitialized = false;
+	  //static const AliGRPObject *grpObj = NULL;
+	  if (grpInitialized == false)
+	  {
+	    /*static AliGRPManager grp;
+	    grp.ReadGRPEntry();
+	    const AliGRPObject *grpObjTmp = grp.GetGRPData();
+	    grpObj = grpObjTmp;*/
+	    grpInitialized = true;
+	  }
+	  //if (grpObj) pComponent->SetTimeStamp(grpObj->GetTimeStart());
+	
 	  TString description;
 	  description.Form("chainid=%s", GetName());
 	  pComponent->SetComponentDescription(description.Data());
@@ -158,7 +172,19 @@ int AliHLTTask::Deinit()
   AliHLTComponent* pComponent=GetComponent();
   fpComponent=NULL;
   if (pComponent) {
-    //HLTDebug("delete component %s (%p)", pComponent->GetComponentID(), pComponent);
+    //HLTDebug("delete component %s (%p)", pComponent->GetComponentID(), pComponent); 
+    static bool grpInitialized = false;
+    //static const AliGRPObject *grpObj = NULL;
+    if (grpInitialized == false)
+    {
+      /*static AliGRPManager grp;
+      grp.ReadGRPEntry();
+      const AliGRPObject *grpObjTmp = grp.GetGRPData();
+      grpObj = grpObjTmp;*/
+      grpInitialized = true;
+    }
+    //if (grpObj) pComponent->SetTimeStamp(grpObj->GetTimeEnd());
+
     pComponent->Deinit();
     delete pComponent;
   } else {
@@ -756,7 +782,6 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
     } while (iResult==-ENOSPC && iNofTrial++<1);
     }
 
-    fBlockDataArray.clear();
     if (CheckFilter(kHLTLogDebug)) Print("proc");
 
     // now release all buffers which we have subscribed to
@@ -778,7 +803,10 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
     if (subscribedTaskList.size()>0) {
       HLTError("could not release all data buffers");
     }
-  } else {
+
+    fBlockDataArray.clear();
+
+ } else {
     HLTError("internal failure (not initialized component %p, data buffer %p)", fpComponent, fpDataBuffer);
     iResult=-EFAULT;
   }

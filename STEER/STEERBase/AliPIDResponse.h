@@ -179,6 +179,10 @@ public:
   // TRD setting
   void SetUseTRDEtaCorrection(Bool_t useTRDEtaCorrection = kTRUE) { fUseTRDEtaCorrection = useTRDEtaCorrection; };
   Bool_t UseTRDEtaCorrection() const { return fUseTRDEtaCorrection; };
+  void SetUseTRDClusterCorrection(Bool_t useTRDClusterCorrection = kTRUE) { fUseTRDClusterCorrection = useTRDClusterCorrection; };
+  Bool_t UseTRDClusterCorrection() const { return fUseTRDClusterCorrection; };
+  void SetUseTRDCentralityCorrection(Bool_t useTRDCentralityCorrection = kTRUE) { fUseTRDCentralityCorrection = useTRDCentralityCorrection; };
+  Bool_t UseTRDCentralityCorrection() const { return fUseTRDCentralityCorrection; };
 
 
 
@@ -204,6 +208,9 @@ public:
   EBeamType GetBeamType() const {return fBeamTypeNum;};
 
   void SetNoTOFmism(Bool_t value=kTRUE){fNoTOFmism=value;};
+
+  void    SetProbabilityRangeNsigma(Float_t range) { fRange = range; }
+  Float_t GetProbabilityRangeNsigma() const        { return fRange;  }
 
 protected:
   AliITSPIDResponse   fITSResponse;    //PID response function of the ITS
@@ -264,6 +271,8 @@ private:
   AliTRDPIDResponseObject *fTRDPIDResponseObject; //! TRD PID Response Object
   AliTRDdEdxParams * fTRDdEdxParams; //! TRD dEdx Response for truncated mean signal
   Bool_t fUseTRDEtaCorrection;          // Use TRD eta correction
+  Bool_t fUseTRDClusterCorrection;          // Use TRD cluster correction
+  Bool_t fUseTRDCentralityCorrection;          // Use TRD cluster correction
 
   Float_t fTOFtail;                    //! TOF tail effect used in TOF probability
   AliTOFPIDParams *fTOFPIDParams;      //! TOF PID Params - period depending (OADB loaded)
@@ -308,6 +317,8 @@ private:
   void SetTRDSlices(UInt_t TRDslicesForPID[2],AliTRDPIDResponse::ETRDPIDMethod method) const;
   void SetTRDdEdxParams();
   void SetTRDEtaMaps();
+  void SetTRDClusterMaps();
+  void SetTRDCentralityMaps();
 
   //TOF
   void SetTOFPidResponseMaster();
@@ -365,7 +376,7 @@ private:
   EDetPidStatus GetPHOSPIDStatus(const AliVTrack *track) const;
   EDetPidStatus GetEMCALPIDStatus(const AliVTrack *track) const;
 
-  ClassDef(AliPIDResponse, 16);  //PID response handling
+  ClassDef(AliPIDResponse, 18);  //PID response handling
 };
 
 #endif

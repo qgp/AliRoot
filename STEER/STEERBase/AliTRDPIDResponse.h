@@ -74,8 +74,8 @@ class AliTRDPIDResponse : public TObject {
     AliTRDPIDResponse& operator=(const AliTRDPIDResponse &ref);
     ~AliTRDPIDResponse();
     
-    Double_t GetNumberOfSigmas(const AliVTrack *track, AliPID::EParticleType type, Bool_t fCorrectEta) const;
-    Double_t GetSignalDelta(const AliVTrack *track, AliPID::EParticleType type, Bool_t ratio=kFALSE, Bool_t fCorrectEta=kFALSE, Double_t *info=0x0) const;
+    Double_t GetNumberOfSigmas(const AliVTrack *track, AliPID::EParticleType type, Bool_t fCorrectEta, Bool_t fCorrectCluster, Bool_t fCorrectCentrality) const;
+    Double_t GetSignalDelta(const AliVTrack *track, AliPID::EParticleType type, Bool_t ratio=kFALSE, Bool_t fCorrectEta=kFALSE, Bool_t fCorrectCluster=kFALSE, Bool_t fCorrectCentrality=kFALSE, Double_t *info=0x0) const;
 
     static Double_t MeandEdx(const Double_t * xx, const Float_t * par);
     static Double_t MeanTR(const Double_t * xx, const Float_t * par);
@@ -97,12 +97,22 @@ class AliTRDPIDResponse : public TObject {
     TH2D* GetEtaCorrMap(Int_t n) const { return fhEtaCorr[n]; };
     Bool_t SetEtaCorrMap(Int_t n, TH2D* hMapn);
 
+    // cluster correction map
+    TH2D* GetClusterCorrMap(Int_t n) const { return fhClusterCorr[n]; };
+    Bool_t SetClusterCorrMap(Int_t n, TH2D* hMapn);
+
+    // centrality correction map
+    TH2D* GetCentralityCorrMap(Int_t n) const { return fhCentralityCorr[n]; };
+    Bool_t SetCentralityCorrMap(Int_t n, TH2D* hMapn);
+    void  SetCentrality(Float_t currentCentrality) { fCurrCentrality = currentCentrality;}
 
     Bool_t    Load(const Char_t *filename = NULL);
   
     Bool_t    IdentifiedAsElectron(Int_t nTracklets, const Double_t *like, Double_t p, Double_t level,Double_t centrality=-1,ETRDPIDMethod PIDmethod=kLQ1D) const;
     
     Double_t GetEtaCorrection(const AliVTrack *track, Double_t bg) const;
+    Double_t GetClusterCorrection(const AliVTrack *track, Double_t bg) const;
+    Double_t GetCentralityCorrection(const AliVTrack *track, Double_t bg) const;
     void     SetMagField(Double_t mf) { fMagField=mf; }
   
   private:
@@ -114,9 +124,15 @@ class AliTRDPIDResponse : public TObject {
     Double_t  fGainNormalisationFactor;         //! Gain normalisation factor
     Bool_t    fCorrectEta;   //! switch for eta correction
     TH2D*     fhEtaCorr[1]; //! Map for TRD eta correction
+    Bool_t    fCorrectCluster;   //! switch for cluster correction
+    TH2D*     fhClusterCorr[3]; //! Map for TRD eta correction
+    Bool_t    fCorrectCentrality;   //! switch for centrality correction
+    TH2D*     fhCentralityCorr[1]; //! Map for TRD centrality correction
+    Double_t fCurrCentrality;              // current (in the current event) centrality percentile
+
     Double_t  fMagField;  //! Magnetic field
   
-  ClassDef(AliTRDPIDResponse, 6)    // Tool for TRD PID
+  ClassDef(AliTRDPIDResponse, 8)    // Tool for TRD PID
 };
 
 AliTRDPIDResponse::ETRDNslices AliTRDPIDResponse::GetNumberOfSlices(ETRDPIDMethod PIDmethod) const {

@@ -30,57 +30,53 @@
   b.) on the level of content itself 
   - by by byte comparison dif
   - data member by data member comparison
-
+  
   Implementation assumption:
   All input formats (a .. f) will  be converted to the TMap storages and TList if AliCDBIds 
 
-  Example usage:
-  AliOCDBtoolkit::MakeDiffExampleUseCase();
-  or from the AliOCDBtoolkit.sh in propmpt
-  ocdbMakeTable AliESDs.root ESD OCDBrec.list
-  ocdbMakeTable galice.root MC OCDBsim.list
-
   
-   
-
 
 
   //=============================================================================
-  // Functionality to dump content of  objects in human readable format
+  // Functionality to dump content of  objects in human readable format in root prompt
   //=============================================================================
-  Use case examples 
-  1.) compare oontent of alignent OCDB files for differnt yers
+  Use case examples: 
+  1.) compare content of alignent OCDB files for different yers
   2.) compare ClusterParam for different periods
-  
-  
-   
   =================================================================================================================
-  // 1.)
-  // Compare alignment example:
-  // Compare TPC alignemnt 2013 and 2010
-  //
-  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice.gsi.de/alice/data/2013/OCDB/TPC/Align/Data/Run0_999999999_v1_s0.root","TPCalign2013.dump",1,1);
-  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice.gsi.de/alice/data/2010/OCDB/TPC/Align/Data/Run0_999999999_v1_s0.root","TPCalign2010.dump",1,1);
+  // 1.) Compare alignment example:
+  //    Compare TPC alignemnt 2013 and 2010
+  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice-ocdb.cern.ch/calibration/data/2013/OCDB/TPC/Align/Data/Run0_999999999_v1_s0.root","TPCalign2013.dump",1,"docdb");
+  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice-ocdb.cern.ch/calibration/data/2010/OCDB/TPC/Align/Data/Run0_999999999_v1_s0.root","TPCalign2010.dump",1,"docdb");
   diff  TPCalign2013.dump TPCalign2010.dump > TPCalign2013_TPCalign2010.diff
-  //
-  //    
   =================================================================================================================
-  //  2.) 
-  // Compare CluterParam OCDB etry
-  //
-  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice.gsi.de/alice/data/2010/OCDB/TPC/Calib/ClusterParam/Run131541_999999999_v2_s0.root","2010_TPC_Calib_ClusterParam_Run131541_999999999_v2_s0.dump",1);
-  AliOCDBtoolkit:: AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice.gsi.de/alice/data/2010/OCDB/TPC/Calib/ClusterParam/Run0_999999999_v1_s0.root","2010_TPC_Calib_ClusterParam_Run0_999999999_v1_s0.dump",1);
-  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice.gsi.de/alice/data/2013/OCDB/TPC/Calib/ClusterParam/Run0_999999999_v1_s0.root","2013_TPC_Calib_ClusterParam_Run0_999999999_v1_s0.dump",1);
+  //  2.) Compare ClusterParam OCDB etry
+  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice-ocdb.cern.ch/calibration/data/2010/OCDB/TPC/Calib/ClusterParam/Run131541_999999999_v2_s0.root","2010_TPC_Calib_ClusterParam_Run131541_999999999_v2_s0.dump",1,"docdb");
+  AliOCDBtoolkit::AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice-ocdb.cern.ch/calibration/data/2010/OCDB/TPC/Calib/ClusterParam/Run0_999999999_v1_s0.root","2010_TPC_Calib_ClusterParam_Run0_999999999_v1_s0.dump",1,"docdb");
+  AliOCDBtoolkit::DumpOCDBFile("/cvmfs/alice-ocdb.cern.ch/calibration/data/2013/OCDB/TPC/Calib/ClusterParam/Run0_999999999_v1_s0.root","2013_TPC_Calib_ClusterParam_Run0_999999999_v1_s0.dump",1,"docdb");
   diff 2010_TPC_Calib_ClusterParam_Run131541_999999999_v2_s0.dump 2010_TPC_Calib_ClusterParam_Run0_999999999_v1_s0.dump
- 
+
+
+  //=============================================================================
+  // Infovke OCDB toolkit functionality from prompt
+  //=============================================================================
+  More examples : AliOCDBtoolkit.sh in shell prompt (see examples in $ALICE_PHYSCS/PWGPP/CalibMacros/AliOCDBtoolkit.sh) 
+  E.g: 
+  1.) source  AliOCDBtoolkit.sh
+      source $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.sh
+  2.) make human readable OCDB tables, CDBids trees, OCDB obejct dumps .... specifying approprate input (ESD,galice.root, log files, snapshot) 
+      (object dump only for selected items - configured by $ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.cfg
+      (Examples for logs and snapshots to be rechecked)
+    
+      ocdbMakeTable alien:///alice/data/2010/LHC10d/000126158/pass4/10000126158023.10/AliESDs.root ESD OCDBrec.list   
+               ===> Output: OCDBrec.list, OCDBrec.list.root *.xml and *.print files for selected OCDB entries 
+      ocdbMakeTable alien:///alice/sim/2016/LHC16d1/244983/301/galice.root MC OCDBsim.list
+               ===> Output: OCDBsim.list, OCDBsim.list.root  and *.print files for selected OCDB entries
+      dumpObject  $ALICE_ROOT/OCDB/TPC/Calib/PadNoise/Run0_999999999_v1_s0.root  "object" "XML"  TPC_Calib_PadNoise_Run0_999999999_v1_s0.xml
+
 
 */
 
-/*
-  To check:
-  1.) Verify hash value uasge as and MD5 sum - 
-
- */
 
 
 // STD
@@ -94,6 +90,9 @@
 #include "TClass.h"
 #include "TROOT.h"
 #include <TVectorD.h>
+#include <TObjArray.h>
+#include "TRegexp.h"
+#include "TPRegexp.h"
 //
 #include "TSystem.h"
 #include "TObjArray.h"
@@ -101,17 +100,28 @@
 #include "TTree.h"
 #include "TMessage.h"
 #include <TGrid.h>
+#include <TEnv.h>
 //
 #include "AliCDBManager.h"
 #include "AliCDBEntry.h"
 #include "AliOCDBtoolkit.h"
 #include "AliCDBStorage.h"
-#include "TRegexp.h"
+#include "TTreeStream.h"
+#include "AliProdInfo.h"
 
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::exception;
+
+
+TObjArray *  AliOCDBtoolkit::fgExcludeList=0;
+TObjArray *  AliOCDBtoolkit::fgXmlOCDBDumpList=0;
+TObjArray *  AliOCDBtoolkit::fgPrintOCDBDumpList=0;
+Int_t        AliOCDBtoolkit::fgVerbose=1;
+Int_t        AliOCDBtoolkit::fgRun=1;
+TString        AliOCDBtoolkit::fgPath="";
+AliProdInfo * AliOCDBtoolkit::fgProdInfo=0;          // production information
 
 void AliOCDBtoolkit::MakeDiffExampleUseCase(){
   //
@@ -153,6 +163,7 @@ void AliOCDBtoolkit::MakeDiffExampleUseCase(){
 }
 
 
+
 void AliOCDBtoolkit::DumpOCDBAsTxt(const TString fInput, const TString fType, const TString outfile){
   //
   //
@@ -160,10 +171,12 @@ void AliOCDBtoolkit::DumpOCDBAsTxt(const TString fInput, const TString fType, co
   TFile *file;
   const TMap *cdbMap=0;
   const TList *cdbList=0;
+  Bool_t cvmfsExist =  gSystem->AccessPathName("/cvmfs/alice-ocdb.cern.ch/calibration/")==kFALSE; // check presence of the OCDB in cvfms
+  if (!fgProdInfo) fgProdInfo=new AliProdInfo;
   //
   //
   AliCDBManager * man = AliCDBManager::Instance();
-  if (fInput.Contains("alien://") && gGrid==0){
+  if (fInput.Contains("alien://") && gGrid==0){    
     TGrid *myGrid = TGrid::Connect("alien://");            //Oddly this will return also a pointer if connection fails
     if(myGrid->GetPort()==0){                       //if connection fails port 0 is saved, using this to check for successful connection
       cerr << "Cannot connect to grid!" << endl;
@@ -172,23 +185,34 @@ void AliOCDBtoolkit::DumpOCDBAsTxt(const TString fInput, const TString fType, co
   }
   if(fType.EqualTo("MC",TString::kIgnoreCase)){
         file = TFile::Open(fInput.Data());
+	fgPath=fInput;
         cdbMap = (TMap*)file->Get("cdbMap");
 	if (!cdbMap){
 	  printf("cdbMap does not exist in input file\t%s. Exiting\n",fInput.Data());
 	  return;
 	}
-	// 
-	man->SetDefaultStorage(((TPair*)cdbMap->FindObject("default"))->Value()->GetName());
+	// 	
+	TString cdbStorage=((TPair*)cdbMap->FindObject("default"))->Value()->GetName();
+	AliOCDBtoolkit::CleanCDBPath(cdbStorage,cvmfsExist); // use cvmfs instead of alien: if available
+	man->SetDefaultStorage(cdbStorage.Data());	
         TList *cdbListMC0 = (TList*)file->Get("cdbList");     // this is list of TObjStrings
         cdbList = AliOCDBtoolkit::ConvertListStringToCDBId(cdbListMC0);        // convert to the TObjArray of AliCDBids
   } 
     else if(fType.EqualTo("ESD",TString::kIgnoreCase)){
       file = TFile::Open(fInput.Data());
+      fgPath=fInput;
       if (!file) {
 	printf("Input file  does not exist %s. Exiting\n",fInput.Data());
 	return;
       }
-      TList *listESD = ((TTree*)file->Get("esdTree"))->GetUserInfo();
+      TTree * tree =  ((TTree*)file->Get("esdTree"));
+      if (!tree || (tree->Draw("fRunNumber","","goff",1)<=0)){
+	::Error("AliOCDBtoolkit::DumpOCDBAsTxt","Input esdTree does not exist in %s",fInput.Data());
+	return;
+      }
+      fgRun = tree->GetV1()[0];
+      TList *listESD = tree->GetUserInfo();
+      if (listESD)  fgProdInfo->Init(tree->GetUserInfo());
       cdbMap = (TMap*)listESD->FindObject("cdbMap");  
       if (!cdbMap){
 	printf("cdbMap does not exist in input file\t%s. Exiting\n",fInput.Data());
@@ -259,10 +283,11 @@ Bool_t AliOCDBtoolkit::ParseInfoFromOcdbString(TString ocdbString, AliCDBId &cdb
   return parseStatus;
 }
 
-TList  * AliOCDBtoolkit::ConvertListStringToCDBId(const TList *cdbList0){
+TList  * AliOCDBtoolkit::ConvertListStringToCDBId(TList *cdbList0){
   //
   // Convert input  list of the TObjString to list to AliCDBid 
   //
+  cdbList0->Sort();
   Int_t entriesList0=cdbList0->GetEntries();
   TList * array0 = new TList();
   AliCDBId tmp0;
@@ -377,6 +402,9 @@ void  AliOCDBtoolkit::SetStorage(const TMap *cdbMap){
   AliCDBManager * man = AliCDBManager::Instance();  
   TIter iter(cdbMap->GetTable());
   TPair* aPair=0;
+  Bool_t cvmfsExist =  gSystem->AccessPathName("/cvmfs/alice-ocdb.cern.ch/calibration/")==kFALSE; // check presence of the OCDB in cvfms
+
+
   while ((aPair = (TPair*) iter.Next())) {
     //    aPair->Value();
     //aPair->Print();
@@ -388,6 +416,7 @@ void  AliOCDBtoolkit::SetStorage(const TMap *cdbMap){
       TRegexp alienPrefix("^alien://Folder=");      
       url(alienPrefix)=ocdbPrefix+"";
     }
+    AliOCDBtoolkit::CleanCDBPath(url,cvmfsExist); // use cvmfs instead of alien: if available
 
     printf("%s\t%s\t%s\n", aPair->GetName(), urlOrig.Data(), url.Data());
     if (TString(aPair->GetName())=="default") man->SetDefaultStorage(url);
@@ -401,15 +430,19 @@ void AliOCDBtoolkit::LoadOCDBFromMap(const TMap *cdbMap, const TList *cdbList){
   // Initilaize OCDB
   // Load OCDB setting as specified in maps
   // Or Do we have already implementation in AliCDBanager?  TO CHECK.. Should go to the AliCDBmanager if not alreadyhhere
+  if (!fgExcludeList)  LoadAliOCDBtoolkitSetup(1);
   AliCDBManager * man = AliCDBManager::Instance();  
   AliOCDBtoolkit::SetStorage(cdbMap);  
   TIter iter(cdbList);
   TObjString *ocdbString=0;
   while (( ocdbString= (TObjString*) iter.Next())) {
     AliCDBId* cdbId = AliCDBId::MakeFromString(ocdbString->String());
+    if (fgVerbose>0) cdbId->Print();
+    if (IsEntrySelected( cdbId->GetPath(),fgExcludeList)) continue;
     try {
       //      AliCDBEntry * cdbEntry = (AliCDBEntry*) man->Get(*cdbId,kTRUE);
-      man->Get(*cdbId,kTRUE);
+      
+      man->Get(*cdbId);
     } catch(const exception &e){
       cerr << "OCDB retrieval failed!" << endl;
       cerr << "Detailes: " << e.what() << endl;
@@ -480,74 +513,145 @@ void AliOCDBtoolkit::DumpOCDB(const TMap *cdbMap0, const TList *cdbList0, const 
   // OCDB entries are sorted alphabetically
   // e.g:
   // TPC/Calib/RecoParam /hera/alice/jwagner/software/aliroot/AliRoot_TPCdev/OCDB/ TPC/Calib/RecoParam/Run0_999999999_v0_s0.root $SIZE_AliCDBEntry_Object $HASH_AliCDBEntry_Object
-  
+  if (!fgExcludeList)  {
+    LoadAliOCDBtoolkitSetup(1);
+  }
+  SetXRDTimeOutAll(-1);
   AliCDBManager * man = AliCDBManager::Instance();
   AliOCDBtoolkit::SetStorage(cdbMap0);  
   TList * cdbList = (TList*) cdbList0;   // sorted array
-  cdbList->Sort();
-
-  TIter next(cdbList);
   AliCDBId *CDBId=0;
   TString cdbName="";
   TString cdbPath="";
   TObjString *ostr;
   AliCDBEntry *cdbEntry=0;
   TGrid *myGrid = NULL;
-  UInt_t hash;
+  UInt_t hash=0;
   TMessage * file;
-  Int_t size; 
+  Int_t size=0; 
   FILE *ofs = fopen(outfile.Data(),"w");
-  
-  while ((CDBId  =(AliCDBId*) next())){
-    cdbName = CDBId->GetPath();
-    ostr = (TObjString*)cdbMap0->GetValue(cdbName.Data());
-    if(!ostr) ostr = (TObjString*)cdbMap0->GetValue("default");
-    cdbPath = ostr->GetString();
-    if(cdbPath.Contains("local://"))cdbPath=cdbPath(8,cdbPath.Length()).Data();
-    if(!myGrid && cdbPath.Contains("alien://")){        //check if connection to alien is initialized
+  TTreeSRedirector *pcstream = new TTreeSRedirector((outfile+".root").Data(),"recreate");
+  TObjString spass,speriod,syear,srun;
+  Int_t year=0;
+  if (fgPath.Length()>0){ // in case fgPath haexist decompose year/period/pass/run information
+    TObjArray *mArr=0;
+    TPRegexp regPass("/.?ass.+?/");
+    TPRegexp regYear("/.?20.+?/");
+    TPRegexp regPeriod("/.?LHC.+?/");
+    TPRegexp regRun("/.?000.+?/");
+    if (regPass.Match(fgPath,"i")>0) {mArr=regPass.MatchS(fgPath,"i"); spass=mArr->At(0)->GetName(); delete mArr;}
+    if (regYear.Match(fgPath,"i")>0) {mArr=regYear.MatchS(fgPath,"i"); syear=mArr->At(0)->GetName(); delete mArr;}
+    if (regPeriod.Match(fgPath,"i")>0) {mArr=regPeriod.MatchS(fgPath,"i"); speriod=mArr->At(0)->GetName(); delete mArr;}
+    if (regRun.Match(fgPath,"i")>0) {mArr=regRun.MatchS(fgPath,"i"); srun=mArr->At(0)->GetName(); delete mArr;}
+    spass.String().ReplaceAll("/","");
+    syear.String().ReplaceAll("/","");
+    speriod.String().ReplaceAll("/","");
+    srun.String().ReplaceAll("/000","");
+    srun.String().ReplaceAll("/","");
+    if (srun.String().Atoi()>0) fgRun=srun.String().Atoi();
+    if (syear.String().Atoi()>0) year=syear.String().Atoi();
+    
+  }
+
+  for (Int_t iter=0;iter<2; iter++){ 
+    size=0; 
+    hash=0;
+    // in first dump the table without detailed infromation
+    // in second iteration dump full requested information including size/hash/metadata and xml/prin if specified
+    TIter next(cdbList);
+    while ((CDBId  =(AliCDBId*) next())){
+      cdbName = CDBId->GetPath();
+      ostr = (TObjString*)cdbMap0->GetValue(cdbName.Data());
+      if(!ostr) ostr = (TObjString*)cdbMap0->GetValue("default");
+      cdbPath = ostr->GetString();
+      if(cdbPath.Contains("local://"))cdbPath=cdbPath(8,cdbPath.Length()).Data();
+      if(!myGrid && cdbPath.Contains("alien://")){        //check if connection to alien is initialized
         myGrid = TGrid::Connect("alien://");            //Oddly this will return also a pointer if connection fails
         if(myGrid->GetPort()==0){                       //if connection fails port 0 is saved, using this to check for successful connection
-            cerr << "Cannot connect to grid!" << endl;
-            continue;
+	  cerr << "Cannot connect to grid!" << endl;
+	  continue;
         }
+      }
+      if (iter > 0 && !(IsEntrySelected( cdbName.Data(),fgExcludeList))) {  //get detailed information
+	try {
+	  ::Info("AliOCDBtoolkit::DumpOCDB","%s",cdbName.Data());
+	  cdbEntry = (AliCDBEntry*) man->Get(*CDBId,kFALSE);
+	}catch(const exception &e){
+	  cerr << "OCDB retrieval failed!" << endl;
+	  cerr << "Detailes: " << e.what() << endl;
+	  CDBId->Print();
+	  hash=0;
+	  size=-1;
+	}  
+	if (!cdbEntry) {
+	  printf("Object not avaliable\n");
+	  CDBId->Print();
+	  continue;
+	}
+	TObject *obj = cdbEntry->GetObject();
+	file = new TMessage(TBuffer::kWrite);
+	file->WriteObject(obj);
+	size = file->Length();	
+	if(!obj){
+	  fprintf(ofs,"object %s empty!\n",cdbName.Data());
+	  continue;
+	}
+	hash = TString::Hash(file->Buffer(),size);
+	delete file;
+	if (IsEntrySelected( cdbName.Data(),fgXmlOCDBDumpList)){
+	  ::Info("AliOCDBtoolkit::DumpOCDB","XML dump %s",cdbName.Data());
+	  gSystem->mkdir(cdbName.Data(),1);
+	  TString fname=TString::Format("%s/Run%d_%d_v%d_s%d.xml", cdbName.Data(), CDBId->GetFirstRun(), CDBId->GetLastRun(),
+				       CDBId->GetVersion(),CDBId->GetSubVersion());
+	  TFile * f = TFile::Open(fname.Data(),"recreate");
+	  cdbEntry->Write("AliCDBEntry");
+	  f->Close();
+
+	  // XML dump
+	}
+	if (IsEntrySelected( cdbName.Data(),fgPrintOCDBDumpList)){  // !!!! code crash in case stdout redirected to the log file
+	  // Print dump
+	  gSystem->mkdir(cdbName.Data(),1);
+	  TString fname=TString::Format("%s/Run%d_%d_v%d_s%d.print", cdbName.Data(), CDBId->GetFirstRun(), CDBId->GetLastRun(),
+				       CDBId->GetVersion(),CDBId->GetSubVersion());
+	  gROOT->ProcessLine(TString::Format("((TObject*)%p)->Dump(); >%s",cdbEntry, fname.Data()).Data());
+	  gROOT->ProcessLine(TString::Format("((TObject*)%p)->Dump(); >>%s",obj, fname.Data()).Data());
+	  gROOT->ProcessLine(TString::Format("((TObject*)%p)->Print(\"all\"); >>%s",obj, fname.Data()).Data());
+ 
+	}
+
+      }
+      AliOCDBtoolkit::CleanCDBPath(cdbPath,kFALSE);
+      (*pcstream)<<"ocdbTable"<<
+	"run="<<fgRun<<	           // run number 
+	//                         - this infromation can be stored in friend tree .. in future
+	"prodInfo.="<<fgProdInfo<< // production information - can be in another tree
+        "path.="<<fgPath<<         // OCDB source path
+	"period.="<<&speriod<<     // period
+	"pass.="<<&spass<<         // path
+	"syear.="<<&syear<<        // year as string
+	"year="<<year<<            // year as string
+	//
+	"cdbID.="<<CDBId<<       // ID of the OCDb object
+	"size="<<size<<          // size of the OCDB entry
+	"\n";
+      fprintf(ofs,"%s\t%s\t%s/Run%d_%d_v%d_s%d.root\t%d\t%u\n",
+	      cdbName.Data(),
+	      cdbPath.Data(),
+	      cdbName.Data(),
+	      CDBId->GetFirstRun(),
+	      CDBId->GetLastRun(),
+	      CDBId->GetVersion(),
+	      CDBId->GetSubVersion(),
+	      size,
+	      hash
+	      );
+      fflush(ofs);
+      //if(!(CDBId->GetPathLevel(0)).Contains("TPC")) continue;
+      //cout << CDBId.ToString() << endl;
     }
-    try {
-      cdbEntry = (AliCDBEntry*) man->Get(*CDBId,kTRUE);
-    }catch(const exception &e){
-      cerr << "OCDB retrieval failed!" << endl;
-      cerr << "Detailes: " << e.what() << endl;
-      hash=0;
-      size=-1;
-    }  
-    if (!cdbEntry) {
-      printf("Object not avaliable\n");
-      CDBId->Print();
-      continue;
-    }
-    TObject *obj = cdbEntry->GetObject();
-    file = new TMessage(TBuffer::kWrite);
-    file->WriteObject(obj);
-    size = file->Length();
-    if(!obj){
-      fprintf(ofs,"object %s empty!\n",cdbName.Data());
-      continue;
-    }
-    hash = TString::Hash(file->Buffer(),size);
-    fprintf(ofs,"%s\t%s\t%s/Run%d_%d_v%d_s%d.root\t%d\t%u\n",
-	   cdbName.Data(),
-	   cdbPath.Data(),
-	   cdbName.Data(),
-	   CDBId->GetFirstRun(),
-	   CDBId->GetLastRun(),
-	   CDBId->GetVersion(),
-	   CDBId->GetSubVersion(),
-	   size,
-	   hash
-	   );
-    //if(!(CDBId->GetPathLevel(0)).Contains("TPC")) continue;
-    //cout << CDBId.ToString() << endl;
-    delete file;
   }
+  delete pcstream;
   fclose(ofs);
 }
 
@@ -560,11 +664,28 @@ void AliOCDBtoolkit::DumpOCDB(const TMap *cdbMap0, const TList *cdbList0, const 
 
 
 
-void AliOCDBtoolkit::DumpOCDBFile(const char *finput , const char *foutput, Bool_t dumpMetaData, Bool_t xml){
-  //
-  //  
-  //  DumpOCDBFile("$ALICE_ROOT/OCDB/ITS/Align/Data/Run0_999999999_v0_s0.root", "ITS_Align_Data_Run0_999999999_v0_s0.dump")
-  //
+void AliOCDBtoolkit::DumpOCDBFile(const char *finput , const char *foutput, Bool_t dumpMetaData, TString  printOption ){
+  ///
+  ///  Function used in the AliOCDBtoolkit.sh interface ( source $ALICE_PHYSICS/PWGPP/CalibMacro/AliOCDBtoolkit.sh dumpObject <parameters>) 
+  ///  DumpOCDB file in the human readable format.
+  ///  
+  ///  Supported options (not case sensitive)
+  ///    "pocdb<x>" - TObjPrint  is used with printOption lovelX - assumed user implmenet approprate print
+  ///    "docdb"  - TObject::Dump 
+  ///    "XML"     - use standard root OCDB dump (not 100 % relyable sometimes failed e.g in floating poit exception)
+  ///    "MI"      - custom recursive dump using the dictionary ()
+  ///  Example usage:
+  /*
+    AliOCDBtoolkit::DumpOCDBFile("$ALICE_ROOT/OCDB/TPC/Calib/PadGainFactor/Run0_999999999_v0_s3.root", "TPC_Calib_PadGainFactor_Run0_999999999_v0_s3.print",1,"pocdb");
+    AliOCDBtoolkit::DumpOCDBFile("$ALICE_ROOT/OCDB/TPC/Calib/PadGainFactor/Run0_999999999_v0_s3.root", "TPC_Calib_PadGainFactor_Run0_999999999_v0_s3.dump",1,"docdb")
+    AliOCDBtoolkit::DumpOCDBFile("$ALICE_ROOT/OCDB/TPC/Calib/PadGainFactor/Run0_999999999_v0_s3.root", "TPC_Calib_PadGainFactor_Run0_999999999_v0_s3.mi",1,"mi")
+    AliOCDBtoolkit::DumpOCDBFile("$ALICE_ROOT/OCDB/TPC/Calib/PadGainFactor/Run0_999999999_v0_s3.root", "TPC_Calib_PadGainFactor_Run0_999999999_v0_s3.print",1,"XML")
+  */
+
+
+  TString optionString = printOption;
+  optionString.ToLower();
+    
   if (finput==0) return ;
   if (TString(finput).Contains("alien://") && gGrid==0){
     TGrid *myGrid = TGrid::Connect("alien://");            //Oddly this will return also a pointer if connection fails
@@ -577,19 +698,35 @@ void AliOCDBtoolkit::DumpOCDBFile(const char *finput , const char *foutput, Bool
   AliCDBEntry *entry  = (AliCDBEntry*)falignITS->Get("AliCDBEntry");
   if (!entry) return; 
   TObject *obj = ((AliCDBEntry*)falignITS->Get("AliCDBEntry"))->GetObject();  
-
   //
-  if (!xml){
+  // print option indicated ()
+  if (optionString.Contains("pocdb")){
+    if (dumpMetaData) gROOT->ProcessLine(TString::Format("((TObject*)%p)->Dump(); >%s",entry, foutput).Data());
+    if (!obj) return;
+    gROOT->ProcessLine(TString::Format("((TObject*)%p)->Print(\"%s\"); >>%s",obj, printOption.Data(), foutput).Data());
+    return;
+  }
+  if (optionString.Contains("docdb")){
+    if (dumpMetaData) gROOT->ProcessLine(TString::Format("((TObject*)%p)->Dump(); >%s",entry, foutput).Data());
+    if (!obj) return;
+    gROOT->ProcessLine(TString::Format("((TObject*)%p)->Dump(); >>%s",obj, foutput).Data());
+    return;
+  }
+  //
+  if (optionString.Contains("mi")){
     if (dumpMetaData) gROOT->ProcessLine(TString::Format("((TObject*)%p)->Dump(); >%s",entry, foutput).Data());
     if (!obj) return;
     gROOT->ProcessLine(TString::Format("AliOCDBtoolkit::DumpObjectRecursive((TObject*)%p); >>%s",obj, foutput).Data());
+    return;
   }
-  if (xml){
-    TFile * f = TFile::Open(TString::Format("%s.xml",foutput).Data(),"recreate");
+  if (optionString.Contains("xml")){
+    TFile * f = TFile::Open(TString::Format("%s",foutput).Data(),"recreate");
     if (dumpMetaData) entry->Write("AliCDBEntry");
     else obj->Write("AliCDBEntry");
     f->Close();
+    return;
   }
+  ::Error("AliOCDBtoolkit::DumpOCDBFile","Not recognized option %s", optionString.Data());
 }
 
 
@@ -829,5 +966,110 @@ void AliOCDBtoolkit::MakeSnapshotFromTxt(const TString fInput, const TString out
   LoadOCDBFromList(fInput.Data());
   man->DumpToSnapshotFile(outfile.Data(), singleKeys);
 
+}
+
+
+void AliOCDBtoolkit::CleanCDBPath(TString &cdbPath, Bool_t useCVMFS){
+  //
+  // 1.) clean alien path removing caching flags
+  // 2.) repalce alien path wiht the cvmfs in case specified and cvmfs accessible
+  // return value - change the content of the cdbPath string
+  /* Example:
+
+     Input:          alien://?User=?DBFolder=/alice/data/2010/OCDB?SE=default?CacheFolder=?OperateDisconnected=1?CacheSize=1073741824?CleanupInterval=0
+     AliOCDBtoolkit::CleanCDBPath(cdbStorage,kTRUE);   
+     AliOCDBtoolkit::CleanCDBPath Output:local:///cvmfs/alice-ocdb.cern.ch/calibration/data/2010/OCDB
+
+   */
+  Bool_t isAlienPath = cdbPath.Contains("alien://");
+  if (!isAlienPath) return;
+  if (useCVMFS){
+    useCVMFS=  gSystem->AccessPathName("/cvmfs/alice-ocdb.cern.ch/calibration/")==kFALSE; // is cvfms available ? bizzare function convention    
+  }
+
+  if (useCVMFS){
+    TPRegexp repAlien0("alien://.*=/alice/");   // replace alien cache prefix
+    repAlien0.Substitute(cdbPath, "local:///cvmfs/alice-ocdb.cern.ch/calibration/");
+  }else{
+    TPRegexp repAlien0("alien://.*=/");   // replace alien cache prefix
+    repAlien0.Substitute(cdbPath, "alien:///");
+  }
+  TPRegexp repAlien1("\\?.*");        // replace ? suffix - caching flags
+  repAlien1.Substitute(cdbPath, "");  
+}
+
+
+
+ 
+void AliOCDBtoolkit::LoadAliOCDBtoolkitSetup(Int_t verbose){
+  //
+  // load OCDB toolkit configuration 
+  //
+  TString config=gSystem->Getenv("AliOCDBtoolkitCFG");
+  if (config.Length()==0){
+    config="$ALICE_PHYSICS/PWGPP/CalibMacros/AliOCDBtoolkit.cfg";
+  }
+  if (gSystem->AccessPathName(config.Data())!=0) {
+    ::Error("AliOCDBtoolkit::LoadAliOCDBtoolkitSetup","Invalid path to configuration file");
+  }
+  // Exclude OCDB list - Some entries has to be removed form the list as OCDB is not always back compatible
+  // Exclude pattern have to start with Exclude
+  TString excludeStr=gSystem->GetFromPipe(TString::Format("cat %s|grep ^Exclude: | sed s_^E.*:__  | sed 's/[[:blank:]]//g' | tr ',' '\n'", config.Data()).Data());
+  fgExcludeList=excludeStr.Tokenize("\n,");
+  //
+  TString xmlStr=gSystem->GetFromPipe(TString::Format("cat %s|grep ^XML: | sed s_^XML.*:__  | sed 's/[[:blank:]]//g' | tr ',' '\n'", config.Data()).Data());
+  fgXmlOCDBDumpList=xmlStr.Tokenize("\n,");
+  //
+  TString printStr=gSystem->GetFromPipe(TString::Format("cat %s|grep ^Print: | sed s_^Print.*:__  | sed 's/[[:blank:]]//g' | tr ',' '\n'", config.Data()).Data());
+  fgPrintOCDBDumpList=printStr.Tokenize("\n,");    
+  if (verbose>0){
+    ::Info("AliOCDBtoolkit::LoadAliOCDBtoolkitSetup","ExludeList");
+    fgExcludeList->Print();
+    ::Info("AliOCDBtoolkit::LoadAliOCDBtoolkitSetup","XMLlist");
+    fgXmlOCDBDumpList->Print();
+    ::Info("AliOCDBtoolkit::LoadAliOCDBtoolkitSetup","Printlist");
+    fgPrintOCDBDumpList->Print();
+  }
+}
+
+Bool_t AliOCDBtoolkit::IsEntrySelected(TString entry, TObjArray *selList){
+  //
+  // check if the entry was selected - means it was specified in the list
+  /*
+    TString entry="TPC/Calib/RecoParam";
+    selList=printOCDBDumpList;
+  */
+  //
+  if (selList==NULL) return 0;
+  if (selList->FindObject(entry.Data())!=NULL) return kTRUE;
+
+  Bool_t isSelected=kFALSE;
+  for (Int_t ientry=0; ientry<selList->GetEntriesFast(); ientry++){
+    TRegexp regexp(selList->At(ientry)->GetName());    
+    TPRegexp pregexp(selList->At(ientry)->GetName());
+    if (entry.Contains(regexp)>0) isSelected=kTRUE;
+    if (entry.Contains(pregexp)>0) isSelected=kTRUE;
+  }
+  return isSelected;
+}
+
+
+Double_t AliOCDBtoolkit::SetXRDTimeOutAll(Double_t timeOut ){
+  //
+  // Set timeout for XRD
+  //   Problems oberved accessing small UserInfo objects (waiting for minutes and afterwards failing in some T2,T3)
+  //   normally access aroud 2 seconds
+  //   
+  if (timeOut<0 && gSystem->Getenv("XRDCLIENTMAXWAIT")){
+    timeOut=TString(gSystem->Getenv("XRDCLIENTMAXWAIT")).Atoi();
+  }
+  if (timeOut>0){
+    gEnv->SetValue("XNet.RequestTimeout", timeOut);
+    gEnv->SetValue("XNet.ConnectTimeout", timeOut);
+    gEnv->SetValue("XNet.TransactionTimeout", timeOut);
+    gEnv->SetValue("XNet.FirstConnectMaxCnt", 5);
+    TFile::SetOpenTimeout(timeOut);
+  }
+  return timeOut;
 }
 

@@ -49,6 +49,9 @@ Send comments etc. to: A.Kalweit@gsi.de, marian.ivanov@cern.ch
 #include "AliESDInputHandler.h"
 #include "AliAnalysisManager.h"
 #include "AliTPCParam.h"
+#include "AliCDBManager.h"
+#include "AliCDBEntry.h"
+#include "AliCDBId.h"
 
 #include "AliComplexCluster.h"
 #include "AliTPCclusterMI.h"
@@ -69,6 +72,7 @@ Send comments etc. to: A.Kalweit@gsi.de, marian.ivanov@cern.ch
 #include "AliTPCROC.h"
 #include "AliTPCreco.h"
 #include "TStatToolkit.h"
+#include "AliTPCPreprocessorOffline.h"
 
 ClassImp(AliTPCcalibGainMult)
 
@@ -85,9 +89,13 @@ AliTPCcalibGainMult::AliTPCcalibGainMult()
    fCutRequireITSrefit(0),
    fCutMaxDcaXY(0),
    fCutMaxDcaZ(0),
+   fMinTPCsignalN(60),
    fMinMomentumMIP(0),
    fMaxMomentumMIP(0),
    fAlephParameters(),
+   fTimeGainID(),
+   fTimeGainStorage(),
+   fTimeGainObjects(0x0),
    fHistNTracks(0),
    fHistClusterShape(0),
    fHistQA(0),
@@ -120,9 +128,13 @@ AliTPCcalibGainMult::AliTPCcalibGainMult(const Text_t *name, const Text_t *title
    fCutRequireITSrefit(0),
    fCutMaxDcaXY(0),
    fCutMaxDcaZ(0),
+   fMinTPCsignalN(60),
    fMinMomentumMIP(0),
    fMaxMomentumMIP(0),
    fAlephParameters(),
+   fTimeGainID(),
+   fTimeGainStorage(),
+   fTimeGainObjects(0x0),
    fHistNTracks(0),
    fHistClusterShape(0),
    fHistQA(0),
@@ -288,6 +300,8 @@ AliTPCcalibGainMult::~AliTPCcalibGainMult(){
   delete fHistdEdxTot;
   delete fdEdxTree;
   if (fBBParam) delete fBBParam;
+
+  delete fTimeGainObjects;
 }
 
 
@@ -343,6 +357,23 @@ void AliTPCcalibGainMult::Process(AliESDEvent *event) {
     return;
   }
 
+  // ===| set TimeGain ID and storage |=========================================
+  if (fTimeGainID.IsNull()) {
+    const TString timeGainPath("TPC/Calib/TimeGain");
+    AliCDBManager* cdbMan = AliCDBManager::Instance();
+    AliCDBEntry*   entry  = cdbMan->Get(timeGainPath);
+    if (entry) {
+      fTimeGainID      = entry->GetId().ToString();
+      fTimeGainStorage = cdbMan->GetURI(timeGainPath);
+    }
+
+    TObjArray *arrTimeGain = static_cast<TObjArray*>(entry->GetObject());
+    if (!fTimeGainObjects && arrTimeGain) {
+      fTimeGainObjects = (TObjArray*)arrTimeGain->Clone();
+      fTimeGainObjects->SetOwner();
+    }
+  }
+
   // CookdEdxAnalytical requires the time stamp in AliTPCTransform to be set
   AliTPCTransform *transform = AliTPCcalibDB::Instance()->GetTransform() ;
   transform->SetCurrentRun(fRun);
@@ -391,6 +422,9 @@ void AliTPCcalibGainMult::Process(AliESDEvent *event) {
     UInt_t status = track->GetStatus();
     if ((status&AliESDtrack::kTPCrefit)==0) continue;
     if ((status&AliESDtrack::kITSrefit)==0 && fCutRequireITSrefit) continue; // ITS cluster
+    //
+    if (track->GetTPCsignalN()<fMinTPCsignalN) continue;
+    //
     Float_t dca[2], cov[3];
     track->GetImpactParameters(dca,cov);
     Float_t primVtxDCA = TMath::Sqrt(dca[0]*dca[0]);
@@ -2033,7 +2067,12 @@ TGraphErrors* AliTPCcalibGainMult::GetGainPerChamberRobust(Int_t padRegion/*=1*/
   //
   TH2D * histGainSec = fHistGainSector->Projection(0,1);
 //   TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, 0.6,4,markers[padRegion],colors[padRegion]);
-  TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, 0.9,6,markers[padRegion],colors[padRegion]);
+  Double_t fraction=0.9;
+  Int_t    type    =6;
+//   printf("================== %.2f, %d \n", fraction, type);
+//   AliTPCPreprocessorffline::GetStatType(histGainSec, fraction, type);
+
+  TGraphErrors * gr = TStatToolkit::MakeStat1D(histGainSec, 0, fraction, type, markers[padRegion],colors[padRegion]);
   const char* names[3]={"SHORT","MEDIUM","LONG"};
   const Double_t median = TMath::Median(gr->GetN(),gr->GetY());
 

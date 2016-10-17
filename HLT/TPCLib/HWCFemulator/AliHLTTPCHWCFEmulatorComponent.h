@@ -141,19 +141,27 @@ class AliHLTTPCHWCFEmulatorComponent : public AliHLTProcessor
 
   Bool_t fDoDeconvTime;            // flag to deconvolute in time direction
   Bool_t fDoDeconvPad;             // flag to deconvolute in pad direction
+  Bool_t fImprovedDeconvolution;   // flat to perform improved deconvolution in time direction
   Bool_t fDoMC;                    // flag to provide MC labels
   Bool_t fDoFlowControl;           // flag to control the data
   Bool_t fDoSinglePadSuppression;  // flag for single pad suppression
   Bool_t fBypassMerger;            // flag to bypass cluster merging between pads
-  AliHLTUInt32_t fClusterLowerLimit; // cut clusters at this charge value
+  AliHLTUInt32_t fClusterLowerLimit; // cut clusters at this total charge value
+  AliHLTUInt32_t fClusterQMaxLowerLimit; // cut clusters at this max charge value
   AliHLTUInt32_t fSingleSeqLimit;    // cut sequences at this charge value
   AliHLTUInt32_t fMergerDistance; // max. distance in mean time between two pads to be merged
   bool           fUseTimeBinWindow; // use timebin window
   bool           fUseTimeFollow; // use time follow algorithm for merging pads  
-  bool           fNoiseSuppression; // Slightly modified algorithm for peak and minimum finding aimed to suppress noise
+  int            fNoiseSuppression; // Slightly modified algorithm for peak finding aimed to suppress noise
+  int            fNoiseSuppressionMinimum; // Slightly modified algorithm for minimum finding aimed to suppress noise
+  int            fNoiseSuppressionNeighbor; // Consider next neighbor as peak/neighbor during peak finder with noise suppression
+  int            fSmoothing; //Smoothing parameter for peak finder
+  int            fSmoothingThreshold; //Threshold when to flag peaks / minima without smoothing
   AliHLTUInt32_t fChargeFluctuation; // allowed charge fluctuation for peak finding 
   AliHLTUInt32_t fTagDeconvolutedClusters; // tag deconvoluted dclusters
   Bool_t fProcessingRCU2Data; // processing of RCU2 data - no split in two input branches
+  Bool_t fUseGain; // Use gain correction factor from OCDB
+  Double_t fIORatioCorrection; // multiplier for data size ratio Output/Input 
   Int_t fDebug; // debug level
   AliHLTTPCHWCFSupport fCFSupport;     // !transient
   AliHLTTPCHWCFEmulator fCFEmulator;   // !transient

@@ -414,12 +414,12 @@ void AliITSClusterFinderV2SSD::RawdataToClusters(AliRawReader* rawReader){
   fNClusters = 0;
   rawReader->Reset();
   AliITSRawStreamSSD inputSSD(rawReader);
-  FindClustersSSD(&inputSSD);
+  FindClustersSSD(&inputSSD, rawReader->GetRunNumber());
   
 }
 
 
-void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input) 
+void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input, UInt_t runno) 
 {
   //------------------------------------------------------------
   // Actual SSD cluster finder for raw data
@@ -530,6 +530,14 @@ void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input)
 	    dStrip = 0;
 	  }	
 	}
+
+        // In periods LHC16k and LHC16l, we had a single event upset that moved strips by two units in iddl=3 (DDL 215)
+        // This correction should is only applied on raw data. The opposite shift is applied when generating raw data in MC (in AliITSDDLRawData)
+        // Most MC productions go directly from Hits to Digits, thus bypassing this procedure; that is also fine 
+        // (the acceptance is slightly affected: 2 strips out of 768 become invisible, for 1/10 of the detector (1DDL))
+        if (ddl == 3 && runno >= 258391 && runno < 259941) {
+          dStrip = 2.0;
+        }
 	
 	for( int side=0; side<=1; side++ ){
 
@@ -541,11 +549,14 @@ void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input)
 	  Bool_t snFlag = 0;
 
 	  Float_t dLorentz = 0;
+          Float_t dStripSide = 0;
 	  if (side==0) { // P-side is neg clust
 	    dLorentz = fLorentzShiftN;
+            dStripSide = dStrip;
 	  }
 	  else { // N-side is pos clust
 	    dLorentz = fLorentzShiftP;
+            dStripSide = -dStrip;
 	  }
 	  
 	  Int_t n = nStrips[adc][side];
@@ -583,20 +594,20 @@ void AliITSClusterFinderV2SSD::FindClustersSSD(AliITSRawStreamSSD* input)
 		}else {
 		  
 		  Ali1Dcluster &cluster = clusters1D[side][nClusters1D[side]++];
-		  cluster.SetY( y / q + dStrip + dLorentz);
+		  cluster.SetY( y / q + dStripSide + dLorentz);
 		  cluster.SetQ(q);
 		  cluster.SetNd(nDigits);
 		  cluster.SetLabels(lab);
-		  //cout<<"cluster 1D side "<<side<<": y= "<<y<<" q= "<<q<<" d="<<dStrip<<" Y="<<cluster.GetY()<<endl;
+		  //cout<<"cluster 1D side "<<side<<": y= "<<y<<" q= "<<q<<" d="<<dStripSide<<" Y="<<cluster.GetY()<<endl;
 		  //Split suspiciously big cluster
 
 		  if( repa->GetUseUnfoldingInClusterFinderSSD()
 		      && nDigits > 4 && nDigits < 25 
 		      ){
-		    cluster.SetY(y/q + dStrip - 0.25*nDigits + dLorentz);	    
+		    cluster.SetY(y/q + dStripSide - 0.25*nDigits + dLorentz);	    
 		    cluster.SetQ(0.5*q);	  
 		    Ali1Dcluster& cluster2 = clusters1D[side][nClusters1D[side]++];
-		    cluster2.SetY(y/q + dStrip + 0.25*nDigits + dLorentz);	    
+		    cluster2.SetY(y/q + dStripSide + 0.25*nDigits + dLorentz);	    
 		    cluster2.SetQ(0.5*q);
 		    cluster2.SetNd(nDigits);
 		    cluster2.SetLabels(lab);	  

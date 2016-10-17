@@ -224,6 +224,7 @@ public:
   void  SetADCSat(Int_t adcsat)    {  fADCSat  = adcsat;}
   void  SetADCDynRange(Float_t adcdynrange) {fADCDynRange = adcdynrange;}
   void  SetUseGlitchFilter(Bool_t use) {fUseGlitchFilter=use;}
+  void  SetSigmaRangePIDinTracking(Float_t range) { fSigmaRangePIDinTracking = range; }
   //
   // High voltage parameters
   //
@@ -373,6 +374,8 @@ public:
   Float_t  GetTotalNormFac() const {return fTotalNormFac;}
   Float_t  GetNoiseNormFac() const {return fNoiseNormFac;}
   Bool_t   GetUseGlitchFilter() const {return fUseGlitchFilter;}
+  Float_t  GetSigmaRangePIDinTracking() const { return fSigmaRangePIDinTracking; }
+
   //
   // High voltage parameters
   //
@@ -519,6 +522,7 @@ protected :
   Float_t fTotalNormFac;    ///< full normalisation factor - calculated
   Float_t fNoiseNormFac;    ///< normalisation factor to transform noise in electron to ADC channel
   Bool_t  fUseGlitchFilter; ///< use the glitch filter to suppress single digits above threshold
+  Float_t fSigmaRangePIDinTracking; ///< maximum sigma range allowed for PID probability range calculation used in tracking
 
   //---------------------------------------------------------------------
   // High voltage parameters
@@ -554,7 +558,7 @@ protected :
   void CleanGeoMatrices();
 
   /// \cond CLASSIMP
-  ClassDef(AliTPCParam,12)  //parameter  object for set:TPC
+  ClassDef(AliTPCParam,13)  //parameter  object for set:TPC
   /// \endcond
 };
 
@@ -605,7 +609,7 @@ inline void AliTPCParam::Transform1to2Ideal(Float_t *xyz, Int_t *index) const
   Float_t y1=-xyz[0]*sin + xyz[1]*cos;
   xyz[0]=x1;
   xyz[1]=y1;
-  xyz[2]=fZLength-TMath::Abs(xyz[2]);
+  xyz[2]= fZLength + (((index[1]/18)&0x1) ? xyz[2] : -xyz[2]);
   index[0]=2;
 }
 

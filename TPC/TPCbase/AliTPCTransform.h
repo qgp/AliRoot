@@ -15,6 +15,7 @@
 class AliTPCRecoParam;
 class TTreeSRedirector;
 class TGraph;
+class AliTPCclusterMI;
 #include "AliTPCChebCorr.h"
 #include "AliTransform.h"
 #include <time.h>
@@ -27,6 +28,7 @@ public:
   virtual ~AliTPCTransform();
   virtual void Transform(Double_t *x,Int_t *i,UInt_t time,
 			 Int_t coordinateType);
+  void ResetCache();
   void SetPrimVertex(Double_t *vtx);
   void Local2RotatedGlobal(Int_t sec,  Double_t *x) const;
   void RotatedGlobal2Global(Int_t sector,Double_t *x) const;
@@ -40,8 +42,16 @@ public:
   AliTPCChebCorr* GetCorrMapCache0() const {return fCorrMapCache0;}
   AliTPCChebCorr* GetCorrMapCache1() const {return fCorrMapCache1;}
   //
-  static TObjArray* LoadCorrectionMaps(Bool_t refMap=kFALSE);
-  static AliTPCChebCorr* LoadFieldDependendStaticCorrectionMap(Bool_t ref,TObjArray* mapsArrProvided=0);
+  Double_t TimeBin2Z(double t, int sector, double yLab) const;
+  Double_t Z2TimeBin(double t, int sector, double yLab) const;
+  //
+  static TObjArray* LoadCorrectionMaps(Bool_t refMap, Bool_t corrMode=kTRUE);
+  static AliTPCChebCorr* LoadFieldDependendStaticCorrectionMap(Bool_t ref,Bool_t corrMode=kTRUE,TObjArray* mapsArrProvided=0);
+  void CleanCorrectionMaps();
+  Double_t ErrY2Syst(const AliTPCclusterMI * cl, const double tgAngPhi);
+  Double_t ErrZ2Syst(const AliTPCclusterMI * cl, const double tgAngLam);
+  void ErrY2Z2Syst(const AliTPCclusterMI * cl, const double tgPhi, const double tgLam,double &serry2, double &serrz2);
+
   void LoadCorrectionMapsForTimeBin(TObjArray* mapsArrProvided=0);
   // set current values
   //
@@ -57,10 +67,14 @@ public:
   void    EvalCorrectionMap(int roc, int row, const double xyz[3], float *res, Bool_t ref=kFALSE);
   Float_t EvalCorrectionMap(int roc, int row, const double xyz[3], int dimOut, Bool_t ref=kFALSE);
   Float_t GetCorrMapComponent(int roc, int row, const double xyz[3], int dimOut);
-  void    EvalDistortionMap(int roc, const double xyzSector[3], float res[3]);
+  void    EvalDistortionMap(int roc, const double xyzSector[3], float *res, Bool_t ref=kFALSE);
   const   Float_t* GetLastMapCorrection() const {return fLastCorr;}
   const   Float_t* GetLastMapCorrectionRef() const {return fLastCorrRef;}
   Float_t GetCurrentMapScaling()             const {return fCurrentMapScaling;}
+  Float_t GetCurrentMapFluctStrenght()       const {return fCurrentMapFluctStrenght;}
+  void    SetCurrentMapFluctStrenght(float s=0.f)  {fCurrentMapFluctStrenght = s;}
+  void    SetCorrectionMapMode(Bool_t v=kTRUE);
+  Bool_t  GetCorrectionMapMode()             const {return fCorrMapMode;}
   //
   static void RotateToSectorUp(float *x, int& idROC);
   static void RotateToSectorDown(float *x, int& idROC);
@@ -74,6 +88,12 @@ public:
 
   //
 private:
+  enum {  // time tolerances for various cache updates
+    kMaxTDiffVDCorrVaria=3, // +-time update for minor vdrift corrections 
+    kMaxTDiffVDCorrPT=60,   // +-time update for vdrift PT correction
+    kMaxTDiffCorrMap=3      // +-time update for SP corrections
+  };
+
   AliTPCTransform& operator=(const AliTPCTransform&); // not implemented
   Float_t  fLastCorr[4]; ///!<! last correction from the map, 4th param is dispersion
   Float_t  fLastCorrRef[4];  ///!<! last reference correction from the map, 4th param is dispersion
@@ -85,19 +105,35 @@ private:
   AliTPCChebCorr* fCorrMapCache0;      //!<! current correction map0 (for 1st time bin if time-dependent)
   AliTPCChebCorr* fCorrMapCache1;      //!<! current correction map1 (for 2nd time bin if time-dependent)
   Float_t  fCurrentMapScaling;               //!<! scaling factor for current correction map
+  Float_t  fCurrentMapFluctStrenght;   //!<! fluctuation strenght for current event
   Float_t  fCorrMapLumiCOG;                  //!<! COG of lumi for current time bin  
   TGraph*  fLumiGraphRun;                    //!<! graph for current run luminosity, owned by the class
   TGraph*  fLumiGraphMap;                    //!<! graph for current map luminosity (may be different from current run), owned by the class
   Int_t    fCurrentRun;                //!<! current run
   time_t   fCurrentTimeStamp;          //!<! current time stamp
   Bool_t   fTimeDependentUpdated;      //!<! flag successful update of time dependent stuff
+  Bool_t   fCorrMapMode;               //!<! correction or distortion map mode
+  //
+  // vdrift corrections cache
+  Double_t fVDCorrectionTime;   //!<! global time-dependent VD correction 
+  Double_t fVDCorrectionTimeGY; //!<! VD correction due to pressure gradient  
+  Double_t fTime0CorrTime;      //!<! time0 offset correction (in cm)
+  Double_t fDeltaZCorrTime;     //!<! global Z correction
+  Double_t fDriftCorrPT;        //!<! correction for relative P/T change
+  Double_t fTBinOffset;         //!<! offset of time bin (e.g. tbin for 0 drift)
+  //
+  // last cache update times
+  time_t fLastTimeStampCorrMap; //!<! for corr.map. update
+  time_t fLastTimeStampVDCorrPT; //!<! for VDrift PT update
+  time_t fLastTimeStampVDCorrVaria; //!<! for orhter VDrift corrections
+  //
   /// \cond CLASSIMP
   static const Double_t fgkSin20;       // sin(20)
   static const Double_t fgkCos20;       // sin(20)
   static const Double_t fgkMaxY2X;      // tg(10)
   TTreeSRedirector *fDebugStreamer;     //!debug streamer
   //
-  ClassDef(AliTPCTransform,4)
+  ClassDef(AliTPCTransform,5)
   /// \endcond
 };
 

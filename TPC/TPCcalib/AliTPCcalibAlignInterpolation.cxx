@@ -463,6 +463,8 @@ void  AliTPCcalibAlignInterpolation::Process(AliESDEvent *esdEvent){
   Bool_t backupAccountDistortions = transform->GetCurrentRecoParamNonConst()->GetAccountDistortions();
   transform->GetCurrentRecoParamNonConst()->SetAccountDistortions(kFALSE);
 
+  transform->SetCurrentTimeStamp(esdEvent->GetTimeStamp()); // to be independent from the time set by other tasks
+
   for (Int_t iTrack=0;iTrack<nTracks;iTrack++){ // Track loop
     // 0.) For each track in each event, get the AliESDfriendTrack
     AliESDtrack *esdTrack = esdEvent->GetTrack(iTrack);
@@ -3224,7 +3226,7 @@ Float_t  AliTPCcalibAlignInterpolation::CalculateDistance(const TVectorF &track0
   //    - |vecDelta|<0.5 cm  kMaxDeltaClusterCut=0.5; 
   //
   // Parameters of algorithm for the moment set as a constant 
-  const Int_t   kMinFractionPoints=0.5;
+  const Float_t   kMinFractionPoints=0.5;
   const Float_t kMaxDist=20;
   const Float_t kMaxDistTrack=5;
   Float_t maxRMSTrack=rmsTrack;

@@ -20,6 +20,7 @@
 #pragma link C++ class AliNDLocalRegression+;
 
 #pragma link C++ class AliExternalInfo+;
+#pragma link C++ class AliTreePlayer+;
 #pragma link C++ namespace AliFFTsmoother+;
 
 #pragma link C++ namespace TStatToolkit;
@@ -33,8 +34,10 @@
 #pragma link C++ function TStatToolkit::Reorder(int , int *, const int *);
 #pragma link C++ function TStatToolkit::Reorder(int , short *, const int *);
 #pragma link C++ function TStatToolkit::Reorder(int , char *, const int *);
-
-
+#pragma link C++ class std::map<std::string,TTree*>+;
+#pragma link C++ class std::map<std::string,TTree*>+;
+#pragma link C++ class std::map<TString, TString>+;
+#pragma link C++ class std::map<std::string,TObject*>+;
 /*
 // RS At the moment is not recognized by the CINT...
 

@@ -97,8 +97,9 @@ public:
   //
   Double_t GetMass(Bool_t tpcOnly=kFALSE) const {return AliPID::ParticleMass(GetPID(tpcOnly));}
   Double_t GetMassForTracking() const;
-  void     SetPIDForTracking(Int_t pid) {fPIDForTracking = pid;}
+  void     SetPIDForTracking(Int_t pid) {fPIDForTracking = pid; if (!IsOn(kTPCout)) fPIDForTrackingIn=pid;}
   Int_t    GetPIDForTracking() const    {return fPIDForTracking;}
+  Int_t    GetPIDForTracking0() const   {return fPIDForTrackingIn;}
   Double_t M() const;
   Double_t E() const;
   Double_t Y() const;
@@ -117,6 +118,7 @@ public:
   Bool_t GetConstrainedExternalCovariance(Double_t cov[15]) const;
   Double_t GetConstrainedChi2() const {return fCchi2;}
   Double_t GetChi2TPCConstrainedVsGlobal(const AliESDVertex* vtx) const;
+  Double_t GetCachedChi2TPCConstrainedVsGlobalVal() const {return fCacheChi2TPCConstrainedVsGlobal;}
   //
   
   // global track chi2
@@ -279,7 +281,7 @@ public:
   void    SetTRDsignal(Double_t sig) {fTRDsignal = sig;}
   void    SetTRDNchamberdEdx(UChar_t nch) {fTRDNchamberdEdx = nch;}
   void    SetTRDNclusterdEdx(UChar_t ncls){fTRDNclusterdEdx = ncls;}
-	  
+
 // A.Bercuci
   void    SetTRDntracklets(UChar_t q){fTRDntracklets = q;}
   UChar_t GetTRDntracklets() const {return (fTRDntracklets>>3)&7;}
@@ -657,6 +659,7 @@ protected:
   Char_t  fTRDTimBin[kTRDnPlanes];   // Time bin of Max cluster from all six planes
   Char_t  fVertexID; // ID of the primary vertex this track belongs to
   Char_t  fPIDForTracking;           // mass used for tracking
+  Char_t  fPIDForTrackingIn;         // mass used for tracking set during TPCin 
 
   mutable const AliESDEvent*   fESDEvent; //!Pointer back to event to which the track belongs
   
@@ -681,7 +684,7 @@ protected:
   static bool fgkOnlineMode; //! indicate the online mode to skip some of the functionality
 
   AliESDtrack & operator=(const AliESDtrack & );
-  ClassDef(AliESDtrack,72)  //ESDtrack 
+  ClassDef(AliESDtrack,73)  //ESDtrack 
 };
 
 

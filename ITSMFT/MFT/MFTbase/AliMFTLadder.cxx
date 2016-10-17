@@ -111,7 +111,8 @@ void AliMFTLadder::CreateSensors() {
   TGeoMedium *medSensorSi  = gGeoManager->GetMedium("MFT_Si$");
   TGeoMedium *medReadoutSi = gGeoManager->GetMedium("MFT_Readout$");
   TGeoMedium *medAir  = gGeoManager->GetMedium("MFT_Air$");
-  TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_Epoxy$");  // we assume epoxy glue, the silicone glue has to be defined
+  //TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_Epoxy$"); 
+  TGeoMedium *kMedGlue = gGeoManager->GetMedium("MFT_SE4445$"); 
 
   
   AliMFTGeometry * mftGeom = AliMFTGeometry::Instance();

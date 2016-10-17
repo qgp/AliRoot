@@ -49,6 +49,8 @@ fRecoPassTuned(0),
 fUseTPCEtaCorrection(kTRUE),
 fUseTPCMultiplicityCorrection(kTRUE),
 fUseTRDEtaCorrection(kTRUE),
+fUseTRDClusterCorrection(kTRUE),
+fUseTRDCentralityCorrection(kTRUE),
 fUserDataRecoPass(-1)
 {
   //
@@ -73,6 +75,8 @@ fRecoPassTuned(0),
 fUseTPCEtaCorrection(kTRUE),
 fUseTPCMultiplicityCorrection(kTRUE),
 fUseTRDEtaCorrection(kTRUE),
+fUseTRDClusterCorrection(kTRUE),
+fUseTRDCentralityCorrection(kTRUE),
 fUserDataRecoPass(-1)
 {
   //
@@ -161,6 +165,8 @@ void AliAnalysisTaskPIDResponse::UserExec(Option_t */*option*/)
     fPIDResponse->SetUseTPCMultiplicityCorrection(fUseTPCMultiplicityCorrection);
 
     fPIDResponse->SetUseTRDEtaCorrection(fUseTRDEtaCorrection);
+    fPIDResponse->SetUseTRDClusterCorrection(fUseTRDClusterCorrection);
+    fPIDResponse->SetUseTRDCentralityCorrection(fUseTRDCentralityCorrection);
   }
 
   fPIDResponse->InitialiseEvent(event,fRecoPass);

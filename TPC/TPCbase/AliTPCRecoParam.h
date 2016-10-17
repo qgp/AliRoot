@@ -9,6 +9,7 @@
 
 #include "AliDetectorRecoParam.h"
 #include "TVectorF.h"
+#include "TVectorD.h"
 
 class AliTPCRecoParam : public AliDetectorRecoParam
 {
@@ -51,6 +52,21 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   void     SetAccountDistortions(Int_t v)              {fAccountDistortions = v;}
   Bool_t   GetUseCorrectionMap()                 const {return fUseCorrectionMap;}
   void     SetUseCorrectionMap(Bool_t v=kTRUE)         {fUseCorrectionMap = v;}
+
+  // accounting for systematic error on track cov.matrix level
+  Float_t GetSystCovAmplitude()           const {return fSystCovAmplitude;}
+  Float_t GetDistFluctCorrelation()       const {return fDistFluctCorrelation;}
+  void    SetSystCovAmplitude(float v)          {fSystCovAmplitude = v;}
+  void    SetDistFluctCorrelation(float v)      {fDistFluctCorrelation = v;}
+  //
+  // for simulation of distortions fluctuations 
+  Float_t GetDistortionFluctMCAmp()           const {return fDistortionFluctMCAmp;}
+  void    SetDistortionFluctMCAmp(float v=1.)   {fDistortionFluctMCAmp = v;}
+  Float_t GetMinDistFluctMCRef()              const {return fMinDistFluctMCRef;}
+  void    SetMinDistFluctMCRef(Float_t v=0)  {fMinDistFluctMCRef = v;}
+  Float_t GetDistFluctUncorrFracMC()          const {return fDistFluctUncorrFracMC;}
+  void    SetDistFluctUncorrFracMC(Float_t v=0)  {fDistFluctUncorrFracMC = v;}
+
   //
   // Outlier filtering configuration
   //
@@ -168,6 +184,14 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   void     SetUseDistortionFractionAsErrorZ(double v) {fDistortionFractionAsErrorYZ[1] = v;}
   void     SetUseDistDispFractionAsErrorY(double v) {fDistDispFractionAsErrorYZ[0] = v;}
   void     SetUseDistDispFractionAsErrorZ(double v) {fDistDispFractionAsErrorYZ[1] = v;}
+
+  void     SetBadPadMaxDistXYZD(double x,double y,double z, double d)  {
+    fBadPadMaxDistXYZD[0]=x;fBadPadMaxDistXYZD[1]=y;fBadPadMaxDistXYZD[2]=z;fBadPadMaxDistXYZD[3]=d;}
+  void     SetBadClusMaxErrYZ(double y,double z)             {fBadClusMaxErrYZ[0]=y;fBadClusMaxErrYZ[1]=z;}
+
+  const Double_t* GetBadPadMaxDistXYZD() const {return fBadPadMaxDistXYZD;}
+  const Double_t* GetBadClusMaxErrYZ()   const {return fBadClusMaxErrYZ;}
+
   const Double_t * GetSystematicError() const { return fSystematicErrors;}
   const Double_t * GetSystematicErrorClusterInner() const { return fSystematicErrorClusterInner;}
   const Double_t * GetSystematicErrorCluster() const { return fSystematicErrorCluster;}
@@ -185,6 +209,12 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   static   AliTPCRecoParam *GetHLTParam(); // special setting for HLT
   static   AliTPCRecoParam *GetLaserTestParam(Bool_t bPedestal);  // special setting for laser
   static   AliTPCRecoParam *GetCosmicTestParam(Bool_t bPedestal); // special setting for cosmic
+  //
+  static  const Double_t * GetSystematicErrorClusterCustom() { return (fgSystErrClustCustom) ? fgSystErrClustCustom->GetMatrixArray():0;}
+  static  const Double_t * GetPrimaryDCACut()                { return (fgPrimaryDCACut)? fgPrimaryDCACut->GetMatrixArray():0; }
+  static  void  SetSystematicErrorClusterCustom( TVectorD *vec ) { fgSystErrClustCustom=vec;}
+  static  void SetPrimaryDCACut( TVectorD *dcacut )              { fgPrimaryDCACut=dcacut;}
+
   //
  protected:
 
@@ -266,6 +296,11 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Bool_t fUseCorrectionMap;  ///< flag to use parameterized correction map (AliTPCChebCorr)
   Int_t  fCorrMapTimeDepMethod; ///< method used for correction time dependence
   Int_t  fUseLumiType;          ///< luminosity graph to be used for different lumi scalings
+  Float_t fSystCovAmplitude;    ///< apply syst correction to cov.matrix with this amplitude
+  Float_t  fDistFluctCorrelation; ///< assumed correlation between fluctuating points
+  Float_t fDistortionFluctMCAmp; ///< mult. amplitude for distortions fluctuation sigma 
+  Float_t fMinDistFluctMCRef;    ///< min.fluctuation sigma at reference 850kHz pp@13TeV (==7.5kHz PbPb@5.02TeV), for MC
+  Float_t fDistFluctUncorrFracMC; ///< uncorrelated fraction of distortions fluctuations to impose in MC
   //  misscalibration
   //
   TVectorF* fSystErrClInnerRegZ;        //< center of region in Z to apply extra systematic error
@@ -276,8 +311,12 @@ class AliTPCRecoParam : public AliDetectorRecoParam
   Double_t fSystematicErrorCluster[2];        ///< systematic error of the cluster - used e.g in OpenGG run to provide better cluster to track association efficiency
   Double_t fDistortionFractionAsErrorYZ[2];   ///< use fraction of distortion as additional error
   Double_t fDistDispFractionAsErrorYZ[2];   ///< use fraction of distortion dispersion as additional error
+  Double_t fBadPadMaxDistXYZD[4];            ///< pad considered bad if abs distortion / dispersion exceeds this value
+  Double_t fBadClusMaxErrYZ[2];              ///< pad considered bad if syst.error on cluster exceeds this value
   Bool_t fUseSystematicCorrelation;         ///< switch to use the correlation for the sys
 
+  static TVectorD* fgSystErrClustCustom;  //< custom systematic errors for the TPC clusters overriding persistent data member
+  static TVectorD* fgPrimaryDCACut;       //< only primaries passing DCAYZ cut are reconstructed
 
 public:
   static Bool_t fgUseTimeCalibration; ///< flag usage the time dependent calibration
@@ -285,7 +324,7 @@ public:
                                       // Use static function, other option will be to use
                                       // additional specific storage ?
   /// \cond CLASSIMP
-  ClassDef(AliTPCRecoParam, 28)
+  ClassDef(AliTPCRecoParam, 32)
   /// \endcond
 };
 

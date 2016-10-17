@@ -1,4 +1,4 @@
-// $Id$
+// $Id
 //****************************************************************************
 //* This file is property of and copyright by the ALICE HLT Project          * 
 //* ALICE Experiment at CERN, All rights reserved.                           *
@@ -54,11 +54,13 @@ AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent()
   AliHLTProcessor(),
   fDoDeconvTime(0),
   fDoDeconvPad(0),
+  fImprovedDeconvolution(0),
   fDoMC(0),
   fDoFlowControl(0),
   fDoSinglePadSuppression(0),
   fBypassMerger(0),
   fClusterLowerLimit(0),
+  fClusterQMaxLowerLimit(0),
   fSingleSeqLimit(0),
   fMergerDistance(0),
   fUseTimeBinWindow(0),
@@ -66,7 +68,13 @@ AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent()
   fChargeFluctuation(0),
   fTagDeconvolutedClusters(0),
   fProcessingRCU2Data(0),
+  fUseGain(1),
   fNoiseSuppression(0),
+  fNoiseSuppressionMinimum(0),
+  fNoiseSuppressionNeighbor(0),
+  fSmoothing(0),
+  fSmoothingThreshold(0),
+  fIORatioCorrection(1.),
   fDebug(0),
   fCFSupport(),
   fCFEmulator(),
@@ -85,11 +93,13 @@ AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent(const AliHLTTPCHW
   AliHLTProcessor(),
   fDoDeconvTime(0),
   fDoDeconvPad(0),
+  fImprovedDeconvolution(0),
   fDoMC(0),
   fDoFlowControl(0),
   fDoSinglePadSuppression(0),
   fBypassMerger(0),
   fClusterLowerLimit(0),
+  fClusterQMaxLowerLimit(0),
   fSingleSeqLimit(0),
   fMergerDistance(0),
   fUseTimeBinWindow(0),
@@ -97,6 +107,13 @@ AliHLTTPCHWCFEmulatorComponent::AliHLTTPCHWCFEmulatorComponent(const AliHLTTPCHW
   fChargeFluctuation(0),
   fTagDeconvolutedClusters(0),
   fProcessingRCU2Data(0),
+  fUseGain(1),
+  fNoiseSuppression(0),
+  fNoiseSuppressionMinimum(0),
+  fNoiseSuppressionNeighbor(0),
+  fSmoothing(0),
+  fSmoothingThreshold(0),
+  fIORatioCorrection(1.),
   fDebug(0),
   fCFSupport(),
   fCFEmulator(),
@@ -156,9 +173,8 @@ int AliHLTTPCHWCFEmulatorComponent::GetOutputDataTypes(AliHLTComponentDataTypeLi
 void AliHLTTPCHWCFEmulatorComponent::GetOutputDataSize( unsigned long& constBase, double& inputMultiplier )
 {
   // see header file for class documentation
-  // XXX TODO: Find more realistic values.  
-  constBase = 0;
-  inputMultiplier = (6 * 0.7);
+  constBase = 1024*1024; // 1 MB
+  inputMultiplier = (fDoMC? 0.2 :1.0)*1.5*fIORatioCorrection; // realistic IORatio for MC/Data * 50% margin * extra margin
 }
 
 
@@ -223,6 +239,7 @@ void AliHLTTPCHWCFEmulatorComponent::SetDefaultConfiguration()
   fDoSinglePadSuppression = 0;
   fBypassMerger = 0;
   fClusterLowerLimit = 10;
+  fClusterQMaxLowerLimit = 0;
   fSingleSeqLimit = 0;
   fMergerDistance = 4;
   fUseTimeBinWindow = 1;
@@ -230,6 +247,7 @@ void AliHLTTPCHWCFEmulatorComponent::SetDefaultConfiguration()
   fChargeFluctuation = 0;
   fTagDeconvolutedClusters = 0;
   fProcessingRCU2Data = 0;
+  fIORatioCorrection = 1.;
   fDebug = 0;
   fBenchmark.Reset();
   fBenchmark.SetTimer(0,"total");
@@ -268,6 +286,13 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fDoDeconvPad  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
       HLTInfo( "Pad deconvolution is set to: %d", fDoDeconvPad );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-improved-deconvolution" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fImprovedDeconvolution  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Improved deconvolution is set to: %d", fImprovedDeconvolution );
       continue;
     }
 
@@ -315,6 +340,13 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
       continue;
     }
 
+    if ( argument.CompareTo( "-cluster-qmax-lower-limit" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fClusterQMaxLowerLimit  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Cluster qmax lower limit is set to: %d", fClusterQMaxLowerLimit );
+      continue;
+    }
+
     if ( argument.CompareTo( "-single-sequence-limit" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fSingleSeqLimit  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
@@ -351,6 +383,34 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
       continue;
     }
 
+    if ( argument.CompareTo( "-noise-suppression-for-minima" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fNoiseSuppressionMinimum  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Noise Suppression for minimum finder is set to: %d", fNoiseSuppressionMinimum );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-noise-suppression-neighbor" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fNoiseSuppressionNeighbor  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Noise Suppression neighbor parameter is set to: %d", fNoiseSuppressionNeighbor );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-smoothing" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fSmoothing  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Smoothing parameter is set to: %d", fSmoothing );
+      continue;
+    }
+
+    if ( argument.CompareTo( "-smoothing-threshold" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fSmoothingThreshold  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Smoothing Threshold parameter is set to: %d", fSmoothingThreshold );
+      continue;
+    }
+
     if ( argument.CompareTo( "-use-time-follow" ) == 0 ) {
       if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
       fUseTimeFollow  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
@@ -379,6 +439,13 @@ int AliHLTTPCHWCFEmulatorComponent::ReadConfigurationString(  const char* argume
       continue;
     }
    
+    if ( argument.CompareTo( "-use-gain" ) == 0 ) {
+      if ( ( bMissingParam = ( ++i >= pTokens->GetEntries() ) ) ) break;
+      fUseGain  = ( ( TObjString* )pTokens->At( i ) )->GetString().Atoi();
+      HLTInfo( "Gain Correction flag is set to: %d", fUseGain );
+      continue;
+    }
+
     HLTError( "Unknown option \"%s\"", argument.Data() );
     iResult = -EINVAL;
   }
@@ -458,6 +525,7 @@ int AliHLTTPCHWCFEmulatorComponent::Configure( const char* cdbEntry, const char*
 
   fCFSupport.UnloadMapping();
   fCFSupport.SetProcessingRCU2Data( fProcessingRCU2Data );
+  fCFSupport.SetUseGain( fUseGain );
 
   return iResult1 ? iResult1 : ( iResult2 ? iResult2 : iResult3 );
 }
@@ -575,6 +643,12 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
       fCFEmulator.SetTagDeconvolutedClusters( fTagDeconvolutedClusters );
       fCFEmulator.SetProcessingRCU2Data( fProcessingRCU2Data );
       fCFEmulator.SetNoiseSuppression( fNoiseSuppression );
+      fCFEmulator.SetNoiseSuppressionMinimum( fNoiseSuppressionMinimum );
+      fCFEmulator.SetNoiseSuppressionNeighbor( fNoiseSuppressionNeighbor );
+      fCFEmulator.SetSmoothing( fSmoothing );
+      fCFEmulator.SetSmoothingThreshold( fSmoothingThreshold );
+      fCFEmulator.SetClusterQMaxLowerLimit( fClusterQMaxLowerLimit );
+      fCFEmulator.SetImprovedDeconvolution( fImprovedDeconvolution );
 
       int err = fCFEmulator.FindClusters( rawEvent, rawEventSize32, 
 					  outClusters, clustersSize32, 
@@ -663,6 +737,11 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
   if( outBlock ) delete[] outBlock;
   if( allocOutMC ) delete[] allocOutMC;      
   
+  if( iResult==-ENOSPC ){    
+    fIORatioCorrection = 2.;
+    HLTInfo("Estimation of Output/Input ratio increased by factor 2");
+  }
+
   if( iResult>=0 ){
     //
     // forward unpacked clusters if they are present
@@ -680,7 +759,7 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
   }
 
   fBenchmark.Stop(0);  
-  HLTInfo(fBenchmark.GetStatistics());
+  if(iResult>=0 ) HLTInfo(fBenchmark.GetStatistics());
   fCFSupport.ReleaseEventMemory();
   return iResult;
 }

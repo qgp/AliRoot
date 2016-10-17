@@ -1,5 +1,5 @@
 /**************************************************************************
- * Copyright(c) 2009-2015, ALICE Experiment at CERN, All rights reserved. *
+ * Copyright(c) 2009-2016, ALICE Experiment at CERN, All rights reserved. *
  *                                                                        *
  * Author: The ALICE Off-line Project.                                    *
  * Contributors are mentioned in the code where appropriate.              *
@@ -23,17 +23,22 @@
 //
 // Sample code for PYTHIA:
 //
-//    AliGenLightNuclei* gener = new AliGenLightNuclei();
+//    AliGenCocktail* gener = new AliGenCocktail();
 //
 //    AliGenPythia* pythia = new AliGenPythia(-1);
 //    pythia->SetCollisionSystem("p+", "p+");
 //    pythia->SetEnergyCMS(7000);
 //
-//    gener->UsePerEventRates();
+//    AliGenLightNuclei* aft = new AliGenLightNuclei();
+//    aft->SetNucleusPdgCode(AliGenLightNuclei::kDeuteron); // default
+//    aft->SetCoalescenceMomentum(0.100); // default (GeV/c)
+//    
 //    gener->AddGenerator(pythia, "PYTHIA", 1);
-//    gener->SetNucleusPdgCode(AliGenLightNuclei::kDeuteron); // default
-//    gener->SetCoalescenceMomentum(0.100); // default (GeV/c)
-//    gener->SetSpinProbability(0.75); // default: 1
+//    gener->AddGenerator(aft, "deuteron", 1);
+//
+// Notice that the order in which the afterburner is added is
+// important and more than one afterburner can be added
+// to generate different nucleus species.
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -58,10 +63,9 @@
 ClassImp(AliGenLightNuclei)
 
 AliGenLightNuclei::AliGenLightNuclei()
-:AliGenCocktail()
+:AliGenerator()
 ,fPdg(kDeuteron)
 ,fP0(0.100)
-,fSpinProb(1)
 {
 //
 // default constructor
@@ -78,12 +82,17 @@ AliGenLightNuclei::~AliGenLightNuclei()
 void AliGenLightNuclei::Generate()
 {
 //
-// delegate the particle generation to the cocktail
-// and modify the stack adding the light nuclei
+// modify current stack adding light nuclei
 //
-	AliGenCocktail::Generate();
+	if(fStack == 0)
+	{
+		  AliRunLoader* rl = AliRunLoader::Instance();
+		  if(rl != 0)  fStack = rl->Stack();
+	}
 	
-	// find the nucleons and anti-nucleons
+	if(fStack == 0) AliFatal("no stack");
+	
+	// find nucleons and anti-nucleons
 	TList* protons      = new TList();
 	TList* neutrons     = new TList();
 	TList* lambdas      = new TList();
@@ -135,6 +144,16 @@ void AliGenLightNuclei::Generate()
 		this->GenerateNuclei(kDeuteron, 1.87561282, protons, neutrons);
 		this->GenerateNuclei(-kDeuteron, 1.87561282, antiprotons, antineutrons);
 	}
+	else if(TMath::Abs(fPdg) == kLambdaN)
+	{
+		this->GenerateNuclei(kLambdaN, 2.054, lambdas, neutrons);
+		this->GenerateNuclei(-kLambdaN, 2.054, antilambdas, antineutrons);
+	}
+	else if(TMath::Abs(fPdg) == kHDibarion)
+	{
+		this->GenerateNuclei(kHDibarion, 2.231, lambdas, lambdas);
+		this->GenerateNuclei(-kHDibarion, 2.231, antilambdas, antilambdas);
+	}
 	else if(TMath::Abs(fPdg) == kTriton)
 	{
 		this->GenerateNuclei(kTriton, 2.80925, protons, neutrons, neutrons);
@@ -144,6 +163,21 @@ void AliGenLightNuclei::Generate()
 	{
 		this->GenerateNuclei(kHyperTriton, 2.99131, protons, neutrons, lambdas);
 		this->GenerateNuclei(-kHyperTriton, 2.99131, antiprotons, antineutrons, antilambdas);
+	}
+	else if(TMath::Abs(fPdg) == kLambdaNN )
+	{
+		this->GenerateNuclei(kLambdaNN, 2.982, lambdas, neutrons, neutrons);
+		this->GenerateNuclei(-kLambdaNN, 2.982, antilambdas, antineutrons, antineutrons);
+	}
+	else if(TMath::Abs(fPdg) == kLambdaLN )
+	{
+		this->GenerateNuclei(kLambdaLN, 3.171, lambdas, lambdas, neutrons);
+		this->GenerateNuclei(-kLambdaLN, 3.171, antilambdas, antilambdas, antineutrons);
+	}
+	else if(TMath::Abs(fPdg) == kLambdaLP )
+	{
+		this->GenerateNuclei(kLambdaLP, 3.17, lambdas, lambdas, protons);
+		this->GenerateNuclei(-kLambdaLP, 3.17, antilambdas, antilambdas, antiprotons);
 	}
 	else if(TMath::Abs(fPdg) == kHe3Nucleus)
 	{
@@ -189,7 +223,7 @@ Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVe
 	p1cm.Boost(b);
 	p2cm.Boost(b);
 	
-	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (Rndm() <= fSpinProb);
+	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0);
 }
 
 Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVector& p2, const TLorentzVector& p3) const
@@ -208,7 +242,7 @@ Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVe
 	p2cm.Boost(b);
 	p3cm.Boost(b);
 	
-	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (p3cm.Vect().Mag() < fP0) && (Rndm() <= fSpinProb);
+	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (p3cm.Vect().Mag() < fP0);
 }
 
 Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVector& p2, const TLorentzVector& p3, const TLorentzVector& p4) const
@@ -229,7 +263,7 @@ Bool_t AliGenLightNuclei::Coalescence(const TLorentzVector& p1, const TLorentzVe
 	p3cm.Boost(b);
 	p4cm.Boost(b);
 	
-	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (p3cm.Vect().Mag() < fP0) && (p4cm.Vect().Mag() < fP0) && (Rndm() <= fSpinProb);
+	return (p1cm.Vect().Mag() < fP0) && (p2cm.Vect().Mag() < fP0) && (p3cm.Vect().Mag() < fP0) && (p4cm.Vect().Mag() < fP0);
 }
 
 Int_t AliGenLightNuclei::GenerateNuclei(Int_t pdg, Double_t mass, const TList* l1, const TList* l2)

@@ -45,6 +45,8 @@
 ClassImp(AliTPCRecoParam)
 /// \endcond
 
+TVectorD* AliTPCRecoParam::fgSystErrClustCustom = 0;  // normally will be set as AliTPCReconstructor::SetSystematicErrorCluster alias
+TVectorD* AliTPCRecoParam::fgPrimaryDCACut = 0;       // normally will be set as AliTPCReconstructor::SetPrimaryDCACut alias
 
 Bool_t AliTPCRecoParam::fgUseTimeCalibration=kTRUE; // flag usage the time dependent calibration
                                       // to be switched off for pass 0 reconstruction
@@ -114,6 +116,11 @@ AliTPCRecoParam::AliTPCRecoParam():
   fUseCorrectionMap(kFALSE),
   fCorrMapTimeDepMethod(kCorrMapInterpolation),
   fUseLumiType(AliLumiTools::kLumiCTP),
+  fSystCovAmplitude(2.0),
+  fDistFluctCorrelation(0.99),
+  fDistortionFluctMCAmp(1.0),
+  fMinDistFluctMCRef(0.0),
+  fDistFluctUncorrFracMC(0.0),
   fSystErrClInnerRegZ(0),
   fSystErrClInnerRegZSigInv(0),
   fUseSystematicCorrelation(kTRUE)
@@ -130,11 +137,11 @@ AliTPCRecoParam::AliTPCRecoParam():
   fSystematicErrorCluster[0]=0;   // sy cluster error
   fSystematicErrorCluster[1]=0;   // sz cluster error
   //
-  fDistortionFractionAsErrorYZ[0] = 0.1; // fraction of used distortion correction is used as an error
-  fDistortionFractionAsErrorYZ[1] = 0.1; // fraction of used distortion correction is used as an error
+  fDistortionFractionAsErrorYZ[0] = -1.; // fraction of used distortion correction is used as an error (if positive)
+  fDistortionFractionAsErrorYZ[1] = -1.; // fraction of used distortion correction is used as an error (if positive)
 
-  fDistDispFractionAsErrorYZ[0] = 1.0; // fraction of used distortion correction is used as an error
-  fDistDispFractionAsErrorYZ[1] = 1.0; // fraction of used distortion correction is used as an error
+  fDistDispFractionAsErrorYZ[0] = -1; // fraction of used distortion correction is used as an error (if positive)
+  fDistDispFractionAsErrorYZ[1] = -1; // fraction of used distortion correction is used as an error (if positive)
   //
   fCutSharedClusters[0]=0.5; // maximal allowed fraction of shared clusters - shorter track
   fCutSharedClusters[1]=0.25; // maximal allowed fraction of shared clusters - longer  track
@@ -144,6 +151,9 @@ AliTPCRecoParam::AliTPCRecoParam():
                              // ~ about 5 % rate  for high pt kink finder
   fKinkAngleCutChi2[1]=12;    // angular cut for kink finder - to use the partial track                             // form kink
                              // ~ about 2 % rate  for high pt kink finder
+  //
+  SetBadPadMaxDistXYZD(999.,999.,999.,999.); // by default accept any distortions
+  SetBadClusMaxErrYZ(999.,999.);        // by default accept any errors
 }
 
 //_____________________________________________________________________________

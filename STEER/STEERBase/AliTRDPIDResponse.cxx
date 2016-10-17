@@ -59,6 +59,9 @@ AliTRDPIDResponse::AliTRDPIDResponse():
   ,fkTRDdEdxParams(NULL)
   ,fGainNormalisationFactor(1.)
   ,fCorrectEta(kFALSE)
+  ,fCorrectCluster(kFALSE)
+  ,fCorrectCentrality(kFALSE)
+  ,fCurrCentrality(-1.)
   ,fMagField(0.)
 {
   //
@@ -73,6 +76,9 @@ AliTRDPIDResponse::AliTRDPIDResponse(const AliTRDPIDResponse &ref):
   ,fkTRDdEdxParams(NULL)
   ,fGainNormalisationFactor(ref.fGainNormalisationFactor)
   ,fCorrectEta(kFALSE)
+  ,fCorrectCluster(kFALSE)
+  ,fCorrectCentrality(kFALSE)
+  ,fCurrCentrality(-1.)
   ,fMagField(0.)
 {
   //
@@ -93,6 +99,9 @@ AliTRDPIDResponse &AliTRDPIDResponse::operator=(const AliTRDPIDResponse &ref){
   fkPIDResponseObject = ref.fkPIDResponseObject;
   fkTRDdEdxParams = ref.fkTRDdEdxParams;
   fCorrectEta = ref.fCorrectEta;
+  fCorrectCluster = ref.fCorrectCluster;
+  fCorrectCentrality = ref.fCorrectCentrality;
+  fCurrCentrality = ref.fCurrCentrality;
   fMagField   = ref.fMagField;
 
   return *this;
@@ -107,6 +116,8 @@ AliTRDPIDResponse::~AliTRDPIDResponse(){
     delete fkPIDResponseObject;
     delete fkTRDdEdxParams;
     delete fhEtaCorr[0];
+    for (Int_t i=0;i<3;i++) delete fhClusterCorr[i];
+    delete fhCentralityCorr[0];
   }
 }
 
@@ -157,6 +168,47 @@ Bool_t AliTRDPIDResponse::SetEtaCorrMap(Int_t i,TH2D* hMap)
     return kTRUE;
 }
 
+//_________________________________________________________________________
+Bool_t AliTRDPIDResponse::SetClusterCorrMap(Int_t i,TH2D* hMap)
+{
+  //
+  // Load map for TRD cluster correction (a copy is stored and will be deleted automatically).
+  // If hMap is 0x0,the cluster correction will be disabled and kFALSE is returned.
+  // If the map can be set, kTRUE is returned.
+  //
+  
+  
+    if (!hMap) {
+       fhClusterCorr[i] = 0x0;
+
+	return kFALSE;
+    }
+
+    fhClusterCorr[i] = (TH2D*)(hMap->Clone());
+
+    return kTRUE;
+}
+
+//_________________________________________________________________________
+Bool_t AliTRDPIDResponse::SetCentralityCorrMap(Int_t i,TH2D* hMap)
+{
+  //
+  // Load map for TRD centrality correction (a copy is stored and will be deleted automatically).
+  // If hMap is 0x0,the centrality correction will be disabled and kFALSE is returned.
+  // If the map can be set, kTRUE is returned.
+  //
+  
+    if (!hMap) {
+	fhCentralityCorr[0] = 0x0;
+
+	return kFALSE;
+    }
+
+    fhCentralityCorr[0] = (TH2D*)(hMap->Clone());
+
+    return kTRUE;
+}
+
 //____________________________________________________________
 Double_t AliTRDPIDResponse::GetEtaCorrection(const AliVTrack *track, Double_t bg) const
 {
@@ -173,48 +225,108 @@ Double_t AliTRDPIDResponse::GetEtaCorrection(const AliVTrack *track, Double_t bg
 
     Double_t fEtaCorFactor=1;
 
-
     Int_t nch = track->GetTRDNchamberdEdx();
+    Int_t iter=0;
     
-    const Int_t iter  = 0;
-    
-    if (iter < 0) {
+    if (nch < 4) {
         AliError(Form("Eta correction requested for track with  = %i, no map available. Returning default eta correction factor = 1!", nch));
         return 1.;
     }
     
-
-    // Get eta from propagation of outer params to TRD
-    const AliExternalTrackParam *tempparam = NULL;
-    Double_t etalayer=-99;
-    if(track->GetOuterParam()) tempparam = track->GetOuterParam();
-    else if(track->GetInnerParam()) tempparam = track->GetInnerParam();
-
-    if(tempparam) {
-	AliExternalTrackParam param(*tempparam);
-	param.PropagateTo(288.43,fMagField);   // hardwired number where TRD begins
-        etalayer= param.Eta();
-    } else return 1.;
+    Double_t tpctgl= 1.1;
+    tpctgl=track->GetTPCTgl();
 
 
 
-    if((TMath::Abs(etalayer)>0.9)||(bg<0.3)||(bg>1e4)){
+    if ((fhEtaCorr[iter]->GetBinContent(fhEtaCorr[iter]->FindBin(tpctgl,bg)) != 0)) {
+	fEtaCorFactor= fhEtaCorr[iter]->GetBinContent(fhEtaCorr[iter]->FindBin(tpctgl,bg));
+	return fEtaCorFactor;
+    }  else
+    {
 	return 1;
-    } else {
-	if ((fhEtaCorr[iter]->GetBinContent(fhEtaCorr[iter]->FindBin(etalayer,bg)) != 0)) {
-	    fEtaCorFactor= fhEtaCorr[iter]->GetBinContent(fhEtaCorr[iter]->FindBin(etalayer,bg));
-	    return fEtaCorFactor;
-	}  else
-	{
-	    return 1;
-	}
     }
+
+
 }
 
 
+//____________________________________________________________
+Double_t AliTRDPIDResponse::GetClusterCorrection(const AliVTrack *track, Double_t bg) const
+{
+    //
+    // eta correction
+    //
+  
+    Int_t nch = track->GetTRDNchamberdEdx();
+    
+    Double_t fClusterCorFactor=1;
+    
+    if (nch < 4) {
+        AliError(Form("Cluster correction requested for track with  = %i, no map available. Returning default cluster correction factor = 1!", nch));
+        return 1.;
+    }
+
+    Int_t offset =4;
+    const Int_t iter = nch-offset;
+    const Int_t ncls = track->GetTRDNclusterdEdx();
+
+    if (!fhClusterCorr[iter]) {
+	AliError(Form("Cluster correction requested, but map not initialised for iterator:%i (usually via AliPIDResponse). Returning cluster correction factor 1!",1));
+	return 1.;
+    }
+
+    if ((fhClusterCorr[iter]->GetBinContent(fhClusterCorr[iter]->FindBin(ncls,bg)) != 0)) {
+	fClusterCorFactor= fhClusterCorr[iter]->GetBinContent(fhClusterCorr[iter]->FindBin(ncls,bg));
+	return fClusterCorFactor;
+    }  else
+    {
+	return 1;
+    }
+
+}
 
 //____________________________________________________________
-Double_t AliTRDPIDResponse::GetNumberOfSigmas(const AliVTrack *track, AliPID::EParticleType type, Bool_t fCorrectEta) const
+Double_t AliTRDPIDResponse::GetCentralityCorrection(const AliVTrack *track, Double_t bg) const
+{
+    //
+    // centrality correction
+    //
+    
+
+    if (!fhCentralityCorr[0]) {
+//	AliInfo(Form("centrality correction requested, but map not initialised for iterator:%i (usually via AliPIDResponse). Returning centrality correction factor 1!",1));
+	return 1.;
+
+    }
+
+    Double_t fCentralityCorFactor=1;
+
+    Int_t nch = track->GetTRDNchamberdEdx();
+    Int_t iter=0;
+    
+    if (nch < 4) {
+//        Ali(Form("Centrality correction requested for track with  = %i, no map available. Returning default centrality correction factor = 1!", nch));
+        return 1.;
+    }
+    
+
+    if(fCurrCentrality<0) return 1.;
+
+
+    if ((fhCentralityCorr[iter]->GetBinContent(fhCentralityCorr[iter]->FindBin(fCurrCentrality,bg)) != 0)) {
+	fCentralityCorFactor= fhCentralityCorr[iter]->GetBinContent(fhCentralityCorr[iter]->FindBin(fCurrCentrality,bg));
+	return fCentralityCorFactor;
+    }  else
+    {
+	return 1;
+    }
+
+
+}
+
+
+//____________________________________________________________
+Double_t AliTRDPIDResponse::GetNumberOfSigmas(const AliVTrack *track, AliPID::EParticleType type, Bool_t fCorrectEta, Bool_t fCorrectCluster, Bool_t fCorrectCentrality) const
 {
   //
   //calculate the TRD nSigma
@@ -222,8 +334,7 @@ Double_t AliTRDPIDResponse::GetNumberOfSigmas(const AliVTrack *track, AliPID::EP
 
   const Double_t badval = -9999;
   Double_t info[5]; for(int i=0; i<5; i++){info[i]=badval;}
-
-  const Double_t delta = GetSignalDelta(track, type, kFALSE, fCorrectEta, info);
+  const Double_t delta = GetSignalDelta(track, type, kFALSE, fCorrectEta, fCorrectCluster, fCorrectCentrality, info);
 
   const Double_t mean = info[0];
   const Double_t res = info[1];
@@ -237,7 +348,7 @@ Double_t AliTRDPIDResponse::GetNumberOfSigmas(const AliVTrack *track, AliPID::EP
 }
 
 //____________________________________________________________
-Double_t AliTRDPIDResponse::GetSignalDelta( const AliVTrack* track, AliPID::EParticleType type, Bool_t ratio/*=kFALSE*/, Bool_t fCorrectEta, Double_t *info/*=0x0*/) const
+Double_t AliTRDPIDResponse::GetSignalDelta( const AliVTrack* track, AliPID::EParticleType type, Bool_t ratio/*=kFALSE*/, Bool_t fCorrectEta, Bool_t fCorrectCluster, Bool_t fCorrectCentrality, Double_t *info/*=0x0*/) const
 {
   //
   //calculate the TRD signal difference w.r.t. the expected
@@ -265,7 +376,7 @@ Double_t AliTRDPIDResponse::GetSignalDelta( const AliVTrack* track, AliPID::EPar
       pTRD/=pTRDNorm;
   }
   else return badval;
-
+  
   if(!fkTRDdEdxParams){
     AliDebug(3,"fkTRDdEdxParams null");
     return -99999;
@@ -312,14 +423,30 @@ Double_t AliTRDPIDResponse::GetSignalDelta( const AliVTrack* track, AliPID::EPar
       corrFactorEta = GetEtaCorrection(track,bg);
   }
 
-  AliDebug(3,Form("TRD trunc PID expected signal %f exp. resolution %f bg %f nch %f ncls %f etcoron/off %i nsigma %f ratio %f \n",expsig,ResolutiondEdxTR(&ncls, respar),bg,nch,ncls,fCorrectEta,(corrFactorEta*track->GetTRDsignal())/(expsig + eps),(corrFactorEta*track->GetTRDsignal()) - expsig));
+  // cluster correction
+  Double_t corrFactorCluster = 1.0;
+  if (fCorrectCluster) {
+      corrFactorCluster = GetClusterCorrection(track,bg);
+  }
+
+
+  // centrality correction
+  Double_t corrFactorCentrality = 1.0;
+  if (fCorrectCentrality) {
+      corrFactorCentrality = GetCentralityCorrection(track,bg);
+  }
+
+
+  AliDebug(3,Form("TRD trunc PID expected signal %f exp. resolution %f bg %f nch %f ncls %f etcoron/off %i clustercoron/off %i centralitycoron/off %i nsigma %f ratio %f \n",
+		  expsig,ResolutiondEdxTR(&ncls, respar),bg,nch,ncls,fCorrectEta,fCorrectCluster,fCorrectCentrality,(corrFactorEta*corrFactorCluster*corrFactorCentrality*track->GetTRDsignal())/(expsig + eps),
+		  (corrFactorEta*corrFactorCluster*corrFactorCentrality*track->GetTRDsignal()) - expsig));
 
 
   if(ratio){
-      return (corrFactorEta*track->GetTRDsignal())/(expsig + eps);
+      return (corrFactorEta*corrFactorCluster*corrFactorCentrality*track->GetTRDsignal())/(expsig + eps);
   }
   else{
-      return (corrFactorEta*track->GetTRDsignal()) - expsig;
+      return (corrFactorEta*corrFactorCluster*corrFactorCentrality*track->GetTRDsignal()) - expsig;
   }
 
  
