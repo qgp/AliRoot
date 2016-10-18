@@ -42,9 +42,9 @@ void preClusteringChain()
     new AliHLTConfiguration(pubName.Data(),"AliRawReaderPublisher",NULL,cmd.Data());
   }
 
-  AliHLTConfiguration digitLoader("digitLoader","MUONDigitLoader",sources.Data(),"-cdbpath local://$ALICE_ROOT/OCDB -run 0");
+  AliHLTConfiguration digitLoader("digitLoader","MUONDigitLoader",sources.Data(),"");
 
-  AliHLTConfiguration preClustering("preClustering","MUONPreclusterFinder","digitLoader","-cdbpath local://$ALICE_ROOT/OCDB -run 0");
+  AliHLTConfiguration preClustering("preClustering","MUONPreclusterFinder","digitLoader","");
 
   AliHLTConfiguration clWriting("clWriting","MUONClusterWriter","preClustering","-datafile MUON.RecPoints.root");
 }

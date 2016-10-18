@@ -33,5 +33,10 @@ set(SRCS2
 add_executable(dHLTrootify ${SRCS2})
 target_link_libraries(dHLTrootify AliHLTMUON HLTbase MUONmapping MUONevaluation MUONsim MUONrec MUONgeometry MUONcalib MUONbase MUONraw RAWDatasim MUONtrigger MUONcore STEER CDB AOD RAWDatarec ESD RAWDatabase STEERBase ANALYSIS AliHLTHOMER Geom Graf Hist MathCore XMLParser Physics Gui EG VMC Matrix Minuit Gpad GenVector GeomPainter Proof Graf3d Thread)
 
+# dhlt-generate-binmapfile
+
+add_executable(dhlt-generate-binmapfile dhlt-generate-binmapfile.cxx)
+target_link_libraries(dhlt-generate-binmapfile AliHLTMUON HLTbase MUONmapping)
+
 # Installation
-install(TARGETS dHLTdumpraw dHLTrootify RUNTIME DESTINATION bin)
+install(TARGETS dHLTdumpraw dHLTrootify dhlt-generate-binmapfile RUNTIME DESTINATION bin)

@@ -55,6 +55,7 @@ set(SRCS
     AliHLTMUONMansoCandidatesBlockStruct.cxx
     AliHLTMUONMansoTrack.cxx
     AliHLTMUONMansoTracksBlockStruct.cxx
+    AliHLTMUONMapping.cxx
     AliHLTMUONPairsDecisionBlockStruct.cxx
     AliHLTMUONPreClustersBlock.cxx
     AliHLTMUONProcessor.cxx
@@ -137,4 +138,3 @@ install(FILES ${HDRS} DESTINATION include)
 
 # Compilation of some executables
 add_subdirectory(utils)
-

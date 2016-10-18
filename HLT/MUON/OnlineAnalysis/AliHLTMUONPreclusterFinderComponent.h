@@ -19,6 +19,7 @@
 #include "AliHLTProcessor.h"
 #include "AliHLTMUONPreClustersBlock.h"
 #include "AliHLTMUONDataBlockReader.h"
+#include "AliHLTMUONMapping.h"
 
 /**
  * @class AliHLTMUONPreclusterFinderComponent
@@ -63,22 +64,10 @@ protected:
 
 private:
 
-  // pad structure in the internal mapping
-  struct mpPad {
-    UShort_t iDigit; // index of the corresponding digit
-    UChar_t nNeighbours; // number of neighbours
-    UShort_t neighbours[10]; // indices of neighbours in array stored in mpDE
-    Float_t area[2][2]; // 2D area
-    Bool_t useMe; // kFALSE if no digit attached or already visited
-  };
+  struct digiPads {
 
-  // DE structure in the internal mapping
-  struct mpDE {
-    Int_t id; // unique ID
-    UChar_t iCath[2]; // cathod index corresponding to each plane
-    UShort_t nPads[2]; // number of pads on each plane
-    mpPad *pads; // array of pads on both planes
-    TExMap padIndices[2]; // indices+1 of pads from their ID
+    AliHLTMUONMapping::mpDE* mapping;
+
     std::vector<AliHLTMUONDigitStruct*> ownDigits; // list of digits produced when decoding raw data (owner)
     UShort_t nOwnDigits; // number of digits produced when decoding raw data
     std::vector<const AliHLTMUONDigitStruct*> digits; // list of pointers to digits (not owner)
@@ -103,31 +92,29 @@ private:
   /// Not implemented.
   AliHLTMUONPreclusterFinderComponent& operator = (const AliHLTMUONPreclusterFinderComponent& /*obj*/);
 
-  void CreateMapping();
-  void FindNeighbours(mpDE &de, UChar_t iPlane);
+  Bool_t ReadMapping(const char* binmapfile);
 
   void LoadDigits(const AliHLTMUONDigitsBlockReader &dblock);
   void ResetPadsAndPreclusters();
 
   void PreClusterizeRecursive();
-  void AddPad(mpDE &de, UShort_t iPad, preCluster &cl);
+  void AddPad(digiPads &de, UShort_t iPad, preCluster &cl);
 
   void MergePreClusters();
   void MergePreClusters(preCluster &cl, std::vector<preCluster*> preClusters[2],
-                        UShort_t nPreClusters[2], mpDE &de, UChar_t iPlane,
+                        UShort_t nPreClusters[2], digiPads &de, UChar_t iPlane,
                         preCluster *&mergedCl);
-  preCluster* UsePreClusters(preCluster *cl, mpDE &de);
-  void MergePreClusters(preCluster &cl1, preCluster &cl2, mpDE &de);
+  preCluster* UsePreClusters(preCluster *cl, digiPads &de);
+  void MergePreClusters(preCluster &cl1, preCluster &cl2, digiPads &de);
 
-  Bool_t AreOverlapping(preCluster &cl1, preCluster &cl2, mpDE &de, Float_t precision);
-  Bool_t AreOverlapping(Float_t area1[2][2], Float_t area2[2][2], Float_t precision);
+  Bool_t AreOverlapping(preCluster &cl1, preCluster &cl2, digiPads &de, Float_t precision);
 
   //void StorePreClusters();
   Int_t StorePreClusters(AliHLTUInt8_t* outputPtr, AliHLTUInt32_t size);
 
   static const UChar_t fgkNDEs = 156; ///< number of DEs
 
-  mpDE fMpDEs[fgkNDEs]; ///< internal mapping
+  digiPads fMpDEs[fgkNDEs]; ///< internal mapping
   TExMap fDEIndices; ///< maps DE indices from DE IDs
 
   UShort_t fNPreClusters[fgkNDEs][2]; ///< number of preclusters in each cathods of each DE
