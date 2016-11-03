@@ -137,6 +137,7 @@ set(SRCS
     AliVVZERO.cxx
     AliVVZEROfriend.cxx
     AliVZDC.cxx
+    AliMergeable.cxx
     TTreeStream.cxx
    )
 
