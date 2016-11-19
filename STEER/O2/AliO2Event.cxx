@@ -26,6 +26,7 @@ AliO2Event::AliO2Event() {}
 // default destructor
 AliO2Event::~AliO2Event() {}
 
+/// Adds a vertex (of any type) to event and returns the index
 int AliO2Event::addVertex(const AliO2Vertex &vertex) {
   mNumberOfTracksPerVertex.push_back(0);
   mVertices.push_back(vertex);
@@ -33,6 +34,8 @@ int AliO2Event::addVertex(const AliO2Vertex &vertex) {
 }
 
 // TODO: exception handling, everywhere really
+/// Adds a track to the structure, using the corresponding vertex for specifying
+/// the origin.
 void AliO2Event::addTrackToVertex(const AliO2Track &track, int vertexIndex) {
   if (vertexIndex ==
       mNumberOfTracksPerVertex.size() - 1) { // we are at the end, easy.
@@ -54,7 +57,6 @@ void AliO2Event::addTrackToVertex(const AliO2Track &track, int vertexIndex) {
 
 void AliO2Event::Streamer(TBuffer &buffer) {
   // Stream an object of class AliO2Event.
-
   if (buffer.IsReading()) {
     createFromBuffer(buffer);
   } else {
@@ -62,6 +64,7 @@ void AliO2Event::Streamer(TBuffer &buffer) {
   }
 }
 
+/// Used when streaming from a TBuffer.
 void AliO2Event::createFromBuffer(TBuffer &buffer) {
   UInt_t start, byteCountPosition;
   buffer.ReadVersion(&start, &byteCountPosition);
@@ -73,81 +76,37 @@ void AliO2Event::createFromBuffer(TBuffer &buffer) {
   element_count = byte_size / sizeof(mNumberOfTracksPerVertex[0]);
   mNumberOfTracksPerVertex.resize(element_count);
   vector_start = reinterpret_cast<UChar_t *>(mNumberOfTracksPerVertex.data());
-  // for (int i = 0; i < byte_size; i++) {
-  //   buffer >> vector_start[i];
-  // }
   buffer.ReadFastArray(vector_start, byte_size);
-  // AliInfo(TString::Format(
-  //     "Reading %d bytes for mNumberOfTracksPerVertex (%d elements)", byte_size,
-  //     element_count));
 
   buffer >> byte_size;
   element_count = byte_size / sizeof(mVertices[0]);
-  // if (byte_size % sizeof(mVertices[0])) {
-  //   AliError("byte size not a multiple of element size!");
-  // }
   mVertices.resize(element_count);
   vector_start = reinterpret_cast<UChar_t *>(mVertices.data());
   buffer.ReadFastArray(vector_start, byte_size);
-  // for (int i = 0; i < byte_size; i++) {
-  //   buffer >> vector_start[i];
-  // }
-  // AliInfo(TString::Format("Reading %d bytes for mVertices (%d elements)",
-  //                         byte_size, element_count));
 
   buffer >> byte_size;
   element_count = byte_size / sizeof(mTracks[0]);
-  // if (byte_size % sizeof(mTracks[0])) {
-  //   AliError("byte size not a multiple of element size!");
-  // }
   mTracks.resize(element_count);
   vector_start = reinterpret_cast<UChar_t *>(mTracks.data());
-  // if (byte_size % sizeof(mTracks[0])) {
-  //   AliError("byte size not a multiple of element size!");
-  // }
   buffer.ReadFastArray(vector_start, byte_size);
-  // for (int i = 0; i < byte_size; i++) {
-  //   buffer >> vector_start[i];
-  // }
-  // AliInfo(TString::Format("Reading %d bytes for mTracks (%d elements)",
-  //                         byte_size, element_count));
   buffer.CheckByteCount(start, byteCountPosition, AliO2Event::IsA());
 }
 
+/// Used when streaming to a TBuffer.
 void AliO2Event::SerializeToBuffer(TBuffer &buffer) {
   UInt_t byteCountPosition = buffer.WriteVersion(AliO2Event::IsA(), kTRUE);
 
   UChar_t *vector_start = mNumberOfTracksPerVertex.data();
   Int_t byte_size =
       sizeof(mNumberOfTracksPerVertex[0]) * mNumberOfTracksPerVertex.size();
-  // AliInfo(TString::Format(
-  //     "Writting %d bytes for mNumberOfTracksPerVertex (%lu elements)",
-  //     byte_size, mNumberOfTracksPerVertex.size()));
-  // buffer << byte_size;
-  // for (int i = 0; i < byte_size; i++) {
-  //   buffer << vector_start[i];
-  // }
   buffer.WriteArray(vector_start, byte_size);
 
   vector_start = reinterpret_cast<UChar_t *>(mVertices.data());
   byte_size = sizeof(mVertices[0]) * mVertices.size();
-
-  // AliInfo(TString::Format("Writting %d bytes for mVertices (%lu elements)",
-  //                         byte_size, mVertices.size()));
-  // buffer << byte_size;
-  // for (int i = 0; i < byte_size; i++) {
-  //   buffer << vector_start[i];
-  // }
   buffer.WriteArray(vector_start, byte_size);
 
   vector_start = reinterpret_cast<UChar_t *>(mTracks.data());
   byte_size = sizeof(mTracks[0]) * mTracks.size();
-  // AliInfo(TString::Format("Writting %d bytes for mTracks (%lu elements)",
-  //                         byte_size, mTracks.size()));
-  // buffer << byte_size;
-  // for (int i = 0; i < byte_size; i++) {
-  //   buffer << vector_start[i];
-  // }
   buffer.WriteArray(vector_start, byte_size);
 
   buffer.SetByteCount(byteCountPosition, kTRUE);

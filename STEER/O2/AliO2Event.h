@@ -20,10 +20,7 @@
 #include <stdint.h>
 #endif
 #include <vector>
-/// Short AliO2Event description
-///
-/// More detailed AliO2Event description
-
+/// Stores a single event in the new format. Still highly unspecified.
 class AliO2Event : public TObject {
 public:
   /// Default constructor
@@ -31,7 +28,9 @@ public:
   /// Destructor
   ~AliO2Event();
 
+  /// Adds a vertex (of any type) to the event and returns the id of the vertex.
   int addVertex(const AliO2Vertex &vertex);
+  /// Adds a track to the event coming from the vertex specified by the id
   void addTrackToVertex(const AliO2Track &track, int vertexIndex);
   size_t GetNumberOfTracks() { return mTracks.size(); }
   size_t GetNumberOfVertices() { return mVertices.size(); }
