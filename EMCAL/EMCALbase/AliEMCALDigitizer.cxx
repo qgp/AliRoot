@@ -836,7 +836,6 @@ void AliEMCALDigitizer::Digitize(Option_t *option)
     
     WriteDigits() ;
     
-#if 1
     //Trigger Digits
     //-------------------------------------
     
@@ -848,7 +847,6 @@ void AliEMCALDigitizer::Digitize(Option_t *option)
     
     emcalLoader->WriteDigits("OVERWRITE");
     
-#endif
     Unload();
     
     digitsTRG  ->Clear("C");
