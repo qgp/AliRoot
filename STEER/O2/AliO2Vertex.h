@@ -7,9 +7,7 @@
 #ifndef ALINEWVERTEX_H
 #define ALINEWVERTEX_H
 
-/// Short AliO2Vertex description
-///
-/// More detailed AliO2Vertex description
+/// New Vertex class, still highly unspecified, is not a ROOT object.
 class AliO2Vertex {
 public:
   /// Default constructor

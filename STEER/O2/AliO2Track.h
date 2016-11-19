@@ -6,14 +6,9 @@
 
 #ifndef ALINEWTRACK_H
 #define ALINEWTRACK_H
-// #ifndef __CINT__
-// #include <cstdint>
-// #endif
-// TODO: coordinate system
 
-/// Short AliO2Track description
-///
-/// More detailed AliO2Track description
+// TODO: coordinate system
+/// New Track class, still highly unspecified, is not a ROOT object.
 class AliO2Track {
 public:
   /// Default constructor
