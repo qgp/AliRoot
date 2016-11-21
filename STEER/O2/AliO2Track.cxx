@@ -14,17 +14,25 @@
 /// https://www.gnu.org/copyleft/gpl.html
 
 #include "AliO2Track.h"
-
+#include <AliVParticle.h>
 // default constructor
 AliO2Track::AliO2Track(float TransverseMomentum,
-                         float TransverseMomentumAnglePhi,
-                         float TransverseMomentumAngleTheta,
-                         float DistanceOfClosestApproachX,
-                         float DistanceOfClosestApproachY,
-                         float DetectionTime) {
+                       float TransverseMomentumAnglePhi,
+                       float TransverseMomentumAngleTheta,
+                       float DistanceOfClosestApproachX,
+                       float DistanceOfClosestApproachY, float DetectionTime) {
   mTransverseMomentum = TransverseMomentum;
   mTransverseMomentumAnglePhi = TransverseMomentumAnglePhi;
   mTransverseMomentumAngleTheta = TransverseMomentumAngleTheta;
+  // mDistanceOfClosestApproachX = DistanceOfClosestApproachX;
+  // mDistanceOfClosestApproachY = DistanceOfClosestApproachY;
+  // mDetectionTime = DetectionTime;
+}
+
+AliO2Track::AliO2Track(const AliVParticle *particle, float DetectionTime) {
+  mTransverseMomentum = particle->Pt();
+  mTransverseMomentumAnglePhi = particle->Phi();
+  mTransverseMomentumAngleTheta = particle->Theta();
   // mDistanceOfClosestApproachX = DistanceOfClosestApproachX;
   // mDistanceOfClosestApproachY = DistanceOfClosestApproachY;
   // mDetectionTime = DetectionTime;

@@ -7,6 +7,8 @@
 #ifndef ALINEWTRACK_H
 #define ALINEWTRACK_H
 
+class AliVParticle;
+
 // TODO: coordinate system
 /// New Track class, still highly unspecified, is not a ROOT object.
 class AliO2Track {
@@ -16,6 +18,7 @@ public:
              float TransverseMomentumAngleTheta = 0,
              float DistanceOfClosestApproachX = 0,
              float DistanceOfClosestApproachY = 0, float DetectionTime = 0.0f);
+  AliO2Track(const AliVParticle *particle, float DetectionTime = 0.0f);
   /// Destructor
   ~AliO2Track();
 

@@ -45,7 +45,7 @@ generate_dictionary("O2" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # TODO: set these
 set(ROOT_DEPENDENCIES Core EG Geom Gpad Graf3d MathCore Matrix Physics RIO Tree)
-set(ALIROOT_DEPENDENCIES STEERBase)
+set(ALIROOT_DEPENDENCIES STEERBase AOD ESD)
 
 # Generate the ROOT map
 # Dependecies

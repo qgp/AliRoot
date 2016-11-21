@@ -14,15 +14,41 @@
 /// https://www.gnu.org/copyleft/gpl.html
 
 #include "AliO2Vertex.h"
-
+#include <AliVParticle.h>
+#include <math.h>
 // default constructor
 AliO2Vertex::AliO2Vertex(float positionX, float positionY, float positionZ,
-                           float detectionTime) {
+                         float detectionTime) {
   mPositionX = positionX;
   mPositionY = positionY;
   mPositionZ = positionZ;
   // mDetectionTime = detectionTime;
 }
 
+AliO2Vertex::AliO2Vertex(const AliVParticle *particle, float detectionTime) {
+  mPositionX = particle->Xv();
+  mPositionY = particle->Yv();
+  mPositionZ = particle->Zv();
+}
+
 // default destructor
 AliO2Vertex::~AliO2Vertex() {}
+
+float AliO2Vertex::distanceFrom(const AliVParticle *particle) {
+  return distanceFrom(particle->Xv(), particle->Yv(), particle->Zv());
+}
+
+float AliO2Vertex::distanceFrom(float x, float y, float z) {
+  return sqrtf(distanceSquaredFrom(x, y, z));
+}
+
+float AliO2Vertex::distanceSquaredFrom(const AliVParticle *particle) {
+  return distanceSquaredFrom(particle->Xv(), particle->Yv(), particle->Zv());
+}
+
+float AliO2Vertex::distanceSquaredFrom(float x, float y, float z) {
+  float dx = mPositionX - x;
+  float dy = mPositionY - y;
+  float dz = mPositionZ - z;
+  return dx * dx + dy * dy + dz * dz;
+}
