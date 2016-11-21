@@ -27,13 +27,7 @@ include_directories(${ROOT_INCLUDE_DIR}
 		    ${AliRoot_SOURCE_DIR}/RAW/dateStream)
 
 # Sources, globbed
-#file(GLOB SRCS "*.cxx")
-set(SRCS
-    AliO2Event.cxx
-    AliO2Track.cxx
-    AliO2Vertex.cxx
-   )
-
+file(GLOB SRCS "*.cxx")
 
 # Headers, from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
