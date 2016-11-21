@@ -330,10 +330,15 @@ else()
   add_subdirectory(RAW)
   add_subdirectory(ANALYSIS)
 
-  # Include Vc own cmake
-  include(Vc/Vc.cmake)
-  if(NOT ROOT_HASVC)
-    add_subdirectory(Vc)
+  find_package(Vc 1.0 REQUIRED)
+  if(Vc_FOUND)
+    # define a convenience macro
+    macro(ALICE_UseVc)
+     include_directories(SYSTEM "${Vc_INCLUDE_DIR}")
+     add_definitions(${Vc_ALL_FLAGS})
+    endmacro()
+  else()
+    message(STATUS "Vc NOT FOUND")
   endif()
 
   # AliRoot common macros

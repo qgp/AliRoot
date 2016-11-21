@@ -190,7 +190,7 @@ set(LIBDEPS STEERBase STEER ESD CDB RAWDatabase RAWDatarec ANALYSISalice HLTbase
 generate_rootmap("${MODULE}" "${LIBDEPS}" "${CMAKE_CURRENT_SOURCE_DIR}/${MODULE}LinkDef.h")
 
 # NOTE: Vc should not stay in the rootmap!
-set(LIBDEPS ${LIBDEPS} Vc)
+set(LIBDEPS ${LIBDEPS} ${Vc_LIBRARIES})
 
 # Add a library to the project using the specified source files
 add_library_tested(${MODULE} SHARED ${SRCS} G__${MODULE}.cxx)
