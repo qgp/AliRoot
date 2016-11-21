@@ -1,7 +1,6 @@
-#ifdef __CINT__
-/// \file O2LinkDef.h
-/// \brief Linking definitions for root-cint for the O2 additions.
-/// \since 2016-11-19
+/// \file AliO2Timeframe.cxx
+/// \brief implementation of the AliO2Timeframe class.
+/// \since 2016-11-21
 /// \author R.G.A. Deckers
 /// \copyright
 ///  This program is free software; you can redistribute it and/or
@@ -14,11 +13,12 @@
 /// General Public License for more details at
 /// https://www.gnu.org/copyleft/gpl.html
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "AliO2Timeframe.h"
+// root specific
+ClassImp(AliO2Timeframe);
 
-// We use a custom streamer to allow for custom compression layers
-#pragma link C++ class AliO2Event - ;
-#pragma link C++ class AliO2Timeframe;
-#endif
+// default constructor
+AliO2Timeframe::AliO2Timeframe() {}
+
+// default destructor
+AliO2Timeframe::~AliO2Timeframe() {}
