@@ -181,10 +181,7 @@ void AliO2Event::addTrackToVertex(const AliO2Track &track, int vertexIndex) {
       mNumberOfTracksPerVertex.size() - 1) { // we are at the end, easy.
     mTracks.push_back(track);
     mNumberOfTracksPerVertex[vertexIndex] += 1;
-  } else { // oh boy, pushing to the middle of the tracks array... //TODO
-           // optimize the
-    // structure to speed this up when we're still building the AoD, or use a
-    // builderClass
+  } else { // oh boy, pushing to the middle of the tracks array...
     int trackInsertionPoint = 0;
     for (int i = 0; i <= vertexIndex; i++) {
       trackInsertionPoint += mNumberOfTracksPerVertex[i];
