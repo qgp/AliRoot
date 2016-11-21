@@ -7,14 +7,21 @@
 #ifndef ALINEWVERTEX_H
 #define ALINEWVERTEX_H
 
+class AliVParticle;
 /// New Vertex class, still highly unspecified, is not a ROOT object.
 class AliO2Vertex {
 public:
   /// Default constructor
   AliO2Vertex(float positionX = 0, float positionY = 0, float positionZ = 0,
               float detectionTime = 0.0f);
+  /// Default constructor
+  AliO2Vertex(const AliVParticle *particle, float detectionTime = 0.0f);
   /// Destructor
   ~AliO2Vertex();
+  float distanceFrom(const AliVParticle *particle);
+  float distanceFrom(float x, float y, float z);
+  float distanceSquaredFrom(const AliVParticle *particle);
+  float distanceSquaredFrom(float x, float y, float z);
 
 protected:
   // protected stuff goes here

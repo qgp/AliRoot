@@ -13,6 +13,12 @@
 #include "AliO2Track.h"
 #include "AliO2Vertex.h"
 
+class AliAODEvent;
+class AliESDEvent;
+class AliVParticle;
+class AliVVertex;
+class AliVEvent;
+
 #include <TBuffer.h>
 #ifndef __CINT__
 #include <cstdint>
@@ -25,9 +31,14 @@ class AliO2Event : public TObject {
 public:
   /// Default constructor
   AliO2Event();
+  /// Construct from an old AOD event
+  AliO2Event(const AliAODEvent *);
+  /// Construct from an old ESD event
+  AliO2Event(const AliESDEvent *);
   /// Destructor
   ~AliO2Event();
 
+  int findNearestVertex(const AliVParticle *particle);
   /// Adds a vertex (of any type) to the event and returns the id of the vertex.
   int addVertex(const AliO2Vertex &vertex);
   /// Adds a track to the event coming from the vertex specified by the id
@@ -43,10 +54,14 @@ private:
   // AliO2Event(const AliO2Event &);
   /// assignment operator prohibited
   // AliO2Event &operator=(const AliO2Event &);
+  void finishBuildingFromMapping(std::vector<int> indices,
+                                 const AliVEvent *event);
   // Keep the number of vertices seperate from the node to increase
   // coherency,
   // and easier to implement win-win
-  std::vector<uint8_t> mNumberOfTracksPerVertex;
+  std::vector<uint16_t> mNumberOfTracksPerVertex; // TODO: how small can
+                                                  // this
+  // be? primary vertex seems to have most or all tracks
   std::vector<AliO2Vertex> mVertices;
   std::vector<AliO2Track> mTracks;
   // root specific
