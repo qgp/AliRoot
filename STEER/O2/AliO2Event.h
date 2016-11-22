@@ -4,8 +4,8 @@
 ///
 /// See implementation file for copyright details.
 
-#ifndef ALINEWEVENT_H
-#define ALINEWEVENT_H
+#ifndef ALIO2EVENT_H
+#define ALIO2EVENT_H
 
 // Include the base classes
 #include <TObject.h>
