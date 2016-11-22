@@ -1,0 +1,139 @@
+  *******************************************
+  *                                         *
+  *        W E L C O M E  to  R O O T       *
+  *                                         *
+  *                                         *
+  *  You are welcome to visit our Web site  *
+  *          http://DIR            *
+  *                                         *
+  *******************************************
+
+
+Type ? for help. Commands must be C++ statements.
+Enclose multiple statements between { }.
+
+Processing /DIR
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliCDBManager::Init: AliEn classes enabled in Root. AliCDBGrid factory registered.
+I-AliCDBLocal::QueryCDB: Querying files valid for run 0 and path "*" into CDB storage  "local:///DIR
+I-AliCDBLocal::QueryCDB: 327 valid files found!
+I-AliPIDResponse::InitializeTPCResponse: ---------------------------- TPC Response Configuration (New) ----------------------------
+W-AliPIDResponse::ExecNewRun: No TPC response parametrisations found using the new method. Falling back to the old method.
+I-AliPIDResponse::SetTPCParametrisation: ---------------------------- TPC Response Configuration (Old) ----------------------------
+E-AliPIDResponse::SetTPCParametrisation: No period set, not changing parametrisation
+I-AliPIDResponse::SetTPCParametrisation: ------------------------------------------------------------------------------------------
+I-AliPIDResponse::SetTPCEtaMaps: Request to disable TPC eta correction -> Eta correction has been disabled
+I-AliPIDResponse::SetTPCEtaMaps: Request to disable TPC eta correction -> Using old parametrisation for sigma
+I-AliOADBContainer::InitFromFile: File: $ALICE_PHYSICS/DIR and key AliTRDPIDResponseObject
+
+I-AliOADBContainer::InitFromFile: File name expanded to /DIR
+I-AliOADBContainer::InitFromFile: -----------------------------------------------
+I-AliOADBContainer::InitFromFile: List of already open files:
+
+I-AliOADBContainer::InitFromFile: galice.root
+I-AliOADBContainer::InitFromFile: ./DIR
+I-AliOADBContainer::InitFromFile: AliESDs.root
+I-AliOADBContainer::InitFromFile: -----------------------------------------------
+I-AliOADBContainer::InitFromFile: Couldn't find file, opening it
+
+I-AliPIDResponse::SetTRDPidResponseMaster: Loading TRD Response from $ALICE_PHYSICS/DIR
+W-AliOADBContainer::GetIndexForRun: No object (AliTRDPIDResponseObject) found for run     0 !
+
+ <message repeated 1 time>
+E-AliOADBContainer::GetObject: Default Object (AliTRDPIDResponseObject) not found !
+
+E-AliPIDResponse::SetTRDPidResponseMaster: TRD Response not found in run 0
+I-AliOADBContainer::InitFromFile: File: $ALICE_PHYSICS/DIR and key TRDdEdxParamsContainer
+
+I-AliOADBContainer::InitFromFile: File name expanded to /DIR
+I-AliOADBContainer::InitFromFile: -----------------------------------------------
+I-AliOADBContainer::InitFromFile: List of already open files:
+
+I-AliOADBContainer::InitFromFile: galice.root
+I-AliOADBContainer::InitFromFile: ./DIR
+I-AliOADBContainer::InitFromFile: AliESDs.root
+I-AliOADBContainer::InitFromFile: /DIR
+I-AliOADBContainer::InitFromFile: -----------------------------------------------
+I-AliOADBContainer::InitFromFile: Couldn't find file, opening it
+
+I-AliPIDResponse::SetTRDdEdxParams: Loading TRDdEdxParamsContainer from $ALICE_PHYSICS/DIR
+
+W-AliOADBContainer::GetIndexForRun: No object (TRDdEdxParamsContainer) found for run     0 !
+
+ <message repeated 1 time>
+E-AliOADBContainer::GetObject: Default Object (TRDdEdxParamsContainer) not found !
+
+E-AliPIDResponse::SetTRDdEdxParams: TRD dEdx Params default not found
+I-AliPIDResponse::SetTRDEtaMaps: Request to disable TRD eta correction -> Eta correction has been disabled
+I-AliPIDResponse::SetTRDClusterMaps: Request to disable TRD cluster correction -> Cluster correction has been disabled
+I-AliPIDResponse::SetTRDCentralityMaps: Request to disable TRD eta correction -> Centrality correction has been disabled
+I-AliPIDResponse::SetTOFPidResponseMaster: Loading TOF Params from $ALICE_PHYSICS/DIR for run 0 (pass: pass1)
+W-AliOADBContainer::GetIndexForRun: No object (TOFoadb) found for run     0 !
+
+ <message repeated 1 time>
+W-AliPIDResponse::SetTOFPidResponseMaster: ******* Risk for unreliable TOF PID detected *********
+W-AliPIDResponse::SetTOFPidResponseMaster:         The default object was loaded
+I-AliPIDResponse::InitializeTOFResponse: ---------------------------- TOF Response Configuration ----------------------------
+I-AliPIDResponse::InitializeTOFResponse: TOF PID Params loaded from OADB [entryTag: default]
+I-AliPIDResponse::InitializeTOFResponse:   TOF resolution 80.00 [ps]
+I-AliPIDResponse::InitializeTOFResponse:   TOF res. mom. params:  0.004  0.000  0.009 15.000
+I-AliPIDResponse::InitializeTOFResponse:   Fraction of tracks within gaussian behaviour: 0.9500
+I-AliPIDResponse::InitializeTOFResponse: MC data:
+I-AliPIDResponse::InitializeTOFResponse:   MC: TuneOnData option NOT enabled for TOF data
+I-AliPIDResponse::InitializeTOFResponse:   MC: Fraction of tracks (percentage) to cut to fit matching in data:   0.00%
+I-AliPIDResponse::InitializeTOFResponse:   MC: Fraction of random hits (percentage) to add to fit mismatch in data:   0.00%
+I-AliPIDResponse::InitializeTOFResponse: TZERO resolution loaded from ESDrun/DIR
+I-AliPIDResponse::InitializeTOFResponse:   TZERO spreads from data: (A+C)/DIR 0.000000 A 0.000000 C 0.000000 (A'-C')/DIR 0.000000
+I-AliPIDResponse::InitializeTOFResponse:   TZERO spreads not present or inconsistent, loading default
+I-AliPIDResponse::InitializeTOFResponse:   TZERO resolution set to: T0A: 75.000000 [ps] T0C: 65.000000 [ps] T0AC 55.000000 [ps]
+I-AliPIDResponse::InitializeTOFResponse: ------------------------------------------------------------------------------------
+I-AliOADBContainer::InitFromFile: File: $ALICE_PHYSICS/DIR and key AliEMCALPIDParams
+
+I-AliOADBContainer::InitFromFile: File name expanded to /DIR
+I-AliOADBContainer::InitFromFile: -----------------------------------------------
+I-AliOADBContainer::InitFromFile: List of already open files:
+
+I-AliOADBContainer::InitFromFile: galice.root
+I-AliOADBContainer::InitFromFile: ./DIR
+I-AliOADBContainer::InitFromFile: AliESDs.root
+I-AliOADBContainer::InitFromFile: /DIR
+I-AliOADBContainer::InitFromFile: /DIR
+I-AliOADBContainer::InitFromFile: -----------------------------------------------
+I-AliOADBContainer::InitFromFile: Couldn't find file, opening it
+
+I-AliPIDResponse::SetEMCALPidResponseMaster: Loading EMCAL Params from $ALICE_PHYSICS/DIR
+W-AliOADBContainer::GetIndexForRun: No object (AliEMCALPIDParams) found for run     0 !
+
+ <message repeated 1 time>
+E-AliOADBContainer::GetObject: Default Object (AliEMCALPIDParams) not found !
+
+I-AliPIDResponse::SetEMCALPidResponseMaster: EMCAL Params not found in run 0 pass 1
+I-AliPIDResponse::SetEMCALPidResponseMaster: Will take the standard LHC11d instead ...
+I-AliPIDResponse::SetHMPIDPidResponseMaster: Loading HMPID Params from $ALICE_PHYSICS/DIR
+W-AliOADBContainer::GetIndexForRun: No object (HMPoadb) found for run     0 !
+
+ <message repeated 1 time>
+I-CheckESD: 44 out of 48 tracks reconstructed including 3 fake tracks
+I-CheckESD: eff = (91.7 +- 4.0) %  fake = (6.2 +- 3.5) %
+I-CheckESD: PID eff = (31.8 +- 7.0) %
+  gen\rec: electron     muon     pion     kaon   proton
+ electron:        0        0        8        0        0
+     muon:        0        0        6        0        0
+     pion:        0        0       11        0        0
+     kaon:        0        0        4        3        0
+   proton:        0        0       12        0        0
+    other:        0        0        0        0        0
+I-CheckESD: TPC PID for Tracking::  
+I-CheckESD: PID eff = (27.3 +- 6.7) %
+W-CheckESD: low PID efficiency: (27.3 +- 6.7) %
+  gen\rec: electron     muon     pion     kaon   proton
+ electron:        8        0        0        0        0
+     muon:        3        0        3        0        0
+     pion:        0        1        1        7        2
+     kaon:        3        0        2        2        0
+   proton:        0        3        6        0        1
+    other:        2        0        0        0        0
+W-CheckESD: high mean PHOS energy: 6.9 GeV
+W-CheckESD: low number of EMCAL particles: 19
+I-CheckESD: check of ESD was successfull
+(Bool_t)1

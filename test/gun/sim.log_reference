@@ -1,0 +1,929 @@
+  *******************************************
+  *                                         *
+  *        W E L C O M E  to  R O O T       *
+  *                                         *
+  *                                         *
+  *  You are welcome to visit our Web site  *
+  *          http://DIR            *
+  *                                         *
+  *******************************************
+
+
+Type ? for help. Commands must be C++ statements.
+Enclose multiple statements between { }.
+
+Processing sim.C...
+I-AliQAManager::Init: AliEn classes enabled in Root. AliCDBGrid factory registered.
+I-AliSimulation::ProcessEnvironmentVars: Processing environment variables
+I-AliSimulation::ProcessEnvironmentVars: Seed for random number generation = 0 
+I-AliSimulation::ProcessEnvironmentVars: Run number = -1
+I-AliSimulation::Run: fRunHLT is set to "default", no attempt to extract HLT mode from GRP will be done
+I-AliCDBManager::Init: AliEn classes enabled in Root. AliCDBGrid factory registered.
+W-AliSimulation::InitRunNumber: Run number not yet set !!!! Setting it now to: 0
+I-AliCDBLocal::QueryCDB: Querying files valid for run 0 and path "*" into CDB storage  "local:///DIR
+I-AliCDBLocal::QueryCDB: 327 valid files found!
+I-AliCDBLocal::QueryCDB: Querying files valid for run 0 and path "GRP/DIR into CDB storage  "local:///DIR
+I-AliCDBLocal::QueryCDB: 0 valid files found!
+I-AliCDBManager::Print: Run number = 0; Cache is ACTIVE; Number of active storages: 2
+	*** Default Storage URI: "local:///DIR
+	*** Specific storage 1: Path "GRP/DIR -> URI "local:///DIR
+
+I-AliSimulation::RunSimulation: initializing gAlice with config file Config.C
+     ****************************************************************
+     *                                                              *
+     *    You are running AliRoot version NewIO
+     *    The SVN version for the current program is $Id$
+     *                                                              *
+     ****************************************************************
+
+
+ MZSTOR.  Initialize Store  0  in /DIR/
+          with     1 Str. in     2 Links in   5300 Low words in 4999970 words.
+          This store has a fence of   16 words.
+
+ MZLOGL.  Set Log Level 0 for store  0
+
+ MZDIV.   Initialize Division  Constant  in Store  0
+          NW/DIR   20004000000,  MODE/DIR  1  2
+          Division 20 initialized.
+
+ MZLINK.  Initialize Link Area  /DIR/  for Store  0 NL/DIR    20    20
+
+ MZLINK.  Initialize Link Area  /DIR/  for Store  0 NL/DIR   100   100
+Trigger configuration is set to  p-p
+1                                                                              
+ ******************************************************************************
+ ******************************************************************************
+ **                                                                          **
+ **                                                                          **
+ **              *......*                  Welcome to the Lund Monte Carlo!  **
+ **         *:::!!:::::::::::*                                               **
+ **      *::::::!!::::::::::::::*          PPP  Y   Y TTTTT H   H III   A    **
+ **    *::::::::!!::::::::::::::::*        P  P  Y Y    T   H   H  I   A A   **
+ **   *:::::::::!!:::::::::::::::::*       PPP    Y     T   HHHHH  I  AAAAA  **
+ **   *:::::::::!!:::::::::::::::::*       P      Y     T   H   H  I  A   A  **
+ **    *::::::::!!::::::::::::::::*!       P      Y     T   H   H III A   A  **
+ **      *::::::!!::::::::::::::* !!                                         **
+ **      !! *:::!!:::::::::::*    !!       This is PYTHIA version 6.214      **
+ **      !!     !* -><- *         !!       Last date of change: 22 Jan 2003  **
+ **      !!     !!                !!                                         **
+ **      !!     !!                !!       Now is  0 Jan 2000 at  0:00:00    **
+ **      !!                       !!                                         **
+ **      !!        lh             !!       Disclaimer: this program comes    **
+ **      !!                       !!       without any guarantees. Beware    **
+ **      !!                 hh    !!       of errors and use common sense    **
+ **      !!    ll                 !!       when interpreting results.        **
+ **      !!                       !!                                         **
+ **      !!                                Copyright T. Sjostrand (2003)     **
+ **                                                                          **
+ ** An archive of program versions and documentation is found on the web:    **
+ ** http://DIR                              **
+ **                                                                          **
+ ** When you cite this program, currently the official reference is          **
+ ** T. Sjostrand, P. Eden, C. Friberg, L. Lonnblad, G. Miu, S. Mrenna and    **
+ ** E. Norrbin, Computer Physics Commun. 135 (2001) 238.                     **
+ ** The large manual is                                                      **
+ ** T. Sjostrand, L. Lonnblad and S. Mrenna, LU TP 01-21 [hep-ph/DIR   **
+ ** Also remember that the program, to a large extent, represents original   **
+ ** physics research. Other publications of special relevance to your        **
+ ** studies may therefore deserve separate mention.                          **
+ **                                                                          **
+ ** Main author: Torbjorn Sjostrand; Department of Theoretical Physics 2,    **
+ **   Lund University, Solvegatan 14A, S-223 62 Lund, Sweden;                **
+ **   phone: + 46 - 46 - 222 48 16; e-mail: torbjorn@thep.lu.se              **
+ ** Author: Leif Lonnblad; Department of Theoretical Physics 2,              **
+ **   Lund University, Solvegatan 14A, S-223 62 Lund, Sweden;                **
+ **   phone: + 46 - 46 - 222 77 80; e-mail: leif@thep.lu.se                  **
+ ** Author: Stephen Mrenna; Computing Division, Simulations Group,           **
+ **   Fermi National Accelerator Laboratory, MS 234, Batavia, IL 60510, USA; **
+ **   phone: + 1 - 630 - 840 - 2556; e-mail: mrenna@fnal.gov                 **
+ ** Author: Peter Skands; Department of Theoretical Physics 2,               **
+ **   Lund University, Solvegatan 14A, S-223 62 Lund, Sweden;                **
+ **   phone: + 46 - 46 - 222 31 92; e-mail: zeiler@thep.lu.se                **
+ **                                                                          **
+ **                                                                          **
+ ******************************************************************************
+ ******************************************************************************
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =       18
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =       18
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =      113
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =      113
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =      113
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =      113
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =      115
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Kinematically unallowed decay of KF =      215
+
+     Error type 7 has occured after        0 PYEXEC calls:
+     (PYUPDA:) Unknown particle code in decay of KF =      333
+
+     Error type 7 has occured after        0 PYEXEC calls:
+     (PYUPDA:) Unknown particle code in decay of KF =      333
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Sum of branching ratios is  1.05920 for KF =      421
+
+     Advisory warning type 7 given after        0 PYEXEC calls:
+     (PYUPDA:) Sum of branching ratios is  1.06710 for KF =     4122
+I-AliMagF::Print: Maps:Maps
+I-AliMagF::Print: Solenoid (-1.00*)5 kG, Dipole ON (-1.00) 
+I-AliMagF::Print: Machine B fields for A-A beam (2760 GeV): QGrad: 22.0002 Dipole: 37.8781
+I-TGeoGlobalMagField::SetField: Global magnetic field set to <Maps>
+E-AliCDBLocal::GetEntry: No file found matching this id!
+I-AliTPCcalibDB::Update: No GRP entry found
+E-AliTPCcalibDB::InitDeadMap: DDL map missing. ActiveChannelMap can only be created with parts of the information.
+E-AliTPCcalibDB::InitDeadMap:  -> Check existance of 'DDLArray' in the OCDB entry: 'TPC/DIR
+I-AliTPCcalibDB::GetMaskedChannelsFromCorrectionMaps: Residual correction maps are not used, no masking needed
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC  0 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC  1 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC  2 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC  3 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC  4 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    9 channels in ROC  5 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC  6 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   20 channels in ROC  7 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   18 channels in ROC  8 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC  9 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 10 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 11 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 12 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 13 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 14 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   17 channels in ROC 15 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 16 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   14 channels in ROC 17 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 18 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 20 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 21 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC 22 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   11 channels in ROC 23 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 24 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    9 channels in ROC 25 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 26 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   13 channels in ROC 27 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   11 channels in ROC 28 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 29 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 30 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated  133 channels in ROC 31 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 32 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 33 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 34 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   17 channels in ROC 35 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 36 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 38 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 39 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC 40 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 41 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 42 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 43 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated  101 channels in ROC 44 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 45 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 46 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 47 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 48 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 49 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   16 channels in ROC 50 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   35 channels in ROC 51 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 52 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 53 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 55 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 56 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 57 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 58 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 59 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 60 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 61 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 62 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 63 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC 64 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 65 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    8 channels in ROC 66 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 67 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   34 channels in ROC 68 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   53 channels in ROC 69 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    9 channels in ROC 70 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 71 due to altro and DDL map states
+AliEMCALGeometry::GetInstanceFromRunNumber() *** ATTENTION *** 
+	 Specified geometry name <<EMCAL_COMPLETEV1>> for run 0 is not considered! 
+	 In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year
+I-AliEMCALGeometry::AliEMCALGeometry: Name <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>
+I-AliEMCALGeometry::AliEMCALGeometry: EMCAL Trigger Mapping Version V2 Enabled
+I-AliEMCALv2::AliEMCALv2: Very good, V2 version is used!
+########## AliMC::AddParticles
+E-TGeant3TGeo::SetParticle: Particle already exists.
+Particle -311 not in geant
+Particle 311 not in geant
+ <message repeated 1 time>
+I-TGeoManager::TGeoManager: Geometry ALICE, ALICE geometry created
+I-AliMC::ConstructGeometry:       BODY TIMING TIMING
+I-AliMC::ConstructGeometry:        MAG TIMING TIMING
+I-AliMC::ConstructGeometry:       ABSO TIMING TIMING
+I-AliMC::ConstructGeometry:       DIPO TIMING TIMING
+I-AliMC::ConstructGeometry:       HALL TIMING TIMING
+I-AliMC::ConstructGeometry:      FRAME TIMING TIMING
+I-AliMC::ConstructGeometry:       SHIL TIMING TIMING
+I-AliMC::ConstructGeometry:       PIPE TIMING TIMING
+I-AliMC::ConstructGeometry:        ITS TIMING TIMING
+I-AliTPCv2::CreateMaterials: Setting gas density correction to: 1.00
+E-AliTPCv2::CreateMaterials: GC values don't sum up to 1 (Neon, Argon, CO2, N2): 0.00 + 0.00 + 0.00 + 0.00 = 0.00
+I-AliTPCv2::CreateMaterials: Using the default gas composition from AliTPCParam (Neon, Argon, CO2, N2): 0.900, 0.000, 0.100, 0.000
+I-AliMC::ConstructGeometry:        TPC TIMING TIMING
+I-AliMC::ConstructGeometry:        TOF TIMING TIMING
+I-AliMC::ConstructGeometry:      HMPID TIMING TIMING
+	C SIDE LUMINOMETER -11195.30 < z < -11180.30
+  AliZDCv4 -> TCDD apertures +2.00/DIR cm
+  AliZDCv4 -> TDI apertures +5.50/DIR cm
+	A SIDE LUMINOMETER 11193.80 < z < 11178.80
+
+	YD2 from z = -12167.80 to z= -13112.80 cm
+
+ ZNC -> -11261.299805 < z < -11361.299805 cm
+
+ ZNA -> 11259.799805 < z < 11359.799805 cm
+
+ ZPC -> -11253.299805 < z < -11403.299805 cm
+
+ ZPA -> 11251.799805 < z < 11401.799805 cm
+
+ ZEM -> 735.000000 < z < 755.826538 cm
+
+I-AliMC::ConstructGeometry:        ZDC TIMING TIMING
+I-AliMC::ConstructGeometry:        TRD TIMING TIMING
+I-AliMC::ConstructGeometry:        FMD TIMING TIMING
+## In AliMUONTriggerGeometryBuilder 0
+## In AliMUONTriggerGeometryBuilder 1
+## In AliMUONTriggerGeometryBuilder 2
+## In AliMUONTriggerGeometryBuilder 3
+I-AliMC::ConstructGeometry:       MUON TIMING TIMING
+I-AliMC::ConstructGeometry:       PHOS TIMING TIMING
+I-AliMC::ConstructGeometry:        PMD TIMING TIMING
+I-AliMC::ConstructGeometry:         T0 TIMING TIMING
+I-AliEMCALEMCGeometry::DefineSamplingFraction: MC modeler <TGeant3TGeo>, Title <C++ Interface to Geant3>: Sampling 10.870, model fraction with respect to G3 1.000, final sampling 10.870
+I-AliMC::ConstructGeometry:      EMCAL TIMING TIMING
+I-AliMC::ConstructGeometry:     ACORDE TIMING TIMING
+I-AliMC::ConstructGeometry:      VZERO TIMING TIMING
+I-TGeoManager::SetTopVolume: Top volume is ALIC. Master volume is ALIC
+I-TGeoNavigator::BuildCache: --- Maximum geometry depth set to 100
+I-TGeoManager::CheckGeometry: Fixing runtime shapes...
+I-TGeoManager::CloseGeometry: Counting nodes...
+I-TGeoManager::Voxelize: Voxelizing...
+I-TGeoManager::CloseGeometry: Building cache...
+I-TGeoManager::CountLevels: max level = 12, max placements = 641
+I-TGeoManager::CloseGeometry: 5975662 nodes/ 5579 volume UID's in ALICE geometry
+I-TGeoManager::CloseGeometry: ----------------modeler ready----------------
+I-AliMC::SetAllAlignableVolumes: Setting entries for all alignable volumes of active detectors
+I-AliPIPEv3::AddAlignableVolumes: Add PIPE alignable volume
+I-AliITSv11::AddAlignableVolumes: Add ITS alignable volumes
+I-AliFMDv1::AddAlignableVolumes: Add FMD alignable volumes
+I-TGeoManager::Export: Exporting ALICE ALICE geometry as root file. Optimizations streamed.
+W-AliGeomManager::LoadAlignObjsFromCDBSingleDet: 2197 alignment objects loaded for ITS, which has 2437 alignable volumes
+W-AliGeomManager::LoadAlignObjsFromCDBSingleDet: 540 alignment objects loaded for TRD, which has 227 alignable volumes
+W-AliGeomManager::LoadAlignObjsFromCDBSingleDet: 16 alignment objects loaded for PHOS, which has 9 alignable volumes
+I-AliGeomManager::ApplyAlignObjsFromCDB: Alignment objects loaded for: GRP ITS TPC TOF HMPID ZDC TRD FMD MUON PHOS PMD T0 EMCAL ACORDE VZERO 
+I-AliMC::ConstructOpGeometry: Optical properties definition
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfPc0. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfPc0. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetSkinSurface: Called for skin surface skinPc0. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfPc1. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfPc1. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetSkinSurface: Called for skin surface skinPc1. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfPc2. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfPc2. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetSkinSurface: Called for skin surface skinPc2. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfPc3. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfPc3. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetSkinSurface: Called for skin surface skinPc3. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfPc4. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfPc4. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetSkinSurface: Called for skin surface skinPc4. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfPc5. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfPc5. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetSkinSurface: Called for skin surface skinPc5. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfPc6. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfPc6. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetSkinSurface: Called for skin surface skinPc6. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::DefineOpSurface: Called for surface surfRd. Not applicable in Geant3 - setting is ignored.
+W-TGeant3TGeo::SetMaterialProperty: Called for material surface  surfRd. Not applicable in Geant3 - setting is ignored.
+ <message repeated 1 time>
+W-TGeant3TGeo::SetBorderSurface: Called for border surface 0TOPborder. Not applicable in Geant3 - setting is ignored.
+I-AliMC::InitGeometry: Initialisation:
+I-AliMC::InitGeometry:       BODY TIMING TIMING
+I-AliMC::InitGeometry:        MAG TIMING TIMING
+I-AliMC::InitGeometry:       ABSO TIMING TIMING
+I-AliMC::InitGeometry:       DIPO TIMING TIMING
+I-AliMC::InitGeometry:       HALL TIMING TIMING
+I-AliMC::InitGeometry:      FRAME TIMING TIMING
+I-AliMC::InitGeometry:       SHIL TIMING TIMING
+I-AliMC::InitGeometry:       PIPE TIMING TIMING
+I-AliMC::InitGeometry:        ITS TIMING TIMING
+I-AliMC::InitGeometry:        TPC TIMING TIMING
+I-AliMC::InitGeometry:        TOF TIMING TIMING
+I-AliMC::InitGeometry:      HMPID TIMING TIMING
+I-AliMC::InitGeometry:        ZDC TIMING TIMING
+I-AliMC::InitGeometry:        TRD TIMING TIMING
+I-AliMC::InitGeometry:        FMD TIMING TIMING
+I-AliMC::InitGeometry:       MUON TIMING TIMING
+I-AliMC::InitGeometry:       PHOS TIMING TIMING
+I-AliMC::InitGeometry:        PMD TIMING TIMING
+I-AliMC::InitGeometry:         T0 TIMING TIMING
+I-AliMC::InitGeometry:      EMCAL TIMING TIMING
+I-AliMC::InitGeometry:     ACORDE TIMING TIMING
+I-AliMC::InitGeometry:      VZERO TIMING TIMING
+I-AliMC::MediaTable: Tracking media ranges:
+   BODY:   1 ->   3;    MAG:   4 ->  13;   ABSO:  14 ->  56;   DIPO:  57 ->  84;   HALL:  85 ->  94;  FRAME:  95 ->  97;
+   SHIL:  98 -> 137;   PIPE: 138 -> 168;    ITS: 169 -> 256;    TPC: 257 -> 283;    TOF: 284 -> 299;  HMPID: 300 -> 310;
+    ZDC: 311 -> 324;    TRD: 325 -> 351;    FMD: 352 -> 361;   MUON: 362 -> 384;   PHOS: 385 -> 403;    PMD: 404 -> 413;
+     T0: 414 -> 429;  EMCAL: 430 -> 435; ACORDE: 436 -> 440;  VZERO: 441 -> 451;
+
+ Calculating cross section tables, see gphysi.dat for more information
+
+ Cross section calculation concluded successfully
+I-AliMC::CacheVMCInstance: CacheVMCInstance
+I-AliTRDv1::MakeLoader: Adding Tracklets-loader
+I-AliSimulation::RunSimulation: Run number: 0
+I-AliSimulation::WriteGRPEntry: Writing global run parameters entry into the OCDB
+I-AliCDBLocal::PutEntry: CDB object stored into file /DIR
+I-AliSimulation::RunSimulation: running gAlice
+I-AliSimulation::RunSimulation: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+ **** GTRIGI: IEVENT=      1 IDEVT=      1 Random Seeds =     123456           0
+I-AliHMPIDParam::AliHMPIDParam: EPhotMean = 6.657799 eV successfully loaded from OCDB
+ **** GTRIGI: IEVENT=      2 IDEVT=      2 Random Seeds =     123456           0
+ **** GTRIGI: IEVENT=      3 IDEVT=      3 Random Seeds =     123456           0
+ **** GTRIGI: IEVENT=      4 IDEVT=      4 Random Seeds =     123456           0
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliCDBManager::Print: Run number = 0; Cache is ACTIVE; Number of active storages: 2
+	*** Default Storage URI: "local:///DIR
+	*** Specific storage 1: Path "GRP/DIR -> URI "local:///DIR
+
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliSimulation::RunSDigitization: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliSimulation::RunSDigitization: creating summable digits for TOF
+I-AliTOFcalib::ReadRecParFromCDB: TOF resolution from OCDB = 80.000000 (event type=1)
+I-AliSimulation::RunSDigitization: creating summable digits for HMPID
+I-AliSimulation::RunSDigitization: creating summable digits for ZDC
+I-AliSimulation::RunSDigitization: creating summable digits for TRD
+I-AliSimulation::RunSDigitization: creating summable digits for FMD
+W-AliCDBManager::UnloadFromCache: Cache does not contain object "FMD/DIR
+I-AliSimulation::RunSDigitization: creating summable digits for MUON
+I-AliSimulation::RunSDigitization: creating summable digits for PHOS
+I-AliSimulation::RunSDigitization: creating summable digits for PMD
+I-AliSimulation::RunSDigitization: creating summable digits for T0
+I-AliSimulation::RunSDigitization: creating summable digits for EMCAL
+I-AliSimulation::RunSDigitization: creating summable digits for ACORDE
+I-AliSimulation::RunSDigitization: creating summable digits for VZERO
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Input0
+I-AliSimulation::RunDigitization: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for TOF
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for HMPID
+I-AliZDCDigitizer::Init:  AliZDCDigitizer -> Manually setting beam type to A-A
+
+
+	  AliZDCDigitizer ->  beam type A-A  - beam energy = 1379.807739 GeV
+
+    AliZDCDigitizer::ReadPMTGains -> ZDC PMT gains for A-A @ 1380+1380 A GeV: ZN(25003), ZP(40006), ZEM(200028)
+	   AliZDCDigitizer -> spectator kinematic from AliGenZDC generator
+
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for ZDC
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for TRD
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for FMD
+I-AliMUONDigitizerV3::Init: Using trigger configuration from CDB
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for MUON
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for PHOS
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for PMD
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for T0
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for EMCAL
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for ACORDE
+I-AliSimulation::RunDigitization: Created digitizer from SDigits -> Digits for VZERO
+W-AliRunLoader::LoadgAlice: AliRun is already in folder. Unload first.
+ No HIJING header found in list of headers from generator
+W-AliCDBLocal::GetEntry: Mismatch between file name and object's Id!
+W-AliCDBLocal::GetEntry: File name: path: "TRD/DIR run range: [0,999999999]; version: v1_s0
+W-AliCDBLocal::GetEntry: Object's Id: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliTRDcalibDB::LoadTrapConfig: looking for TRAPconfig "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5p-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5766"
+I-AliTRDcalibDB::GetTrapConfig: using TRAPconfig "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5p-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5766"
+I-AliTRDcalibDB::GetOnlineGainTableID: looking for gaintable: Krypton_2015-02 (id 10)
+I-AliTRDcalibDB::CacheCDBEntry: loaded gain table: TRD/DIR
+ generator Cocktail Header
+!! refpoint before writing in digits 0
+W-AliRunLoader::LoadgAlice: AliRun is already in folder. Unload first.
+ No HIJING header found in list of headers from generator
+ generator Cocktail Header
+!! refpoint before writing in digits 0
+ No HIJING header found in list of headers from generator
+ generator Cocktail Header
+!! refpoint before writing in digits 0
+ No HIJING header found in list of headers from generator
+ generator Cocktail Header
+!! refpoint before writing in digits 0
+ <message repeated 2 times>
+I-AliMUONDigitizerV3::~AliMUONDigitizerV3: Summary of messages
+No message
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliSimulation::RunHitsDigitization: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliSimulation::RunHitsDigitization: creating digits from hits for ITS
+I-AliSimulation::RunHitsDigitization: creating digits from hits for TPC
+TPC MWPC readout
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  0, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  1, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  2, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  3, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  4, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  5, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  6, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  7, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  8, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  9, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 10, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 11, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 12, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 13, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 14, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 15, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 16, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 17, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 18, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 19, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 20, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 21, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 22, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 23, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 24, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 25, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 26, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 27, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 28, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 29, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 30, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 31, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 32, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 33, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 34, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 35, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 36, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 37, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 38, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 39, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 40, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 41, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 42, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 43, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 44, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 45, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 46, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 47, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 48, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 49, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 50, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 51, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 52, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 53, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 54, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 55, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 56, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 57, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 58, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 59, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 60, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 61, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 62, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 63, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 64, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 65, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 66, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 67, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 68, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 69, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 70, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 71, 0), using current nominal voltage: 0.00
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliSimulation::RunTrigger: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliCentralTrigger::RunTrigger:  Triggering Detectors:  VZERO ITS T0 MUON TOF TRD 
+
+I-AliCentralTrigger::RunTrigger:  Detectors with digits: ALL 
+
+I-AliITSTrigger::CreateInputs: Number of trigger inputs: 10
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HCO) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HJT) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HSE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HQU) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HEE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+I-AliTRDTriggerL0::Trigger: Fired single gap trigger
+I-AliTRDTriggerL0::Trigger: Fired  double gap trigger
+I-AliTRDTriggerL0::Trigger: Fired TRD wake up call trigger
+W-AliT0Trigger::AssignInputs: Trigger Input (0TVX) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0A) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0C) is not implemented for the trigger detector (T0) ! It will be disabled !
+I-AliITSTrigger::CreateInputs: Number of trigger inputs: 10
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HCO) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HJT) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HSE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HQU) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HEE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+I-AliTRDTriggerL0::Trigger: Fired single gap trigger
+I-AliTRDTriggerL0::Trigger: Fired  double gap trigger
+I-AliTRDTriggerL0::Trigger: Fired TRD wake up call trigger
+W-AliT0Trigger::AssignInputs: Trigger Input (0TVX) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0A) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0C) is not implemented for the trigger detector (T0) ! It will be disabled !
+I-AliITSTrigger::CreateInputs: Number of trigger inputs: 10
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HCO) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HJT) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HSE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HQU) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HEE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+I-AliTRDTriggerL0::Trigger: Fired single gap trigger
+I-AliTRDTriggerL0::Trigger: Fired  double gap trigger
+I-AliTRDTriggerL0::Trigger: Fired TRD wake up call trigger
+W-AliT0Trigger::AssignInputs: Trigger Input (0TVX) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0A) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0C) is not implemented for the trigger detector (T0) ! It will be disabled !
+I-AliITSTrigger::CreateInputs: Number of trigger inputs: 10
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HCO) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HJT) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HSE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HQU) is not implemented for the trigger detector (TRD) ! It will be disabled !
+W-AliTRDTriggerL0::AssignInputs: Trigger Input (1HEE) is not implemented for the trigger detector (TRD) ! It will be disabled !
+I-AliTRDTriggerL0::Trigger: Fired single gap trigger
+I-AliTRDTriggerL0::Trigger: Fired  double gap trigger
+I-AliTRDTriggerL0::Trigger: Fired TRD wake up call trigger
+W-AliT0Trigger::AssignInputs: Trigger Input (0TVX) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0A) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliT0Trigger::AssignInputs: Trigger Input (0T0C) is not implemented for the trigger detector (T0) ! It will be disabled !
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliSimulation::WriteRawFiles: processing event 0
+I-AliSimulation::WriteRawFiles: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ITS
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TPC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TOF
+I-AliSimulation::WriteRawFiles: creating raw data from digits for HMPID
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ZDC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TRD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for FMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for MUON
+I-AliSimulation::WriteRawFiles: creating raw data from digits for PHOS
+I-AliSimulation::WriteRawFiles: creating raw data from digits for PMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for T0
+I-AliSimulation::WriteRawFiles: creating raw data from digits for EMCAL
+W-AliTreeLoader::Post: This object was already posted.
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ACORDE
+I-AliSimulation::WriteRawFiles: creating raw data from digits for VZERO
+I-AliCTPRawData::RawDataRun2: Storing the CTP DDL raw data...
+W-AliRunLoader::LoadTrigger: Trigger is already loaded. Nothing done. Message will not be repeated.
+I-AliCTPRawData::RawDataRun2: Storing CTP raw data in TRG_4352.ddl
+I-AliSimulation::WriteRawFiles: processing event 1
+I-AliSimulation::WriteRawFiles: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ITS
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TPC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TOF
+I-AliSimulation::WriteRawFiles: creating raw data from digits for HMPID
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ZDC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TRD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for FMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for MUON
+I-AliSimulation::WriteRawFiles: creating raw data from digits for PHOS
+I-AliSimulation::WriteRawFiles: creating raw data from digits for PMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for T0
+I-AliSimulation::WriteRawFiles: creating raw data from digits for EMCAL
+W-AliTreeLoader::Post: This object was already posted.
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ACORDE
+I-AliSimulation::WriteRawFiles: creating raw data from digits for VZERO
+I-AliCTPRawData::RawDataRun2: Storing the CTP DDL raw data...
+I-AliCTPRawData::RawDataRun2: Storing CTP raw data in TRG_4352.ddl
+I-AliSimulation::WriteRawFiles: processing event 2
+I-AliSimulation::WriteRawFiles: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ITS
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TPC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TOF
+I-AliSimulation::WriteRawFiles: creating raw data from digits for HMPID
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ZDC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TRD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for FMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for MUON
+I-AliSimulation::WriteRawFiles: creating raw data from digits for PHOS
+I-AliSimulation::WriteRawFiles: creating raw data from digits for PMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for T0
+I-AliSimulation::WriteRawFiles: creating raw data from digits for EMCAL
+W-AliTreeLoader::Post: This object was already posted.
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ACORDE
+I-AliSimulation::WriteRawFiles: creating raw data from digits for VZERO
+I-AliCTPRawData::RawDataRun2: Storing the CTP DDL raw data...
+I-AliCTPRawData::RawDataRun2: Storing CTP raw data in TRG_4352.ddl
+I-AliSimulation::WriteRawFiles: processing event 3
+I-AliSimulation::WriteRawFiles: Will run only for detectors seen in the GRP
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ITS
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TPC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TOF
+I-AliSimulation::WriteRawFiles: creating raw data from digits for HMPID
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ZDC
+I-AliSimulation::WriteRawFiles: creating raw data from digits for TRD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for FMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for MUON
+I-AliSimulation::WriteRawFiles: creating raw data from digits for PHOS
+iteRawFiles: creating raw data from digits for PMD
+I-AliSimulation::WriteRawFiles: creating raw data from digits for T0
+I-AliSimulation::WriteRawFiles: creating raw data from digits for EMCAL
+W-AliTreeLoader::Post: This object was already posted.
+I-AliSimulation::WriteRawFiles: creating raw data from digits for ACORDE
+I-AliSimulation::WriteRawFiles: creating raw data from digits for VZERO
+I-AliCTPRawData::RawDataRun2: Storing the CTP DDL raw data...
+I-AliCTPRawData::RawDataRun2: Storing CTP raw data in TRG_4352.ddl
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliHLTComponentHandler::AnnounceVersion: ALICE High Level Trigger build on DATE (TIME) (embedded AliRoot build)
+I-AliHLTSimulation::Init: creating AliRawReaderFile (./DIR
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTUtil.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTRCU.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTTPC.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTCalo.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTEMCAL.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTPHOS.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTMUON.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTTRD.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTITS.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTVZERO.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTZDC.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTGlobal.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTTrigger.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libProofPlayer.so plugin build on DATE TIME (gSystem)
+I-AliHLTSimulation::Run: running HLT simulation for digits
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliITSDetTypeRec::GetCalibration: 240 SPD, 260 SDD and 1698 SSD in calibration database
+W-AliGeomManager::ApplyAlignObjsFromCDB: Not aligning geometry (again); Geometry is locked
+ <message repeated 1 time>
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+ <message repeated 2 times>
+W-AliGeomManager::ApplyAlignObjsFromCDB: Not aligning geometry (again); Geometry is locked
+I-TUnixSystem::ACLiC: creating shared library /DIR
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSRecPointContainer::AliITSRecPointContainer: Container created with sizes/DIR 25 25 20 20 10 10 
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 11 7 16 11 17 18
+I-AliHLTTask::ProcessTask: TPC-DP_24_1: processing event 0 again with buffer size 252784
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+y finished (0)
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 11 7 11 13 17 19
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+I-AliHLTSystem::ProcessTasks: Event 1 successfully finished (0)
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 19 10 13 14 20 14
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+I-AliHLTSystem::ProcessTasks: Event 2 successfully finished (0)
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 11 12 11 12 13 12
+I-AliHLTTask::ProcessTask: TPC-DP_22_0: processing event 3 again with buffer size 210808
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+I-AliHLTSystem::ProcessTasks: Event 3 successfully finished (0)
+I-AliHLTSystem::PrintBenchmarking: HLT statistics:
+    base:              TIMING TIMING
+    input:             TIMING TIMING
+    output:            TIMING TIMING
+    event processing : TIMING TIMING
+I-AliHLTSimulation::Run: running HLT simulation for raw data
+I-AliITSDetTypeRec::GetCalibration: 240 SPD, 260 SDD and 1698 SSD in calibration database
+ <message repeated 2 times>
+W-AliGeomManager::ApplyAlignObjsFromCDB: Not aligning geometry (again); Geometry is locked
+ <message repeated 1 time>
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+ <message repeated 2 times>
+W-AliGeomManager::ApplyAlignObjsFromCDB: Not aligning geometry (again); Geometry is locked
+I-TUnixSystem::ACLiC: creating shared library /DIR
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+ <message repeated 23 times>
+I-AliHLTTPCDataPublisherComponent::GetEvent: publishing 185 DDL(s) for emulation of compressed TPC clusters
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+2016-11-22 TIME: Info in <AliMDC::Run>: input = raw.root.date, rawdb size = 2000000000.000000, filter = off, looping = no, compression = 1, delete files = no
+2016-11-22 TIME: Info in <AliMDC::Open>: Filling raw DB /DIR
+
+2016-11-22 TIME: Info in <alimdc>: normal termination of run
+Written raw DB at a rate of MEMORYB/DIR
+I-AliHLTSystem::ProcessTasks: Event 0 successfully finished (0)
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+ <message repeated 23 times>
+I-AliHLTTPCDataPublisherComponent::GetEvent: publishing 183 DDL(s) for emulation of compressed TPC clusters
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+I-AliHLTSystem::ProcessTasks: Event 1 successfully finished (0)
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+ <message repeated 23 times>
+I-AliHLTTPCDataPublisherComponent::GetEvent: publishing 183 DDL(s) for emulation of compressed TPC clusters
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+I-AliHLTSystem::ProcessTasks: Event 2 successfully finished (0)
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+ <message repeated 23 times>
+I-AliHLTTPCDataPublisherComponent::GetEvent: publishing 212 DDL(s) for emulation of compressed TPC clusters
+I-AliHLTProcessor::DoEvent: TPC-HWCFDecoder (TPCHWClusterDecoder): header data block of size 8
+I-AliHLTSystem::ProcessTasks: Event 3 successfully finished (0)
+I-AliHLTSystem::PrintBenchmarking: HLT statistics:
+    base:              TIMING TIMING
+    input:             TIMING TIMING
+    output:            TIMING TIMING
+    event processing : TIMING TIMING
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliSimulation::ConvertRawFilesToDate: converting raw data DDL files to DATE file raw.root.date
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliSimulation::ConvertDateToRoot: converting DATE file raw.root.date to root file raw.root
+E-TUnixSystem::DynamicPathName: libGlobalbase[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: libCORRbase[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+E-TPluginHandler::SetupCallEnv: method AliMUONQADataMakerSim not found in class AliMUONQADataMakerSim
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for MUON
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for FIT
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for MFT
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for Global
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for CORR
+I-TCanvas::Print: ps file QAImageSim0.ps has been created
+W-TH1I::Sumw2: Sum of squares of weights structure already created
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-AliRunLoader::GetEvent: There is no event with number 4
+I-TCanvas::Print: Current canvas added to ps file QAImageSim0.ps
+I-AliITSQAChecker::InitQACheckerLimits: Setting of tolerance values
+
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for Hits
+
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for SDigits
+
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for Digits
+
+I-AliTOFQAChecker::Check: Checking only golden plots? YES
+ <message repeated 2 times>
+I-AliCDBPath::InitPath: Invalid AliCDBPath <HMPID/DIR
+E-AliQAManager::Get: Run number neither specified in query nor set in AliCDBManager! Use AliCDBManager::SetRun.
+W-AliZDCQAChecker::GetThresholds: No object for ZDC thresholds inside OCDB object
+ <message repeated 2 times>
+E-AliPMDQAChecker::GetRefSubDir:  is not a valid location for reference data
+ <message repeated 2 times>
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+I-TCanvas::Print: Current canvas added to ps file QAImageSim0.ps
+W-AliRunLoader::LoadHeader: Header is already loaded. Use ReloadHeader to force reload. Nothing done
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for MUON
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for FIT
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for MFT
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for Global
+E-AliQAManager::InitQADataMaker: AliQADataMaker not found for CORR
+I-TCanvas::Print: ps file QAImageSim0.ps has been created
+I-AliVZEROQADataMakerSim::MakeSDigits: To be implemented by detectors
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+I-AliVZEROQADataMakerSim::MakeSDigits: To be implemented by detectors
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+I-AliVZEROQADataMakerSim::MakeSDigits: To be implemented by detectors
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+I-AliVZEROQADataMakerSim::MakeSDigits: To be implemented by detectors
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-AliRunLoader::GetEvent: There is no event with number 4
+I-TCanvas::Print: Current canvas added to ps file QAImageSim0.ps
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for Hits
+
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for SDigits
+
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for Digits
+
+I-AliTOFQAChecker::Check: Checking only golden plots? YES
+ <message repeated 2 times>
+W-AliZDCQAChecker::GetThresholds: No object for ZDC thresholds inside OCDB object
+ <message repeated 2 times>
+E-AliPMDQAChecker::GetRefSubDir:  is not a valid location for reference data
+ <message repeated 2 times>
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+I-TCanvas::Print: Current canvas added to ps file QAImageSim0.ps
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-AliRunLoader::GetEvent: There is no event with number 4
+I-TCanvas::Print: ps file QAImageSim0.ps has been created
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for Hits
+
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for SDigits
+
+I-AliITSQADataMakerSim::EndOfDetectorCycle: End of Dedetctor Cycle called for Digits
+
+I-AliTOFQAChecker::Check: Checking only golden plots? YES
+ <message repeated 2 times>
+W-AliZDCQAChecker::GetThresholds: No object for ZDC thresholds inside OCDB object
+ <message repeated 2 times>
+E-AliPMDQAChecker::GetRefSubDir:  is not a valid location for reference data
+ <message repeated 2 times>
+E-TUnixSystem::DynamicPathName: FITqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+E-TUnixSystem::DynamicPathName: MFTqadm[.so | .dll | .dylib | .sl | .dl | .a] does not exist in /DIR
+I-TCanvas::Print: Current canvas added to ps file QAImageSim0.ps
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliSimulation::StoreUsedCDBMaps: Stored used OCDB entries as TMap cdbMap and TList cdbList in /DIR
+AliMUONCalibrationData
+   AliMUONCalibrationData  TIMING TIMING (28 slices)
+   CreateObject 
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (17 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+AliMUONDigitMaker
+   TriggerDigits  TIMING TIMING (710 slices)
+AliMUONDigitizerV3
+   Digitize  TIMING TIMING (4 slices)
+   GenerateNoisyDigits  TIMING TIMING (4 slices)
+AliMUONRawWriter
+   Digits2BusPatchMap  TIMING TIMING (4 slices)
+   Digits2Raw 
+         TIMING TIMING (4 slices)
+        for Tracker TIMING TIMING (4 slices)
+        for Trigger TIMING TIMING (4 slices)
+   WriteTrackerDDL  TIMING TIMING (80 slices)
+   WriteTriggerDDL  TIMING TIMING (4 slices)
+AliMUONTriggerElectronics
+   Digits2Trigger  TIMING TIMING (239 slices)
+   Feed  TIMING TIMING (239 slices)
+   GlobalResponse  TIMING TIMING (239 slices)
+   LocalResponse  TIMING TIMING (239 slices)
+   RegionalResponse  TIMING TIMING (239 slices)
+AliMpDCSNamer
+   ManuId2PCBIndex  TIMING TIMING (9676 slices)
+   ManuId2Sector  TIMING TIMING (7152 slices)
+AliMpDetElement
+   AddManu 
+         TIMING TIMING (16828 slices)
+        slat TIMING TIMING (9676 slices)
+        st12 TIMING TIMING (7152 slices)
+AliMpFastSegmentation
+   AliMpFastSegmentation 
+        AliMpSectorSegmentation TIMING TIMING (4 slices)
+        AliMpSlatSegmentation TIMING TIMING (38 slices)
+AliSimulation
+   ConvertRawFilesToDate  TIMING TIMING (1 slices)
+   Run  TIMING TIMING (1 slices)
+   RunDigitization  TIMING TIMING (1 slices)
+   RunHitsDigitization  TIMING TIMING (1 slices)
+   RunSDigitization 
+         TIMING TIMING (1 slices)
+        creating summable digits for ACORDE TIMING TIMING (1 slices)
+        creating summable digits for EMCAL TIMING TIMING (1 slices)
+        creating summable digits for FMD TIMING TIMING (1 slices)
+        creating summable digits for HMPID TIMING TIMING (1 slices)
+        creating summable digits for MUON TIMING TIMING (1 slices)
+        creating summable digits for PHOS TIMING TIMING (1 slices)
+        creating summable digits for PMD TIMING TIMING (1 slices)
+        creating summable digits for T0 TIMING TIMING (1 slices)
+        creating summable digits for TOF TIMING TIMING (1 slices)
+        creating summable digits for TRD TIMING TIMING (1 slices)
+        creating summable digits for VZERO TIMING TIMING (1 slices)
+        creating summable digits for ZDC TIMING TIMING (1 slices)
+   RunSimulation  TIMING TIMING (1 slices)
+   RunTrigger  TIMING TIMING (1 slices)
+   WriteRawData  TIMING TIMING (1 slices)
+   WriteRawFiles  TIMING TIMING (1 slices)

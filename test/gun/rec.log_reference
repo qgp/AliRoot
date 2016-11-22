@@ -1,0 +1,1739 @@
+  *******************************************
+  *                                         *
+  *        W E L C O M E  to  R O O T       *
+  *                                         *
+  *                                         *
+  *  You are welcome to visit our Web site  *
+  *          http://DIR            *
+  *                                         *
+  *******************************************
+
+
+Type ? for help. Commands must be C++ statements.
+Enclose multiple statements between { }.
+
+Processing rec.C...
+W-AliRawReader::Create: No raw-reader created
+I-AliReconstruction::InitRawReader: Reconstruction will run over digits
+I-AliCDBManager::Init: AliEn classes enabled in Root. AliCDBGrid factory registered.
+I-AliCDBLocal::QueryCDB: Querying files valid for run 0 and path "*" into CDB storage  "local:///DIR
+I-AliCDBLocal::QueryCDB: 327 valid files found!
+I-AliCDBLocal::QueryCDB: Querying files valid for run 0 and path "GRP/DIR into CDB storage  "local:///DIR
+I-AliCDBLocal::QueryCDB: 1 valid files found!
+I-AliCDBManager::Print: Run number = 0; Cache is ACTIVE; Number of active storages: 2
+	*** Default Storage URI: "local:///DIR
+	*** Specific storage 1: Path "GRP/DIR -> URI "local:///DIR
+
+I-TGeoManager::Import: Reading geometry from file: ./DIR
+I-TGeoManager::CloseGeometry: Geometry loaded from file...
+I-TGeoManager::SetTopVolume: Top volume is ALIC. Master volume is ALIC
+I-TGeoNavigator::BuildCache: --- Maximum geometry depth set to 100
+I-TGeoManager::CloseGeometry: Voxelization retrieved from file
+I-TGeoManager::CountLevels: max level = 12, max placements = 641
+I-TGeoManager::CloseGeometry: 5975662 nodes/ 5579 volume UID's in ALICE geometry
+I-TGeoManager::CloseGeometry: ----------------modeler ready----------------
+I-AliGeomManager::LoadGeometry: From now on using geometry from custom geometry file "./DIR
+W-AliGeomManager::LoadAlignObjsFromCDBSingleDet: 2197 alignment objects loaded for ITS, which has 2437 alignable volumes
+W-AliGeomManager::LoadAlignObjsFromCDBSingleDet: 540 alignment objects loaded for TRD, which has 227 alignable volumes
+W-AliGeomManager::LoadAlignObjsFromCDBSingleDet: 16 alignment objects loaded for PHOS, which has 9 alignable volumes
+I-AliGeomManager::ApplyAlignObjsFromCDB: Alignment objects loaded for: GRP ITS TPC TRD TOF PHOS HMPID EMCAL MUON FMD ZDC PMD T0 VZERO ACORDE 
+I-AliReconstruction::InitGRP: Found an AliGRPObject in GRP/DIR reading it
+==> Dumping object at: POINTER, name=AliRunInfo, class=AliRunInfo
+
+fLHCState                     STABLE_BEAMS        state of the machine as provided by DCS and DAQ log-book (per run)
+fBeamType                     UNKNOWN             beam type for Alice
+fBeamEnergy                   MEMORYeam energy (in GeV)
+fRunType                      PHYSICS             run type accoring to ECS (per run)
+fActiveDetectors              1074265855          list of active detectors (per run)
+fUniqueID                     0                   object unique identifier
+fBits                         POINTER          bit field status word
+I-AliReconstruction::InitGRP: fQADetectors=ITS TPC TRD TOF HMPID PHOS PMD MUON FMD T0 VZERO ZDC ACORDE CTP EMCAL HLT
+I-AliReconstruction::InitGRP: ===================================================================================
+I-AliReconstruction::InitGRP: Running local reconstruction for detectors: ITS TPC TRD TOF HMPID PHOS PMD MUON FMD T0 VZERO ZDC ACORDE CTP EMCAL HLT
+I-AliReconstruction::InitGRP: Running tracking for detectors: ITS TPC TRD TOF HMPID PHOS PMD MUON FMD T0 VZERO ZDC ACORDE CTP EMCAL HLT
+I-AliReconstruction::InitGRP: Filling ESD for detectors: ITS TPC TRD TOF HMPID PHOS PMD MUON FMD T0 VZERO ZDC ACORDE CTP EMCAL HLT
+I-AliReconstruction::InitGRP: Quality assurance is active for detectors: ITS TPC TRD TOF HMPID PHOS PMD MUON FMD T0 VZERO ZDC ACORDE CTP EMCAL HLT
+I-AliReconstruction::InitGRP: CDB and reconstruction parameters are loaded for detectors: ITS TPC TRD TOF HMPID PHOS PMD MUON FMD T0 VZERO ZDC ACORDE CTP EMCAL HLT
+I-AliReconstruction::InitGRP: ===================================================================================
+I-AliMagF::CreateFieldMap: Assume no LHC magnet field for the beam type UNKNOWN, 
+I-AliMagF::Print: MagneticFieldMap:L3: -30000 Dip: -6000 kA;  | Polarities in LHC convention
+I-AliMagF::Print: Solenoid (-1.00*)5 kG, Dipole ON (-1.00) 
+I-AliMagF::Print: Machine B fields for No Beam beam (1380 GeV): QGrad: 0.0000 Dipole: 0.0000
+I-TGeoGlobalMagField::SetField: Global magnetic field set to <MagneticFieldMap>
+I-TGeoGlobalMagField::Lock: Global magnetic field <MagneticFieldMap> is now locked
+I-AliReconstruction::InitGRP: Running with the B field constructed out of GRP !
+I-AliCDBLocal::GetAll: 17 objects retrieved. Request was: path: "ITS/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,99999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v2_s0
+I-AliCDBLocal::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,99999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v2_s0
+I-AliCDBManager::GetAll: path: "ITS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "ITS/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 26 objects retrieved. Request was: path: "TPC/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s2
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v1_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v1_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s2
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v1_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s3
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v1_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TPC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "TPC/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+W-AliCDBLocal::GetEntry: Mismatch between file name and object's Id!
+W-AliCDBLocal::GetEntry: File name: path: "TRD/DIR run range: [0,999999999]; version: v1_s0
+W-AliCDBLocal::GetEntry: Object's Id: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 51 objects retrieved. Request was: path: "TRD/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "TRD/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 18 objects retrieved. Request was: path: "TOF/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TOF/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "TOF/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 6 objects retrieved. Request was: path: "PHOS/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PHOS/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PHOS/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PHOS/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s5
+I-AliCDBLocal::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PHOS/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PHOS/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PHOS/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s5
+I-AliCDBManager::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBLocal::GetAll: 1 objects retrieved. Request was: path: "PHOS/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "PHOS/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 7 objects retrieved. Request was: path: "HMPID/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v1_s0
+I-AliCDBLocal::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v1_s0
+I-AliCDBManager::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HMPID/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "HMPID/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 8 objects retrieved. Request was: path: "EMCAL/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "EMCAL/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "EMCAL/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 20 objects retrieved. Request was: path: "MUON/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v2_s0
+I-AliCDBLocal::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v2_s0
+I-AliCDBManager::GetAll: path: "MUON/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "MUON/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 8 objects retrieved. Request was: path: "FMD/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "FMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "FMD/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 9 objects retrieved. Request was: path: "ZDC/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ZDC/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "ZDC/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+E-TBufferFile::ReadVersion: Could not find the StreamerInfo with a checksum of POINTER for the class "AliPMDHotData" in /DIR
+I-AliCDBLocal::GetAll: 7 objects retrieved. Request was: path: "PMD/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "PMD/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "PMD/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 7 objects retrieved. Request was: path: "T0/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "T0/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "T0/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "T0/DIR run range: [0,999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "T0/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 8 objects retrieved. Request was: path: "VZERO/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 1 objects retrieved. Request was: path: "VZERO/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "VZERO/DIR run range: [0,999999999]; version: v0_s0
+I-AliACORDERecoParam::AliACORDERecoParam: Empty object for ACORDE RecoParam
+ <message repeated 1 time>
+I-AliCDBLocal::GetAll: 2 objects retrieved. Request was: path: "ACORDE/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "ACORDE/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "ACORDE/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "ACORDE/DIR run range: [0,9999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "ACORDE/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "ACORDE/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 3 objects retrieved. Request was: path: "HLT/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 0 objects retrieved. Request was: path: "HLT/DIR run range: [0,0]
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBLocal::GetAll: 2 objects retrieved. Request was: path: "TRIGGER/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "TRIGGER/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "TRIGGER/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "TRIGGER/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "TRIGGER/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: 69 objects retrieved. Request was: path: "HLT/DIR run range: [0,0]
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBLocal::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: Now look into all other specific storages...
+I-AliCDBManager::GetAll: After look into other specific storages, result list is:
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s1
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliCDBManager::GetAll: path: "HLT/DIR run range: [0,999999999]; version: v0_s0
+I-AliReconstruction::LoadTriggerScalersCDB: Found an AliTriggerRunScalers in GRP/DIR reading it
+I-AliReconstruction::LoadTriggerScalersCDB: 32bit Trigger counters corrected for overflow
+I-AliReconstruction::ReadIntensityInfoCDB: Reading mean bunch intensities from GRP/DIR
+W-AliLHCData::GetMeanIntensity: No BC masks are provided
+ <message repeated 1 time>
+I-AliReconstruction::InitRecoParams: Loading GRP reconstruction parameter objects
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector ITS
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector TPC
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector TRD
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector TOF
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector PHOS
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector HMPID
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector EMCAL
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector MUON
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector FMD
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector ZDC
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector PMD
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector T0
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector VZERO
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector ACORDE
+I-AliReconstruction::InitRecoParams: Loading reconstruction parameter objects for detector HLT
+W-AliRunLoader::LoadgAlice: gAlice already exists. Putting retrived object in folder named Event
+I-AliReconstruction::CheckRecoCDBvsSimuCDB: Check 1 entries for matching between sim and rec
+I-AliReconstruction::CheckRecoCDBvsSimuCDB: #0 Checking TPC/DIR
+I-AliReconstruction::CheckRecoCDBvsSimuCDB: Sim. used path: "TPC/DIR run range: [0,999999999]; version: v0_s1 from local:///DIR
+I-AliReconstruction::CheckRecoCDBvsSimuCDB: Rec. used path: "TPC/DIR run range: [0,999999999]; version: v0_s1 from local:///DIR
+I-AliReconstruction::CreateTrackers: Creating trackers
+I-AliITSReconstructor::Init: Geometry name: AliITSv11
+I-AliITSDetTypeRec::GetCalibration: 240 SPD, 260 SDD and 1698 SSD in calibration database
+I-AliITStrackerSA::ReadBadFromDetTypeRec: Reading info about bad ITS detectors and channels
+I-AliITStrackerSA::ReadBadFromDetTypeRec: Layer 0: 14 bad out of 80
+I-AliITStrackerSA::ReadBadFromDetTypeRec: Layer 1: 10 bad out of 160
+I-AliITStrackerSA::ReadBadFromDetTypeRec: Layer 2: 3 bad out of 84
+I-AliITStrackerSA::ReadBadFromDetTypeRec: Layer 3: 3 bad out of 176
+I-AliITStrackerSA::ReadBadFromDetTypeRec: Layer 4: 31 bad out of 748
+I-AliITStrackerSA::ReadBadFromDetTypeRec: Layer 5: 29 bad out of 950
+I-AliTPCcalibDB::Update: Run-specific EventSpecie set to Default
+E-AliTPCcalibDB::InitDeadMap: DDL map missing. ActiveChannelMap can only be created with parts of the information.
+E-AliTPCcalibDB::InitDeadMap:  -> Check existance of 'DDLArray' in the OCDB entry: 'TPC/DIR
+I-AliTPCcalibDB::GetMaskedChannelsFromCorrectionMaps: Residual correction maps are not used, no masking needed
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC  0 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC  1 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC  2 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC  3 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC  4 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    9 channels in ROC  5 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC  6 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   20 channels in ROC  7 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   18 channels in ROC  8 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC  9 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 10 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 11 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 12 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 13 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 14 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   17 channels in ROC 15 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 16 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   14 channels in ROC 17 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 18 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 20 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 21 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC 22 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   11 channels in ROC 23 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 24 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    9 channels in ROC 25 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 26 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   13 channels in ROC 27 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   11 channels in ROC 28 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 29 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 30 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated  133 channels in ROC 31 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 32 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 33 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 34 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   17 channels in ROC 35 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 36 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 38 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 39 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC 40 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 41 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 42 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 43 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated  101 channels in ROC 44 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 45 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 46 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 47 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 48 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 49 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   16 channels in ROC 50 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   35 channels in ROC 51 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 52 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 53 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    1 channels in ROC 55 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 56 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 57 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 58 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    6 channels in ROC 59 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 60 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    3 channels in ROC 61 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    4 channels in ROC 62 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 63 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   10 channels in ROC 64 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    7 channels in ROC 65 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    8 channels in ROC 66 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    5 channels in ROC 67 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   34 channels in ROC 68 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated   53 channels in ROC 69 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    9 channels in ROC 70 due to altro and DDL map states
+I-AliTPCcalibDB::InitDeadMap: Deactivated    2 channels in ROC 71 due to altro and DDL map states
+I-AliTPCReconstructor::ParseOptions: Usage of HLT clusters in TPC reconstruction : 1
+I-AliTRDReconstructor::Init: Build TRD clusterizer[POINTER]
+I-AliTRDReconstructor::CreateTracker: Build TRD tracker[POINTER]
+I-AliTOFClusterFinder::AliTOFClusterFinder:  validity = ideal - Using online calibration parameters
+I-AliTOFClusterFinderV1::AliTOFClusterFinderV1:  validity = ideal - Using online calibration parameters
+I-AliPHOSReconstructor::AliPHOSReconstructor: PHOS bad channel map contains 0 bad channel(s).
+
+I-AliHMPIDParam::AliHMPIDParam: EPhotMean = 6.657799 eV successfully loaded from OCDB
+AliEMCALGeometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>
+I-AliEMCALGeometry::AliEMCALGeometry: Name <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>
+I-AliEMCALGeometry::AliEMCALGeometry: EMCAL Trigger Mapping Version V2 Enabled
+I-AliEMCALReconstructor::AliEMCALReconstructor: Geometry name: <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>
+I-AliZDCReconstructor::Init: 
+
+ ***** ZDC reconstruction initialized for UNKNOWN @ 1380 + 1380 GeV *****
+
+
+I-AliZDCReconstructor::Init:   ZDC reconstruction mode 1 (1 -> p-p/DIR 2-> A-A)
+
+
+!!!!fdZonC 71.104134 fdZonA 374.079987 
+ AliT0Calibrator ::: AliT0RecoParam GetEq() 0
+ LHCperiod 0
+I-AliHLTComponentHandler::AnnounceVersion: ALICE High Level Trigger build on DATE (TIME) (embedded AliRoot build)
+I-AliCentralTrigger::LoadConfiguration: Getting trigger configuration from OCDB!
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTUtil.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTRCU.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTTPC.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTCalo.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTEMCAL.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTPHOS.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTMUON.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTTRD.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTITS.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTVZERO.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTZDC.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTGlobal.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libAliHLTTrigger.so plugin build on DATE TIME (gSystem)
+I-AliHLTComponentHandler::LoadLibrary: using libProofPlayer.so plugin build on DATE TIME (gSystem)
+operator = ESD
+I-AliReconstruction::SlaveBegin: Current memory usage 1047492 1868284
+W-AliQADataMaker::SetCloningRequest: Cloning request is incomplete
+I-AliQAManager::Init: AliEn classes enabled in Root. AliCDBGrid factory registered.
+W-AliReconstruction::InitQA: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+W-AliReconstruction::InitQA: Default QA refeference storage not yet set !!!!
+W-AliReconstruction::InitQA: Setting it now to: local://DIR
+W-AliReconstruction::InitQA: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+I-AliEMCALQADataMakerRec::AliEMCALQADataMakerRec: Geometry name: <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>
+I-AliMUONQADataMakerRec::AliMUONQADataMakerRec: tracker=1 trigger=1
+I-AliHLTQADataMakerRec::LoadPlugins: using HLT QA plugin AliHLTTPCQADataMaker
+I-AliReconstruction::InitQA: Initializing the global QA data maker
+I-AliReconstruction::ProcessTriggerAliases: Aliases defined:
+Collection name='THashList', class='THashList', size=0
+I-AliReconstruction::SlaveBegin: 5.00% of HLT ESD events will be stored
+I-AliReconstruction::SlaveBegin: 100.00% of ESD friends  will be stored
+I-AliReconstruction::Run: Starting looping over events
+W-AliRunLoader::LoadTrigger: Trigger is already loaded. Nothing done. Message will not be repeated.
+I-AliReconstruction::ProcessEvent: ================================= Processing event 0 of type Default    ==================================
+EventInfo for EventType:	7 Cosmic:OFF Laser:OFF Other:ON
+fTriggerMask/DIR	POINTER/DIR
+TriggerCluster:	ITSSPD ITSSDD ITSSSD TPC TRD TOF HMPID PHOS CPV PMD MUONTRK MUONTRG FMD T0 VZERO ZDC ACORDE TRG EMCAL 
+TriggerClasses:	 MBBG1  MBBG2  MBBG3  V0L  V0R  GFO  SPDHMul  MULU 
+HLT desicion  :	
+I-AliTPCReconstructor::GetPidSettings: Setting BB parameters from OCDB (AliTPCParam): 0.085, 9.3, 2.7e-05, 2.3, 1.8
+I-AliTPCReconstructor::GetPidSettings: Setting max sigma PID range to 15.00
+I-AliTOFReconstructor::GetPidSettings:  TOF resolution set in PIDResponse to 80.000000 ps
+I-AliReconstruction::FillMCEventHeaderESD: Filling information from MC Header
+ <message repeated 1 time>
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HLT
+I-AliReconstruction::RunLocalEventReconstruction: reconstructor->Reconstruct(dummy, NULL)
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliGRPManager::ReadGRPEntry: Found an AliGRPObject in GRP/DIR reading it
+I-AliHLTTask::ProcessTask: HLTOUTPubMansoTracks: processing event 0 again with buffer size 292
+I-AliHLTTask::ProcessTask: HLTOUTPubTrigRecs: processing event 0 again with buffer size 284
+I-AliHLTSystem::ProcessTasks: kChain_dHLT-make-esd: Event 0 successfully finished (0)
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDAD, omitting
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDFIT, omitting
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ITS
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSRecPointContainer::AliITSRecPointContainer: Container created with sizes/DIR 25 25 20 20 10 10 
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 11 7 16 11 17 18
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TPC
+I-AliTPCclusterer::Digits2Clusters: Number of found clusters : 10034
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TRD
+I-AliTRDReconstructor::GetTracklets: Allocate online tracklets[AliTRDtrackletMCM] array @ POINTER
+I-AliTRDReconstructor::GetTracks: Allocate online tracks array @ POINTER
+I-AliTRDclusterizer::MakeClusters: Set number of DCS time bins to 24 for run 0
+I-AliTRDcalibDB::GetOnlineGainTableID: looking for gaintable: Krypton_2015-02 (id 10)
+I-AliTRDcalibDB::CacheCDBEntry: loaded gain table: TRD/DIR
+I-AliTRDReconstructor::GetClusters: Allocate cluster array @ POINTER
+I-AliTRDclusterizer::MakeClusters: Found :: clusters[2018] tracklets[74] tracks[0]
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TOF
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PHOS
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HMPID
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for EMCAL
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for MUON
+I-AliMUONReconstructor::Reconstruct: Created AliMUONDigitStoreV2S from TreeD
+I-AliMUONReconstructor::Reconstruct: Created AliMUONTriggerStoreV1 from TreeD
+I-AliMUONReconstructor::CreateCalibrationData: Run with MUON TRIGGER : YES and MUON TRACKER : YES
+I-AliMUONReconstructor::CreateCalibrator: Calibration will occur.
+I-AliMUONReconstructor::CreateClusterServer: Created AliMUONSimpleClusterServer (POINTER) for specie 3 with clustering = AliMUONClusterFinderMLEM (following requesting clustering mode MLEM)
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for FMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ZDC
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for T0
+Reconstruct(TTree*digitsTree highAmpThreshold 0.000000  lowAmpThreshold 20000.000000 
+!!!! generator 0 shiftA 0.000000 shiftC 0.000000 shiftAC 0.000000
+ pmt 13 time 511 low 511 up 511
+ pmt 16 time 558 low 511 up 511
+ 1stimeA MEMORYesttimeA 0.000000 fdZonCA2.371778  shiftA 0.000000 
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for VZERO
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ACORDE
+I-AliReconstruction::RunVertexFinder: running the ITS vertex finder: AliITSVertexer3D
+I-AliMUONReconstructor::CreateTracker: Created tracker POINTER for recoparam of type LowMultiplicity es=3
+I-AliReconstruction::RunTracking: running tracking
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliTPCtracker::LoadClusters: LoadClusters()
+
+ =================================================================================================================================== 
+ AliTPCReconstructor::GetRecoParam()->GetUseIonTailCorrection() =  0
+ AliTPCReconstructor::GetRecoParam()->GetCrosstalkCorrection()  =  0
+ =================================================================================================================================== 
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 0, free: 0
+I-AliTPCtracker::Clusters2TracksHLT: Additional errors for clusters: Y:0.000000 Z:0.000000
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  0, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  1, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  2, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  3, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  4, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  5, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  6, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  7, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  8, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0,  9, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 10, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 11, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 12, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 13, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 14, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 15, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 16, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 17, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 18, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 19, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 20, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 21, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 22, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 23, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 24, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 25, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 26, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 27, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 28, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 29, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 30, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 31, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 32, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 33, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 34, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 35, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 36, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 37, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 38, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 39, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 40, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 41, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 42, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 43, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 44, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 45, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 46, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 47, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 48, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 49, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 50, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 51, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 52, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 53, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 54, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 55, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 56, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 57, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 58, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 59, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 60, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 61, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 62, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 63, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 64, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 65, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 66, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 67, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 68, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 69, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 70, 0), using current nominal voltage: 0.00
+W-AliTPCcalibDB::GetGainCorrectionHVandPT: Could not get proper HV for run,sec,time (0, 71, 0), using current nominal voltage: 0.00
+I-AliTPCtracker::FindKinks: Ncandidates=	0	0	26	953
+
+I-AliTPCtracker::Clusters2Tracks: Number of found tracks 25
+I-AliTPCtracker::FillESD: Number of filled ESDs-	25
+
+I-AliITStrackerSA::Clusters2Tracks: Number of prolonged tracks: 9 out of 25 ESD tracks
+I-AliITStrackerSA::Clusters2Tracks: timingMI: 7.279131e-01/DIR real/DIR
+I-AliITStrackerSA::FindTracks: Number of found tracks: 28
+I-AliITStrackerSA::Clusters2Tracks: timingSAcompl: 8.270741e-04/DIR real/DIR
+I-AliITStrackerSA::PropagateBack: Number of back propagated ITS tracks: 12 out of 28 ESD tracks
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 68, free: 43
+I-AliTPCtracker::PropagateBack: Number of back propagated tracks 25
+I-AliTRDtrackerV1::LoadClusters: Using :: clusters[2018] onl.tracklets[74] onl.tracks[0]
+I-AliTRDtrackerV1::PropagateBack: Extra Tolerances: boundary check: 0.00, roadY: 0.00, roadZ: 0.00, extra cl/DIR 0, ExtraChi2out: 0.00
+
+
+I-AliTRDtrackerV1::PropagateBack: Number of seeds: TPCout[13] TRDin[11]
+I-AliTRDtrackerV1::PropagateBack: Number of tracks: TRDout[13] TRDbackup[10]
+I-AliTOFtracker::LoadClusters: Number of clusters: 29
+I-AliTOFtracker::CollectESD: Number of TOF seeds = 13 (kTRDout371 = 0, kTRDoutLess371 = 13, !kTRDout = 0)
+I-AliTOFtracker::PropagateBack: Number of matched tracks = 25 (good = 21, bad = 4)
+I-AliPHOSTracker::LoadClusters: Number of loaded clusters: 3
+I-AliPHOSTracker::PropagateBack: Number of matched tracks: 0
+I-AliReconstruction::DecideFriendsStorage: AliESDfriends event stored: 28 (with TPC: 28) out of 28 friend tracks will be kept
+I-AliTRDtrackerV1::RefitInward: Number of seeds: TRDout[11]
+I-AliTRDtrackerV1::RefitInward: Number of tracks: TRDrefit[11]
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 25, free: 0
+I-AliTPCtracker::RefitInward: Number of refitted tracks 25
+AliCosmicTracker::FindCosmic: event 0: Number of cosmic pairs by AliCosmicTracker 0 out of 28 tracks, err 103
+I-AliITStrackerSA::RefitInward: Number of refitted tracks: 11 out of 28 ESD tracks
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=15, iEta=16, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=26, iEta=21, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=15, iEta=15, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=15, iEta=15, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=15, iEta=16, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=15, iEta=16, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=26, iEta=20, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=26, iEta=21, iPhi=0
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliV0vertexer::Tracks2V0vertices: Number of reconstructed V0 vertices: 2
+I-AliCascadeVertexer::V0sTracks2CascadeVertices: Number of reconstructed cascades: 0
+I-AliReconstruction::FillTriggerESD: Filling trigger information into the ESD
+ <message repeated 7 times>
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s before cleaning: 28 2
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s after cleaning 19 2
+I-AliReconstruction::RunMultFinder: running the ITS multiplicity finder: AliITSMultReconstructor
+I-AliReconstruction::ProcessEvent: HLT ESD for this event will be empty
+I-AliReconstruction::ProcessEvent: ======================= End Event 0: Res 1182(138 <138>) Vir 2060(211 <211>) CPU  2.70 < 2.70> ===================
+I-AliTPCtracker::CleanESDFriendsObjects: Removing own seeds from friend tracks
+I-AliHLTReconstructor::FinishEvent: finishing event
+I-AliReconstruction::CleanProcessedEvent: ======================= End Event ===================
+I-AliReconstruction::ProcessEvent: ================================= Processing event 1 of type Default    ==================================
+EventInfo for EventType:	7 Cosmic:OFF Laser:OFF Other:ON
+fTriggerMask/DIR	POINTER/DIR
+TriggerCluster:	ITSSPD ITSSDD ITSSSD TPC TRD TOF HMPID PHOS CPV PMD MUONTRK MUONTRG FMD T0 VZERO ZDC ACORDE TRG EMCAL 
+TriggerClasses:	 MBBG1  MBBG2  MBBG3  V0L  V0R  GFO  SPDHMul  MULU  MUHU 
+HLT desicion  :	
+I-AliTPCReconstructor::GetPidSettings: Setting BB parameters from OCDB (AliTPCParam): 0.085, 9.3, 2.7e-05, 2.3, 1.8
+I-AliTPCReconstructor::GetPidSettings: Setting max sigma PID range to 15.00
+I-AliTOFReconstructor::GetPidSettings:  TOF resolution set in PIDResponse to 80.000000 ps
+I-AliReconstruction::FillMCEventHeaderESD: Filling information from MC Header
+ <message repeated 1 time>
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HLT
+I-AliReconstruction::RunLocalEventReconstruction: reconstructor->Reconstruct(dummy, NULL)
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliHLTSystem::ProcessTasks: kChain_dHLT-make-esd: Event 1 successfully finished (0)
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDAD, omitting
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDFIT, omitting
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ITS
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 11 7 11 13 17 19
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TPC
+I-AliTPCclusterer::Digits2Clusters: Number of found clusters : 6088
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TRD
+I-AliTRDclusterizer::MakeClusters: Found :: clusters[4658] tracklets[188] tracks[0]
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TOF
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PHOS
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HMPID
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for EMCAL
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for MUON
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for FMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ZDC
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for T0
+Reconstruct(TTree*digitsTree highAmpThreshold 0.000000  lowAmpThreshold 20000.000000 
+!!!! generator 0 shiftA 0.000000 shiftC 0.000000 shiftAC 0.000000
+ pmt 6 time 509 low 511 up 511
+ 1stimeA MEMORYesttimeA 0.000000 fdZonCA2.371778  shiftA 0.000000 
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for VZERO
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ACORDE
+I-AliReconstruction::RunVertexFinder: running the ITS vertex finder: AliITSVertexer3D
+I-AliReconstruction::RunTracking: running tracking
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliTPCtracker::LoadClusters: LoadClusters()
+
+ =================================================================================================================================== 
+ AliTPCReconstructor::GetRecoParam()->GetUseIonTailCorrection() =  0
+ AliTPCReconstructor::GetRecoParam()->GetCrosstalkCorrection()  =  0
+ =================================================================================================================================== 
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 25, free: 0
+I-AliTPCtracker::Clusters2TracksHLT: Additional errors for clusters: Y:0.000000 Z:0.000000
+I-AliTPCtracker::FindKinks: Ncandidates=	0	0	16	246
+
+I-AliTPCtracker::Clusters2Tracks: Number of found tracks 16
+I-AliTPCtracker::FillESD: Number of filled ESDs-	16
+
+I-AliITStrackerSA::Clusters2Tracks: Number of prolonged tracks: 11 out of 16 ESD tracks
+I-AliITStrackerSA::Clusters2Tracks: timingMI: 3.240895e-02/DIR real/DIR
+I-AliITStrackerSA::FindTracks: Number of found tracks: 17
+I-AliITStrackerSA::Clusters2Tracks: timingSAcompl: 3.371239e-04/DIR real/DIR
+I-AliITStrackerSA::PropagateBack: Number of back propagated ITS tracks: 12 out of 17 ESD tracks
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 30, free: 14
+I-AliTPCtracker::PropagateBack: Number of back propagated tracks 16
+I-AliTRDtrackerV1::LoadClusters: Using :: clusters[4658] onl.tracklets[188] onl.tracks[0]
+I-AliTRDtrackerV1::PropagateBack: Extra Tolerances: boundary check: 0.00, roadY: 0.00, roadZ: 0.00, extra cl/DIR 0, ExtraChi2out: 0.00
+I-AliTRDtrackerV1::PropagateBack: Number of seeds: TPCout[15] TRDin[8]
+I-AliTRDtrackerV1::PropagateBack: Number of tracks: TRDout[15] TRDbackup[8]
+I-AliTOFtracker::LoadClusters: Number of clusters: 59
+I-AliTOFtracker::CollectESD: Number of TOF seeds = 14 (kTRDout371 = 0, kTRDoutLess371 = 14, !kTRDout = 0)
+I-AliTOFtracker::PropagateBack: Number of matched tracks = 28 (good = 26, bad = 2)
+I-AliPHOSTracker::LoadClusters: Number of loaded clusters: 1
+I-AliPHOSTracker::PropagateBack: Number of matched tracks: 0
+I-AliReconstruction::DecideFriendsStorage: AliESDfriends event stored: 17 (with TPC: 17) out of 17 friend tracks will be kept
+I-AliTRDtrackerV1::RefitInward: Number of seeds: TRDout[8]
+I-AliTRDtrackerV1::RefitInward: Number of tracks: TRDrefit[8]
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 16, free: 0
+I-AliTPCtracker::RefitInward: Number of refitted tracks 16
+AliCosmicTracker::FindCosmic: event 1: Number of cosmic pairs by AliCosmicTracker 0 out of 17 tracks, err 103
+I-AliITStrackerSA::RefitInward: Number of refitted tracks: 12 out of 17 ESD tracks
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliV0vertexer::Tracks2V0vertices: Number of reconstructed V0 vertices: 0
+I-AliCascadeVertexer::V0sTracks2CascadeVertices: Number of reconstructed cascades: 0
+I-AliReconstruction::FillTriggerESD: Filling trigger information into the ESD
+ <message repeated 8 times>
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s before cleaning: 17 1
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s after cleaning 16 1
+I-AliReconstruction::RunMultFinder: running the ITS multiplicity finder: AliITSMultReconstructor
+I-AliReconstruction::ProcessEvent: HLT ESD for this event will be empty
+I-AliReconstruction::ProcessEvent: ======================= End Event 1: Res 1214( 31 < 85>) Vir 2092( 32 <122>) CPU  1.47 < 2.09> ===================
+I-AliTPCtracker::CleanESDFriendsObjects: Removing own seeds from friend tracks
+I-AliHLTReconstructor::FinishEvent: finishing event
+I-AliReconstruction::CleanProcessedEvent: ======================= End Event ===================
+I-AliReconstruction::ProcessEvent: ================================= Processing event 2 of type Default    ==================================
+EventInfo for EventType:	7 Cosmic:OFF Laser:OFF Other:ON
+fTriggerMask/DIR	POINTER/DIR
+TriggerCluster:	ITSSPD ITSSDD ITSSSD TPC TRD TOF HMPID PHOS CPV PMD MUONTRK MUONTRG FMD T0 VZERO ZDC ACORDE TRG EMCAL 
+TriggerClasses:	 MBBG1  MBBG2  MBBG3  V0L  V0R  GFO  SPDHMul  MULU 
+HLT desicion  :	
+I-AliTPCReconstructor::GetPidSettings: Setting BB parameters from OCDB (AliTPCParam): 0.085, 9.3, 2.7e-05, 2.3, 1.8
+I-AliTPCReconstructor::GetPidSettings: Setting max sigma PID range to 15.00
+I-AliTOFReconstructor::GetPidSettings:  TOF resolution set in PIDResponse to 80.000000 ps
+I-AliReconstruction::FillMCEventHeaderESD: Filling information from MC Header
+ <message repeated 1 time>
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HLT
+I-AliReconstruction::RunLocalEventReconstruction: reconstructor->Reconstruct(dummy, NULL)
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliHLTSystem::ProcessTasks: kChain_dHLT-make-esd: Event 2 successfully finished (0)
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDAD, omitting
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDFIT, omitting
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ITS
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 19 10 13 14 20 14
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TPC
+I-AliTPCclusterer::Digits2Clusters: Number of found clusters : 8510
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TRD
+I-AliTRDclusterizer::MakeClusters: Found :: clusters[2387] tracklets[94] tracks[0]
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TOF
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PHOS
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HMPID
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for EMCAL
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for MUON
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for FMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ZDC
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for T0
+Reconstruct(TTree*digitsTree highAmpThreshold 0.000000  lowAmpThreshold 20000.000000 
+!!!! generator 0 shiftA 0.000000 shiftC 0.000000 shiftAC 0.000000
+ 1stimeA MEMORYesttimeA 0.000000 fdZonCA2.371778  shiftA 0.000000 
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for VZERO
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ACORDE
+I-AliReconstruction::RunVertexFinder: running the ITS vertex finder: AliITSVertexer3D
+I-AliReconstruction::RunTracking: running tracking
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliTPCtracker::LoadClusters: LoadClusters()
+
+ =================================================================================================================================== 
+ AliTPCReconstructor::GetRecoParam()->GetUseIonTailCorrection() =  0
+ AliTPCReconstructor::GetRecoParam()->GetCrosstalkCorrection()  =  0
+ =================================================================================================================================== 
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 16, free: 0
+I-AliTPCtracker::Clusters2TracksHLT: Additional errors for clusters: Y:0.000000 Z:0.000000
+I-AliTPCtracker::FindKinks: Ncandidates=	2	1	31	730
+
+I-AliTPCtracker::Clusters2Tracks: Number of found tracks 19
+I-AliTPCtracker::FillESD: Number of filled ESDs-	19
+
+I-AliITStrackerSA::Clusters2Tracks: Number of prolonged tracks: 12 out of 19 ESD tracks
+I-AliITStrackerSA::Clusters2Tracks: timingMI: 2.586102e-02/DIR real/DIR
+I-AliITStrackerSA::FindTracks: Number of found tracks: 20
+I-AliITStrackerSA::Clusters2Tracks: timingSAcompl: 4.940033e-04/DIR real/DIR
+I-AliITStrackerSA::PropagateBack: Number of back propagated ITS tracks: 13 out of 20 ESD tracks
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 47, free: 31
+I-AliTPCtracker::PropagateBack: Number of back propagated tracks 19
+I-AliTRDtrackerV1::LoadClusters: Using :: clusters[2387] onl.tracklets[94] onl.tracks[0]
+I-AliTRDtrackerV1::PropagateBack: Extra Tolerances: boundary check: 0.00, roadY: 0.00, roadZ: 0.00, extra cl/DIR 0, ExtraChi2out: 0.00
+I-AliTRDtrackerV1::PropagateBack: Number of seeds: TPCout[14] TRDin[7]
+I-AliTRDtrackerV1::PropagateBack: Number of tracks: TRDout[14] TRDbackup[6]
+I-AliTOFtracker::LoadClusters: Number of clusters: 27
+I-AliTOFtracker::CollectESD: Number of TOF seeds = 14 (kTRDout371 = 0, kTRDoutLess371 = 14, !kTRDout = 0)
+I-AliTOFtracker::PropagateBack: Number of matched tracks = 16 (good = 14, bad = 2)
+I-AliPHOSTracker::LoadClusters: Number of loaded clusters: 1
+I-AliPHOSTracker::PropagateBack: Number of matched tracks: 0
+I-AliReconstruction::DecideFriendsStorage: AliESDfriends event stored: 20 (with TPC: 20) out of 20 friend tracks will be kept
+I-AliTRDtrackerV1::RefitInward: Number of seeds: TRDout[7]
+I-AliTRDtrackerV1::RefitInward: Number of tracks: TRDrefit[7]
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 19, free: 0
+I-AliTPCtracker::RefitInward: Number of refitted tracks 19
+AliCosmicTracker::FindCosmic: event 2: Number of cosmic pairs by AliCosmicTracker 0 out of 20 tracks, err 103
+I-AliITStrackerSA::RefitInward: Number of refitted tracks: 11 out of 20 ESD tracks
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=0, iEta=14, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=3
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=14, iEta=23, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=0, iEta=13, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=0, iEta=13, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=0, iEta=14, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=0, iEta=14, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=2
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliV0vertexer::Tracks2V0vertices: Number of reconstructed V0 vertices: 0
+I-AliCascadeVertexer::V0sTracks2CascadeVertices: Number of reconstructed cascades: 0
+I-AliReconstruction::FillTriggerESD: Filling trigger information into the ESD
+ <message repeated 7 times>
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s before cleaning: 20 2
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s after cleaning 19 2
+I-AliReconstruction::RunMultFinder: running the ITS multiplicity finder: AliITSMultReconstructor
+I-AliReconstruction::ProcessEvent: HLT ESD for this event will be empty
+I-AliReconstruction::ProcessEvent: ======================= End Event 2: Res 1215(  0 < 57>) Vir 2092(  0 < 82>) CPU  1.12 < 1.77> ===================
+I-AliTPCtracker::CleanESDFriendsObjects: Removing own seeds from friend tracks
+I-AliHLTReconstructor::FinishEvent: finishing event
+I-AliReconstruction::CleanProcessedEvent: ======================= End Event ===================
+I-AliReconstruction::ProcessEvent: ================================= Processing event 3 of type Default    ==================================
+EventInfo for EventType:	7 Cosmic:OFF Laser:OFF Other:ON
+fTriggerMask/DIR	POINTER/DIR
+TriggerCluster:	ITSSPD ITSSDD ITSSSD TPC TRD TOF HMPID PHOS CPV PMD MUONTRK MUONTRG FMD T0 VZERO ZDC ACORDE TRG EMCAL 
+TriggerClasses:	 MBBG1  MBBG2  MBBG3  V0L  V0R  GFO  SPDHMul 
+HLT desicion  :	
+I-AliTPCReconstructor::GetPidSettings: Setting BB parameters from OCDB (AliTPCParam): 0.085, 9.3, 2.7e-05, 2.3, 1.8
+I-AliTPCReconstructor::GetPidSettings: Setting max sigma PID range to 15.00
+I-AliTOFReconstructor::GetPidSettings:  TOF resolution set in PIDResponse to 80.000000 ps
+I-AliReconstruction::FillMCEventHeaderESD: Filling information from MC Header
+ <message repeated 1 time>
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HLT
+I-AliReconstruction::RunLocalEventReconstruction: reconstructor->Reconstruct(dummy, NULL)
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliHLTSystem::ProcessTasks: kChain_dHLT-make-esd: Event 3 successfully finished (0)
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDAD, omitting
+E-AliHLTEsdManagerImplementation::Merge: no merging implemented for object AliESDFIT, omitting
+I-AliReconstruction::RunLocalEventReconstruction: kNDetectors = 18
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ITS
+I-AliITSRecoParam::PrintFastOrRecoParam: FastOr-Fired Chip <-> Fired Chip matching in RAW IS NOT required  -  in MC IS required
+I-AliITSDetTypeRec::DigitsToRecPoints: Number of RecPoints in ITS Layers = 11 12 11 12 13 12
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TPC
+I-AliTPCclusterer::Digits2Clusters: Number of found clusters : 6345
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TRD
+I-AliTRDclusterizer::MakeClusters: Found :: clusters[1389] tracklets[48] tracks[0]
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for TOF
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PHOS
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for HMPID
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for EMCAL
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for MUON
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for FMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ZDC
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for PMD
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for T0
+Reconstruct(TTree*digitsTree highAmpThreshold 0.000000  lowAmpThreshold 20000.000000 
+!!!! generator 0 shiftA 0.000000 shiftC 0.000000 shiftAC 0.000000
+ pmt 0 time 513 low 511 up 511
+ pmt 16 time 553 low 511 up 511
+ 1stimeA MEMORYesttimeA 0.000000 fdZonCA2.371778  shiftA 0.000000 
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for VZERO
+I-AliReconstruction::RunLocalEventReconstruction: running reconstruction for ACORDE
+I-AliReconstruction::RunVertexFinder: running the ITS vertex finder: AliITSVertexer3D
+I-AliReconstruction::RunTracking: running tracking
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliTPCtracker::LoadClusters: LoadClusters()
+
+ =================================================================================================================================== 
+ AliTPCReconstructor::GetRecoParam()->GetUseIonTailCorrection() =  0
+ AliTPCReconstructor::GetRecoParam()->GetCrosstalkCorrection()  =  0
+ =================================================================================================================================== 
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 19, free: 0
+I-AliTPCtracker::Clusters2TracksHLT: Additional errors for clusters: Y:0.000000 Z:0.000000
+I-AliTPCtracker::FindKinks: Ncandidates=	0	0	17	657
+
+I-AliTPCtracker::Clusters2Tracks: Number of found tracks 15
+I-AliTPCtracker::FillESD: Number of filled ESDs-	15
+
+I-AliITStrackerSA::Clusters2Tracks: Number of prolonged tracks: 11 out of 15 ESD tracks
+I-AliITStrackerSA::Clusters2Tracks: timingMI: 3.494883e-02/DIR real/DIR
+I-AliITStrackerSA::FindTracks: Number of found tracks: 16
+I-AliITStrackerSA::Clusters2Tracks: timingSAcompl: 4.630089e-04/DIR real/DIR
+I-AliITStrackerSA::PropagateBack: Number of back propagated ITS tracks: 12 out of 16 ESD tracks
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 55, free: 55
+I-AliTPCtracker::PropagateBack: Number of back propagated tracks 15
+I-AliTRDtrackerV1::LoadClusters: Using :: clusters[1389] onl.tracklets[48] onl.tracks[0]
+I-AliTRDtrackerV1::PropagateBack: Extra Tolerances: boundary check: 0.00, roadY: 0.00, roadZ: 0.00, extra cl/DIR 0, ExtraChi2out: 0.00
+I-AliTRDtrackerV1::PropagateBack: Number of seeds: TPCout[15] TRDin[7]
+I-AliTRDtrackerV1::PropagateBack: Number of tracks: TRDout[12] TRDbackup[5]
+I-AliTOFtracker::LoadClusters: Number of clusters: 29
+I-AliTOFtracker::CollectESD: Number of TOF seeds = 12 (kTRDout371 = 0, kTRDoutLess371 = 12, !kTRDout = 0)
+I-AliTOFtracker::PropagateBack: Number of matched tracks = 18 (good = 16, bad = 2)
+I-AliPHOSTracker::LoadClusters: Number of loaded clusters: 1
+I-AliPHOSTracker::PropagateBack: Number of matched tracks: 0
+I-AliReconstruction::DecideFriendsStorage: AliESDfriends event stored: 16 (with TPC: 16) out of 16 friend tracks will be kept
+I-AliTRDtrackerV1::RefitInward: Number of seeds: TRDout[7]
+I-AliTRDtrackerV1::RefitInward: Number of tracks: TRDrefit[7]
+I-AliTPCtracker::ResetSeedsPool: CurrentSize: 1000, BookedUpTo: 15, free: 0
+I-AliTPCtracker::RefitInward: Number of refitted tracks 14
+AliCosmicTracker::FindCosmic: event 3: Number of cosmic pairs by AliCosmicTracker 0 out of 16 tracks, err 103
+I-AliITStrackerSA::RefitInward: Number of refitted tracks: 12 out of 16 ESD tracks
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=27, iEta=10, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=27, iEta=10, iPhi=3
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=21, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=0
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=2, iEta=22, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=27, iEta=9, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=27, iEta=9, iPhi=2
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=27, iEta=10, iPhi=1
+E-AliEMCALTriggerMappingV2::GetAbsFastORIndexFromPositionInTRU: Out of range! iTRU=27, iEta=10, iPhi=2
+I-AliT0RecPoint::PrintTriggerSignals: T0 triggers tvdc 0 orA 0 orC 0 centr 0 semicentral 0
+I-AliV0vertexer::Tracks2V0vertices: Number of reconstructed V0 vertices: 0
+I-AliCascadeVertexer::V0sTracks2CascadeVertices: Number of reconstructed cascades: 0
+I-AliReconstruction::FillTriggerESD: Filling trigger information into the ESD
+ <message repeated 6 times>
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s before cleaning: 16 0
+I-AliReconstruction::CleanESD: Number of ESD tracks and V0s after cleaning 13 0
+I-AliReconstruction::RunMultFinder: running the ITS multiplicity finder: AliITSMultReconstructor
+I-AliReconstruction::ProcessEvent: HLT ESD for this event will be empty
+I-AliReconstruction::ProcessEvent: ======================= End Event 3: Res 1215(  0 < 43>) Vir 2092(  0 < 62>) CPU  1.50 < 1.70> ===================
+I-AliTPCtracker::CleanESDFriendsObjects: Removing own seeds from friend tracks
+I-AliHLTReconstructor::FinishEvent: finishing event
+I-AliReconstruction::CleanProcessedEvent: ======================= End Event ===================
+W-AliReconstruction::SlaveTerminate: Finish PlaneEff evaluation failed
+I-TCanvas::Print: ps file QAImageRec0.ps has been created
+I-AliITSQAChecker::InitQACheckerLimits: Setting of tolerance values
+
+I-AliCDBPath::InitPath: Invalid AliCDBPath <HMPID/DIR
+E-AliQAManager::Get: Run number neither specified in query nor set in AliCDBManager! Use AliCDBManager::SetRun.
+I-TCanvas::Print: Current canvas added to ps file QAImageRec0.ps
+AliEMCALReconstructor
+   Reconstruct  TIMING TIMING (4 slices)
+AliMUONCalibrationData
+   AliMUONCalibrationData  TIMING TIMING (3 slices)
+   CreateHV hvMap=POINTER TIMING TIMING (1 slices)
+   CreateObject 
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+   PatchSt1DCSAliases hvMap=POINTER TIMING TIMING (1 slices)
+AliMUONClusterFinderMLEM
+   CheckPrecluster  TIMING TIMING (81 slices)
+AliMUONDigitMaker
+   TriggerDigits  TIMING TIMING (710 slices)
+AliMUONLegacyClusterServer
+   Clusterize 
+        Chamber 0 TIMING TIMING (4 slices)
+        Chamber 1 TIMING TIMING (4 slices)
+        Chamber 2 TIMING TIMING (4 slices)
+        Chamber 3 TIMING TIMING (4 slices)
+        Chamber 4 TIMING TIMING (4 slices)
+        Chamber 5 TIMING TIMING (4 slices)
+        Chamber 6 TIMING TIMING (4 slices)
+        Chamber 7 TIMING TIMING (4 slices)
+        Chamber 8 TIMING TIMING (4 slices)
+        Chamber 9 TIMING TIMING (4 slices)
+AliMUONPadStatusMaker
+   HVSt12Status  TIMING TIMING (22 slices)
+   HVSt345Status  TIMING TIMING (48 slices)
+   HVStatus  TIMING TIMING (211 slices)
+   LVStatus  TIMING TIMING (211 slices)
+   PadStatus ComputeStatus TIMING TIMING (211 slices)
+   SetHVStatus  TIMING TIMING (70 slices)
+AliMUONPadStatusMapMaker
+   ComputeStatusMap (Int_t,Int_t) TIMING TIMING (211 slices)
+AliMUONReconstructor
+   Calibrate AliMUONDigitCalibrator::Calibrate(AliMUONVDigitStore*) TIMING TIMING (4 slices)
+   CreateCalibrationData  TIMING TIMING (1 slices)
+   CreateCalibrator  TIMING TIMING (1 slices)
+   CreateClusterServer  TIMING TIMING (4 slices)
+   CreateTriggerCircuit  TIMING TIMING (1 slices)
+   CreateTriggerUtilities  TIMING TIMING (1 slices)
+   FillTreeR  TIMING TIMING (4 slices)
+   Reconstruct  TIMING TIMING (4 slices)
+   ResponseRemovingChambers  TIMING TIMING (4 slices)
+AliMUONSimpleClusterServer
+   Clusterize 
+        Chamber 0 TIMING TIMING (4 slices)
+        Chamber 1 TIMING TIMING (4 slices)
+        Chamber 2 TIMING TIMING (4 slices)
+        Chamber 3 TIMING TIMING (4 slices)
+        Chamber 4 TIMING TIMING (4 slices)
+        Chamber 5 TIMING TIMING (4 slices)
+        Chamber 6 TIMING TIMING (4 slices)
+        Chamber 7 TIMING TIMING (4 slices)
+        Chamber 8 TIMING TIMING (4 slices)
+        Chamber 9 TIMING TIMING (4 slices)
+AliMUONTrackHitPattern
+   GetHitPattern  TIMING TIMING (13 slices)
+AliMUONTrackReconstructorK
+   EventReconstruct  TIMING TIMING (4 slices)
+   EventReconstructTrigger  TIMING TIMING (4 slices)
+   MakeSegmentsBetweenChambers  TIMING TIMING (8 slices)
+   ValidateTracksWithTrigger  TIMING TIMING (4 slices)
+AliMUONTracker
+   Clusters2Tracks  TIMING TIMING (4 slices)
+   FillESD  TIMING TIMING (4 slices)
+AliMUONTrackerData
+   CreateBusPatchParam  TIMING TIMING (888 slices)
+   CreateChamberParam  TIMING TIMING (10 slices)
+   CreateDetectionElementParam  TIMING TIMING (156 slices)
+   CreateManuParam  TIMING TIMING (16828 slices)
+   CreatePCBParam  TIMING TIMING (600 slices)
+AliMUONTriggerElectronics
+   Digits2Trigger  TIMING TIMING (235 slices)
+   Feed  TIMING TIMING (235 slices)
+   GlobalResponse  TIMING TIMING (235 slices)
+   LocalResponse  TIMING TIMING (235 slices)
+   RegionalResponse  TIMING TIMING (235 slices)
+   ResponseRemovingChambers  TIMING TIMING (4 slices)
+AliMpDCSNamer
+   ManuId2PCBIndex  TIMING TIMING (19400 slices)
+   ManuId2Sector  TIMING TIMING (7174 slices)
+AliMpDetElement
+   AddManu 
+         TIMING TIMING (16828 slices)
+        slat TIMING TIMING (9676 slices)
+        st12 TIMING TIMING (7152 slices)
+AliMpFastSegmentation
+   AliMpFastSegmentation 
+        AliMpSectorSegmentation TIMING TIMING (4 slices)
+        AliMpSlatSegmentation TIMING TIMING (38 slices)
+AliMpMotifMap
+   GetMotifPosition  TIMING TIMING (7152 slices)
+AliReconstruction
+   Begin  TIMING TIMING (1 slices)
+   FillESD  TIMING TIMING (8 slices)
+   FillTriggerESD  TIMING TIMING (4 slices)
+   GetEventInfo  TIMING TIMING (4 slices)
+   InitCDB  TIMING TIMING (1 slices)
+   InitQA  TIMING TIMING (1 slices)
+   InitRawReader  TIMING TIMING (1 slices)
+   InitRun  TIMING TIMING (1 slices)
+   LoadCDB  TIMING TIMING (1 slices)
+   LoadTriggerScalersCDB  TIMING TIMING (1 slices)
+   MergeQA  TIMING TIMING (1 slices)
+   ProcessEvent  TIMING TIMING (4 slices)
+   Run  TIMING TIMING (1 slices)
+   RunLocalEventReconstruction  TIMING TIMING (8 slices)
+   RunMultFinder  TIMING TIMING (4 slices)
+   RunMuonTracking  TIMING TIMING (4 slices)
+   RunTracking  TIMING TIMING (4 slices)
+   RunVertexFinder  TIMING TIMING (4 slices)
+   SlaveBegin  TIMING TIMING (1 slices)
+   SlaveTerminate  TIMING TIMING (1 slices)
+General
+   CreateClusterFinder  TIMING TIMING (1 slices)
+I-AliMUONPadStatusMaker::Report: 
+According to mask 8080 (human readable form below)      0 pads are bad (over a total of 1064008, i.e.    0.00 %)
+  Ped is missing | HV is missing 
+--------
+Map UniqueID = 272
+I-AliMUONDigitCalibrator::~AliMUONDigitCalibrator: Summary of messages:
+   0  ChargeSigmaCut used = 4.000000e+00    763
+I-AliMUONDigitCalibrator::~AliMUONDigitCalibrator: We have seen 763 pads, and rejected 0 (   0.00 %)
+I-AliMUONClusterFinderMLEM::~AliMUONClusterFinderMLEM: Total clusters 0 AddVirtualPad needed 0
+I-AliQAv1::ShowStatus: ====> QA Status for      ITS LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      ITS HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TPC LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity      TPC  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity      TPC  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for      TPC HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity      TPC  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity      TPC  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for      TRD LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TRD HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TOF LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TOF HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     PHOS LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     PHOS HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    HMPID LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    HMPID HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    EMCAL LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    EMCAL HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     MUON LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     MUON HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      FMD LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      FMD HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      ZDC LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      ZDC HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      PMD LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      PMD HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for       T0 LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for       T0 HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    VZERO LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity    VZERO  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity    VZERO  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for    VZERO HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity    VZERO  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity    VZERO  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for   ACORDE LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for   ACORDE HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      HLT LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      HLT HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliESDTagCreator::CreateESDTags: Creating the ESD tags.......
+I-AliESDTagCreator::CreateESDTags: writing tags to file Run0.Event0_3.ESD.tag.root
+I-AliQAv1::ShowStatus: ====> QA Status for      ITS LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      ITS HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TPC LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity      TPC  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity      TPC  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for      TPC HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity      TPC  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity      TPC  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for      TRD LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TRD HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TOF LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      TOF HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     PHOS LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     PHOS HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    HMPID LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    HMPID HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    EMCAL LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    EMCAL HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     MUON LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for     MUON HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      FMD LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      FMD HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      ZDC LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      ZDC HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      PMD LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      PMD HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for       T0 LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for       T0 HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for    VZERO LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity    VZERO  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            LowMultiplicity    VZERO  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for    VZERO HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity    VZERO  SIM  
+
+I-AliQAv1::ShowASCIIStatus:            HighMultiplicity    VZERO  SIM 0x  10, Problem signalled:     INFO 
+
+I-AliQAv1::ShowStatus: ====> QA Status for   ACORDE LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for   ACORDE HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      HLT LowMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+I-AliQAv1::ShowStatus: ====> QA Status for      HLT HighMultiplicity raw =POINTER, sim=POINTER, rec=POINTER, esd=POINTER, ana=POINTER
+AliEMCALReconstructor
+   Reconstruct  TIMING TIMING (4 slices)
+AliMUONCalibrationData
+   AliMUONCalibrationData  TIMING TIMING (3 slices)
+   CreateHV hvMap=POINTER TIMING TIMING (1 slices)
+   CreateObject 
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+        000000000 : MUON/DIR TIMING TIMING (1 slices)
+   PatchSt1DCSAliases hvMap=POINTER TIMING TIMING (1 slices)
+AliMUONClusterFinderMLEM
+   CheckPrecluster  TIMING TIMING (81 slices)
+AliMUONDigitMaker
+   TriggerDigits  TIMING TIMING (710 slices)
+AliMUONLegacyClusterServer
+   Clusterize 
+        Chamber 0 TIMING TIMING (4 slices)
+        Chamber 1 TIMING TIMING (4 slices)
+        Chamber 2 TIMING TIMING (4 slices)
+        Chamber 3 TIMING TIMING (4 slices)
+        Chamber 4 TIMING TIMING (4 slices)
+        Chamber 5 TIMING TIMING (4 slices)
+        Chamber 6 TIMING TIMING (4 slices)
+        Chamber 7 TIMING TIMING (4 slices)
+        Chamber 8 TIMING TIMING (4 slices)
+        Chamber 9 TIMING TIMING (4 slices)
+AliMUONPadStatusMaker
+   HVSt12Status  TIMING TIMING (48 slices)
+   HVSt345Status  TIMING TIMING (600 slices)
+   HVStatus  TIMING TIMING (16828 slices)
+   LVStatus  TIMING TIMING (16828 slices)
+   PadStatus ComputeStatus TIMING TIMING (211 slices)
+   Report  TIMING TIMING (1 slices)
+   SetHVStatus  TIMING TIMING (648 slices)
+AliMUONPadStatusMapMaker
+   ComputeStatusMap (Int_t,Int_t) TIMING TIMING (211 slices)
+AliMUONReconstructor
+   Calibrate AliMUONDigitCalibrator::Calibrate(AliMUONVDigitStore*) TIMING TIMING (4 slices)
+   CreateCalibrationData  TIMING TIMING (1 slices)
+   CreateCalibrator  TIMING TIMING (1 slices)
+   CreateClusterServer  TIMING TIMING (4 slices)
+   CreateTriggerCircuit  TIMING TIMING (1 slices)
+   CreateTriggerUtilities  TIMING TIMING (1 slices)
+   FillTreeR  TIMING TIMING (4 slices)
+   Reconstruct  TIMING TIMING (4 slices)
+   ResponseRemovingChambers  TIMING TIMING (4 slices)
+AliMUONSimpleClusterServer
+   Clusterize 
+        Chamber 0 TIMING TIMING (4 slices)
+        Chamber 1 TIMING TIMING (4 slices)
+        Chamber 2 TIMING TIMING (4 slices)
+        Chamber 3 TIMING TIMING (4 slices)
+        Chamber 4 TIMING TIMING (4 slices)
+        Chamber 5 TIMING TIMING (4 slices)
+        Chamber 6 TIMING TIMING (4 slices)
+        Chamber 7 TIMING TIMING (4 slices)
+        Chamber 8 TIMING TIMING (4 slices)
+        Chamber 9 TIMING TIMING (4 slices)
+AliMUONTrackHitPattern
+   GetHitPattern  TIMING TIMING (13 slices)
+AliMUONTrackReconstructorK
+   EventReconstruct  TIMING TIMING (4 slices)
+   EventReconstructTrigger  TIMING TIMING (4 slices)
+   MakeSegmentsBetweenChambers  TIMING TIMING (8 slices)
+   ValidateTracksWithTrigger  TIMING TIMING (4 slices)
+AliMUONTracker
+   Clusters2Tracks  TIMING TIMING (4 slices)
+   FillESD  TIMING TIMING (4 slices)
+AliMUONTrackerData
+   CreateBusPatchParam  TIMING TIMING (888 slices)
+   CreateChamberParam  TIMING TIMING (10 slices)
+   CreateDetectionElementParam  TIMING TIMING (156 slices)
+   CreateManuParam  TIMING TIMING (16828 slices)
+   CreatePCBParam  TIMING TIMING (600 slices)
+AliMUONTriggerElectronics
+   Digits2Trigger  TIMING TIMING (235 slices)
+   Feed  TIMING TIMING (235 slices)
+   GlobalResponse  TIMING TIMING (235 slices)
+   LocalResponse  TIMING TIMING (235 slices)
+   RegionalResponse  TIMING TIMING (235 slices)
+   ResponseRemovingChambers  TIMING TIMING (4 slices)
+AliMpDCSNamer
+   ManuId2PCBIndex  TIMING TIMING (19952 slices)
+   ManuId2Sector  TIMING TIMING (7200 slices)
+AliMpDetElement
+   AddManu 
+         TIMING TIMING (16828 slices)
+        slat TIMING TIMING (9676 slices)
+        st12 TIMING TIMING (7152 slices)
+AliMpFastSegmentation
+   AliMpFastSegmentation 
+        AliMpSectorSegmentation TIMING TIMING (4 slices)
+        AliMpSlatSegmentation TIMING TIMING (38 slices)
+AliMpMotifMap
+   GetMotifPosition  TIMING TIMING (7152 slices)
+AliReconstruction
+   Begin  TIMING TIMING (1 slices)
+   FillESD  TIMING TIMING (8 slices)
+   FillTriggerESD  TIMING TIMING (4 slices)
+   GetEventInfo  TIMING TIMING (4 slices)
+   InitCDB  TIMING TIMING (1 slices)
+   InitQA  TIMING TIMING (1 slices)
+   InitRawReader  TIMING TIMING (1 slices)
+   InitRun  TIMING TIMING (1 slices)
+   LoadCDB  TIMING TIMING (1 slices)
+   LoadTriggerScalersCDB  TIMING TIMING (1 slices)
+   MergeQA  TIMING TIMING (1 slices)
+   ProcessEvent  TIMING TIMING (4 slices)
+   Run  TIMING TIMING (1 slices)
+   RunLocalEventReconstruction  TIMING TIMING (8 slices)
+   RunMultFinder  TIMING TIMING (4 slices)
+   RunMuonTracking  TIMING TIMING (4 slices)
+   RunTracking  TIMING TIMING (4 slices)
+   RunVertexFinder  TIMING TIMING (4 slices)
+   SlaveBegin  TIMING TIMING (1 slices)
+   SlaveTerminate  TIMING TIMING (1 slices)
+   Terminate  TIMING TIMING (1 slices)
+General
+   CreateClusterFinder  TIMING TIMING (1 slices)
