@@ -4,8 +4,8 @@
 ///
 /// See implementation file for copyright details.
 
-#ifndef ALINEWTRACK_H
-#define ALINEWTRACK_H
+#ifndef ALIO2TRACK_H
+#define ALIO2TRACK_H
 
 #include "TMath.h" //Double32_t definition
 class AliVTrack;

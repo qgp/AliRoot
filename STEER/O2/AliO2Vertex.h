@@ -4,8 +4,8 @@
 ///
 /// See implementation file for copyright details.
 
-#ifndef ALINEWVERTEX_H
-#define ALINEWVERTEX_H
+#ifndef ALIO2VERTEX_H
+#define ALIO2VERTEX_H
 
 class AliVParticle;
 /// New Vertex class, still highly unspecified, is not a ROOT object.
