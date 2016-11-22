@@ -129,7 +129,18 @@ void AliO2Event::finishBuildingFromMapping(std::vector<int> indices,
     // See how far into the track array the children of this vertex start
     unsigned offset = offsetIntoTracks[vertexIndex];
     // Create a O2Track and add the track to the specified location
-    mTracks[offset] = AliO2Track(event->GetTrack(u));
+    mTracks[offset] =
+        AliO2Track(reinterpret_cast<const AliVTrack *>(event->GetTrack(u)));
+    // Now this cast is dangerous and should not be
+    // used. BUT AliAODEvent overwrites GetTrack to
+    // return an AliAODTrack which inherits from
+    // AliVTrack. For ESDs however, it does not but it
+    // inherits from AliExternalTrackParam which
+    // does... This constructor is then a bit
+    // roundabout, but it works. Neither AODs or ESDs
+    // overwrite the getVTracks function... Ideally we should implement those
+    // and then use GetVTrack
+
     // increase our offset by one so that the next track gets put in the
     // correct location.
     offsetIntoTracks[vertexIndex] += 1;

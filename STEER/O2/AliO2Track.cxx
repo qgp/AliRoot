@@ -14,28 +14,58 @@
 /// https://www.gnu.org/copyleft/gpl.html
 
 #include "AliO2Track.h"
+#include <AliExternalTrackParam.h>
 #include <AliVParticle.h>
-// default constructor
-AliO2Track::AliO2Track(float TransverseMomentum,
-                       float TransverseMomentumAnglePhi,
-                       float TransverseMomentumAngleTheta,
-                       float DistanceOfClosestApproachX,
-                       float DistanceOfClosestApproachY, float DetectionTime) {
-  mTransverseMomentum = TransverseMomentum;
-  mTransverseMomentumAnglePhi = TransverseMomentumAnglePhi;
-  mTransverseMomentumAngleTheta = TransverseMomentumAngleTheta;
-  // mDistanceOfClosestApproachX = DistanceOfClosestApproachX;
-  // mDistanceOfClosestApproachY = DistanceOfClosestApproachY;
-  // mDetectionTime = DetectionTime;
+
+// TODO: when moving to ROOT6, use constructor delegation here
+void AliO2Track::setParameters(const AliExternalTrackParam *param,
+                               Double32_t DetectionTime) {
+  setParameters(param->GetAlpha(), param->GetX(), param->GetY(), param->GetZ(),
+                param->GetSnp(), param->GetTgl(), param->GetSigned1Pt(),
+                param->GetCovariance(), DetectionTime);
 }
 
-AliO2Track::AliO2Track(const AliVParticle *particle, float DetectionTime) {
-  mTransverseMomentum = particle->Pt();
-  mTransverseMomentumAnglePhi = particle->Phi();
-  mTransverseMomentumAngleTheta = particle->Theta();
-  // mDistanceOfClosestApproachX = DistanceOfClosestApproachX;
-  // mDistanceOfClosestApproachY = DistanceOfClosestApproachY;
-  // mDetectionTime = DetectionTime;
+// TODO: when moving to ROOT6, use constructor delegation here
+void AliO2Track::setParameters(Double32_t Alpha, Double32_t X, Double32_t Y,
+                               Double32_t Z, Double32_t SinPhi,
+                               Double32_t TanLambda, Double32_t InversePt,
+                               const Double32_t *Covariance,
+                               Double32_t DetectionTime) {
+  mAlpha = Alpha;
+  mX = X;
+  mY = Y;
+  mZ = Z;
+  mSinPhi = SinPhi;
+  mTanLambda = TanLambda;
+  mInversePt = InversePt;
+  mDetectionTime = DetectionTime;
+  if (Covariance) {
+    size_t element_count = sizeof(mCovariance) / sizeof(mCovariance[0]);
+    for (unsigned u = 0; u < element_count; u++) {
+      mCovariance[u] = Covariance[u];
+    }
+  }
+}
+// default constructor
+AliO2Track::AliO2Track(Double32_t Alpha, Double32_t X, Double32_t Y,
+                       Double32_t Z, Double32_t SinPhi, Double32_t TanLambda,
+                       Double32_t InversePt, Double32_t *Covariance,
+                       Double32_t DetectionTime) {
+  setParameters(Alpha, X, Y, Z, SinPhi, TanLambda, InversePt, Covariance,
+                DetectionTime);
+}
+
+// construct from a track param
+AliO2Track::AliO2Track(const AliExternalTrackParam *param,
+                       Double32_t DetectionTime) {
+  setParameters(param, DetectionTime);
+}
+
+// Construct from a track (which is used to build a track param)
+AliO2Track::AliO2Track(const AliVTrack *track, Double32_t DetectionTime) {
+  AliExternalTrackParam param;
+  param.CopyFromVTrack(track);
+  setParameters(&param, DetectionTime);
 }
 
 // default destructor
