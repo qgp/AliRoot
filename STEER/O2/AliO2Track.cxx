@@ -22,7 +22,7 @@ ClassImp(AliO2Track);
 
 // TODO: when moving to ROOT6, use constructor delegation here
 void AliO2Track::setParameters(const AliExternalTrackParam *param,
-                               Double32_t DetectionTime) {
+                               timestamp_t DetectionTime) {
   setParameters(param->GetAlpha(), param->GetX(), param->GetY(), param->GetZ(),
                 param->GetSnp(), param->GetTgl(), param->GetSigned1Pt(),
                 param->GetCovariance(), DetectionTime);
@@ -33,7 +33,7 @@ void AliO2Track::setParameters(Double32_t Alpha, Double32_t X, Double32_t Y,
                                Double32_t Z, Double32_t SinPhi,
                                Double32_t TanLambda, Double32_t InversePt,
                                const Double32_t *Covariance,
-                               Double32_t DetectionTime) {
+                               timestamp_t DetectionTime) {
   mAlpha = Alpha;
   mX = X;
   mY = Y;
@@ -41,7 +41,7 @@ void AliO2Track::setParameters(Double32_t Alpha, Double32_t X, Double32_t Y,
   mSinPhi = SinPhi;
   mTanLambda = TanLambda;
   mInversePt = InversePt;
-  mDetectionTime = DetectionTime;
+  mTimestamp = DetectionTime;
   if (Covariance) {
     size_t element_count = sizeof(mCovariance) / sizeof(mCovariance[0]);
     for (unsigned u = 0; u < element_count; u++) {
@@ -53,19 +53,19 @@ void AliO2Track::setParameters(Double32_t Alpha, Double32_t X, Double32_t Y,
 AliO2Track::AliO2Track(Double32_t Alpha, Double32_t X, Double32_t Y,
                        Double32_t Z, Double32_t SinPhi, Double32_t TanLambda,
                        Double32_t InversePt, Double32_t *Covariance,
-                       Double32_t DetectionTime) {
+                       timestamp_t DetectionTime) {
   setParameters(Alpha, X, Y, Z, SinPhi, TanLambda, InversePt, Covariance,
                 DetectionTime);
 }
 
 // construct from a track param
 AliO2Track::AliO2Track(const AliExternalTrackParam *param,
-                       Double32_t DetectionTime) {
+                       timestamp_t DetectionTime) {
   setParameters(param, DetectionTime);
 }
 
 // Construct from a track (which is used to build a track param)
-AliO2Track::AliO2Track(const AliVTrack *track, Double32_t DetectionTime) {
+AliO2Track::AliO2Track(const AliVTrack *track, timestamp_t DetectionTime) {
   AliExternalTrackParam param;
   param.CopyFromVTrack(track);
   setParameters(&param, DetectionTime);

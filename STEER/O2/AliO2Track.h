@@ -6,41 +6,45 @@
 
 #ifndef ALIO2TRACK_H
 #define ALIO2TRACK_H
+#include "InterfaceTimestampped.h"
 #include <TMath.h> //Double32_t definition
 #include <TObject.h>
 class AliVTrack;
 class AliExternalTrackParam;
+class AliO2Vertex;
 // TODO: coordinate system
 /// New Track class, still highly unspecified, is not a ROOT object.
-class AliO2Track : public TObject {
+class AliO2Track : public TObject, public InterfaceTimestampped {
 public:
   /// Default constructor
   AliO2Track(Double32_t Alpha = 0.0f, Double32_t X = 0.0f, Double32_t Y = 0.0f,
              Double32_t Z = 0.0f, Double32_t SinPhi = 0.0f,
              Double32_t TanLambda = 0.0f, Double32_t InversePt = 0.0f,
-             Double32_t *Covariance = nullptr, Double32_t DetectionTime = 0.0f);
-  AliO2Track(const AliVTrack *track, Double32_t DetectionTime = 0.0f);
+             Double32_t *Covariance = nullptr,
+             timestamp_t DetectionTime = 0.0f);
+  AliO2Track(const AliVTrack *track, timestamp_t DetectionTime = 0.0f);
   AliO2Track(const AliExternalTrackParam *param,
-             Double32_t DetectionTime = 0.0f);
+             timestamp_t DetectionTime = 0.0f);
   /// Destructor
   ~AliO2Track();
 
+  timestamp_t getTimestamp() const { return mTimestamp; }
+
 protected:
   // protected stuff goes here
-
 private:
   /// copy constructor prohibited
   // AliO2Track(const AliO2Track &);
   /// assignment operator prohibited
   // AliO2Track &operator=(const AliO2Track &);
   void setParameters(const AliExternalTrackParam *param,
-                     Double32_t DetectionTime);
+                     timestamp_t DetectionTime);
   void setParameters(Double32_t Alpha, Double32_t X, Double32_t Y, Double32_t Z,
                      Double32_t SinPhi, Double32_t TanLambda,
                      Double32_t InversePt, const Double32_t *Covariance,
-                     Double32_t DetectionTime);
+                     timestamp_t DetectionTime);
 
-  float mDetectionTime;
+  timestamp_t mTimestamp;
   Double32_t mAlpha; // Local <-->global coor.system rotation angle
   Double32_t mX;     // X coordinate for the point of parametrisation
 
@@ -52,6 +56,7 @@ private:
   Double32_t
       mCovariance[15]; /// The track parameter covariance matrix, does not
                        /// include x, alpha, or DetectionTime.
+
   ClassDef(AliO2Track, 1);
 };
 

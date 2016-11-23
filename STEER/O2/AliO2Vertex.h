@@ -6,22 +6,24 @@
 
 #ifndef ALIO2VERTEX_H
 #define ALIO2VERTEX_H
+#include "InterfaceTimestampped.h"
 #include <TObject.h>
-class AliVParticle;
+class AliVVertex;
 /// New Vertex class, still highly unspecified, is not a ROOT object.
-class AliO2Vertex : public TObject {
+class AliO2Vertex : public TObject, public InterfaceTimestampped {
 public:
   /// Default constructor
   AliO2Vertex(float positionX = 0, float positionY = 0, float positionZ = 0,
               float detectionTime = 0.0f);
   /// Default constructor
-  AliO2Vertex(const AliVParticle *particle, float detectionTime = 0.0f);
+  AliO2Vertex(const AliVVertex *vertex, float detectionTime = 0.0f);
   /// Destructor
   ~AliO2Vertex();
-  float distanceFrom(const AliVParticle *particle);
+  float distanceFrom(const AliVVertex *vertex);
   float distanceFrom(float x, float y, float z);
-  float distanceSquaredFrom(const AliVParticle *particle);
+  float distanceSquaredFrom(const AliVVertex *vertex);
   float distanceSquaredFrom(float x, float y, float z);
+  timestamp_t getTimestamp() const { return mTimestamp; }
 
 protected:
   // protected stuff goes here
@@ -31,12 +33,11 @@ private:
   // AliO2Vertex(const AliO2Vertex &);
   /// assignment operator prohibited
   // AliO2Vertex &operator=(const AliO2Vertex &);
-  // TODO: covariance
+  timestamp_t mTimestamp;
   float mPositionX;
   float mPositionY;
   float mPositionZ;
   float covariance[3 + 2 + 1];
-  float mDetectionTime;
   ClassDef(AliO2Vertex, 1);
 };
 
