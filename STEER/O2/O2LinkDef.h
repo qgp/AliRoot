@@ -21,4 +21,6 @@
 // We use a custom streamer to allow for custom compression layers
 #pragma link C++ class AliO2Event;
 #pragma link C++ class AliO2Timeframe;
+#pragma link C++ class AliO2Track;
+#pragma link C++ class AliO2Vertex;
 #endif

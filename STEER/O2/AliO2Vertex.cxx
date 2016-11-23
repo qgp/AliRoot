@@ -14,38 +14,40 @@
 /// https://www.gnu.org/copyleft/gpl.html
 
 #include "AliO2Vertex.h"
-#include <AliVParticle.h>
+#include <AliVVertex.h>
 #include <math.h>
 ClassImp(AliO2Vertex);
 
 // default constructor
 AliO2Vertex::AliO2Vertex(float positionX, float positionY, float positionZ,
-                         float detectionTime) {
+                         timestamp_t detectionTime) {
   mPositionX = positionX;
   mPositionY = positionY;
   mPositionZ = positionZ;
-  // mDetectionTime = detectionTime;
+  mTimestamp = detectionTime;
 }
 
-AliO2Vertex::AliO2Vertex(const AliVParticle *particle, float detectionTime) {
-  mPositionX = particle->Xv();
-  mPositionY = particle->Yv();
-  mPositionZ = particle->Zv();
+// TODO: constructor delegation in ROOT6
+AliO2Vertex::AliO2Vertex(const AliVVertex *vertex, timestamp_t detectionTime) {
+  mPositionX = vertex->GetX();
+  mPositionY = vertex->GetY();
+  mPositionZ = vertex->GetZ();
+  mTimestamp = detectionTime;
 }
 
 // default destructor
 AliO2Vertex::~AliO2Vertex() {}
 
-float AliO2Vertex::distanceFrom(const AliVParticle *particle) {
-  return distanceFrom(particle->Xv(), particle->Yv(), particle->Zv());
+float AliO2Vertex::distanceFrom(const AliVVertex *vertex) {
+  return distanceFrom(vertex->GetX(), vertex->GetY(), vertex->GetZ());
 }
 
 float AliO2Vertex::distanceFrom(float x, float y, float z) {
   return sqrtf(distanceSquaredFrom(x, y, z));
 }
 
-float AliO2Vertex::distanceSquaredFrom(const AliVParticle *particle) {
-  return distanceSquaredFrom(particle->Xv(), particle->Yv(), particle->Zv());
+float AliO2Vertex::distanceSquaredFrom(const AliVVertex *vertex) {
+  return distanceSquaredFrom(vertex->GetX(), vertex->GetY(), vertex->GetZ());
 }
 
 float AliO2Vertex::distanceSquaredFrom(float x, float y, float z) {
