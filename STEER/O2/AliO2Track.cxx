@@ -17,6 +17,9 @@
 #include <AliExternalTrackParam.h>
 #include <AliVParticle.h>
 
+// root specific
+ClassImp(AliO2Track);
+
 // TODO: when moving to ROOT6, use constructor delegation here
 void AliO2Track::setParameters(const AliExternalTrackParam *param,
                                Double32_t DetectionTime) {

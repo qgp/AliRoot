@@ -16,6 +16,8 @@
 #include "AliO2Vertex.h"
 #include <AliVParticle.h>
 #include <math.h>
+ClassImp(AliO2Vertex);
+
 // default constructor
 AliO2Vertex::AliO2Vertex(float positionX, float positionY, float positionZ,
                          float detectionTime) {

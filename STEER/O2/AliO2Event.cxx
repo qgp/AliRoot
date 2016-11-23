@@ -203,14 +203,14 @@ void AliO2Event::addTrackToVertex(const AliO2Track &track, int vertexIndex) {
   }
 }
 
-void AliO2Event::Streamer(TBuffer &buffer) {
-  // Stream an object of class AliO2event->
-  if (buffer.IsReading()) {
-    createFromBuffer(buffer);
-  } else {
-    SerializeToBuffer(buffer);
-  }
-}
+// void AliO2Event::Streamer(TBuffer &buffer) {
+//   // Stream an object of class AliO2event->
+//   if (buffer.IsReading()) {
+//     createFromBuffer(buffer);
+//   } else {
+//     SerializeToBuffer(buffer);
+//   }
+// }
 
 /// Used when streaming from a TBuffer.
 void AliO2Event::createFromBuffer(TBuffer &buffer) {

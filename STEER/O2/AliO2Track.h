@@ -6,13 +6,13 @@
 
 #ifndef ALIO2TRACK_H
 #define ALIO2TRACK_H
-
-#include "TMath.h" //Double32_t definition
+#include <TMath.h> //Double32_t definition
+#include <TObject.h>
 class AliVTrack;
 class AliExternalTrackParam;
 // TODO: coordinate system
 /// New Track class, still highly unspecified, is not a ROOT object.
-class AliO2Track {
+class AliO2Track : public TObject {
 public:
   /// Default constructor
   AliO2Track(Double32_t Alpha = 0.0f, Double32_t X = 0.0f, Double32_t Y = 0.0f,
@@ -40,7 +40,7 @@ private:
                      Double32_t InversePt, const Double32_t *Covariance,
                      Double32_t DetectionTime);
 
-  Double32_t mDetectionTime;
+  float mDetectionTime;
   Double32_t mAlpha; // Local <-->global coor.system rotation angle
   Double32_t mX;     // X coordinate for the point of parametrisation
 
@@ -52,6 +52,7 @@ private:
   Double32_t
       mCovariance[15]; /// The track parameter covariance matrix, does not
                        /// include x, alpha, or DetectionTime.
+  ClassDef(AliO2Track, 1);
 };
 
 #endif
