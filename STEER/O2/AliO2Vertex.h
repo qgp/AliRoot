@@ -6,10 +6,10 @@
 
 #ifndef ALIO2VERTEX_H
 #define ALIO2VERTEX_H
-
+#include <TObject.h>
 class AliVParticle;
 /// New Vertex class, still highly unspecified, is not a ROOT object.
-class AliO2Vertex {
+class AliO2Vertex : public TObject {
 public:
   /// Default constructor
   AliO2Vertex(float positionX = 0, float positionY = 0, float positionZ = 0,
@@ -36,7 +36,8 @@ private:
   float mPositionY;
   float mPositionZ;
   float covariance[3 + 2 + 1];
-  // float mDetectionTime;
+  float mDetectionTime;
+  ClassDef(AliO2Vertex, 1);
 };
 
 #endif
