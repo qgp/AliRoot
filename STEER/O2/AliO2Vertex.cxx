@@ -20,19 +20,23 @@ ClassImp(AliO2Vertex);
 
 // default constructor
 AliO2Vertex::AliO2Vertex(float positionX, float positionY, float positionZ,
-                         timestamp_t detectionTime) {
+                         timestamp_t detectionTime,
+                         timestamp_t detectionTimeResolution) {
   mPositionX = positionX;
   mPositionY = positionY;
   mPositionZ = positionZ;
   mTimestamp = detectionTime;
+  mTimestampResolution = detectionTimeResolution;
 }
 
 // TODO: constructor delegation in ROOT6
-AliO2Vertex::AliO2Vertex(const AliVVertex *vertex, timestamp_t detectionTime) {
+AliO2Vertex::AliO2Vertex(const AliVVertex *vertex, timestamp_t detectionTime,
+                         timestamp_t detectionTimeResolution) {
   mPositionX = vertex->GetX();
   mPositionY = vertex->GetY();
   mPositionZ = vertex->GetZ();
   mTimestamp = detectionTime;
+  mTimestampResolution = detectionTimeResolution;
 }
 
 // default destructor

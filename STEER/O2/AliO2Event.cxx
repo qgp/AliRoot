@@ -15,15 +15,6 @@
 ///
 
 #include "AliO2Event.h"
-#include <AliAODEvent.h>
-#include <AliAODTrack.h>
-#include <AliESDEvent.h>
-#include <AliESDcascade.h>
-#include <AliESDtrack.h>
-#include <AliLog.h>
-#include <AliVVertex.h>
-#include <unordered_map>
-#include <vector>
 // root specific
 ClassImp(AliO2Event);
 
@@ -32,3 +23,21 @@ AliO2Event::AliO2Event() {}
 
 // default destructor
 AliO2Event::~AliO2Event() {}
+
+AliO2Event::AliO2Event(AliO2Vertex *Vertex, AliO2GlobalTrack *GlobalTracks,
+                       size_t NumberOfGlobalTracks,
+                       size_t UnambigousGlobalTracksOffset,
+                       size_t UnambigousGlobalTracksSize,
+                       AliO2ITSTrack *ITSTracks, size_t NumberOfITSTracks,
+                       size_t UnambigousITSTracksOffset,
+                       size_t UnambigousITSTracksSize) {
+  mVertex = Vertex;
+  mGlobalTracks = GlobalTracks;
+  mNumberOfGlobalTracks = NumberOfGlobalTracks;
+  mUnambigousGlobalTracksOffset = UnambigousGlobalTracksOffset;
+  mUnambigousGlobalTracksSize = UnambigousGlobalTracksSize;
+  mITSTracks = ITSTracks;
+  mNumberOfITSTracks = NumberOfITSTracks;
+  mUnambigousITSTracksOffset = UnambigousITSTracksOffset;
+  mUnambigousITSTracksSize = UnambigousITSTracksSize;
+}
