@@ -12,8 +12,7 @@
 class AliVTrack;
 class AliExternalTrackParam;
 class AliO2Vertex;
-// TODO: coordinate system
-/// New Track class, still highly unspecified, is not a ROOT object.
+/// New Track class, still highly unspecified. Basis for all track classes.
 class AliO2Track : public TObject, public InterfaceTimestampped {
 public:
   /// Default constructor
@@ -58,6 +57,29 @@ private:
                        /// include x, alpha, or DetectionTime.
 
   ClassDef(AliO2Track, 1);
+};
+/// Global tracks
+class AliO2GlobalTrack : public AliO2Track {
+  // c++11, inherit constructors
+  using AliO2Track::AliO2Track;
+
+public:
+  timestamp_t getTimestampResolution() const {
+    return 600;
+  } // 100ns guassian, 6 sigma.
+  ClassDef(AliO2GlobalTrack, 1);
+};
+/// ITS tracks
+class AliO2ITSTrack : public AliO2Track {
+  // c++11,  inherit constructors
+  using AliO2Track::AliO2Track;
+
+public:
+  timestamp_t getTimestampResolution() const {
+    return 2500; // boxed per 5000ns, so everything within this box can be
+    // associated.
+  }
+  ClassDef(AliO2ITSTrack, 1);
 };
 
 #endif

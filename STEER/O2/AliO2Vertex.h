@@ -14,9 +14,11 @@ class AliO2Vertex : public TObject, public InterfaceTimestampped {
 public:
   /// Default constructor
   AliO2Vertex(float positionX = 0, float positionY = 0, float positionZ = 0,
-              float detectionTime = 0.0f);
+              timestamp_t detectionTime = 0.0f,
+              timestamp_t detectionTimeResolution = 0.0f);
   /// Default constructor
-  AliO2Vertex(const AliVVertex *vertex, float detectionTime = 0.0f);
+  AliO2Vertex(const AliVVertex *vertex, timestamp_t detectionTime,
+              timestamp_t detectionTimeResolution);
   /// Destructor
   ~AliO2Vertex();
   float distanceFrom(const AliVVertex *vertex);
@@ -24,6 +26,7 @@ public:
   float distanceSquaredFrom(const AliVVertex *vertex);
   float distanceSquaredFrom(float x, float y, float z);
   timestamp_t getTimestamp() const { return mTimestamp; }
+  timestamp_t getTimestampResolution() const { return mTimestampResolution; }
 
 protected:
   // protected stuff goes here
@@ -34,6 +37,7 @@ private:
   /// assignment operator prohibited
   // AliO2Vertex &operator=(const AliO2Vertex &);
   timestamp_t mTimestamp;
+  timestamp_t mTimestampResolution;
   float mPositionX;
   float mPositionY;
   float mPositionZ;

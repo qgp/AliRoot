@@ -7,6 +7,7 @@
 #ifndef ALIO2TIMEFRAME_H
 #define ALIO2TIMEFRAME_H
 
+class AliO2Event;
 //#include "AliO2Event.h"
 #include "AliO2Track.h"
 #include "AliO2Vertex.h"
@@ -23,14 +24,11 @@ public:
   AliO2Timeframe();
   /// Destructor
   ~AliO2Timeframe();
-  // void addEvent(const AliO2Event &event, uint64_t timestamp) {
-  //   mEvents.push_back(event);
-  //   mTimestamps.push_back(timestamp);
-  // }
-  // void clear() { mEvents.clear(); }
   // Reads an ESD event and adds it to the timeframe with the given timestamp
   // (in ns)
-  void addEvent(const AliESDEvent *event, float timestampNs);
+  void addEvent(const AliESDEvent *event, timestamp_t timestampNs);
+  size_t getNumberOfEvents() const { return mVertices.size(); }
+  AliO2Event getEvent(size_t index);
 
 protected:
   // protected stuff goes here
@@ -42,8 +40,8 @@ private:
   AliO2Timeframe &operator=(const AliO2Timeframe &);
   // A simple container, timespam and event.
   std::vector<AliO2Vertex> mVertices; /// The vertices tracks link to
-  std::vector<AliO2Track> mGlobalTracks;
-  std::vector<AliO2Track> mITSTracks;
+  std::vector<AliO2GlobalTrack> mGlobalTracks;
+  std::vector<AliO2ITSTrack> mITSTracks;
 
   ClassDef(AliO2Timeframe, 1);
 };
