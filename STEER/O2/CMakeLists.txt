@@ -27,10 +27,25 @@ include_directories(${ROOT_INCLUDE_DIR}
 		    ${AliRoot_SOURCE_DIR}/RAW/dateStream)
 
 # Sources, globbed
-file(GLOB SRCS "*.cxx")
+#file(GLOB SRCS "*.cxx")
+set(SRCS
+  O2Event.cxx
+  O2Timeframe.cxx
+  O2Track.cxx
+  O2Vertex.cxx
+  AliO2Event.cxx
+  AliO2Timeframe.cxx
+  AliO2Track.cxx
+  AliO2Vertex.cxx
+)
 
 # Headers, from sources
 string(REPLACE ".cxx" ".h" HDRS "${SRCS}")
+set(HDRS
+  ${HDRS}
+  O2NotImplemented.h
+  InterfaceTimestampped.h
+)
 
 # Generate the dictionary
 # It will create G_ARG1.cxx and G_ARG1.h / ARG1 = function first argument
