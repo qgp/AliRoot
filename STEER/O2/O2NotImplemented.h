@@ -1,9 +1,8 @@
-#ifdef __CINT__
-/// \file O2LinkDef.h
-/// \brief Linking definitions for root-cint for the O2 additions.
-/// \since 2016-11-19
+/// \file O2NotImplemented.h
 /// \author R.G.A. Deckers
-/// \copyright
+/// \brief A simple macro for terminating when an as-of-yet unimplemented
+/// function is called.
+///
 ///  This program is free software; you can redistribute it and/or
 /// modify it under the terms of the GNU General Public License as
 /// published by the Free Software Foundation; either version 3 of
@@ -14,17 +13,12 @@
 /// General Public License for more details at
 /// https://www.gnu.org/copyleft/gpl.html
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <cstdlib>
+#include <iostream>
 
-// We use a custom streamer to allow for custom compression layers
-#pragma link C++ class O2Timeframe - ;
-
-#pragma link C++ class AliO2Timeframe;
-#pragma link C++ class AliO2Event;
-#pragma link C++ class AliO2Track;
-#pragma link C++ class AliO2GlobalTrack;
-#pragma link C++ class AliO2ITSTrack;
-#pragma link C++ class AliO2Vertex;
-#endif
+// NOTE: when needed this could be extended to print run-time stack traces.
+/// Prints out the function name to std::cerr and exits with -1.
+#define EXIT_NOT_IMPLEMENTED()                                                 \
+  std::cerr << __PRETTY_FUNCTION__ << " : NOT IMPLEMENTED, terminating!"       \
+            << std::endl;                                                      \
+  std::exit(-1);
