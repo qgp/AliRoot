@@ -15,6 +15,7 @@
 
 #include "AliO2Timeframe.h"
 #include "AliO2Event.h"
+#include <AliESDEvent.h>
 #include <TRandom2.h>
 #include <algorithm>
 // root specific
