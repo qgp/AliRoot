@@ -8,10 +8,10 @@
 #define ALIO2TIMEFRAME_H
 
 class AliO2Event;
+class AliESDEvent;
 //#include "AliO2Event.h"
 #include "AliO2Track.h"
 #include "AliO2Vertex.h"
-#include <AliESDEvent.h>
 #include <TObject.h>
 #include <stdint.h>
 #include <vector>
