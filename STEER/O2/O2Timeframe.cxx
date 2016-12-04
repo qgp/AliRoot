@@ -205,44 +205,73 @@ void O2Timeframe::Streamer(TBuffer &buffer) {
 void O2Timeframe::createFromBuffer(TBuffer &buffer) {
   UInt_t start, byteCountPosition;
   buffer.ReadVersion(&start, &byteCountPosition);
-  Int_t byte_size;
+  // Int_t byte_size;
   Int_t element_count;
-  UChar_t *vector_start;
+  // UChar_t *vector_start;
 
-  buffer >> byte_size;
-  element_count = byte_size / sizeof(mVertices[0]);
+  buffer >> element_count;
   mVertices.resize(element_count);
-  vector_start = reinterpret_cast<UChar_t *>(mVertices.data());
-  buffer.ReadFastArray(vector_start, byte_size);
+  for (Int_t i = 0; i < element_count; i++) {
+    float x;
+    buffer >> x;
+    float y;
+    buffer >> y;
+    float z;
+    buffer >> z;
+    timestamp_t ts;
+    buffer >> ts;
+    timestamp_t tsr;
+    buffer >> tsr;
+    float cov[7];
+    for (int j = 0; j < 6; j++) {
+      buffer >> cov[j];
+    }
+    mVertices[i] = O2Vertex(x, y, z, ts, tsr);
+  }
 
-  buffer >> byte_size;
-  element_count = byte_size / sizeof(mGlobalTracks[0]);
+  buffer >> element_count;
   mGlobalTracks.resize(element_count);
-  vector_start = reinterpret_cast<UChar_t *>(mGlobalTracks.data());
-  buffer.ReadFastArray(vector_start, byte_size);
+  for (Int_t i = 0; i < element_count; i++) {
+    buffer.ReadFastArray(mGlobalTracks[i].getData(),
+                         mGlobalTracks[i].getDatasize());
+  }
 
-  buffer >> byte_size;
-  element_count = byte_size / sizeof(mITSTracks[0]);
+  buffer >> element_count;
   mITSTracks.resize(element_count);
-  vector_start = reinterpret_cast<UChar_t *>(mITSTracks.data());
-  buffer.ReadFastArray(vector_start, byte_size);
+  for (Int_t i = 0; i < element_count; i++) {
+    buffer.ReadFastArray(mITSTracks[i].getData(), mITSTracks[i].getDatasize());
+  }
   buffer.CheckByteCount(start, byteCountPosition, O2Timeframe::IsA());
 }
 
 void O2Timeframe::SerializeToBuffer(TBuffer &buffer) {
   UInt_t byteCountPosition = buffer.WriteVersion(O2Timeframe::IsA(), kTRUE);
+  Int_t element_count;
 
-  UChar_t *vector_start = reinterpret_cast<UChar_t *>(mVertices.data());
-  Int_t byte_size = sizeof(mVertices[0]) * mVertices.size();
-  buffer.WriteArray(vector_start, byte_size);
+  element_count = mVertices.size();
+  buffer << element_count;
+  for (Int_t i = 0; i < element_count; i++) {
+    buffer << mVertices[i].GetX();
+    buffer << mVertices[i].GetY();
+    buffer << mVertices[i].GetZ();
+    buffer << mVertices[i].getTimestamp();
+    buffer << mVertices[i].getTimestampResolution();
+    for (int j = 0; j < 6; j++) {
+      buffer << mVertices[j].GetCovariance(j);
+    }
+  }
 
-  vector_start = reinterpret_cast<UChar_t *>(mGlobalTracks.data());
-  byte_size = sizeof(mGlobalTracks[0]) * mGlobalTracks.size();
-  buffer.WriteArray(vector_start, byte_size);
+  element_count = mGlobalTracks.size();
+  buffer << element_count;
+  for (Int_t i = 0; i < element_count; i++) {
+    buffer.WriteFastArray(mGlobalTracks[i].getData(),
+                          mGlobalTracks[i].getDatasize());
+  }
 
-  vector_start = reinterpret_cast<UChar_t *>(mITSTracks.data());
-  byte_size = sizeof(mITSTracks[0]) * mITSTracks.size();
-  buffer.WriteArray(vector_start, byte_size);
-
+  element_count = mITSTracks.size();
+  buffer << element_count;
+  for (Int_t i = 0; i < element_count; i++) {
+    buffer.WriteFastArray(mITSTracks[i].getData(), mITSTracks[i].getDatasize());
+  }
   buffer.SetByteCount(byteCountPosition, kTRUE);
 }
