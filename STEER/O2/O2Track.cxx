@@ -25,30 +25,30 @@ void O2Track::setParameters(const AliExternalTrackParam *param,
 }
 
 // TODO: when moving to ROOT6, use constructor delegation here
-void O2Track::setParameters(Double32_t Alpha, Double32_t X, Double32_t Y,
-                            Double32_t Z, Double32_t SinPhi,
-                            Double32_t TanLambda, Double32_t InversePt,
+void O2Track::setParameters(float Alpha, float X, float Y, float Z,
+                            float SinPhi, float TanLambda, float InversePt,
                             const Double32_t *Covariance,
                             timestamp_t DetectionTime) {
-  mAlpha = Alpha;
-  mX = X;
-  mY = Y;
-  mZ = Z;
-  mSinPhi = SinPhi;
-  mTanLambda = TanLambda;
-  mInversePt = InversePt;
-  mTimestamp = DetectionTime;
+  mData.Alpha = Alpha;
+  mData.X = X;
+  mData.Y = Y;
+  mData.Z = Z;
+  mData.SinPhi = SinPhi;
+  mData.TanLambda = TanLambda;
+  mData.InversePt = InversePt;
+  mData.Timestamp = DetectionTime;
   if (Covariance) {
-    size_t element_count = sizeof(mCovariance) / sizeof(mCovariance[0]);
+    size_t element_count =
+        sizeof(mData.Covariance) / sizeof(mData.Covariance[0]);
     for (unsigned u = 0; u < element_count; u++) {
-      mCovariance[u] = Covariance[u];
+      mData.Covariance[u] = Covariance[u];
     }
   }
 }
 // default constructor
-O2Track::O2Track(Double32_t Alpha, Double32_t X, Double32_t Y, Double32_t Z,
-                 Double32_t SinPhi, Double32_t TanLambda, Double32_t InversePt,
-                 Double32_t *Covariance, timestamp_t DetectionTime) {
+O2Track::O2Track(float Alpha, float X, float Y, float Z, float SinPhi,
+                 float TanLambda, float InversePt, const Double32_t *Covariance,
+                 timestamp_t DetectionTime) {
   setParameters(Alpha, X, Y, Z, SinPhi, TanLambda, InversePt, Covariance,
                 DetectionTime);
 }
