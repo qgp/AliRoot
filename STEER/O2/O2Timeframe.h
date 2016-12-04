@@ -35,10 +35,6 @@ protected:
   // protected stuff goes here
 
 private:
-  /// copy constructor prohibited
-  O2Timeframe(const O2Timeframe &);
-  /// assignment operator prohibited
-  O2Timeframe &operator=(const O2Timeframe &);
   // A simple container, timespam and event.
   std::vector<O2Vertex> mVertices; /// The vertices tracks link to
   std::vector<O2GlobalTrack> mGlobalTracks;
