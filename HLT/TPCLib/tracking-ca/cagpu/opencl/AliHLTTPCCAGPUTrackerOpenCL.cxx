@@ -45,6 +45,8 @@
 #include "AliHLTTPCCATrackletConstructor.h"
 #include "AliHLTTPCCAClusterData.h"
 
+#include <unistd.h>
+
 #include "../makefiles/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_cagpubuild_AliHLTTPCCAGPUTrackerOpenCL_cl[];
 
@@ -109,7 +111,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 	}
 
 	cl_uint count, bestDevice = (cl_uint) -1;
-	long long int bestDeviceSpeed = 0, deviceSpeed;
+	double bestDeviceSpeed = 0, deviceSpeed;
 	if (GPUFailedMsg(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &count)))
 	{
 		HLTError("Error getting OPENCL Device Count");
@@ -141,7 +143,7 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		//if (!(device_type & CL_DEVICE_TYPE_GPU)) continue;
 		if (nbits / 8 != sizeof(void*)) continue;
 
-		deviceSpeed = (long long int) freq * (long long int) shaders;
+		deviceSpeed = (double) freq * (double) shaders;
 		if (device_type & CL_DEVICE_TYPE_GPU) deviceSpeed *= 10;
 		if (fDebugLevel >= 2) {HLTDebug("Found Device %d: %s %s (Frequency %d, Shaders %d, %d bit) (Speed Value: %lld)\n", i, device_vendor, device_name, (int) freq, (int) shaders, (int) nbits, (long long int) deviceSpeed);}
 
@@ -157,7 +159,17 @@ int AliHLTTPCCAGPUTrackerOpenCL::InitGPU_Runtime(int sliceCount, int forceDevice
 		return(1);
 	}
 
-	if (forceDeviceID > -1 && forceDeviceID < (signed) count) bestDevice = forceDeviceID;
+	if (forceDeviceID > -1)
+	{
+		if (forceDeviceID < (signed) count)
+		{
+			bestDevice = forceDeviceID;
+		}
+		else
+		{
+			HLTWarning("Requested device ID %d non existend, falling back to default device id %d", forceDeviceID, bestDevice);
+		}
+	}
 	ocl->device = ocl->devices[bestDevice];
 
 	clGetDeviceInfo(ocl->device, CL_DEVICE_NAME, 64, device_name, NULL);
@@ -432,7 +444,11 @@ static inline cl_int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, si
 int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, AliHLTTPCCAClusterData* pClusterData, int firstSlice, int sliceCountLocal)
 {
 	//Primary reconstruction function
-
+	if (fGPUStuck)
+	{
+		HLTWarning("This GPU is stuck, processing of tracking for this event is skipped!");
+		return(1);
+	}
 	if (Reconstruct_Base_Init(pOutput, pClusterData, firstSlice, sliceCountLocal)) return(1);
 
 	//Copy Tracker Object to GPU Memory
@@ -614,9 +630,10 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		//clFinish(ocl->command_queue[i]);
 	}
 
+	cl_event constructorEvent;
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 0, ocl->mem_gpu);
 	clSetKernelArgA(ocl->kernel_tracklet_constructor, 1, ocl->mem_constant);
-	clExecuteKernelA(ocl->command_queue[0], ocl->kernel_tracklet_constructor, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, NULL, initEvents2, 3);
+	clExecuteKernelA(ocl->command_queue[0], ocl->kernel_tracklet_constructor, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR, HLTCA_GPU_THREAD_COUNT_CONSTRUCTOR * fConstructorBlockCount, &constructorEvent, initEvents2, 3);
 	for (int i = 0;i < 3;i++)
 	{
 		clReleaseEvent(initEvents2[i]);
@@ -626,7 +643,27 @@ int AliHLTTPCCAGPUTrackerOpenCL::Reconstruct(AliHLTTPCCASliceOutput** pOutput, A
 		SynchronizeGPU();
 		return(1);
 	}
-	clFinish(ocl->command_queue[0]);
+	if (fStuckProtection)
+	{
+		cl_int tmp;
+		for (int i = 0;i <= fStuckProtection / 50;i++)
+		{
+			usleep(50);
+			clGetEventInfo(constructorEvent, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(tmp), &tmp, NULL);
+			if (tmp == CL_COMPLETE) break;
+		}
+		if (tmp != CL_COMPLETE)
+		{
+			HLTError("GPU Stuck, future processing in this component is disabled, skipping event (GPU Event State %d)", (int) tmp);
+			fGPUStuck = 1;
+			return(1);
+		}
+	}
+	else
+	{
+		clFinish(ocl->command_queue[0]);
+	}
+	clReleaseEvent(constructorEvent);
 
 	StandalonePerfTime(firstSlice, 8);
 

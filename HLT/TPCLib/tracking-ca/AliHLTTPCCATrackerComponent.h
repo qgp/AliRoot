@@ -16,7 +16,6 @@
 class AliHLTTPCCATrackerFramework;
 class AliHLTTPCCASliceOutput;
 class AliHLTTPCCAClusterData;
-struct AliHLTTPCSpacePointData;
 
 /**
  * @class AliHLTTPCCATrackerComponent
@@ -78,6 +77,7 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
   private:
 
     static const int fgkNSlices = 36;       //* N slices
+    static const int fgkNPatches = 6;       //* N slices
 
     /** the tracker object */
     AliHLTTPCCATrackerFramework* fTracker;                      //! transient
@@ -103,8 +103,9 @@ class AliHLTTPCCATrackerComponent : public AliHLTProcessor
     int fGPUHelperThreads;            // Number of helper threads for GPU tracker, set to -1 to use default number
     int fCPUTrackers;                 //Number of CPU trackers to run in addition to GPU tracker
     bool fGlobalTracking;             //Activate global tracking feature
-	int fGPUDeviceNum;				  //GPU Device to use, default -1 for auto detection
-	TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
+    int fGPUDeviceNum;				  //GPU Device to use, default -1 for auto detection
+    TString fGPULibrary;			  //Name of the library file that provides the GPU tracker object
+    int fGPUStuckProtection;		//Protect from stuck GPUs
 
     /** set configuration parameters **/
     void SetDefaultConfiguration();

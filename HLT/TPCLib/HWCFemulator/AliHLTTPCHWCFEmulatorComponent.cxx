@@ -174,7 +174,7 @@ void AliHLTTPCHWCFEmulatorComponent::GetOutputDataSize( unsigned long& constBase
 {
   // see header file for class documentation
   constBase = 1024*1024; // 1 MB
-  inputMultiplier = (fDoMC? 0.2 :1.0)*1.5*fIORatioCorrection; // realistic IORatio for MC/Data * 50% margin * extra margin
+  inputMultiplier = (fDoMC? 0.2 :2.0)*1.5*fIORatioCorrection; // realistic IORatio for MC/Data * 50% margin * extra margin
 }
 
 
@@ -737,7 +737,7 @@ int AliHLTTPCHWCFEmulatorComponent::DoEvent( const AliHLTComponentEventData& evt
   if( outBlock ) delete[] outBlock;
   if( allocOutMC ) delete[] allocOutMC;      
   
-  if( iResult==-ENOSPC ){    
+  if( iResult==-ENOSPC && fIORatioCorrection < 1.99 ){    
     fIORatioCorrection = 2.;
     HLTInfo("Estimation of Output/Input ratio increased by factor 2");
   }

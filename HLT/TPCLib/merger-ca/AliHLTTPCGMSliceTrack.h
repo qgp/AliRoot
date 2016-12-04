@@ -58,7 +58,20 @@ class AliHLTTPCGMSliceTrack
     fCosPhi = sqrt(1.f - fSinPhi*fSinPhi);
     fSecPhi = 1.f / fCosPhi;
     fAlpha = alpha;
-    fNClusters = sliceTr->NClusters();    
+    fNClusters = sliceTr->NClusters();
+  }
+  
+  void SetGlobalSectorTrackCov()
+  {
+    fC0 = 1;
+    fC2 = 1;
+    fC3 = 0;
+    fC5 = 1;
+    fC7 = 0;
+    fC9 = 1;
+    fC10 = 0;
+    fC12 = 0;
+    fC14 = 10;	
   }
   
   void SetNClusters ( int v )                        { fNClusters = v;       }
@@ -76,7 +89,7 @@ class AliHLTTPCGMSliceTrack
 
   bool FilterErrors( AliHLTTPCCAParam &param, float maxSinPhi =.999 );
 
-  bool TransportToX( float x, float Bz, AliHLTTPCGMBorderTrack &b, float maxSinPhi ) const ;
+  bool TransportToX( float x, float Bz, AliHLTTPCGMBorderTrack &b, float maxSinPhi, bool doCov = true ) const ;
 
   bool TransportToXAlpha( float x, float sinAlpha, float cosAlpha, float Bz, AliHLTTPCGMBorderTrack &b, float maxSinPhi ) const ;
 

@@ -30,6 +30,8 @@ include_directories(${ROOT_INCLUDE_DIR}
                     ${AliRoot_SOURCE_DIR}/HLT/BASE/util
                     ${AliRoot_SOURCE_DIR}/HLT/ITS
                     ${AliRoot_SOURCE_DIR}/HLT/TPCLib
+                    ${AliRoot_SOURCE_DIR}/HLT/TRD
+                    ${AliRoot_SOURCE_DIR}/HLT/TRD/tracking
                     ${AliRoot_SOURCE_DIR}/HLT/CALO
                     ${AliRoot_SOURCE_DIR}/ITS/ITSbase
                     ${AliRoot_SOURCE_DIR}/STEER/CDB
@@ -106,7 +108,8 @@ set(SRCS
    )
 
 if(ZEROMQ_FOUND)
-  include_directories(${ZEROMQ_INCLUDE_DIR})
+  include_directories(${ZEROMQ_INCLUDE_DIR}
+                      ${AliRoot_SOURCE_DIR}/HLT/ZMQ)
   set(SRCS 
       ${SRCS}
       AliHLTZMQsink.cxx
@@ -124,7 +127,7 @@ generate_dictionary("${MODULE}" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # Generate the ROOT map
 # Dependecies
-set(LIBDEPS STEERBase STEER ESD CDB ANALYSIS ANALYSISalice HLTbase AliHLTUtil AliHLTITS AliHLTTPC TPCrec TPCbase ITSbase ITSrec TPCcalib AliHLTCalo)
+set(LIBDEPS STEERBase STEER ESD CDB ANALYSIS ANALYSISalice HLTbase AliHLTUtil AliHLTITS AliHLTTPC TPCrec TPCbase ITSbase ITSrec TPCcalib AliHLTTRD AliHLTCalo)
 if(ZEROMQ_FOUND)
   set(LIBDEPS ${LIBDEPS} ${ZEROMQ_LIBRARIES})
 endif(ZEROMQ_FOUND)
@@ -159,11 +162,12 @@ if(ZEROMQ_FOUND)
   include_directories(
                       ${AliRoot_SOURCE_DIR}/HLT/BASE/HOMER
                       ${AliRoot_SOURCE_DIR}/HLT/BASE/util
+                      ${AliRoot_SOURCE_DIR}/HLT/ZMQ
                       ${ZEROMQ_INCLUDE_DIR}
                       )
 
   add_executable(ZMQDIMlumiregServer ZMQDIMlumiregServer.cxx)
-  target_link_libraries(ZMQDIMlumiregServer HLTbase AliHLTGlobal AliHLTUtil AliHLTHOMER RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core ${ZMQ_LIBRARIES})
+  target_link_libraries(ZMQDIMlumiregServer HLTbase AliHLTGlobal AliZMQhelpers AliHLTUtil AliHLTHOMER RAWDatabase Geom Graf MathCore Net Tree EG Gpad Matrix Minuit Physics VMC Thread STEERBase XMLParser Graf3d RIO Hist Core ${ZMQ_LIBRARIES})
   
   # Installation of 
   install(TARGETS ZMQDIMlumiregServer RUNTIME DESTINATION bin)

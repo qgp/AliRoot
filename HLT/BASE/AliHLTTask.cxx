@@ -1,6 +1,6 @@
 // $Id$
 //**************************************************************************
-//* This file is property of and copyright by the                          * 
+//* This file is property of and copyright by the                          *
 //* ALICE Experiment at CERN, All rights reserved.                         *
 //*                                                                        *
 //* Primary Authors: Matthias Richter <Matthias.Richter@ift.uib.no>        *
@@ -17,7 +17,7 @@
 
 /// @file   AliHLTTask.cxx
 /// @author Matthias Richter
-/// @date   
+/// @date
 /// @brief  Implementation of HLT tasks.
 ///
 
@@ -31,8 +31,8 @@
 #include "AliHLTConfigurationHandler.h"
 #include "AliHLTComponent.h"
 #include "AliHLTComponentHandler.h"
-//#include "AliGRPManager.h"
-//#include "AliGRPObject.h"
+#include "AliHLTBaseVGRPAccess.h"
+#include "AliHLTDefinitions.h"
 #include "TList.h"
 #include "AliHLTErrorGuard.h"
 
@@ -125,24 +125,14 @@ int AliHLTTask::CreateComponent(AliHLTConfiguration* pConfiguration, AliHLTCompo
 	// currently just set to NULL.
 	iResult=pCH->CreateComponent(pConf->GetComponentID(), pComponent);
 	if (pComponent && iResult>=0) {
-	  static bool grpInitialized = false;
-	  //static const AliGRPObject *grpObj = NULL;
-	  if (grpInitialized == false)
-	  {
-	    /*static AliGRPManager grp;
-	    grp.ReadGRPEntry();
-	    const AliGRPObject *grpObjTmp = grp.GetGRPData();
-	    grpObj = grpObjTmp;*/
-	    grpInitialized = true;
-	  }
-	  //if (grpObj) pComponent->SetTimeStamp(grpObj->GetTimeStart());
-	
+	  pComponent->SetTimeStamp(AliHLTBaseVGRPAccess::GetStartTime());
+
 	  TString description;
 	  description.Form("chainid=%s", GetName());
 	  pComponent->SetComponentDescription(description.Data());
 	  const AliHLTAnalysisEnvironment* pEnv=pCH->GetEnvironment();
 	  if ((iResult=pComponent->Init(pEnv, NULL, argc, argv))>=0) {
-	    //HLTDebug("component %s (%p) created", pComponent->GetComponentID(), pComponent); 
+	    //HLTDebug("component %s (%p) created", pComponent->GetComponentID(), pComponent);
 	  } else {
 	    HLTError("Initialization of component \"%s\" failed with error %d", pComponent->GetComponentID(), iResult);
 	  }
@@ -172,18 +162,8 @@ int AliHLTTask::Deinit()
   AliHLTComponent* pComponent=GetComponent();
   fpComponent=NULL;
   if (pComponent) {
-    //HLTDebug("delete component %s (%p)", pComponent->GetComponentID(), pComponent); 
-    static bool grpInitialized = false;
-    //static const AliGRPObject *grpObj = NULL;
-    if (grpInitialized == false)
-    {
-      /*static AliGRPManager grp;
-      grp.ReadGRPEntry();
-      const AliGRPObject *grpObjTmp = grp.GetGRPData();
-      grpObj = grpObjTmp;*/
-      grpInitialized = true;
-    }
-    //if (grpObj) pComponent->SetTimeStamp(grpObj->GetTimeEnd());
+    //HLTDebug("delete component %s (%p)", pComponent->GetComponentID(), pComponent);
+    pComponent->SetTimeStamp(AliHLTBaseVGRPAccess::GetEndTime());
 
     pComponent->Deinit();
     delete pComponent;
@@ -444,7 +424,7 @@ int AliHLTTask::StartRun()
     }
     if (iResult>=0) {
       // send the SOR event
-      
+
     }
   } else {
     HLTError("task %s (%p) does not have a component", GetName(), this);
@@ -531,7 +511,7 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
 	    block++;
 	  }
 	  HLTDebug("Task %s (%p) successfully subscribed to %d data block(s) of task %s (%p)", GetName(), this, iResult, pSrcTask->GetName(), pSrcTask);
-	  iSourceDataBlock=fBlockDataArray.size();	  
+	  iSourceDataBlock=fBlockDataArray.size();
 	  iResult=0;
 	} else {
 	  HLTError("Task %s (%p): subscription to task %s (%p) failed with error %d", GetName(), this, pSrcTask->GetName(), pSrcTask, iResult);
@@ -542,7 +522,7 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
 	iResult=-EFAULT;
       }
       lnk=lnk->Next();
-    }    
+    }
 
     // process the event
     int iNofTrial=0; // repeat processing if component returns -ENOSPC
@@ -579,6 +559,10 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
       iOutputDataSize=(long unsigned int)(fInputMultiplier*iInputDataVolume) + iConstBase;
       //HLTDebug("task %s: reqired output size %d", GetName(), iOutputDataSize);
       }
+	  //Add additional buffer space for possibly required alignment corrections
+      int tmpOverhead = iOutputDataSize % kAliHLTBlockAlignment;
+      if (tmpOverhead) iOutputDataSize += kAliHLTBlockAlignment - tmpOverhead;
+      iOutputDataSize += kAliHLTBlockAlignment;
       if (iNofTrial == 0 && fpDataBuffer->GetMaxBufferSize() < iOutputDataSize) {
         //If the estimated buffer size exceeds the maximum buffer size of AliHLTRawBuffer, decrease the buffer size.
         //The estimation is often quite high, and GetMaxBufferSize should usually return a size that is sufficient.
@@ -652,7 +636,7 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
 	//  HLTFatal("input and output buffer overlap for block descriptor %d (ptr %p size %d): output buffer %p %d",
 	//	   iblock, fBlockDataArray[iblock].fPtr, fBlockDataArray[iblock].fSize,
 	//	   pTgtBuffer, size);
-	//}	
+	//}
 
 	// process
 	evtData.fBlockCnt=fBlockDataArray.size();
@@ -806,7 +790,7 @@ int AliHLTTask::ProcessTask(Int_t eventNo, AliHLTUInt32_t eventType, AliHLTTrigg
 
     fBlockDataArray.clear();
 
- } else {
+  } else {
     HLTError("internal failure (not initialized component %p, data buffer %p)", fpComponent, fpDataBuffer);
     iResult=-EFAULT;
   }
@@ -817,7 +801,7 @@ int AliHLTTask::SubscribeSourcesAndSkip()
 {
   // function carries out the proper cleanup of the source components
   // by subscribing and releasing
-  int iResult=0;  
+  int iResult=0;
   AliHLTTask* pSrcTask=NULL;
   AliHLTTaskPList subscribedTaskList;
 
@@ -1012,7 +996,7 @@ int AliHLTTask::CustomCleanup()
   return 0;
 }
 
-int AliHLTTask::LoggingVarargs(AliHLTComponentLogSeverity severity, 
+int AliHLTTask::LoggingVarargs(AliHLTComponentLogSeverity severity,
 				    const char* originClass, const char* originFunc,
 				    const char* file, int line, ... ) const
 {

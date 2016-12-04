@@ -62,6 +62,7 @@ set(SRCS
     AliGenPythiaEventHeader.cxx
     AliGenToyEventHeader.cxx
     AliHeader.cxx
+    AliHLTBaseVGRPAccess.cxx
     AliHMPIDPIDParams.cxx
     AliHMPIDPIDResponse.cxx
     AliInputEventHandler.cxx
@@ -139,6 +140,7 @@ set(SRCS
     AliVVZERO.cxx
     AliVVZEROfriend.cxx
     AliVZDC.cxx
+    AliMergeable.cxx
     TTreeStream.cxx
    )
 

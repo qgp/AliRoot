@@ -26,8 +26,6 @@
 #include "AliHLTTPCHWClusterDecoderComponent.h"
 #include "AliHLTTPCHWClusterMergerV1.h"
 #include "AliHLTTPCDefinitions.h"
-#include "AliHLTTPCSpacePointData.h"
-#include "AliHLTTPCClusterDataFormat.h"
 #include "AliHLTCDHWrapper.h"
 #include "AliHLTTPCRawCluster.h"
 #include "AliHLTTPCHWCFEmulator.h"
@@ -62,6 +60,7 @@ fDoMerge(1),
 fAlreadyMerged(0),
 fTPCPresent(0),
 fProcessingRCU2Data(0),
+fAddRandomClusters(0),
 fBenchmark("HWClusterDecoder")
 {
   // see header file for class documentation
@@ -213,6 +212,18 @@ int AliHLTTPCHWClusterDecoderComponent::ScanConfigurationArgument(int argc, cons
     fAlreadyMerged = 0;
     fProcessingRCU2Data = 1;
     return 1;
+  }
+
+  if (argument.CompareTo("-add-random-clusters") == 0)
+  {
+    if (i + 1 >= argc)
+    {
+      HLTError("Argument missing for -add-random-clsuters");
+      return -EINVAL;
+    }
+    HLTWarning("TEST MODE - Adding Random Clusters");
+    fAddRandomClusters = atoi(argv[i + 1]);
+    return 2;
   }
 
   // unknown argument
@@ -383,6 +394,31 @@ int AliHLTTPCHWClusterDecoderComponent::DoEvent(const AliHLTComponentEventData& 
 	  }
 	}	
       }
+
+      if (fAddRandomClusters)
+      {
+        int addClusters = rand() % fAddRandomClusters;
+        unsigned int seed = rand();
+        for (int i = 0;i < addClusters;i++)
+        {
+	    if(outputRaw->fCount>=maxRawClusters){
+	      HLTWarning("No more space to add clusters, exiting!");
+	      iResult  = -ENOSPC;
+	      break;
+	    }
+	    AliHLTTPCRawCluster &c = outputRaw->fClusters[outputRaw->fCount];	  
+	    c.SetPadRow(seed % 20);
+	    c.SetCharge(seed % 333);
+	    c.SetPad((seed % 600) / 10.);  
+	    c.SetTime((seed % 9878) / 10.);
+	    c.SetSigmaPad2((seed % 23) / 10.);
+	    c.SetSigmaTime2((seed % 19) / 10.);
+	    c.SetQMax(seed % 121);
+	    outputRaw->fCount++;
+	    seed += 12353;
+        }
+      }
+
       // fill into HLT output data
       AliHLTComponentBlockData bdRawClusters;
       FillBlockData( bdRawClusters );

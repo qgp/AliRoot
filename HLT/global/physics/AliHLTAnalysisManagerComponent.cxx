@@ -48,6 +48,7 @@
 #include "AliVEvent.h"
 #include "AliVfriendEvent.h"
 #include "AliSysInfo.h"
+#include "AliHLTObjArray.h"
 
 #include "TPRegexp.h"
 
@@ -68,6 +69,8 @@
 #include "AliHLTCTPData.h"
 #include "TClass.h"
 #include "TDataMember.h"
+
+#include "TDirectory.h"
 
 using namespace std;
 
@@ -101,7 +104,8 @@ AliHLTAnalysisManagerComponent::AliHLTAnalysisManagerComponent() :
   fAsyncProcess(0),
   fForceKillAsyncProcess(-1),
   fPushRequestOngoing(kFALSE),
-  fAsyncProcessor()
+  fAsyncProcessor(),
+  fAnalysisOutputContainer(NULL)
 {
   // an example component which implements the ALICE HLT processor
   // interface and does some analysis on the input raw data
@@ -210,6 +214,13 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerInit(void*)
     }
   }
 
+  //don't keep track of root objects
+  if (getenv("HLT_ONLINE_MODE") && strcmp(getenv("HLT_ONLINE_MODE"), "on") == 0)
+  {
+    TDirectory::AddDirectory(kFALSE);
+    TH1::AddDirectory(kFALSE);
+  }
+
   fAnalysisManager = new AliHLTAnalysisManager();
   fInputHandler    = new AliHLTVEventInputHandler("HLTinputHandler","HLT input handler");
   fAnalysisManager->SetInputEventHandler(fInputHandler);
@@ -226,6 +237,18 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerInit(void*)
   {
     return((void*) -1);
   }
+
+  ////this disables streaming of the fProducer and fConsumers data members of
+  ////AliAnalysisDataContainer.
+  ////It is needed to avoid memory leaks downstream.
+  ////Proper fix in the container itself may be too dangerous
+  //TClass::GetClass("AliAnalysisDataContainer")->
+  //  GetDataMember("fProducer")->
+  //  SetBit(BIT(2),0);
+  //TClass::GetClass("AliAnalysisDataContainer")->
+  //  GetDataMember("fConsumers")->
+  //  SetBit(BIT(2),0);
+
   return(NULL);
 }
 
@@ -248,9 +271,14 @@ Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*a
   HLTInfo("AliHLTAnalysisManagerComponent::DoInit (with QueueDepth %d)", fQueueDepth);
   if (fAsyncProcessor.Initialize(fQueueDepth, fAsyncProcess > 0, fAsyncProcess)) return(1);
 
-  if (fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerInit, NULL) == NULL)
+  void* initRetVal;
+  if (fAsyncProcessor.InitializeAsyncMemberTask(this, &AliHLTAnalysisManagerComponent::AnalysisManagerInit, NULL, &initRetVal) == 0)
   {
-    fAnalysisInitialized = kTRUE;
+    if (initRetVal == 0) fAnalysisInitialized = kTRUE;
+  }
+  if (!fAnalysisInitialized)
+  {
+    HLTWarning("Error initializing analysis task");
   }
 
   //Init the CTP data
@@ -259,17 +287,6 @@ Int_t AliHLTAnalysisManagerComponent::DoInit( Int_t /*argc*/, const Char_t** /*a
     HLTError("could not SetupCTPData(); ENOMEM");
     return -ENOMEM;
   }
-
-  //this disables streaming of the fProducer and fConsumers data members of
-  //AliAnalysisDataContainer.
-  //It is needed to avoid memory leaks downstream.
-  //Proper fix in the container itself may be too dangerous
-  TClass::GetClass("AliAnalysisDataContainer")->
-    GetDataMember("fProducer")->
-    SetBit(BIT(2),0);
-  TClass::GetClass("AliAnalysisDataContainer")->
-    GetDataMember("fConsumers")->
-    SetBit(BIT(2),0);
 
   return 0;
 }
@@ -305,6 +322,7 @@ Int_t AliHLTAnalysisManagerComponent::DoDeinit() {
   return 0;
 }
 
+//_________________________________________________________________________________________________
 void AliHLTAnalysisManagerComponent::CleanEventData(AnalysisManagerQueueData* eventData)
 {
   if (fAsyncProcess)
@@ -319,6 +337,37 @@ void AliHLTAnalysisManagerComponent::CleanEventData(AnalysisManagerQueueData* ev
   }
 }
 
+//_________________________________________________________________________________________________
+TCollection* AliHLTAnalysisManagerComponent::GetOutputs()
+{
+  //if not yet populated, populate the output container with pointers
+  //to output data contained in TCollections instead of AliAnalysisDataContainers
+  //which don't support proper streaming.
+  //otherwise just return the pointer.
+  if (!fAnalysisOutputContainer) {
+    fAnalysisOutputContainer = new AliHLTObjArray(1);
+    fAnalysisOutputContainer->SetOwner(kTRUE);
+    TIter i(fAnalysisManager->GetOutputs());
+    while (AliAnalysisDataContainer* adc = (AliAnalysisDataContainer*)i.Next())
+    {
+      AliHLTObjArray* ersatzCont = new AliHLTObjArray(1);
+      ersatzCont->SetName(adc->GetName());
+      ersatzCont->AddAt(adc->GetData(),0);
+      fAnalysisOutputContainer->Add(ersatzCont);
+    }
+  }
+  return fAnalysisOutputContainer;
+}
+
+//_________________________________________________________________________________________________
+void AliHLTAnalysisManagerComponent::ResetOutputData()
+{
+  fAnalysisManager->ResetOutputData();
+  delete fAnalysisOutputContainer; //this will delete the ersatz containers but not the data
+  fAnalysisOutputContainer = NULL;
+}
+
+//_________________________________________________________________________________________________
 void* AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent(void* tmpEventData)
 {
   AnalysisManagerQueueData* eventData = (AnalysisManagerQueueData*) tmpEventData;
@@ -336,11 +385,12 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent(void* tmpEventData)
   
     //pushes once every n seconds if
     //configured with -pushback-period=n
-    //fAnalysisManager->GetOutputs() is an TObjArray of AliAnalysisDataContainer objects
+    //fAnalysisManager->GetOutputs() is an AliHLTObjArray of AliHLTObjArray objects
+    //containing user output data
     fNEvents++;
     if (fPushEventModulo == 0 || fNEvents % fPushEventModulo == 0)
     {
-      retVal = fAnalysisManager->GetOutputs();
+      retVal = GetOutputs();
     }
   
     if (fQueueDepth == 0)
@@ -363,7 +413,7 @@ void* AliHLTAnalysisManagerComponent::AnalysisManagerDoEvent(void* tmpEventData)
     else
     {
       retVal = fAsyncProcessor.SerializeIntoBuffer((TObject*) retVal, this);
-      if (fResetAfterPush) {fAnalysisManager->ResetOutputData();}
+      if (fResetAfterPush) {ResetOutputData();}
     }
   }
 
@@ -484,7 +534,7 @@ Int_t AliHLTAnalysisManagerComponent::DoEvent(const AliHLTComponentEventData& ev
         int pushResult = PushBack(retObj, kAliHLTDataTypeTObject|kAliHLTDataOriginHLT,fUID);
         if (pushResult > 0)
         {
-           if (fResetAfterPush) fAnalysisManager->ResetOutputData();
+           if (fResetAfterPush) ResetOutputData();
            HLTInfo("HLT Analysis Manager pushing output: %p (%d bytes, %d events)", retVal, pushResult, fNumEvents);
            fNumEvents = 0;
         }

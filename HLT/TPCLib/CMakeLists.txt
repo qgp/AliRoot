@@ -66,13 +66,9 @@ ALICE_UseVc()
 # Sources in alphabetical order
 set(SRCS
     AliHLTTPCAgent.cxx
-    AliHLTTPCCFComparisonComponent.cxx
     AliHLTTPCClusterAccessHLTOUT.cxx    
     AliHLTTPCClusterDumpComponent.cxx
-    AliHLTTPCClusterFinderComponent.cxx
-    AliHLTTPCClusterFinder.cxx
     AliHLTTPCClusterHistoComponent.cxx
-    AliHLTTPCClusters.cxx
     AliHLTTPCClusterTransformationComponent.cxx
     AliHLTTPCClusterTransformationPrepareComponent.cxx
     AliHLTTPCOfflinePreprocessorWrapperComponent.cxx
@@ -89,17 +85,14 @@ set(SRCS
     AliHLTTPCFileHandler.cxx
     AliHLTTPCHistogramHandlerComponent.cxx
     AliHLTTPCHWCFData.cxx
-    AliHLTTPCHWCFDataReverterComponent.cxx
     AliHLTTPCHWCFSpacePointContainer.cxx
     AliHLTTPCHWClusterDecoderComponent.cxx
     AliHLTTPCLog.cxx
     AliHLTTPCMapping.cxx
     AliHLTTPCMemHandler.cxx
-    AliHLTTPCPad.cxx
     AliHLTTPCRawSpacePointContainer.cxx
     AliHLTTPCSpacePointContainer.cxx
-    AliHLTTPCTrackGeometry.cxx
-    AliHLTTPCTrackHistoComponent.cxx
+    AliHLTTPCTrackGeometry.cxx    
     AliHLTTPCTrackMCMarkerComponent.cxx
     AliHLTTPCGeometry.cxx
     comp/AliHLTTPCClusterStatComponent.cxx
@@ -132,7 +125,6 @@ set(SRCS
     tracking-ca/AliHLTTPCCAGPUTracker.cxx
     tracking-ca/AliHLTTPCCAGrid.cxx
     tracking-ca/AliHLTTPCCAHitArea.cxx
-    tracking-ca/AliHLTTPCCAInputDataCompressorComponent.cxx
     tracking-ca/AliHLTTPCCAMCPoint.cxx
     tracking-ca/AliHLTTPCCAMCTrack.cxx
     tracking-ca/AliHLTTPCCAMerger.cxx
@@ -177,6 +169,7 @@ set(HDRS ${HDRS}
     HWCFemulator/AliHLTTPCHWCFDataTypes.h
     tracking-ca/AliHLTTPCCADef.h
     tracking-ca/AliHLTTPCCAMath.h
+    transform/AliHLTTPCReverseTransformInfoV1.h
 )
 
 # Generate the dictionary

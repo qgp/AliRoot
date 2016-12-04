@@ -10,8 +10,11 @@
 #ifndef ALIHLTTPCCASLICEOUTCLUSTER_H
 #define ALIHLTTPCCASLICEOUTCLUSTER_H
 
-#include "AliHLTTPCCACompressedInputData.h"
-#include "AliHLTTPCCADataCompressor.h"
+#include "AliHLTTPCCADef.h"
+#ifdef HLTCA_STANDALONE
+#include "AliHLTTPCRootTypes.h"
+#endif
+
 
 /**
  * @class AliHLTTPCCASliceOutCluster
