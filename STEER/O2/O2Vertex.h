@@ -32,13 +32,10 @@ public:
   float GetX() const { return mPositionX; }
   float GetY() const { return mPositionY; }
   float GetZ() const { return mPositionZ; }
-
-protected:
   /// Returns an element of the covariance matrix
-  ///
-  /// Defined as protected because it is an ugly function.
   float GetCovariance(size_t at) const { return covariance[at]; }
 
+protected:
 private:
   // NOTE: Vertex timestamps are derived from contributing tracks. We probably
   // don't actually need to store these.
