@@ -13,7 +13,7 @@
 // base classes
 #include "InterfaceTimestampped.h"
 
-#include <TMath.h> //float definition
+#include <TMath.h> //Double32_t definition
 class AliVTrack;
 class AliExternalTrackParam;
 class O2Vertex;
@@ -86,9 +86,10 @@ public:
 };
 /// ITS tracks
 class O2ITSTrack : public O2Track {
-public:
   // c++11,  inherit constructors
   using O2Track::O2Track;
+
+public:
   timestamp_t getTimestampResolution() const {
     return 2500; // boxed per 5000ns, so everything within this box can be
     // associated.

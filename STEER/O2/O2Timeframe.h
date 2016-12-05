@@ -41,7 +41,6 @@ private:
   std::vector<O2GlobalTrack> mGlobalTracks;
   std::vector<O2ITSTrack> mITSTracks;
 
-  // TODO: unroot the O2 classes, implement this.
   //  root specific
   void SerializeToBuffer(TBuffer &buffer);
   void createFromBuffer(TBuffer &buffer);

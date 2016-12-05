@@ -46,6 +46,7 @@ void O2Track::setParameters(float Alpha, float X, float Y, float Z,
   }
 }
 // default constructor
+
 O2Track::O2Track(float Alpha, float X, float Y, float Z, float SinPhi,
                  float TanLambda, float InversePt, const Double32_t *Covariance,
                  timestamp_t DetectionTime) {

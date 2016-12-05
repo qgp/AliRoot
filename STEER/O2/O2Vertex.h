@@ -35,7 +35,6 @@ public:
   /// Returns an element of the covariance matrix
   float GetCovariance(size_t at) const { return covariance[at]; }
 
-protected:
 private:
   // NOTE: Vertex timestamps are derived from contributing tracks. We probably
   // don't actually need to store these.
