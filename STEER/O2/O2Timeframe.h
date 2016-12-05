@@ -30,6 +30,7 @@ public:
   void addEvent(const AliESDEvent *event, timestamp_t timestampNs);
   size_t getNumberOfEvents() const { return mVertices.size(); }
   O2Event getEvent(size_t index);
+  void WriteToFile(const std::string &filename);
 
 protected:
   // protected stuff goes here

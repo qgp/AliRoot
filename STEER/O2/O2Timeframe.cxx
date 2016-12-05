@@ -18,6 +18,8 @@
 #include <AliESDEvent.h>
 #include <TRandom2.h>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
 // root specific
 ClassImp(O2Timeframe);
 
@@ -274,4 +276,39 @@ void O2Timeframe::SerializeToBuffer(TBuffer &buffer) {
     buffer.WriteFastArray(mITSTracks[i].getData(), mITSTracks[i].getDatasize());
   }
   buffer.SetByteCount(byteCountPosition, kTRUE);
+}
+
+void O2Timeframe::WriteToFile(const std::string &filename) {
+  using namespace std;
+  ofstream buffer;
+  buffer.open(filename, ios::out | ios::trunc | ios::binary);
+  Int_t element_count;
+  element_count = mVertices.size();
+  buffer << element_count;
+  for (Int_t i = 0; i < element_count; i++) {
+    buffer << mVertices[i].GetX();
+    buffer << mVertices[i].GetY();
+    buffer << mVertices[i].GetZ();
+    buffer << mVertices[i].getTimestamp();
+    buffer << mVertices[i].getTimestampResolution();
+    for (int j = 0; j < 6; j++) {
+      buffer << mVertices[j].GetCovariance(j);
+    }
+  }
+
+  element_count = mGlobalTracks.size();
+  buffer << element_count;
+  for (Int_t i = 0; i < element_count; i++) {
+    // C style cast, ssssh, don't tell Mikolaj
+    buffer.write((const char *)mGlobalTracks[i].getData(),
+                 mGlobalTracks[i].getDatasize());
+  }
+
+  element_count = mITSTracks.size();
+  buffer << element_count;
+  for (Int_t i = 0; i < element_count; i++) {
+    buffer.write((const char *)mITSTracks[i].getData(),
+                 mITSTracks[i].getDatasize());
+  }
+  buffer.close();
 }
