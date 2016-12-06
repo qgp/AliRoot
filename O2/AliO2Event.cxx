@@ -24,20 +24,18 @@ AliO2Event::AliO2Event() {}
 // default destructor
 AliO2Event::~AliO2Event() {}
 
-AliO2Event::AliO2Event(AliO2Vertex *Vertex, AliO2GlobalTrack *GlobalTracks,
-                       size_t NumberOfGlobalTracks,
-                       size_t UnambigousGlobalTracksOffset,
-                       size_t UnambigousGlobalTracksSize,
-                       AliO2ITSTrack *ITSTracks, size_t NumberOfITSTracks,
-                       size_t UnambigousITSTracksOffset,
-                       size_t UnambigousITSTracksSize) {
-  mVertex = Vertex;
-  mGlobalTracks = GlobalTracks;
-  mNumberOfGlobalTracks = NumberOfGlobalTracks;
-  mUnambigousGlobalTracksOffset = UnambigousGlobalTracksOffset;
-  mUnambigousGlobalTracksSize = UnambigousGlobalTracksSize;
-  mITSTracks = ITSTracks;
-  mNumberOfITSTracks = NumberOfITSTracks;
-  mUnambigousITSTracksOffset = UnambigousITSTracksOffset;
-  mUnambigousITSTracksSize = UnambigousITSTracksSize;
+AliO2Event::AliO2Event(const O2Event &event) {
+  mVertex = new AliO2Vertex(event.mVertex);
+  mNumberOfGlobalTracks = event.mNumberOfGlobalTracks;
+  mUnambigousGlobalTracksOffset = event.mUnambigousGlobalTracksOffset;
+  mUnambigousGlobalTracksSize = event.mUnambigousGlobalTracksSize;
+  for (int i = 0; i < mNumberOfGlobalTracks; i++) {
+    mGlobalTracks.push_back(AliO2GlobalTrack(event.mGlobalTracks[i]));
+  }
+  mNumberOfITSTracks = event.mNumberOfITSTracks;
+  mUnambigousITSTracksOffset = event.mUnambigousITSTracksOffset;
+  mUnambigousITSTracksSize = event.mUnambigousITSTracksSize;
+  for (int i = 0; i < mNumberOfITSTracks; i++) {
+    mITSTracks.push_back(AliO2ITSTrack(event.mITSTracks[i]));
+  }
 }

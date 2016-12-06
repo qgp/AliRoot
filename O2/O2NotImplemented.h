@@ -15,10 +15,10 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <string>
 
 // NOTE: when needed this could be extended to print run-time stack traces.
 /// Prints out the function name to std::cerr and exits with -1.
 #define EXIT_NOT_IMPLEMENTED()                                                 \
-  std::cerr << __PRETTY_FUNCTION__ << " : NOT IMPLEMENTED, terminating!"       \
-            << std::endl;                                                      \
-  std::exit(-1);
+  std::cerr << std::string(__PRETTY_FUNCTION__).append(" : NOT IMPLEMENTED");  \
+  __builtin_trap();

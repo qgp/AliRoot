@@ -1,7 +1,6 @@
-#ifdef __CINT__
-/// \file O2LinkDef.h
-/// \brief Linking definitions for root-cint for the O2 additions.
-/// \since 2016-11-19
+/// \file AliO2Track.cxx
+/// \brief implementation of the AliO2Track class.
+/// \since 2016-11-15
 /// \author R.G.A. Deckers
 /// \copyright
 ///  This program is free software; you can redistribute it and/or
@@ -14,17 +13,12 @@
 /// General Public License for more details at
 /// https://www.gnu.org/copyleft/gpl.html
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "AliO2Track.h"
+#include <AliExternalTrackParam.h>
+#include <AliVParticle.h>
 
-// We use a custom streamer to allow for custom compression layers
-#pragma link C++ class O2Timeframe - ;
+// root specific
+ClassImp(AliO2Track);
 
-#pragma link C++ class AliO2Timeframe;
-#pragma link C++ class AliO2Event;
-#pragma link C++ class AliO2Track;
-#pragma link C++ class AliO2GlobalTrack;
-#pragma link C++ class AliO2ITSTrack;
-#pragma link C++ class AliO2Vertex;
-#endif
+AliO2Track::AliO2Track(const O2Track &track) { mData = track.mData; }
+AliO2Track::~AliO2Track() {}

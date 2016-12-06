@@ -18,6 +18,14 @@
 #include <math.h>
 ClassImp(AliO2Vertex);
 
+AliO2Vertex::AliO2Vertex(const O2Vertex *vertex) {
+  mPositionX = vertex->mPositionX;
+  mPositionY = vertex->mPositionY;
+  mPositionZ = vertex->mPositionZ;
+  mTimestamp = vertex->mTimestamp;
+  mTimestampResolution = vertex->mTimestampResolution;
+}
+
 // default constructor
 AliO2Vertex::AliO2Vertex(float positionX, float positionY, float positionZ,
                          timestamp_t detectionTime,
@@ -41,22 +49,3 @@ AliO2Vertex::AliO2Vertex(const AliVVertex *vertex, timestamp_t detectionTime,
 
 // default destructor
 AliO2Vertex::~AliO2Vertex() {}
-
-float AliO2Vertex::distanceFrom(const AliVVertex *vertex) {
-  return distanceFrom(vertex->GetX(), vertex->GetY(), vertex->GetZ());
-}
-
-float AliO2Vertex::distanceFrom(float x, float y, float z) {
-  return sqrtf(distanceSquaredFrom(x, y, z));
-}
-
-float AliO2Vertex::distanceSquaredFrom(const AliVVertex *vertex) {
-  return distanceSquaredFrom(vertex->GetX(), vertex->GetY(), vertex->GetZ());
-}
-
-float AliO2Vertex::distanceSquaredFrom(float x, float y, float z) {
-  float dx = mPositionX - x;
-  float dy = mPositionY - y;
-  float dz = mPositionZ - z;
-  return dx * dx + dy * dy + dz * dz;
-}

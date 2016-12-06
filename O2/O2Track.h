@@ -74,6 +74,7 @@ protected:
 
 private:
   O2TrackData_t mData;
+  friend class AliO2Track;
 };
 /// Global tracks
 class O2GlobalTrack : public O2Track {

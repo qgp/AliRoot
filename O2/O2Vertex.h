@@ -33,10 +33,10 @@ public:
   float GetY() const { return mPositionY; }
   float GetZ() const { return mPositionZ; }
   /// Returns an element of the covariance matrix
-  float GetCovariance(size_t at) const { return covariance[at]; }
+  float GetCovariance(size_t at) const { return mCovariance[at]; }
 
 private:
-  // NOTE: Vertex timestamps are derived from contributing tracks. We probably
+  // NOTE: Vertex timestamps are derived from contribting tracks. We probably
   // don't actually need to store these.
   timestamp_t mTimestamp;
   timestamp_t mTimestampResolution;
@@ -45,7 +45,8 @@ private:
   float mPositionY;
   float mPositionZ;
   // NOTE: Should this be extended to include the temporal coordinate?
-  float covariance[3 + 2 + 1];
+  float mCovariance[3 + 2 + 1];
+  friend class AliO2Vertex;
 };
 
 #endif

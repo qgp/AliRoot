@@ -18,10 +18,11 @@ set(MODULE O2)
 add_definitions(-D_MODULE_="${MODULE}")
 
 # Module include folders
-include_directories(${AliRoot_SOURCE_DIR}/STEER/${MODULE})
+include_directories(${AliRoot_SOURCE_DIR}/${MODULE})
 
 # Additional include directories - alphabetical order except ROOT
 include_directories(${ROOT_INCLUDE_DIR}
+                    ${AliRoot_SOURCE_DIR}/ANALYSIS/ANALYSIS
                     ${AliRoot_SOURCE_DIR}/STEER/STEERBase
                     ${AliRoot_SOURCE_DIR}/STEER/STEER
 		    ${AliRoot_SOURCE_DIR}/RAW/dateStream)
@@ -34,9 +35,11 @@ set(SRCS
   O2Track.cxx
   O2Vertex.cxx
   AliO2Event.cxx
-  AliO2Timeframe.cxx
   AliO2Track.cxx
   AliO2Vertex.cxx
+  AliO2AnalysisManager.cxx
+  AliO2InputHandler.cxx
+  AliO2AnalysisTaskSE.cxx
 )
 
 # Headers, from sources
@@ -54,7 +57,7 @@ generate_dictionary("O2" "${MODULE}LinkDef.h" "${HDRS}" "${incdirs}")
 
 # TODO: set these
 set(ROOT_DEPENDENCIES Core EG Geom Gpad Graf3d MathCore Matrix Physics RIO Tree)
-set(ALIROOT_DEPENDENCIES STEERBase AOD ESD)
+set(ALIROOT_DEPENDENCIES ANALYSIS STEER AOD ESD)
 
 # Generate the ROOT map
 # Dependecies
@@ -70,7 +73,7 @@ add_library(${MODULE}-object OBJECT ${SRCS} G__${MODULE}.cxx)
 
 # Add a library to the project using the object
 add_library(${MODULE} SHARED $<TARGET_OBJECTS:O2-object>)
-target_link_libraries(${MODULE} ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES})
+target_link_libraries(${MODULE} ${ALIROOT_DEPENDENCIES} ${ROOT_DEPENDENCIES} utilities)
 
 # Setting the correct headers for the object as gathered from the dependencies
 target_include_directories(${MODULE}-object PUBLIC $<TARGET_PROPERTY:${MODULE},INCLUDE_DIRECTORIES>)
