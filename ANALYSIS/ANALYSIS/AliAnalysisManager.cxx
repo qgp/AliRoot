@@ -1982,12 +1982,6 @@ Long64_t AliAnalysisManager::StartAnalysis(const char *type, Long64_t nentries,
 Long64_t AliAnalysisManager::StartAnalysis(const char *type, TTree *const tree,
                                            Long64_t nentries,
                                            Long64_t firstentry) {
-  if (fTree) {
-    printf("AliAnalysisManager tree is : \n");
-    fTree->ls();
-  } else {
-    puts("Tree not set!");
-  }
   // Start analysis for this manager. Analysis task can be: LOCAL, PROOF, GRID
   // or
   // MIX. Process nentries starting from firstentry
