@@ -26,16 +26,17 @@ public:
   // TODO: should make it so that this is hidden in a way (perhaps make it a
   // protected friend with timeframe).
   /// Explicit constructor
-  O2Event(O2Vertex *Vertex, O2GlobalTrack *GlobalTracks,
-          size_t NumberOfGlobalTracks, size_t UnambigousGlobalTracksOffset,
+  O2Event(O2Vertex *Vertices, size_t NumberOfVertices,
+          O2GlobalTrack *GlobalTracks, size_t NumberOfGlobalTracks,
+          size_t UnambigousGlobalTracksOffset,
           size_t UnambigousGlobalTracksSize, O2ITSTrack *ITSTracks,
           size_t NumberOfITSTracks, size_t UnambigousITSTracksOffset,
           size_t UnambigousITSTracksSize);
   /// Destructor
   ~O2Event();
-  timestamp_t getTimestamp() const { return mVertex->getTimestamp(); }
+  timestamp_t getTimestamp() const { return mVertices->getTimestamp(); }
   timestamp_t getTimestampResolution() const {
-    return mVertex->getTimestampResolution();
+    return mVertices->getTimestampResolution();
   }
   size_t GetNumberOfTracks() const {
     return GetNumberOfGlobalTracks() + GetNumberOfITSTracks();
@@ -61,7 +62,7 @@ public:
   size_t GetNumberOfAmbigousITSTracks() const {
     return GetNumberOfITSTracks() - GetNumberOfUnambigousITSTracks();
   }
-  O2Vertex *GetVertex() const { return mVertex; }
+  O2Vertex *GetVertex() const { return mVertices; }
   O2GlobalTrack *GetGlobalTrack(size_t index) const {
     return (index < mNumberOfGlobalTracks ? mGlobalTracks + index : NULL);
   }
@@ -84,8 +85,8 @@ protected:
 
 private:
   /// Pointer to the vertex in our timeframe
-  O2Vertex *mVertex; // ->
-
+  O2Vertex *mVertices; // ->
+  size_t mNumberOfVertices;
   /// pointer to the first associated global track.  Can have ambigous tracks at
   /// the start and the end, but any unambigous tracks will be stored in the
   /// center. Sorted by time.

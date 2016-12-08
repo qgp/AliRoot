@@ -37,9 +37,10 @@ public:
   AliO2Event(const O2Event &);
   /// Destructor
   ~AliO2Event();
-  timestamp_t getTimestamp() const { return mVertex.getTimestamp(); }
+  bool isPileup() const { return mVertices.size() > 1; }
+  timestamp_t getTimestamp() const { return mVertices[0].getTimestamp(); }
   timestamp_t getTimestampResolution() const {
-    return mVertex.getTimestampResolution();
+    return mVertices[0].getTimestampResolution();
   }
   Int_t GetNumberOfTracks() const {
     return GetNumberOfGlobalTracks() + GetNumberOfITSTracks();
@@ -65,13 +66,23 @@ public:
   Int_t GetNumberOfAmbigousITSTracks() const {
     return GetNumberOfITSTracks() - GetNumberOfUnambigousITSTracks();
   }
-  AliO2Vertex *GetVertex() { return &mVertex; }
-  AliO2Track *GetGlobalTrack(Int_t index) {
+  AliO2Vertex *GetVertex() { return &mVertices[0]; }
+  const AliO2Track *GetGlobalTrack(Int_t index) const {
     return (index < mNumberOfGlobalTracks ? mGlobalTracks.data() + index
                                           : NULL);
   }
-  AliO2Track *GetITSTrack(Int_t index) {
+  const AliO2Track *GetUnambigousGlobalTrack(Int_t index) const {
+    return (index < GetNumberOfUnambigousGlobalTracks()
+                ? mGlobalTracks.data() + index + mUnambigousGlobalTracksOffset
+                : NULL);
+  }
+  const AliO2Track *GetITSTrack(Int_t index) const {
     return (index < mNumberOfITSTracks ? mITSTracks.data() + index : NULL);
+  }
+  const AliO2Track *GetUnambigousITSTrack(Int_t index) const {
+    return (index < GetNumberOfUnambigousITSTracks()
+                ? mITSTracks.data() + index + mUnambigousITSTracksOffset
+                : NULL);
   }
   // This function prototype is constant, but it returns a mutable pointer.
   // We own the pointer in this case, so it is not const!
@@ -181,7 +192,7 @@ protected:
 
 private:
   /// Pointer to the vertex in our timeframe
-  AliO2Vertex mVertex;
+  std::vector<AliO2Vertex> mVertices;
   /// pointer to the first associated global track.  Can have ambigous tracks at
   /// the start and the end, but any unambigous tracks will be stored in the
   /// center. Sorted by time.

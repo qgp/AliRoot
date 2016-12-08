@@ -23,6 +23,8 @@ class O2Timeframe : public TObject {
 public:
   /// Default constructor
   O2Timeframe();
+
+  static O2Timeframe *NewFromStream(const istream &stream);
   /// Destructor
   ~O2Timeframe();
   // Reads an ESD event and adds it to the timeframe with the given timestamp
@@ -31,12 +33,15 @@ public:
   size_t getNumberOfEvents() const { return mVertices.size(); }
   O2Event getEvent(size_t index);
   void WriteToFile(const std::string &filename);
+  size_t estimate_compression();
 
 protected:
   // protected stuff goes here
 
 private:
   // A simple container, timespam and event.
+  // when created from a file, can be created once: i.e. a fixed size array.
+  // Can share events across nodes using array_views into this structure.
   std::vector<O2Vertex> mVertices; /// The vertices tracks link to
   std::vector<O2GlobalTrack> mGlobalTracks;
   std::vector<O2ITSTrack> mITSTracks;

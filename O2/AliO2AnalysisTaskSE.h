@@ -23,7 +23,7 @@ public:
   ~AliO2AnalysisTaskSE();
   virtual AliVEvent *InputEvent() const {
     auto handler = dynamic_cast<AliO2InputHandler *>(this->fInputHandler);
-    return handler->GetEvent();
+    return handler ? handler->GetEvent() : fInputEvent;
   }
 
 protected:

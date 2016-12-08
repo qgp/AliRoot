@@ -25,7 +25,7 @@ public:
   virtual Double_t Px() const { EXIT_NOT_IMPLEMENTED(); }
   virtual Double_t Py() const { EXIT_NOT_IMPLEMENTED(); }
   virtual Double_t Pz() const { EXIT_NOT_IMPLEMENTED(); }
-  virtual Double_t Pt() const { EXIT_NOT_IMPLEMENTED(); }
+  virtual Double_t Pt() const { return O2Track::GetPt(); }
   virtual Double_t P() const { EXIT_NOT_IMPLEMENTED(); }
   virtual Bool_t PxPyPz(Double_t p[3]) const { EXIT_NOT_IMPLEMENTED(); }
 

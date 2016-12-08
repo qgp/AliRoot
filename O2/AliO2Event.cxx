@@ -25,7 +25,9 @@ AliO2Event::AliO2Event() {}
 AliO2Event::~AliO2Event() {}
 
 AliO2Event::AliO2Event(const O2Event &event) {
-  mVertex = new AliO2Vertex(event.mVertex);
+  for (size_t i = 0; i < event.mNumberOfVertices; i++) {
+    mVertices.push_back(AliO2Vertex(event.mVertices + i));
+  }
   mNumberOfGlobalTracks = event.mNumberOfGlobalTracks;
   mUnambigousGlobalTracksOffset = event.mUnambigousGlobalTracksOffset;
   mUnambigousGlobalTracksSize = event.mUnambigousGlobalTracksSize;

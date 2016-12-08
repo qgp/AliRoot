@@ -34,6 +34,7 @@ set(SRCS
   O2Timeframe.cxx
   O2Track.cxx
   O2Vertex.cxx
+  O2CompressedArray.cxx
   AliO2Event.cxx
   AliO2Track.cxx
   AliO2Vertex.cxx

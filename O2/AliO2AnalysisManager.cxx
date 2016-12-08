@@ -57,8 +57,10 @@ Bool_t AliO2AnalysisManager::initialize(const std::list<std::string> &files) {
   AliO2InputHandler *handler =
       dynamic_cast<AliO2InputHandler *>(this->GetInputEventHandler());
   if (!handler) {
-    std::cerr << "AliO2AnalysisManager used without a AliO2InputHandler!";
-    return kFALSE;
+    // We do not have an O2 input
+    report(
+        FAIL,
+        "AliO2AnalysisManager::initialize used without a AliO2InputHandler!");
   } else {
     fTree = nullptr;
     return handler->initialize(files);
@@ -66,13 +68,14 @@ Bool_t AliO2AnalysisManager::initialize(const std::list<std::string> &files) {
 }
 
 void AliO2AnalysisManager::ExecAnalysis(Option_t *option) {
-  std::cout << "Starting to ExecAnalysis" << std::endl;
   AliO2InputHandler *handler =
       dynamic_cast<AliO2InputHandler *>(this->GetInputEventHandler());
   if (!handler) {
-    report(FAIL, "AliO2AnalysisManager used without a AliO2InputHandler!");
-    return;
+    // report(WARN, "AliO2AnalysisManager used without a AliO2InputHandler! "
+    //              "giving back control to AliAnalysisManager");
+    return AliAnalysisManager::ExecAnalysis(option);
   } else {
+    RunLocalInit();
     // printf("Our tree contains: \n");
     AliAnalysisTask *task;
     // Call create output objects for each task.
@@ -81,6 +84,12 @@ void AliO2AnalysisManager::ExecAnalysis(Option_t *option) {
       TIter task_iter(fTasks);
       while ((task = (AliAnalysisTask *)task_iter())) {
         task->CreateOutputObjects();
+        if (!task->CheckPostData()) {
+          Error("SlaveBegin", "####### IMPORTANT! ####### \n\n\n\
+                        Task %s (%s) did not call PostData() for all its outputs in (User)CreateOutputObjects()\n\n\
+                        ########### FIX YOUR CODE, THIS WILL PRODUCE A FATAL ERROR IN FUTURE! ###########",
+                task->GetName(), task->ClassName());
+        }
       }
     }
     report(PASS, "Called CreateOutputObjects for each task");
@@ -103,172 +112,10 @@ void AliO2AnalysisManager::ExecAnalysis(Option_t *option) {
       while ((task = (AliAnalysisTask *)task_iter())) {
         task->Terminate();
       }
+      if (fOutputEventHandler)
+        fOutputEventHandler->FinishEvent();
       report(PASS, "DONE! Enjoy your fresh analysis results! :)");
     }
   }
+  Terminate();
 }
-//
-// // Execute analysis.
-// static Long64_t nentries = 0;
-// static TTree *lastTree = 0;
-// static TStopwatch *timer = new TStopwatch();
-// // Only the first call to Process will trigger a true Notify. Other
-// Notify
-// // coming before is ignored.
-// if (!TObject::TestBit(AliAnalysisManager::kTrueNotify)) {
-//   TObject::SetBit(AliAnalysisManager::kTrueNotify);
-//   Notify();
-// }
-//
-// if (fDebug > 0)
-//   printf("MGR: Processing timeframe #%d\n", fNcalls);
-// else {
-//   if (fTree && (fTree != lastTree)) {
-//     nentries += fTree->GetEntries();
-//     lastTree = fTree;
-//   }
-//   if (!fNcalls)
-//     timer->Start();
-//   if (!fIsRemote && TObject::TestBit(kUseProgressBar))
-//     ProgressBar("Processing timeframe", fNcalls,
-//                 TMath::Min(fMaxEntries, nentries), timer, kFALSE);
-// }
-// fIOTimer->Start(kTRUE);
-// gROOT->cd();
-// TDirectory *cdir = gDirectory;
-// Bool_t getsysInfo =
-//     ((fNSysInfo > 0) && (fMode == kLocalAnalysis)) ? kTRUE : kFALSE;
-// if (getsysInfo && ((fNcalls % fNSysInfo) == 0))
-//   AliSysInfo::AddStamp("Exec_start", (Int_t)fNcalls);
-// if (!fInitOK) {
-//   Error("ExecAnalysis", "Analysis manager was not initialized !");
-//   if (cdir)
-//     cdir->cd();
-//   return;
-// }
-// fNcalls++;
-// AliAnalysisTask *task;
-// // Reset the analysis
-// ResetAnalysis();
-// // Check if the top tree is active.
-// if (fTree) {
-//   if (getsysInfo && ((fNcalls % fNSysInfo) == 0))
-//     AliSysInfo::AddStamp("Handlers_BeginEventGroup", fNcalls, 1002, 0);
-//   TIter next(fTasks);
-//   // De-activate all tasks (not needed anymore after ResetAnalysis
-//   //      while ((task=(AliAnalysisTask*)next()))
-//   task->SetActive(kFALSE);
-//   AliAnalysisDataContainer *cont = fCommonInput;
-//   if (!cont)
-//     cont = (AliAnalysisDataContainer *)fInputs->At(0);
-//   if (!cont) {
-//     Error("ExecAnalysis",
-//           "Cannot execute analysis in TSelector mode without "
-//           "at least one top container");
-//     if (cdir)
-//       cdir->cd();
-//     return;
-//   }
-//   cont->SetData(fTree); // This set activity for all tasks reading only
-//   from
-//                         // the top container
-//   Long64_t entry = fTree->GetTree()->GetReadEntry();
-//   //
-//   //    Call BeginEvent() for optional input/output and MC services
-//   if (fInputEventHandler)
-//     fInputEventHandler->BeginEvent(entry);
-//   if (getsysInfo && ((fNcalls % fNSysInfo) == 0))
-//     AliSysInfo::AddStamp("Handlers_BeginEvent", fNcalls, 1000, 0);
-//   //
-//   //    Execute the tasks
-//   //      TIter next1(cont->GetConsumers());
-//   fIOTimer->Stop();
-//   fIOTime += fIOTimer->RealTime();
-//   fCPUTimer->Start(kTRUE);
-//   TIter next1(fTopTasks);
-//   Int_t itask = 0;
-// while ((task = (AliAnalysisTask *)next1())) {
-//   task->SetActive(kTRUE);
-//   if (fDebug > 1) {
-//     cout << "    Executing task " << task->GetName() << endl;
-//   }
-//     if (fStatistics)
-//       fStatistics->StartTimer(GetTaskIndex(task), task->GetName(),
-//                               task->ClassName());
-//     do {
-//       task->ExecuteTask(option);
-//     } while (handler->NextEvent());
-//     if (fStatistics)
-//       fStatistics->StopTimer();
-//     gROOT->cd();
-//     if (getsysInfo && ((fNcalls % fNSysInfo) == 0))
-//       AliSysInfo::AddStamp(task->ClassName(), fNcalls, itask, 1);
-//     itask++;
-//   }
-//   fCPUTimer->Stop();
-//   fCPUTime += fCPUTimer->RealTime();
-//   fIOTimer->Start(kTRUE);
-//   //
-//   //    Call FinishEvent() for optional output and MC services
-//   if (fInputEventHandler)
-//     fInputEventHandler->FinishEvent();
-//   if (fOutputEventHandler)
-//     fOutputEventHandler->FinishEvent();
-//   if (fMCtruthEventHandler)
-//     fMCtruthEventHandler->FinishEvent();
-//   // Gather system information if requested
-//   if (getsysInfo && ((fNcalls % fNSysInfo) == 0))
-//     AliSysInfo::AddStamp("Handlers_FinishEvent", fNcalls, 1001, 1);
-//   if (cdir)
-//     cdir->cd();
-//   fIOTimer->Stop();
-//   fIOTime += fIOTimer->RealTime();
-//   return;
-// }
-// // The event loop is not controlled by TSelector
-// //
-// //  Call BeginEvent() for optional input/output and MC services
-// fIOTimer->Start(kTRUE);
-// if (fInputEventHandler)
-//   fInputEventHandler->BeginEvent(-1);
-// if (fOutputEventHandler)
-//   fOutputEventHandler->BeginEvent(-1);
-// if (fMCtruthEventHandler)
-//   fMCtruthEventHandler->BeginEvent(-1);
-// fIOTimer->Stop();
-// fIOTime += fIOTimer->RealTime();
-// gROOT->cd();
-// if (getsysInfo && ((fNcalls % fNSysInfo) == 0))
-//   AliSysInfo::AddStamp("Handlers_BeginEvent", fNcalls, 1000, 0);
-// fCPUTimer->Start(kTRUE);
-// TIter next2(fTopTasks);
-// while ((task = (AliAnalysisTask *)next2())) {
-//   task->SetActive(kTRUE);
-//   if (fDebug > 1) {
-//     cout << "    Executing task " << task->GetName() << endl;
-//   }
-//   if (fStatistics)
-//     fStatistics->StartTimer(GetTaskIndex(task), task->GetName(),
-//                             task->ClassName());
-//   task->ExecuteTask(option);
-//   if (fStatistics)
-//     fStatistics->StopTimer();
-//   gROOT->cd();
-// }
-// fCPUTimer->Stop();
-// fCPUTime += fCPUTimer->RealTime();
-// //
-// // Call FinishEvent() for optional output and MC services
-// fIOTimer->Start(kTRUE);
-// if (fInputEventHandler)
-//   fInputEventHandler->FinishEvent();
-// if (fOutputEventHandler)
-//   fOutputEventHandler->FinishEvent();
-// if (fMCtruthEventHandler)
-//   fMCtruthEventHandler->FinishEvent();
-// if (getsysInfo && ((fNcalls % fNSysInfo) == 0))
-//   AliSysInfo::AddStamp("Handlers_FinishEvent", fNcalls, 1000, 1);
-// if (cdir)
-//   cdir->cd();
-// fIOTimer->Stop();
-// fIOTime += fIOTimer->RealTime();

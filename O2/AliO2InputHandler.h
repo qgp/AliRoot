@@ -31,6 +31,7 @@ public:
   Bool_t NextBranch() { return kTRUE; }
   /// Get the next event from the current timeframe, returns false if none
   /// exist.
+  void skipPileups(bool setTo) { mSkipPileups = setTo; }
   virtual Bool_t NextEvent() {
     while (!mCurrentFile) {
       if (0 == mFiles.size()) {
@@ -42,8 +43,8 @@ public:
       if (mCurrentFile) {
         report(INFO, "Opened file %s", filename.c_str());
         mCurrentEvent = 0;
-        mTimeframe = dynamic_cast<O2Timeframe *>(
-            mCurrentFile->GetDirectory("MyTask")->Get("O2Timeframe"));
+        mTimeframe =
+            dynamic_cast<O2Timeframe *>(mCurrentFile->Get("O2Timeframe"));
       } else {
         report(WARN, "Couldn't open file %s", filename.c_str());
       }
@@ -56,14 +57,15 @@ public:
       return NextEvent();
     } else {
       mEvent = AliO2Event(mTimeframe->getEvent(mCurrentEvent++));
-      report(PASS, "Fetched event %d/%lu  ", mCurrentEvent,
-             mTimeframe->getNumberOfEvents());
+      if (mSkipPileups && mEvent.isPileup()) {
+        report(WARN, "Skipping pileup event");
+        return NextEvent();
+      }
       return kTRUE;
     }
   }
   virtual Bool_t Init(TTree *tree, Option_t *opt = "") { return kTRUE; }
   Bool_t initialize(const std::list<std::string> &files) {
-    std::cout << "Starting to Init handler" << std::endl;
     delete mCurrentFile;
     mCurrentFile = nullptr;
     mFiles = files;
@@ -72,17 +74,13 @@ public:
 
   /// Returns the current O2Event
   virtual AliVEvent *GetEvent() const {
-    report(INFO, "event requested");
     return const_cast<AliO2Event *>(&mEvent);
   }
   // Reads the specified timeframe from the tree.
   virtual Bool_t BeginEvent(Long64_t entry) { return kTRUE; }
   virtual Bool_t Notify() { return AliInputEventHandler::Notify(); }
   // says stuff
-  virtual Bool_t Notify(const char *path) {
-    AliInfo(Form("This should be a notification on %s", path));
-    return kTRUE;
-  }
+  virtual Bool_t Notify(const char *path) { return kTRUE; }
   // cleanup
   virtual Bool_t FinishEvent() {
     // delete mTimeframe;
@@ -131,6 +129,7 @@ private:
   Int_t mCurrentEvent = 0;
   TFile *mCurrentFile = nullptr;
   std::list<std::string> mFiles;
+  bool mSkipPileups = false;
   /// copy constructor prohibited
   AliO2InputHandler(const AliO2InputHandler &);
   /// assignment operator prohibited

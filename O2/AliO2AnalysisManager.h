@@ -11,6 +11,8 @@
 #include <AliAnalysisManager.h>
 
 #include "O2NotImplemented.h"
+#include <AliO2InputHandler.h>
+#include <TChain.h>
 #include <list>
 #include <string>
 #include <utilities/logging.h>
@@ -26,16 +28,29 @@ public:
   // /// Default constructor
   // AliO2AnalysisManager();
   /// Destructor
-  ~AliO2AnalysisManager();
-  void ExecAnalysis(Option_t *option = "");
-  virtual Int_t GetEntry(Long64_t entry, Int_t getall = 0) { return 0; }
+  virtual ~AliO2AnalysisManager();
+  // overwritten
+  virtual void ExecAnalysis(Option_t *option = "");
+
+  // new
   Bool_t initialize(const std::list<std::string> &tree);
-  virtual Bool_t Notify() { return kTRUE; }
-  virtual Bool_t ProcessCut(Long64_t entry) { return Process(entry); }
-  virtual Bool_t Process(Long64_t entry) { return kTRUE; };
+  // new
   void doAnalysis(const std::list<std::string> &files) {
-    std::cout << "Starting to doAnalysis " << std::endl;
+    if (!dynamic_cast<AliO2InputHandler *>(this->GetInputEventHandler())) {
+      TChain *chain = new TChain("esdTree");
+      for (auto it = files.begin(); it != files.end(); it++) {
+        chain->Add(it->c_str());
+      }
+      // call init
+      InitAnalysis();
+      // and perform analysis.
+      report(INFO, "start analysis");
+      AliAnalysisManager::StartAnalysis("local", chain);
+      return;
+    }
+    // call init
     initialize(files);
+    // and perform analysis.
     this->AliO2AnalysisManager::ExecAnalysis("");
   }
 
@@ -43,8 +58,6 @@ protected:
   // protected stuff goes here
 
 private:
-  Bool_t inputIsO2 = kFALSE;
-
   // root specific
   ClassDef(AliO2AnalysisManager, 1);
 };

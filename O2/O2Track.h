@@ -61,7 +61,8 @@ public:
   /// 1/pt (1/(GeV/c)), sign encodes charge.
   float GetInversePt() const { return mData.InversePt; }
   /// pt (GeV/c), sign encodes charge.
-  float GetPt() const { return 1.0 / mData.InversePt; }
+  float GetPt() const { return TMath::Abs(1.0 / mData.InversePt); }
+  float GetCovariance(size_t at) const { return mData.Covariance[at]; }
   virtual uint8_t *getData() { return (uint8_t *)&mData; }
   virtual size_t getDatasize() { return sizeof(mData); }
 

@@ -14,6 +14,7 @@
 /// https://www.gnu.org/copyleft/gpl.html
 
 #include "O2Timeframe.h"
+#include "O2CompressedArray.h"
 #include "O2Event.h"
 #include <AliESDEvent.h>
 #include <TRandom2.h>
@@ -140,10 +141,22 @@ O2Event O2Timeframe::getEvent(size_t index) {
         std::distance(ITSItUnambigousBegin, ITSItUnambigousEnd);
   }
   // ugly... just like that ^^^^``
-  return O2Event(vertex, global_track_array, size_global,
-                 offset_unambigous_global, size_unambigous_global,
-                 ITS_track_array, size_ITS, offset_unambigous_ITS,
-                 size_unambigous_ITS);
+  O2Vertex *lower_bound = vertex;
+  while ((lower_bound != mVertices.data()) &&
+         (lower_bound - 1)->getTimestamp() >
+             eventTime - vertex->getTimestampResolution()) {
+    lower_bound--;
+  }
+  O2Vertex *upper_bound = vertex;
+  while ((upper_bound != mVertices.data() + mVertices.size() - 1) &&
+         (upper_bound + 1)->getTimestamp() <
+             eventTime + vertex->getTimestampResolution()) {
+    upper_bound++;
+  }
+  return O2Event(lower_bound, 1 + (upper_bound - lower_bound),
+                 global_track_array, size_global, offset_unambigous_global,
+                 size_unambigous_global, ITS_track_array, size_ITS,
+                 offset_unambigous_ITS, size_unambigous_ITS);
 }
 
 /// Converts and adds an old ESD event to the timeframe with the given timestamp
@@ -278,6 +291,147 @@ void O2Timeframe::SerializeToBuffer(TBuffer &buffer) {
   buffer.SetByteCount(byteCountPosition, kTRUE);
 }
 
+O2Timeframe *O2Timeframe::NewFromStream(const istream &stream) {
+  O2Timeframe *timeframe = new O2Timeframe();
+  if (!timeframe) {
+    return nullptr;
+  }
+  return timeframe;
+}
+
+size_t O2Timeframe::estimate_compression() {
+  Int_t element_count;
+  element_count = mVertices.size();
+  O2::CompressedArray<float> array;
+  size_t estimate = 0;
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mVertices[i].GetX());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mVertices[i].GetY());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mVertices[i].GetZ());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mVertices[i].getTimestamp());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (int j = 0; j < 6; j++) {
+    for (Int_t i = 0; i < element_count; i++) {
+      array.push_value(mVertices[i].GetCovariance(j));
+    }
+    estimate += array.estimate_compression();
+    array.clear();
+  }
+
+  element_count = mGlobalTracks.size();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].GetX());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].GetY());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].GetZ());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].getTimestamp());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (int j = 0; j < 15; j++) {
+    for (Int_t i = 0; i < element_count; i++) {
+      array.push_value(mGlobalTracks[i].GetCovariance(j));
+    }
+    estimate += array.estimate_compression();
+    array.clear();
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].GetInversePt());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].GetAlpha());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].GetSinPhi());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mGlobalTracks[i].GetTanLambda());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+
+  element_count = mITSTracks.size();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].GetX());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].GetY());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].GetZ());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].getTimestamp());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (int j = 0; j < 15; j++) {
+    for (Int_t i = 0; i < element_count; i++) {
+      array.push_value(mITSTracks[i].GetCovariance(j));
+    }
+    estimate += array.estimate_compression();
+    array.clear();
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].GetInversePt());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].GetAlpha());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].GetSinPhi());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  for (Int_t i = 0; i < element_count; i++) {
+    array.push_value(mITSTracks[i].GetTanLambda());
+  }
+  estimate += array.estimate_compression();
+  array.clear();
+  return estimate;
+}
+
 void O2Timeframe::WriteToFile(const std::string &filename) {
   using namespace std;
   ofstream buffer;
@@ -286,39 +440,108 @@ void O2Timeframe::WriteToFile(const std::string &filename) {
   element_count = mVertices.size();
   buffer << element_count;
   for (Int_t i = 0; i < element_count; i++) {
-    buffer << mVertices[i].GetX();
+    float f = mVertices[i].GetX();
+    buffer.write((const char *)&f, 4);
   }
   for (Int_t i = 0; i < element_count; i++) {
-    buffer << mVertices[i].GetY();
+    float f = mVertices[i].GetY();
+    buffer.write((const char *)&f, 4);
   }
   for (Int_t i = 0; i < element_count; i++) {
-    buffer << mVertices[i].GetZ();
+    float f = mVertices[i].GetZ();
+    buffer.write((const char *)&f, 4);
   }
   for (Int_t i = 0; i < element_count; i++) {
-    buffer << mVertices[i].getTimestamp();
+    float f = mVertices[i].getTimestamp();
+    buffer.write((const char *)&f, 4);
   }
-  for (Int_t i = 0; i < element_count; i++) {
-    buffer << mVertices[i].getTimestampResolution();
-  }
-  for (Int_t i = 0; i < element_count; i++) {
-    for (int j = 0; j < 6; j++) {
-      buffer << mVertices[j].GetCovariance(j);
+  for (int j = 0; j < 6; j++) {
+    for (Int_t i = 0; i < element_count; i++) {
+      float f = mVertices[i].GetCovariance(j);
+      buffer.write((const char *)&f, 4);
     }
   }
 
   element_count = mGlobalTracks.size();
   buffer << element_count;
   for (Int_t i = 0; i < element_count; i++) {
-    // C style cast, ssssh, don't tell Mikolaj
-    buffer.write((const char *)mGlobalTracks[i].getData(),
-                 mGlobalTracks[i].getDatasize());
+    float f = mGlobalTracks[i].GetX();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mGlobalTracks[i].GetY();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mGlobalTracks[i].GetZ();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mGlobalTracks[i].getTimestamp();
+    buffer.write((const char *)&f, 4);
+  }
+  for (int j = 0; j < 15; j++) {
+    for (Int_t i = 0; i < element_count; i++) {
+      float f = mGlobalTracks[i].GetCovariance(j);
+      buffer.write((const char *)&f, 4);
+    }
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mGlobalTracks[i].GetInversePt();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mGlobalTracks[i].GetAlpha();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mGlobalTracks[i].GetSinPhi();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mGlobalTracks[i].GetTanLambda();
+    buffer.write((const char *)&f, 4);
   }
 
   element_count = mITSTracks.size();
   buffer << element_count;
   for (Int_t i = 0; i < element_count; i++) {
-    buffer.write((const char *)mITSTracks[i].getData(),
-                 mITSTracks[i].getDatasize());
+    float f = mITSTracks[i].GetX();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mITSTracks[i].GetY();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mITSTracks[i].GetZ();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mITSTracks[i].getTimestamp();
+    buffer.write((const char *)&f, 4);
+  }
+  for (int j = 0; j < 15; j++) {
+    for (Int_t i = 0; i < element_count; i++) {
+      float f = mITSTracks[i].GetCovariance(j);
+      buffer.write((const char *)&f, 4);
+    }
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mITSTracks[i].GetInversePt();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mITSTracks[i].GetAlpha();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mITSTracks[i].GetSinPhi();
+    buffer.write((const char *)&f, 4);
+  }
+  for (Int_t i = 0; i < element_count; i++) {
+    float f = mITSTracks[i].GetTanLambda();
+    buffer.write((const char *)&f, 4);
   }
   buffer.close();
 }

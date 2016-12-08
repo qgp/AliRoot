@@ -22,13 +22,14 @@ O2Event::O2Event() {}
 // default destructor
 O2Event::~O2Event() {}
 
-O2Event::O2Event(O2Vertex *Vertex, O2GlobalTrack *GlobalTracks,
-                 size_t NumberOfGlobalTracks,
+O2Event::O2Event(O2Vertex *Vertices, size_t NumberOfVertices,
+                 O2GlobalTrack *GlobalTracks, size_t NumberOfGlobalTracks,
                  size_t UnambigousGlobalTracksOffset,
                  size_t UnambigousGlobalTracksSize, O2ITSTrack *ITSTracks,
                  size_t NumberOfITSTracks, size_t UnambigousITSTracksOffset,
                  size_t UnambigousITSTracksSize) {
-  mVertex = Vertex;
+  mVertices = Vertices;
+  mNumberOfVertices = NumberOfVertices;
   mGlobalTracks = GlobalTracks;
   mNumberOfGlobalTracks = NumberOfGlobalTracks;
   mUnambigousGlobalTracksOffset = UnambigousGlobalTracksOffset;
