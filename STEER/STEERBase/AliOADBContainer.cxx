@@ -16,29 +16,26 @@
 /* $Id$ */
 
 //-------------------------------------------------------------------------
-//     Offline Analysis Database Container and Service Class 
+//     Offline Analysis Database Container and Service Class
 //     Author: Andreas Morsch, CERN
 //-------------------------------------------------------------------------
 
 #include "AliOADBContainer.h"
 #include "AliLog.h"
-#include <TObjArray.h>
-#include <TArrayI.h>
-#include <TFile.h>
-#include <TList.h>
-#include <TBrowser.h>
-#include <TSystem.h>
-#include <TGrid.h>
-#include <TError.h>
-#include <TROOT.h>
+#include "TObjArray.h"
+#include "TArrayI.h"
+#include "TFile.h"
+#include "TList.h"
+#include "TBrowser.h"
+#include "TSystem.h"
+#include "TGrid.h"
+#include "TError.h"
+#include "TROOT.h"
 #include "TObjString.h"
 #include "AliDataFile.h"
 #include "AliLog.h"
 
-ClassImp(AliOADBContainer);
-
-//______________________________________________________________________________
-AliOADBContainer::AliOADBContainer() : 
+AliOADBContainer::AliOADBContainer() :
   TNamed(),
   fArray(0),
   fDefaultList(0),
@@ -50,7 +47,7 @@ AliOADBContainer::AliOADBContainer() :
   // Default constructor
 }
 
-AliOADBContainer::AliOADBContainer(const char* name) : 
+AliOADBContainer::AliOADBContainer(const char* name) :
   TNamed(name, "OADBContainer"),
   fArray(new TObjArray(100)),
   fDefaultList(new TList()),
@@ -62,18 +59,14 @@ AliOADBContainer::AliOADBContainer(const char* name) :
   // Constructor
 }
 
-
-//______________________________________________________________________________
-AliOADBContainer::~AliOADBContainer() 
+AliOADBContainer::~AliOADBContainer()
 {
   // destructor
-  if (fArray)       delete fArray;
-  if (fDefaultList) delete fDefaultList;
-  if (fPassNames)   delete fPassNames;
-
+  delete fArray;
+  delete fDefaultList;
+  delete fPassNames;
 }
 
-//______________________________________________________________________________
 AliOADBContainer::AliOADBContainer(const AliOADBContainer& cont) :
   TNamed(cont),
   fArray(cont.fArray),
@@ -98,19 +91,19 @@ AliOADBContainer& AliOADBContainer::operator=(const AliOADBContainer& cont)
     fLowerLimits.Set(fEntries);
     fUpperLimits.Set(fEntries);
     for (Int_t i = 0; i < fEntries; i++) {
-	fLowerLimits[i] = cont.fLowerLimits[i]; 
+	fLowerLimits[i] = cont.fLowerLimits[i];
 	fUpperLimits[i] = cont.fUpperLimits[i];
 	fArray->AddAt(cont.fArray->At(i), i);
 	if (cont.fPassNames) if (cont.fPassNames->At(i)) fPassNames->AddAt(cont.fPassNames->At(i), i);
     }
+    // Copy default objects
+    TList* list = cont.GetDefaultList();
+    TIter next(list);
+    TObject* obj;
+    while((obj = next()))
+      fDefaultList->Add(obj);
   }
-  //
-  // Copy default objects
-  TList* list = cont.GetDefaultList();
-  TIter next(list);
-  TObject* obj;
-  while((obj = next())) fDefaultList->Add(obj);
-  //
+
   return *this;
 }
 
@@ -121,11 +114,11 @@ void AliOADBContainer::AppendObject(TObject* obj, Int_t lower, Int_t upper, TStr
     for (Int_t i=0;i<fArray->GetEntriesFast();i++) fPassNames->Add(new TObjString(""));
   }
   //
-  // Append a new object to the list 
+  // Append a new object to the list
   //
   // Check that there is no overlap with existing run ranges
   Int_t index = HasOverlap(lower, upper, passName);
-  
+
   if (index != -1) {
     AliFatal(Form("Ambiguos validity range (%5d, %5.5d-%5.5d) !\n", index,lower,upper));
     return;
@@ -150,11 +143,11 @@ void AliOADBContainer::RemoveObject(Int_t idx)
   }
 
   //
-  // Remove object from the list 
+  // Remove object from the list
 
   //
-  // Check that index is inside range 
-  if (idx < 0 || idx >= fEntries) 
+  // Check that index is inside range
+  if (idx < 0 || idx >= fEntries)
     {
       AliError(Form("Index out of Range %5d >= %5d", idx, fEntries));
       return;
@@ -169,7 +162,7 @@ void AliOADBContainer::RemoveObject(Int_t idx)
   //
   // Adjust the run ranges and shrink the array
   for (Int_t i = idx; i < (fEntries-1); i++) {
-    fLowerLimits[i] = fLowerLimits[i + 1]; 
+    fLowerLimits[i] = fLowerLimits[i + 1];
     fUpperLimits[i] = fUpperLimits[i + 1];
     fArray->AddAt(fArray->At(i+1), i);
     fPassNames->AddAt(fPassNames->At(i+1),i);
@@ -182,23 +175,23 @@ void AliOADBContainer::RemoveObject(Int_t idx)
 void AliOADBContainer::UpdateObject(Int_t idx, TObject* obj, Int_t lower, Int_t upper, TString passName)
 {
   //
-  // Update an existing object, at a given position 
+  // Update an existing object, at a given position
 
   // Check that index is inside range
-  if (idx < 0 || idx >= fEntries) 
+  if (idx < 0 || idx >= fEntries)
     {
       AliError(Form("Index out of Range %5d >= %5d", idx, fEntries));
       return;
     }
   //
   // Remove the old object and reset the range
-  //  TObject* obj2 = 
+  //  TObject* obj2 =
   fArray->RemoveAt(idx);
   // don't delete it: if you are updating it may be pointing to the same location of obj...
   //  delete obj2;
   fLowerLimits[idx] = -1;
   fUpperLimits[idx] = -1;
-  // Check that there is no overlap with existing run ranges  
+  // Check that there is no overlap with existing run ranges
   Int_t index = HasOverlap(lower, upper,passName);
   if (index != -1) {
     AliFatal(Form("Ambiguos validity range (%5d, %5.5d-%5.5d) !\n", index,lower,upper));
@@ -212,9 +205,8 @@ void AliOADBContainer::UpdateObject(Int_t idx, TObject* obj, Int_t lower, Int_t 
   TObjString* pass = (TObjString*) fPassNames->At(idx);
   pass->SetString(passName.Data());
   fArray->AddAt(obj, idx);
-
 }
- 
+
 void  AliOADBContainer::AddDefaultObject(TObject* obj)
 {
   // Add a default object
@@ -230,11 +222,11 @@ void  AliOADBContainer::CleanDefaultList()
 Int_t AliOADBContainer::GetIndexForRun(Int_t run, TString passName) const
 {
   //
-  // Find the index for a given run 
-  
+  // Find the index for a given run
+
   Int_t found = 0;
   Int_t index = -1;
-  for (Int_t i = 0; i < fEntries; i++) 
+  for (Int_t i = 0; i < fEntries; i++)
     {
 	if (fPassNames) if (fPassNames->At(i)) if (passName.CompareTo(fPassNames->At(i)->GetName())) continue;
 	if (run >= fLowerLimits[i] && run <= fUpperLimits[i])
@@ -249,7 +241,7 @@ Int_t AliOADBContainer::GetIndexForRun(Int_t run, TString passName) const
   } else if (index == -1) {
     AliWarning(Form("No object (%s) found for run %5d !\n", GetName(), run));
   }
-  
+
   return index;
 }
 
@@ -309,7 +301,7 @@ TObject* AliOADBContainer::GetObjectByIndex(Int_t run) const
 TObject* AliOADBContainer::GetPassNameByIndex(Int_t idx) const
 {
   // Return object for given index
-  if (!fPassNames) return NULL; 
+  if (!fPassNames) return NULL;
   return (fPassNames->At(idx));
 }
 
@@ -337,7 +329,7 @@ void AliOADBContainer::List()
   //
   // List Objects
   printf("Entries %d\n", fEntries);
-  
+
   for (Int_t i = 0; i < fEntries; i++) {
     printf("Lower %5d Upper %5d \n", fLowerLimits[i], fUpperLimits[i]);
     (fArray->At(i))->Dump();
@@ -378,8 +370,8 @@ void AliOADBContainer::Browse(TBrowser *b)
     TIter next(fDefaultList);
     TObject* obj;
     while((obj = next())) b->Add(obj);
-        
-  }     
+
+  }
    else
       TObject::Browse(b);
 }
