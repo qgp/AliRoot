@@ -2,6 +2,7 @@
 #define ALIDATAFILE_H
 
 #include <stdexcept>
+#include <memory>
 
 #include "TSystem.h"
 #include "TFile.h"
@@ -34,6 +35,18 @@ class AliDataFile {
         return 0;
     }
 
+    // // better implementation
+    // // which is too complicated for rootcint ...
+    // static std::unique_ptr<AliOADBContainer> GetOADBContainerUnique(const std::string &url, const std::string container) {
+    //   TFile *f = OpenOADB(url);
+
+    //   std::unique_ptr<AliOADBContainer> cont
+    //     { (f && !f->IsZombie()) ?
+    //         new AliOADBContainer(*((AliOADBContainer*) f->Get(container.c_str()))) :
+    //         nullptr };
+    //   return cont;
+    // }
+
     // modern C++ interface
     // (cheap with move construction)
     static AliOADBContainer GetOADBContainer(const std::string &url, const std::string container) {
@@ -45,16 +58,9 @@ class AliDataFile {
       if (!cont)
         throw std::runtime_error("failure to get OADB container");
 
-      AliOADBContainer contCopy = *cont;
+      AliOADBContainer contCopy{*cont};
       f->Close();
       return contCopy;
-    }
-
-    protected:
-    static std::string GetEnv(const std::string &var) {
-      const char *env = gSystem->Getenv("ALIPHYSICS_VERSION");
-      std::string buf = env ? std::string(buf) : "";
-      return buf;
     }
 
   /// \cond CLASSIMP
