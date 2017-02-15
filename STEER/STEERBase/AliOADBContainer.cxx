@@ -76,7 +76,24 @@ AliOADBContainer::AliOADBContainer(const AliOADBContainer& cont) :
   fUpperLimits(cont.fUpperLimits),
   fEntries(cont.fEntries)
 {
-  // Copy constructor.
+  // Copy constructor
+  AliFatal("using flawed copy constructor");
+}
+
+AliOADBContainer::AliOADBContainer(AliOADBContainer&& cont) :
+  TNamed(cont),
+  fArray(cont.fArray),
+  fDefaultList(cont.fDefaultList),
+  fPassNames(cont.fPassNames),
+  fLowerLimits(cont.fLowerLimits),
+  fUpperLimits(cont.fUpperLimits),
+  fEntries(cont.fEntries)
+{
+  // move constructor
+
+  cont.fArray = nullptr;
+  cont.fDefaultList = nullptr;
+  cont.fPassNames = nullptr;
 }
 
 //______________________________________________________________________________

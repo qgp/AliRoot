@@ -25,6 +25,7 @@ class AliOADBContainer : public TNamed {
   AliOADBContainer(const char* name);
   virtual ~AliOADBContainer();
   AliOADBContainer(const AliOADBContainer& cont); 
+  AliOADBContainer(AliOADBContainer&& cont); 
   AliOADBContainer& operator=(const AliOADBContainer& cont);
 // Object adding and removal
   void   AppendObject(TObject* obj, Int_t lower, Int_t upper, TString passName="");
