@@ -33,6 +33,7 @@
 #include <TROOT.h>
 #include "TObjString.h"
 #include "AliDataFile.h"
+#include "AliLog.h"
 
 ClassImp(AliOADBContainer);
 
@@ -326,37 +327,8 @@ void AliOADBContainer::WriteToFile(const char* fname) const
 Int_t AliOADBContainer::InitFromFile(const char* fname, const char* key)
 {
     // Initialize object from file
-    AliOADBContainer* cont  = AliDataFile::GetOADBContainerPointer(fname, key);
-    if (!cont)
-    {
-      AliError(Form("Object (%s) not found in file \n", GetName()));	
-	return 1;
-    }
-
-    SetName(cont->GetName());
-    SetTitle(cont->GetTitle());
-
-    fEntries = cont->GetNumberOfEntries();
-    fLowerLimits.Set(fEntries);
-    fUpperLimits.Set(fEntries);
-    if(fEntries > fArray->GetSize()) fArray->Expand(fEntries);
-    if (!fPassNames) fPassNames = new TObjArray(100);
-    if(fEntries > fPassNames->GetSize()) fPassNames->Expand(fEntries);
-
-    for (Int_t i = 0; i < fEntries; i++) {
-	fLowerLimits[i] = cont->LowerLimit(i); 
-	fUpperLimits[i] = cont->UpperLimit(i);
-	fArray->AddAt(cont->GetObjectByIndex(i), i);
-	TObject* passName = cont->GetPassNameByIndex(i);
-	fPassNames->AddAt(passName ? passName : new TObjString(""), i);
-    }
-    if (!fDefaultList) fDefaultList = new TList(); 
-    TIter next(cont->GetDefaultList());
-    TObject* obj;
-    while((obj = next())) fDefaultList->Add(obj);
-
+    *this = AliDataFile::GetOADBContainer(fname, key);
     return 0;
-    
 }
 
 
@@ -410,21 +382,4 @@ void AliOADBContainer::Browse(TBrowser *b)
   }     
    else
       TObject::Browse(b);
-}
-
-//______________________________________________________________________________
-const char* AliOADBContainer::GetOADBPath()
-{
-// returns the path of the OADB
-// this static function just depends on environment variables
-
-   static TString oadbPath;
-
-   if (gSystem->Getenv("OADB_PATH"))
-      oadbPath = gSystem->Getenv("OADB_PATH");
-   else if (gSystem->Getenv("ALICE_ROOT"))
-      oadbPath.Form("%s/OADB", gSystem->Getenv("ALICE_ROOT"));
-   else
-   ::Fatal("AliAnalysisManager::GetOADBPath", "Cannot figure out AODB path. Define ALICE_ROOT or OADB_PATH!");
-   return oadbPath;
 }

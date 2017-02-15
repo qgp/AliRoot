@@ -3,7 +3,8 @@
 #include "TSystem.h"
 #include <iostream>
 
-std::string AliDataFile::GetFileName(const std::string &url) {
+std::string AliDataFile::GetFileName(const std::string &url,
+                                     std::vector<std::string> paths) {
   // trying to read a data file from the following sources
   // (in order of priority):
   //
@@ -13,9 +14,6 @@ std::string AliDataFile::GetFileName(const std::string &url) {
   // $ALICE_ROOT/../../../../data/analysis/YYYY/VVVV/<url>
   // /cvmfs/alice.cern.ch/data/analysis/YYYY/VVVV/<url>
   // root://eospublic.cern.ch//eos/experiment/alice/analysis-data/<url>
-
-  static const std::vector<std::string>
-    paths { "ALICE_DATA", "ALICE_PHYSICS", "ALICE_ROOT" };
 
   for (const auto &prefix : paths) {
     if (const char *env = gSystem->Getenv(prefix.c_str())) {

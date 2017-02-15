@@ -72,7 +72,6 @@ fTuneMConData(kFALSE),
 fTuneMConDataMask(kDetTOF|kDetTPC),
 fIsMC(isMC),
 fCachePID(kFALSE),
-fOADBPath(),
 fCustomTPCpidResponse(),
 fCustomTPCpidResponseOADBFile(),
 fCustomTPCetaMaps(),
@@ -150,7 +149,6 @@ fTuneMConData(other.fTuneMConData),
 fTuneMConDataMask(other.fTuneMConDataMask),
 fIsMC(other.fIsMC),
 fCachePID(other.fCachePID),
-fOADBPath(other.fOADBPath),
 fCustomTPCpidResponse(other.fCustomTPCpidResponse),
 fCustomTPCpidResponseOADBFile(other.fCustomTPCpidResponseOADBFile),
 fCustomTPCetaMaps(other.fCustomTPCetaMaps),
@@ -213,7 +211,6 @@ AliPIDResponse& AliPIDResponse::operator=(const AliPIDResponse &other)
     fEMCALResponse=other.fEMCALResponse;
     fRange=other.fRange;
     fITSPIDmethod=other.fITSPIDmethod;
-    fOADBPath=other.fOADBPath;
     fCustomTPCpidResponse=other.fCustomTPCpidResponse;
     fCustomTPCpidResponseOADBFile=other.fCustomTPCpidResponseOADBFile;
     fCustomTPCetaMaps=other.fCustomTPCetaMaps;
@@ -1855,7 +1852,7 @@ void AliPIDResponse::SetTRDEtaMaps()
     const TString containerName = "TRDCorrectionMaps";
     AliOADBContainer cont(containerName.Data());
 
-    const TString filePathNamePackage=Form("%s/COMMON/PID/data/TRDdEdxCorrectionMaps.root", fOADBPath.Data());
+    const TString filePathNamePackage=AliDataFile::GetFileName("COMMON/PID/data/TRDdEdxCorrectionMaps.root");
 
     const Int_t statusCont = cont.InitFromFile(filePathNamePackage.Data(), cont.GetName());
     if (statusCont){
