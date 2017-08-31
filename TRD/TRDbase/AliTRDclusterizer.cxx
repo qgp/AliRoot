@@ -96,6 +96,9 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDReconstructor *const rec)
   ,fBaseline(0)
   ,fRawStream(NULL)
   ,fTrgFlags()
+  ,fTiming()
+  ,fLME()
+  ,fTrackletEndmarker()
 {
   //
   // AliTRDclusterizer default constructor
@@ -158,6 +161,9 @@ AliTRDclusterizer::AliTRDclusterizer(const Text_t *name
   ,fBaseline(0)
   ,fRawStream(NULL)
   ,fTrgFlags()
+  ,fTiming()
+  ,fLME()
+  ,fTrackletEndmarker()
 {
   //
   // AliTRDclusterizer constructor
@@ -213,6 +219,9 @@ AliTRDclusterizer::AliTRDclusterizer(const AliTRDclusterizer &c)
   ,fBaseline(0)
   ,fRawStream(NULL)
   ,fTrgFlags()
+  ,fTiming()
+  ,fLME()
+  ,fTrackletEndmarker()
 {
   //
   // AliTRDclusterizer copy constructor
@@ -743,6 +752,11 @@ Bool_t AliTRDclusterizer::Raw2ClustersChamber(AliRawReader *rawReader)
 
   for (Int_t iSector = 0; iSector < AliTRDgeometry::kNsector; iSector++) {
     fTrgFlags[iSector] = fRawStream->GetTriggerFlags(iSector);
+    for (Int_t iStack = 0; iStack < AliTRDgeometry::kNstack; iStack++) {
+      fTiming[iSector*5 + iStack] = fRawStream->GetTrkFlags(iSector, iStack);
+      fLME[iSector*5 + iStack] = fRawStream->GetLinkMonitorFlags(iSector, iStack);
+      fTrackletEndmarker[iSector*5 + iStack] = 0;
+    }
   }
 
   if(fReconstructor->IsWritingClusters()) WriteClusters(-1);

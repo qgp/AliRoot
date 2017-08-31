@@ -66,6 +66,9 @@ AliTRDrawData::AliTRDrawData()
   ,fStackindexPos(0)
   ,fEventCounter(0)
   ,fTrgFlags()
+  ,fTiming()
+  ,fLME()
+  ,fTrackletEndmarker()
   ,fMcmSim(new AliTRDmcmSim)
   ,fDigitsParam(NULL)
 {
@@ -92,6 +95,9 @@ AliTRDrawData::AliTRDrawData(const AliTRDrawData &r)
   ,fStackindexPos(0)
   ,fEventCounter(0)
   ,fTrgFlags()
+  ,fTiming()
+  ,fLME()
+  ,fTrackletEndmarker()
   ,fMcmSim(new AliTRDmcmSim)
   ,fDigitsParam(NULL)
 {
@@ -639,6 +645,11 @@ AliTRDdigitsManager *AliTRDrawData::Raw2Digits(AliRawReader *rawReader)
 
   for (Int_t iSector = 0; iSector < fGeo->Nsector(); iSector++) {
     fTrgFlags[iSector] = input.GetTriggerFlags(iSector);
+    for (Int_t iStack = 0; iStack < AliTRDgeometry::kNstack; iStack++) {
+      fTiming[iSector*5 + iStack] = input.GetTrkFlags(iSector, iStack);
+      fLME[iSector*5 + iStack] = input.GetLinkMonitorFlags(iSector, iStack);
+      fTrackletEndmarker[iSector*5 + iStack] = 0;
+    }
   }
 
   // ----- tracklet output -----

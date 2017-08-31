@@ -204,7 +204,15 @@ void AliTRDReconstructor::ConvertDigits(AliRawReader *rawReader
   manager->WriteDigits();
   delete manager;
 
-  for (Int_t iSector = 0; iSector < 18; iSector++) fgTriggerFlags.SetFlags(iSector, rawData.GetTriggerFlags(iSector));
+  for (Int_t iSector = 0; iSector < 18; iSector++) {
+    fgTriggerFlags.SetFlags(iSector, rawData.GetTriggerFlags(iSector));
+    for (Int_t iStack = 0; iStack < 5; iStack++) {
+      fgTriggerFlags.SetTiming(iSector*5 + iStack, rawData.GetTiming(iSector*5 + iStack));
+      fgTriggerFlags.SetLME(iSector*5 + iStack, rawData.GetLME(iSector*5 + iStack));
+      fgTriggerFlags.SetTrackletEndmarker(iSector*5 + iStack, rawData.GetTrackletEndmarker(iSector*5 + iStack));
+      // printf("timing: 0x%04x - 0x%04x\n", rawData.GetTiming(iSector*5 + iStack), fgTriggerFlags.GetTiming(iSector*5 + iStack));
+    }
+  }
 }
 
 //_____________________________________________________________________________
@@ -230,7 +238,14 @@ void AliTRDReconstructor::Reconstruct(AliRawReader *rawReader
   fClusterizer->ResetRecPoints();
   fClusterizer->Raw2ClustersChamber(rawReader);
   fgNTimeBins = fClusterizer->GetNTimeBins();
-  for (Int_t iSector = 0; iSector < 18; iSector++) fgTriggerFlags.SetFlags(iSector, fClusterizer->GetTriggerFlags(iSector));
+  for (Int_t iSector = 0; iSector < 18; iSector++) {
+    fgTriggerFlags.SetFlags(iSector, fClusterizer->GetTriggerFlags(iSector));
+    for (Int_t iStack = 0; iStack < 5; iStack++) {
+      fgTriggerFlags.SetTiming(iSector*5 + iStack, fClusterizer->GetTiming(iSector*5 + iStack));
+      fgTriggerFlags.SetLME(iSector*5 + iStack, fClusterizer->GetLME(iSector*5 + iStack));
+      fgTriggerFlags.SetTrackletEndmarker(iSector*5 + iStack, fClusterizer->GetTrackletEndmarker(iSector*5 + iStack));
+    }
+  }
 }
 
 //_____________________________________________________________________________

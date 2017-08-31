@@ -45,7 +45,10 @@ class AliTRDrawData : public TObject {
   void                    SetTracklets(TClonesArray*) { AliError("Deprecated, not doing anything."); }
   void                    SetTracks(TClonesArray*) { AliError("Deprecated, not doing anything"); }
 
-  UInt_t  GetTriggerFlags(const Int_t sector) const { return fTrgFlags[sector]; }
+  UInt_t   GetTriggerFlags(const Int_t sector) const { return fTrgFlags[sector]; }
+  UInt_t   GetTiming(const Int_t stack) const { return fTiming[stack]; }
+  UInt_t   GetLME(const Int_t stack) const { return fLME[stack]; }
+  UShort_t GetTrackletEndmarker(const Int_t stack) const { return fTrackletEndmarker[stack]; }
 
  protected:
 
@@ -77,6 +80,9 @@ class AliTRDrawData : public TObject {
   Int_t   fStackindexPos;             // Position of SM index word
   UInt_t  fEventCounter;              // Event counter(starting from 1)
   UInt_t  fTrgFlags[AliTRDgeometry::kNsector]; // trigger flags
+  UInt_t    fTiming[AliTRDgeometry::kNsector*AliTRDgeometry::kNstack]; // timing
+  UInt_t    fLME[AliTRDgeometry::kNsector*AliTRDgeometry::kNstack]; // link monitor flags
+  UShort_t  fTrackletEndmarker[AliTRDgeometry::kNsector*AliTRDgeometry::kNstack]; // tracklet endmarker seen flags
   AliTRDmcmSim      *fMcmSim;         //! MCM simulation for raw data output
   AliTRDdigitsParam *fDigitsParam;    // Digits parameter
 

@@ -119,6 +119,9 @@ class AliTRDclusterizer : public TNamed
   void             SetStoreRawSignals(Bool_t b=kTRUE) {SetBit(kRawSignal, b); }
 
   UInt_t   GetTriggerFlags(const Int_t sector) const { return fTrgFlags[sector]; }
+  UInt_t   GetTiming(const Int_t stack) const { return fTiming[stack]; }
+  UInt_t   GetLME(const Int_t stack) const { return fLME[stack]; }
+  UShort_t GetTrackletEndmarker(const Int_t stack) const { return fTrackletEndmarker[stack]; }
 
 protected:
 
@@ -179,10 +182,15 @@ protected:
   Int_t                fBaseline;                 // Baseline of the ADC values
   AliTRDrawStream     *fRawStream;                // Raw data streamer
   UInt_t               fTrgFlags[AliTRDgeometry::kNsector]; // trigger flags
+
+  UInt_t               fTiming[AliTRDgeometry::kNsector*AliTRDgeometry::kNstack]; // trigger flags
+  UInt_t               fLME[AliTRDgeometry::kNsector*AliTRDgeometry::kNstack]; // trigger flags
+  UShort_t             fTrackletEndmarker[AliTRDgeometry::kNsector*AliTRDgeometry::kNstack]; // trigger flags
+
 private:
   inline void      CalcAdditionalInfo(const MaxStruct &Max, Short_t *const signals, Int_t &nPadCount);
 
-  ClassDef(AliTRDclusterizer,7)                   //  TRD clusterfinder
+  ClassDef(AliTRDclusterizer,7)               //  TRD clusterfinder
 
 };
 
